@@ -15,10 +15,10 @@
     t.step_timeout(function() {
       elem.style.color = 'red';
 
-      t.step_timeout(function() {
+      t.step_timeout(async function() {
         document.body.removeChild(elem);
         elem = null;
-        window.gc();
+        await TestUtils.gc();
         t.step_timeout(t.step_func_done(), 100);
       }, 0);
     }, 0);

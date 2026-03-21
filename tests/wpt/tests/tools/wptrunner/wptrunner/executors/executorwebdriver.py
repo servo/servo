@@ -40,6 +40,7 @@ from .protocol import (BaseProtocolPart,
                        BidiBluetoothProtocolPart,
                        BidiBrowsingContextProtocolPart,
                        BidiEmulationProtocolPart,
+                       BidiUserAgentClientHintsProtocolPart,
                        BidiEventsProtocolPart,
                        BidiPermissionsProtocolPart,
                        BidiScriptProtocolPart,
@@ -80,7 +81,11 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
         return method(script, args=args)
 
     def set_timeout(self, timeout):
-        self.webdriver.timeouts.script = timeout
+        # TODO(webdriver/w3c#1949): The struct definition contradicts the
+        # algorithm on whether fractional timeouts are allowed. There's not a
+        # large difference for non-wdspec testing either way, so coerce to int
+        # until there's a resolution.
+        self.webdriver.timeouts.script = int(timeout)
 
     def create_window(self, type=None, **kwargs):
         # WebKitGTK-based browsers have issues when the test is opened in a new tab instead of a separate window
@@ -352,6 +357,19 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
         return self.webdriver.bidi_session.add_event_listener(name=name, fn=fn)
 
 
+class WebDriverBidiUserAgentClientHintsProtocolPart(BidiUserAgentClientHintsProtocolPart):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.webdriver = None
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    async def set_client_hints_override(self, client_hints, contexts):
+        return await self.webdriver.bidi_session.user_agent_client_hints.set_client_hints_override(
+            client_hints=client_hints, contexts=contexts)
+
+
 class WebDriverBidiScriptProtocolPart(BidiScriptProtocolPart):
     def __init__(self, parent):
         super().__init__(parent)
@@ -388,6 +406,10 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
             contexts):
         return await self.webdriver.bidi_session.emulation.set_screen_orientation_override(
             screen_orientation=screen_orientation, contexts=contexts)
+
+    async def set_touch_override(self, max_touch_points, contexts):
+        return await self.webdriver.bidi_session.emulation.set_touch_override(
+            max_touch_points=max_touch_points, contexts=contexts)
 
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
@@ -1127,6 +1149,7 @@ class WebDriverBidiProtocol(WebDriverProtocol):
                   WebDriverBidiPermissionsProtocolPart,
                   WebDriverBidiScriptProtocolPart,
                   WebDriverBidiWebExtensionsProtocolPart,
+                  WebDriverBidiUserAgentClientHintsProtocolPart,
                   *(part for part in WebDriverProtocol.implements)
                   ]
 

@@ -43,7 +43,7 @@
   promise_test(async t => {
     var optedout = document.getElementById("optedout");
 
-    optedout.focus();
+    await focusAndWait(optedout);
     assert_equals(document.activeElement, optedout, "Should be able to manually focus opted-out element");
 
     // Arrow keys should not work from an opted-out element.

@@ -76,13 +76,6 @@ impl<'a> ConstraintSpace<'a> {
             preferred_aspect_ratio,
         }
     }
-
-    fn new_for_style_and_ratio(
-        style: &'a ComputedValues,
-        preferred_aspect_ratio: Option<AspectRatio>,
-    ) -> Self {
-        Self::new(SizeConstraint::default(), style, preferred_aspect_ratio)
-    }
 }
 
 /// A variant of [`ContainingBlock`] that allows an indefinite inline size.
@@ -157,7 +150,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
 /// Data that is propagated from ancestors to descendants during [`crate::flow::BoxTree`]
 /// construction.  This allows data to flow in the reverse direction of the typical layout
 /// propoagation, but only during `BoxTree` construction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 struct PropagatedBoxTreeData {
     allow_percentage_column_in_tables: bool,
 }

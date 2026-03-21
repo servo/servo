@@ -17,9 +17,14 @@ const serverCertificateHashes = [
 ];
 
 [
+  // Connection to url allowlisted in connect-src should be allowed.
   {url: url1, options: {}},
+  // Connection to url not allowlisted in connect-src should be blocked.
   {url: url2, options: {}, expected: "connect-src"},
-  {url: url2, options: {serverCertificateHashes}, expected: "connect-src"},
+  // Connection with serverCertificateHashes to url allowlisted in connect-src
+  // should be blocked, since connect-src does not specify
+  // 'unsafe-webtransport-hashes'.
+  {url: url1, options: {serverCertificateHashes}, expected: "connect-src"},
 ].forEach(({url, options, expected}) => promise_test(async t => {
   const haveViolation = new Promise(r => window.onsecuritypolicyviolation = r);
   try {

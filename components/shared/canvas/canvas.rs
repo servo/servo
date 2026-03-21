@@ -795,7 +795,7 @@ impl CanvasFont {
             FontIdentifier::Local(local_font_identifier) => {
                 local_font_identifier.font_data_and_index()
             },
-            FontIdentifier::Web(_) => None,
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => None,
         })
     }
 }

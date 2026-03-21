@@ -7,13 +7,12 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
+use constellation_traits::{EmbedderToConstellationMessage, ScrollStateUpdate, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, InputEvent, InputEventAndId, InputEventId, InputEventResult, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PaintHitTestResult, Scroll,
-    ScrollEvent as EmbedderScrollEvent, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
-    WheelEvent,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PaintHitTestResult, Scroll, TouchEvent,
+    TouchEventType, ViewportDetails, WebViewPoint, WheelEvent,
 };
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
@@ -35,7 +34,9 @@ use crate::painter::Painter;
 use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
 use crate::refresh_driver::BaseRefreshDriver;
-use crate::touch::{PendingTouchInputEvent, TouchHandler, TouchMoveAllowed, TouchSequenceState};
+use crate::touch::{
+    PendingTouchInputEvent, TouchHandler, TouchIdMoveTracking, TouchMoveAllowed, TouchSequenceState,
+};
 
 #[derive(Clone, Copy)]
 pub(crate) struct ScrollEvent {
@@ -43,8 +44,6 @@ pub(crate) struct ScrollEvent {
     pub scroll: Scroll,
     /// Scroll the scroll node that is found at this point.
     pub point: DevicePoint,
-    /// The number of OS events that have been coalesced together into this one event.
-    pub event_count: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -230,23 +229,33 @@ impl WebViewRenderer {
         self.set_frame_tree_on_pipeline_details(frame_tree, None);
     }
 
-    pub(crate) fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: PipelineId) {
+    pub(crate) fn send_scroll_positions_to_layout_for_pipeline(
+        &self,
+        pipeline_id: PipelineId,
+        scrolled_node: ExternalScrollId,
+    ) {
         let Some(details) = self.pipelines.get(&pipeline_id) else {
             return;
         };
 
-        let scroll_offsets = details.scroll_tree.scroll_offsets();
+        let offsets = details.scroll_tree.scroll_offsets();
 
         // This might be true if we have not received a display list from the layout
         // associated with this pipeline yet. In that case, the layout is not ready to
         // receive scroll offsets anyway, so just save time and prevent other issues by
         // not sending them.
-        if scroll_offsets.is_empty() {
+        if offsets.is_empty() {
             return;
         }
 
         let _ = self.embedder_to_constellation_sender.send(
-            EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_offsets),
+            EmbedderToConstellationMessage::SetScrollStates(
+                pipeline_id,
+                ScrollStateUpdate {
+                    scrolled_node,
+                    offsets,
+                },
+            ),
         );
     }
 
@@ -259,6 +268,11 @@ impl WebViewRenderer {
         let pipeline_details = self.ensure_pipeline_details(pipeline_id);
         pipeline_details.pipeline = Some(frame_tree.pipeline.clone());
         pipeline_details.parent_pipeline_id = parent_pipeline_id;
+        pipeline_details.children = frame_tree
+            .children
+            .iter()
+            .map(|frame_tree| frame_tree.pipeline.id)
+            .collect();
 
         for kid in &frame_tree.children {
             self.set_frame_tree_on_pipeline_details(kid, Some(pipeline_id));
@@ -320,6 +334,26 @@ impl WebViewRenderer {
     fn update_animation_state(&mut self) {
         self.animating = self.pipelines.values().any(PipelineDetails::animating);
         self.webview.set_animating(self.animating());
+    }
+
+    pub(crate) fn for_each_connected_pipeline(&self, callback: &mut impl FnMut(&PipelineDetails)) {
+        if let Some(root_pipeline_id) = self.root_pipeline_id {
+            self.for_each_connected_pipeline_internal(root_pipeline_id, callback);
+        }
+    }
+
+    fn for_each_connected_pipeline_internal(
+        &self,
+        pipeline_id: PipelineId,
+        callback: &mut impl FnMut(&PipelineDetails),
+    ) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+        callback(pipeline);
+        for child_pipeline_id in &pipeline.children {
+            self.for_each_connected_pipeline_internal(*child_pipeline_id, callback);
+        }
     }
 
     /// Update touch-based animations (currently just fling) during a `RefreshDriver`-based
@@ -412,7 +446,7 @@ impl WebViewRenderer {
         // Constellation.
         if cancelable && result {
             self.touch_handler
-                .add_pending_touch_input_event(id, event_type);
+                .add_pending_touch_input_event(id, event.touch_id, event_type);
         }
 
         result
@@ -443,7 +477,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_down(event.id, point);
+        self.touch_handler.on_touch_down(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -452,7 +486,7 @@ impl WebViewRenderer {
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         let action = self.touch_handler.on_touch_move(
-            event.id,
+            event.touch_id,
             point,
             self.device_pixels_per_page_pixel_not_including_pinch_zoom()
                 .get(),
@@ -468,18 +502,21 @@ impl WebViewRenderer {
                 event.disable_cancelable();
                 self.pending_scroll_zoom_events.push(action);
             }
-            // When the event is touchmove, if the script thread is processing the touch
-            // move event, we skip sending the event to the script thread.
-            // This prevents the script thread from stacking up for a large amount of time.
-            if !self
-                .touch_handler
-                .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
-                self.send_touch_event(render_api, event, id) &&
-                event.is_cancelable()
-            {
-                self.touch_handler
-                    .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
-            }
+        }
+        // When the event is touchmove, if the script thread is processing the touch
+        // move event, we skip sending the event to the script thread.
+        // This prevents the script thread from stacking up for a large amount of time.
+        if !self.touch_handler.is_handling_touch_move_for_touch_id(
+            self.touch_handler.current_sequence_id,
+            event.touch_id,
+        ) && self.send_touch_event(render_api, event, id) &&
+            event.is_cancelable()
+        {
+            self.touch_handler.set_handling_touch_move_for_touch_id(
+                self.touch_handler.current_sequence_id,
+                event.touch_id,
+                TouchIdMoveTracking::Track,
+            );
         }
     }
 
@@ -487,7 +524,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_up(event.id, point);
+        self.touch_handler.on_touch_up(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -495,7 +532,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_cancel(event.id, point);
+        self.touch_handler.on_touch_cancel(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -508,6 +545,7 @@ impl WebViewRenderer {
         let PendingTouchInputEvent {
             sequence_id,
             event_type,
+            touch_id,
         } = pending_touch_input_event;
 
         if result.contains(InputEventResult::DefaultPrevented) {
@@ -530,8 +568,11 @@ impl WebViewRenderer {
                         if let TouchSequenceState::PendingFling { .. } = info.state {
                             info.state = TouchSequenceState::Finished;
                         }
-                        self.touch_handler
-                            .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
+                        self.touch_handler.set_handling_touch_move_for_touch_id(
+                            self.touch_handler.current_sequence_id,
+                            touch_id,
+                            TouchIdMoveTracking::Remove,
+                        );
                         self.touch_handler
                             .remove_pending_touch_move_actions(sequence_id);
                     }
@@ -591,8 +632,11 @@ impl WebViewRenderer {
                         self.touch_handler
                             .take_pending_touch_move_actions(sequence_id),
                     );
-                    self.touch_handler
-                        .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
+                    self.touch_handler.set_handling_touch_move_for_touch_id(
+                        self.touch_handler.current_sequence_id,
+                        touch_id,
+                        TouchIdMoveTracking::Remove,
+                    );
                     if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
                         if info.prevent_move == TouchMoveAllowed::Pending {
                             info.prevent_move = TouchMoveAllowed::Allowed;
@@ -683,7 +727,6 @@ impl WebViewRenderer {
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
                 scroll,
                 point: cursor,
-                event_count: 1,
             }));
     }
 
@@ -723,19 +766,11 @@ impl WebViewRenderer {
 
                     match (combined_event.scroll, scroll_event_info.scroll) {
                         (Scroll::Delta(old_delta), Scroll::Delta(new_delta)) => {
-                            // Mac OS X sometimes delivers scroll events out of vsync during a
-                            // fling. This causes events to get bunched up occasionally, causing
-                            // nasty-looking "pops". To mitigate this, during a fling we average
-                            // deltas instead of summing them.
-                            let old_event_count = combined_event.event_count as f32;
-                            combined_event.event_count += 1;
-                            let new_event_count = combined_event.event_count as f32;
                             let old_delta =
                                 old_delta.as_device_vector(device_pixels_per_page_pixel);
                             let new_delta =
                                 new_delta.as_device_vector(device_pixels_per_page_pixel);
-                            let delta = (old_delta * old_event_count + new_delta) / new_event_count;
-                            combined_event.scroll = Scroll::Delta(delta.into());
+                            combined_event.scroll = Scroll::Delta((old_delta + new_delta).into());
                         },
                         (Scroll::Start, _) | (Scroll::End, _) => {
                             // Once we see Start or End, we shouldn't process any more events.
@@ -772,10 +807,7 @@ impl WebViewRenderer {
         if let Some(ref scroll_result) = scroll_result {
             self.send_scroll_positions_to_layout_for_pipeline(
                 scroll_result.hit_test_result.pipeline_id,
-            );
-            self.dispatch_scroll_event(
                 scroll_result.external_scroll_id,
-                scroll_result.hit_test_result.clone(),
             );
         } else {
             self.touch_handler.stop_fling_if_needed();
@@ -899,8 +931,7 @@ impl WebViewRenderer {
             external_scroll_id,
         };
 
-        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id);
-        self.dispatch_scroll_event(external_scroll_id, hit_test_result.clone());
+        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
 
         if pinch_zoom_result == PinchZoomResult::DidNotPinchZoom {
             self.send_pinch_zoom_infos_to_script();
@@ -928,22 +959,6 @@ impl WebViewRenderer {
         let _ = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::UpdatePinchZoomInfos(pipeline_id, pinch_zoom_infos),
         );
-    }
-
-    fn dispatch_scroll_event(
-        &self,
-        external_id: ExternalScrollId,
-        hit_test_result: PaintHitTestResult,
-    ) {
-        let event = InputEvent::Scroll(EmbedderScrollEvent { external_id }).into();
-        let msg = EmbedderToConstellationMessage::ForwardInputEvent(
-            self.id,
-            event,
-            Some(hit_test_result),
-        );
-        if let Err(e) = self.embedder_to_constellation_sender.send(msg) {
-            warn!("Sending scroll event to constellation failed ({:?}).", e);
-        }
     }
 
     pub(crate) fn pinch_zoom(&self) -> PinchZoom {
@@ -1047,9 +1062,7 @@ impl WebViewRenderer {
     }
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
-        self.set_page_zoom(Scale::new(
-            viewport_description.clamp_page_zoom(viewport_description.initial_scale.get()),
-        ));
+        self.set_page_zoom(viewport_description.initial_scale);
         self.viewport_description = Some(viewport_description);
     }
 

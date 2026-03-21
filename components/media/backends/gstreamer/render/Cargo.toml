@@ -14,7 +14,4 @@ path = "lib.rs"
 [dependencies]
 gstreamer = { workspace = true }
 gstreamer-video = { workspace = true }
-
-[dependencies.sm-player]
-package = "servo-media-player"
-path = "../../../player"
+servo-media-player = { workspace = true }

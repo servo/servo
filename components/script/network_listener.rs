@@ -110,6 +110,7 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     fn process_response_chunk(&mut self, request_id: RequestId, chunk: Vec<u8>);
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -135,7 +136,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
     pub(crate) fn notify(&mut self, message: FetchResponseMsg) {
         let context = self.context.clone();
         self.task_source
-            .queue(task!(network_listener_response: move || {
+            .queue(task!(network_listener_response: move |cx| {
                 let mut context = context.lock().unwrap();
                 let Some(fetch_listener) = &mut *context else {
                     return;
@@ -160,7 +161,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                     },
                     FetchResponseMsg::ProcessResponseEOF(request_id, result, timing) => {
                         if let Some(fetch_listener) = context.take() {
-                            fetch_listener.process_response_eof(request_id, result, timing);
+                            fetch_listener.process_response_eof(cx, request_id, result, timing);
                         };
                     },
                     FetchResponseMsg::ProcessCspViolations(request_id, violations) => {

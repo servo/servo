@@ -5,6 +5,7 @@
 use base::id::PipelineId;
 use constellation_traits::{ScriptToConstellationMessage, StructuredSerializedData};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
@@ -21,7 +22,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxy;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
 ///
@@ -46,10 +47,10 @@ pub(crate) struct DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global_to_clone_from: &GlobalScope,
         window_proxy: &WindowProxy,
     ) -> DomRoot<Self> {
-        let cx = GlobalScope::get_cx();
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 PipelineId::new(),
@@ -61,7 +62,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
                 global_to_clone_from.origin().clone(),
-                global_to_clone_from.creation_url().clone(),
+                global_to_clone_from.creation_url(),
                 global_to_clone_from.top_level_creation_url().clone(),
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
@@ -140,7 +141,7 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
     /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage>
     fn PostMessage(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         target_origin: USVString,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
@@ -151,7 +152,7 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
     /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage-options>
     fn PostMessage_(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
@@ -163,19 +164,20 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        #[expect(unsafe_code)]
+        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
         self.post_message_impl(&options.targetOrigin, cx, message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn Opener(&self, _: JSContext, mut retval: MutableHandleValue) {
+    fn Opener(&self, _: &mut JSContext, mut retval: MutableHandleValue) {
         // TODO: Implement x-origin opener
         retval.set(UndefinedValue());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn SetOpener(&self, _: JSContext, _: HandleValue) {
+    fn SetOpener(&self, _: &mut JSContext, _: HandleValue) {
         // TODO: Implement x-origin opener
     }
 
@@ -202,12 +204,12 @@ impl DissimilarOriginWindow {
     fn post_message_impl(
         &self,
         target_origin: &USVString,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 6-7.
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
 
         self.post_message(target_origin, data)
     }
@@ -233,7 +235,7 @@ impl DissimilarOriginWindow {
             "*" => None,
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
-                Ok(url) => Some(url.origin().clone()),
+                Ok(url) => Some(url.origin()),
                 Err(_) => return Err(Error::Syntax(None)),
             },
         };

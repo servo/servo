@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() argument grammar</title>
+<meta name="assert" content="test attr values">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="attr" data-bar="3"></div>
+<div id="expected"></div>
+
+<script>
+    function test_attr(property, attrString, attrValue, expectedValue) {
+        var elem = document.getElementById("attr");
+        elem.setAttribute("data-foo", attrValue);
+        elem.style.setProperty(property, attrString);
+
+        var expectedElem =  document.getElementById("expected");
+        expectedElem.style.setProperty(property, expectedValue);
+
+        test(() => {
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(property),
+                          window.getComputedStyle(expectedElem).getPropertyValue(property),
+                          "Value \'" + attrString + "\', where \'data-foo=" + attrValue +
+                          "\' should be valid for the property \'" + property + "\'.");
+        });
+
+        elem.style.setProperty(property, null);
+        expectedElem.style.setProperty(property, null);
+    }
+
+    document.getElementById("attr").style.setProperty('--x', 'data-foo type(<number>)');
+    test_attr('font-weight', 'attr(var(--x))', '10', '10');
+    test_attr('font-weight', 'attr(var(--x),)', '10', '10');
+    test_attr('font-weight', 'attr(var(--x), 10)', 'invalid', '10');
+    document.getElementById("attr").style.setProperty('--x', 'data-foo ');
+    test_attr('font-weight', 'attr(var(--x))', '10', '"10"');
+    test_attr('font-weight', 'attr(var(--x),)', '10', '"10"');
+    test_attr('font-weight', 'attr(var())', '10', '');
+    test_attr('font-weight', 'attr(())', '10', '');
+    test_attr('font-weight', 'attr(!)', '10', '');
+
+    document.getElementById("attr").style.setProperty('--x', 'data-foo type(<number>), 10');
+    test_attr('font-weight', 'attr(var(--x))', '10', '');
+
+    document.getElementById("attr").style.setProperty('--y', 'data-foo type(<custom-ident>)');
+    test_attr('--x', 'attr(var(--y), 3px)', 'var(--y)', '3px');
+    document.getElementById("attr").style.setProperty('--y', null);
+
+    // Cycles
+    document.getElementById("attr").style.setProperty('--y', 'data-foo type(*)');
+    test_attr('--x', 'attr(var(--y))', 'var(--x)', '');
+    document.getElementById("attr").style.setProperty('--y', null);
+
+    document.getElementById("attr").style.setProperty('--y', 'data-foo type(<custom-ident>)');
+    test_attr('--x', 'attr(var(--y), 3px)', 'var(--x)', '');
+    document.getElementById("attr").style.setProperty('--y', null);
+
+</script>

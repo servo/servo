@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>CSS path-length property set to zero</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="match" href="path-length-css-zero-ref.tentative.svg"/>
+  </metadata>
+  <style>
+    path { path-length: 0; }
+  </style>
+  <!-- With path-length:0, the dash scaling factor becomes infinity,
+       so stroke-dasharray="1 1" is scaled to an infinite dash length,
+       resulting in a solid stroke. -->
+  <path d="M10,10 L110,10 L110,110 L10,110Z" stroke-dasharray="1 1"
+        fill="none" stroke="black" stroke-width="10"/>
+</svg>

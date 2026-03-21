@@ -32,7 +32,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUCommandEncoder {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
@@ -107,7 +106,7 @@ impl GPUCommandEncoder {
 
         GPUCommandEncoder::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             device,
             encoder,
             descriptor.parent.label.clone(),

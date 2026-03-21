@@ -3,11 +3,22 @@
 // (https://github.com/w3c/webref)
 // Source: Accelerated Text Detection in Images (https://wicg.github.io/shape-detection-api/text.html)
 
+dictionary TextDetectorOptions {
+    required sequence<DOMString> languages;
+};
+
+dictionary TextDetectorCreateOptions {
+    AbortSignal signal;
+    sequence<DOMString> languages;
+};
+
 [
     Exposed=(Window,Worker),
     SecureContext
 ] interface TextDetector {
     constructor();
+    static Promise<Availability> availability(TextDetectorOptions options);
+    static Promise<TextDetector> create(optional TextDetectorCreateOptions options = {});
     Promise<sequence<DetectedText>> detect(ImageBitmapSource image);
 };
 

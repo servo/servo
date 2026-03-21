@@ -6,18 +6,20 @@ use malloc_size_of_derive::MallocSizeOf;
 pub use platform::LocalFontIdentifier;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
+use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {
     Local(LocalFontIdentifier),
     Web(ServoUrl),
+    ArrayBuffer(Uuid),
 }
 
 impl FontIdentifier {
     pub fn index(&self) -> u32 {
         match *self {
             Self::Local(ref local_font_identifier) => local_font_identifier.index(),
-            Self::Web(_) => 0,
+            Self::Web(_) | Self::ArrayBuffer(_) => 0,
         }
     }
 }

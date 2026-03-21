@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSSFontFeatureValuesMap Iteration and Modification</title>
+    <link
+      rel="help"
+      href="https://drafts.csswg.org/css-fonts-4/#om-fontfeaturevalues"
+    />
+    <meta
+      name="assert"
+      content="Iteration while modifying CSSFontFeatureValuesMap does not crash."
+    />
+    <script type="text/javascript" src="/resources/testharness.js"></script>
+    <script
+      type="text/javascript"
+      src="/resources/testharnessreport.js"
+    ></script>
+  </head>
+  <body>
+    <style>
+      @font-feature-values TestFont {
+        @styleset {
+          a: 1;
+          b: 2;
+          c: 3;
+        }
+      }
+    </style>
+    <script>
+      test(() => {
+        const rule = document.styleSheets[0].cssRules[0];
+        const map = rule.styleset;
+        const iterator = map.entries();
+        let count = 0;
+
+        while (count < 10) {
+          const { value: entry, done } = iterator.next();
+          if (done) break;
+
+          const [key, value] = entry;
+
+          map.delete(key);
+          for (let i = 0; i < 100; i++) {
+            map.set(`newkey_${count}_${i}`, i);
+          }
+
+          count++;
+        }
+      }, "Iteration of the CSSFontFeatureValuesMap does not crash.");
+    </script>
+  </body>
+</html>

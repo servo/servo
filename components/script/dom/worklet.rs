@@ -700,7 +700,7 @@ impl WorkletThread {
             &resource_fetcher,
             global,
             &WorkletCspProcessor {},
-            CanGc::from_cx(cx),
+            cx,
         )
         .ok()
         .and_then(|(_, bytes, _)| String::from_utf8(bytes).ok());
@@ -711,11 +711,7 @@ impl WorkletThread {
         // Also, the spec currently doesn't allow exceptions to be propagated
         // to the main script thread.
         // https://github.com/w3c/css-houdini-drafts/issues/407
-        let ok = script.is_some_and(|s| {
-            global_scope
-                .evaluate_js(s.into(), CanGc::from_cx(cx))
-                .is_ok()
-        });
+        let ok = script.is_some_and(|s| global_scope.evaluate_js(s.into(), cx).is_ok());
 
         if !ok {
             // Step 3.

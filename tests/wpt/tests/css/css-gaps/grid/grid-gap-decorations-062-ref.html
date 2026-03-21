@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    display: grid;
+    grid-template-columns: 100px;
+    grid-template-rows: repeat(auto-fit, 20px);
+    row-gap: 10px;
+    height: 260px;
+    width: 100px;
+  }
+
+  .item {
+    background: gray;
+    opacity: 0.5;
+  }
+
+  .row-gap {
+    height: 0px;
+    width: 100px;
+    position: absolute;
+  }
+</style>
+<div class="grid-container">
+  <div class="item" style="grid-row: 1"></div>
+  <div class="item" style="grid-row: 2"></div>
+  <div class="item" style="grid-row: 3"></div>
+  <div class="item" style="grid-row: 8"></div>
+  <div class="item" style="grid-row: 9"></div>
+</div>
+
+<div class="row-gap" style="border-bottom: 4px solid red; top: 23px"></div>
+<div class="row-gap" style="border-bottom: 4px solid blue; top: 53px"></div>
+<div class="row-gap" style="border-bottom: 4px solid green; top: 83px"></div>
+<div class="row-gap" style="border-bottom: 4px solid yellow; top: 113px"></div>

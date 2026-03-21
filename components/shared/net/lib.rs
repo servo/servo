@@ -9,7 +9,9 @@ use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender, SendResult};
+use base::generic_channel::{
+    self, CallbackSetter, GenericOneshotSender, GenericSend, GenericSender, SendResult,
+};
 use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
@@ -18,7 +20,7 @@ use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader}
 use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -250,7 +252,7 @@ pub enum FetchResponseMsg {
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
 }
 
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub struct DebugVec(pub Vec<u8>);
 
 impl From<Vec<u8>> for DebugVec {
@@ -578,7 +580,7 @@ pub enum MessageData {
     Binary(Vec<u8>),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum WebSocketDomAction {
     SendMessage(MessageData),
     Close(Option<u16>, Option<String>),
@@ -599,7 +601,7 @@ pub enum FetchChannels {
     ResponseMsg(IpcSender<FetchResponseMsg>),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
-        action_receiver: IpcReceiver<WebSocketDomAction>,
+        action_receiver: CallbackSetter<WebSocketDomAction>,
     },
     /// If the fetch is just being done to populate the cache,
     /// not because the data is needed now.
@@ -633,6 +635,8 @@ pub enum CoreResourceMsg {
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
+    /// This currently is used by unit tests and WebDriver only.
+    /// When url is `None`, this clears cookies across all origins.
     DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
@@ -1325,6 +1329,24 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }
 
+/// Returns the cached current system locale, or en-US by default.
+pub fn get_current_locale() -> &'static (String, HeaderValue) {
+    static CURRENT_LOCALE: OnceLock<(String, HeaderValue)> = OnceLock::new();
+
+    CURRENT_LOCALE.get_or_init(|| {
+        let locale_override = servo_config::pref!(intl_locale_override);
+        let locale = if locale_override.is_empty() {
+            sys_locale::get_locale().unwrap_or_else(|| "en-US".into())
+        } else {
+            locale_override
+        };
+        let header_value = HeaderValue::from_str(&locale)
+            .ok()
+            .unwrap_or_else(|| HeaderValue::from_static("en-US"));
+        (locale, header_value)
+    })
+}
+
 /// Step 12 of <https://fetch.spec.whatwg.org/#concept-fetch>
 pub fn set_default_accept_language(headers: &mut HeaderMap) {
     // If request’s header list does not contain `Accept-Language`,
@@ -1333,11 +1355,8 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
         return;
     }
 
-    // TODO(eijebong): Change this once typed headers are done
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
-    );
+    // To reduce fingerprinting we set only a single language.
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 }
 
 pub static PRIVILEGED_SECRET: LazyLock<u32> = LazyLock::new(|| rng().next_u32());

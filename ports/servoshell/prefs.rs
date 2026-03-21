@@ -5,9 +5,9 @@
 use core::panic;
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::fs::{self, File, read_to_string};
-use std::io::Read;
+use std::fs::{self, read_to_string};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::str::FromStr;
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 use std::sync::OnceLock;
@@ -17,9 +17,9 @@ use bpaf::*;
 use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
+use servo::user_contents::UserStyleSheet;
 use servo::{
     DeviceIndependentPixel, DiagnosticsLogging, Opts, OutputOptions, PrefValue, Preferences,
-    ServoUrl,
 };
 use url::Url;
 
@@ -27,6 +27,7 @@ use crate::VERSION;
 
 pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_async_clipboard_enabled",
+    "dom_exec_command_enabled",
     "dom_fontface_enabled",
     "dom_intersection_observer_enabled",
     "dom_navigator_protocol_handlers_enabled",
@@ -80,6 +81,8 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+    /// A set of [`UserStylesheets`] to load for content.
+    pub user_stylesheets: Vec<Rc<UserStyleSheet>>,
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Cell<Option<u16>>,
@@ -111,6 +114,7 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            user_stylesheets: Default::default(),
             webdriver_port: Cell::new(None),
             #[cfg(target_env = "ohos")]
             log_filter: None,
@@ -265,29 +269,25 @@ fn parse_resolution_string(
     }
 }
 
-/// Parse stylesheets into the byte stream.
-fn parse_user_stylesheets(string: String) -> Result<Vec<(Vec<u8>, ServoUrl)>, std::io::Error> {
-    Ok(string
-        .split_whitespace()
-        .map(|filename| {
-            let cwd = env::current_dir().unwrap();
-            let path = cwd.join(filename);
-            let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
-            let mut contents = Vec::new();
-            File::open(path)
-                .unwrap()
-                .read_to_end(&mut contents)
-                .unwrap();
-            (contents, url)
-        })
-        .collect())
+/// Parse a space or comma-separated list of stylesheet paths into a vector of
+/// [`UserStyleSheet`].
+fn parse_user_stylesheets(string: String) -> Result<Vec<Rc<UserStyleSheet>>, std::io::Error> {
+    let mut results = Vec::new();
+    for path_string in string.split([' ', ',']) {
+        let path = env::current_dir()?.join(path_string);
+        results.push(Rc::new(UserStyleSheet::new(
+            read_to_string(&path)?,
+            Url::from_file_path(&path).unwrap(),
+        )));
+    }
+    Ok(results)
 }
 
 /// This is a helper function that fulfills the following parsing task
 /// check for long/short cmd. If there is the flag with this
 /// If the flag is not there, parse `None``
 /// If the flag is there but no argument, parse `Some(default)`
-/// If the flag is there and an argument parse the arugment
+/// If the flag is there and an argument parse the argument
 fn flag_with_default_parser<S, T>(
     short_cmd: Option<char>,
     long_cmd: &'static str,
@@ -365,7 +365,7 @@ fn map_debug_options(arg: String) -> Vec<String> {
 }
 
 #[derive(Bpaf, Clone, Debug)]
-#[bpaf(options, version(VERSION), usage("servo [OPTIONS] URL"))]
+#[bpaf(options, version(VERSION), usage("servoshell [OPTIONS] URL"))]
 // Newlines in comments are intentional to have the right formatting for the help message.
 struct CmdArgs {
     /// Background Hang Monitor enabled.
@@ -407,9 +407,9 @@ struct CmdArgs {
     #[bpaf(argument("1.0"))]
     device_pixel_ratio: Option<f32>,
 
-    /// Start remote devtools server on port.
-    #[bpaf(argument("0"))]
-    devtools: Option<u16>,
+    /// Start remote devtools server on port listening on this address. <address>:<port> and <port> are valid values.
+    #[bpaf(argument("127.0.0.1:7000"))]
+    devtools: Option<String>,
 
     ///
     ///  Whether or not to enable experimental web platform features.
@@ -464,11 +464,6 @@ struct CmdArgs {
     #[bpaf(short('b'), long)]
     no_native_titlebar: bool,
 
-    ///
-    ///  Enable to turn off incremental layout.
-    #[bpaf(short('i'), long, flag(false, true))]
-    nonincremental_layout: bool,
-
     /// Path to an output image. The format of the image is determined by the extension.
     /// Supports all formats that `rust-image` does.
     #[bpaf(short('o'), argument("test.png"), long)]
@@ -493,10 +488,6 @@ struct CmdArgs {
     ///  Load in additional prefs from a file.
     #[bpaf(long, argument("/path/to/prefs.json"), many)]
     prefs_file: Vec<PathBuf>,
-
-    /// Print Progressive Web Metrics.
-    #[bpaf(long)]
-    print_pwm: bool,
 
     ///
     ///  Probability of randomly closing a pipeline (for testing constellation hardening).
@@ -547,9 +538,11 @@ struct CmdArgs {
     userscripts: Option<PathBuf>,
 
     ///
-    ///  A user stylesheet to be added to every document.
-    #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets), fallback(vec![]))]
-    user_stylesheet: Vec<(Vec<u8>, ServoUrl)>,
+    /// Add each of the given UTF-8 encoded CSS files in the space or comma-separated
+    /// list as user stylesheet to apply to every page loaded.
+    #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets),
+    fallback(vec![]))]
+    user_stylesheet: Vec<Rc<UserStyleSheet>>,
 
     /// Start remote WebDriver server on port.
     #[bpaf(external)]
@@ -569,9 +562,9 @@ fn update_preferences_from_command_line_arguemnts(
     preferences: &mut Preferences,
     cmd_args: &CmdArgs,
 ) {
-    if let Some(port) = cmd_args.devtools {
+    if let Some(listen_address) = &cmd_args.devtools {
         preferences.devtools_server_enabled = true;
-        preferences.devtools_server_port = port as i64;
+        preferences.devtools_server_listen_address = listen_address.clone();
     }
 
     if cmd_args.enable_experimental_web_platform_features {
@@ -693,6 +686,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         output_image_path: cmd_args.output.map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
         userscripts_directory: cmd_args.userscripts,
+        user_stylesheets: cmd_args.user_stylesheet,
         experimental_preferences_enabled: cmd_args.enable_experimental_web_platform_features,
         #[cfg(target_env = "ohos")]
         log_filter: cmd_args.log_filter.or_else(|| {
@@ -719,15 +713,13 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         time_profiler_trace_path: cmd_args
             .profiler_trace_path
             .map(|p| p.to_string_lossy().into_owned()),
-        nonincremental_layout: cmd_args.nonincremental_layout,
-        user_stylesheets: cmd_args.user_stylesheet,
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
         background_hang_monitor: cmd_args.background_hang_monitor,
         sandbox: cmd_args.sandbox,
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
-        config_dir: config_dir.clone(),
+        config_dir,
         shaders_path: cmd_args.shaders,
         certificate_path: cmd_args
             .certificate_path
@@ -738,7 +730,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .local_script_source
             .map(|p| p.to_string_lossy().into_owned()),
         unminify_css: cmd_args.unminify_css,
-        print_pwm: cmd_args.print_pwm,
         force_ipc: cmd_args.force_ipc,
     };
 

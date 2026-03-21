@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: rule-inset-{start/end} bidirectional shorthands</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#propdef-rule-inset">
+<meta name="assert"
+    content="rule-inset-start/end supports the full grammar '<length-percentage>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+    <script>
+        const rule_properties = {
+            'rule-inset-start': ['column-rule-edge-inset-start', 'column-rule-interior-inset-start',
+                'row-rule-edge-inset-start', 'row-rule-interior-inset-start'],
+            'rule-inset-end': ['column-rule-edge-inset-end', 'column-rule-interior-inset-end',
+                'row-rule-edge-inset-end', 'row-rule-interior-inset-end']
+        };
+
+        const testCases = [
+            {
+                input: '0px',
+                expected: '0px',
+            },
+            {
+                input: '10px',
+                expected: '10px',
+            },
+            {
+                input: '50%',
+                expected: '50%',
+            },
+            {
+                input: '-20px',
+                expected: '-20px',
+            },
+        ];
+
+
+        for (rule_property in rule_properties) {
+            const test_cases = testCases;
+
+            for (const { input, expected } of test_cases) {
+                const [columnEdgeInset, columnInteriorInset, rowEdgeInset, rowInteriorInset] = rule_properties[rule_property];
+
+                test_shorthand_value(rule_property, input, {
+                    [columnEdgeInset]: expected,
+                    [columnInteriorInset]: expected,
+                    [rowEdgeInset]: expected,
+                    [rowInteriorInset]: expected,
+                });
+            }
+        }
+    </script>
+</body>
+</html>

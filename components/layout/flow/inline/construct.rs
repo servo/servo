@@ -96,12 +96,14 @@ pub(crate) struct InlineFormattingContextBuilder {
 }
 
 impl InlineFormattingContextBuilder {
-    pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
             on_word_boundary: true,
             is_empty: true,
-            shared_inline_styles_stack: vec![info.into()],
+            shared_inline_styles_stack: vec![SharedInlineStyles::from_info_and_context(
+                info, context,
+            )],
             shared_selection: info.node.selection(),
             ..Default::default()
         }
@@ -133,7 +135,7 @@ impl InlineFormattingContextBuilder {
         // If there is an existing undamaged layout box that's compatible, use that.
         let independent_formatting_context = old_layout_box
             .and_then(|layout_box| match layout_box {
-                LayoutBox::InlineLevel(InlineItem::Atomic(atomic, ..)) => Some(atomic.clone()),
+                LayoutBox::InlineLevel(InlineItem::Atomic(atomic, ..)) => Some(atomic),
                 _ => None,
             })
             .unwrap_or_else(independent_formatting_context_creator);
@@ -166,7 +168,7 @@ impl InlineFormattingContextBuilder {
                 LayoutBox::InlineLevel(InlineItem::OutOfFlowAbsolutelyPositionedBox(
                     positioned_box,
                     ..,
-                )) => Some(positioned_box.clone()),
+                )) => Some(positioned_box),
                 _ => None,
             })
             .unwrap_or_else(absolutely_positioned_box_creator);

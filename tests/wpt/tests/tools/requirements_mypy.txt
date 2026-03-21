@@ -15,6 +15,7 @@ typing_extensions==4.13.2; python_version < '3.9'
 -r metadata/requirements.txt
 -r metadata/yaml/requirements.txt
 -r requirements_pytest.txt
+-r serve/requirements_dns.txt
 -r wave/requirements.txt
 -r webtransport/requirements.txt
 -r wpt/requirements_android.txt

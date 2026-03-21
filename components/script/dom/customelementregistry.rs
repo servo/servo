@@ -17,8 +17,10 @@ use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use script_bindings::settings_stack::{run_a_callback, run_a_script};
 
 use super::bindings::trace::HashMapTracedValues;
+use crate::DomTypeHolder;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
@@ -34,7 +36,6 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -188,7 +189,7 @@ impl CustomElementRegistry {
             // Step 10.2
             if !prototype.is_object() {
                 return Err(Error::Type(
-                    "constructor.prototype is not an object".to_owned(),
+                    c"constructor.prototype is not an object".to_owned(),
                 ));
             }
         }
@@ -206,6 +207,7 @@ impl CustomElementRegistry {
         Ok(LifecycleCallbacks {
             connected_callback: get_callback(cx, prototype, c"connectedCallback")?,
             disconnected_callback: get_callback(cx, prototype, c"disconnectedCallback")?,
+            connected_move_callback: get_callback(cx, prototype, c"connectedMoveCallback")?,
             adopted_callback: get_callback(cx, prototype, c"adoptedCallback")?,
             attribute_changed_callback: get_callback(cx, prototype, c"attributeChangedCallback")?,
 
@@ -267,7 +269,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -305,7 +307,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -343,7 +345,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -372,7 +374,9 @@ fn get_callback(
         // Step 10.4.2
         if !callback.is_undefined() {
             if !callback.is_object() || !IsCallable(callback.to_object()) {
-                return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+                return Err(Error::Type(
+                    c"Lifecycle callback is not callable".to_owned(),
+                ));
             }
             Ok(Some(Function::new(cx, callback.to_object())))
         } else {
@@ -406,7 +410,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         if unsafe { !IsConstructor(unwrapped_constructor.get()) } {
             return Err(Error::Type(
-                "Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
+                c"Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
             ));
         }
 
@@ -679,6 +683,9 @@ pub(crate) struct LifecycleCallbacks {
     connected_callback: Option<Rc<Function>>,
 
     #[conditional_malloc_size_of]
+    connected_move_callback: Option<Rc<Function>>,
+
+    #[conditional_malloc_size_of]
     disconnected_callback: Option<Rc<Function>>,
 
     #[conditional_malloc_size_of]
@@ -790,12 +797,18 @@ impl CustomElementDefinition {
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
             // Step 5.3.1. Set result to the result of constructing C, with no arguments.
             // https://webidl.spec.whatwg.org/#construct-a-callback-function
-            let _script_guard = AutoEntryScript::new(window.upcast());
-            let _callback_guard = AutoIncumbentScript::new(window.upcast());
-            let args = HandleValueArray::empty();
-            if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
-                return Err(Error::JSFailed);
-            }
+            run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+                run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
+                    let args = HandleValueArray::empty();
+                    if unsafe {
+                        !Construct1(*cx, constructor.handle(), &args, element.handle_mut())
+                    } {
+                        Err(Error::JSFailed)
+                    } else {
+                        Ok(())
+                    }
+                })
+            })?;
         }
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
@@ -804,7 +817,7 @@ impl CustomElementDefinition {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
-                        "Constructor did not return a DOM node".to_owned(),
+                        c"Constructor did not return a DOM node".to_owned(),
                     ));
                 },
                 _ => return Err(Error::JSFailed),
@@ -913,7 +926,7 @@ pub(crate) fn upgrade_element(
         let cx = GlobalScope::get_cx();
         let ar = enter_realm(&*global);
         throw_dom_exception(cx, &global, error, can_gc);
-        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+        report_pending_exception(cx, InRealm::Entered(&ar), can_gc);
 
         return;
     }
@@ -950,7 +963,7 @@ pub(crate) fn upgrade_element(
                 ScriptThread::enqueue_callback_reaction(
                     element,
                     CallbackReaction::FormDisabled(true),
-                    Some(definition.clone()),
+                    Some(definition),
                 )
             }
         }
@@ -991,20 +1004,22 @@ fn run_upgrade_constructor(
 
         // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
         // https://webidl.spec.whatwg.org/#construct-a-callback-function
-        {
-            let _script_guard = AutoEntryScript::new(window.upcast());
-            let _callback_guard = AutoIncumbentScript::new(window.upcast());
-            if unsafe {
-                !Construct1(
-                    *cx,
-                    constructor_val.handle(),
-                    &args,
-                    construct_result.handle_mut(),
-                )
-            } {
-                return Err(Error::JSFailed);
-            }
-        }
+        run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+            run_a_callback::<DomTypeHolder, _>(window.upcast(), || {
+                if unsafe {
+                    !Construct1(
+                        *cx,
+                        constructor_val.handle(),
+                        &args,
+                        construct_result.handle_mut(),
+                    )
+                } {
+                    Err(Error::JSFailed)
+                } else {
+                    Ok(())
+                }
+            })
+        })?;
 
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));
@@ -1022,7 +1037,7 @@ fn run_upgrade_constructor(
         }
         if !same {
             return Err(Error::Type(
-                "Returned element is not SameValue as the upgraded element".to_string(),
+                c"Returned element is not SameValue as the upgraded element".to_owned(),
             ));
         }
     }
@@ -1088,6 +1103,7 @@ pub(crate) enum CallbackReaction {
     FormAssociated(Option<DomRoot<HTMLFormElement>>),
     FormDisabled(bool),
     FormReset,
+    ConnectedMove,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#processing-the-backup-element-queue>
@@ -1178,13 +1194,14 @@ impl CustomElementReactionStack {
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
     ) {
-        // Step 1
+        // Step 1. Let definition be element's custom element definition.
         let definition = match definition.or_else(|| element.get_custom_element_definition()) {
             Some(definition) => definition,
             None => return,
         };
 
-        // Step 2
+        // Step 2. Let callback be the value of the entry in definition's lifecycle callbacks with
+        // key callbackName.
         let (callback, args) = match reaction {
             CallbackReaction::Connected => {
                 (definition.callbacks.connected_callback.clone(), Vec::new())
@@ -1200,7 +1217,7 @@ impl CustomElementReactionStack {
                 (definition.callbacks.adopted_callback.clone(), args)
             },
             CallbackReaction::AttributeChanged(local_name, old_val, val, namespace) => {
-                // Step 4
+                // Step 5.
                 if !definition
                     .observed_attributes
                     .iter()
@@ -1270,18 +1287,55 @@ impl CustomElementReactionStack {
             CallbackReaction::FormReset => {
                 (definition.callbacks.form_reset_callback.clone(), Vec::new())
             },
+            CallbackReaction::ConnectedMove => {
+                let callback = definition.callbacks.connected_move_callback.clone();
+                // Step 3. If callbackName is "connectedMoveCallback" and callback is null:
+                if callback.is_none() {
+                    // Step 3.1. Let disconnectedCallback be the value of the entry in
+                    // definition's lifecycle callbacks with key "disconnectedCallback".
+                    let disconnected_callback = definition.callbacks.disconnected_callback.clone();
+
+                    // Step 3.2. Let connectedCallback be the value of the entry in
+                    // definition's lifecycle callbacks with key "connectedCallback".
+                    let connected_callback = definition.callbacks.connected_callback.clone();
+
+                    // Step 3.3. If connectedCallback and disconnectedCallback are null,
+                    // then return.
+                    if disconnected_callback.is_none() && connected_callback.is_none() {
+                        return;
+                    }
+
+                    // Step 3.4. Set callback to the following steps:
+                    // Step 3.4.1. If disconnectedCallback is not null, then call
+                    // disconnectedCallback with no arguments.
+                    if let Some(disconnected_callback) = disconnected_callback {
+                        element.push_callback_reaction(disconnected_callback, Box::new([]));
+                    }
+                    // Step 3.4.2. If connectedCallback is not null, then call
+                    // connectedCallback with no arguments.
+                    if let Some(connected_callback) = connected_callback {
+                        element.push_callback_reaction(connected_callback, Box::new([]));
+                    }
+
+                    self.enqueue_element(element);
+                    return;
+                }
+
+                (callback, Vec::new())
+            },
         };
 
-        // Step 3
+        // Step 4. If callback is null, then return.
         let callback = match callback {
             Some(callback) => callback,
             None => return,
         };
 
-        // Step 5
+        // Step 6. Add a new callback reaction to element's custom element reaction queue, with
+        // callback function callback and arguments args.
         element.push_callback_reaction(callback, args.into_boxed_slice());
 
-        // Step 6
+        // Step 7. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(element);
     }
 

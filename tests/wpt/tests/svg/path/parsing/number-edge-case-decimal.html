@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Number parsing - decimal point consumption</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Test: "0.6.5" should parse as two coordinates: 0.6 and 0.5 -->
+  <path id="test1" d="M 0.6.5 L 10.5.6" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Reference: explicitly separated version -->
+  <path id="ref1" d="M 0.6,0.5 L 10.5,0.6" fill="none" stroke="red" stroke-width="1"/>
+</svg>
+
+<script>
+test(function() {
+  const testPath = document.getElementById('test1');
+  const refPath = document.getElementById('ref1');
+
+  const testLength = testPath.getTotalLength();
+  const refLength = refPath.getTotalLength();
+
+  assert_approx_equals(testLength, refLength, 0.1,
+    "Path with '0.6.5' should have same length as '0.6,0.5'");
+}, "Number parsing: M 0.6.5 parses as M 0.6,0.5");
+
+test(function() {
+  const path = document.getElementById('test1');
+  const point = path.getPointAtLength(0);
+
+  assert_approx_equals(point.x, 0.6, 0.01, "Start x coordinate should be 0.6");
+  assert_approx_equals(point.y, 0.5, 0.01, "Start y coordinate should be 0.5");
+}, "Number parsing: First coordinate is 0.6, second is 0.5");
+
+test(function() {
+  const path = document.getElementById('test1');
+  const point = path.getPointAtLength(path.getTotalLength());
+
+  assert_approx_equals(point.x, 10.5, 0.01, "End x coordinate should be 10.5");
+  assert_approx_equals(point.y, 0.6, 0.01, "End y coordinate should be 0.6");
+}, "Number parsing: L 10.5.6 parses as L 10.5,0.6");
+
+test(function() {
+  // Test leading decimal point
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M .5.6 L .7.8');
+  svg.appendChild(path);
+
+  const startPoint = path.getPointAtLength(0);
+  assert_approx_equals(startPoint.x, 0.5, 0.01, "First coordinate is .5 (0.5)");
+  assert_approx_equals(startPoint.y, 0.6, 0.01, "Second coordinate is .6 (0.6)");
+}, "Number parsing: M .5.6 parses as M 0.5,0.6");
+
+test(function() {
+  // Test multiple decimal numbers in sequence
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 1.2.3.4.5');
+  svg.appendChild(path);
+
+  const startPoint = path.getPointAtLength(0);
+  assert_approx_equals(startPoint.x, 1.2, 0.01, "First coordinate is 1.2");
+  assert_approx_equals(startPoint.y, 0.3, 0.01, "Second coordinate is .3");
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 0.4, 0.01, "Third coordinate is .4");
+  assert_approx_equals(endPoint.y, 0.5, 0.01, "Fourth coordinate is .5");
+}, "Number parsing: M 1.2.3.4.5 parses as M 1.2,0.3,0.4,0.5 (implicit lineto)");
+
+test(function() {
+  // Test decimal followed by integer
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0.5 10 L 20 0.3');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 0.5, 0.01, "0.5 followed by space and 10");
+  assert_approx_equals(point.y, 10, 0.01, "Second coordinate is 10");
+}, "Number parsing: Decimal followed by integer with space");
+</script>
+</body>
+</html>

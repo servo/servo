@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <body>
-<title>Accelerometer Feature Policy Test: Enabled by attribute redirect on load</title>
+<title>Accelerometer Permissions Policy Test: Enabled by attribute redirect on load</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/feature-policy/resources/featurepolicy.js"></script>
@@ -8,8 +8,8 @@
 <script>
 "use strict";
 
-run_fp_tests_enabled_by_attribute_redirect_on_load('Accelerometer');
-run_fp_tests_enabled_by_attribute_redirect_on_load('LinearAccelerationSensor');
-run_fp_tests_enabled_by_attribute_redirect_on_load('GravitySensor');
+run_permissions_policy_tests_enabled_by_attribute_redirect_on_load('Accelerometer');
+run_permissions_policy_tests_enabled_by_attribute_redirect_on_load('LinearAccelerationSensor');
+run_permissions_policy_tests_enabled_by_attribute_redirect_on_load('GravitySensor');
 </script>
 </body>

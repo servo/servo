@@ -144,7 +144,7 @@ dictionary ExceptionOptions {
 [LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
 interface Exception {
   constructor(Tag exceptionTag, sequence<any> payload, optional ExceptionOptions options = {});
-  any getArg([EnforceRange] unsigned long index);
+  any getArg(Tag exceptionTag, [EnforceRange] unsigned long index);
   boolean is(Tag exceptionTag);
   readonly attribute (DOMString or undefined) stack;
 };

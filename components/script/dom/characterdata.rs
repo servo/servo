@@ -6,6 +6,7 @@
 use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -84,7 +85,12 @@ impl CharacterData {
         self.content_changed();
     }
 
+    #[expect(unsafe_code)]
     fn content_changed(&self) {
+        // TODO https://github.com/servo/servo/issues/43234
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
 
@@ -94,7 +100,7 @@ impl CharacterData {
         if self.is::<Text>() {
             if let Some(parent_node) = node.GetParentNode() {
                 let mutation = ChildrenMutation::ChangeText;
-                vtable_for(&parent_node).children_changed(&mutation, CanGc::note());
+                vtable_for(&parent_node).children_changed(cx, &mutation);
             }
         }
     }
@@ -166,19 +172,23 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         Ok(DOMString::from(substring))
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddata>
     fn AppendData(&self, data: DOMString) {
+        // > The appendData(data) method steps are to replace data of this with this’s length, 0, and data.
+        //
         // FIXME(ajeffrey): Efficient append on DOMStrings?
         self.append_data(&data.str());
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdata>
     fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
+        // > The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.
         self.ReplaceData(offset, 0, arg)
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedata>
     fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
+        // > The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.
         self.ReplaceData(offset, count, DOMString::new())
     }
 
@@ -249,24 +259,23 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().before(nodes, can_gc)
+    fn Before(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().before(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().after(nodes, can_gc)
+    fn After(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().after(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes, can_gc)
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
-    fn Remove(&self, can_gc: CanGc) {
-        let node = self.upcast::<Node>();
-        node.remove_self(can_gc);
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling>

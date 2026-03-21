@@ -10,7 +10,6 @@ use std::time::Instant;
 use std::{env, fs};
 
 use servo::protocol_handler::ProtocolRegistry;
-use servo::user_contents::UserStyleSheet;
 use servo::{
     EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
 };
@@ -30,7 +29,7 @@ use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::RunningAppState;
 #[cfg(feature = "gamepad")]
-use crate::running_app_state::ServoshellGamepadProvider;
+use crate::running_app_state::ServoshellGamepadDelegate;
 use crate::window::{PlatformWindow, ServoShellWindowId};
 
 pub(crate) enum AppState {
@@ -72,7 +71,7 @@ impl App {
             servoshell_preferences: servo_shell_preferences,
             waker: event_loop.create_event_loop_waker(),
             event_loop_proxy: event_loop.event_loop_proxy(),
-            initial_url: initial_url.clone(),
+            initial_url,
             t_start: t,
             t,
             state: AppState::Initializing,
@@ -120,10 +119,8 @@ impl App {
             user_content_manager.add_script(Rc::new(script));
         }
 
-        for (contents, url) in &self.opts.user_stylesheets {
-            let contents = String::try_from(contents.clone()).unwrap();
-            let user_stylesheet = UserStyleSheet::new(contents, url.clone().into_url());
-            user_content_manager.add_stylesheet(Rc::new(user_stylesheet));
+        for user_stylesheet in &self.servoshell_preferences.user_stylesheets {
+            user_content_manager.add_stylesheet(user_stylesheet.clone());
         }
 
         let running_state = Rc::new(RunningAppState::new(
@@ -133,7 +130,7 @@ impl App {
             user_content_manager,
             self.preferences.clone(),
             #[cfg(feature = "gamepad")]
-            ServoshellGamepadProvider::maybe_new().map(Rc::new),
+            ServoshellGamepadDelegate::maybe_new().map(Rc::new),
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 

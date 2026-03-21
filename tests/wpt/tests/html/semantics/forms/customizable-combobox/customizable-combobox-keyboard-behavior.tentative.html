@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+input, datalist {
+  appearance: base;
+}
+</style>
+
+<input list=datalist>
+<datalist id=datalist>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</datalist>
+
+<script>
+const Enter = '\uE007';
+const Escape = '\uE00C';
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+const Space = ' ';
+const Tab = '\uE004';
+const Shift = '\uE008';
+
+const input = document.querySelector('input');
+const datalist = document.querySelector('datalist');
+const optionOne = document.querySelector('.one');
+const optionTwo = document.querySelector('.two');
+
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+
+promise_test(async () => {
+  input.focus();
+  assert_true(datalist.matches(':popover-open'),
+    'Datalist should open after focusing input.');
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after opening popover.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after opening popover.');
+
+  await pressKey(ArrowDown);
+  assert_false(optionOne.matches(':active-option'),
+    'First option should not be active after pressing arrow down once.');
+  assert_true(optionTwo.matches(':active-option'),
+    'Second option should be active after pressing arrow down once.');
+  await pressKey(ArrowDown);
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after pressing arrow down twice.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after pressing arrow down twice.');
+
+  await pressKey(ArrowUp);
+  assert_false(optionOne.matches(':active-option'),
+    'First option should not be active after pressing arrow up once.');
+  assert_true(optionTwo.matches(':active-option'),
+    'Second option should be active after pressing arrow up once.');
+  await pressKey(ArrowUp);
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after pressing arrow up twice.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after pressing arrow up twice.');
+
+  let changeEventFired = false;
+  input.addEventListener('change', () => {
+    changeEventFired = true;
+  });
+  await pressKey(Enter);
+  assert_equals(input.value, 'one',
+    'input.value should be set to the option text after choosing an option.');
+  assert_false(datalist.matches(':popover-open'),
+    'Datalist should close after choosing an option.');
+  assert_true(changeEventFired,
+    'Choosing an option should fire a change event.');
+  assert_false(optionOne.matches(':active-option'),
+    'First option should not match :active-option after choosing an option.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not match :active-option after choosing an option.');
+  assert_equals(input.selectionStart, 3,
+    'selectionStart should be set to the end of the text after choosing an option.');
+  assert_equals(input.selectionEnd, 3,
+    'selectionEnd should be set to the end of the text after choosing an option.');
+}, 'Keyboard behavior for customizable combobox.');
+
+// TODO(crbug.com/453705243): Add tests for these cases:
+// - Modifier keys
+// - PageUp/PageDown
+// - Re-opening datalist after choosing an option
+</script>

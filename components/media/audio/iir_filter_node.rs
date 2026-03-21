@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use num_complex::Complex64;
 
 use crate::block::Chunk;
@@ -13,9 +14,11 @@ use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 
 const MAX_COEFFS: usize = 20;
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct IIRFilterNodeOptions {
+    #[conditional_malloc_size_of]
     pub feedforward: Arc<Vec<f64>>,
+    #[conditional_malloc_size_of]
     pub feedback: Arc<Vec<f64>>,
 }
 
@@ -118,7 +121,7 @@ impl IIRFilterNode {
             "InvalidStateError: first feedback coeff must not be zero"
         );
 
-        let filter = IIRFilter::new(options.feedforward.clone(), options.feedback.clone());
+        let filter = IIRFilter::new(options.feedforward.clone(), options.feedback);
 
         Self {
             filters: vec![filter; channel_info.computed_number_of_channels() as usize],

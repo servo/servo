@@ -3,35 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use atomic_refcell::AtomicRef;
 use euclid::Rect;
 use euclid::default::Size2D as UntypedSize2D;
+use layout_api::AxesOverflow;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use layout_api::{AxesOverflow, LayoutElementType, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::AxesScrollSensitivity;
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
-use servo_arc::Arc;
-use style::dom::{NodeInfo, TNode};
-use style::properties::ComputedValues;
 use style::values::computed::Overflow;
-use style::values::specified::box_::DisplayOutside;
 use style_traits::CSSPixel;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
-use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
-use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
-use crate::taffy::{TaffyItemBox, TaffyItemBoxInner};
+use crate::style_ext::Display;
 use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
 
 #[derive(MallocSizeOf)]
@@ -124,55 +116,17 @@ impl BoxTree {
             root_overflow
         })
     }
-
-    /// This method attempts to incrementally update the box tree from an
-    /// arbitrary node that is not necessarily the document's root element.
-    ///
-    /// If the node is not a valid candidate for incremental update, the method
-    /// loops over its parent. The only valid candidates for now are absolutely
-    /// positioned boxes which don't change their outside display mode (i.e. it
-    /// will not attempt to update from an absolutely positioned inline element
-    /// which became an absolutely positioned block element). The value `true`
-    /// is returned if an incremental update could be done, and `false`
-    /// otherwise.
-    ///
-    /// There are various pain points that need to be taken care of to extend
-    /// the set of valid candidates:
-    /// * it is not obvious how to incrementally check whether a block
-    ///   formatting context still contains floats or not;
-    /// * the propagation of text decorations towards node descendants is
-    ///   hard to do incrementally with our current representation of boxes
-    /// * how intrinsic content sizes are computed eagerly makes it hard
-    ///   to update those sizes for ancestors of the node from which we
-    ///   made an incremental update.
-    pub(crate) fn update(
-        context: &LayoutContext,
-        dirty_root_from_script: ServoLayoutNode<'_>,
-    ) -> bool {
-        let Some(box_tree_update) = IncrementalBoxTreeUpdate::find(dirty_root_from_script) else {
-            return false;
-        };
-        box_tree_update.update_from_dirty_root(context);
-        true
-    }
 }
 
 fn construct_for_root_element(
     context: &LayoutContext,
     root_element: ServoThreadSafeLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
-    let info = NodeAndStyleInfo::new(
-        root_element,
-        root_element.style(&context.style_context),
-        root_element.take_restyle_damage(),
-    );
+    let info = NodeAndStyleInfo::new(root_element, root_element.style(&context.style_context));
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
-        Display::None => {
-            root_element.unset_all_boxes();
-            return Vec::new();
-        },
+        Display::None => return Vec::new(),
         Display::Contents => {
             // Unreachable because the style crate adjusts the computed values:
             // https://drafts.csswg.org/css-display-3/#transformations
@@ -272,192 +226,5 @@ impl BoxTree {
             physical_containing_block,
             viewport_scroll_sensitivity,
         )
-    }
-}
-
-#[expect(clippy::enum_variant_names)]
-enum DirtyRootBoxTreeNode {
-    AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
-    AbsolutelyPositionedInlineLevelBox(InlineItem, usize),
-    AbsolutelyPositionedFlexLevelBox(ArcRefCell<FlexLevelBox>),
-    AbsolutelyPositionedTaffyLevelBox(ArcRefCell<TaffyItemBox>),
-}
-
-struct IncrementalBoxTreeUpdate<'dom> {
-    node: ServoLayoutNode<'dom>,
-    box_tree_node: DirtyRootBoxTreeNode,
-    primary_style: Arc<ComputedValues>,
-    display_inside: DisplayInside,
-}
-
-impl<'dom> IncrementalBoxTreeUpdate<'dom> {
-    fn find(dirty_root_from_script: ServoLayoutNode<'dom>) -> Option<Self> {
-        let mut maybe_dirty_root_node = Some(dirty_root_from_script);
-        while let Some(dirty_root_node) = maybe_dirty_root_node {
-            if let Some(dirty_root) = Self::new_if_valid(dirty_root_node) {
-                return Some(dirty_root);
-            }
-
-            maybe_dirty_root_node = dirty_root_node.parent_node();
-        }
-
-        None
-    }
-
-    fn new_if_valid(potential_dirty_root_node: ServoLayoutNode<'dom>) -> Option<Self> {
-        if !potential_dirty_root_node.is_element() {
-            return None;
-        }
-
-        if potential_dirty_root_node.type_id() ==
-            LayoutNodeType::Element(LayoutElementType::HTMLBodyElement)
-        {
-            // This can require changes to the canvas background.
-            return None;
-        }
-
-        // Don't update unstyled nodes or nodes that have pseudo-elements.
-        let potential_thread_safe_dirty_root_node = potential_dirty_root_node.to_threadsafe();
-        let element_data = potential_thread_safe_dirty_root_node
-            .style_data()?
-            .element_data
-            .borrow();
-        if !element_data.styles.pseudos.is_empty() {
-            return None;
-        }
-
-        let layout_data = NodeExt::inner_layout_data(&potential_thread_safe_dirty_root_node)?;
-        if !layout_data.pseudo_boxes.is_empty() {
-            return None;
-        }
-
-        let primary_style = element_data.styles.primary();
-        let box_style = primary_style.get_box();
-
-        if !box_style.position.is_absolutely_positioned() {
-            return None;
-        }
-
-        let display_inside = match Display::from(box_style.display) {
-            Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
-            _ => return None,
-        };
-
-        let box_tree_node =
-            match &*AtomicRef::filter_map(layout_data.self_box.borrow(), Option::as_ref)? {
-                LayoutBox::DisplayContents(..) => return None,
-                LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
-                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
-                        if box_style.position.is_absolutely_positioned() =>
-                    {
-                        // If the outer type of its original display changed from block to inline,
-                        // a block-level abspos needs to be placed in an inline formatting context,
-                        // see [`BlockContainerBuilder::handle_absolutely_positioned_element()`].
-                        if box_style.original_display.outside() == DisplayOutside::Inline {
-                            return None;
-                        }
-                        DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(
-                            block_level_box.clone(),
-                        )
-                    },
-                    _ => return None,
-                },
-                LayoutBox::InlineLevel(inline_level_box) => {
-                    let InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index) =
-                        inline_level_box
-                    else {
-                        return None;
-                    };
-                    DirtyRootBoxTreeNode::AbsolutelyPositionedInlineLevelBox(
-                        inline_level_box.clone(),
-                        *text_offset_index,
-                    )
-                },
-                LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
-                    FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
-                        if box_style.position.is_absolutely_positioned() =>
-                    {
-                        DirtyRootBoxTreeNode::AbsolutelyPositionedFlexLevelBox(
-                            flex_level_box.clone(),
-                        )
-                    },
-                    _ => return None,
-                },
-                LayoutBox::TableLevelBox(..) => return None,
-                LayoutBox::TaffyItemBox(taffy_level_box) => {
-                    match &taffy_level_box.borrow().taffy_level_box {
-                        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(_)
-                            if box_style.position.is_absolutely_positioned() =>
-                        {
-                            DirtyRootBoxTreeNode::AbsolutelyPositionedTaffyLevelBox(
-                                taffy_level_box.clone(),
-                            )
-                        },
-                        _ => return None,
-                    }
-                },
-            };
-
-        Some(Self {
-            node: potential_dirty_root_node,
-            box_tree_node,
-            primary_style: primary_style.clone(),
-            display_inside,
-        })
-    }
-
-    #[servo_tracing::instrument(name = "Box Tree Update From Dirty Root", skip_all)]
-    fn update_from_dirty_root(&self, context: &LayoutContext) {
-        let node = self.node.to_threadsafe();
-        let contents = Contents::for_element(node, context);
-
-        let info =
-            NodeAndStyleInfo::new(node, self.primary_style.clone(), node.take_restyle_damage());
-
-        let out_of_flow_absolutely_positioned_box =
-            AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents);
-        match &self.box_tree_node {
-            DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
-                *block_level_box.borrow_mut() = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    ArcRefCell::new(out_of_flow_absolutely_positioned_box),
-                );
-            },
-            DirtyRootBoxTreeNode::AbsolutelyPositionedInlineLevelBox(
-                inline_level_box,
-                text_offset_index,
-            ) => match inline_level_box {
-                InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
-                    *positioned_box.borrow_mut() = out_of_flow_absolutely_positioned_box;
-                    assert_eq!(
-                        *offset_in_text, *text_offset_index,
-                        "The offset of the dirty root shouldn't have changed"
-                    );
-                },
-                _ => unreachable!("The dirty root should be absolutely positioned"),
-            },
-            DirtyRootBoxTreeNode::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
-                *flex_level_box.borrow_mut() = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    ArcRefCell::new(out_of_flow_absolutely_positioned_box),
-                );
-            },
-            DirtyRootBoxTreeNode::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
-                taffy_level_box.borrow_mut().taffy_level_box =
-                    TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
-                        out_of_flow_absolutely_positioned_box,
-                    ));
-            },
-        }
-
-        let mut invalidate_start_point = self.node;
-        while let Some(parent_node) = invalidate_start_point.parent_node() {
-            // Box tree reconstruction doesn't need to involve these ancestors, so their
-            // damage isn't useful for us.
-            //
-            // TODO: This isn't going to be good enough for incremental fragment tree
-            // reconstruction, as fragment tree damage might extend further up the tree.
-            parent_node.to_threadsafe().take_restyle_damage();
-
-            invalidate_start_point = parent_node;
-        }
     }
 }

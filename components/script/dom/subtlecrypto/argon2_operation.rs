@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use argon2::{Argon2, AssociatedData, ParamsBuilder, Version};
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
@@ -11,10 +12,9 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ARGON2D, ALG_ARGON2I, ALG_ARGON2ID, KeyAlgorithmAndDerivatives, SubtleAlgorithm,
-    SubtleArgon2Params, SubtleKeyAlgorithm,
+    CryptoAlgorithm, KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleArgon2Params,
+    SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>
 pub(crate) fn derive_bits(
@@ -71,14 +71,14 @@ pub(crate) fn derive_bits(
     //     Let type be 1.
     // If the name member of normalizedAlgorithm is a case-sensitive string match for "Argon2id":
     //     Let type be 2.
-    let type_ = match normalized_algorithm.name.as_str() {
-        ALG_ARGON2D => argon2::Algorithm::Argon2d,
-        ALG_ARGON2I => argon2::Algorithm::Argon2i,
-        ALG_ARGON2ID => argon2::Algorithm::Argon2id,
+    let type_ = match normalized_algorithm.name {
+        CryptoAlgorithm::Argon2D => argon2::Algorithm::Argon2d,
+        CryptoAlgorithm::Argon2I => argon2::Algorithm::Argon2i,
+        CryptoAlgorithm::Argon2ID => argon2::Algorithm::Argon2id,
         _ => {
             return Err(Error::NotSupported(Some(format!(
                 "Unknown Argon2 algorithm name: {}",
-                normalized_algorithm.name
+                normalized_algorithm.name.as_str()
             ))));
         },
     };
@@ -129,13 +129,13 @@ pub(crate) fn derive_bits(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -168,16 +168,16 @@ pub(crate) fn import_key(
     // Step 8. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
     // Step 9. Set the [[algorithm]] internal slot of key to algorithm.
     let algorithm = SubtleKeyAlgorithm {
-        name: normalized_algorithm.name.clone(),
+        name: normalized_algorithm.name,
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Argon2Password(key_data.to_vec()),
-        can_gc,
     );
 
     // Step 10. Return key.

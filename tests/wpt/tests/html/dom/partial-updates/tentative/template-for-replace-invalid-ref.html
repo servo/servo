@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - replace </title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div marker="placeholder"><?start><div id="placeholder-old">Old content</div><?end></div>
+<template for="placeholder"><div id="placeholder">New content</div></template>
+<script>
+test(() => {
+    assert_equals(document.getElementById("placeholder").textContent, "New content");
+}, "<template for> replace");
+
+</script>

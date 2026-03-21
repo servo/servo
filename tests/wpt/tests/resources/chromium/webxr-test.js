@@ -1295,6 +1295,9 @@ class MockRuntime {
               // If depth was not enabled above, this should be null.
               depthConfiguration: this.depthConfiguration_,
               views: this._getDefaultViews(),
+              // Typical OpenXR maxLayerCount is 16. We may also show
+              // a base layer, and a layer can have 2 eyes.
+              maxRenderLayers: (16 - 1) / 2,
             },
             enviromentBlendMode: this.enviromentBlendMode_,
             interactionMode: this.interactionMode_

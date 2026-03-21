@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-position-4/#overlay">
+<link rel=match href="overlay-button-appearance-ref.html">
+<meta name=assert content="overlay:auto should not affect the appearance of buttons.">
+
+<style>
+* {
+  overlay: auto !important;
+}
+</style>
+
+<button>one</button>
+<button>two</button>
+
+<div popover id=popover>popover</div>
+
+<script>
+const popover = document.getElementById('popover');
+popover.showPopover();
+popover.hidePopover();
+</script>

@@ -6,48 +6,43 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum LargestContentfulPaintType {
-    BackgroundImage,
-    Image,
-}
+use servo_url::ServoUrl;
 
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LCPCandidate {
     /// The identity of the element.
     pub id: LCPCandidateID,
     /// The size of the visual area
     pub area: usize,
-    /// The type of LCP candidate
-    pub lcp_type: LargestContentfulPaintType,
+    /// The candidate's request URL
+    pub url: Option<ServoUrl>,
 }
 
 impl LCPCandidate {
-    pub fn new(id: LCPCandidateID, lcp_type: LargestContentfulPaintType, area: usize) -> Self {
-        Self { id, lcp_type, area }
+    pub fn new(id: LCPCandidateID, area: usize, url: Option<ServoUrl>) -> Self {
+        Self { id, area, url }
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct LCPCandidateID(pub usize);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct LargestContentfulPaint {
     pub id: LCPCandidateID,
     pub area: usize,
-    pub lcp_type: LargestContentfulPaintType,
     pub paint_time: CrossProcessInstant,
+    pub url: Option<ServoUrl>,
 }
 
 impl LargestContentfulPaint {
     pub fn from(lcp_candidate: LCPCandidate, paint_time: CrossProcessInstant) -> Self {
         Self {
             id: lcp_candidate.id,
-            lcp_type: lcp_candidate.lcp_type,
             area: lcp_candidate.area,
             paint_time,
+            url: lcp_candidate.url,
         }
     }
 }

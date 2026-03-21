@@ -14,7 +14,7 @@
 <!-- Test focusgroupstart changes during navigation -->
 <div id=before1 tabindex=0>Before test 1</div>
 
-<div id=fg1 focusgroup="toolbar no-memory">
+<div id=fg1 focusgroup="toolbar nomemory">
   <span id=item1 tabindex=0>Item 1</span>
   <span id=item2 tabindex=0>Item 2</span>
 </div>
@@ -24,7 +24,7 @@
 <!-- Test disabled element changes -->
 <div id=before2 tabindex=0>Before test 2</div>
 
-<div id=fg2 focusgroup="toolbar no-memory">
+<div id=fg2 focusgroup="toolbar nomemory">
   <button id=btn1>Button 1</button>
   <button id=btn2 disabled>Button 2</button>
 </div>
@@ -33,29 +33,29 @@
 
 <script>
   promise_test(async t => {
-    document.getElementById("before1").focus();
-    await navigateFocusForward();
+    await focusAndWait(document.getElementById("before1"));
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("item1"),
                   "First item selected as entry element initially (tree order)");
 
     document.getElementById("item2").setAttribute("focusgroupstart", "");
 
-    document.getElementById("before1").focus();
-    await navigateFocusForward();
+    await focusAndWait(document.getElementById("before1"));
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("item2"),
                   "After adding focusgroupstart, new priority is respected");
   }, "Dynamic focusgroupstart changes affect entry element selection");
 
   promise_test(async t => {
-    document.getElementById("before2").focus();
-    await navigateFocusForward();
+    await focusAndWait(document.getElementById("before2"));
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("btn1"),
                   "Tab skips disabled button");
 
     document.getElementById("btn2").removeAttribute("disabled");
 
-    document.getElementById("before2").focus();
-    await navigateFocusForward();
+    await focusAndWait(document.getElementById("before2"));
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("btn1"),
                   "First enabled button selected in tree order");
   }, "Enabling disabled elements makes them available for tab stop");

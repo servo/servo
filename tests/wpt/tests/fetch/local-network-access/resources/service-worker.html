@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Service Worker</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/webtransport/resources/webtransport-test-helpers.sub.js"></script>
+<script>
+"use strict";
+
+// Set permissions (optionally), then attempts to run an action from a service
+// worker. Possible actions (which are set in the 'method' url parameter):
+//
+//   * fetch
+//   * navigate
+//   * websocket
+//   * webtransport
+//
+// Permission setting is documented in the sourceResolveOptions() function in
+// support.sub.js.
+//
+// If 'method' = 'navigate', takes in an ID for window client identification
+Promise.resolve().then(async () => {
+    const window_url = new URL(window.location.href);
+    let permission_name = getPermissionName(window_url);
+    let permission_value = getPermissionValue(window_url);
+    if (permission_name != '') {
+      test_driver.set_test_context(opener);
+      await test_driver.set_permission({ name: permission_name }, permission_value);
+    }
+
+    let method = window_url.searchParams.get('method');
+    let id = "";
+    if (window_url.searchParams.has('id')) {
+      id = window_url.searchParams.get('id');
+    }
+
+    await navigator.serviceWorker.register('service-worker.js');
+    const registration = await navigator.serviceWorker.ready;
+    const channel = new MessageChannel();
+
+    channel.port1.onmessage = (evt) => {
+      registration.unregister();
+      opener.postMessage(evt.data, "*");
+    };
+
+    channel.port1.onerror = (evt) => {
+      registration.unregister();
+      opener.postMessage({ error: evt.message || "unknown error" }, "*");
+    };
+
+    let targetUrl;
+
+    switch (method) {
+      case 'fetch':
+        const target = {
+          server: Server.HTTPS_LOOPBACK,
+          behavior: { response: ResponseBehavior.allowCrossOrigin() },
+        };
+        targetUrl = resolveTargetUrl(target);
+
+        break;
+      case 'websocket':
+        targetUrl = resolveUrl("/echo", Server.WSS_LOOPBACK);
+        break;
+      case 'webtransport':
+        targetUrl = webtransport_url('custom-response.py?:status=204');
+        break;
+      case 'navigate':
+        targetUrl = resolveUrl("openee.html", Server.HTTPS_LOOPBACK);
+    }
+
+    registration.active.postMessage({url: targetUrl.toString(), method: method, id: id},
+        [channel.port2]);
+});
+</script>

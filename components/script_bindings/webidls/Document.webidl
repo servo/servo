@@ -146,13 +146,13 @@ partial /*sealed*/ interface Document {
   boolean hasFocus();
   // [CEReactions]
   // attribute DOMString designMode;
-  // [CEReactions]
-  // boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
-  // boolean queryCommandEnabled(DOMString commandId);
-  // boolean queryCommandIndeterm(DOMString commandId);
-  // boolean queryCommandState(DOMString commandId);
-  boolean queryCommandSupported(DOMString commandId);
-  // DOMString queryCommandValue(DOMString commandId);
+  [CEReactions, Throws, Pref="dom_exec_command_enabled"]
+  boolean execCommand(DOMString commandId, optional boolean showUI = false, optional (TrustedHTML or DOMString) value = "");
+  [Pref="dom_exec_command_enabled"] boolean queryCommandEnabled(DOMString commandId);
+  [Pref="dom_exec_command_enabled"] boolean queryCommandIndeterm(DOMString commandId);
+  [Pref="dom_exec_command_enabled"] boolean queryCommandState(DOMString commandId);
+  [Pref="dom_exec_command_enabled"] boolean queryCommandSupported(DOMString commandId);
+  [Pref="dom_exec_command_enabled"] DOMString queryCommandValue(DOMString commandId);
   readonly attribute boolean hidden;
   readonly attribute DocumentVisibilityState visibilityState;
 
@@ -200,7 +200,6 @@ partial interface Document {
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Document {
   [LegacyLenientSetter] readonly attribute boolean fullscreenEnabled;
-  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
   [LegacyLenientSetter] readonly attribute boolean fullscreen; // historical
 
   Promise<undefined> exitFullscreen();

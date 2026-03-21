@@ -3,8 +3,8 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
-async def test_set_and_remove(bidi_session, top_context,
-        prepare_context, get_headers_methods_invariant, url, set_extra_headers):
+async def test_set_and_remove(top_context,
+        prepare_context, get_headers_methods_invariant, set_extra_headers):
     await prepare_context(top_context)
 
     original_headers = await get_headers_methods_invariant(top_context)
@@ -23,8 +23,31 @@ async def test_set_and_remove(bidi_session, top_context,
     assert original_headers == await get_headers_methods_invariant(top_context)
 
 
-async def test_multiple_headers(bidi_session, top_context,
-        prepare_context, get_headers_methods_invariant, url, set_extra_headers):
+async def test_set_and_unsubscribe_from_network(bidi_session, top_context,
+        prepare_context, get_headers_methods_invariant, set_extra_headers, subscribe_events):
+    await prepare_context(top_context)
+
+    await subscribe_events(events=["network.beforeRequestSent"])
+
+    await set_extra_headers(
+        headers=[{
+            "name": "some_header_name",
+            "value": {
+                "type": "string",
+                "value": "some_header_value"
+            }}],
+        contexts=[top_context["context"]])
+
+    # Make sure extra headers are still added after unsubscribing from network
+    # events.
+    await bidi_session.session.unsubscribe(events=["network.beforeRequestSent"])
+
+    new_headers = await get_headers_methods_invariant(top_context)
+    assert new_headers["some_header_name"] == ["some_header_value"]
+
+
+async def test_multiple_headers(top_context,
+        prepare_context, get_headers_methods_invariant, set_extra_headers):
     await prepare_context(top_context)
 
     original_headers = await get_headers_methods_invariant(top_context)

@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.iceGatheringState</title>
 <script src="/resources/testharness.js"></script>
@@ -7,7 +9,10 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
@@ -254,7 +259,9 @@
     assert_equals(pc1.iceGatheringState, 'new');
     await pc1waiter;
   }, 'renegotiation that closes all transports should result in ICE gathering state "new"');
+}
 
+if (interop2026) {
   /*
     4.3.2.  RTCIceGatheringState Enum
       new
@@ -321,6 +328,7 @@
 
     await exchangeAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually have connected connection state');
+}
 
   /*
     TODO

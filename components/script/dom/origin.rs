@@ -130,7 +130,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
                 can_gc,
             ) {
                 Ok(ConversionResult::Success(s)) => s,
-                _ => return Err(Error::Type("Failed to convert value to string".to_string())),
+                _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
             };
 
             // Step 2.1. Let parsedURL be the result of basic URL parsing value.
@@ -138,13 +138,13 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
             //           origin is set to parsedURL's origin.
             match ServoUrl::parse(&s.to_string()) {
                 Ok(url) => return Ok(Origin::new(global, None, url.origin(), can_gc)),
-                Err(_) => return Err(Error::Type("Failed to parse URL".to_string())),
+                Err(_) => return Err(Error::Type(c"Failed to parse URL".to_owned())),
             }
         }
 
         // Step 3. Throw a TypeError.
         Err(Error::Type(
-            "Value must be a string or a platform object with an origin".to_string(),
+            c"Value must be a string or a platform object with an origin".to_owned(),
         ))
     }
 

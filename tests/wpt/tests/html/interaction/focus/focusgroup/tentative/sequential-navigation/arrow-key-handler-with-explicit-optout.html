@@ -34,7 +34,7 @@
   promise_test(async t => {
     const search = document.getElementById("search");
 
-    search.focus();
+    await focusAndWait(search);
     assert_equals(document.activeElement, search, "Can manually focus opted-out element");
 
     // Arrow keys should not trigger focusgroup navigation from opted-out element.

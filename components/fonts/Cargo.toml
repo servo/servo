@@ -1,5 +1,5 @@
 [package]
-name = "fonts"
+name = "servo-fonts"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -24,8 +24,9 @@ content-security-policy = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { version = "0.6.1" }
-# FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
+# FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
+icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
@@ -41,8 +42,8 @@ read-fonts = { workspace = true }
 serde = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { workspace = true }
+servo-url = { workspace = true }
 skrifa = { workspace = true }
 smallvec = { workspace = true }
 rustc-hash = { workspace = true }
@@ -52,6 +53,7 @@ tracing = { workspace = true, optional = true }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -63,7 +65,7 @@ objc2-core-text = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype-sys = { workspace = true }
-servo_allocator = { path = "../allocator" }
+servo_allocator = { workspace = true }
 
 [target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }

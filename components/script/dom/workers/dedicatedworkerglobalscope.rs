@@ -26,7 +26,6 @@ use net_traits::request::{
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
-use crate::devtools;
 use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::cell::DomRefCell;
@@ -144,19 +143,32 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             WorkerScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id, task_source) = match script_msg {
+        let (event_category, task, pipeline_id, task_source) = match script_msg {
             CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) => {
                 (category, boxed, pipeline_id, task_source)
             },
             _ => return None,
         };
-        Some((Some(worker), category, boxed, pipeline_id, task_source))
+        Some(QueuedTask {
+            worker: Some(worker),
+            event_category,
+            task,
+            pipeline_id,
+            task_source,
+        })
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (worker, category, boxed, pipeline_id, task_source) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
-        DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
+        let script_msg = CommonScriptMsg::Task(
+            queued_task.event_category,
+            queued_task.task,
+            queued_task.pipeline_id,
+            queued_task.task_source,
+        );
+        DedicatedWorkerScriptMsg::CommonWorker(
+            queued_task.worker.unwrap(),
+            WorkerScriptMsg::Common(script_msg),
+        )
     }
 
     fn inactive_msg() -> Self {
@@ -195,7 +207,6 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     browsing_context: Option<BrowsingContextId>,
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]
@@ -310,6 +321,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
@@ -331,10 +343,7 @@ impl DedicatedWorkerGlobalScope {
             insecure_requests_policy,
             font_context,
         ));
-        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-            GlobalScope::get_cx(),
-            scope,
-        )
+        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -440,7 +449,7 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub.clone(),
                     cx,
                 );
-                debugger_global.execute(CanGc::from_cx(cx));
+                debugger_global.execute(cx);
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -467,7 +476,7 @@ impl DedicatedWorkerGlobalScope {
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
-                    DOMString::from_string(worker_name),
+                    worker_name.into(),
                     worker_type,
                     worker_url,
                     devtools_mpsc_port,
@@ -483,6 +492,7 @@ impl DedicatedWorkerGlobalScope {
                     control_receiver,
                     insecure_requests_policy,
                     font_context,
+                    cx,
                 );
                 debugger_global.fire_add_debuggee(
                     CanGc::from_cx(cx),
@@ -500,7 +510,7 @@ impl DedicatedWorkerGlobalScope {
                     sender: event_loop_sender.clone(),
                     pipeline_id,
                     name: TaskSourceName::Networking,
-                    canceller: Default::default(),
+                    canceller: scope.shared_task_canceller(),
                 };
                 let context = ScriptFetchContext::new(
                     Trusted::new(scope),
@@ -637,11 +647,9 @@ impl DedicatedWorkerGlobalScope {
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
             MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, CanGc::from_cx(cx))
-                },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                    self.upcast::<GlobalScope>()
+                        .set_devtools_wants_updates(bool_val);
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },

@@ -5,6 +5,7 @@
 use aes::{Aes128, Aes192, Aes256};
 use cipher::{KeyIvInit, StreamCipher};
 use ctr::Ctr128BE;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
@@ -16,7 +17,6 @@ use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, SubtleAesCtrParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-encrypt>
 pub(crate) fn encrypt(
@@ -132,39 +132,39 @@ pub(crate) fn decrypt(
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::generate_key(
         AesAlgorithm::AesCtr,
+        cx,
         global,
         normalized_algorithm,
         extractable,
         usages,
-        can_gc,
     )
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::import_key(
         AesAlgorithm::AesCtr,
+        cx,
         global,
         format,
         key_data,
         extractable,
         usages,
-        can_gc,
     )
 }
 

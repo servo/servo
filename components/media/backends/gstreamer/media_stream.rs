@@ -5,6 +5,7 @@
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
+use glib::BoolError;
 use gstreamer;
 use gstreamer::prelude::*;
 use once_cell::sync::Lazy;
@@ -126,8 +127,8 @@ impl GStreamerMediaStream {
         Self::create_video_from(videotestsrc)
     }
 
-    /// Attaches encoding adapters to the stream, returning the source element
-    pub fn encoded(&mut self) -> gstreamer::Element {
+    /// Attaches encoding adapters to the stream, returning the source element when successful.
+    pub fn encoded(&mut self) -> Result<gstreamer::Element, BoolError> {
         let pipeline = self
             .pipeline
             .as_ref()
@@ -136,8 +137,7 @@ impl GStreamerMediaStream {
 
         let capsfilter = gstreamer::ElementFactory::make("capsfilter")
             .property("caps", self.caps())
-            .build()
-            .unwrap();
+            .build()?;
         match self.type_ {
             MediaStreamType::Video => {
                 let vp8enc = gstreamer::ElementFactory::make("vp8enc")
@@ -145,43 +145,34 @@ impl GStreamerMediaStream {
                     .property("error-resilient", "default")
                     .property("cpu-used", -16i32)
                     .property("lag-in-frames", 0i32)
-                    .build()
-                    .unwrap();
+                    .build()?;
 
                 let rtpvp8pay = gstreamer::ElementFactory::make("rtpvp8pay")
                     .property("picture-id-mode", "15-bit")
                     .property("mtu", 1200u32)
-                    .build()
-                    .unwrap();
-                let queue2 = gstreamer::ElementFactory::make("queue").build().unwrap();
+                    .build()?;
+                let queue2 = gstreamer::ElementFactory::make("queue").build()?;
 
-                pipeline
-                    .add_many([&vp8enc, &rtpvp8pay, &queue2, &capsfilter])
-                    .unwrap();
-                gstreamer::Element::link_many([&src, &vp8enc, &rtpvp8pay, &queue2, &capsfilter])
-                    .unwrap();
-                vp8enc.sync_state_with_parent().unwrap();
-                rtpvp8pay.sync_state_with_parent().unwrap();
-                queue2.sync_state_with_parent().unwrap();
-                capsfilter.sync_state_with_parent().unwrap();
-                capsfilter
+                pipeline.add_many([&vp8enc, &rtpvp8pay, &queue2, &capsfilter])?;
+                gstreamer::Element::link_many([&src, &vp8enc, &rtpvp8pay, &queue2, &capsfilter])?;
+                vp8enc.sync_state_with_parent()?;
+                rtpvp8pay.sync_state_with_parent()?;
+                queue2.sync_state_with_parent()?;
+                capsfilter.sync_state_with_parent()?;
+                Ok(capsfilter)
             },
             MediaStreamType::Audio => {
-                let opusenc = gstreamer::ElementFactory::make("opusenc").build().unwrap();
+                let opusenc = gstreamer::ElementFactory::make("opusenc").build()?;
                 let rtpopuspay = gstreamer::ElementFactory::make("rtpopuspay")
                     .property("mtu", 1200u32)
-                    .build()
-                    .unwrap();
-                let queue3 = gstreamer::ElementFactory::make("queue").build().unwrap();
-                pipeline
-                    .add_many([&opusenc, &rtpopuspay, &queue3, &capsfilter])
-                    .unwrap();
-                gstreamer::Element::link_many([&src, &opusenc, &rtpopuspay, &queue3, &capsfilter])
-                    .unwrap();
-                opusenc.sync_state_with_parent().unwrap();
-                rtpopuspay.sync_state_with_parent().unwrap();
-                queue3.sync_state_with_parent().unwrap();
-                capsfilter
+                    .build()?;
+                let queue3 = gstreamer::ElementFactory::make("queue").build()?;
+                pipeline.add_many([&opusenc, &rtpopuspay, &queue3, &capsfilter])?;
+                gstreamer::Element::link_many([&src, &opusenc, &rtpopuspay, &queue3, &capsfilter])?;
+                opusenc.sync_state_with_parent()?;
+                rtpopuspay.sync_state_with_parent()?;
+                queue3.sync_state_with_parent()?;
+                Ok(capsfilter)
             },
         }
     }

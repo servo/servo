@@ -361,6 +361,15 @@ def test_pointer_action_subtype_invalid_value(session, value):
     assert_error(response, "invalid argument")
 
 
+@pytest.mark.parametrize("missing", ["x", "y"])
+def test_pointer_action_move_missing_property(session, mouse_chain, missing):
+    actions = mouse_chain.pointer_move(x=0, y=0)
+    del actions._actions[-1][missing]
+
+    with pytest.raises(InvalidArgumentException):
+        actions.perform()
+
+
 @pytest.mark.parametrize("coordinate", ["x", "y"])
 @pytest.mark.parametrize("value", [None, "foo", True, [], {}])
 def test_pointer_action_move_coordinate_invalid_type(session, coordinate, value):
@@ -835,9 +844,7 @@ def test_wheel_action_scroll_origin_element_invalid_value(session):
 
 
 @pytest.mark.parametrize("missing", ["x", "y", "deltaX", "deltaY"])
-def test_wheel_action_scroll_missing_property(
-    session, test_actions_scroll_page, wheel_chain, missing
-):
+def test_wheel_action_scroll_missing_property(session, wheel_chain, missing):
     actions = wheel_chain.scroll(0, 0, 5, 10, origin="viewport")
     del actions._actions[-1][missing]
 

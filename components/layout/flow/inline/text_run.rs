@@ -148,20 +148,6 @@ impl TextRunSegment {
         for (run_index, run) in self.runs.iter().enumerate() {
             ifc.possibly_flush_deferred_forced_line_break();
 
-            // If this whitespace forces a line break, queue up a hard line break the next time we
-            // see any content. We don't line break immediately, because we'd like to finish processing
-            // any ongoing inline boxes before ending the line.
-            if run.is_single_preserved_newline() {
-                character_range_start += run.character_count();
-                ifc.defer_forced_line_break();
-                continue;
-            }
-            // Break before each unbreakable run in this TextRun, except the first unless the
-            // linebreaker was set to break before the first run.
-            if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
-                ifc.process_soft_wrap_opportunity();
-            }
-
             let new_character_range_end = character_range_start + run.character_count();
             let offsets = ifc
                 .ifc
@@ -171,6 +157,27 @@ impl TextRunSegment {
                     shared_selection,
                     character_range: character_range_start..new_character_range_end,
                 });
+
+            // If this whitespace forces a line break, queue up a hard line break the next time we
+            // see any content. We don't line break immediately, because we'd like to finish processing
+            // any ongoing inline boxes before ending the line.
+            if run.is_single_preserved_newline() {
+                ifc.possibly_push_empty_text_run_to_unbreakable_segment(
+                    text_run,
+                    &self.font,
+                    self.bidi_level,
+                    offsets,
+                );
+                character_range_start = new_character_range_end;
+                ifc.defer_forced_line_break();
+                continue;
+            }
+
+            // Break before each unbreakable run in this TextRun, except the first unless the
+            // linebreaker was set to break before the first run.
+            if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
+                ifc.process_soft_wrap_opportunity();
+            }
 
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.clone(),
@@ -485,6 +492,7 @@ impl TextRun {
         let mut current: Option<TextRunSegment> = None;
         let mut results = Vec::new();
 
+        let lang = parent_style.get_font()._x_lang.clone();
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
 
@@ -509,22 +517,12 @@ impl TextRun {
             // at the bottom of the list.
             let script = Script::from(character);
             let bidi_level = bidi_info.levels[current_byte_index];
-            let current_font = current.as_ref().and_then(|text_run_segment| {
-                if text_run_segment.bidi_level == bidi_level && text_run_segment.script == script {
-                    Some(text_run_segment.font.clone())
-                } else {
-                    None
-                }
-            });
-
-            let lang = parent_style.get_font()._x_lang.clone();
 
             let Some(font) = font_group.find_by_codepoint(
                 &layout_context.font_context,
                 character,
                 next_character,
-                current_font,
-                Some(lang.0.as_ref().to_string()),
+                lang.clone(),
             ) else {
                 continue;
             };

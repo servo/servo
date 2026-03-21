@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>HTML partial updates - append gradually</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=target marker="results"><?start>Loading...</div>
+<script>
+    const contents = [];
+    const target = document.querySelector("#target");
+    function step() {
+        contents.push(target.textContent);
+    }
+
+    step();
+</script>
+
+<template for="results">A<?start></template>
+<script>step();</script>
+<template for="results">B<?marker></template>
+<script>step();</script>
+<template for="results"><?start>C<?end></template>
+<script>step();</script>
+<template for="results"><?marker>D</template>
+<script>step();</script>
+<template for="results">C</template>
+<script>step();</script>
+<script>
+test(() => {
+    assert_array_equals(contents, ['Loading...', 'A', 'AB', 'ABC', 'ABD', 'ABCD']);
+}, "Multiple <template for>");
+</script>

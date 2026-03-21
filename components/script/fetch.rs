@@ -10,6 +10,7 @@ use base::id::WebViewId;
 use ipc_channel::ipc;
 use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
 use net_traits::request::{
@@ -21,6 +22,7 @@ use net_traits::{
     FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch,
 };
 use rustc_hash::FxHashMap;
+use script_bindings::cformat;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
@@ -36,7 +38,6 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{DeferredRequestInit, WindowMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -56,7 +57,7 @@ use crate::dom::window::Window;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
@@ -178,15 +179,14 @@ fn abort_fetch_call(
     response_object: Option<&Response>,
     abort_reason: HandleValue,
     global: &GlobalScope,
-    cx: SafeJSContext,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) {
     // Step 1. Reject promise with error.
-    promise.reject(cx, abort_reason, can_gc);
+    promise.reject(cx.into(), abort_reason, CanGc::from_cx(cx));
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
     if let Some(body) = request.body() {
         if body.is_readable() {
-            body.cancel(cx, global, abort_reason, can_gc);
+            body.cancel(cx, global, abort_reason);
         }
     }
     // Step 3. If responseObject is null, then return.
@@ -197,7 +197,7 @@ fn abort_fetch_call(
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
     if let Some(body) = response.body() {
         if body.is_readable() {
-            body.error(abort_reason, can_gc);
+            body.error(abort_reason, CanGc::from_cx(cx));
         }
     }
 }
@@ -208,24 +208,24 @@ pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
-    comp: InRealm,
-    can_gc: CanGc,
+    cx: &mut CurrentRealm,
 ) -> Rc<Promise> {
     // Step 1. Let p be a new promise.
-    let promise = Promise::new_in_current_realm(comp, can_gc);
-    let cx = GlobalScope::get_cx();
+    let promise = Promise::new_in_realm(cx);
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
-    let response = Response::new(global, can_gc);
-    response.Headers(can_gc).set_guard(Guard::Immutable);
+    let response = Response::new(global, CanGc::from_cx(cx));
+    response
+        .Headers(CanGc::from_cx(cx))
+        .set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request_object = match Request::Constructor(global, None, can_gc, input, init) {
+    let request_object = match Request::Constructor(global, None, CanGc::from_cx(cx), input, init) {
         Err(e) => {
-            response.error_stream(e.clone(), can_gc);
-            promise.reject_error(e, can_gc);
+            response.error_stream(e.clone(), CanGc::from_cx(cx));
+            promise.reject_error(e, CanGc::from_cx(cx));
             return promise;
         },
         Ok(r) => r,
@@ -238,8 +238,8 @@ pub(crate) fn Fetch(
     let signal = request_object.Signal();
     if signal.aborted() {
         // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
-        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx, abort_reason.handle_mut());
+        rooted!(&in(cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         abort_fetch_call(
             promise.clone(),
             &request_object,
@@ -247,7 +247,6 @@ pub(crate) fn Fetch(
             abort_reason.handle(),
             global,
             cx,
-            can_gc,
         );
         // Step 4.2. Return p.
         return promise;
@@ -380,25 +379,25 @@ pub(crate) fn FetchLater(
     }
     // Step 6. If activateAfter is less than 0, then throw a RangeError.
     if *activate_after < 0.0 {
-        return Err(Error::Range("activateAfter must be at least 0".to_owned()));
+        return Err(Error::Range(c"activateAfter must be at least 0".to_owned()));
     }
     // Step 7. If this’s relevant global object’s associated document is not fully active, then throw a TypeError.
     if !document.is_fully_active() {
-        return Err(Error::Type("Document is not fully active".to_owned()));
+        return Err(Error::Type(c"Document is not fully active".to_owned()));
     }
     let url = request.url();
     // Step 8. If request’s URL’s scheme is not an HTTP(S) scheme, then throw a TypeError.
     if !matches!(url.scheme(), "http" | "https") {
-        return Err(Error::Type("URL is not http(s)".to_owned()));
+        return Err(Error::Type(c"URL is not http(s)".to_owned()));
     }
     // Step 9. If request’s URL is not a potentially trustworthy URL, then throw a SecurityError.
     if !url.is_potentially_trustworthy() {
-        return Err(Error::Type("URL is not trustworthy".to_owned()));
+        return Err(Error::Type(c"URL is not trustworthy".to_owned()));
     }
     // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
     if let Some(body) = request.body.as_ref() {
         if body.len().is_none_or(|len| len == 0) {
-            return Err(Error::Type("Body is empty".to_owned()));
+            return Err(Error::Type(c"Body is empty".to_owned()));
         }
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
@@ -465,9 +464,8 @@ impl DeferredFetchRecord {
         // Step 2. Set deferredRecord’s invoke state to "sent".
         self.invoke_state.set(DeferredFetchRecordInvokeState::Sent);
         // Step 3. Fetch deferredRecord’s request.
-        let url = self.request.url().clone();
         let fetch_later_listener = FetchLaterListener {
-            url,
+            url: self.request.url(),
             global: Trusted::new(global),
         };
         let request_init = request_init_from_request(self.request.clone(), global);
@@ -498,8 +496,7 @@ impl FetchContext {
     pub(crate) fn abort_fetch(
         &mut self,
         abort_reason: HandleValue,
-        cx: SafeJSContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         // Step 11.1. Set locallyAborted to true.
         self.locally_aborted = true;
@@ -524,7 +521,6 @@ impl FetchContext {
             abort_reason,
             &self.global.root(),
             cx,
-            can_gc,
         );
     }
 }
@@ -560,14 +556,14 @@ impl FetchResponseListener for FetchContext {
             // p with a TypeError and abort these steps.
             Err(error) => {
                 promise.reject_error(
-                    Error::Type(format!("Network error: {:?}", error)),
+                    Error::Type(cformat!("Network error: {:?}", error)),
                     CanGc::note(),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());
                 response.error_stream(
-                    Error::Type("Network error occurred".to_string()),
+                    Error::Type(c"Network error occurred".to_owned()),
                     CanGc::note(),
                 );
                 return;
@@ -620,6 +616,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -629,17 +626,17 @@ impl FetchResponseListener for FetchContext {
         if let Err(ref error) = response {
             if *error == NetworkError::DecompressionError {
                 response_object.error_stream(
-                    Error::Type("Network error occurred".to_string()),
-                    CanGc::note(),
+                    Error::Type(c"Network error occurred".to_owned()),
+                    CanGc::from_cx(cx),
                 );
             }
         }
-        response_object.finish(CanGc::note());
+        response_object.finish(CanGc::from_cx(cx));
         // TODO
         // ... trailerObject is not supported in Servo yet.
 
         // navigation submission is handled in servoparser/mod.rs
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -684,11 +681,12 @@ impl FetchResponseListener for FetchLaterListener {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -724,7 +722,7 @@ pub(crate) fn load_whole_resource(
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
     csp_violations_processor: &dyn CspViolationsProcessor,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -754,7 +752,13 @@ pub(crate) fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
-                    submit_timing_data(global, url, InitiatorType::Other, timing, can_gc);
+                    submit_timing_data(
+                        global,
+                        url,
+                        InitiatorType::Other,
+                        timing,
+                        CanGc::from_cx(cx),
+                    );
                 }
                 return Ok((metadata, buf, muted_errors));
             },

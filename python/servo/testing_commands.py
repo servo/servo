@@ -18,6 +18,7 @@ import subprocess
 import sys
 import textwrap
 from argparse import ArgumentParser
+from contextlib import chdir
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -208,30 +209,30 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         self_contained_tests = [
-            "background_hang_monitor",
-            "base",
-            "constellation",
-            "devtools",
-            "fonts",
-            "hyper_serde",
-            "layout",
-            "layout_api",
-            "libservo",
-            "metrics",
-            "net",
-            "net_traits",
-            "paint",
-            "paint_api",
-            "pixels",
-            "script_traits",
-            "script_bindings",
+            "servo-background-hang-monitor",
+            "servo-base",
+            "servo-constellation",
+            "servo-devtools",
+            "servo-fonts",
+            "servo-hyper-serde",
+            "servo-layout",
+            "servo-layout-api",
+            "servo",
+            "servo-metrics",
+            "servo-net",
+            "servo-net-traits",
+            "servo-paint",
+            "servo-paint-api",
+            "servo-pixels",
+            "servo-script-traits",
+            "servo-script-bindings",
             "selectors",
-            "servo_config",
+            "servo-config",
             "servoshell",
-            "servo_url",
-            "storage",
-            "storage_traits",
-            "xpath",
+            "servo-url",
+            "servo-storage",
+            "servo-storage-traits",
+            "servo-xpath",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
@@ -449,15 +450,16 @@ class MachCommands(CommandBase):
 
     @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
     def format_code(self) -> int:
-        result = format_python_files_with_ruff(check_only=False)
-        if result != 0:
-            return result
+        with chdir(self.context.topdir):
+            result = format_python_files_with_ruff(check_only=False)
+            if result != 0:
+                return result
 
-        result = format_toml_files_with_taplo(check_only=False)
-        if result != 0:
-            return result
+            result = format_toml_files_with_taplo(check_only=False)
+            if result != 0:
+                return result
 
-        return format_with_rustfmt(check_only=False)
+            return format_with_rustfmt(check_only=False)
 
     @Command(
         "update-wpt", description="Update the web platform tests", category="testing", parser=wpt.update.create_parser

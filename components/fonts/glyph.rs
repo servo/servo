@@ -553,7 +553,7 @@ impl ShapedGlyph {
             self.advance = font.metrics.space_advance * 8;
         }
 
-        if let Some(letter_spacing) = shaping_options.letter_spacing {
+        if let Some(letter_spacing) = shaping_options.letter_spacing_for_character(character) {
             self.advance += letter_spacing;
         };
 

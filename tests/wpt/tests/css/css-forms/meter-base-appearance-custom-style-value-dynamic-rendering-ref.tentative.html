@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    .base {
+        font: 16px system-ui;
+        position: relative;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 100%;
+        height: 100%;
+        border: darkgray 1px solid;
+        border-radius: 999em;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #ddd, #eee 20%, #ccc 45%, #ccc 55%, #ddd);
+    }
+
+    .base > .slider-fill {
+        height: 100%;
+        width: 100%;
+        block-size: 100%;
+        box-sizing: border-box;
+        border-radius: 999em;
+        overflow: hidden;
+    }
+
+    .even-less-good-gradient {
+        background: linear-gradient(to bottom, #f77, #fcc 20%, #d44 45%, #d44 55%, #f77);
+    }
+
+    .suboptimum-gradient {
+        background: linear-gradient(to bottom, #fe7, #ffc 20%, #db3 45%, #db3 55%, #fe7);
+    }
+
+    .optimum-gradient {
+        background: linear-gradient(to bottom, #ad7, #cea 20%, #7a3 45%, #7a3 55%, #ad7);
+    }
+
+    .meter {
+        width: 400px;
+        height: 40px;
+        margin-bottom: 10px;
+    }
+</style>
+<body>
+    <div class="meter">
+        <div class="base">
+            <div class="suboptimum-gradient slider-fill" style="transform: translate(-67%, 0);"></div>
+        </div>
+    </div>
+    <div class="meter">
+        <div class="base">
+            <div class="optimum-gradient slider-fill" style="transform: translate(-34%, 0);"></div>
+        </div>
+    </div>
+    <div class="meter">
+        <div class="base">
+            <div class="even-less-good-gradient slider-fill" style="transform: translate(-90%, 0);"></div>
+        </div>
+    </div>
+</body>

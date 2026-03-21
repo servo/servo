@@ -22,14 +22,16 @@ promise_test(async () => {
   assert_in_array(availability, kAvailableAvailabilities);
 }, 'Summarizer.availability() returns available with supported options');
 
-promise_test(async () => {
-  const availability = await Summarizer.availability({
+promise_test(async t => {
+  const options = {
     type: 'tldr',
     format: 'plain-text',
     length: 'medium',
     expectedInputLanguages: ['zu'], // not supported
     expectedContextLanguages: ['en'],
     outputLanguage: 'zu', // not supported
-  });
+  };
+  const availability = await Summarizer.availability(options);
   assert_equals(availability, 'unavailable');
-}, 'Summarizer.availability() returns unavailable for unsupported languages');
+  await promise_rejects_dom(t, 'NotSupportedError', Summarizer.create(options));
+}, 'Summarizer.availability() returns unavailable for unsupported languages and create() rejects');

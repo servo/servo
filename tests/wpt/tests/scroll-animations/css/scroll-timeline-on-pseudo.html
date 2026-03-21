@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<title>Scroll timeline on pseudo</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scrolltimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.foo::after {
+  content: "foo";
+  border: 1px solid;
+  display: block;
+  overflow: scroll;
+  width: 40px;
+  height: 100px;
+  scroll-timeline: --scroller;
+}
+
+.cb {
+  timeline-scope: --scroller;
+}
+
+.anim {
+  animation: anim linear;
+  animation-timeline: --scroller;
+  width: 100px;
+  height: 100px;
+}
+
+@keyframes anim {
+  0% {
+    background-color: red;
+  }
+  50% {
+    background-color: green;
+  }
+  100% {
+    background-color: blue;
+  }
+}
+</style>
+<div class=cb>
+  <div id="target" class="anim"></div>
+  <div id="foo" class="foo"></div>
+</div>
+<script>
+  promise_test(async t => {
+    const source = target.getAnimations()[0].timeline.source;
+    assert_equals(source.tagName.toUpperCase(), 'DIV');
+    assert_equals(source.id, "foo");
+  }, 'timeline.source does not expose pseudo-element');
+</script>
+</html>

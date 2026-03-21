@@ -136,6 +136,7 @@ pub struct InputMethodRequest {
     pub text: String,
     pub insertion_point: Option<u32>,
     pub multiline: bool,
+    pub allow_virtual_keyboard: bool,
 }
 
 /// Filter for file selection;

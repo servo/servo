@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>lang attribute: disconnected subtree after document element replacement</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-lang-and-xml:lang-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(() => {
+    const iframe = document.createElement("iframe");
+    document.body.append(iframe);
+
+    const doc = iframe.contentDocument;
+    doc.documentElement.lang = "de";
+
+    const container = document.createElement("div");
+    const child = document.createElement("div");
+    container.append(child);
+    doc.body.append(container);
+
+    assert_true(container.matches(":lang(de)"), "container should match de while connected");
+    assert_true(child.matches(":lang(de)"), "child should match de while connected");
+
+    const oldRoot = doc.documentElement;
+    oldRoot.remove();
+
+    const newRoot = document.createElement("html");
+    newRoot.lang = "zh";
+    doc.append(newRoot);
+
+    assert_true(container.matches(":lang(de)"), "container should still match de after document element replacement");
+    assert_false(container.matches(":lang(zh)"), "container should not match zh after document element replacement");
+    assert_true(child.matches(":lang(de)"), "child should still match de after document element replacement");
+    assert_false(child.matches(":lang(zh)"), "child should not match zh after document element replacement");
+
+    iframe.remove();
+}, "Disconnected descendants of a replaced document element should resolve lang from their actual ancestor");
+</script>
+</body>
+</html>

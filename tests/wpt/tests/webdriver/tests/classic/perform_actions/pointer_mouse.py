@@ -339,15 +339,6 @@ def test_move_to_origin_position_within_frame(
     assert events[0][1] == pytest.approx(target_point[1], abs=1.0)
 
 
-@pytest.mark.parametrize("missing", ["x", "y"])
-def test_missing_coordinates(session, test_actions_page, mouse_chain, missing):
-    outer = session.find.css("#outer", all=False)
-    actions = mouse_chain.pointer_move(x=0, y=0, origin=outer)
-    del actions._actions[-1][missing]
-    with pytest.raises(InvalidArgumentException):
-        actions.perform()
-
-
 def test_invalid_element_origin(session, test_actions_page, mouse_chain):
     outer = session.find.css("#outer", all=False)
     actions = mouse_chain.pointer_move(

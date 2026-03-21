@@ -8,11 +8,13 @@ import sys
 from shutil import copyfile, which
 from typing import ClassVar, Tuple, Type
 
-wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
-sys.path.insert(0, os.path.abspath(os.path.join(wpt_root, "tools")))
+import mozlog
+from wptrunner import products, wptcommandline, wptrunner
 
-from . import browser, install, testfiles
 from ..serve import serve
+from . import browser, install, testfiles
+
+wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 
 logger = None
 
@@ -35,7 +37,6 @@ class WptrunnerHelpAction(argparse.Action):
             help=help)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        from wptrunner import wptcommandline
         wptparser = wptcommandline.create_parser()
         wptparser.usage = parser.usage
         wptparser.print_help()
@@ -43,8 +44,6 @@ class WptrunnerHelpAction(argparse.Action):
 
 
 def create_parser():
-    from wptrunner import wptcommandline
-
     parser = argparse.ArgumentParser(add_help=False, parents=[install.channel_args])
     parser.add_argument("product", help="Browser to run tests in")
     parser.add_argument("--affected", help="Run affected tests since revish")
@@ -109,9 +108,13 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 
 def check_environ(product):
-    if product not in ("android_webview", "chrome", "chrome_android", "chrome_ios",
-                       "edge", "firefox", "firefox_android", "headless_shell",
-                       "ladybird", "servo", "wktr"):
+    builtin_skip = {
+        "android_webview", "chrome", "chrome_android", "chrome_ios",
+        "edge", "firefox", "firefox_android", "headless_shell",
+        "ladybird", "servo", "wktr"
+    }
+
+    if product not in builtin_skip:
         config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
         # Override the ports to avoid looking for free ports
         config_builder.ssl = {"type": "none"}
@@ -215,8 +218,8 @@ class AndroidLogcat:
 
 
 class BrowserSetup:
-    name: ClassVar[str]
-    browser_cls: ClassVar[Type[browser.Browser]]
+    name: str
+    browser_cls: Type[browser.Browser]
 
     def __init__(self, venv, prompt=True):
         self.browser = self.browser_cls(logger)
@@ -245,8 +248,19 @@ class BrowserSetup:
     def setup(self, kwargs):
         self.setup_kwargs(kwargs)
 
+    def setup_kwargs(self, kwargs):
+        pass
+
     def teardown(self):
         pass
+
+
+class GenericBrowserSetup(BrowserSetup):
+    browser_cls = browser.Browser
+
+    def __init__(self, venv, prompt, product_name):
+        self.name = product_name
+        super().__init__(venv, prompt)
 
 
 def safe_unsetenv(env_var):
@@ -324,7 +338,7 @@ Consider installing certutil via your OS package manager or directly.""")
             kwargs["headless"] = True
             logger.info("Running in headless mode, pass --no-headless to disable")
 
-        if kwargs["browser_channel"] == "nightly" and kwargs["enable_webtransport_h3"] is None:
+        if kwargs["enable_webtransport_h3"] is None:
             kwargs["enable_webtransport_h3"] = True
 
         # Turn off Firefox WebRTC ICE logging on WPT (turned on by mozrunner)
@@ -341,8 +355,9 @@ class FirefoxAndroid(BrowserSetup):
     browser_cls = browser.FirefoxAndroid
 
     def setup_kwargs(self, kwargs):
-        from . import android
         import mozdevice
+
+        from . import android
 
         # We don't support multiple channels for android yet
         if kwargs["browser_channel"] is None:
@@ -500,6 +515,11 @@ class ChromeAndEdgeSetup(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError(f"Unable to locate or install matching {self.webdriver_name} binary")
+
+        if kwargs["enable_webtransport_h3"] is None:
+            # To start the WebTransport over HTTP/3 test server.
+            kwargs["enable_webtransport_h3"] = True
+
         if browser_channel in self.experimental_channels:
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
             kwargs["webdriver_args"].append("--disable-build-check")
@@ -507,9 +527,6 @@ class ChromeAndEdgeSetup(BrowserSetup):
                 logger.info(
                     "Automatically turning on experimental features")
                 kwargs["enable_experimental"] = True
-            if kwargs["enable_webtransport_h3"] is None:
-                # To start the WebTransport over HTTP/3 test server.
-                kwargs["enable_webtransport_h3"] = True
         elif browser_channel is not None:
             # browser_channel is not set when running WPT in chromium
             kwargs["enable_experimental"] = False
@@ -521,7 +538,7 @@ class ChromeAndEdgeSetup(BrowserSetup):
 
 class Chrome(ChromeAndEdgeSetup):
     name = "chrome"
-    browser_cls: ClassVar[Type[browser.ChromeChromiumBase]] = browser.Chrome
+    browser_cls: Type[browser.ChromeChromiumBase] = browser.Chrome
     webdriver_name = "chromedriver"
 
     def setup_kwargs(self, kwargs):
@@ -566,7 +583,7 @@ class HeadlessShell(BrowserSetup):
 
 class Chromium(Chrome):
     name = "chromium"
-    browser_cls: ClassVar[Type[browser.ChromeChromiumBase]] = browser.Chromium
+    browser_cls: Type[browser.ChromeChromiumBase] = browser.Chromium
     experimental_channels = ("nightly",)
 
 
@@ -719,7 +736,7 @@ class Servo(BrowserSetup):
             binary = self.browser.find_binary(self.venv.path, None)
 
             if binary is None:
-                raise WptrunError("Unable to find servo binary in PATH")
+                raise WptrunError("Unable to find servoshell binary in PATH")
             kwargs["binary"] = binary
 
 
@@ -727,38 +744,16 @@ class ServoLegacy(Servo):
     name = "servo_legacy"
     browser_cls = browser.ServoLegacy
 
-    def install(self, channel=None):
-        if self.prompt_install(self.name):
-            return self.browser.install(self.venv.path)
-
-    def setup_kwargs(self, kwargs):
-        if kwargs["binary"] is None:
-            binary = self.browser.find_binary(self.venv.path, None)
-
-            if binary is None:
-                raise WptrunError("Unable to find servo binary in PATH")
-            kwargs["binary"] = binary
-
 
 class WebKit(BrowserSetup):
     name = "webkit"
     browser_cls = browser.WebKit
 
-    def install(self, channel=None):
-        raise NotImplementedError
-
-    def setup_kwargs(self, kwargs):
-        pass
 
 class Ladybird(BrowserSetup):
     name = "ladybird"
     browser_cls = browser.Ladybird
 
-    def install(self, channel=None):
-        raise NotImplementedError
-
-    def setup_kwargs(self, kwargs):
-        pass
 
 class WebKitTestRunner(BrowserSetup):
     name = "wktr"
@@ -840,7 +835,7 @@ class Epiphany(BrowserSetup):
             kwargs["webdriver_binary"] = webdriver_binary
 
 
-product_setup = {
+BUILTIN_PRODUCT_SETUP = {
     "android_webview": AndroidWebview,
     "firefox": Firefox,
     "firefox_android": FirefoxAndroid,
@@ -864,10 +859,35 @@ product_setup = {
 }
 
 
-def setup_logging(kwargs, default_config=None, formatter_defaults=None):
-    import mozlog
-    from wptrunner import wptrunner
+def get_product_setup(product_name, venv, prompt):
+    """Get BrowserSetup instance for product (built-in or external).
 
+    Args:
+        product_name: Name of the product (e.g., "chrome", "firefox")
+        venv: Virtual environment object
+        prompt: Whether to prompt user for confirmations
+
+    Returns:
+        BrowserSetup instance for the product
+
+    Raises:
+        WptrunError: If product is unknown
+    """
+    if product_name in BUILTIN_PRODUCT_SETUP:
+        return BUILTIN_PRODUCT_SETUP[product_name](venv, prompt)
+
+    try:
+        products.Product.from_product_name(product_name)
+    except Exception as e:
+        raise WptrunError(f"Unsupported product {product_name}") from e
+    else:
+        return GenericBrowserSetup(venv, prompt, product_name)
+
+
+product_setup = BUILTIN_PRODUCT_SETUP
+
+
+def setup_logging(kwargs, default_config=None, formatter_defaults=None):
     global logger
 
     # Use the grouped formatter by default where mozlog 3.9+ is installed
@@ -883,8 +903,6 @@ def setup_logging(kwargs, default_config=None, formatter_defaults=None):
 
 
 def setup_wptrunner(venv, **kwargs):
-    from wptrunner import wptcommandline
-
     kwargs = kwargs.copy()
 
     kwargs["product"] = kwargs["product"].replace("-", "_")
@@ -892,13 +910,10 @@ def setup_wptrunner(venv, **kwargs):
     check_environ(kwargs["product"])
     args_general(kwargs)
 
-    if kwargs["product"] not in product_setup:
-        if kwargs["product"] == "edgechromium":
-            raise WptrunError("edgechromium has been renamed to edge.")
+    if kwargs["product"] == "edgechromium":
+        raise WptrunError("edgechromium has been renamed to edge.")
 
-        raise WptrunError("Unsupported product %s" % kwargs["product"])
-
-    setup_cls = product_setup[kwargs["product"]](venv, kwargs["prompt"])
+    setup_cls = get_product_setup(kwargs["product"], venv, kwargs["prompt"])
     if not venv.skip_virtualenv_setup:
         requirements = [os.path.join(wpt_root, "tools", "wptrunner", "requirements.txt")]
         requirements.extend(setup_cls.requirements())
@@ -978,5 +993,4 @@ def run(venv, **kwargs):
 
 
 def run_single(venv, **kwargs):
-    from wptrunner import wptrunner
     return wptrunner.start(**kwargs)

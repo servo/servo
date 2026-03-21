@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell};
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -47,10 +47,10 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
-    DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
-    FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey, NativeFontHandle,
-    PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
-    SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
+    DocumentId, DynamicProperties, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags,
+    FontInstanceKey, FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey,
+    NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
+    RenderReasons, SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -60,6 +60,7 @@ use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
+use crate::web_content_animation::WebContentAnimator;
 use crate::webrender_external_images::WebGLExternalImages;
 use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, WebViewRenderer};
 
@@ -127,6 +128,10 @@ pub(crate) struct Painter {
     /// A cache that stores data for all animating images uploaded to WebRender. This is used
     /// for animated images, which only need to update their offset in the data.
     animation_image_cache: FxHashMap<ImageKey, Arc<Vec<u8>>>,
+
+    /// A [`WebContentAnimator`] used to manage web content-derived animations. Currently this only
+    /// manages blinking caret animations.
+    web_content_animator: WebContentAnimator,
 }
 
 impl Drop for Painter {
@@ -175,9 +180,11 @@ impl Painter {
         WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
         let embedder_to_constellation_sender = paint.embedder_to_constellation_sender.clone();
+        let timer_refresh_driver = LazyCell::default();
         let refresh_driver = Rc::new(BaseRefreshDriver::new(
             paint.event_loop_waker.clone_box(),
             rendering_context.refresh_driver(),
+            &timer_refresh_driver,
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
             embedder_to_constellation_sender.clone(),
@@ -272,6 +279,10 @@ impl Painter {
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
             animation_image_cache: FxHashMap::default(),
+            web_content_animator: WebContentAnimator::new(
+                paint.event_loop_waker.clone_box(),
+                (*timer_refresh_driver).clone(),
+            ),
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -297,6 +308,18 @@ impl Painter {
             .collect();
 
         self.send_zoom_and_scroll_offset_updates(need_zoom, scroll_offset_updates);
+
+        if let Some(colors) = self.web_content_animator.update(&self.webview_renderers) {
+            let mut transaction = Transaction::new();
+            transaction.reset_dynamic_properties();
+            transaction.append_dynamic_properties(DynamicProperties {
+                transforms: Vec::new(),
+                floats: Vec::new(),
+                colors,
+            });
+            self.generate_frame(&mut transaction, RenderReasons::ANIMATED_PROPERTY);
+            self.send_transaction(transaction);
+        }
     }
 
     #[track_caller]
@@ -508,7 +531,6 @@ impl Painter {
                                 servo_profiling = true,
                                 paint_time = ?paint_time,
                                 area = ?lcp.area,
-                                lcp_type = ?lcp.lcp_type,
                                 pipeline_id = ?pipeline_id,
                             );
                             self.send_to_constellation(
@@ -517,7 +539,7 @@ impl Painter {
                                     PaintMetricEvent::LargestContentfulPaint(
                                         lcp.paint_time,
                                         lcp.area,
-                                        lcp.lcp_type,
+                                        lcp.url.clone(),
                                     ),
                                 ),
                             );
@@ -821,7 +843,7 @@ impl Painter {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
         self.lcp_calculator
-            .remove_lcp_candidates_for_pipeline(pipeline_id.into());
+            .remove_lcp_candidates_for_pipeline(&pipeline_id.into());
     }
 
     pub(crate) fn send_initial_pipeline_transaction(
@@ -970,6 +992,11 @@ impl Painter {
                 .first_contentful_paint_metric
                 .set(PaintMetricState::Seen(epoch, first_reflow));
         }
+
+        details.animations.handle_new_display_list(
+            display_list_info.caret_property_binding,
+            &self.web_content_animator,
+        );
 
         let mut transaction = Transaction::new();
         let is_root_pipeline = Some(pipeline_id.into()) == webview_renderer.root_pipeline_id;
@@ -1199,7 +1226,7 @@ impl Painter {
         };
 
         self.send_root_pipeline_display_list();
-        self.lcp_calculator.note_webview_removed(webview_id);
+        self.lcp_calculator.enable_for_webview(&webview_id);
     }
 
     pub(crate) fn is_empty(&mut self) -> bool {
@@ -1272,7 +1299,7 @@ impl Painter {
         self.webview_renderers
             .get(&webview_id)
             .map(|webview_renderer| webview_renderer.page_zoom.get())
-            .unwrap_or_default()
+            .unwrap_or(1.)
     }
 
     pub(crate) fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEventAndId) {
@@ -1290,12 +1317,14 @@ impl Painter {
                 InputEvent::MouseLeftViewport(_) => {
                     self.last_mouse_move_position = None;
                 },
-                _ => {},
+                _ => {
+                    // Disable LCP calculation on any other input event except mouse moves.
+                    self.lcp_calculator.disable_for_webview(webview_id);
+                },
             }
 
             webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event);
         }
-        self.disable_lcp_calculation_for_webview(webview_id);
     }
 
     pub(crate) fn notify_scroll_event(
@@ -1307,10 +1336,19 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
-        self.disable_lcp_calculation_for_webview(webview_id);
+        // Disable LCP calculation on any scroll event.
+        self.lcp_calculator.disable_for_webview(webview_id);
     }
 
-    pub(crate) fn pinch_zoom(
+    pub(crate) fn enable_lcp_calculation(&mut self, webview_id: &WebViewId) {
+        self.lcp_calculator.enable_for_webview(webview_id);
+    }
+
+    pub(crate) fn lcp_calculation_enabled_for_webview(&self, webview_id: &WebViewId) -> bool {
+        self.lcp_calculator.enabled_for_webview(webview_id)
+    }
+
+    pub(crate) fn adjust_pinch_zoom(
         &mut self,
         webview_id: WebViewId,
         pinch_zoom_delta: f32,
@@ -1319,6 +1357,13 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.adjust_pinch_zoom(pinch_zoom_delta, center);
         }
+    }
+
+    pub(crate) fn pinch_zoom(&self, webview_id: WebViewId) -> f32 {
+        self.webview_renderers
+            .get(&webview_id)
+            .map(|webview_renderer| webview_renderer.pinch_zoom().zoom_factor().0)
+            .unwrap_or(1.)
     }
 
     pub(crate) fn device_pixels_per_page_pixel(
@@ -1435,10 +1480,12 @@ impl Painter {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
-        if self
-            .lcp_calculator
-            .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
-        {
+        if self.lcp_calculation_enabled_for_webview(&webview_id) {
+            self.lcp_calculator.append_lcp_candidate(
+                lcp_candidate,
+                pipeline_id.into(),
+                &webview_id,
+            );
             if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
                 webview_renderer
                     .ensure_pipeline_details(pipeline_id)
@@ -1446,11 +1493,6 @@ impl Painter {
                     .set(PaintMetricState::Seen(epoch.into(), false));
             }
         };
-    }
-
-    /// Disable LCP feature when the user interacts with the page.
-    fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
-        self.lcp_calculator.disable_for_webview(webview_id);
     }
 }
 

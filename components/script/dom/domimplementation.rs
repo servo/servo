@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
+use js::context::JSContext;
 use script_bindings::error::Error;
 use script_traits::DocumentActivity;
 
@@ -83,10 +84,10 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocument>
     fn CreateDocument(
         &self,
+        cx: &mut JSContext,
         maybe_namespace: Option<DOMString>,
         qname: DOMString,
         maybe_doctype: Option<&DocumentType>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLDocument>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
@@ -115,7 +116,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             Some(self.document.insecure_requests_policy()),
             self.document.has_trustworthy_ancestor_or_current_origin(),
             self.document.custom_element_reaction_stack(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 2. Let element be null.
@@ -130,7 +131,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 });
             match doc
                 .upcast::<Document>()
-                .CreateElementNS(maybe_namespace, qname, options, can_gc)
+                .CreateElementNS(cx, maybe_namespace, qname, options)
             {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),
@@ -142,12 +143,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
             // Step 4.
             if let Some(doc_type) = maybe_doctype {
-                doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
+                doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
             }
 
             // Step 5.
             if let Some(ref elem) = maybe_elem {
-                doc_node.AppendChild(elem.upcast(), can_gc).unwrap();
+                doc_node.AppendChild(cx, elem.upcast()).unwrap();
             }
         }
 
@@ -159,7 +160,11 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument>
-    fn CreateHTMLDocument(&self, title: Option<DOMString>, can_gc: CanGc) -> DomRoot<Document> {
+    fn CreateHTMLDocument(
+        &self,
+        cx: &mut JSContext,
+        title: Option<DOMString>,
+    ) -> DomRoot<Document> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
@@ -187,14 +192,20 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             self.document.has_trustworthy_ancestor_or_current_origin(),
             self.document.custom_element_reaction_stack(),
             self.document.creation_sandboxing_flag_set(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         {
             // Step 3. Append a new doctype, with "html" as its name and with its node document set to doc, to doc.
             let doc_node = doc.upcast::<Node>();
-            let doc_type = DocumentType::new(DOMString::from("html"), None, None, &doc, can_gc);
-            doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
+            let doc_type = DocumentType::new(
+                DOMString::from("html"),
+                None,
+                None,
+                &doc,
+                CanGc::from_cx(cx),
+            );
+            doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
         }
 
         {
@@ -202,66 +213,66 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             // and the HTML namespace, to doc.
             let doc_node = doc.upcast::<Node>();
             let doc_html = DomRoot::upcast::<Node>(Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("html")),
                 None,
                 &doc,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
             ));
             doc_node
-                .AppendChild(&doc_html, can_gc)
+                .AppendChild(cx, &doc_html)
                 .expect("Appending failed");
 
             {
                 // Step 5. Append the result of creating an element given doc, "head",
                 // and the HTML namespace, to the html element created earlier.
                 let doc_head = DomRoot::upcast::<Node>(Element::create(
+                    cx,
                     QualName::new(None, ns!(html), local_name!("head")),
                     None,
                     &doc,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    can_gc,
                 ));
-                doc_html.AppendChild(&doc_head, can_gc).unwrap();
+                doc_html.AppendChild(cx, &doc_head).unwrap();
 
                 // Step 6. If title is given:
                 if let Some(title_str) = title {
                     // Step 6.1. Append the result of creating an element given doc, "title",
                     // and the HTML namespace, to the head element created earlier.
                     let doc_title = DomRoot::upcast::<Node>(Element::create(
+                        cx,
                         QualName::new(None, ns!(html), local_name!("title")),
                         None,
                         &doc,
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Asynchronous,
                         None,
-                        can_gc,
                     ));
-                    doc_head.AppendChild(&doc_title, can_gc).unwrap();
+                    doc_head.AppendChild(cx, &doc_title).unwrap();
 
                     // Step 6.2. Append a new Text node, with its data set to title (which could be the empty string)
                     // and its node document set to doc, to the title element created earlier.
-                    let title_text = Text::new(title_str, &doc, can_gc);
-                    doc_title.AppendChild(title_text.upcast(), can_gc).unwrap();
+                    let title_text = Text::new(title_str, &doc, CanGc::from_cx(cx));
+                    doc_title.AppendChild(cx, title_text.upcast()).unwrap();
                 }
             }
 
             // Step 7. Append the result of creating an element given doc, "body",
             // and the HTML namespace, to the html element created earlier.
             let doc_body = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("body")),
                 None,
                 &doc,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
             );
-            doc_html.AppendChild(doc_body.upcast(), can_gc).unwrap();
+            doc_html.AppendChild(cx, doc_body.upcast()).unwrap();
         }
 
         // Step 9. Return doc.

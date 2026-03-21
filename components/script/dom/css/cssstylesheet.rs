@@ -6,9 +6,9 @@ use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
-use script_bindings::realms::InRealm;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
@@ -53,7 +53,7 @@ pub(crate) struct CSSStyleSheet {
     owner_node: MutNullableDom<Element>,
 
     /// <https://drafts.csswg.org/cssom/#ref-for-concept-css-style-sheet-css-rules>
-    rulelist: MutNullableDom<CSSRuleList>,
+    rule_list: MutNullableDom<CSSRuleList>,
 
     /// The inner Stylo's [Stylesheet].
     #[ignore_malloc_size_of = "Stylo"]
@@ -93,7 +93,7 @@ impl CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
             owner_node: MutNullableDom::new(owner),
-            rulelist: MutNullableDom::new(None),
+            rule_list: MutNullableDom::new(None),
             style_shared_lock: stylesheet.shared_lock.clone(),
             style_stylesheet: DomRefCell::new(stylesheet),
             origin_clean: Cell::new(true),
@@ -156,7 +156,7 @@ impl CSSStyleSheet {
     }
 
     fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
-        self.rulelist.or_init(|| {
+        self.rule_list.or_init(|| {
             let sheet = self.style_stylesheet.borrow();
             let guard = sheet.shared_lock.read();
             let rules = sheet.contents(&guard).rules.clone();
@@ -260,7 +260,7 @@ impl CSSStyleSheet {
         // stored in the CSSOMs to ensure that modifications are made only
         // on the new copy.
         *self.style_stylesheet.borrow_mut() = style_stylesheet.clone();
-        if let Some(rulelist) = self.rulelist.get() {
+        if let Some(rulelist) = self.rule_list.get() {
             let rules = style_stylesheet.contents(guard).rules.clone();
             rulelist.update_rules(RulesSource::Rules(rules), guard);
         }
@@ -311,7 +311,7 @@ impl CSSStyleSheet {
         // Step 4. Set sheet’s CSS rules to rules.
         // We reset our rule list, which will be initialized properly
         // at the next getter access.
-        self.rulelist.set(None);
+        self.rule_list.set(None);
 
         // Notify invalidation to update the styles immediately.
         self.notify_invalidations();
@@ -413,10 +413,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-addrule>
     fn AddRule(
         &self,
+        cx: &mut js::context::JSContext,
         selector: DOMString,
         block: DOMString,
         optional_index: Option<u32>,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         // > 1. Let *rule* be an empty string.
         // > 2. Append *selector* to *rule*.
@@ -434,19 +434,19 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         };
 
         // > 6. Let *index* be *optionalIndex* if provided, or the number of CSS rules in the stylesheet otherwise.
-        let index = optional_index.unwrap_or_else(|| self.rulelist(can_gc).Length());
+        let index = optional_index.unwrap_or_else(|| self.rulelist(CanGc::from_cx(cx)).Length());
 
         // > 7. Call `insertRule()`, with *rule* and *index* as arguments.
-        self.InsertRule(rule, index, can_gc)?;
+        self.InsertRule(rule, index, CanGc::from_cx(cx))?;
 
         // > 8. Return -1.
         Ok(-1)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace>
-    fn Replace(&self, text: USVString, comp: InRealm, can_gc: CanGc) -> Fallible<Rc<Promise>> {
+    fn Replace(&self, cx: &mut CurrentRealm, text: USVString) -> Fallible<Rc<Promise>> {
         // Step 1. Let promise be a promise.
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
         // reject promise with a NotAllowedError DOMException and return promise.
@@ -464,7 +464,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(cssstylesheet_replace: move || {
+            .queue(task!(cssstylesheet_replace: move |cx| {
                 let sheet = trusted_sheet.root();
 
                 // Step 4.1..4.3
@@ -474,7 +474,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 sheet.disallow_modification.set(false);
 
                 // Step 4.5. Resolve promise with sheet.
-                trusted_promise.root().resolve_native(&sheet, CanGc::note());
+                trusted_promise.root().resolve_native(&sheet, CanGc::from_cx(cx));
             }));
 
         Ok(promise)

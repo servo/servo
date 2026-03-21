@@ -4,8 +4,9 @@ from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultExc
 from ... import any_int, any_string, recursive_compare
 from .. import any_stack_trace, PRIMITIVE_VALUES, REMOTE_VALUES
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("expression, expected", PRIMITIVE_VALUES + REMOTE_VALUES)
 async def test_exception_details_await_promise(
     bidi_session, top_context, expression, expected

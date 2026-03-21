@@ -30,9 +30,9 @@ pub(crate) struct ByteTeeReadIntoRequestMicrotask {
 }
 
 impl ByteTeeReadIntoRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, can_gc: CanGc) {
+    pub(crate) fn microtask_chunk_steps(&self, cx: &mut js::context::JSContext) {
         self.tee_read_request
-            .chunk_steps(self.chunk.clone(), can_gc)
+            .chunk_steps(self.chunk.clone(), cx)
             .expect("Failed to enqueue chunk");
     }
 }
@@ -44,17 +44,17 @@ pub(crate) struct ByteTeeReadIntoRequest {
     byob_branch: Dom<ReadableStream>,
     other_branch: Dom<ReadableStream>,
     stream: Dom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again_for_branch_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again_for_branch_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reading: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
     tee_underlying_source: Dom<ByteTeeUnderlyingSource>,
 }
@@ -113,10 +113,8 @@ impl ByteTeeReadIntoRequest {
     pub(crate) fn chunk_steps(
         &self,
         chunk: HeapBufferSource<ArrayBufferViewU8>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
-
         // Set readAgainForBranch1 to false.
         self.read_again_for_branch_1.set(false);
 
@@ -140,28 +138,32 @@ impl ByteTeeReadIntoRequest {
         // If otherCanceled is false,
         if !other_canceled {
             // Let cloneResult be CloneAsUint8Array(chunk).
-            let clone_result = chunk.clone_as_uint8_array(cx);
+            let clone_result = chunk.clone_as_uint8_array(cx.into());
 
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
-                rooted!(in(*cx) let mut error_value = UndefinedValue());
-                error
-                    .clone()
-                    .to_jsval(cx, &self.global(), error_value.handle_mut(), can_gc);
+                rooted!(&in(cx) let mut error_value = UndefinedValue());
+                error.to_jsval(
+                    cx.into(),
+                    &self.global(),
+                    error_value.handle_mut(),
+                    CanGc::from_cx(cx),
+                );
 
                 // Perform ! ReadableByteStreamControllerError(byobBranch.[[controller]], cloneResult.[[Value]]).
                 let byob_branch_controller = self.byob_branch.get_byte_controller();
-                byob_branch_controller.error(error_value.handle(), can_gc);
+                byob_branch_controller.error(error_value.handle(), CanGc::from_cx(cx));
 
                 // Perform ! ReadableByteStreamControllerError(otherBranch.[[controller]], cloneResult.[[Value]]).
                 let other_branch_controller = self.other_branch.get_byte_controller();
-                other_branch_controller.error(error_value.handle(), can_gc);
+                other_branch_controller.error(error_value.handle(), CanGc::from_cx(cx));
 
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
                 let cancel_result =
                     self.stream
-                        .cancel(cx, &self.stream.global(), error_value.handle(), can_gc);
-                self.cancel_promise.resolve_native(&cancel_result, can_gc);
+                        .cancel(cx, &self.stream.global(), error_value.handle());
+                self.cancel_promise
+                    .resolve_native(&cancel_result, CanGc::from_cx(cx));
 
                 // Return.
                 return Ok(());
@@ -173,19 +175,23 @@ impl ByteTeeReadIntoRequest {
                 // ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
                 if !byob_canceled {
                     let byob_branch_controller = self.byob_branch.get_byte_controller();
-                    byob_branch_controller.respond_with_new_view(cx, chunk, can_gc)?;
+                    byob_branch_controller.respond_with_new_view(
+                        cx.into(),
+                        chunk,
+                        CanGc::from_cx(cx),
+                    )?;
                 }
 
                 // Perform ! ReadableByteStreamControllerEnqueue(otherBranch.[[controller]], clonedChunk).
                 let other_branch_controller = self.other_branch.get_byte_controller();
-                other_branch_controller.enqueue(cx, cloned_chunk, can_gc)?;
+                other_branch_controller.enqueue(cx, cloned_chunk)?;
             }
         } else if !byob_canceled {
             // Otherwise, if byobCanceled is false, perform
             // ! ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
 
             let byob_branch_controller = self.byob_branch.get_byte_controller();
-            byob_branch_controller.respond_with_new_view(cx, chunk, can_gc)?;
+            byob_branch_controller.respond_with_new_view(cx.into(), chunk, CanGc::from_cx(cx))?;
         }
 
         // Set reading to false.
@@ -193,10 +199,10 @@ impl ByteTeeReadIntoRequest {
 
         // If readAgainForBranch1 is true, perform pull1Algorithm.
         if self.read_again_for_branch_1.get() {
-            self.pull_algorithm(Some(ByteTeePullAlgorithm::Pull1Algorithm), can_gc);
+            self.pull_algorithm(cx, Some(ByteTeePullAlgorithm::Pull1Algorithm));
         } else if self.read_again_for_branch_2.get() {
             // Otherwise, if readAgainForBranch2 is true, perform pull2Algorithm.
-            self.pull_algorithm(Some(ByteTeePullAlgorithm::Pull2Algorithm), can_gc);
+            self.pull_algorithm(cx, Some(ByteTeePullAlgorithm::Pull2Algorithm));
         }
 
         Ok(())
@@ -282,10 +288,10 @@ impl ByteTeeReadIntoRequest {
 
     pub(crate) fn pull_algorithm(
         &self,
+        cx: &mut js::context::JSContext,
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
-        can_gc: CanGc,
     ) {
         self.tee_underlying_source
-            .pull_algorithm(byte_tee_pull_algorithm, can_gc);
+            .pull_algorithm(byte_tee_pull_algorithm, CanGc::from_cx(cx));
     }
 }

@@ -3,8 +3,8 @@
 # - the 'rust-overlay' module's url in shell.nix to point to a
 #   commit which supports the required rustc version
 # - the version in support/crown/rust-toolchain.toml
-# - the version in .github/devcontainer.json
-channel = "1.91.0"
+# - the version in .devcontainer/Dockerfile
+channel = "1.92.0"
 
 components = [
     "clippy",

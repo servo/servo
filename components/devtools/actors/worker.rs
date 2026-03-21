@@ -10,6 +10,7 @@ use base::generic_channel::GenericSender;
 use base::id::TEST_PIPELINE_ID;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -19,7 +20,7 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, MallocSizeOf)]
 #[expect(dead_code)]
 pub enum WorkerType {
     Dedicated = 0,
@@ -27,6 +28,7 @@ pub enum WorkerType {
     Service = 2,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct WorkerActor {
     pub name: String,
     pub console: String,

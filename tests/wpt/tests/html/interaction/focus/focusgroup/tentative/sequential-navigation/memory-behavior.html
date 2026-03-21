@@ -23,7 +23,7 @@
 <div id=between tabindex=0>Between focusgroups</div>
 
 <!-- Test focusgroup with no-memory -->
-<div id=no-memory-focusgroup focusgroup="toolbar no-memory">
+<div id=no-memory-focusgroup focusgroup="toolbar nomemory">
   <button id=no-memory-item1>Item 1</button>
   <button id=no-memory-item2 focusgroupstart>Item 2 (priority)</button>
   <button id=no-memory-item3>Item 3</button>
@@ -53,14 +53,14 @@
     var memoryItem3 = document.getElementById("memory-item3");
     var between = document.getElementById("between");
 
-    beforeMemory.focus();
-    await navigateFocusForward();
+    await focusAndWait(beforeMemory);
+    await sendTabForward();
     assert_equals(document.activeElement, memoryItem2, "First tab entry should use focusgroupstart element");
 
     await focusAndKeyPress(memoryItem2, kArrowRight);
     assert_equals(document.activeElement, memoryItem3, "Arrow navigation should move to Item 3");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, between, "Tab should exit to between element");
 
     await navigateFocusBackward();
@@ -74,14 +74,14 @@
     var noMemoryItem3 = document.getElementById("no-memory-item3");
     var afterNoMemory = document.getElementById("after-no-memory");
 
-    between.focus();
-    await navigateFocusForward();
+    await focusAndWait(between);
+    await sendTabForward();
     assert_equals(document.activeElement, noMemoryItem2, "Entry should use focusgroupstart element");
 
     await focusAndKeyPress(noMemoryItem2, kArrowRight);
     assert_equals(document.activeElement, noMemoryItem3, "Arrow navigation should move to Item 3");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, afterNoMemory, "Tab should exit focusgroup");
 
     await navigateFocusBackward();
@@ -96,17 +96,17 @@
     var segItem3 = document.getElementById("seg-item3");
     var afterSegments = document.getElementById("after-segments");
 
-    beforeSegments.focus();
-    await navigateFocusForward();
+    await focusAndWait(beforeSegments);
+    await sendTabForward();
     assert_equals(document.activeElement, segItem2, "Should enter at focusgroupstart element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segOptedOut, "Should move to opted-out element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segItem3, "Should enter second focusgroup segment");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, afterSegments, "Should exit focusgroup");
 
     await navigateFocusBackward();
@@ -118,7 +118,7 @@
     var segItem2 = document.getElementById("seg-item2");
     var segOptedOut = document.getElementById("seg-opted-out");
 
-    segOptedOut.focus();
+    await focusAndWait(segOptedOut);
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, segItem2, "Shift+Tab from opted-out should enter first segment at focusgroupstart element");
@@ -126,7 +126,7 @@
     await navigateFocusBackward();
     assert_equals(document.activeElement, beforeSegments, "Should exit to before element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segItem2, "Re-entering first segment should remember last focused");
   }, "Memory works correctly for first focusgroup segment");
 
@@ -134,12 +134,12 @@
     var memoryItem2 = document.getElementById("memory-item2");
     var memoryItem1 = document.getElementById("memory-item1");
 
-    memoryItem2.focus();
+    await focusAndWait(memoryItem2);
 
     await focusAndKeyPress(memoryItem2, kArrowLeft);
     assert_equals(document.activeElement, memoryItem1, "Arrow left should move to Item 1");
 
-    document.getElementById("between").focus();
+    await focusAndWait(document.getElementById("between"));
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, memoryItem1, "Should remember Item 1 as last focused");

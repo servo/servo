@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>Inheritance of path properties</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthProperty"/>
+    <h:meta name="assert" content="path-length does not inherit."/>
+  </metadata>
+  <g id="container">
+      <g id="target"></g>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/inheritance-testcommon.js"/>
+  <script><![CDATA[
+
+assert_not_inherited('path-length', 'none', '10');
+
+  ]]></script>
+</svg>

@@ -85,21 +85,22 @@ impl ServoShellWindow {
     }
 
     pub(crate) fn create_toplevel_webview(&self, state: Rc<RunningAppState>, url: Url) -> WebView {
-        let webview = WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
-            .url(url)
-            .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
-            .user_content_manager(state.user_content_manager.clone())
-            .delegate(state.clone())
-            .build();
+        let mut webview_builder =
+            WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
+                .url(url)
+                .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
+                .user_content_manager(state.user_content_manager.clone())
+                .delegate(state.clone());
 
         #[cfg(all(
             feature = "gamepad",
             not(any(target_os = "android", target_env = "ohos"))
         ))]
-        if let Some(gamepad_provider) = state.gamepad_provider() {
-            webview.set_gamepad_provider(gamepad_provider);
+        if let Some(gamepad_delegate) = state.gamepad_delegate() {
+            webview_builder = webview_builder.gamepad_delegate(gamepad_delegate);
         }
 
+        let webview = webview_builder.build();
         webview.notify_theme_change(self.platform_window.theme());
         self.add_webview(webview.clone());
         webview

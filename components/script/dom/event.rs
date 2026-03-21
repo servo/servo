@@ -289,7 +289,31 @@ impl Event {
         target: &EventTarget,
         legacy_target_override: bool,
         can_gc: CanGc,
-        // TODO legacy_did_output_listeners_throw_flag for indexeddb
+    ) -> bool {
+        self.dispatch_inner(target, legacy_target_override, None, can_gc)
+    }
+
+    pub(crate) fn dispatch_with_legacy_output_did_listeners_throw(
+        &self,
+        target: &EventTarget,
+        legacy_target_override: bool,
+        legacy_output_did_listeners_throw: &Cell<bool>,
+        can_gc: CanGc,
+    ) -> bool {
+        self.dispatch_inner(
+            target,
+            legacy_target_override,
+            Some(legacy_output_did_listeners_throw),
+            can_gc,
+        )
+    }
+
+    fn dispatch_inner(
+        &self,
+        target: &EventTarget,
+        legacy_target_override: bool,
+        legacy_output_did_listeners_throw: Option<&Cell<bool>>,
+        can_gc: CanGc,
     ) -> bool {
         // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
         // > must perform the following activation notification steps before dispatching the event:
@@ -562,6 +586,7 @@ impl Event {
                     self,
                     ListenerPhase::Capturing,
                     timeline_window.as_deref(),
+                    legacy_output_did_listeners_throw,
                     can_gc,
                 )
             }
@@ -591,6 +616,7 @@ impl Event {
                     self,
                     ListenerPhase::Bubbling,
                     timeline_window.as_deref(),
+                    legacy_output_did_listeners_throw,
                     can_gc,
                 );
             }
@@ -729,6 +755,21 @@ impl Event {
         self.set_trusted(true);
 
         target.dispatch_event(self, can_gc)
+    }
+
+    pub(crate) fn fire_with_legacy_output_did_listeners_throw(
+        &self,
+        target: &EventTarget,
+        legacy_output_did_listeners_throw: &Cell<bool>,
+        can_gc: CanGc,
+    ) -> bool {
+        self.set_trusted(true);
+        self.dispatch_with_legacy_output_did_listeners_throw(
+            target,
+            false,
+            legacy_output_did_listeners_throw,
+            can_gc,
+        )
     }
 
     /// <https://dom.spec.whatwg.org/#inner-event-creation-steps>
@@ -1216,8 +1257,8 @@ fn invoke(
     event: &Event,
     phase: ListenerPhase,
     timeline_window: Option<&Window>,
+    legacy_output_did_listeners_throw: Option<&Cell<bool>>,
     can_gc: CanGc,
-    // TODO legacy_output_did_listeners_throw for indexeddb
 ) {
     // Step 1. Set event’s target to the shadow-adjusted target of the last struct in event’s path,
     // that is either struct or preceding struct, whose shadow-adjusted target is non-null.
@@ -1257,6 +1298,7 @@ fn invoke(
         phase,
         invocation_target_in_shadow_tree,
         timeline_window,
+        legacy_output_did_listeners_throw,
         can_gc,
     );
 
@@ -1286,6 +1328,7 @@ fn invoke(
             phase,
             invocation_target_in_shadow_tree,
             timeline_window,
+            legacy_output_did_listeners_throw,
             can_gc,
         );
 
@@ -1301,6 +1344,7 @@ fn inner_invoke(
     phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
     timeline_window: Option<&Window>,
+    legacy_output_did_listeners_throw: Option<&Cell<bool>>,
     can_gc: CanGc,
 ) -> bool {
     // Step 1. Let found be false.
@@ -1366,14 +1410,16 @@ fn inner_invoke(
         // and event’s currentTarget attribute value. If this throws an exception exception:
         //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s
         //     associated realm’s global object.
-        //     TODO Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
+        //     Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
         let marker = TimelineMarker::start("DOMEvent".to_owned());
-        compiled_listener.call_or_handle_event(
-            &event_target,
-            event,
-            ExceptionHandling::Report,
-            can_gc,
-        );
+        if compiled_listener
+            .call_or_handle_event(&event_target, event, ExceptionHandling::Report, can_gc)
+            .is_err()
+        {
+            if let Some(flag) = legacy_output_did_listeners_throw {
+                flag.set(true);
+            }
+        }
         if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());
         }

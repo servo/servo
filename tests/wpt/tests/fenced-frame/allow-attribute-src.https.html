@@ -34,7 +34,7 @@ promise_test(async () => {
   // attribute.
   const frame = await frame_builder();
   await frame.execute(async () => {
-    assert_true(document.featurePolicy.allowsFeature("shared-storage"));
+    assert_true(document.permissionsPolicy.allowsFeature("shared-storage"));
   });
 }, 'Src permissions policy in allow attribute.');
 
@@ -47,7 +47,7 @@ promise_test(async () => {
   // document should still allow "shared-storage" since it is still same-origin to the
   // original mapped URL (i.e. what 'src' is considered to be).
   await frame.execute(async () => {
-    assert_true(document.featurePolicy.allowsFeature("shared-storage"));
+    assert_true(document.permissionsPolicy.allowsFeature("shared-storage"));
   });
 }, 'Src permissions policy after same-origin navigation.');
 
@@ -60,7 +60,7 @@ promise_test(async () => {
   // resulting document should not allow "shared-storage" since it is now cross-origin
   // to the original mapped URL (i.e. what 'src' is considered to be).
   await frame.execute(async () => {
-    assert_false(document.featurePolicy.allowsFeature("shared-storage"));
+    assert_false(document.permissionsPolicy.allowsFeature("shared-storage"));
   });
 }, 'Src permissions policy after cross-origin navigation.');
 
@@ -69,7 +69,7 @@ promise_test(async () => {
   await frame.execute(async () => {
     const child_frame = await attachIFrameContext();
     await child_frame.execute(() => {
-      assert_true(document.featurePolicy.allowsFeature("shared-storage"));
+      assert_true(document.permissionsPolicy.allowsFeature("shared-storage"));
     })
   });
 }, 'Src permissions policy in child iframe inheritance works properly.');

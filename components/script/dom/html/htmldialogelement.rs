@@ -20,8 +20,10 @@ use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::toggleevent::ToggleEvent;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -71,17 +73,23 @@ impl HTMLDialogElement {
 
         // Step 2. If subject has an open attribute, then throw an "InvalidStateError" DOMException.
         if subject.has_attribute(&local_name!("open")) {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on an already open dialog.".into(),
+            )));
         }
 
         // Step 3. If subject's node document is not fully active, then throw an "InvalidStateError" DOMException.
         if !subject.owner_document().is_fully_active() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on a dialog whose document is not fully active.".into(),
+            )));
         }
 
         // Step 4. If subject is not connected, then throw an "InvalidStateError" DOMException.
         if !subject.is_connected() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on a dialog that is not connected.".into(),
+            )));
         }
 
         // TODO: Step 5. If subject is in the popover showing state, then throw an "InvalidStateError" DOMException.
@@ -115,11 +123,7 @@ impl HTMLDialogElement {
         // TODO: Step 9. If subject is in the popover showing state, then return.
 
         // Step 10. Queue a dialog toggle event task given subject, "closed", "open", and source.
-        self.queue_dialog_toggle_event_task(
-            DOMString::from("closed"),
-            DOMString::from("open"),
-            source,
-        );
+        self.queue_dialog_toggle_event_task("closed", "open", source);
 
         // Step 11. Add an open attribute to subject, whose value is the empty string.
         subject.set_bool_attribute(&local_name!("open"), true, can_gc);
@@ -183,11 +187,7 @@ impl HTMLDialogElement {
         }
 
         // Step 4. Queue a dialog toggle event task given subject, "open", "closed", and source.
-        self.queue_dialog_toggle_event_task(
-            DOMString::from("open"),
-            DOMString::from("closed"),
-            source,
-        );
+        self.queue_dialog_toggle_event_task("open", "closed", source);
 
         // Step 5. Remove subject's open attribute.
         subject.remove_attribute(&ns!(), &local_name!("open"), can_gc);
@@ -225,8 +225,8 @@ impl HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
     pub fn queue_dialog_toggle_event_task(
         &self,
-        old_state: DOMString,
-        new_state: DOMString,
+        old_state: &str,
+        new_state: &str,
         source: Option<DomRoot<Element>>,
     ) {
         // TODO: Step 1. If element's dialog toggle task tracker is not null, then:
@@ -302,7 +302,9 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 2. If this has an open attribute, then throw an "InvalidStateError" DOMException.
         if element.has_attribute(&local_name!("open")) {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call show() on an already open dialog.".into(),
+            )));
         }
 
         // Step 3. If the result of firing an event named beforetoggle, using ToggleEvent, with the cancelable attribute initialized to true, the oldState attribute initialized to "closed", and the newState attribute initialized to "open" at this is false, then return.
@@ -327,11 +329,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         }
 
         // Step 5. Queue a dialog toggle event task given this, "closed", "open", and null.
-        self.queue_dialog_toggle_event_task(
-            DOMString::from("closed"),
-            DOMString::from("open"),
-            None,
-        );
+        self.queue_dialog_toggle_event_task("closed", "open", None);
 
         // Step 6. Add an open attribute to this, whose value is the empty string.
         element.set_bool_attribute(&local_name!("open"), true, can_gc);
@@ -365,5 +363,62 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // Step 1. If returnValue is not given, then set it to null.
         // Step 2. Close the dialog this with returnValue and null.
         self.close_the_dialog(return_value, None, can_gc);
+    }
+}
+
+impl VirtualMethods for HTMLDialogElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:is-valid-command-steps>
+    fn is_valid_command_steps(&self, command: CommandState) -> bool {
+        // Step 1. If command is in the Close state, the Request Close state (TODO), or the
+        // ShowModal state, then return true.
+        if command == CommandState::Close || command == CommandState::ShowModal {
+            return true;
+        }
+        // Step 2. Return false.
+        false
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:command-steps>
+    fn command_steps(
+        &self,
+        source: DomRoot<HTMLButtonElement>,
+        command: CommandState,
+        can_gc: CanGc,
+    ) -> bool {
+        if self
+            .super_type()
+            .unwrap()
+            .command_steps(source.clone(), command, can_gc)
+        {
+            return true;
+        }
+
+        // TODO Step 1. If element is in the popover showing state, then return.
+        let element = self.upcast::<Element>();
+
+        // Step 2. If command is in the Close state and element has an open attribute, then
+        // close the dialog element with source's optional value and source.
+        if command == CommandState::Close && element.has_attribute(&local_name!("open")) {
+            let button_element = DomRoot::from_ref(source.upcast::<Element>());
+            self.close_the_dialog(source.optional_value(), Some(button_element), can_gc);
+            return true;
+        }
+
+        // TODO Step 3. If command is in the Request Close state and element has an open attribute,
+        // then request to close the dialog element with source's optional value and source.
+
+        // Step 4. If command is the Show Modal state and element does not have an open attribute,
+        // then show a modal dialog given element and source.
+        if command == CommandState::ShowModal && !element.has_attribute(&local_name!("open")) {
+            let button_element = DomRoot::from_ref(source.upcast::<Element>());
+            let _ = self.show_a_modal(Some(button_element), can_gc);
+            return true;
+        }
+
+        false
     }
 }

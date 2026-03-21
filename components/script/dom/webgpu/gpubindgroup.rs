@@ -22,7 +22,6 @@ use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroup {
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
@@ -131,7 +130,7 @@ impl GPUBindGroup {
 
         GPUBindGroup::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             bind_group,
             device.id(),
             &descriptor.layout,

@@ -11,7 +11,7 @@ USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 async def test_unsubscribe(
-    bidi_session, inline, new_tab, wait_for_event, wait_for_future_safe
+    bidi_session, configuration, inline, new_tab, wait_for_event, wait_for_future_safe
 ):
     await bidi_session.session.subscribe(
         events=[USER_PROMPT_CLOSED_EVENT, USER_PROMPT_OPENED_EVENT]
@@ -41,7 +41,7 @@ async def test_unsubscribe(
     await bidi_session.browsing_context.handle_user_prompt(context=new_tab["context"])
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -203,6 +203,7 @@ async def test_prompt_with_defaults(
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_subscribe_to_one_context(
     bidi_session,
+    configuration,
     subscribe_events,
     inline,
     wait_for_event,
@@ -249,7 +250,7 @@ async def test_subscribe_to_one_context(
 
     # Make sure we don't receive this event.
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     on_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
     on_prompt_closed = wait_for_event(USER_PROMPT_CLOSED_EVENT)

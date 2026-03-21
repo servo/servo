@@ -12,14 +12,16 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver, GenericReceiverSet, GenericSelectionResult};
+use base::generic_channel::{
+    self, CallbackSetter, GenericReceiver, GenericReceiverSet, GenericSelectionResult,
+};
 use base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -106,9 +108,9 @@ pub fn new_resource_threads(
     let (public_core, private_core) = new_core_resource_thread(
         devtools_sender,
         time_profiler_chan,
-        mem_profiler_chan.clone(),
+        mem_profiler_chan,
         embedder_proxy,
-        config_dir.clone(),
+        config_dir,
         ca_certificates,
         ignore_certificate_errors,
         protocols,
@@ -780,7 +782,7 @@ impl CoreResourceManager {
         &self,
         mut request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
-        action_receiver: IpcReceiver<WebSocketDomAction>,
+        action_receiver: CallbackSetter<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
         cancellation_listener: Arc<CancellationListener>,
         protocols: Arc<ProtocolRegistry>,

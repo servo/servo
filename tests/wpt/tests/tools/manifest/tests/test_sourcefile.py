@@ -918,6 +918,22 @@ def test_reftest_fuzzy_multi(fuzzy, expected):
     assert s.content_is_ref_node
     assert s.fuzzy == expected
 
+@pytest.mark.parametrize("fuzzy", [
+    [b"0-1;100-200", b"0-55;0-8"],
+    [b"ref-1.html:0-1;100-200", b"ref-1.html:0-55;0-8"],
+])
+def test_reftest_fuzzy_duplicate_key(fuzzy):
+    content = b"""<link rel=match href=ref-1.html>
+"""
+    for item in fuzzy:
+        content += b'\n<meta name=fuzzy content="%s">' % item
+
+    s = create("foo/test.html", content)
+
+    with pytest.raises(ValueError):
+        s.fuzzy
+
+
 @pytest.mark.parametrize("pac, expected", [
     (b"proxy.pac", "proxy.pac")])
 def test_pac(pac, expected):

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    #flexbox {
+        width: 340px;
+        border: 2px solid #333;
+        background-color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        row-gap: 10px;
+    }
+    .item {
+        width: 70px;
+        height: 50px;
+        background-color: #007bff;
+        color: white;
+        display: flex;
+    }
+    .rule {
+        position: absolute;
+        top: 2px;
+        height: 50px;
+        width: 0px;
+        border-right: solid 5px gold;
+    }
+    .row-rule {
+        position: absolute;
+        display: inline;
+        height: 0px;
+        border-bottom: 5px solid red;
+        top: 54.5px;
+    }
+</style>
+
+<div class="rule" style="left: 84.5px;"></div>
+<div class="rule" style="left: 169.5px;"></div>
+<div class="rule" style="left: 254.5px;"></div>
+
+<div class="rule" style="top: 62px; left:112.8px;"></div>
+<div class="rule" style="top: 62px; left: 226.1px;"></div>
+
+<!-- Row rule segments (broken at intersections, 1 asymmetric overlap window) -->
+<div class="row-rule" style="left: 2px; width: 77.5px;"></div>
+<div class="row-rule" style="left: 137px; width: 27.5px;"></div>
+<div class="row-rule" style="left: 179.5px; width: 27.5px;"></div>
+<div class="row-rule" style="left: 264.5px; width: 77.5px;"></div>
+
+<div id="flexbox">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>

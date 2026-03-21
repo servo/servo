@@ -135,8 +135,8 @@ impl AudioBackend for DummyBackend {
     fn make_streamreader(
         _id: MediaStreamId,
         _sample_rate: f32,
-    ) -> Box<dyn AudioStreamReader + Send> {
-        Box::new(DummyStreamReader)
+    ) -> Result<Box<dyn AudioStreamReader + Send>, AudioSinkError> {
+        Ok(Box::new(DummyStreamReader))
     }
 }
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Number parsing - consecutive numbers without separator</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Test: "100-200" should parse as two coordinates: 100 and -200 -->
+  <path id="test1" d="M 100-200 L 200-100" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Reference: explicitly separated version -->
+  <path id="ref1" d="M 100,-200 L 200,-100" fill="none" stroke="red" stroke-width="1"/>
+</svg>
+
+<script>
+test(function() {
+  const testPath = document.getElementById('test1');
+  const refPath = document.getElementById('ref1');
+
+  // Both paths should have the same total length
+  const testLength = testPath.getTotalLength();
+  const refLength = refPath.getTotalLength();
+
+  assert_approx_equals(testLength, refLength, 0.1,
+    "Path with '100-200' should have same length as '100,-200'");
+}, "Number parsing: M 100-200 parses as M 100,-200");
+
+test(function() {
+  const path = document.getElementById('test1');
+  const point = path.getPointAtLength(0);
+
+  assert_approx_equals(point.x, 100, 0.1, "Start x coordinate should be 100");
+  assert_approx_equals(point.y, -200, 0.1, "Start y coordinate should be -200");
+}, "Number parsing: First coordinate is 100, second is -200");
+
+test(function() {
+  // Test multiple consecutive numbers with signs
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50+100 L 150+200');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 50, 0.1, "50+100 should parse as 50 and +100");
+  assert_approx_equals(point.y, 100, 0.1, "Second coordinate should be 100");
+}, "Number parsing: M 50+100 parses as M 50,+100");
+
+test(function() {
+  // Test chain of signed numbers
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 10-20+30-40');
+  svg.appendChild(path);
+
+  const startPoint = path.getPointAtLength(0);
+  assert_approx_equals(startPoint.x, 10, 0.1, "First coordinate is 10");
+  assert_approx_equals(startPoint.y, -20, 0.1, "Second coordinate is -20");
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 30, 0.1, "Third coordinate is 30");
+  assert_approx_equals(endPoint.y, -40, 0.1, "Fourth coordinate is -40");
+}, "Number parsing: M 10-20+30-40 parses as M 10,-20,30,-40 (implicit lineto)");
+</script>
+</body>
+</html>

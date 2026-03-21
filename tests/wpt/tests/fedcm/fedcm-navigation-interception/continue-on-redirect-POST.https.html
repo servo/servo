@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API navigation interception tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  // Open popup window that sends intercept header
+  test_driver.bless("open popup", () =>
+    window.open("../support/popup-redirect-to-intercept.html")
+  );
+  const messageWatcher = new EventWatcher(t, window, "message");
+  let message = await messageWatcher.wait_for("message");
+  assert_equals(message.data, "PASS");
+}, "Redirects in IdentityProvider.resolve with method: POST work correctly.");
+
+</script>

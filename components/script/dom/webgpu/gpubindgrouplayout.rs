@@ -24,7 +24,6 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroupLayout {
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
@@ -131,7 +130,7 @@ impl GPUBindGroupLayout {
 
         Ok(GPUBindGroupLayout::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             bgl,
             descriptor.parent.label.clone(),
             can_gc,

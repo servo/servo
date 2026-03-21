@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 use serde_json::Map;
 
@@ -26,6 +27,7 @@ struct BreakpointRequest {
     location: BreakpointRequestLocation,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct BreakpointListActor {
     name: String,
     browsing_context: String,
@@ -65,16 +67,17 @@ impl Actor for BreakpointListActor {
                     .source_manager
                     .find_source(registry, &source_url)
                     .ok_or(ActorError::Internal)?;
-                let (script_id, offset) = source.find_offset(line, column);
 
-                source
-                    .script_sender
-                    .send(DevtoolScriptControlMsg::SetBreakpoint(
-                        source.spidermonkey_id,
-                        script_id,
-                        offset,
-                    ))
-                    .map_err(|_| ActorError::Internal)?;
+                if let Some((script_id, offset)) = source.find_offset(line, column) {
+                    source
+                        .script_sender
+                        .send(DevtoolScriptControlMsg::SetBreakpoint(
+                            source.spidermonkey_id,
+                            script_id,
+                            offset,
+                        ))
+                        .map_err(|_| ActorError::Internal)?;
+                }
 
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
@@ -100,16 +103,16 @@ impl Actor for BreakpointListActor {
                     .source_manager
                     .find_source(registry, &source_url)
                     .ok_or(ActorError::Internal)?;
-                let (script_id, offset) = source.find_offset(line, column);
-
-                source
-                    .script_sender
-                    .send(DevtoolScriptControlMsg::ClearBreakpoint(
-                        source.spidermonkey_id,
-                        script_id,
-                        offset,
-                    ))
-                    .map_err(|_| ActorError::Internal)?;
+                if let Some((script_id, offset)) = source.find_offset(line, column) {
+                    source
+                        .script_sender
+                        .send(DevtoolScriptControlMsg::ClearBreakpoint(
+                            source.spidermonkey_id,
+                            script_id,
+                            offset,
+                        ))
+                        .map_err(|_| ActorError::Internal)?;
+                }
 
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?

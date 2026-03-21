@@ -1,5 +1,5 @@
 [package]
-name = "webxr-api"
+name = "servo-webxr-api"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -23,3 +23,5 @@ profile_traits = { workspace = true }
 euclid = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }

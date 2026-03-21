@@ -1,5 +1,5 @@
 [package]
-name = "media"
+name = "servo-media-thread"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -19,5 +19,7 @@ paint_api = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
-servo_config = { path = "../../config" }
+servo_config = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 webrender_api = { workspace = true }

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Test: List item with dynamic padding</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#valdef-display-list-item">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#paddings">
+<link rel="match" href="list-item-dynamic-padding-ref.html">
+<ul>
+  <li id="target">text</li>
+</ul>
+<script src="/common/reftest-wait.js"></script>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById("target").style.paddingLeft = "100px";
+  takeScreenshot();
+}));
+</script>
+</html>

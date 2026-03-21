@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use pkcs8::PrivateKeyInfo;
 use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
 use pkcs8::der::{AnyRef, Decode, Encode};
@@ -19,10 +20,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_X25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleEcdhKeyDeriveParams, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// `id-X25519` object identifier defined in [RFC8410]
 const X25519_OID_STRING: &str = "1.3.101.110";
@@ -110,10 +110,10 @@ pub(crate) fn derive_bits(
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
     // SyntaxError.
@@ -132,7 +132,7 @@ pub(crate) fn generate_key(
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "X25519".
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_X25519.to_string(),
+        name: CryptoAlgorithm::X25519,
     };
 
     // Step 5. Let publicKey be a new CryptoKey representing the public key of the generated key pair.
@@ -141,13 +141,13 @@ pub(crate) fn generate_key(
     // Step 8. Set the [[extractable]] internal slot of publicKey to true.
     // Step 9. Set the [[usages]] internal slot of publicKey to be the empty list.
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
         Vec::new(),
         Handle::X25519PublicKey(public_key),
-        can_gc,
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -157,6 +157,7 @@ pub(crate) fn generate_key(
     // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "deriveKey", "deriveBits" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -167,7 +168,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::X25519PrivateKey(private_key),
-        can_gc,
     );
 
     // Step 15. Let result be a new CryptoKeyPair dictionary.
@@ -184,12 +184,12 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -237,16 +237,16 @@ pub(crate) fn import_key(
             // Step 2.10. Set the name attribute of algorithm to "X25519".
             // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PublicKey(public_key),
-                can_gc,
             )
         },
         // If format is "pkcs8":
@@ -300,16 +300,16 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to "X25519".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PrivateKey(private_key),
-                can_gc,
             )
         },
         // If format is "jwk":
@@ -319,7 +319,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the d field is present and if usages contains an entry which is not
             // "deriveKey" or "deriveBits" then throw a SyntaxError.
@@ -343,7 +343,7 @@ pub(crate) fn import_key(
             }
 
             // Step 2.2. If the crv field of jwk is not "X25519", then throw a DataError.
-            if jwk.crv.as_ref().is_none_or(|crv| crv != ALG_X25519) {
+            if jwk.crv.as_ref().is_none_or(|crv| crv != "X25519") {
                 return Err(Error::Data(None));
             }
 
@@ -415,16 +415,16 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to "X25519".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
+                cx,
                 global,
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
             )
         },
         // If format is "raw":
@@ -448,16 +448,16 @@ pub(crate) fn import_key(
                 key_data.try_into().map_err(|_| Error::Data(None))?;
             let public_key = PublicKey::from(key_bytes);
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PublicKey(public_key),
-                can_gc,
             )
         },
         // Otherwise:
@@ -555,7 +555,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.3. Set the crv attribute of jwk to "X25519".
             let mut jwk = JsonWebKey {
                 kty: Some(DOMString::from("OKP")),
-                crv: Some(DOMString::from(ALG_X25519)),
+                crv: Some(DOMString::from("X25519")),
                 ..Default::default()
             };
 
@@ -620,4 +620,44 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 4. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for X25519
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
+    //
+    // NOTE: See "impportKey" operation for supported usages
+    if !usages.is_empty() {
+        return Err(Error::Syntax(Some("Usages is not empty".to_string())));
+    }
+
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    let Handle::X25519PrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation(None));
+    };
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        Handle::X25519PublicKey(private_key.into()),
+    );
+
+    Ok(public_key)
 }

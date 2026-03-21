@@ -1,5 +1,5 @@
 [package]
-name = "devtools_traits"
+name = "servo-devtools-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -13,13 +13,12 @@ path = "lib.rs"
 
 [dependencies]
 base = { workspace = true }
-bitflags = { workspace = true }
 embedder_traits = { workspace = true }
 http = { workspace = true }
-log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
+profile_traits = { workspace = true }
 serde = { workspace = true }
-servo_url = { path = "../../url" }
+servo-url = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }

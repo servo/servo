@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::domstring::DOMString;
 use style::selector_parser::PseudoElement;
@@ -162,9 +163,9 @@ impl HTMLDetailsElement {
         self.SetOpen(!self.Open());
     }
 
-    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
         if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(can_gc);
+            self.create_shadow_tree(cx);
         }
 
         Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
@@ -172,57 +173,57 @@ impl HTMLDetailsElement {
             .expect("UA shadow tree was not created")
     }
 
-    fn create_shadow_tree(&self, can_gc: CanGc) {
+    fn create_shadow_tree(&self, cx: &mut JSContext) {
         let document = self.owner_document();
         // TODO(stevennovaryo): Reimplement details styling so that it would not
         //                      mess the cascading and require some reparsing.
-        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let summary = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("slot")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
         );
         let summary = DomRoot::downcast::<HTMLSlotElement>(summary).unwrap();
         root.upcast::<Node>()
-            .AppendChild(summary.upcast::<Node>(), can_gc)
+            .AppendChild(cx, summary.upcast::<Node>())
             .unwrap();
 
         let fallback_summary = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("summary")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
         );
         let fallback_summary = DomRoot::downcast::<HTMLElement>(fallback_summary).unwrap();
         fallback_summary
             .upcast::<Node>()
-            .set_text_content_for_element(Some(DEFAULT_SUMMARY.into()), can_gc);
+            .set_text_content_for_element(cx, Some(DEFAULT_SUMMARY.into()));
         summary
             .upcast::<Node>()
-            .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
+            .AppendChild(cx, fallback_summary.upcast::<Node>())
             .unwrap();
 
         let details_content = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("slot")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
         );
         let details_content = DomRoot::downcast::<HTMLSlotElement>(details_content).unwrap();
 
         root.upcast::<Node>()
-            .AppendChild(details_content.upcast::<Node>(), can_gc)
+            .AppendChild(cx, details_content.upcast::<Node>())
             .unwrap();
         details_content
             .upcast::<Node>()
@@ -246,8 +247,8 @@ impl HTMLDetailsElement {
             })
     }
 
-    fn update_shadow_tree_contents(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    fn update_shadow_tree_contents(&self, cx: &mut JSContext) {
+        let shadow_tree = self.shadow_tree(cx);
 
         if let Some(summary) = self.find_corresponding_summary_element() {
             shadow_tree
@@ -272,8 +273,8 @@ impl HTMLDetailsElement {
         shadow_tree.details_content.Assign(slottable_children);
     }
 
-    fn update_shadow_tree_styles(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    fn update_shadow_tree_styles(&self, cx: &mut JSContext) {
+        let shadow_tree = self.shadow_tree(cx);
 
         // Manually update the list item style of the implicit summary element.
         // Unlike the other summaries, this summary is in the shadow tree and
@@ -291,7 +292,11 @@ impl HTMLDetailsElement {
         shadow_tree
             .implicit_summary
             .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
+            .set_string_attribute(
+                &local_name!("style"),
+                implicit_summary_style.into(),
+                CanGc::from_cx(cx),
+            );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-the-given-element-if-needed>
@@ -394,10 +399,15 @@ impl VirtualMethods for HTMLDetailsElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-details-element:concept-element-attributes-change-ext>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         // Step 1. If namespace is not null, then return.
         if *attr.namespace() != ns!() {
@@ -441,7 +451,7 @@ impl VirtualMethods for HTMLDetailsElement {
         }
         // Step 3. If localName is open, then:
         else if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(can_gc);
+            self.update_shadow_tree_styles(cx);
 
             let counter = self.toggle_counter.get().wrapping_add(1);
             self.toggle_counter.set(counter);
@@ -490,20 +500,18 @@ impl VirtualMethods for HTMLDetailsElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .children_changed(mutation, can_gc);
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(cx, mutation);
 
-        self.update_shadow_tree_contents(can_gc);
+        self.update_shadow_tree_contents(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-details-element:html-element-insertion-steps>
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
-        self.update_shadow_tree_contents(can_gc);
-        self.update_shadow_tree_styles(can_gc);
+        self.update_shadow_tree_contents(cx);
+        self.update_shadow_tree_styles(cx);
 
         if context.tree_is_in_a_document_tree {
             // If this is true then we can't have been in a document tree previously, so

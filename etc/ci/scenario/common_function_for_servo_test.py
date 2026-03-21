@@ -28,7 +28,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from urllib3.exceptions import ProtocolError
 
 WEBDRIVER_PORT = 7000
-MITMPROXY_PORT = str(random.randrange(7150, 9000))
+MITMPROXY_PORT = random.randrange(7150, 9000)
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 MITMPROXY_VERSION = "12.2.1"
@@ -49,7 +49,7 @@ class MitmProxyRunType(enum.Enum):
 
 
 class MitmProxy:
-    def __init__(self, use_proxy: MitmProxyRunType, dump_file, port: str):
+    def __init__(self, use_proxy: MitmProxyRunType, dump_file, port: int):
         self.mitmproxy = None
         self.use_proxy = use_proxy
         self.dump_file = dump_file
@@ -64,7 +64,7 @@ class MitmProxy:
                 [
                     "mitmdump",
                     "-p",
-                    self.port,
+                    str(self.port),
                     "--server-replay",
                     self.dump_file,
                     # reply with 404 if request is not in dump_file
@@ -84,7 +84,7 @@ class MitmProxy:
                     self.dump_file,
                     # "--mode", "upstream:http://127.0.0.1:3128",
                     "-p",
-                    self.port,
+                    str(self.port),
                     "--set",
                     "ssl_insecure=true",
                 ]
@@ -163,9 +163,12 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
         except Exception as e:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
             time.sleep(1)
-    print(
-        f"Established Webdriver connection in {time.time() - start_time}s",
-    )
+    if driver is None:
+        print(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
+    else:
+        print(
+            f"Established Webdriver connection in {time.time() - start_time}s",
+        )
     return driver
 
 
@@ -203,7 +206,7 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
     return PortMapResult.SUCCESSFUL
 
 
-def setup_hdc_forward(timeout: int = 5):
+def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, host_service_port: int = MITMPROXY_PORT):
     """
     set hdc forward
     :return: If successful, return driver; If failed, return False
@@ -214,14 +217,14 @@ def setup_hdc_forward(timeout: int = 5):
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            if port_forward(WEBDRIVER_PORT, False).is_success() and port_forward(MITMPROXY_PORT, True).is_success():
+            if port_forward(webdriver_port, False).is_success() and port_forward(host_service_port, True).is_success():
                 return
             time.sleep(0.2)
         except FileNotFoundError:
             print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
             raise
         except subprocess.TimeoutExpired:
-            print(f"HDC port forwarding timed out on port {WEBDRIVER_PORT}")
+            print(f"HDC port forwarding timed out on port {webdriver_port}")
             raise
         except Exception as e:
             print(f"failed to setup HDC forwarding: {e}")
@@ -331,13 +334,13 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
 
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
-def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProxyRunType.FORWARD):
-    # if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
-    # if we are in CI and nobody overrode our mitmproxy type we want to replay.
-    #    print("Setting mitmproxy replay")
-    #    use_mitmproxy = MitmProxyRunType.REPLAY
+def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY):
+    if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
+        # if we are in CI and nobody overrode our mitmproxy type we want to replay.
+        print("Setting mitmproxy replay")
+        use_mitmproxy = MitmProxyRunType.REPLAY
 
-    dump_file = pathlib.Path("/tmp/mitmdump-current")
+    dump_file = pathlib.Path("/tmp/mitmproxy-dump")
     if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
         print(f"Dump file {dump_file} did not exist. We will abort")
         return
@@ -352,7 +355,7 @@ def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProx
             time.sleep(5)
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
             if use_mitmproxy.should_servo_proxy():
-                cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
+                cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
             hdc.cmd(
                 cmd_str,
                 timeout=10,

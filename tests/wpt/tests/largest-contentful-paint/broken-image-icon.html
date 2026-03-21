@@ -9,7 +9,7 @@
 
 <body>
   <img src="../non-existent-image.jpg">
-  <img src="/css/css-images/support/colors-16x8.png">
+  <img src="/css/css-images/support/colors-16x8.png?pipe=trickle(d2)">
 
   <script>
     promise_test(async () => {
@@ -27,17 +27,15 @@
       // There should be only 1 LCP entry and it should be the colors-16x8.png though
       // being smaller than the broken image icon. The broken image icon should not
       // emit an LCP entry.
-      let LcpEntryListLength = await new Promise(resolve => {
+      await new Promise(resolve => {
         new PerformanceObserver((entryList, observer) => {
-          if (entryList.getEntries().filter(e => e.url.includes('colors-16x8.png'))) {
-            observer.disconnect();
-            resolve(entryList.getEntries().length);
-          }
+          assert_equals(entryList.getEntries().length, 1, 'There should be one and only one LCP entry.');
+          const filteredEntries = entryList.getEntries().filter(e => e.url.includes('colors-16x8.png'));
+          assert_equals(filteredEntries.length, 1, 'Got LCP entry from colors-16x8.png.');
+          observer.disconnect();
+          resolve();
         }).observe({ type: 'largest-contentful-paint', buffered: true });
       });
-
-      assert_equals(LcpEntryListLength, 1, 'There should be one and only one LCP entry.');
-
     }, "The broken image icon should not emit an LCP entry.");
   </script>
 </body>

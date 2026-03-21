@@ -1,16 +1,22 @@
 <!doctype html>
-<meta charset=utf-8>
 <html>
   <head>
     <title>Test Actions</title>
+    <meta charset=utf-8>
     <style>
       div {
         padding: 0;
         margin: 0;
       }
 
+      #container {
+        display: flex;
+        gap: 50px;
+        flex-wrap: wrap;
+        margin-bottom: 50px;
+      }
+
       #not-scrollable {
-        margin-bottom: 100px;
         width: 100px;
         height: 50px;
       }
@@ -38,57 +44,118 @@
         height: 100px;
       }
 
-      #event-reporter {
-        white-space: pre-line;
+      #eventsTable {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: monospace;
+        font-size: 12px;
+      }
+
+      #eventsTable th {
+        background-color: #333;
+        color: white;
+        padding: 8px;
+        text-align: left;
+        position: sticky;
+        top: 0;
+      }
+
+      #eventsTable td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      #eventsTable tr:hover {
+        background-color: #f5f5f5;
+      }
+
+      .event-wheel {
+        background-color: #d1ecf1;
+      }
+
+      #tableContainer {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+      }
+
+      #legend {
+        display: flex;
+        gap: 15px;
+        margin: 10px 0;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #999;
+        border-radius: 3px;
       }
     </style>
 
     <script>
-      var eventReporter;
       var allEvents = { events: [] };
 
-      function addMessage(message) {
-        eventReporter.textContent = `${message}\n${eventReporter.textContent}`;
+      function addEventToTable(eventData) {
+        const tbody = document.getElementById("eventsTableBody");
+        const row = tbody.insertRow(0);
+        row.className = "event-wheel";
+
+        row.insertCell().textContent = allEvents.events.length;
+        row.insertCell().textContent = eventData.type;
+        row.insertCell().textContent = `${eventData.pageX}, ${eventData.pageY}`;
+        row.insertCell().textContent = eventData.button;
+        row.insertCell().textContent = eventData.buttons;
+        row.insertCell().textContent = `${eventData.deltaX}, ${eventData.deltaY}, ${eventData.deltaZ}`;
+        row.insertCell().textContent = eventData.deltaMode;
+        row.insertCell().textContent = eventData.target;
+
+        const modifiers = [];
+        if (eventData.altKey) modifiers.push("Alt");
+        if (eventData.ctrlKey) modifiers.push("Ctrl");
+        if (eventData.metaKey) modifiers.push("Meta");
+        if (eventData.shiftKey) modifiers.push("Shift");
+        row.insertCell().textContent = modifiers.join("+") || "-";
       }
 
       function recordWheelEvent(event) {
-        allEvents.events.push({
-          "type": event.type,
-          "button": event.button,
-          "buttons": event.buttons,
-          "pageX": event.pageX,
-          "pageY": event.pageY,
-          "deltaX": event.deltaX,
-          "deltaY": event.deltaY,
-          "deltaZ": event.deltaZ,
-          "deltaMode": event.deltaMode,
-          "target": event.target.id,
-          "altKey": event.altKey,
-          "ctrlKey": event.ctrlKey,
-          "metaKey": event.metaKey,
-          "shiftKey": event.shiftKey,
-        });
+        const eventData = {
+          type: event.type,
+          button: event.button,
+          buttons: event.buttons,
+          pageX: event.pageX,
+          pageY: event.pageY,
+          deltaX: event.deltaX,
+          deltaY: event.deltaY,
+          deltaZ: event.deltaZ,
+          deltaMode: event.deltaMode,
+          target: event.target.id,
+          altKey: event.altKey,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          shiftKey: event.shiftKey,
+        };
 
-        addMessage(
-          "type: " + event.type + " " +
-          "button: " + event.button + ", " +
-          "buttons: " + event.buttons + ", " +
-          "pageX: " + event.pageX + ", " +
-          "pageY: " + event.pageY + ", " +
-          "deltaX: " + event.deltaX + ", " +
-          "deltaY: " + event.deltaY + ", " +
-          "deltaZ: " + event.deltaZ + ", " +
-          "deltaMode: " + event.deltaMode + ", " +
-          "target id: " + event.target.id + ", " +
-          "altKey: " + event.altKey + ", " +
-          "ctrlKey: " + event.ctrlKey + ", " +
-          "metaKey: " + event.metaKey + ", " +
-          "shiftKey: " + event.shiftKey
-        );
+        allEvents.events.push(eventData);
+        addEventToTable(eventData);
       }
 
       document.addEventListener("DOMContentLoaded", function () {
-        eventReporter = document.getElementById("event-reporter");
+        allEvents.events.length = 0;
+
+        const tbody = document.getElementById("eventsTableBody");
+        if (tbody) {
+          tbody.innerHTML = "";
+        }
 
         var noScroll = document.getElementById("not-scrollable");
         noScroll.addEventListener("wheel", recordWheelEvent);
@@ -100,52 +167,79 @@
   </head>
 
   <body>
-    <div>
-      <h2>Scroll Reporter</h2>
-      <div id="not-scrollable">
-        <div id="not-scrollable-content"></div>
+    <div id="container">
+      <div>
+        <h2>Not scrollable container</h2>
+        <div id="not-scrollable">
+          <div id="not-scrollable-content"></div>
+        </div>
       </div>
-    </div>
 
-    <div>
-      <h2>Overflow Scroll Reporter</h2>
-      <div id="scrollable">
-        <div id="scrollable-content"></div>
+      <div>
+        <h2>Scrollable container</h2>
+        <div id="scrollable">
+          <div id="scrollable-content"></div>
+        </div>
       </div>
-    </div>
 
-    <div>
-      <h2>iframe Scroll Reporter</h2>
-      <iframe id="iframe" srcdoc='
-        <script>
-          document.scrollingElement.addEventListener("wheel", event => {
-            window.parent.recordWheelEvent({
-              "type": event.type,
-              "button": event.button,
-              "buttons": event.buttons,
-              "pageX": event.pageX,
-              "pageY": event.pageY,
-              "deltaX": event.deltaX,
-              "deltaY": event.deltaY,
-              "deltaZ": event.deltaZ,
-              "deltaMode": event.deltaMode,
-              "target": event.target,
-              "altKey": event.altKey,
-              "ctrlKey": event.ctrlKey,
-              "metaKey": event.metaKey,
-              "shiftKey": event.shiftKey,
+      <div>
+        <h2>Scrollable iframe</h2>
+        <iframe id="iframe" srcdoc='
+          <script>
+            document.scrollingElement.addEventListener("wheel", event => {
+              window.parent.recordWheelEvent({
+                "type": event.type,
+                "button": event.button,
+                "buttons": event.buttons,
+                "pageX": event.pageX,
+                "pageY": event.pageY,
+                "deltaX": event.deltaX,
+                "deltaY": event.deltaY,
+                "deltaZ": event.deltaZ,
+                "deltaMode": event.deltaMode,
+                "target": event.target,
+                "altKey": event.altKey,
+                "ctrlKey": event.ctrlKey,
+                "metaKey": event.metaKey,
+                "shiftKey": event.shiftKey,
+              });
             });
-          });
-        </script>
-        <div id="iframeContent" style="width: 7500px; height: 7500px; background-color:blue">
-        </div>'>
-      </iframe>
+          </script>
+          <div id="iframeContent" style="width: 7500px; height: 7500px; background-color:blue">
+          </div>'>
+        </iframe>
+      </div>
     </div>
 
-    <div id="resultContainer">
-      <hr />
-      <h2>Events</h2>
-      <div id="event-reporter"></div>
+    <hr/>
+
+    <h2>Legend</h2>
+    <div id="legend">
+      <div class="legend-item">
+        <div class="legend-color event-wheel"></div>
+        <span>wheel</span>
+      </div>
+    </div>
+
+    <h2>Events</h2>
+    <div id="tableContainer">
+      <table id="eventsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Type</th>
+            <th>Coordinates</th>
+            <th>Button</th>
+            <th>Buttons</th>
+            <th>Delta (X, Y, Z)</th>
+            <th>Delta Mode</th>
+            <th>Target</th>
+            <th>Modifiers</th>
+          </tr>
+        </thead>
+        <tbody id="eventsTableBody">
+        </tbody>
+      </table>
     </div>
   </body>
 </html>

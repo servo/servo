@@ -13,7 +13,8 @@
 promise_test(async t => {
     const dialog = document.querySelector("#dialog");
     dialog.showModal();
+    assert_true(dialog.matches(':modal'));
     document.querySelector("#new_parent").moveBefore(dialog, null);
-    assert_equals(document.elementFromPoint(0, 0), dialog);
+    assert_true(dialog.matches(':modal'));
 }, "when reparenting a modal dialog, the dialog should stay modal");
 </script>

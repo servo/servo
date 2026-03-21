@@ -14,7 +14,7 @@
 <!-- Basic focusgroup for entry/exit testing -->
 <div id=before tabindex=0>Before focusgroup</div>
 
-<div id=focusgroup1 focusgroup="toolbar no-memory">
+<div id=focusgroup1 focusgroup="toolbar nomemory">
   <span id=item1 tabindex=0>Item 1</span>
   <span id=item2 tabindex=0>Item 2</span>
   <span id=item3 tabindex=0>Item 3</span>
@@ -28,11 +28,11 @@
     var item1 = document.getElementById("item1");
     var after = document.getElementById("after");
 
-    before.focus();
-    await navigateFocusForward();
+    await focusAndWait(before);
+    await sendTabForward();
     assert_equals(document.activeElement, item1, "Tab should enter focusgroup at first item in tree order");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, after, "Tab should exit focusgroup to next focusable element");
   }, "Tab enters focusgroup at first item in tree order and exits normally");
 
@@ -41,7 +41,7 @@
     var item1 = document.getElementById("item1");
     var before = document.getElementById("before");
 
-    after.focus();
+    await focusAndWait(after);
     await navigateFocusBackward();
     assert_equals(document.activeElement, item1, "Shift+Tab should enter focusgroup at first item in tree order");
 
@@ -54,7 +54,7 @@
     var item2 = document.getElementById("item2");
     var item3 = document.getElementById("item3");
 
-    item1.focus();
+    await focusAndWait(item1);
 
     await focusAndKeyPress(item1, kArrowRight);
     assert_equals(document.activeElement, item2, "Arrow key navigation should work within focusgroup");

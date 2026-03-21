@@ -1,20 +1,68 @@
 'use strict';
 
+// --- Generic focus testing primitives ---
+
 function waitForRender() {
   return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
-async function navigateFocusForward() {
-  await waitForRender();
-  const kTab = '\uE004';
-  await new test_driver.send_keys(document.body, kTab);
+// https://w3c.github.io/webdriver/#keyboard-actions
+const kArrowLeft = '\uE012';
+const kArrowUp = '\uE013';
+const kArrowRight = '\uE014';
+const kArrowDown = '\uE015';
+const kTab = '\uE004';
+const kShift = '\uE008';
+
+// Focus an element and wait for the focus state to propagate via double-rAF.
+// Use this instead of bare element.focus() to prevent flaky failures on
+// slower CI environments where focus may not be fully established before
+// subsequent key dispatches.
+async function focusAndWait(element) {
+  element.focus();
   await waitForRender();
 }
 
+// Focus target and send a key press from it. Waits one animation frame after
+// focusing to ensure focus is established before dispatching the key.
+async function focusAndKeyPress(target, key) {
+  target.focus();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  return test_driver.send_keys(target, key);
+}
+
+// Send a single key press using the Actions API. Does not change focus before
+// dispatching, unlike test_driver.send_keys().
+function sendKey(key) {
+  return new test_driver.Actions().keyDown(key).keyUp(key).send();
+}
+
+// Send Tab using the Actions API without targeting a specific element.
+// Unlike navigateFocusForward, this does NOT call focus() on any element
+// first, so it will not trigger blur events that could interfere with
+// focusgroup exit behaviour on key-conflict elements.
+async function sendTabForward() {
+  await waitForRender();
+  await sendKey(kTab);
+  await waitForRender();
+}
+
+async function navigateFocusForward() {
+  await waitForRender();
+  // Use test_driver.send_keys for reliable synchronization rather than the
+  // lower-level Actions API which can drop key events on slower CI
+  // environments.  We target document.body because body.focus() is a no-op,
+  // which preserves the current focus state. Targeting activeElement would
+  // break shadow hosts with delegatesFocus (re-delegating on focus()).
+  await test_driver.send_keys(document.body, kTab);
+  await waitForRender();
+}
+
+// Shift+Tab via the Actions API.  Does not call focus() on any element, so
+// it will not trigger blur events that could interfere with focusgroup exit
+// behaviour on key-conflict elements.
 async function navigateFocusBackward() {
   await waitForRender();
-  const kShift = '\uE008';
-  const kTab = '\uE004';
   await new test_driver.Actions()
     .keyDown(kShift)
     .keyDown(kTab)

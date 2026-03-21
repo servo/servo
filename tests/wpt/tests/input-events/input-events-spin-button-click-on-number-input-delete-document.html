@@ -54,7 +54,7 @@
       .pointerUp();
     await actions.send();
 
-    assert_equals(inputElement.value, "6", "Value should increase after clicking the up arrow");
+    assert_in_array(inputElement.value, ["5", "6"], "Value should be preserved or increased after clicking the up arrow")
     assert_array_equals(events, ['beforeinput']);
     assert_false(document.body.contains(frame));
   }, "Number input should not crash and not fire subsequent events when event handler removes document");

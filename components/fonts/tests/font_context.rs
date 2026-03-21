@@ -30,6 +30,7 @@ mod font_context {
     use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
     use style::properties::style_structs::Font as FontStyleStruct;
+    use style::values::computed::XLang;
     use style::values::computed::font::{
         FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontStretch, FontStyle,
         FontSynthesis, FontWeight, SingleFontFamily,
@@ -263,7 +264,7 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, XLang::get_initial_value())
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -276,7 +277,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, XLang::get_initial_value())
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
         assert_eq!(
@@ -289,7 +290,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'á', None, None, None)
+            .find_by_codepoint(&mut context.context, 'á', None, XLang::get_initial_value())
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-basic-regular");
         assert_eq!(
@@ -312,7 +313,7 @@ mod font_context {
         let group = context.context.font_group(ServoArc::new(style));
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'a', None, None, None)
+            .find_by_codepoint(&mut context.context, 'a', None, XLang::get_initial_value())
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),
@@ -321,7 +322,7 @@ mod font_context {
         );
 
         let font = group
-            .find_by_codepoint(&mut context.context, 'á', None, None, None)
+            .find_by_codepoint(&mut context.context, 'á', None, XLang::get_initial_value())
             .unwrap();
         assert_eq!(
             &font_face_name(&font.identifier()),

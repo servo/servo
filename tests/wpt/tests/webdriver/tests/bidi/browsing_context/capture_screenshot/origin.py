@@ -6,8 +6,9 @@ from . import get_physical_document_dimensions, get_physical_viewport_dimensions
 
 import webdriver.bidi.error as error
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_origin(bidi_session, top_context, inline):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
@@ -34,7 +35,6 @@ async def test_origin(bidi_session, top_context, inline):
     assert png_dimensions(viewport_screenshot) == viewport_dimensions
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("origin", ["document", "viewport"])
 async def test_origin_consistency(bidi_session, top_context, inline, origin):
     await bidi_session.browsing_context.navigate(
@@ -58,7 +58,6 @@ async def test_origin_consistency(bidi_session, top_context, inline, origin):
     assert screenshot_a == screenshot_b
 
 
-@pytest.mark.asyncio
 async def test_capture_huge_document_origin(bidi_session, top_context, inline):
     width = "32768px"
     height = "32768px"

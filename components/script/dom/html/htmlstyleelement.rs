@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use script_bindings::root::Dom;
@@ -317,10 +318,8 @@ impl VirtualMethods for HTMLStyleElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .children_changed(mutation, can_gc);
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(cx, mutation);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // > The element is not on the stack of open elements of an HTML parser or XML parser, and its children changed steps run.
@@ -329,8 +328,8 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // > The element is not on the stack of open elements of an HTML parser or XML parser, and it becomes connected or disconnected.
@@ -360,9 +359,14 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation, can_gc);
+            s.attribute_mutated(cx, attr, mutation);
         }
 
         let node = self.upcast::<Node>();

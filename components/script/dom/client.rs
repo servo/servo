@@ -23,7 +23,6 @@ pub(crate) struct Client {
     #[no_trace]
     url: ServoUrl,
     frame_type: FrameType,
-    #[ignore_malloc_size_of = "Defined in uuid"]
     #[no_trace]
     id: Uuid,
 }
@@ -74,7 +73,6 @@ impl ClientMethods<crate::DomTypeHolder> for Client {
 
     /// <https://w3c.github.io/ServiceWorker/#client-id>
     fn Id(&self) -> DOMString {
-        let uid_str = format!("{}", self.id);
-        DOMString::from_string(uid_str)
+        format!("{}", self.id).into()
     }
 }

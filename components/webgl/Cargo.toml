@@ -1,5 +1,5 @@
 [package]
-name = "webgl"
+name = "servo-webgl"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -28,10 +28,9 @@ itertools = { workspace = true }
 log = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { path = "../pixels" }
+pixels = { workspace = true }
 rustc-hash = { workspace = true }
 surfman = { workspace = true }
-webrender = { workspace = true }
 webrender_api = { workspace = true }
-webxr = { path = "../webxr", optional = true }
+webxr = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }

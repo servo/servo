@@ -1,5 +1,5 @@
 [package]
-name = "base"
+name = "servo-base"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -14,6 +14,7 @@ test = true
 doctest = false
 
 [dependencies]
+accesskit = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
@@ -22,7 +23,7 @@ parking_lot = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { path = "../../config" }
+servo_config = { workspace = true }
 time = { workspace = true }
 webrender_api = { workspace = true }
 log = { workspace = true }

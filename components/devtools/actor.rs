@@ -12,6 +12,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use atomic_refcell::AtomicRefCell;
 use base::id::PipelineId;
 use log::{debug, warn};
+use malloc_size_of::MallocSizeOf;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
@@ -49,7 +51,7 @@ impl ActorError {
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub(crate) trait Actor: Any + ActorAsAny + Send + Sync {
+pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
     fn handle_message(
         &self,
         request: ClientRequest,
@@ -93,10 +95,19 @@ impl<T: 'static> std::ops::Deref for DowncastableActorArc<T> {
     }
 }
 
-/// A list of known, owned actors.
 #[derive(Default)]
+struct ActorRegistryType(AtomicRefCell<HashMap<String, Arc<dyn Actor>>>);
+
+impl MallocSizeOf for ActorRegistryType {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.0.borrow().iter().map(|actor| actor.size_of(ops)).sum()
+    }
+}
+
+/// A list of known, owned actors.
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct ActorRegistry {
-    actors: AtomicRefCell<HashMap<String, Arc<dyn Actor>>>,
+    actors: ActorRegistryType,
     script_actors: AtomicRefCell<HashMap<String, String>>,
     /// Lookup table for SourceActor names associated with a given PipelineId.
     source_actor_names: AtomicRefCell<HashMap<PipelineId, Vec<String>>>,
@@ -107,7 +118,7 @@ pub(crate) struct ActorRegistry {
 
 impl ActorRegistry {
     pub(crate) fn cleanup(&self, stream_id: StreamId) {
-        for actor in self.actors.borrow().values() {
+        for actor in self.actors.0.borrow().values() {
             actor.cleanup(stream_id);
         }
     }
@@ -157,6 +168,7 @@ impl ActorRegistry {
     /// Add an actor to the registry of known actors that can receive messages.
     pub(crate) fn register<T: Actor>(&self, actor: T) {
         self.actors
+            .0
             .borrow_mut()
             .insert(actor.name(), Arc::new(actor));
     }
@@ -165,6 +177,7 @@ impl ActorRegistry {
     pub fn find<T: Actor>(&self, name: &str) -> DowncastableActorArc<T> {
         let actor = self
             .actors
+            .0
             .borrow()
             .get(name)
             .expect("Should never look for a nonexistent actor")
@@ -197,7 +210,7 @@ impl ActorRegistry {
         };
 
         let actor = {
-            let actors_map = self.actors.borrow();
+            let actors_map = self.actors.0.borrow();
             actors_map.get(to).cloned()
         };
         match actor {
@@ -224,7 +237,7 @@ impl ActorRegistry {
     }
 
     pub fn remove(&self, name: String) {
-        self.actors.borrow_mut().remove(&name);
+        self.actors.0.borrow_mut().remove(&name);
     }
 
     pub fn register_source_actor(&self, pipeline_id: PipelineId, actor_name: &str) {

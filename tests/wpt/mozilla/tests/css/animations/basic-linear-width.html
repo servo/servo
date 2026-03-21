@@ -20,12 +20,11 @@
 var div = document.querySelector('.animatable');
 async_test(function(t) {
   window.addEventListener('load', function() {
-    var test = new window.TestBinding();
-    test.advanceClock(500);
+    ServoTestUtils.advanceClock(500);
     assert_equals(getComputedStyle(div).getPropertyValue('width'), '250px');
-    test.advanceClock(500);
+    ServoTestUtils.advanceClock(500);
     assert_equals(getComputedStyle(div).getPropertyValue('width'), '500px');
-    test.advanceClock(500);
+    ServoTestUtils.advanceClock(500);
     assert_equals(getComputedStyle(div).getPropertyValue('width'), '250px');
     t.done();
   })

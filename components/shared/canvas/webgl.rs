@@ -39,7 +39,7 @@ where
 }
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct WebGLChan(pub GenericSender<WebGLMsg>);
 
 impl WebGLChan {
@@ -176,7 +176,6 @@ pub struct WebGLSLVersion {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct WebGLMsgSender {
     ctx_id: WebGLContextId,
-    #[ignore_malloc_size_of = "channels are hard"]
     sender: WebGLChan,
 }
 
@@ -731,7 +730,7 @@ impl From<WebGLContextId> for WebXRContextId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub enum WebGLError {
     InvalidEnum,
     InvalidFramebufferOperation,

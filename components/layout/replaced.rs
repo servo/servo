@@ -15,6 +15,7 @@ use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
+use servo_url::ServoUrl;
 use style::Zero;
 use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
@@ -124,16 +125,23 @@ pub(crate) struct IFrameInfo {
 }
 
 #[derive(Debug, MallocSizeOf)]
+pub(crate) struct ImageInfo {
+    pub image: Option<Image>,
+    pub showing_broken_image_icon: bool,
+    pub url: Option<ServoUrl>,
+}
+
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
-    pub image_key: webrender_api::ImageKey,
+    pub image_key: Option<ImageKey>,
 }
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum ReplacedContentKind {
-    Image(Option<Image>, bool /* showing_broken_image_icon */),
+    Image(ImageInfo),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
-    Video(Option<VideoInfo>),
+    Video(VideoInfo),
     SVGElement(Option<VectorImage>),
     Audio,
 }
@@ -154,12 +162,12 @@ impl ReplacedContents {
         }
 
         let (kind, natural_size) = {
-            if let Some((image, natural_size_in_dots)) = node.as_image() {
+            if let Some((image_info, natural_size_in_dots)) = node.as_image() {
                 if let Some(content_image) = Self::from_content_property(node, context) {
                     return Some(content_image);
                 }
                 (
-                    ReplacedContentKind::Image(image, node.showing_broken_image_icon()),
+                    ReplacedContentKind::Image(image_info),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = node.as_canvas() {
@@ -167,22 +175,19 @@ impl ReplacedContents {
                     ReplacedContentKind::Canvas(canvas_info),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
-            } else if let Some((pipeline_id, browsing_context_id)) = node.as_iframe() {
+            } else if let Some(iframe_info) = node.as_iframe() {
                 (
-                    ReplacedContentKind::IFrame(IFrameInfo {
-                        pipeline_id,
-                        browsing_context_id,
-                    }),
+                    ReplacedContentKind::IFrame(iframe_info),
                     NaturalSizes::empty(),
                 )
-            } else if let Some((image_key, natural_size_in_dots)) = node.as_video() {
+            } else if let Some((video_info, natural_size_in_dots)) = node.as_video() {
                 (
-                    ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
+                    ReplacedContentKind::Video(video_info),
                     natural_size_in_dots
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
             } else if let Some(svg_data) = node.as_svg() {
-                Self::svg_kind_size(svg_data, context, node)?
+                Self::svg_kind_size(svg_data, context, node)
             } else if node
                 .as_html_element()
                 .is_some_and(|element| element.has_local_name(&local_name!("audio")))
@@ -200,7 +205,11 @@ impl ReplacedContents {
             }
         };
 
-        if let ReplacedContentKind::Image(Some(Image::Raster(ref image)), _) = kind {
+        if let ReplacedContentKind::Image(ImageInfo {
+            image: Some(Image::Raster(ref image)),
+            ..
+        }) = kind
+        {
             context
                 .image_resolver
                 .handle_animated_image(node.opaque(), image.clone());
@@ -217,7 +226,7 @@ impl ReplacedContents {
         svg_data: SVGElementData,
         context: &LayoutContext,
         node: ServoThreadSafeLayoutNode<'_>,
-    ) -> Option<(ReplacedContentKind, NaturalSizes)> {
+    ) -> (ReplacedContentKind, NaturalSizes) {
         let rule_cache_conditions = &mut RuleCacheConditions::default();
 
         let parent_style = node.style(&context.style_context);
@@ -247,14 +256,11 @@ impl ReplacedContents {
         let width = svg_data.width.and_then(attr_to_computed);
         let height = svg_data.height.and_then(attr_to_computed);
 
-        let ratio = if let (Some(width), Some(height)) = (width, height) {
-            if !width.is_zero() && !height.is_zero() {
+        let ratio = match (width, height) {
+            (Some(width), Some(height)) if !width.is_zero() && !height.is_zero() => {
                 Some(width.px() / height.px())
-            } else {
-                None
-            }
-        } else {
-            svg_data.ratio_from_view_box()
+            },
+            _ => svg_data.ratio_from_view_box(),
         };
 
         let natural_size = NaturalSizes {
@@ -270,25 +276,25 @@ impl ReplacedContents {
                 context
                     .image_resolver
                     .queue_svg_element_for_serialization(node);
-                return None;
+                None
             },
-            Some(Err(_)) => {
-                // Don't attempt to serialize if previous attempt had errored.
-                return None;
-            },
-            Some(Ok(svg_source)) => svg_source,
+            // If `svg_source_result` is `Err()`, it means that the previous attempt
+            // had errored, then don't attempt to serialize again.
+            Some(svg_source_result) => svg_source_result.ok(),
         };
 
-        let result = context
-            .image_resolver
-            .get_cached_image_for_url(
-                node.opaque(),
-                svg_source,
-                LayoutImageDestination::BoxTreeConstruction,
-            )
-            .ok();
+        let cached_image = svg_source.and_then(|svg_source| {
+            context
+                .image_resolver
+                .get_cached_image_for_url(
+                    node.opaque(),
+                    svg_source,
+                    LayoutImageDestination::BoxTreeConstruction,
+                )
+                .ok()
+        });
 
-        let vector_image = result.map(|result| match result {
+        let vector_image = cached_image.map(|image| match image {
             Image::Vector(mut vector_image) => {
                 vector_image.svg_id = Some(svg_data.svg_id);
                 vector_image
@@ -296,7 +302,7 @@ impl ReplacedContents {
             _ => unreachable!("SVG element can't contain a raster image."),
         });
 
-        Some((ReplacedContentKind::SVGElement(vector_image), natural_size))
+        (ReplacedContentKind::SVGElement(vector_image), natural_size)
     }
 
     fn from_content_property(
@@ -338,11 +344,7 @@ impl ReplacedContents {
                                 .handle_animated_image(node.opaque(), image.clone());
                         }
                         let metadata = image.metadata();
-                        (
-                            Some(image.clone()),
-                            metadata.width as f32,
-                            metadata.height as f32,
-                        )
+                        (Some(image), metadata.width as f32, metadata.height as f32)
                     },
                     ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
                         (None, metadata.width as f32, metadata.height as f32)
@@ -350,9 +352,12 @@ impl ReplacedContents {
                 },
                 LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
             };
-
             return Some(Self {
-                kind: ReplacedContentKind::Image(image, false /* showing_broken_image_icon */),
+                kind: ReplacedContentKind::Image(ImageInfo {
+                    image,
+                    showing_broken_image_icon: false,
+                    url: Some(image_url.clone().into()),
+                }),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
                 base_fragment_info: node.into(),
             });
@@ -373,7 +378,11 @@ impl ReplacedContents {
 
     pub(crate) fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
         Self {
-            kind: ReplacedContentKind::Image(None, false /* showing_broken_image_icon */),
+            kind: ReplacedContentKind::Image(ImageInfo {
+                image: None,
+                showing_broken_image_icon: false,
+                url: None,
+            }),
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
             base_fragment_info: node.into(),
         }
@@ -381,7 +390,7 @@ impl ReplacedContents {
 
     #[inline]
     fn is_broken_image(&self) -> bool {
-        matches!(self.kind, ReplacedContentKind::Image(_, true))
+        matches!(&self.kind, ReplacedContentKind::Image(image_info) if image_info.showing_broken_image_icon)
     }
 
     #[inline]
@@ -408,7 +417,12 @@ impl ReplacedContents {
         style: &ServoArc<ComputedValues>,
         size: PhysicalSize<Au>,
     ) -> (PhysicalSize<Au>, PhysicalRect<Au>) {
-        if let ReplacedContentKind::Image(Some(Image::Raster(image)), true) = &self.kind {
+        if let ReplacedContentKind::Image(ImageInfo {
+            image: Some(Image::Raster(image)),
+            showing_broken_image_icon: true,
+            url: _,
+        }) = &self.kind
+        {
             let size = Size2D::new(
                 Au::from_f32_px(image.metadata.width as f32),
                 Au::from_f32_px(image.metadata.height as f32),
@@ -472,7 +486,8 @@ impl ReplacedContents {
 
         let mut base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
         match &self.kind {
-            ReplacedContentKind::Image(image, showing_broken_image_icon) => image
+            ReplacedContentKind::Image(image_info) => image_info
+                .image
                 .as_ref()
                 .and_then(|image| match image {
                     Image::Raster(raster_image) => raster_image.id,
@@ -498,17 +513,19 @@ impl ReplacedContents {
                         base,
                         clip,
                         image_key: Some(image_key),
-                        showing_broken_image_icon: *showing_broken_image_icon,
+                        showing_broken_image_icon: image_info.showing_broken_image_icon,
+                        url: image_info.url.clone(),
                     }))
                 })
                 .into_iter()
                 .collect(),
-            ReplacedContentKind::Video(video) => {
+            ReplacedContentKind::Video(video_info) => {
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
                     base,
                     clip,
-                    image_key: video.as_ref().map(|video| video.image_key),
+                    image_key: video_info.image_key,
                     showing_broken_image_icon: false,
+                    url: None,
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -547,6 +564,7 @@ impl ReplacedContents {
                     clip,
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
+                    url: None,
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
@@ -591,6 +609,7 @@ impl ReplacedContents {
                             clip,
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
+                            url: None,
                         }))
                     })
                     .into_iter()
@@ -645,6 +664,23 @@ impl ReplacedContents {
             self.natural_size.height.unwrap_or_else(|| Au::from_px(150))
         } else {
             self.natural_size.width.unwrap_or_else(|| Au::from_px(300))
+        }
+    }
+
+    pub(crate) fn logical_natural_sizes(
+        &self,
+        writing_mode: WritingMode,
+    ) -> LogicalVec2<Option<Au>> {
+        if writing_mode.is_horizontal() {
+            LogicalVec2 {
+                inline: self.natural_size.width,
+                block: self.natural_size.height,
+            }
+        } else {
+            LogicalVec2 {
+                inline: self.natural_size.height,
+                block: self.natural_size.width,
+            }
         }
     }
 

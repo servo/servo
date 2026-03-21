@@ -11,7 +11,6 @@ use std::process;
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
-use servo_url::ServoUrl;
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -27,11 +26,6 @@ pub struct Opts {
     /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
     /// visualizing the traces as a timeline.
     pub time_profiler_trace_path: Option<String>,
-
-    /// True to turn off incremental layout.
-    pub nonincremental_layout: bool,
-
-    pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
@@ -83,9 +77,6 @@ pub struct Opts {
 
     /// Unminify Css.
     pub unminify_css: bool,
-
-    /// Print Progressive Web Metrics to console.
-    pub print_pwm: bool,
 }
 
 /// Debug options for Servo, currently set on the command line with -Z
@@ -127,6 +118,9 @@ pub struct DiagnosticsLogging {
 
     /// Log garbage collection passes and their durations.
     pub gc_profile: bool,
+
+    /// Log Progressive Web Metrics.
+    pub progressive_web_metrics: bool,
 }
 
 impl DiagnosticsLogging {
@@ -174,6 +168,7 @@ impl DiagnosticsLogging {
         print_option("relayout-event", "Log when relayout occurs");
         print_option("profile-script-events", "Log script event processing time");
         print_option("gc-profile", "Log garbage collection statistics");
+        print_option("progressive-web-metrics", "Log Progressive Web Metrics");
         println!();
 
         process::exit(0);
@@ -197,6 +192,7 @@ impl DiagnosticsLogging {
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
+                "progressive-web-metrics" => self.progressive_web_metrics = true,
                 "" => {},
                 _ => return Err(format!("Unknown diagnostic option: {option}")),
             };
@@ -218,8 +214,6 @@ impl Default for Opts {
         Self {
             time_profiling: None,
             time_profiler_trace_path: None,
-            nonincremental_layout: false,
-            user_stylesheets: Vec::new(),
             hard_fail: true,
             multiprocess: false,
             force_ipc: false,
@@ -235,7 +229,6 @@ impl Default for Opts {
             unminify_js: false,
             local_script_source: None,
             unminify_css: false,
-            print_pwm: false,
         }
     }
 }

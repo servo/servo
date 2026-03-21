@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+    background-color: gray;
+  }
+
+  #spacer {
+    width: 130px;
+    height: 130px;
+  }
+</style>
+
+<div id="scroller">
+  <div id="spacer"></div>
+  <audio id="target" src="/media/sine440.mp3" loading="lazy" controls></audio>
+</div>
+
+<script>
+  const t = async_test(
+    "Audio with loading=lazy inside scroll container loads when scrolled into view within container"
+  );
+
+  const audio = document.getElementById("target");
+
+  audio.addEventListener("loadeddata", () => {
+    t.done();
+  });
+
+  t.step_timeout(() => {
+    const scroller = document.getElementById("scroller");
+    scroller.scrollTop = 130;
+  }, 100);
+
+  t.step_timeout(() => {
+    t.unreached_func("Timed out while waiting for audio to load.")();
+  }, 5000);
+</script>

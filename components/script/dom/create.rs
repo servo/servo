@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::error::{report_pending_exception, throw_dom_exception};
@@ -87,7 +88,7 @@ use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -120,6 +121,7 @@ fn create_svg_element(
 /// <https://dom.spec.whatwg.org/#concept-create-element>
 #[expect(clippy::too_many_arguments)]
 fn create_html_element(
+    cx: &mut JSContext,
     name: QualName,
     prefix: Option<Prefix>,
     is: Option<LocalName>,
@@ -127,7 +129,6 @@ fn create_html_element(
     creator: ElementCreator,
     mode: CustomElementCreationMode,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
@@ -157,7 +158,7 @@ fn create_html_element(
                 // Step 4.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
                     // Step 4.3.1. Upgrade result using definition.
-                    upgrade_element(definition, &element, can_gc);
+                    upgrade_element(definition, &element, CanGc::from_cx(cx));
                     // TODO: "If this step threw an exception exception:" steps.
                 },
                 // Step 4.4. Otherwise, enqueue a custom element upgrade reaction given result and definition.
@@ -172,14 +173,14 @@ fn create_html_element(
                 // Step 5.1. If synchronousCustomElements is true, then run these
                 // steps while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
-                    let local_name = name.local.clone();
+                    let local_name = name.local;
                     // TODO(jdm) Pass proto to create_element?
                     // Steps 4.1.1-4.1.11
                     return match definition.create_element(
                         document,
                         prefix.clone(),
                         registry.clone(),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
@@ -189,19 +190,26 @@ fn create_html_element(
                             // If any of these steps threw an exception exception:
                             let global =
                                 GlobalScope::current().unwrap_or_else(|| document.global());
-                            let cx = GlobalScope::get_cx();
+
+                            let mut realm = enter_auto_realm(cx, &*global);
+                            let cx = &mut realm.current_realm();
+
+                            let in_realm_proof = cx.into();
+                            let in_realm = InRealm::Already(&in_realm_proof);
 
                             // Substep 1. Report exception for definition’s constructor’s corresponding
                             // JavaScript object’s associated realm’s global object.
-
-                            let ar = enter_realm(&*global);
-                            throw_dom_exception(cx, &global, error, can_gc);
-                            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                            throw_dom_exception(cx.into(), &global, error, CanGc::from_cx(cx));
+                            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
 
                             // Substep 2. Set result to the result of creating an element internal given document,
                             // HTMLUnknownElement, localName, the HTML namespace, prefix, "failed", null, and registry.
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
-                                local_name, prefix, document, proto, can_gc,
+                                local_name,
+                                prefix,
+                                document,
+                                proto,
+                                CanGc::from_cx(cx),
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
                             element.set_custom_element_registry(registry);
@@ -217,11 +225,11 @@ fn create_html_element(
                     // custom element definition set to null, is value set to null, and node document
                     // set to document.
                     let result = DomRoot::upcast::<Element>(HTMLElement::new(
-                        name.local.clone(),
-                        prefix.clone(),
+                        name.local,
+                        prefix,
                         document,
                         proto,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     result.set_custom_element_registry(registry);
@@ -439,18 +447,25 @@ pub(crate) fn create_native_html_element(
 }
 
 pub(crate) fn create_element(
+    cx: &mut JSContext,
     name: QualName,
     is: Option<LocalName>,
     document: &Document,
     creator: ElementCreator,
     mode: CustomElementCreationMode,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
 ) -> DomRoot<Element> {
     let prefix = name.prefix.clone();
     match name.ns {
-        ns!(html) => create_html_element(name, prefix, is, document, creator, mode, proto, can_gc),
+        ns!(html) => create_html_element(cx, name, prefix, is, document, creator, mode, proto),
         ns!(svg) => create_svg_element(name, prefix, document, proto),
-        _ => Element::new(name.local, name.ns, prefix, document, proto, can_gc),
+        _ => Element::new(
+            name.local,
+            name.ns,
+            prefix,
+            document,
+            proto,
+            CanGc::from_cx(cx),
+        ),
     }
 }

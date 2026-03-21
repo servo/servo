@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+<body>
+
+<script>
+  const t = async_test(
+    "Video with loading=lazy does not fetch poster while not visible, then fetches poster once scrolled into view"
+  );
+
+  const video = document.createElement("video");
+  video.loading = "lazy";
+  video.poster = "/media/2048x1360-random.jpg?t=" + Date.now();
+  video.className = "below-viewport";
+  const posterUrl = new URL(video.poster, location.href).href;
+
+  let posterEntries = [];
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (entry.name === posterUrl) {
+        posterEntries.push(entry);
+      }
+    }
+  });
+  observer.observe({ entryTypes: ["resource"] });
+
+  document.body.appendChild(video);
+
+  // Step 1: Not visible => check that poster hasn't loaded.
+  t.step_timeout(() => {
+    assert_equals(posterEntries.length, 0, "Poster should not be fetched when not visible");
+
+    // Step 2: Scroll into view => poster should load.
+    const entriesBeforeScroll = posterEntries.length;
+    video.scrollIntoView();
+
+    t.step_timeout(() => {
+      assert_greater_than(
+        posterEntries.length,
+        entriesBeforeScroll,
+        "Poster should be fetched after scrolling into view"
+      );
+      observer.disconnect();
+      t.done();
+    }, 100);
+  }, 2000);
+</script>
+</body>

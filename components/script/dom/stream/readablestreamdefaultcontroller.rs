@@ -236,14 +236,14 @@ impl QueueWithSizes {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
             return Err(Error::Range(
-                "The size of the enqueued chunk is not a non-negative number.".to_string(),
+                c"The size of the enqueued chunk is not a non-negative number.".to_owned(),
             ));
         }
 
         // If size is +∞, throw a RangeError exception.
         if value.size().is_infinite() {
             return Err(Error::Range(
-                "The size of the enqueued chunk is infinite.".to_string(),
+                c"The size of the enqueued chunk is infinite.".to_owned(),
             ));
         }
 
@@ -558,9 +558,7 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
-            error
-                .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+            error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
@@ -571,10 +569,9 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
     pub(crate) fn perform_cancel_steps(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
         self.queue.reset();
@@ -585,20 +582,18 @@ impl ReadableStreamDefaultController {
             .expect("Controller should have a source when the cancel steps are called into.");
         // Let result be the result of performing this.[[cancelAlgorithm]], passing reason.
         let result = underlying_source
-            .call_cancel_algorithm(cx, global, reason, can_gc)
+            .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new(global, can_gc);
-                promise.resolve_native(&(), can_gc);
+                let promise = Promise::new2(cx, global);
+                promise.resolve_native(&(), CanGc::from_cx(cx));
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
+            rooted!(&in(cx) let mut rval = UndefinedValue());
 
-            error
-                .clone()
-                .to_jsval(cx, global, rval.handle_mut(), can_gc);
-            let promise = Promise::new(global, can_gc);
-            promise.reject_native(&rval.handle(), can_gc);
+            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            let promise = Promise::new2(cx, global);
+            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             promise
         });
 
@@ -891,7 +886,7 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
         if !self.can_close_or_enqueue() {
             // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false,
             // throw a TypeError exception.
-            return Err(Error::Type("Stream cannot be closed.".to_string()));
+            return Err(Error::Type(c"Stream cannot be closed.".to_owned()));
         }
 
         // Perform ! ReadableStreamDefaultControllerClose(this).
@@ -901,19 +896,19 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
-    fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
+    fn Enqueue(&self, cx: &mut js::context::JSContext, chunk: SafeHandleValue) -> Fallible<()> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, throw a TypeError exception.
         if !self.can_close_or_enqueue() {
-            return Err(Error::Type("Stream cannot be enqueued to.".to_string()));
+            return Err(Error::Type(c"Stream cannot be enqueued to.".to_owned()));
         }
 
         // Perform ? ReadableStreamDefaultControllerEnqueue(this, chunk).
-        self.enqueue(cx, chunk, can_gc)
+        self.enqueue(cx.into(), chunk, CanGc::from_cx(cx))
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
-    fn Error(&self, _cx: SafeJSContext, e: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
-        self.error(e, can_gc);
+    fn Error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) -> Fallible<()> {
+        self.error(e, CanGc::from_cx(cx));
         Ok(())
     }
 }

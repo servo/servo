@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCDtlsTransport</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 // The following helper functions are called from RTCPeerConnection-helper.js:
 //   exchangeIceCandidates
@@ -55,6 +59,7 @@ async function setupConnections(t) {
   return [pc1, pc2];
 }
 
+if (rest) {
 promise_test(async t => {
   const [pc1, pc2] = await setupConnections(t);
   const dtlsTransport1 = pc1.getTransceivers()[0].sender.transport;
@@ -64,7 +69,8 @@ promise_test(async t => {
   await Promise.all([resolveWhen(t, dtlsTransport1, 'connected'),
                      resolveWhen(t, dtlsTransport2, 'connected')]);
 }, 'DTLS transport goes to connected state');
-
+}
+if (interop2026) {
 promise_test(async t => {
   const [pc1, pc2] = await setupConnections(t);
 
@@ -137,5 +143,5 @@ promise_test(async t => {
   assert_equals(audioTc.sender.transport, audioTp); // sanity
   assert_equals(audioTp.state, 'connected');
 }, 'stop bundled transceiver retains dtls transport state');
-
+}
 </script>

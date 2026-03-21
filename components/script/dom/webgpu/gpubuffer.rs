@@ -51,11 +51,11 @@ impl ActiveBufferMapping {
         let size = range.end - range.start;
         // Step 2
         if size > (1 << 53) - 1 {
-            return Err(Error::Range("Over MAX_SAFE_INTEGER".to_string()));
+            return Err(Error::Range(c"Over MAX_SAFE_INTEGER".to_owned()));
         }
         let size: usize = size
             .try_into()
-            .map_err(|_| Error::Range("Over usize".to_string()))?;
+            .map_err(|_| Error::Range(c"Over usize".to_owned()))?;
         Ok(Self {
             data: DataBlock::new_zeroed(size),
             mode,
@@ -67,7 +67,6 @@ impl ActiveBufferMapping {
 #[dom_struct]
 pub(crate) struct GPUBuffer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
@@ -171,7 +170,7 @@ impl GPUBuffer {
 
         Ok(GPUBuffer::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             buffer,
             device,
             descriptor.size,
@@ -415,7 +414,7 @@ impl GPUBuffer {
         match mapping {
             Err(error) => {
                 *self.pending_map.borrow_mut() = None;
-                p.reject_error(error.clone(), can_gc);
+                p.reject_error(error, can_gc);
             },
             Ok(mut mapping) => {
                 // Step 5

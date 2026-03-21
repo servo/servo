@@ -10,7 +10,7 @@ default-members = ["ports/servoshell"]
 exclude = [".cargo", "support/crown"]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.0.6"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2024"
@@ -24,7 +24,7 @@ publish = false
 rust-version = "1.86.0"
 
 [workspace.dependencies]
-accesskit = { version = "0.21.1", features = ["serde"] }
+accesskit = { version = "0.24.0", features = ["serde"] }
 accountable-refcell = "0.2.2"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
@@ -33,101 +33,93 @@ app_units = "0.7"
 arboard = "3"
 argon2 = { version = "0.5", features = ["alloc"] }
 arrayvec = "0.7"
-async-tungstenite = { version = "0.32", features = ["tokio-rustls-webpki-roots"] }
+async-tungstenite = { version = "0.33", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
-aws-lc-rs = { version = "1.15", default-features = false, features = ["aws-lc-sys"] }
-background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
+aws-lc-rs = { version = "1.16", default-features = false, features = ["aws-lc-sys"] }
 backtrace = "0.3"
-base = { path = "components/shared/base" }
 base64 = "0.22.1"
 base64ct = { version = "1.8", features = ["alloc"] }
-bitflags = "2.10"
-bluetooth_traits = { path = "components/shared/bluetooth" }
+bitflags = "2.11"
 brotli = "8.0.2"
 bytemuck = "1"
 byteorder = "1.5"
-canvas_traits = { path = "components/shared/canvas" }
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
-constellation_traits = { path = "components/shared/constellation" }
-content-security-policy = { version = "0.6.0", features = ["serde"] }
+content-security-policy = { version = "0.6.1", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
 der = { version = "0.7", features = ["alloc", "derive"] }
-devtools_traits = { path = "components/shared/devtools" }
 digest = "0.10"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.16"
 elliptic-curve = "0.13"
-embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = { version = "0.8", features = ["serde"] }
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
-fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
+futures = { version = "0.3", default-features = false }
+futures-core = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
 gleam = "0.15"
-glib = "0.21"
-glib-sys = "0.21"
+glib = "0.22"
+glib-sys = "0.22"
 glow = "0.16.0"
-gstreamer = { version = "0.24", features = ["v1_18"] }
-gstreamer-app = "0.24"
-gstreamer-audio = "0.24"
-gstreamer-base = "0.24"
-gstreamer-gl = "0.24"
-gstreamer-gl-egl = "0.24"
-gstreamer-gl-sys = "0.24"
-gstreamer-gl-wayland = "0.24"
-gstreamer-gl-x11 = "0.24"
-gstreamer-play = "0.24"
-gstreamer-sdp = "0.24"
-gstreamer-sys = "0.24"
-gstreamer-video = "0.24"
-gstreamer-webrtc = { version = "0.24", features = ["v1_18"] }
+gstreamer = { version = "0.25", features = ["v1_18"] }
+gstreamer-app = "0.25"
+gstreamer-audio = "0.25"
+gstreamer-base = "0.25"
+gstreamer-gl = "0.25"
+gstreamer-gl-egl = "0.25"
+gstreamer-gl-sys = "0.25"
+gstreamer-gl-wayland = "0.25"
+gstreamer-gl-x11 = "0.25"
+gstreamer-play = "0.25"
+gstreamer-sdp = "0.25"
+gstreamer-sys = "0.25"
+gstreamer-video = "0.25"
+gstreamer-webrtc = { version = "0.25", features = ["v1_18"] }
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
-hitrace = "0.1.6"
+hitrace = { version = "0.1.6", features = ["api-19", "tracing-rs"] }
 hkdf = "0.12"
-html5ever = "0.38"
+html5ever = "0.39"
 http = "1.4"
 http-body-util = "0.1"
 hyper = "1.8"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio", "client-proxy"] }
-hyper_serde = { path = "components/hyper_serde" }
 icu_locid = "1.5.0"
+icu_properties = "1.5.0"
 icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
-ipc-channel = "0.20.2"
+ipc-channel = "0.21"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.14.8", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.5", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
-layout_api = { path = "components/shared/layout" }
 libc = "0.2"
 log = "0.4.29"
 mach2 = "0.6"
-malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
-markup5ever = "0.38"
-memmap2 = "0.9.9"
+markup5ever = "0.39"
+memmap2 = "0.9.10"
 mime = "0.3.13"
 mime-multipart-hyper1 = "0.10.0"
 mime_guess = "2.0.5"
 ml-dsa = "0.0.4"
 ml-kem = { version = "0.2", features = ["deterministic"] }
-mozangle = "0.5.3"
-net_traits = { path = "components/shared/net" }
+mozangle = "0.5.5"
 nix = "0.30"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
@@ -135,13 +127,12 @@ num-bigint-dig = "0.8"
 num-derive = "0.4.2"
 num-traits = "0.2"
 num_cpus = "1.17.0"
-objc2 = "0.6.3"
+objc2 = "0.6.4"
 objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 ocb3 = "0.1.0"
 openxr = "0.20"
-paint_api = { path = "components/shared/paint" }
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
@@ -151,7 +142,6 @@ percent-encoding = "2.3"
 pkcs8 = { version = "0.10", features = ["rand_core"] }
 postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
 proc-macro2 = "1"
-profile_traits = { path = "components/shared/profile" }
 quote = "1"
 rand = "0.9"
 raw-window-handle = "0.6"
@@ -164,34 +154,28 @@ rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
-script_traits = { path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
+selectors = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo-media = { path = "components/media/servo-media" }
-servo-media-dummy = { path = "components/media/backends/dummy" }
-servo-media-gstreamer = { path = "components/media/backends/gstreamer" }
-servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
-storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
-strum = { version = "0.27", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
-stylo_config = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "d99b4a52f71b423363626d58506a731f3d06ccf6" }
+strum = { version = "0.28", features = ["derive"] }
+stylo = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -207,35 +191,108 @@ tokio-util = { version = "0.7.18", default-features = false }
 tower = { version = "0.5", default-features = false, features = ["util"] }
 tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
-tracing-subscriber = "0.3.22"
+tracing-subscriber = "0.3.23"
 tungstenite = "0.28"
 unicode-bidi = "0.3.18"
+unicode_categories = "0.1.1"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 utf-8 = "0.7"
-uuid = { version = "1.20.0", features = ["v4", "v5"] }
+uuid = { version = "1.22.0", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"
 webdriver = "0.53.0"
-webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
-webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "26"
 wgpu-types = "26"
 winapi = "0.3"
 windows-sys = "0.61"
-winit = "0.30.12"
+winit = "0.30.13"
 wio = "0.2"
 wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
-xml5ever = "0.38"
-xpath = { path = "components/xpath" }
+xml5ever = "0.39"
+
+############################################################################################
+## Workspace-local dependencies
+############################################################################################
+# All local path dependencies in the servo workspace, that use the workspace version, should
+# be listed here, between the `Begin` and `End` comments, so that we can easily find and
+# update the version requirements when bumping the workspace version.
+# Begin workspace-version dependencies - Don't change this comment, we grep for it in scripts!
+background_hang_monitor = { package = "servo-background-hang-monitor", version = "0.0.6", path = "components/background_hang_monitor" }
+background_hang_monitor_api = { package = "servo-background-hang-monitor-api", version = "0.0.6", path = "components/shared/background_hang_monitor" }
+base = { package = "servo-base", version = "0.0.6", path = "components/shared/base" }
+bluetooth = { package = "servo-bluetooth", version = "0.0.6", path = "components/bluetooth" }
+bluetooth_traits = { package = "servo-bluetooth-traits", version = "0.0.6", path = "components/shared/bluetooth" }
+canvas = { package = "servo-canvas", version = "0.0.6", path = "components/canvas" }
+canvas_traits = { package = "servo-canvas-traits", version = "0.0.6", path = "components/shared/canvas" }
+constellation = { package = "servo-constellation", version = "0.0.6", path = "components/constellation" }
+constellation_traits = { package = "servo-constellation-traits", version = "0.0.6", path = "components/shared/constellation" }
+deny_public_fields = { package = "servo-deny-public-fields", version = "0.0.6", path = "components/deny_public_fields" }
+devtools = { package = "servo-devtools", version = "0.0.6", path = "components/devtools" }
+devtools_traits = { package = "servo-devtools-traits", version = "0.0.6", path = "components/shared/devtools" }
+dom_struct = { package = "servo-dom-struct", version = "0.0.6", path = "components/dom_struct" }
+embedder_traits = { package = "servo-embedder-traits", version = "0.0.6", path = "components/shared/embedder" }
+fonts = { package = "servo-fonts", version = "0.0.6", path = "components/fonts" }
+fonts_traits = { package = "servo-fonts-traits", version = "0.0.6", path = "components/shared/fonts" }
+jstraceable_derive = { package = "servo-jstraceable-derive", version = "0.0.6", path = "components/jstraceable_derive" }
+layout = { package = "servo-layout", version = "0.0.6", path = "components/layout" }
+layout_api = { package = "servo-layout-api", version = "0.0.6", path = "components/shared/layout" }
+malloc_size_of = { package = "servo-malloc-size-of", version = "0.0.6", path = "components/malloc_size_of" }
+media = { package = "servo-media-thread", version = "0.0.6", path = "components/media/media-thread" }
+metrics = { package = "servo-metrics", version = "0.0.6", path = "components/metrics" }
+net = { package = "servo-net", version = "0.0.6", path = "components/net" }
+net_traits = { package = "servo-net-traits", version = "0.0.6", path = "components/shared/net" }
+paint = { package = "servo-paint", version = "0.0.6", path = "components/paint" }
+paint_api = { package = "servo-paint-api", version = "0.0.6", path = "components/shared/paint" }
+pixels = { package = "servo-pixels", version = "0.0.6", path = "components/pixels" }
+profile = { package = "servo-profile", version = "0.0.6", path = "components/profile" }
+profile_traits = { package = "servo-profile-traits", version = "0.0.6", path = "components/shared/profile" }
+script = { package = "servo-script", version = "0.0.6", path = "components/script" }
+script_bindings = { package = "servo-script-bindings", version = "0.0.6", path = "components/script_bindings" }
+script_traits = { package = "servo-script-traits", version = "0.0.6", path = "components/shared/script" }
+servo = { version = "0.0.6", path = "components/servo", default-features = false }
+servo-media = { version = "0.0.6", path = "components/media/servo-media" }
+servo-media-audio = { version = "0.0.6", path = "components/media/audio" }
+servo-media-auto = { version = "0.0.6", path = "components/media/backends/auto" }
+servo-media-derive = { version = "0.0.6", path = "components/media/servo-media-derive" }
+servo-media-dummy = { version = "0.0.6", path = "components/media/backends/dummy" }
+servo-media-gstreamer = { version = "0.0.6", path = "components/media/backends/gstreamer" }
+servo-media-gstreamer-render = { version = "0.0.6", path = "components/media/backends/gstreamer/render" }
+servo-media-gstreamer-render-android = { version = "0.0.6", path = "components/media/backends/gstreamer/render-android" }
+servo-media-gstreamer-render-unix = { version = "0.0.6", path = "components/media/backends/gstreamer/render-unix" }
+servo-media-player = { version = "0.0.6", path = "components/media/player" }
+servo-media-streams = { version = "0.0.6", path = "components/media/streams" }
+servo-media-traits = { version = "0.0.6", path = "components/media/traits" }
+servo-media-webrtc = { version = "0.0.6", path = "components/media/webrtc" }
+servo-tracing = { version = "0.0.6", path = "components/servo_tracing" }
+servo-url = { version = "0.0.6", path = "components/url" }
+servo_allocator = { package = "servo-allocator", version = "0.0.6", path = "components/allocator" }
+servo_config = { package = "servo-config", version = "0.0.6", path = "components/config" }
+servo_config_macro = { package = "servo-config-macro", version = "0.0.6", path = "components/config/macro" }
+servo_geometry = { package = "servo-geometry", version = "0.0.6", path = "components/geometry" }
+storage = { package = "servo-storage", version = "0.0.6", path = "components/storage" }
+storage_traits = { package = "servo-storage-traits", version = "0.0.6", path = "components/shared/storage" }
+timers = { package = "servo-timers", version = "0.0.6", path = "components/timers" }
+webdriver_server = { package = "servo-webdriver-server", version = "0.0.6", path = "components/webdriver_server" }
+webgl = { package = "servo-webgl", version = "0.0.6", path = "components/webgl", default-features = false }
+webgpu = { package = "servo-webgpu", version = "0.0.6", path = "components/webgpu" }
+webgpu_traits = { package = "servo-webgpu-traits", version = "0.0.6", path = "components/shared/webgpu" }
+webxr = { package = "servo-webxr", version = "0.0.6", path = "components/webxr" }
+webxr-api = { package = "servo-webxr-api", version = "0.0.6", path = "components/shared/webxr" }
+xpath = { package = "servo-xpath", version = "0.0.6", path = "components/xpath" }
+# End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
+
+# Independently versioned workspace local crates. These crates will not take part in auto-bumps.
+hyper_serde = { package = "servo-hyper-serde", version = "0.13.2", path = "components/hyper_serde" }
+blurmac = { version = "0.1.0", path = "third_party/blurmac" }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
@@ -302,6 +359,26 @@ codegen-units = 1
 # web_atoms = { path = "../html5ever/web_atoms" }
 # xml5ever = { path = "../html5ever/xml5ever" }
 # tendril = { path = "../html5ever/tendril" }
+
+# For WebRender:
+#
+# webrender = { path = "../webrender/webrender" }
+# webrender_api = { path = "../webrender/webrender_api" }
+# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
+#
+# Or for mozjs:
+#
+# mozjs = { path = "../mozjs/mozjs" }
+# mozjs_sys = { path = "../mozjs/mozjs-sys" }
+#
+# Or for CSP crate:
+# content-security-policy = { path = "../rust-content-security-policy" }
+#
+# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
+# This is only used in servoshell.
+# TODO: When these are no longer needed remove the exception in deny.toml as well.
+egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
 #
 # Or for Stylo:
 #
@@ -310,27 +387,13 @@ codegen-units = 1
 # servo_arc = { path = "../stylo/servo_arc" }
 # stylo = { path = "../stylo/style" }
 # stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo_config = { path = "../stylo/stylo_config" }
 # stylo_dom = { path = "../stylo/stylo_dom" }
 # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
+# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
 # stylo_traits = { path = "../stylo/style_traits" }
-#
-# Or for WebRender:
-#
-# [patch."https://github.com/servo/webrender"]
-# webrender = { path = "../webrender/webrender" }
-# webrender_api = { path = "../webrender/webrender_api" }
-# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for another Git dependency:
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
 #
-# [patch."https://github.com/servo/rust-content-security-policy"]
-# content-security-policy = { path = "../rust-content-security-policy" }
-#
-# Or for mozjs:
-#
-# mozjs = { path = "../mozjs/mozjs" }
-# mozjs_sys = { path = "../mozjs/mozjs-sys" }

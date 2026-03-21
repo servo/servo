@@ -36,9 +36,9 @@ interface HTMLElement : Element {
   // [CEReactions]
   //         attribute long tabIndex;
   undefined blur();
-  // [CEReactions]
-  //         attribute DOMString accessKey;
-  //readonly attribute DOMString accessKeyLabel;
+  [CEReactions]
+            attribute DOMString accessKey;
+  readonly attribute DOMString accessKeyLabel;
   // [CEReactions]
   //         attribute boolean draggable;
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList dropzone;
@@ -64,7 +64,7 @@ interface HTMLElement : Element {
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-htmlelement-interface
 partial interface HTMLElement {
   // CSSOM things are not [Pure] because they can flush
-  readonly attribute Element? scrollParent;
+  Element? scrollParent();
   readonly attribute Element? offsetParent;
   readonly attribute long offsetTop;
   readonly attribute long offsetLeft;

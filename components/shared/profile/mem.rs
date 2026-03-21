@@ -66,7 +66,7 @@ where
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ProfilerChan(pub GenericSender<ProfilerMsg>);
 
 /// A handle that encompasses a registration with the memory profiler.
@@ -269,6 +269,7 @@ pub struct MemoryReport {
     /// The pid of the report
     pub pid: u32,
     /// Is this the main process
+    #[serde(rename = "isMainProcess")]
     pub is_main_process: bool,
     /// All the reports for this pid
     pub reports: Vec<Report>,

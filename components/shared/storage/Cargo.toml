@@ -1,5 +1,5 @@
 [package]
-name = "storage_traits"
+name = "servo-storage-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -15,7 +15,7 @@ path = "lib.rs"
 base = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-profile_traits = { path = "../profile" }
+profile_traits = { workspace = true }
 serde = { workspace = true }
-servo_url = { path = "../../url" }
+servo-url = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }

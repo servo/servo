@@ -4,7 +4,7 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use script_traits::ProgressiveWebMetricType;
+use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -25,13 +25,15 @@ pub(crate) struct LargestContentfulPaint {
     #[no_trace]
     render_time: CrossProcessInstant,
     size: usize,
+    url: DOMString,
     element: Option<DomRoot<Element>>,
 }
 
 impl LargestContentfulPaint {
     pub(crate) fn new_inherited(
-        metric_type: ProgressiveWebMetricType,
         render_time: CrossProcessInstant,
+        size: usize,
+        url: Option<ServoUrl>,
     ) -> LargestContentfulPaint {
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
@@ -42,7 +44,8 @@ impl LargestContentfulPaint {
             ),
             load_time: CrossProcessInstant::epoch(),
             render_time,
-            size: metric_type.area(),
+            size,
+            url: url.map(|u| DOMString::from(u.as_str())).unwrap_or_default(),
             element: None,
         }
     }
@@ -50,11 +53,12 @@ impl LargestContentfulPaint {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
-        metric_type: ProgressiveWebMetricType,
         render_time: CrossProcessInstant,
+        size: usize,
+        url: Option<ServoUrl>,
         can_gc: CanGc,
     ) -> DomRoot<LargestContentfulPaint> {
-        let entry = LargestContentfulPaint::new_inherited(metric_type, render_time);
+        let entry = LargestContentfulPaint::new_inherited(render_time, size, url);
         reflect_dom_object(Box::new(entry), global, can_gc)
     }
 }
@@ -77,6 +81,11 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-size>
     fn Size(&self) -> u32 {
         self.size as u32
+    }
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-url>
+    fn Url(&self) -> DOMString {
+        self.url.clone()
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-element>

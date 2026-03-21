@@ -63,7 +63,6 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
-use ipc_channel::ErrorKind;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -71,7 +70,9 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
-use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, SendError, SendResult};
+use crate::generic_channel::{
+    GenericReceiver, GenericReceiverVariants, SendError, SendResult, use_ipc,
+};
 
 /// The callback type of our messages.
 ///
@@ -79,7 +80,7 @@ use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, SendError
 /// except that this type is not wrapped in a Box.
 /// The callback will be wrapped in either a Box or an Arc, depending on if it is run on
 /// the router, or passed to the recipient.
-pub type MsgCallback<T> = dyn FnMut(Result<T, ipc_channel::Error>) + Send;
+pub type MsgCallback<T> = dyn FnMut(Result<T, ipc_channel::IpcError>) + Send;
 
 /// A mechanism to run a callback in the process this callback was constructed in.
 ///
@@ -131,12 +132,15 @@ where
     /// Creates a new GenericCallback.
     ///
     /// The callback should not do any heavy work and not block.
-    pub fn new<F: FnMut(Result<T, ipc_channel::Error>) + Send + 'static>(
-        callback: F,
-    ) -> Result<Self, ipc_channel::Error> {
-        let generic_callback = if opts::get().multiprocess || opts::get().force_ipc {
+    pub fn new<F: FnMut(Result<T, ipc_channel::IpcError>) + Send + 'static>(
+        mut callback: F,
+    ) -> Result<Self, ipc_channel::IpcError> {
+        let generic_callback = if use_ipc() {
             let (ipc_sender, ipc_receiver) = ipc_channel::ipc::channel()?;
-            ROUTER.add_typed_route(ipc_receiver, Box::new(callback));
+            let new_callback = move |msg: Result<T, ipc_channel::SerDeError>| {
+                callback(msg.map_err(|error| error.into()))
+            };
+            ROUTER.add_typed_route(ipc_receiver, Box::new(new_callback));
             GenericCallback(GenericCallbackVariants::CrossProcess(ipc_sender))
         } else {
             let callback = Arc::new(Mutex::new(callback));
@@ -146,8 +150,8 @@ where
     }
 
     /// Produces a GenericCallback and a channel. You can block on this channel for the result.
-    pub fn new_blocking() -> Result<(Self, GenericReceiver<T>), ipc_channel::Error> {
-        if opts::get().multiprocess || opts::get().force_ipc {
+    pub fn new_blocking() -> Result<(Self, GenericReceiver<T>), ipc_channel::IpcError> {
+        if use_ipc() {
             let (sender, receiver) = ipc_channel::ipc::channel()?;
             let generic_callback = GenericCallback(GenericCallbackVariants::CrossProcess(sender));
             let receiver = GenericReceiver(GenericReceiverVariants::Ipc(receiver));
@@ -173,10 +177,12 @@ where
     pub fn send(&self, value: T) -> SendResult {
         match &self.0 {
             GenericCallbackVariants::CrossProcess(sender) => {
-                sender.send(value).map_err(|error| match *error {
-                    ErrorKind::Io(_) => SendError::Disconnected,
-                    serialization_error => {
-                        SendError::SerializationError(serialization_error.to_string())
+                sender.send(value).map_err(|error| match error {
+                    ipc_channel::IpcError::SerializationError(ser_de_error) => {
+                        SendError::SerializationError(ser_de_error.to_string())
+                    },
+                    ipc_channel::IpcError::Io(_) | ipc_channel::IpcError::Disconnected => {
+                        SendError::Disconnected
                     },
                 })
             },
@@ -252,7 +258,7 @@ where
                 .newtype_variant::<IpcSender<T>>()
                 .map(|sender| GenericCallback(GenericCallbackVariants::CrossProcess(sender))),
             GenericCallbackVariantNames::InProcess => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::de::Error::custom(
                         "InProcess callback found in multiprocess mode",
                     ));
@@ -312,7 +318,7 @@ mod single_process_callback_test {
     fn generic_callback() {
         let number = Arc::new(AtomicUsize::new(0));
         let number_clone = number.clone();
-        let callback = move |msg: Result<usize, ipc_channel::Error>| {
+        let callback = move |msg: Result<usize, ipc_channel::IpcError>| {
             number_clone.store(msg.unwrap(), Ordering::SeqCst)
         };
         let generic_callback = GenericCallback::new(callback).unwrap();
@@ -326,7 +332,7 @@ mod single_process_callback_test {
     fn generic_callback_via_generic_sender() {
         let number = Arc::new(AtomicUsize::new(0));
         let number_clone = number.clone();
-        let callback = move |msg: Result<usize, ipc_channel::Error>| {
+        let callback = move |msg: Result<usize, ipc_channel::IpcError>| {
             number_clone.store(msg.unwrap(), Ordering::SeqCst)
         };
         let generic_callback = GenericCallback::new(callback).unwrap();
@@ -346,7 +352,7 @@ mod single_process_callback_test {
     fn generic_callback_via_ipc_sender() {
         let number = Arc::new(AtomicUsize::new(0));
         let number_clone = number.clone();
-        let callback = move |msg: Result<usize, ipc_channel::Error>| {
+        let callback = move |msg: Result<usize, ipc_channel::IpcError>| {
             number_clone.store(msg.unwrap(), Ordering::SeqCst)
         };
         let generic_callback = GenericCallback::new(callback).unwrap();

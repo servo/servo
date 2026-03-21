@@ -160,7 +160,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         args: &CallArgs,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         proto_id: PrototypeList::ID,
-        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     ) -> bool {
         call_html_constructor::<T>(cx, args, global, proto_id, creator)
     }
@@ -196,12 +196,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         reflect_dom_object(obj, global, can_gc)
     }
 
-    fn report_pending_exception(
-        cx: SafeJSContext,
-        dispatch_event: bool,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
-        report_pending_exception(cx, dispatch_event, realm, can_gc)
+    fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
+        report_pending_exception(cx, realm, can_gc)
     }
 }

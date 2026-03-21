@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!-- Note: this is a reflection test that will ultimately be removed in favor of using the
+ html/dom/elements-embedded.js file instead, once not tentative. -->
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<video id="target" loading="lazy"></video>
+
+<script>
+  const video = document.getElementById("target");
+
+  test(() => {
+    assert_equals(
+      video.loading,
+      "lazy",
+      "Video loading attribute should be 'lazy' when set to 'lazy'"
+    );
+  }, "Video loading attribute should reflect the loading content attribute");
+</script>
+

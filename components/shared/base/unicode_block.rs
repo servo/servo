@@ -6,7 +6,9 @@
 // Generated via: https://www.unicode.org/Public/UNIDATA/Blocks.txt.
 // $ ./generate-unicode-block.py Blocks.txt > unicode_block.rs
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+use malloc_size_of_derive::MallocSizeOf;
+
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum UnicodeBlock {
     BasicLatin,
     Latin1Supplement,

@@ -3,8 +3,9 @@ from webdriver.bidi.modules.script import ContextTarget, RealmTarget
 
 from ... import recursive_compare
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_evaluate(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="1 + 2",
@@ -16,7 +17,6 @@ async def test_evaluate(bidi_session, top_context):
         "value": 3}
 
 
-@pytest.mark.asyncio
 async def test_interact_with_dom(bidi_session, top_context):
     result = await bidi_session.script.evaluate(
         expression="'window.location.href: ' + window.location.href",
@@ -28,7 +28,6 @@ async def test_interact_with_dom(bidi_session, top_context):
         "value": "window.location.href: about:blank"}
 
 
-@pytest.mark.asyncio
 async def test_target_realm(bidi_session, default_realm):
     result = await bidi_session.script.evaluate(
         raw_result=True,
@@ -51,7 +50,6 @@ async def test_target_realm(bidi_session, default_realm):
     )
 
 
-@pytest.mark.asyncio
 async def test_different_target_realm(bidi_session):
     await bidi_session.browsing_context.create(type_hint="tab")
 

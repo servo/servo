@@ -10,8 +10,9 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use http::Method;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
@@ -303,7 +304,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             Some(submitter_element) => {
                 // Step 1.1
                 let error_not_a_submit_button =
-                    Err(Error::Type("submitter must be a submit button".to_string()));
+                    Err(Error::Type(c"submitter must be a submit button".to_owned()));
 
                 let element = match submitter_element.upcast::<Node>().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => element,
@@ -649,13 +650,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.static_validation(can_gc).is_ok()
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.static_validation(CanGc::from_cx(cx)).is_ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.interactive_validation(can_gc).is_ok()
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.interactive_validation(CanGc::from_cx(cx)).is_ok()
     }
 }
 
@@ -1042,7 +1043,7 @@ impl HTMLFormElement {
         //    then set referrerPolicy to "no-referrer".
         // Note: both steps done below.
         let elem = self.upcast::<Element>();
-        let referrer = match elem.get_attribute(&ns!(), &local_name!("rel")) {
+        let referrer = match elem.get_attribute(&local_name!("rel")) {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },
@@ -1424,19 +1425,24 @@ impl Element {
         )
     }
 
-    pub(crate) fn reset(&self, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    pub(crate) fn reset(&self, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43235
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         if !self.is_resettable() {
             return;
         }
 
         if let Some(input_element) = self.downcast::<HTMLInputElement>() {
-            input_element.reset(can_gc);
+            input_element.reset(CanGc::from_cx(cx));
         } else if let Some(select_element) = self.downcast::<HTMLSelectElement>() {
             select_element.reset();
         } else if let Some(textarea_element) = self.downcast::<HTMLTextAreaElement>() {
-            textarea_element.reset(can_gc);
+            textarea_element.reset(CanGc::from_cx(cx));
         } else if let Some(output_element) = self.downcast::<HTMLOutputElement>() {
-            output_element.reset(can_gc);
+            output_element.reset(cx);
         } else if let Some(html_element) = self.downcast::<HTMLElement>() {
             if html_element.is_form_associated_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
@@ -1813,6 +1819,17 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
         }
     }
 
+    fn moving_steps(&self, can_gc: CanGc) {
+        // If movedNode is a form-associated element with a non-null form owner and movedNode and
+        // its form owner are no longer in the same tree, then reset the form owner of movedNode.
+        let same_subtree = self
+            .form_owner()
+            .is_none_or(|form| self.to_element().is_in_same_home_subtree(&*form));
+        if !same_subtree {
+            self.reset_form_owner(can_gc)
+        }
+    }
+
     // XXXKiChjang: Implement these on inheritors
     // fn satisfies_constraints(&self) -> bool;
 }
@@ -1854,10 +1871,15 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("rel") | local_name!("rev") => {
@@ -1868,9 +1890,9 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.relations

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values/#funcdef-clamp">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+test_invalid_value('color', 'rgb(clamp(10, -none, 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, none, 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, 15 + none, 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(none + 10, 15, 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(none / 10, 15, 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(-none, 15, 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(-none, -none, -none) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, abs(none), 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, 15, abs(none)) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, abs(none + 15), 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, sign(none), 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, sign(none + 1), 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, progress(none, none, none), 20) 0 0)');
+test_invalid_value('color', 'rgb(clamp(10, progress(none + 1, none + 1, none + 1), 20) 0 0)');
+</script>

@@ -1,5 +1,5 @@
 [package]
-name = "script_traits"
+name = "servo-script-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -17,30 +17,27 @@ webgpu = ["webgpu_traits"]
 
 [dependencies]
 accesskit = { workspace = true }
-background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
-content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 keyboard-types = { workspace = true }
-log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-media = { path = "../../media/media-thread" }
+media = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_config = { path = "../../config" }
-servo_url = { path = "../../url" }
+servo_config = { workspace = true }
+servo-url = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 stylo_atoms = { workspace = true }

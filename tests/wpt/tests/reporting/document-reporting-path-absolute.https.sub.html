@@ -21,7 +21,13 @@
     observer.observe();
   }, "report generated");
 </script>
-<script>window.webkitCancelAnimationFrame(() => {});</script>
+<script>
+  if (typeof window.webkitCancelAnimationFrame === "function") {
+    window.webkitRequestAnimationFrame(() => {});
+  } else {
+    window.fullScreen;
+  }
+</script>
 <script>
   const base_url = `${location.protocol}//${location.host}`;
   const endpoint = `${base_url}/reporting/resources/report.py`;

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -68,7 +69,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
 
     // https://dom.spec.whatwg.org/#dom-text-splittext
     /// <https://dom.spec.whatwg.org/#concept-text-split>
-    fn SplitText(&self, offset: u32, can_gc: CanGc) -> Fallible<DomRoot<Text>> {
+    fn SplitText(&self, cx: &mut JSContext, offset: u32) -> Fallible<DomRoot<Text>> {
         let cdata = self.upcast::<CharacterData>();
         // Step 1.
         let length = cdata.Length();
@@ -83,13 +84,13 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         // Step 5.
         let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.CreateTextNode(new_data, can_gc);
+        let new_node = owner_doc.CreateTextNode(new_data, CanGc::from_cx(cx));
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.1.
             parent
-                .InsertBefore(new_node.upcast(), node.GetNextSibling().as_deref(), can_gc)
+                .InsertBefore(cx, new_node.upcast(), node.GetNextSibling().as_deref())
                 .unwrap();
             // Steps 7.2-3.
             node.ranges()
@@ -104,15 +105,15 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-text-wholetext>
-    fn WholeText(&self) -> DOMString {
+    fn WholeText(&self, cx: &JSContext) -> DOMString {
         let first = self
             .upcast::<Node>()
-            .inclusively_preceding_siblings()
+            .inclusively_preceding_siblings_unrooted(cx.no_gc())
             .take_while(|node| node.is::<Text>())
             .last()
             .unwrap();
         let nodes = first
-            .inclusively_following_siblings()
+            .inclusively_following_siblings_unrooted(cx.no_gc())
             .take_while(|node| node.is::<Text>());
         let mut text = String::new();
         for ref node in nodes {

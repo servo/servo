@@ -223,10 +223,10 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     let offset = compressor.get_ref().len();
     compressor
         .write_all(&chunk)
-        .map_err(|_| Error::Type("CompressionStream: write_all() failed".to_string()))?;
+        .map_err(|_| Error::Type(c"CompressionStream: write_all() failed".to_owned()))?;
     compressor
         .flush()
-        .map_err(|_| Error::Type("CompressionStream: flush() failed".to_string()))?;
+        .map_err(|_| Error::Type(c"CompressionStream: flush() failed".to_owned()))?;
     let buffer = &compressor.get_ref()[offset..];
 
     // Step 3. If buffer is empty, return.
@@ -241,7 +241,7 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
     let buffer_source =
         create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut(), can_gc)
-            .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
     buffer_source.safe_to_jsval(cx, rval.handle_mut(), can_gc);
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
@@ -268,7 +268,7 @@ pub(crate) fn compress_flush_and_enqueue(
     let offset = compressor.get_ref().len();
     compressor
         .try_finish()
-        .map_err(|_| Error::Type("CompressionStream: try_finish() failed".to_string()))?;
+        .map_err(|_| Error::Type(c"CompressionStream: try_finish() failed".to_owned()))?;
     let buffer = &compressor.get_ref()[offset..];
 
     // Step 2. If buffer is empty, return.
@@ -283,7 +283,7 @@ pub(crate) fn compress_flush_and_enqueue(
     rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
     let buffer_source =
         create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut(), can_gc)
-            .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
     buffer_source.safe_to_jsval(cx, rval.handle_mut(), can_gc);
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
@@ -302,10 +302,10 @@ pub(crate) fn convert_chunk_to_vec(
 ) -> Result<Vec<u8>, Error> {
     let conversion_result = ArrayBufferViewOrArrayBuffer::safe_from_jsval(cx, chunk, (), can_gc)
         .map_err(|_| {
-            Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
+            Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
         })?;
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
-        Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
+        Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
     })?;
     match buffer_source {
         ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => Ok(view.to_vec()),

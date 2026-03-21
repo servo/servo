@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<title>Scroll timeline attached to pseudo-like part</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scrolltimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  input::file-selector-button {
+    scroll-timeline: --scroller;
+  }
+  #container {
+    timeline-scope: --scroller;
+  }
+  #target {
+    animation: anim linear;
+    animation-timeline: --scroller;
+    width: 100px;
+    height: 100px;
+  }
+  @keyframes anim {
+    0% { background-color: red; }
+    100% { background-color: blue; }
+  }
+</style>
+<body>
+<div id="container">
+  <div id="target" class=anim></div>
+  <input id="chooser" type=file class=foo>
+</div>
+</body>
+<script>
+  promise_test(async t => {
+    let source = target.getAnimations()[0].timeline.source;
+    assert_equals(source.tagName.toUpperCase(), 'INPUT');
+    assert_equals(source.id, "chooser");
+  }, 'timeline.source does not expose pseudo-like part');
+</script>
+</html>

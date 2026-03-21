@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The accesskey attribute should work properly on focusable divs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/accesskey.js"></script>
+<div style="height: 10000px"></div>
+<div id="target1" accesskey="p" tabindex="0">Access Key</div>
+<div style="height: 10000px"></div>
+<div id="target2" accesskey="t" tabindex="0">Access Key Lowercase</div>
+<div style="height: 10000px"></div>
+
+<script>
+promise_test(async function() {
+    await pressAccessKey('P');
+    let boundingRect = target1.getBoundingClientRect();
+    assert_true(boundingRect.x > 0);
+    assert_true(boundingRect.x < document.scrollingElement.clientWidth);
+    assert_true(boundingRect.y > 0);
+    assert_true(boundingRect.y < document.scrollingElement.clientHeight);
+
+    await pressAccessKey('t');
+    let boundingRect2 = target2.getBoundingClientRect();
+    assert_true(boundingRect2.x > 0);
+    assert_true(boundingRect2.x < document.scrollingElement.clientWidth);
+    assert_true(boundingRect2.y > 0);
+    assert_true(boundingRect2.y < document.scrollingElement.clientHeight);
+});
+</script>

@@ -92,7 +92,7 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
     ) -> Fallible<DomRoot<RTCIceCandidate>> {
         if config.sdpMid.is_none() && config.sdpMLineIndex.is_none() {
             return Err(Error::Type(
-                "one of sdpMid and sdpMLineIndex must be set".to_string(),
+                c"one of sdpMid and sdpMLineIndex must be set".to_owned(),
             ));
         }
         Ok(RTCIceCandidate::new_with_proto(

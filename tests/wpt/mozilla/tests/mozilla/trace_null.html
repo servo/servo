@@ -2,8 +2,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-test(function() {
+promise_test(async function() {
   new CustomEvent("foo", { detail: null });
-  gc();
+  await TestUtils.gc();
 });
 </script>

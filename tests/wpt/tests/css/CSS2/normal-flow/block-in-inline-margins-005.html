@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Test: block-in-inline with bottom margin</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level">
+<link rel="help" href="https://github.com/servo/servo/issues/42469">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+
+<style>
+div {
+  width: 200px;
+  height: 200px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="background: red">
+  <span>
+    <div style="margin-bottom: -200px"></div>
+  </span>
+  <div style="background: green"></div>
+</div>

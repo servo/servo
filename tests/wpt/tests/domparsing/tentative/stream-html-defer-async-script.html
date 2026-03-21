@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>streamAppendHTMLUnsafe scripts with "defer" execute at end</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder"></div>
+<script>
+  for (const method of ["streamAppendHTMLUnsafe", "streamHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      window.events = [];
+      const placeholder = document.getElementById("placeholder");
+      const writable = placeholder[method]({ runScripts: true });
+      const writer = writable.getWriter();
+      window.defer_resolver = Promise.withResolvers();
+      window.async_resolver = Promise.withResolvers();
+      window.module_resolver = Promise.withResolvers();
+      function write_script(script, {defer, async, type} = {}) {
+        const script_element = document.createElement("script");
+        if (type)
+          script_element.type = type;
+        if (defer)
+          script_element.defer = true;
+        if (async)
+          script_element.async = true;
+        script_element.src = `data:text/javascript,${script};{let cache_buster=${Math.random()}}`;
+        return writer.write(script_element.outerHTML);
+      }
+      await write_script("window.events.push('defer'); window.defer_resolver.resolve();", {defer: true});
+      assert_array_equals(window.events, []);
+      await write_script("window.events.push('immediate');");
+      assert_array_equals(window.events, ["immediate"]);
+      await write_script("window.events.push('module');window.module_resolver.resolve();", {type: "module"});
+      assert_array_equals(window.events, ["immediate"]);
+      await write_script("window.events.push('async'); window.async_resolver.resolve();", {async: true});
+      await window.async_resolver.promise;
+      assert_array_equals(window.events, ["immediate", "async"]);
+      await write_script("window.events.push('immediate-2');");
+      assert_array_equals(window.events, ["immediate", "async", "immediate-2"]);
+      await writer.close();
+      await Promise.all([window.defer_resolver.promise, window.module_resolver.promise]);
+      assert_array_equals(window.events, [
+        "immediate",
+        "async",
+        "immediate-2",
+        "defer",
+        "module"
+      ]);
+    }, `element.${method} with defer/async scripts`);
+  }
+</script>

@@ -1,5 +1,5 @@
 [package]
-name = "fonts_traits"
+name = "servo-fonts-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -24,9 +24,10 @@ parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 serde = { workspace = true }
-servo_url = { path = "../../url" }
+servo-url = { workspace = true }
 stylo = { workspace = true }
 webrender_api = { workspace = true }
+uuid = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }

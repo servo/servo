@@ -27,7 +27,6 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
 
-use crate::devtools;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
@@ -96,18 +95,28 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg)) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id, task_source) = match script_msg {
+        let (event_category, task, pipeline_id, task_source) = match script_msg {
             CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) => {
                 (category, boxed, pipeline_id, task_source)
             },
             _ => return None,
         };
-        Some((None, category, boxed, pipeline_id, task_source))
+        Some(QueuedTask {
+            worker: None,
+            event_category,
+            task,
+            pipeline_id,
+            task_source,
+        })
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
+        let script_msg = CommonScriptMsg::Task(
+            queued_task.event_category,
+            queued_task.task,
+            queued_task.pipeline_id,
+            queued_task.task_source,
+        );
         ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg))
     }
 
@@ -171,7 +180,6 @@ pub(crate) struct ServiceWorkerGlobalScope {
 
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
 }
@@ -271,6 +279,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
@@ -286,7 +295,7 @@ impl ServiceWorkerGlobalScope {
             closing,
             font_context,
         ));
-        ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), scope)
+        ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
@@ -353,6 +362,7 @@ impl ServiceWorkerGlobalScope {
                     control_receiver,
                     closing,
                     font_context,
+                    cx,
                 );
 
                 let worker_scope = global.upcast::<WorkerGlobalScope>();
@@ -379,7 +389,7 @@ impl ServiceWorkerGlobalScope {
                     &resource_threads_sender,
                     global.upcast(),
                     &ServiceWorkerCspProcessor {},
-                    CanGc::from_cx(cx),
+                    cx,
                 ) {
                     Err(_) => {
                         error!("error loading script {}", serialized_worker_url);
@@ -447,11 +457,9 @@ impl ServiceWorkerGlobalScope {
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, CanGc::from_cx(cx))
-                },
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, wants_updates) => {
+                    self.upcast::<GlobalScope>()
+                        .set_devtools_wants_updates(wants_updates);
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },

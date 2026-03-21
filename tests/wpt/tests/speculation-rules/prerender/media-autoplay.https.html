@@ -16,7 +16,7 @@ promise_test(async t => {
   const {exec, activate} = await create_prerendered_page(t);
   await exec(() => {
     const video = document.createElement('video');
-    video.src = '/media/A4.mp4';
+    video.src = '/media/A4.webm';
     video.autoplay = true;
     video.muted = true;
     window.video = video;
@@ -39,9 +39,9 @@ promise_test(async t => {
     currentTime: video.currentTime
   }));
 
-  assert_equals(before_activation.paused, false);
-  assert_equals(before_activation.currentTime, 0);
-  assert_equals(after_activation.paused, false);
-  assert_greater_than(before_activation.currentTime, 0);
-}, "media autoplay should defer playaback");
+  assert_equals(before_activation.paused, true, "paused before activation (deferred)");
+  assert_equals(before_activation.currentTime, 0, "currentTime before activation");
+  assert_equals(after_activation.paused, false, "not paused after activation");
+  assert_greater_than(after_activation.currentTime, 0, "currentTime advances after activation");
+}, "media autoplay should defer playback");
 </script>

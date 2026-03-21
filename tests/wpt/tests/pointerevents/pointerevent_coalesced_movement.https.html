@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1753724">
+<title>pointermove getCoalescedEvents movementX/Y should add up to main event's movementX/Y</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  let checks = [];
+  function onPointerMove(e) {
+      let totalX = 0, totalY = 0;
+      for (let coalesced of e.getCoalescedEvents()) {
+        totalX += coalesced.movementX;
+        totalY += coalesced.movementY;
+      }
+      checks.push([[totalX, totalY], [e.movementX, e.movementY]]);
+  }
+  addEventListener('pointermove', onPointerMove);
+  t.add_cleanup(() => {
+    removeEventListener('pointermove', onPointerMove);
+  });
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(30, 30)
+    .pointerMove(50, 50)
+    .send();
+  // If we do the assertions in the callback, the output is a bit weird.
+  // So we put the results into an array and check them here.
+  for (let [got, expected] of checks) {
+    assert_array_equals(got, expected,
+          'Coalesced event motion should add up to main event motion');
+  }
+});
+</script>
+</body>
+</html>

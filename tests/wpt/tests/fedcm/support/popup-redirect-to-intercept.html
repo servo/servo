@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+import {fedcm_select_account_promise} from './fedcm-helper.sub.js';
+
+window.onload = async () => {
+  test_driver.set_test_context(opener);
+  // We need to redirect to the page that sends the interception header.
+  // That will trigger the FedCM flow, and we need to select an account.
+  test_driver.bless("redirect with user activation");
+  location.href = "intercept_header.py";
+  await fedcm_select_account_promise(null, 0);
+};
+
+</script>

@@ -32,6 +32,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
+use crate::dom::types::IDBTransaction;
 use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
 use crate::script_runtime::CanGc;
 
@@ -42,12 +43,16 @@ pub(crate) struct DBName(pub(crate) String);
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
-    /// <https://www.w3.org/TR/IndexedDB-2/#connection>
+    /// <https://www.w3.org/TR/IndexedDB-3/#connection>
     /// The connections opened through this factory.
     /// We store the open request, which contains the connection.
     /// TODO: remove when we are sure they are not needed anymore.
     connections:
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
+
+    /// <https://www.w3.org/TR/IndexedDB-3/#transaction>
+    /// Active transactions associated with this factory's global.
+    indexeddb_transactions: DomRefCell<HashMapTracedValues<DBName, Vec<Dom<IDBTransaction>>>>,
 
     #[no_trace]
     callback: DomRefCell<Option<GenericCallback<ConnectionMsg>>>,
@@ -58,8 +63,137 @@ impl IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
             connections: Default::default(),
+            indexeddb_transactions: Default::default(),
             callback: Default::default(),
         }
+    }
+
+    pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
+        let db_name = DBName(txn.get_db_name().to_string());
+        let mut map = self.indexeddb_transactions.borrow_mut();
+        let bucket = map.entry(db_name).or_default();
+        if !bucket.iter().any(|entry| &**entry == txn) {
+            bucket.push(Dom::from_ref(txn));
+        }
+        txn.set_registered_in_global();
+    }
+
+    pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
+        let db_name = DBName(txn.get_db_name().to_string());
+        let mut map = self.indexeddb_transactions.borrow_mut();
+        if let Some(bucket) = map.get_mut(&db_name) {
+            bucket.retain(|entry| &**entry != txn);
+            if bucket.is_empty() {
+                map.remove(&db_name);
+            }
+        }
+        txn.clear_registered_in_global();
+    }
+
+    pub(crate) fn cleanup_indexeddb_transactions(&self) -> bool {
+        // We implement the HTML-triggered deactivation effect by tracking script-created
+        // transactions on the global and deactivating them at the microtask checkpoint.
+        let snapshot: Vec<DomRoot<IDBTransaction>> = {
+            let mut map = self.indexeddb_transactions.borrow_mut();
+
+            // Transactions are normally unregistered when they finish (commit/abort),
+            // but unregister can occur in a queued task (e.g. finalize_abort), so we can
+            // briefly observe finished transactions here. Prune them defensively.
+            let keys: Vec<DBName> = map.iter().map(|(k, _)| k.clone()).collect();
+            for key in keys {
+                if let Some(bucket) = map.get_mut(&key) {
+                    bucket.retain(|txn| !txn.is_finished());
+                    if bucket.is_empty() {
+                        map.remove(&key);
+                    }
+                }
+            }
+
+            map.iter()
+                .flat_map(|(_db, bucket)| bucket.iter())
+                .map(|txn| DomRoot::from_ref(&**txn))
+                .collect()
+        };
+        // https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        // To cleanup Indexed Database transactions, run the following steps.
+        // They will return true if any transactions were cleaned up, or false otherwise.
+        // Step 1: If there are no transactions with cleanup event loop matching the current event loop, return false.
+        // Step 2: For each transaction transaction with cleanup event loop matching the current event loop:
+        // Step 2.1: Set transaction’s state to inactive.
+        // Step 2.2: Clear transaction’s cleanup event loop.
+        // Step 3: Return true.
+        let any_matching = snapshot
+            .iter()
+            .any(|txn| txn.cleanup_event_loop_matches_current());
+
+        if !any_matching {
+            return false;
+        }
+
+        for txn in snapshot {
+            if txn.cleanup_event_loop_matches_current() {
+                txn.set_active_flag(false);
+                txn.clear_cleanup_event_loop();
+                if txn.is_usable() {
+                    txn.maybe_commit();
+                }
+            }
+        }
+
+        // Prune finished transactions again after maybe_commit() progress.
+        let mut map = self.indexeddb_transactions.borrow_mut();
+        let keys: Vec<DBName> = map.iter().map(|(k, _)| k.clone()).collect();
+        for key in keys {
+            if let Some(bucket) = map.get_mut(&key) {
+                bucket.retain(|txn| !txn.is_finished());
+                if bucket.is_empty() {
+                    map.remove(&key);
+                }
+            }
+        }
+
+        true
+    }
+
+    pub(crate) fn maybe_commit_txn(&self, db_name: &str, txn_serial: u64) {
+        let key = DBName(db_name.to_string());
+        let snapshot: Vec<DomRoot<IDBTransaction>> = {
+            let map = self.indexeddb_transactions.borrow();
+            let Some(bucket) = map.get(&key) else {
+                return;
+            };
+            bucket.iter().map(|t| DomRoot::from_ref(&**t)).collect()
+        };
+
+        for txn in snapshot {
+            if txn.get_serial_number() == txn_serial {
+                txn.maybe_commit();
+                break;
+            }
+        }
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction>
+    /// Clear IDBOpenDBRequest.transaction once the upgrade transaction is finished.
+    pub(crate) fn clear_open_request_transaction_for_txn(&self, transaction: &IDBTransaction) {
+        let requests: Vec<DomRoot<IDBOpenDBRequest>> = {
+            let pending = self.connections.borrow();
+            pending
+                .iter()
+                .flat_map(|(_db_name, entry)| entry.iter())
+                .map(|(_id, request)| request.as_rooted())
+                .collect()
+        };
+        let mut cleared = 0usize;
+        for request in requests {
+            cleared += request.clear_transaction_if_matches(transaction) as usize;
+        }
+
+        debug_assert_eq!(
+            cleared, 1,
+            "A versionchange transaction should belong to exactly one IDBOpenDBRequest."
+        );
     }
 
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
@@ -126,6 +260,7 @@ impl IDBFactory {
                 id,
                 version,
                 upgraded,
+                object_store_names,
             } => {
                 let Some(request) = self.get_request(name.clone(), &id) else {
                     return debug_assert!(
@@ -133,6 +268,17 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::Connection."
                     );
                 };
+
+                // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+                // Step 3. Set transaction’s scope to connection’s object store set.
+                let connection = request.get_or_init_connection(
+                    &self.global(),
+                    name.clone(),
+                    version,
+                    upgraded,
+                    can_gc,
+                );
+                connection.set_object_store_names_from_backend(object_store_names);
 
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
@@ -146,6 +292,7 @@ impl IDBFactory {
                 version,
                 old_version,
                 transaction,
+                object_store_names,
             } => {
                 let global = self.global();
 
@@ -158,6 +305,9 @@ impl IDBFactory {
 
                 let connection =
                     request.get_or_init_connection(&global, name, version, false, can_gc);
+                // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+                // Step 3. Set transaction’s scope to connection’s object store set.
+                connection.set_object_store_names_from_backend(object_store_names);
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
             },
             ConnectionMsg::VersionError { name, id } => {
@@ -223,6 +373,16 @@ impl IDBFactory {
                 // Step 10.4: fire a version change event named blocked at request with db’s version and version.
                 request.dispatch_blocked(old_version, Some(version), can_gc);
             },
+            ConnectionMsg::TxnMaybeCommit { db_name, txn } => {
+                let factory = Trusted::new(self);
+                self.global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(indexeddb_maybe_commit_txn: move || {
+                        let factory = factory.root();
+                        factory.maybe_commit_txn(&db_name, txn);
+                    }));
+            },
         }
     }
 
@@ -253,9 +413,15 @@ impl IDBFactory {
 
         // Step 5.3.1.2: Set request’s error to result.
         request.set_error(Some(dom_exception), can_gc);
+        // Open requests expose a transaction only while `upgradeneeded` is being dispatched;
+        // otherwise `IDBOpenDBRequest.transaction` must be null.
+        // https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction
+        // https://w3c.github.io/IndexedDB/#open-a-database-connection
+        // Open requests that have completed with an error must not retain an upgrade transaction.
+        request.clear_transaction();
 
         // Step 5.3.1.3: Set request’s done flag to true.
-        // TODO.
+        request.set_ready_state_done();
 
         // Step 5.3.1.4: Fire an event named error at request
         // with its bubbles
@@ -339,7 +505,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // Step 1: If version is 0 (zero), throw a TypeError.
         if version == Some(0) {
             return Err(Error::Type(
-                "The version must be an integer >= 1".to_owned(),
+                c"The version must be an integer >= 1".to_owned(),
             ));
         };
 
@@ -435,7 +601,6 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         let error = map_backend_error_to_dom_error(err);
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
-                            .clone()
                             .to_jsval(cx.into(), &promise.global(), rval.handle_mut(), CanGc::from_cx(cx));
                         promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
                     },
@@ -468,7 +633,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         p
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbfactory-cmp>
     fn Cmp(&self, cx: &mut JSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
         let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
         let second_key = convert_value_to_key(cx, second, None)?.into_result()?;

@@ -9,6 +9,7 @@ use base::generic_channel::{self, GenericReceiver, GenericSender};
 use euclid::{Point2D, Rect, RigidTransform3D, Size2D};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 
@@ -76,7 +77,7 @@ impl SessionInit {
 }
 
 /// <https://immersive-web.github.io/webxr-ar-module/#xrenvironmentblendmode-enum>
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, MallocSizeOf)]
 pub enum EnvironmentBlendMode {
     Opaque,
     AlphaBlend,
@@ -114,7 +115,7 @@ impl Quitter {
 /// An object that represents an XR session.
 /// This is owned by the content thread.
 /// <https://www.w3.org/TR/webxr/#xrsession-interface>
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, MallocSizeOf)]
 pub struct Session {
     floor_transform: Option<RigidTransform3D<f32, Native, Floor>>,
     viewports: Viewports,
@@ -126,7 +127,7 @@ pub struct Session {
     supported_frame_rates: Vec<f32>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize, MallocSizeOf)]
 pub struct SessionId(pub(crate) u32);
 
 impl Session {

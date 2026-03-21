@@ -80,7 +80,6 @@ pub(crate) struct XRSession {
     mode: XRSessionMode,
     visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     session: DomRefCell<Session>,
     frame_requested: Cell<bool>,
@@ -101,16 +100,14 @@ pub(crate) struct XRSession {
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// <https://immersive-web.github.io/webxr/#ended>
     ended: Cell<bool>,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     next_hit_test_id: Cell<HitTestId>,
-    #[ignore_malloc_size_of = "defined in webxr"]
+    #[ignore_malloc_size_of = "Promise"]
     pending_hit_test_promises:
         DomRefCell<HashMapTracedValues<HitTestId, Rc<Promise>, FxBuildHasher>>,
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
     /// <https://immersive-web.github.io/webxr/#opaque-framebuffer>
     outside_raf: Cell<bool>,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     input_frames: DomRefCell<HashMap<InputId, InputFrame>>,
     framerate: Cell<f32>,
@@ -697,16 +694,16 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     .filter(|other| other.layer_id() == layer.layer_id())
                     .count();
                 if count > 1 {
-                    return Err(Error::Type(String::from("Duplicate entry in WebXR layers")));
+                    return Err(Error::Type(c"Duplicate entry in WebXR layers".to_owned()));
                 }
             }
 
             // Step 3
             for layer in layers {
                 if layer.session() != self {
-                    return Err(Error::Type(String::from(
-                        "Layer from different session in WebXR layers",
-                    )));
+                    return Err(Error::Type(
+                        c"Layer from different session in WebXR layers".to_owned(),
+                    ));
                 }
             }
         }
@@ -1053,7 +1050,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
             if !supported_frame_rates.contains(&*rate) {
                 promise.reject_error(
-                    Error::Type("Provided framerate not supported".into()),
+                    Error::Type(c"Provided framerate not supported".into()),
                     can_gc,
                 );
                 return promise;

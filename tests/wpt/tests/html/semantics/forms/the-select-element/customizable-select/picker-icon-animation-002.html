@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: Web Animations on ::picker-icon</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#picker-icon">
+<link rel="match" href="picker-icon-animation-002-ref.html">
+<meta name="fuzzy" content="maxDifference=0-8; totalPixels=0-5">
+<style>
+select { appearance: base-select; }
+</style>
+<select id="target">
+  <option>option</option>
+</select>
+<script>
+document.getElementById("target").animate({
+  color: ["green", "green"],
+}, {
+  pseudoElement: "::picker-icon",
+  duration: Infinity,
+});
+</script>

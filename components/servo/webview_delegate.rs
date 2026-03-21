@@ -560,9 +560,15 @@ pub struct InputMethodControl {
     pub(crate) insertion_point: Option<u32>,
     pub(crate) position: DeviceIntRect,
     pub(crate) multiline: bool,
+    pub(crate) allow_virtual_keyboard: bool,
 }
 
 impl InputMethodControl {
+    /// Return the [`EmbedderControlId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
     /// Return the type of input method that initated this request.
     pub fn input_method_type(&self) -> InputMethodType {
         self.input_method_type
@@ -590,6 +596,13 @@ impl InputMethodControl {
     /// Whether or not this field is a multiline field.
     pub fn multiline(&self) -> bool {
         self.multiline
+    }
+
+    /// Whether the virtual keyboard should be shown for this input method event.
+    /// This is currently true for input method events that happen after the user has
+    /// interacted with page contents via an input event.
+    pub fn allow_virtual_keyboard(&self) -> bool {
+        self.allow_virtual_keyboard
     }
 }
 

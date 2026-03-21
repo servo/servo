@@ -9,11 +9,15 @@
     <iframe id="iframe" width="500" height="300" srcdoc="
       <style>
         @mixin --m1() {
-          color: red;
+          @result {
+            color: red;
+          }
         }
         @media (width < 50px) {
           @mixin --m1() {
-            color: green;
+            @result {
+              color: green;
+            }
           }
         }
       </style>

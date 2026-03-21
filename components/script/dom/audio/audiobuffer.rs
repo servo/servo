@@ -265,7 +265,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         start_in_channel: u32,
     ) -> Fallible<()> {
         if destination.is_shared() {
-            return Err(Error::Type("Cannot copy to shared buffer".to_owned()));
+            return Err(Error::Type(c"Cannot copy to shared buffer".to_owned()));
         }
 
         if channel_number >= self.number_of_channels || start_in_channel >= self.length {
@@ -307,7 +307,7 @@ impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
         can_gc: CanGc,
     ) -> Fallible<()> {
         if source.is_shared() {
-            return Err(Error::Type("Cannot copy from shared buffer".to_owned()));
+            return Err(Error::Type(c"Cannot copy from shared buffer".to_owned()));
         }
 
         if channel_number >= self.number_of_channels || start_in_channel > (source.len() as u32) {

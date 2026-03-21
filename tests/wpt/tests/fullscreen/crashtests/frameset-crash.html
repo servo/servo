@@ -1,0 +1,17 @@
+<!doctype html>
+<html class="test-wait">
+<link rel="help" href="https://bugzil.la/2016506">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+  let target = document.body.appendChild(document.createElement("frameset"));
+  async function crash() {
+    await target.requestFullscreen();
+    document.documentElement.classList.remove("test-wait");
+  }
+  target.addEventListener("click", crash);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    test_driver.click(target);
+  }));
+</script>

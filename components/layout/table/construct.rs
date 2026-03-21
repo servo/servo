@@ -121,6 +121,7 @@ impl Table {
         let ifc = IndependentFormattingContext::new(
             LayoutBoxBase::new((&table_info).into(), table_style),
             IndependentFormattingContextContents::Table(table),
+            propagated_data,
         );
 
         (table_info, ifc)
@@ -222,7 +223,7 @@ impl TableBuilder {
             ComputedValues::initial_values_with_font_override(Font::initial_values());
         Self::new(
             testing_style.clone(),
-            testing_style.clone(),
+            testing_style,
             BaseFragmentInfo::anonymous(),
             true, /* percentage_columns_allowed_for_inline_content_sizes */
         )
@@ -807,7 +808,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
                 },
                 DisplayLayoutInternal::TableColumn => {
-                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_box = box_slot.take_layout_box();
                     let old_column = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
                         _ => None,
@@ -861,7 +862,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     )));
                 },
                 DisplayLayoutInternal::TableCaption => {
-                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_box = box_slot.take_layout_box();
                     let old_caption = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)) => Some(caption),
                         _ => None,
@@ -882,7 +883,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         );
                         let base = LayoutBoxBase::new(info.into(), info.style.clone());
                         ArcRefCell::new(TableCaption {
-                            context: IndependentFormattingContext::new(base, contents),
+                            context: IndependentFormattingContext::new(
+                                base,
+                                contents,
+                                self.current_propagated_data,
+                            ),
                         })
                     });
 
@@ -979,8 +984,13 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
 
         let block_container = builder.finish();
         let new_table_cell = ArcRefCell::new(TableSlotCell {
-            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
-            contents: BlockFormattingContext::from_block_container(block_container),
+            context: IndependentFormattingContext::new(
+                LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+                IndependentFormattingContextContents::Flow(
+                    BlockFormattingContext::from_block_container(block_container),
+                ),
+                propagated_data,
+            ),
             colspan: 1,
             rowspan: 1,
         });
@@ -1017,7 +1027,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                 DisplayLayoutInternal::TableCell => {
                     self.finish_current_anonymous_cell_if_needed();
 
-                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_box = box_slot.take_layout_box();
                     let old_cell = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)) => Some(cell),
                         _ => None,
@@ -1055,8 +1065,11 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                         );
 
                         ArcRefCell::new(TableSlotCell {
-                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                            contents,
+                            context: IndependentFormattingContext::new(
+                                LayoutBoxBase::new(info.into(), info.style.clone()),
+                                IndependentFormattingContextContents::Flow(contents),
+                                propagated_data,
+                            ),
                             colspan,
                             rowspan,
                         })
@@ -1112,7 +1125,7 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             ::std::mem::forget(box_slot);
             return;
         }
-        let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+        let old_box = box_slot.take_layout_box();
         let old_column = old_box.and_then(|layout_box| match layout_box {
             LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
             _ => None,

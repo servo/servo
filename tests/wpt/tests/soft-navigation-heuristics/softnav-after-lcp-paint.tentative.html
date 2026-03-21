@@ -22,18 +22,11 @@
         + " properly queues an LCP entry, even when the soft navigation is"
         + " detected after the LCP.",
       addContent: async () => {
-        let lcp_element_painted;
-        const lcp_element_paint_promise = new Promise((r) => { lcp_element_painted = r; });
         // Add an LCP element, but have it be small enough to not trigger the
         // Soft Navigation heuristics.
-        const p = addTextParagraphToMain("Lorem Ipsu", /*element_timing=*/"lcp");
-        (new PerformanceObserver(list => {
-          // Once the first element is fully painted:
-          lcp_element_painted();
-        })).observe({type: "element", buffered: true});
-        await lcp_element_paint_promise;
+        await addTextParagraphToMain("Lorem Ipsu");
         // Add a smaller element that gets us over that threshold.
-        addTextParagraphToMain("m");
+        await addTextParagraphToMain("m");
       },
       });
   </script>

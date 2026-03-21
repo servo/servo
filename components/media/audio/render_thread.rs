@@ -4,6 +4,7 @@
 
 use std::sync::mpsc::{Receiver, Sender};
 
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_streams::{MediaSocket, MediaStreamId};
 
 use crate::analyser_node::AnalyserNode;
@@ -30,8 +31,9 @@ use crate::{AudioBackend, AudioStreamReader};
 
 pub type SinkEosCallback = Box<dyn Fn(Box<dyn AsRef<[f32]>>) + Send + Sync + 'static>;
 
+#[derive(MallocSizeOf)]
 pub enum AudioRenderThreadMsg {
-    CreateNode(AudioNodeInit, Sender<NodeId>, ChannelInfo),
+    CreateNode(AudioNodeInit, Sender<Option<NodeId>>, ChannelInfo),
     ConnectPorts(PortId<OutputPort>, PortId<InputPort>),
     MessageNode(NodeId, AudioNodeMessage),
     Resume(Sender<StateChangeResult>),
@@ -47,7 +49,7 @@ pub enum AudioRenderThreadMsg {
     DisconnectOutputBetween(PortId<OutputPort>, NodeId),
     DisconnectOutputBetweenTo(PortId<OutputPort>, PortId<InputPort>),
 
-    SetSinkEosCallback(SinkEosCallback),
+    SetSinkEosCallback(#[ignore_malloc_size_of = "Fn"] SinkEosCallback),
 
     SetMute(bool),
 }
@@ -124,11 +126,14 @@ impl AudioSink for Sink {
     }
 }
 
+pub type ReaderFactoryCallback =
+    dyn Fn(MediaStreamId, f32) -> Result<Box<dyn AudioStreamReader + Send>, AudioSinkError>;
+
 pub struct AudioRenderThread {
     pub graph: AudioGraph,
     pub sink: Sink,
     pub sink_factory: Box<dyn Fn() -> Result<Box<dyn AudioSink + 'static>, AudioSinkError>>,
-    pub reader_factory: Box<dyn Fn(MediaStreamId, f32) -> Box<dyn AudioStreamReader + Send>>,
+    pub reader_factory: Box<ReaderFactoryCallback>,
     pub state: ProcessingState,
     pub sample_rate: f32,
     pub current_time: f64,
@@ -181,17 +186,16 @@ impl AudioRenderThread {
         options: AudioContextOptions,
         init_sender: Sender<Result<(), AudioSinkError>>,
     ) {
-        let mut thread =
-            match Self::prepare_thread::<B>(sender.clone(), sample_rate, graph, options) {
-                Ok(thread) => {
-                    let _ = init_sender.send(Ok(()));
-                    thread
-                },
-                Err(e) => {
-                    let _ = init_sender.send(Err(e));
-                    return;
-                },
-            };
+        let mut thread = match Self::prepare_thread::<B>(sender, sample_rate, graph, options) {
+            Ok(thread) => {
+                let _ = init_sender.send(Ok(()));
+                thread
+            },
+            Err(e) => {
+                let _ = init_sender.send(Err(e));
+                return;
+            },
+        };
 
         thread.event_loop(event_queue);
     }
@@ -200,7 +204,7 @@ impl AudioRenderThread {
 
     make_render_thread_state_change!(suspend, Suspended, stop);
 
-    fn create_node(&mut self, node_type: AudioNodeInit, ch: ChannelInfo) -> NodeId {
+    fn create_node(&mut self, node_type: AudioNodeInit, ch: ChannelInfo) -> Option<NodeId> {
         let mut needs_listener = false;
         let mut is_dest = false;
         let node: Box<dyn AudioNodeEngine> = match node_type {
@@ -221,7 +225,7 @@ impl AudioRenderThread {
             },
             AudioNodeInit::MediaStreamSourceNode(id) => {
                 let reader = (self.reader_factory)(id, self.sample_rate);
-                Box::new(MediaStreamSourceNode::new(reader, ch))
+                Box::new(MediaStreamSourceNode::new(reader.ok()?, ch))
             },
             AudioNodeInit::OscillatorNode(options) => Box::new(OscillatorNode::new(options, ch)),
             AudioNodeInit::ChannelMergerNode(options) => {
@@ -253,7 +257,7 @@ impl AudioRenderThread {
         if is_dest {
             self.graph.add_extra_dest(id);
         }
-        id
+        Some(id)
     }
 
     fn connect_ports(&mut self, output: PortId<OutputPort>, input: PortId<InputPort>) {

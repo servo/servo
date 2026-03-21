@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+<script src="../popovers/resources/popover-utils.js"></script>
+
+<button id=invoker interestfor=hovercard>User</button>
+<div id=hovercard popover=hint>
+  <a id=link href="">Link</a>
+</div>
+
+<style>
+  #invoker {
+    interest-delay: 0s;
+  }
+</style>
+
+<script>
+promise_test(async function (t) {
+  const invoker = document.getElementById('invoker');
+  const hovercard = document.getElementById('hovercard');
+  const link = document.getElementById('link');
+
+  await focusOn(invoker);
+  assert_true(hovercard.matches(':popover-open'), 'Hovercard should be open after focusing invoker');
+
+  await sendTab();
+  assert_equals(document.activeElement, link, 'Focus should move to the link');
+  assert_true(hovercard.matches(':popover-open'), 'Hovercard should stay open when focus is inside it');
+
+  await sendEscape();
+  assert_equals(document.activeElement, invoker, 'Focus should return to the invoker');
+  assert_false(hovercard.matches(':popover-open'), 'Hovercard should be closed');
+
+  // Make sure it stays closed.
+  await waitForRender();
+  assert_false(hovercard.matches(':popover-open'), 'Hovercard should still be closed');
+}, 'Focusing invoker after closing popover with ESC should not re-trigger interest');
+</script>

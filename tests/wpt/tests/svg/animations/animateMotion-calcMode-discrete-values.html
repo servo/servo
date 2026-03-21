@@ -1,0 +1,54 @@
+<!doctype html>
+<title>Test animateMotion with calcMode="discrete" and values attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect width="10" height="10">
+    <animateMotion id="anim" calcMode="discrete" dur="3s" fill="freeze"
+      values="0,0; 100,0; 100,100" />
+  </rect>
+</svg>
+
+<script>
+// The values list has 3 entries: (0,0), (100,0), (100,100).
+// With calcMode="discrete" and dur=3s, each value occupies 1s:
+//   t in [0, 1): position = (0, 0)
+//   t in [1, 2): position = (100, 0)
+//   t in [2, 3]: position = (100, 100)
+
+const rootSVGElement = document.querySelector("svg");
+const rect = document.querySelector("rect");
+
+function assert_motion_position_no_rotate(mtx, x, y, description) {
+    assert_equals(mtx.a, 1, description + " (no rotation: a)");
+    assert_equals(mtx.b, 0, description + " (no rotation: b)");
+    assert_equals(mtx.c, 0, description + " (no rotation: c)");
+    assert_equals(mtx.d, 1, description + " (no rotation: d)");
+    assert_equals(mtx.e, x, description + " (x)");
+    assert_equals(mtx.f, y, description + " (y)");
+}
+
+function sample1() {
+    assert_motion_position_no_rotate(rect.getCTM(), 0, 0, "value 1");
+}
+function sample2() {
+    assert_motion_position_no_rotate(rect.getCTM(), 100, 0, "value 2");
+}
+function sample3() {
+    assert_motion_position_no_rotate(rect.getCTM(), 100, 100, "value 3");
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        ["anim", 0.0,   sample1],
+        ["anim", 0.5,   sample1],
+        ["anim", 1.5,   sample2],
+        ["anim", 2.5,   sample3],
+        ["anim", 3.0,   sample3],
+    ];
+    runAnimationTest(t, expectedValues);
+});
+</script>
+</html>

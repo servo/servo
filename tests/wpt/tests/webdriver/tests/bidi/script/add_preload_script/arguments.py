@@ -182,6 +182,7 @@ async def test_mutation_observer(
 
 async def test_two_channels(
     bidi_session,
+    configuration,
     subscribe_events,
     add_preload_script,
 ):
@@ -208,7 +209,7 @@ async def test_two_channels(
 
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
     # Wait for both events
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=0.5)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=0.5)
 
     recursive_compare(
         {

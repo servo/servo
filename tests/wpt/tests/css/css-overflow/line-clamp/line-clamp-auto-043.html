@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: height-based clamp point inside max-height block</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-043-ref.html">
+<meta name="assert" content="If we're clamping by height, the clamp point can't be in the overflow of a box inside the line-clamp container, since clamping there would not decrease that box's height.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 2lh;
+  width: 500px;
+  background-color: yellow;
+}
+.max-height {
+  max-height: 1lh;
+  text-align: right;
+}
+</style>
+
+<div class="clamp">
+  <div class="max-height">
+    Line 1 <br>
+    Line 2 <br>
+    Line 3
+  </div>
+  Line B <br>
+  Line C
+</div>

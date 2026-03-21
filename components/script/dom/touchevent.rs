@@ -5,13 +5,13 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{DomRoot, MutDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::touchlist::TouchList;
 use crate::dom::uievent::UIEvent;
@@ -84,7 +84,7 @@ impl TouchEvent {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         composed: EventComposed,
@@ -101,8 +101,8 @@ impl TouchEvent {
     ) -> DomRoot<TouchEvent> {
         let ev =
             TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches, can_gc);
-        ev.upcast::<UIEvent>().InitUIEvent(
-            type_,
+        ev.upcast::<UIEvent>().init_event(
+            event_type,
             bool::from(can_bubble),
             bool::from(cancelable),
             view,

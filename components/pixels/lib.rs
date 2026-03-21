@@ -408,18 +408,27 @@ impl RasterImage {
         let frame = self
             .frames
             .get(frame_index)
-            .expect("Asked for a frame that did not exist: {frame_index:?}");
+            .unwrap_or_else(|| panic!("Asked for a frame that did not exist: {frame_index:?}"));
 
         let (format, data) = match self.format {
-            PixelFormat::BGRA8 => (WebRenderImageFormat::BGRA8, (*self.bytes).clone()),
-            PixelFormat::RGBA8 => (WebRenderImageFormat::RGBA8, (*self.bytes).clone()),
+            PixelFormat::BGRA8 => (
+                WebRenderImageFormat::BGRA8,
+                GenericSharedMemory::from_bytes(&self.bytes),
+            ),
+            PixelFormat::RGBA8 => (
+                WebRenderImageFormat::RGBA8,
+                GenericSharedMemory::from_bytes(&self.bytes),
+            ),
             PixelFormat::RGB8 => {
                 let frame_bytes = &self.bytes[frame.byte_range.clone()];
                 let mut bytes = Vec::with_capacity(frame_bytes.len() / 3 * 4);
                 for rgb in frame_bytes.chunks(3) {
                     bytes.extend_from_slice(&[rgb[2], rgb[1], rgb[0], 0xff]);
                 }
-                (WebRenderImageFormat::BGRA8, bytes)
+                (
+                    WebRenderImageFormat::BGRA8,
+                    GenericSharedMemory::from_bytes(&bytes),
+                )
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
                 panic!("Not support by webrender yet");
@@ -436,7 +445,7 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, GenericSharedMemory::from_bytes(&data))
+        (descriptor, data)
     }
 
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.
@@ -730,12 +739,19 @@ fn make_decoder(
 
 fn decode_static_image(
     cors_status: CorsStatus,
-    image_decoder: impl ImageDecoder,
+    mut image_decoder: impl ImageDecoder,
 ) -> Option<RasterImage> {
-    let Ok(dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
+    let orientation = image_decoder.orientation();
+
+    let Ok(mut dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
         debug!("Image decoding error");
         return None;
     };
+
+    if let Ok(orientation) = orientation {
+        dynamic_image.apply_orientation(orientation);
+    }
+
     let mut rgba = dynamic_image.into_rgba8();
 
     // Store pre-multiplied data as that prevents having to do conversions of the data at later

@@ -124,14 +124,9 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             "WebDriver",
             Workflow.LINUX,
             wpt=True,
-            wpt_args=" ".join(
-                [
-                    "./tests/wpt/tests/webdriver/tests/classic/",
-                    "--processes 1",
-                ]
-            ),
+            wpt_args="./tests/wpt/tests/webdriver/tests/classic/",
             unit_tests=False,
-            number_of_wpt_chunks=2,
+            number_of_wpt_chunks=1,
         )
     elif any(word in s for word in ["vello"]):
         return JobConfig(
@@ -205,8 +200,9 @@ class Config(object):
                 words.extend(["linux-wpt"])
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
-                words.extend(["windows-unit-tests", "android", "ohos", "lint"])
+                words.extend(["linux-unit-tests", "windows-unit-tests", "macos-arm-unit-tests"])
+                words.extend(["linux-wpt", "linux-bencher"])
+                words.extend(["android", "ohos", "lint"])
                 words.extend(["linux-build-libservo", "windows-build-libservo"])
                 continue  # skip over keyword
             if word == "bencher":
@@ -228,9 +224,9 @@ class Config(object):
                         "macos-production-bencher",
                         "macos-arm-production-bencher",
                         "windows-production-bencher",
+                        "ohos-production-bencher",
                     ]
                 )
-                words.extend(["ohos-production-bencher"])
                 continue  # skip over keyword
             if word in ["cov", "coverage", "test-coverage"]:
                 words.extend(["linux-coverage"])
@@ -315,6 +311,19 @@ class TestParser(unittest.TestCase):
                         "profile": "release",
                         "unit_tests": True,
                         "build_libservo": True,
+                        "bencher": False,
+                        "build_args": "",
+                        "coverage": False,
+                        "wpt_args": "",
+                        "number_of_wpt_chunks": 20,
+                    },
+                    {
+                        "name": "MacOS Arm64 (Unit Tests)",
+                        "workflow": "macos-arm64",
+                        "wpt": False,
+                        "profile": "release",
+                        "unit_tests": True,
+                        "build_libservo": False,
                         "bencher": False,
                         "build_args": "",
                         "coverage": False,

@@ -8,6 +8,8 @@ use dom_struct::dom_struct;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
+use script_bindings::inheritance::Castable;
+use style::Atom;
 use style_traits::CSSPixel;
 
 use super::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
@@ -19,7 +21,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
@@ -92,7 +94,7 @@ impl PointerEvent {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -124,7 +126,7 @@ impl PointerEvent {
         Self::new_with_proto(
             window,
             None,
-            type_,
+            event_type,
             can_bubble,
             cancelable,
             view,
@@ -159,7 +161,7 @@ impl PointerEvent {
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -189,8 +191,10 @@ impl PointerEvent {
         can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
         let ev = PointerEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        // See <https://w3c.github.io/pointerevents/#attributes-and-default-actions>
+        let composed = &*event_type != "pointerenter" && &*event_type != "pointerleave";
         ev.mouseevent.initialize_mouse_event(
-            type_,
+            event_type,
             can_bubble,
             cancelable,
             view,
@@ -204,6 +208,7 @@ impl PointerEvent {
             related_target,
             point_in_target,
         );
+        ev.mouseevent.upcast::<Event>().set_composed(composed);
         ev.pointer_id.set(pointer_id);
         ev.width.set(width);
         ev.height.set(height);
@@ -228,7 +233,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &PointerEventInit,
     ) -> DomRoot<PointerEvent> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
@@ -241,7 +246,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
         PointerEvent::new_with_proto(
             window,
             proto,
-            type_,
+            event_type.into(),
             bubbles,
             cancelable,
             init.parent.parent.parent.view.as_deref(),

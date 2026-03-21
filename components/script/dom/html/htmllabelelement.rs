@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
@@ -96,10 +96,7 @@ impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-label-control>
     fn GetControl(&self) -> Option<DomRoot<HTMLElement>> {
-        let for_attr = match self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("for"))
-        {
+        let for_attr = match self.upcast::<Element>().get_attribute(&local_name!("for")) {
             Some(for_attr) => for_attr,
             None => return self.first_labelable_descendant(),
         };
@@ -156,12 +153,17 @@ impl VirtualMethods for HTMLLabelElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation, can_gc);
+            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
         }
     }
 }

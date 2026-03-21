@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="scroll_support.js"></script>
+  <style>
+    #targetDiv {
+      width: 200px;
+      height: 200px;
+      overflow: scroll;
+    }
+
+    #innerDiv {
+      width: 400px;
+      height: 2000px;
+    }
+  </style>
+</head>
+<body style="margin:0" onload=runTest()>
+  <div id="targetDiv" tabindex="0">
+    <div id="innerDiv">
+    </div>
+  </div>
+<script>
+const target_div = document.getElementById('targetDiv');
+const PAGE_DOWN = '\uE00F';
+
+function runTest() {
+  promise_test(async (t) => {
+    await resetTargetScrollState(t, target_div);
+    await waitForCompositorReady();
+
+    verifyNoScrollendOnDocument(t);
+    const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
+
+    target_div.focus();
+
+    // Emulate holding the Page Down key by building an action sequence
+    // with a single keyDown followed by additional keyDown ticks (which
+    // the browser treats as key-repeat events) and a final keyUp to
+    // release the key. Page Down scrolls roughly one page (~200px) per
+    // repeat, and the inner content is 2000px tall, so we need enough
+    // repeats to guarantee reaching the bottom.
+    const maxScrollTop = target_div.scrollHeight - target_div.clientHeight;
+    const repeats = Math.ceil(maxScrollTop / target_div.clientHeight) + 2;
+    const actions = new test_driver.Actions();
+    for (let i = 0; i <= repeats; i++) {
+      actions.keyDown(PAGE_DOWN);
+    }
+    actions.keyUp(PAGE_DOWN);
+    await actions.send();
+
+    // Wait for the scrollend event to fire
+    await targetScrollendPromise;
+
+    // For completeness, verify the scroll actually happened and has stopped
+    assert_approx_equals(target_div.scrollTop, maxScrollTop, 1,
+        "targetDiv should be scrolled to the bottom");
+    await verifyScrollStopped(t, target_div);
+  }, "scrollend event is fired after repeated Page Down key presses " +
+     "reach the end of the scroll region.");
+}
+</script>
+</body>
+</html>

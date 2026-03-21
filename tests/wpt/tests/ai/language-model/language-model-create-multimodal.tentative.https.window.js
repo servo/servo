@@ -6,9 +6,6 @@
 
 'use strict';
 
-const kValidImagePath = '/images/computer.jpg';
-const kValidAudioPath = '/media/speech.wav';
-
 promise_test(async () => {
   await ensureLanguageModel({expectedInputs: [{type: 'audio'}, {type: 'image'}]});
   const kSupportedCreateOptions = [

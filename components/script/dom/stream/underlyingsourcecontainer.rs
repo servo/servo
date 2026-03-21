@@ -22,7 +22,7 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::transformstream::TransformStream;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
 /// The `Js` variant corresponds to
@@ -118,10 +118,9 @@ impl UnderlyingSourceContainer {
     #[expect(unsafe_code)]
     pub(crate) fn call_cancel_algorithm(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
             UnderlyingSourceType::Js(source, this_obj) => {
@@ -131,7 +130,7 @@ impl UnderlyingSourceContainer {
                             &SafeHandle::from_raw(this_obj.handle()),
                             Some(reason),
                             ExceptionHandling::Rethrow,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         )
                     };
                     return Some(result);
@@ -140,37 +139,43 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(tee_underlying_source) => {
                 // Call the cancel algorithm for the appropriate branch.
-                tee_underlying_source.cancel_algorithm(cx, global, reason, can_gc)
+                tee_underlying_source.cancel_algorithm(cx, global, reason)
             },
             UnderlyingSourceType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourceCancelAlgorithm(stream, reason).
-                Some(stream.transform_stream_default_source_cancel(cx, global, reason, can_gc))
+                Some(stream.transform_stream_default_source_cancel(
+                    cx.into(),
+                    global,
+                    reason,
+                    CanGc::from_cx(cx),
+                ))
             },
             UnderlyingSourceType::Transfer(port) => {
                 // Let cancelAlgorithm be the following steps, taking a reason argument:
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
+                let result =
+                    port.pack_and_post_message_handling_error("error", reason, CanGc::from_cx(cx));
 
                 // Disentangle port.
-                self.global().disentangle_port(port, can_gc);
+                self.global().disentangle_port(port, CanGc::from_cx(cx));
 
-                let promise = Promise::new(&self.global(), can_gc);
+                let promise = Promise::new2(cx, &self.global());
 
                 // If result is an abrupt completion,
                 if let Err(error) = result {
                     // Return a promise rejected with result.[[Value]].
-                    promise.reject_error(error, can_gc);
+                    promise.reject_error(error, CanGc::from_cx(cx));
                 } else {
                     // Otherwise, return a promise resolved with undefined.
-                    promise.resolve_native(&(), can_gc);
+                    promise.resolve_native(&(), CanGc::from_cx(cx));
                 }
                 Some(Ok(promise))
             },
             UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
                 // Call the cancel algorithm for the appropriate branch.
-                tee_underlyin_source.cancel_algorithm(reason, can_gc)
+                tee_underlyin_source.cancel_algorithm(cx, reason)
             },
             _ => None,
         }

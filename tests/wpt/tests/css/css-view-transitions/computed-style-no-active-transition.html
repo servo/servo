@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions/#ua-styles">
+  <title>Computed style of VT pseudos in absence of active transition</title>
+  <style>
+    :root.stylized::view-transition-group(foo) {
+      animation-duration: 3s;
+      animation-fill-mode: forwards;
+      border-radius: 3px;
+    };
+  </style>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function runTests(expectations) {
+    for (const pseudo of Object.keys(expectations)) {
+      for (const property of Object.keys(expectations[pseudo])) {
+        const value =
+            getComputedStyle(document.documentElement, pseudo)[property];
+        assert_equals(value, expectations[pseudo][property],
+                      `value of ${property} for ${pseudo}`);
+      }
+    }
+  }
+
+  test(t => {
+    const expected_values = {
+      '::view-transition': {
+        'position': 'absolute',
+        'inset': '0px'
+      },
+      '::view-transition-group(root)': {
+        'position': 'absolute',
+        'top': '0px',
+        'left': '0px',
+        'animation-duration': '0.25s'
+      },
+      '::view-transition-image-pair(root)': {
+        'position': 'absolute',
+        'inset': '0px'
+      },
+      '::view-transition-old(root)': {
+        'position': 'absolute',
+        'inset-block-start': '0px',
+        'inline-size': '100%',
+        'block-size': 'auto',
+      },
+      '::view-transition-new(root)': {
+        'position': 'absolute',
+        'inset-block-start': '0px',
+        'inline-size': '100%',
+        'block-size': 'auto',
+      }
+    };
+    runTests(expected_values);
+  }, 'Check default values of VT pseudo properties outside of an active ' +
+     'view transition');
+
+  test(t => {
+    document.documentElement.classList.add('stylized');
+    t.add_cleanup(() => {
+      document.documentElement.classList.remove('stylized');
+    });
+    const expected_values = {
+      '::view-transition-group(root)': {
+        'animation-duration': '0.25s',
+        'animation-fill-mode': 'both',
+        'border-radius': '0px'
+      },
+      '::view-transition-group(foo)': {
+        'animation-duration': '3s',
+        'animation-fill-mode': 'forwards',
+        'border-radius': '3px'
+      }
+    };
+    runTests(expected_values);
+  }, 'Values of VT pseudo properties with author stylesheet outside of ' +
+       'an active view transition');
+
+  // TODO(crbug.com/487213151): Add tests of inherited properties from
+  // parent VT-pseudos.
+</script>
+</html>

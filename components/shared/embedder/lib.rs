@@ -216,9 +216,19 @@ pub enum Cursor {
     ZoomOut,
 }
 
+/// A way for Servo to request that the embedder wake up the main event loop.
+///
+/// A trait which embedders should implement to allow Servo to request that the
+/// embedder spin the Servo event loop on the main thread.
 pub trait EventLoopWaker: 'static + Send + Sync {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
-    fn wake(&self) {}
+
+    /// This method is called when Servo wants the embedder to wake up the event loop.
+    ///
+    /// Note that this may be called on a different thread than the thread that was used to
+    /// start Servo. When called, the embedder is expected to call [`Servo::spin_event_loop`]
+    /// on the thread where Servo is running.
+    fn wake(&self);
 }
 
 impl Clone for Box<dyn EventLoopWaker> {
@@ -339,7 +349,7 @@ impl TraversalId {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
@@ -354,12 +364,13 @@ pub enum PixelFormat {
 }
 
 /// A raster image buffer.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
     /// A shared memory block containing the data of one or more image frames.
+    #[conditional_malloc_size_of]
     data: Arc<GenericSharedMemory>,
     range: Range<usize>,
 }
@@ -387,7 +398,7 @@ impl Image {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleLogLevel {
     Log,
@@ -514,7 +525,7 @@ pub enum EmbedderMsg {
     ),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
-    InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
 }

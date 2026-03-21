@@ -13,7 +13,6 @@ use script_bindings::error::{ErrorResult, Fallible};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
-use style::dom::TElement;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
@@ -51,7 +50,7 @@ use crate::dom::node::{
     BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
     UnbindContext, VecPreOrderInsertionHelper,
 };
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
@@ -488,14 +487,18 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn SetInnerHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+    fn SetInnerHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+        value: TrustedHTMLOrNullIsEmptyString,
+    ) -> ErrorResult {
         // Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
         // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.convert(),
             "ShadowRoot innerHTML",
-            can_gc,
         )?;
 
         // Step 2. Let context be this's host.
@@ -506,10 +509,10 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         //
         // NOTE: The spec doesn't strictly tell us to bail out here, but
         // we can't continue if parsing failed
-        let frag = context.parse_fragment(value, can_gc)?;
+        let frag = context.parse_fragment(value, cx)?;
 
         // Step 4. Replace all with fragment within this.
-        Node::replace_all(Some(frag.upcast()), self.upcast(), can_gc);
+        Node::replace_all(cx, Some(frag.upcast()), self.upcast());
         Ok(())
     }
 
@@ -519,21 +522,25 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> ErrorResult {
+    fn SetHTMLUnsafe(
+        &self,
+        cx: &mut js::context::JSContext,
+        value: TrustedHTMLOrString,
+    ) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value,
             "ShadowRoot setHTMLUnsafe",
-            can_gc,
         )?;
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, value, can_gc);
+        Node::unsafely_set_html(target, &context_element, value, cx);
         Ok(())
     }
 
@@ -579,6 +586,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         result
     }
+
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
+    fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
+        DocumentOrShadowRoot::get_fullscreen_element(
+            self.upcast::<Node>(),
+            self.document.fullscreen_element(),
+        )
+    }
 }
 
 impl VirtualMethods for ShadowRoot {
@@ -586,9 +601,9 @@ impl VirtualMethods for ShadowRoot {
         Some(self.upcast::<DocumentFragment>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut js::context::JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         // TODO(stevennovaryo): Handle adoptedStylesheet to deal with different
@@ -610,7 +625,7 @@ impl VirtualMethods for ShadowRoot {
 
             // Out-of-document elements never have the descendants flag set
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(&context, can_gc);
+            vtable_for(&node).bind_to_tree(cx, &context);
         }
     }
 
@@ -631,11 +646,7 @@ pub(crate) trait LayoutShadowRootHelpers<'dom> {
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
     fn get_style_data_for_layout(self) -> &'dom CascadeData;
     fn is_ua_widget(&self) -> bool;
-    unsafe fn flush_stylesheets<E: TElement>(
-        self,
-        stylist: &mut Stylist,
-        guard: &SharedRwLockReadGuard,
-    );
+    unsafe fn flush_stylesheets(self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard);
 }
 
 impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
@@ -662,14 +673,10 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     // probably be revisited.
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn flush_stylesheets<E: TElement>(
-        self,
-        stylist: &mut Stylist,
-        guard: &SharedRwLockReadGuard,
-    ) {
+    unsafe fn flush_stylesheets(self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard) {
         let author_styles = unsafe { self.unsafe_get().author_styles.borrow_mut_for_layout() };
         if author_styles.stylesheets.dirty() {
-            author_styles.flush::<E>(stylist, guard);
+            author_styles.flush(stylist, guard);
         }
     }
 }

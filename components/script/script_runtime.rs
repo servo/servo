@@ -13,7 +13,8 @@ use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
-use std::rc::Rc;
+use std::ptr::NonNull;
+use std::rc::{Rc, Weak};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use std::{os, ptr, thread};
@@ -23,9 +24,9 @@ use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
-    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId,
-    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
-    StreamConsumerStreamError,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
@@ -35,11 +36,12 @@ use js::jsapi::{
     JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSContext as RawJSContext, JSGCParamKey,
     JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue,
     MimeType, MutableHandleObject, MutableHandleString, PromiseRejectionHandlingState,
-    PromiseUserInputEventHandlingState, RuntimeCode, SetProcessBuildIdOp,
-    StreamConsumer as JSStreamConsumer,
+    PromiseUserInputEventHandlingState, RuntimeCode, ScriptEnvironmentPreparer_Closure,
+    SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
+use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::wrappers2::{
@@ -51,7 +53,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{
     Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
-    ParentRuntime, Runtime as RustRuntime,
+    ParentRuntime, Runtime as RustRuntime, Trace,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -59,6 +61,7 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
+use script_bindings::settings_stack::run_a_script;
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
@@ -69,7 +72,7 @@ use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::conversions::{
     get_dom_class, private_from_object, root_from_handleobject, root_from_object,
 };
-use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{
     LiveDOMReferences, Trusted, TrustedPromise, trace_refcounted_objects,
@@ -79,6 +82,7 @@ use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
+use crate::dom::console::stringify_handle_value;
 use crate::dom::csp::CspReporting;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -86,13 +90,13 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
-use crate::dom::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
-use crate::script_thread::trace_thread;
 use crate::task_source::TaskSourceName;
+use crate::{DomTypeHolder, ScriptThread};
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getHostDefinedData: Some(get_host_defined_data),
@@ -299,12 +303,17 @@ unsafe extern "C" fn get_host_defined_data(
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSContext) {
-    let cx = unsafe { JSContext::from_ptr(cx) };
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        js::context::JSContext::from_ptr(
+            NonNull::new(cx).expect("JSContext should not be null in SM hook"),
+        )
+    };
     wrap_panic(&mut || {
         let microtask_queue = unsafe { &*(microtask_queue as *const MicrotaskQueue) };
         // TODO: run Promise- and User-variant Microtasks, and do #notify-about-rejected-promises.
         // Those will require real `target_provider` and `globalscopes` values.
-        microtask_queue.checkpoint(cx, |_| None, vec![], CanGc::note());
+        microtask_queue.checkpoint(&mut cx, |_| None, vec![]);
     });
 }
 
@@ -326,7 +335,7 @@ unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> 
             unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
         let new_queue = Rc::new(MicrotaskQueue::default());
         result = Rc::as_ptr(&new_queue) as *const c_void;
-        interrupt_queues.push(new_queue.clone());
+        interrupt_queues.push(new_queue);
         std::mem::forget(interrupt_queues);
     });
     result
@@ -411,12 +420,16 @@ unsafe extern "C" fn enqueue_promise_job(
 /// <https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation>
 unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut RawJSContext,
-    _muted_errors: bool,
+    muted_errors: bool,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
     _data: *mut c_void,
 ) {
-    // TODO: Step 2 - If script's muted errors is true, terminate these steps.
+    // Step 1. Let script be the running script.
+    // Step 2. If script is a classic script and script's muted errors is true, then return.
+    if muted_errors {
+        return;
+    }
 
     // Step 3.
     let cx = unsafe { JSContext::from_ptr(cx) };
@@ -456,7 +469,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
                     Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
-                let trusted_promise = TrustedPromise::new(promise.clone());
+                let trusted_promise = TrustedPromise::new(promise);
 
                 // Step 5-4.
                 global.task_manager().dom_manipulation_task_source().queue(
@@ -487,10 +500,10 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[expect(unsafe_code)]
-fn safely_convert_null_to_string(cx: JSContext, str_: HandleString) -> DOMString {
+fn safely_convert_null_to_string(cx: &mut js::context::JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
         None => "".to_owned(),
-        Some(str_) => unsafe { jsstr_to_string(*cx, str_) },
+        Some(str_) => unsafe { jsstr_to_string(cx.raw_cx(), str_) },
     })
 }
 
@@ -523,11 +536,13 @@ unsafe extern "C" fn content_security_policy_allows(
     can_compile_strings: *mut bool,
 ) -> bool {
     let mut allowed = false;
-    let cx = unsafe { JSContext::from_ptr(cx) };
+    // SAFETY: We are in SM hook
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
     wrap_panic(&mut || {
         // SpiderMonkey provides null pointer when executing webassembly.
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-        let global = unsafe { &GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+        let realm = CurrentRealm::assert(cx);
+        let global = GlobalScope::from_current_realm(&realm);
         let csp_list = global.get_csp_list();
 
         // If we don't have any CSP checks to run, short-circuit all logic here
@@ -556,9 +571,9 @@ unsafe extern "C" fn content_security_policy_allows(
                         };
                         let value = arg.into_handle().get();
                         if value.is_object() {
-                            if let Ok(trusted_script) =
-                                unsafe { root_from_object::<TrustedScript>(value.to_object(), *cx) }
-                            {
+                            if let Ok(trusted_script) = unsafe {
+                                root_from_object::<TrustedScript>(value.to_object(), cx.raw_cx())
+                            } {
                                 parameter_args_vec
                                     .push(TrustedScriptOrString::TrustedScript(trusted_script));
                             } else {
@@ -577,19 +592,21 @@ unsafe extern "C" fn content_security_policy_allows(
                         }
                     }
 
+                    let code_string = safely_convert_null_to_string(cx, code_string);
+                    let body_string = safely_convert_null_to_string(cx, body_string);
+
                     TrustedScript::can_compile_string_with_trusted_type(
                         cx,
-                        global,
-                        safely_convert_null_to_string(cx, code_string),
+                        &global,
+                        code_string,
                         compilation_type,
                         parameter_strings_vec,
-                        safely_convert_null_to_string(cx, body_string),
+                        body_string,
                         parameter_args_vec,
                         unsafe { HandleValue::from_raw(body_arg) },
-                        CanGc::note(),
                     )
                 },
-                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
+                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(&global),
             };
     });
     unsafe { *can_compile_strings = allowed };
@@ -600,73 +617,89 @@ unsafe extern "C" fn content_security_policy_allows(
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
 pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
-    unsafe {
-        // Step 2.
-        if !global.get_uncaught_rejections().borrow().is_empty() {
-            // Step 1.
-            let uncaught_rejections: Vec<TrustedPromise> = global
-                .get_uncaught_rejections()
-                .borrow()
-                .iter()
-                .map(|promise| {
-                    let promise =
-                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
 
-                    TrustedPromise::new(promise)
-                })
-                .collect();
+    // Step 1. Let list be a clone of global's about-to-be-notified rejected promises list.
+    let uncaught_rejections: Vec<TrustedPromise> = global
+        .get_uncaught_rejections()
+        .borrow_mut()
+        .drain(..)
+        .map(|promise| {
+            let promise =
+                Promise::new_with_js_promise(unsafe { Handle::from_raw(promise.handle()) }, cx);
 
-            // Step 3.
-            global.get_uncaught_rejections().borrow_mut().clear();
+            TrustedPromise::new(promise)
+        })
+        .collect();
 
-            let target = Trusted::new(global.upcast::<EventTarget>());
-
-            // Step 4.
-            global.task_manager().dom_manipulation_task_source().queue(
-                task!(unhandled_rejection_event: move || {
-                    let target = target.root();
-                    let cx = GlobalScope::get_cx();
-
-                    for promise in uncaught_rejections {
-                        let promise = promise.root();
-
-                        // Step 4-1.
-                        let promise_is_handled = GetPromiseIsHandled(promise.reflector().get_jsobject());
-                        if promise_is_handled {
-                            continue;
-                        }
-
-                        // Step 4-2.
-                        rooted!(in(*cx) let mut reason = UndefinedValue());
-                        JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
-
-                        let event = PromiseRejectionEvent::new(
-                            &target.global(),
-                            atom!("unhandledrejection"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::Cancelable,
-                            promise.clone(),
-                            reason.handle(),
-                            CanGc::note()
-                        );
-
-                        let not_canceled = event.upcast::<Event>().fire(&target, CanGc::note());
-
-                        // Step 4-3. If notCanceled is true, then the user agent
-                        // may report p.[[PromiseResult]] to a developer console.
-                        if not_canceled {
-                            // TODO: The promise rejection is not handled; we need to add it back to the list.
-                        }
-
-                        // Step 4-4.
-                        if !promise_is_handled {
-                            target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
-                        }
-                    }
-                })
-            );
-        }
+    // Step 2. If list is empty, then return.
+    if uncaught_rejections.is_empty() {
+        return;
     }
+
+    // Step 3. Empty global's about-to-be-notified rejected promises list.
+    // NOTE: We did this as part of Step 1. using the "drain(..)" call.
+
+    // Step 4. Queue a global task on the DOM manipulation task source given global to run the following step:
+    let target = Trusted::new(global.upcast::<EventTarget>());
+    global.task_manager().dom_manipulation_task_source().queue(
+        task!(unhandled_rejection_event: move |cx| {
+            let target = target.root();
+
+            // Step 4.1 For each promise p of list:
+            for promise in uncaught_rejections {
+                let promise = promise.root();
+
+                // 4.1.1 If p.[[PromiseIsHandled]] is true, then continue.
+                let promise_is_handled = unsafe { GetPromiseIsHandled(promise.reflector().get_jsobject()) };
+                if promise_is_handled {
+                    continue;
+                }
+
+                // Step 4.1.2 Let notCanceled be the result of firing an event named unhandledrejection at global,
+                // using PromiseRejectionEvent, with the cancelable attribute initialized to true,
+                // the promise attribute initialized to p, and the reason attribute initialized to p.[[PromiseResult]].
+                rooted!(&in(cx) let mut reason = UndefinedValue());
+                unsafe {
+                    JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
+                }
+
+                log::error!(
+                    "Unhandled promise rejection: {}",
+                    stringify_handle_value(reason.handle())
+                );
+
+                let event = PromiseRejectionEvent::new(
+                    &target.global(),
+                    atom!("unhandledrejection"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::Cancelable,
+                    promise.clone(),
+                    reason.handle(),
+                    CanGc::from_cx(cx)
+                );
+                event.upcast::<Event>().fire(&target, CanGc::from_cx(cx));
+
+                // TODO: Step 4.1.3 If notCanceled is true, then the user agent may report
+                // p.[[PromiseResult]] to a developer console.
+
+                // Step 4.1.4 If p.[[PromiseIsHandled]] is false, then append p to global's outstanding
+                // rejected promises weak set.
+                if !promise_is_handled {
+                    target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
+                }
+            }
+        })
+    );
+}
+
+/// Data that is sent to SpiderMonkey runtime callbacks as a pointer, which allows access
+/// to the `Runtime` state.
+#[derive(Default, JSTraceable, MallocSizeOf)]
+struct RuntimeCallbackData {
+    script_event_loop_sender: Option<ScriptEventLoopSender>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "ScriptThread measures its own memory itself."]
+    script_thread: Option<Weak<ScriptThread>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -678,7 +711,8 @@ pub(crate) struct Runtime {
     pub(crate) microtask_queue: Rc<MicrotaskQueue>,
     #[ignore_malloc_size_of = "Type from mozjs"]
     job_queue: *mut JobQueue,
-    script_event_loop_sender: Option<Box<ScriptEventLoopSender>>,
+    /// The data that is set on the SpiderMonkey runtime callbacks as a pointer.
+    runtime_callback_data: Box<RuntimeCallbackData>,
 }
 
 impl Runtime {
@@ -719,7 +753,7 @@ impl Runtime {
     #[expect(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
-        script_event_looper_sender: Option<ScriptEventLoopSender>,
+        script_event_loop_sender: Option<ScriptEventLoopSender>,
     ) -> Runtime {
         let mut runtime = if let Some(parent) = parent {
             unsafe { RustRuntime::create_with_parent(parent) }
@@ -728,8 +762,19 @@ impl Runtime {
         };
         let cx = runtime.cx();
 
+        let have_event_loop_sender = script_event_loop_sender.is_some();
+        let runtime_callback_data = Box::new(RuntimeCallbackData {
+            script_event_loop_sender,
+            script_thread: None,
+        });
+        let runtime_callback_data = Box::into_raw(runtime_callback_data);
+
         unsafe {
-            JS_AddExtraGCRootsTracer(cx, Some(trace_rust_roots), ptr::null_mut());
+            JS_AddExtraGCRootsTracer(
+                cx,
+                Some(trace_rust_roots),
+                runtime_callback_data as *mut c_void,
+            );
 
             JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
 
@@ -769,8 +814,14 @@ impl Runtime {
             data: *mut c_void,
             dispatchable: *mut DispatchablePointer,
         ) -> bool {
-            let script_event_loop_sender: &ScriptEventLoopSender =
-                unsafe { &*(data as *mut ScriptEventLoopSender) };
+            let runtime_callback_data: &RuntimeCallbackData =
+                unsafe { &*(data as *mut RuntimeCallbackData) };
+            let Some(script_event_loop_sender) =
+                runtime_callback_data.script_event_loop_sender.as_ref()
+            else {
+                return false;
+            };
+
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
                 if let Some(cx) = RustRuntime::get() {
@@ -788,14 +839,12 @@ impl Runtime {
                 .is_ok()
         }
 
-        let mut script_event_loop_sender_pointer = std::ptr::null_mut();
-        if let Some(script_event_loop_sender) = script_event_looper_sender {
-            script_event_loop_sender_pointer = Box::into_raw(Box::new(script_event_loop_sender));
+        if have_event_loop_sender {
             unsafe {
                 SetUpEventLoopDispatch(
                     cx,
                     Some(dispatch_to_event_loop),
-                    script_event_loop_sender_pointer as *mut c_void,
+                    runtime_callback_data as *mut c_void,
                 );
             }
         }
@@ -825,6 +874,11 @@ impl Runtime {
                 cx,
                 Some(promise_rejection_tracker),
                 ptr::null_mut(),
+            );
+
+            RegisterScriptEnvironmentPreparer(
+                cx.raw_cx(),
+                Some(invoke_script_environment_preparer),
             );
 
             EnsureModuleHooksInitialized(runtime.rt());
@@ -955,16 +1009,6 @@ impl Runtime {
             if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_high_limit_mb), 0, 10_000) {
                 JS_SetGCParameter(cx, JSGCParamKey::JSGC_LARGE_HEAP_SIZE_MIN, val as u32);
             }
-            /*if let Some(val) = in_range(pref!(js_mem_gc_allocation_threshold_factor), 0, 10_000) {
-                JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
-            }*/
-            /*
-                // JSGC_SMALL_HEAP_INCREMENTAL_LIMIT
-                pref("javascript.options.mem.gc_small_heap_incremental_limit", 140);
-
-                // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
-                pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
-            */
             if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
                 JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
             }
@@ -973,9 +1017,14 @@ impl Runtime {
             rt: runtime,
             microtask_queue,
             job_queue,
-            script_event_loop_sender: (!script_event_loop_sender_pointer.is_null())
-                .then(|| unsafe { Box::from_raw(script_event_loop_sender_pointer) }),
+            runtime_callback_data: unsafe { Box::from_raw(runtime_callback_data) },
         }
+    }
+
+    pub(crate) fn set_script_thread(&mut self, script_thread: Weak<ScriptThread>) {
+        self.runtime_callback_data
+            .script_thread
+            .replace(script_thread);
     }
 
     pub(crate) fn thread_safe_js_context(&self) -> ThreadSafeJSContext {
@@ -1114,13 +1163,23 @@ unsafe extern "C" fn debug_gc_callback(
 }
 
 #[expect(unsafe_code)]
-unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, data: *mut os::raw::c_void) {
     if !runtime_is_alive() {
         return;
     }
     trace!("starting custom root handler");
+
+    let runtime_callback_data = unsafe { &*(data as *const RuntimeCallbackData) };
+    if let Some(script_thread) = runtime_callback_data
+        .script_thread
+        .as_ref()
+        .and_then(Weak::upgrade)
+    {
+        trace!("tracing fields of ScriptThread");
+        unsafe { script_thread.trace(tr) };
+    };
+
     unsafe {
-        trace_thread(tr);
         trace_roots(tr);
         trace_refcounted_objects(tr);
         settings_stack::trace(tr);
@@ -1299,7 +1358,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("Response has unsupported MIME type".to_string()),
+                Error::Type(c"Response has unsupported MIME type".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1312,7 +1371,7 @@ unsafe extern "C" fn consume_stream(
                 throw_dom_exception(
                     cx,
                     &global,
-                    Error::Type("Response.type must be 'basic', 'cors' or 'default'".to_string()),
+                    Error::Type(c"Response.type must be 'basic', 'cors' or 'default'".to_owned()),
                     CanGc::note(),
                 );
                 return false;
@@ -1324,7 +1383,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("Response does not have ok status".to_string()),
+                Error::Type(c"Response does not have ok status".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1335,7 +1394,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("There was an error consuming the Response".to_string()),
+                Error::Type(c"There was an error consuming the Response".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1346,7 +1405,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("Response already consumed".to_string()),
+                Error::Type(c"Response already consumed".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1357,7 +1416,7 @@ unsafe extern "C" fn consume_stream(
         throw_dom_exception(
             cx,
             &global,
-            Error::Type("expected Response or Promise resolving to Response".to_string()),
+            Error::Type(c"expected Response or Promise resolving to Response".to_owned()),
             CanGc::note(),
         );
         return false;
@@ -1369,6 +1428,22 @@ unsafe extern "C" fn consume_stream(
 unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usize) {
     error!("Error initializing StreamConsumer: {:?}", unsafe {
         RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
+    });
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn invoke_script_environment_preparer(
+    global: HandleObject,
+    closure: *mut ScriptEnvironmentPreparer_Closure,
+) {
+    let cx = GlobalScope::get_cx();
+    let global = unsafe { GlobalScope::from_object(global.get()) };
+    let ar = enter_realm(&*global);
+
+    run_a_script::<DomTypeHolder, _>(&global, || {
+        if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
+            report_pending_exception(cx, InRealm::Entered(&ar), CanGc::note());
+        };
     });
 }
 

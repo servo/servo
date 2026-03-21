@@ -105,7 +105,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -128,7 +128,7 @@ jobs:
     outputs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+      - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -166,7 +166,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
-          cp -r target/cargo-timings target/cargo-timings-linux
+          mv target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run ./mach smoketest --profile ${{ inputs.profile  }}
       - name: Script tests
@@ -176,6 +176,7 @@ jobs:
         if: ${{ inputs.unit-tests }}
         env:
           NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
+          LANG: en-US
         run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
@@ -194,19 +195,21 @@ jobs:
         if: ${{ false && inputs.unit-tests }} # FIXME #39273
         run: ./mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Build mach package
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-tarball
         with:
           name: ${{ inputs.profile }}-binary-linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
@@ -223,7 +226,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       number-of-wpt-chunks: ${{ inputs. number-of-wpt-chunks }}
-      binary-path: servo/servo
+      binary-path: servo/servoshell
     secrets: inherit
 
   bencher:
@@ -234,7 +237,7 @@ jobs:
       target: "linux"
       profile: ${{ inputs.profile }}
       compressed-file-path: ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
-      binary-path: servo/servo
+      binary-path: servo/servoshell
       file-size: true
       # We only evaluate speedometer and dromaeo score in release
       speedometer: ${{ inputs.profile == 'release' }}
@@ -275,9 +278,17 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.msrv.outputs.rust_version }}
+      # We can remove this after upgrading to Rust 1.90, but for now
+      # installing lld is the easiest way to get it in path.
+      - name: install lld
+        run: sudo apt-get install -y lld
       - name: Compile libservo with MSRV
+        env:
+          # lld seems to use less memory and prevents OOM errors during linking.
+          # We can remove this after upgrading to Rust 1.90, where lld will be the default.
+          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
         run: |
-          cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets
+          cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
 
   # Runs the underlying job (“workload”) on a self-hosted runner if available.
   runner-select-coverage:
@@ -290,7 +301,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -312,7 +323,7 @@ jobs:
     runs-on: ${{ needs.runner-select-coverage.outputs.selected-runner-label }}
     continue-on-error: true
     steps:
-      - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+      - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -356,6 +367,7 @@ jobs:
         shell: bash
         env:
           NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
+          LANG: en-US
         run: |
           ./mach test-unit --code-coverage \
               --profile=${{ steps.options.outputs.cargo_profile }} \
@@ -378,6 +390,15 @@ jobs:
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v5
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Install Dependencies
         run: |
           sudo bash -c 'apt-add-repository -y https://mirrors.kernel.org/ubuntu'
@@ -389,6 +410,7 @@ jobs:
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-ugly \
             gstreamer1.0-tools \
+            jackd2 \
             libasound2-plugins \
             libfaad2 \
             libffi7 \
@@ -429,4 +451,4 @@ jobs:
           gst-inspect-1.0 | grep Total
       - name: Run Examples
         run: |
-          ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p media-examples --example {}
+          ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p servo-media-examples --example {}

@@ -12,6 +12,7 @@ use base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use script_bindings::cformat;
 use servo_media::audio::context::{
     AudioContext, AudioContextOptions, OfflineAudioContextOptions, ProcessingState,
     RealTimeAudioContextOptions,
@@ -250,7 +251,7 @@ impl BaseAudioContext {
             },
             None => {
                 self.take_pending_resume_promises(Err(Error::Type(
-                    "Something went wrong".to_owned(),
+                    c"Something went wrong".to_owned(),
                 )));
                 self.global()
                     .task_manager()
@@ -562,7 +563,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                                 &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
                                 ExceptionHandling::Report, CanGc::note());
                         }
-                        let error = format!("Audio decode error {:?}", error);
+                        let error = cformat!("Audio decode error {:?}", error);
                         resolver.promise.reject_error(Error::Type(error), CanGc::note());
                     }));
                 })

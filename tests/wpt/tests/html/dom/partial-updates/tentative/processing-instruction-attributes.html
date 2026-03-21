@@ -1,0 +1,319 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Processing instruction attributes</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"><?t a=b x="yy"?></div>
+
+<script>
+  function createXMLDocument() {
+    return new DOMParser().parseFromString("<root></root>", "application/xml");
+  }
+  function createProcessingInstruction(source, target, data) {
+    switch (source) {
+      case "DOM":
+        return document.createProcessingInstruction(target, data);
+      case "parser":
+        return document.querySelector("#container").firstChild;
+      case "xml":
+        return createXMLDocument().createProcessingInstruction(target, data);
+    }
+  }
+  for (const source of ["DOM", "parser"]) {
+    test(() => {
+      const pi = createProcessingInstruction(source, "t", 'a=b x="yy"');
+      const mutation_observer = new MutationObserver((records) => {});
+      mutation_observer.observe(pi, { characterData: true, attributes: true });
+      assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
+      assert_equals(pi.target, "t");
+      assert_true(pi.hasAttributes());
+      assert_equals(pi.data, `a=b x="yy"`);
+      assert_array_equals(pi.getAttributeNames(), ["a", "x"]);
+      assert_equals(pi.getAttribute("a"), "b");
+      assert_equals(pi.getAttribute("x"), "yy");
+      assert_equals(pi.getAttribute("X"), "yy");
+      assert_equals(pi.getAttribute("nada"), null);
+      assert_true(pi.hasAttribute("a"));
+      assert_false(pi.hasAttribute("nope"));
+      pi.setAttribute("x", "yy2");
+      let records = mutation_observer.takeRecords();
+      assert_equals(records.length, 1);
+      assert_equals(records[0].type, "characterData");
+      assert_equals(records[0].target, pi);
+      assert_equals(pi.data, `a="b" x="yy2"`);
+      assert_equals(pi.getAttribute("x"), "yy2");
+      pi.removeAttribute("x");
+      records = mutation_observer.takeRecords();
+      assert_equals(records.length, 1);
+      assert_equals(records[0].type, "characterData");
+      assert_equals(records[0].target, pi);
+      assert_equals(pi.getAttribute("x"), null);
+      assert_equals(pi.data, `a="b"`);
+      pi.setAttribute("z", "1");
+      pi.setAttribute("c", "2");
+      records = mutation_observer.takeRecords();
+      assert_equals(records.length, 2);
+      assert_equals(records[0].type, "characterData");
+      assert_equals(records[0].target, pi);
+      assert_equals(records[1].type, "characterData");
+      assert_equals(records[1].target, pi);
+      assert_equals(
+        pi.data,
+        `a="b" z="1" c="2"`,
+        "attributes are added in order",
+      );
+      assert_array_equals(pi.getAttributeNames(), ["a", "z", "c"]);
+      pi.setAttribute("a", "3");
+      assert_equals(
+        pi.data,
+        `a="3" z="1" c="2"`,
+        "setAttribute modifies attributes in place",
+      );
+      assert_array_equals(pi.getAttributeNames(), ["a", "z", "c"]);
+      pi.data = "";
+      assert_false(pi.hasAttributes());
+      assert_array_equals(pi.getAttributeNames(), []);
+      pi.data = "blabla";
+      assert_equals(pi.data, `blabla`);
+      assert_equals(pi.getAttribute("blabla"), "");
+      assert_equals(pi.getAttribute("BLABLA"), "");
+      assert_equals(pi.getAttribute("blaBLA"), "");
+      pi.setAttribute("BLAbla", "value");
+      assert_equals(pi.getAttribute("BLAbla"), "value");
+      assert_equals(pi.getAttribute("blabla"), "value");
+      assert_true(pi.hasAttributes());
+      assert_array_equals(pi.getAttributeNames(), ["blabla"]);
+      pi.removeAttribute("BLABLA");
+      assert_false(pi.hasAttributes());
+      assert_array_equals(pi.getAttributeNames(), []);
+    }, "Processing instruction attribute mutation from " + source);
+  }
+
+  test(() => {
+    const pi = createProcessingInstruction("xml", "t", 'a="b" x="yy"');
+    const mutation_observer = new MutationObserver((records) => {});
+    mutation_observer.observe(pi, { characterData: true, attributes: true });
+    assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
+    assert_equals(pi.target, "t");
+    assert_true(pi.hasAttributes());
+    assert_equals(pi.data, `a="b" x="yy"`);
+    assert_array_equals(pi.getAttributeNames(), ["a", "x"]);
+    assert_equals(pi.getAttribute("a"), "b");
+    assert_equals(pi.getAttribute("x"), "yy");
+    assert_equals(pi.getAttribute("X"), null);
+    assert_equals(pi.getAttribute("nada"), null);
+    assert_true(pi.hasAttribute("a"));
+    assert_false(pi.hasAttribute("nope"));
+    pi.setAttribute("x", "yy2");
+    let records = mutation_observer.takeRecords();
+    assert_equals(records.length, 1);
+    assert_equals(records[0].type, "characterData");
+    assert_equals(records[0].target, pi);
+    assert_equals(pi.data, `a="b" x="yy2"`);
+    assert_equals(pi.getAttribute("x"), "yy2");
+    pi.removeAttribute("x");
+    records = mutation_observer.takeRecords();
+    assert_equals(records.length, 1);
+    assert_equals(records[0].type, "characterData");
+    assert_equals(records[0].target, pi);
+    assert_equals(pi.getAttribute("x"), null);
+    assert_equals(pi.data, `a="b"`);
+    pi.setAttribute("z", "1");
+    pi.setAttribute("c", "2");
+    records = mutation_observer.takeRecords();
+    assert_equals(records.length, 2);
+    assert_equals(records[0].type, "characterData");
+    assert_equals(records[0].target, pi);
+    assert_equals(records[1].type, "characterData");
+    assert_equals(records[1].target, pi);
+    assert_equals(
+      pi.data,
+      `a="b" z="1" c="2"`,
+      "attributes are added in order",
+    );
+    assert_array_equals(pi.getAttributeNames(), ["a", "z", "c"]);
+    pi.setAttribute("a", "3");
+    assert_equals(
+      pi.data,
+      `a="3" z="1" c="2"`,
+      "setAttribute modifies attributes in place",
+    );
+    assert_array_equals(pi.getAttributeNames(), ["a", "z", "c"]);
+    pi.data = "";
+    assert_false(pi.hasAttributes(), "has attributes after resetting data");
+    assert_array_equals(pi.getAttributeNames(), []);
+    pi.data = "blabla=1";
+    assert_equals(pi.data, `blabla=1`);
+    assert_false(pi.hasAttribute("blabla"), "has attributes after setting HTML-style attribute");
+    pi.data = "blabla";
+    assert_equals(pi.data, `blabla`);
+    assert_false(pi.hasAttribute("blabla"), "has attributes after setting HTML-style boolean attribute");
+    pi.setAttribute("BLAbla", "value");
+    assert_equals(pi.getAttribute("BLAbla"), "value");
+    assert_false(pi.hasAttribute("blabla"), "has attribute after setting mixed-case attribute");
+    pi.removeAttribute("BLABLA");
+    assert_true(pi.hasAttributes());
+    assert_array_equals(pi.getAttributeNames(), ["BLAbla"]);
+    pi.removeAttribute("BLAbla");
+    assert_false(pi.hasAttributes(), "has attributes after removing last attribute");
+    assert_array_equals(pi.getAttributeNames(), []);
+  }, "Processing instruction attribute mutation from XML");
+
+  test(() => {
+    const pi = document.createProcessingInstruction(
+      "xml-stylesheet",
+      `type=text/css href=style.css`,
+    );
+    assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
+    assert_equals(pi.target, "xml-stylesheet");
+    assert_equals(pi.data, `type=text/css href=style.css`);
+    assert_true(pi.hasAttributes());
+    assert_equals(pi.getAttribute("type"), "text/css");
+    assert_equals(pi.getAttribute("href"), "style.css");
+    assert_equals(pi.getAttribute("nada"), null);
+    assert_true(pi.hasAttribute("type"));
+    assert_false(pi.hasAttribute("nope"));
+    pi.setAttribute("href", "style2.css");
+    assert_equals(pi.getAttribute("href"), "style2.css");
+    pi.removeAttribute("href");
+    assert_equals(pi.getAttribute("href"), null);
+    assert_array_equals(pi.getAttributeNames(), ["type"]);
+    assert_true(pi.hasAttributes());
+    pi.data = 'type="text/css" href=style3.css';
+    assert_equals(pi.getAttribute("type"), "text/css");
+    assert_equals(pi.getAttribute("href"), "style3.css");
+    assert_array_equals(pi.getAttributeNames(), ["type", "href"]);
+  }, "Processing instruction attributes with xml-stylesheet in HTML document");
+
+  test(() => {
+    const pi = createXMLDocument().createProcessingInstruction(
+      "xml-stylesheet",
+      `type="text/css" href="style.css"`,
+    );
+    assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
+    assert_equals(pi.target, "xml-stylesheet");
+    assert_equals(pi.data, `type="text/css" href="style.css"`);
+    assert_true(pi.hasAttributes());
+    assert_equals(pi.getAttribute("type"), "text/css");
+    assert_equals(pi.getAttribute("href"), "style.css");
+    assert_equals(pi.getAttribute("nada"), null);
+    assert_true(pi.hasAttribute("type"));
+    assert_false(pi.hasAttribute("nope"));
+    pi.setAttribute("href", "style2.css");
+    assert_equals(pi.getAttribute("href"), "style2.css");
+    pi.removeAttribute("href");
+    assert_equals(pi.getAttribute("href"), null);
+    assert_array_equals(pi.getAttributeNames(), ["type"]);
+    assert_true(pi.hasAttributes());
+    pi.data = "type=text/xsl href=style.css";
+    assert_false(pi.hasAttributes());
+    assert_equals(pi.sheet, null);
+  }, "Processing instruction attributes with xml-stylesheet in XML document");
+
+  test(() => {
+    const pi = document.createProcessingInstruction("target", `attr="value"`);
+    assert_equals(pi.nodeType, Node.PROCESSING_INSTRUCTION_NODE);
+    assert_equals(pi.target, "target");
+    assert_equals(pi.getAttribute("attr"), "value", "attribute value before toggling");
+    pi.toggleAttribute("attr", true);
+    assert_equals(pi.getAttribute("attr"), "value", "toggleAttribute(true) does not change existing value");
+    pi.toggleAttribute("attr");
+    assert_false(pi.hasAttribute("attr"), "toggleAttribute() removes attribute");
+    assert_equals(pi.getAttribute("attr"), null);
+    pi.toggleAttribute("attr", false);
+    assert_false(pi.hasAttribute("attr"), "toggleAttribute(false) does not add attribute");
+    assert_equals(pi.getAttribute("attr"), null);
+    pi.toggleAttribute("attr");
+    assert_true(pi.hasAttribute("attr"), "toggleAttribute() adds attribute");
+    assert_equals(pi.getAttribute("attr"), "", "toggleAttribute() adds attribute with empty value");
+    pi.toggleAttribute("attr", true);
+    assert_true(pi.hasAttribute("attr"), "toggleAttribute(true) does not remove attribute");
+    assert_equals(pi.getAttribute("attr"), "");
+  }, "Processing instruction toggleAttribute");
+
+  function test_attribute_value(value) {
+    for (const source of ["DOM", "parser", "xml"]) {
+      test(
+        () => {
+          const pi = createProcessingInstruction(source, "target", "");
+          const element = pi.ownerDocument.createElement("el");
+          pi.setAttribute("attr", value);
+          element.setAttribute("attr", value);
+          assert_equals(pi.getAttribute("attr"), element.getAttribute("attr"));
+          const extracted = element.outerHTML.match(/el\s+([^>]+?)\s*\/?>/);
+          assert_equals(pi.data, extracted[1]);
+        },
+        "check attribute value: " + value + " (source: " + source + ")",
+      );
+    }
+  }
+
+  function test_invalid_attribute_name(name) {
+    test(() => {
+      const pi = document.createProcessingInstruction("target", "");
+      assert_throws_dom("InvalidCharacterError", () => {
+        pi.setAttribute(name, "value");
+      });
+      assert_throws_dom("InvalidCharacterError", () => {
+        pi.toggleAttribute(name, true);
+      });
+      assert_throws_dom("InvalidCharacterError", () => {
+        pi.toggleAttribute(name, false);
+      });
+      assert_throws_dom("InvalidCharacterError", () => {
+        pi.toggleAttribute(name);
+      });
+    }, "Invalid attribute name: " + name);
+  }
+
+  function test_equivalent_attribute_name(name, expected) {
+    for (const source of ["DOM", "parser"]) {
+      test(
+        () => {
+          const pi = createProcessingInstruction(source, "target", "");
+          pi.setAttribute(name, "value");
+          assert_true(pi.hasAttribute(expected));
+          assert_true(pi.hasAttribute(name));
+          assert_equals(pi.getAttribute(expected), "value");
+          pi.removeAttribute(name);
+          assert_false(pi.hasAttribute(name));
+          assert_false(pi.hasAttribute(expected));
+        },
+        "Equivalent attribute name (source: " +
+          source +
+          "): " +
+          name +
+          " -> " +
+          expected,
+      );
+    }
+  }
+
+  test_attribute_value("=");
+  test_attribute_value('axx"');
+  test_attribute_value("axx>");
+  test_attribute_value("some<>");
+  test_attribute_value("'\"\"'");
+  test_attribute_value('aa"aa"');
+
+  test_invalid_attribute_name("=");
+  test_invalid_attribute_name("a=");
+  test_invalid_attribute_name("=x");
+  test_invalid_attribute_name("b>");
+  test_invalid_attribute_name(">");
+  test_invalid_attribute_name(">x");
+  test_invalid_attribute_name("/x/");
+  test_invalid_attribute_name("/");
+  test_invalid_attribute_name("x/");
+  test_invalid_attribute_name("x\t");
+  test_invalid_attribute_name("\tx");
+  test_invalid_attribute_name("x\n");
+  test_invalid_attribute_name("\nx");
+  test_invalid_attribute_name("x\r");
+  test_invalid_attribute_name("\rx");
+
+  test_equivalent_attribute_name("ABC", "abc");
+  test_equivalent_attribute_name("abC", "abc");
+  test_equivalent_attribute_name("x123A", "x123a");
+</script>

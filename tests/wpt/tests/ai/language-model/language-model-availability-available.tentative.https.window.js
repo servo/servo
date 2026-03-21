@@ -27,24 +27,24 @@ promise_test(async () => {
   }
 }, 'LanguageModel.availability() returns available with supported options');
 
-promise_test(async () => {
+promise_test(async t => {
   await ensureLanguageModel();
   // An array of unsupported test options.
   const kUnsupportedCreateOptions = [
-    { expectedInputs: [{type: 'text', languages: ['unk']}] },  // Language not supported.
-    { expectedOutputs: [{type: 'text', languages: ['unk']}] },  // Language not supported.
-    { expectedOutputs: [{type: 'image'}] },  // Type not supported.
-    { expectedOutputs: [{type: 'audio'}] },  // Type not supported.
-    { topK: 0, temperature: 0.5 },  // zero topK not supported.
-    { topK: -3, temperature: 0.5 },  // negative topK not supported.
-    { topK: 3, temperature: -0.5 },  // negative temperature not supported.
-    { topK: 3 },  // topK without temperature not supported.
-    { temperature: 0.5 },  // temperature without topK not supported.
+    {
+      expectedInputs: [{type: 'text', languages: ['unk']}]
+    },  // Language not supported.
+    {
+      expectedOutputs: [{type: 'text', languages: ['unk']}]
+    },                                     // Language not supported.
+    {expectedOutputs: [{type: 'image'}]},  // Type not supported.
+    {expectedOutputs: [{type: 'audio'}]},  // Type not supported.
   ];
   for (const options of kUnsupportedCreateOptions) {
     assert_equals(await LanguageModel.availability(options), 'unavailable', JSON.stringify(options));
+    await promise_rejects_dom(t, 'NotSupportedError', LanguageModel.create(options), JSON.stringify(options));
   }
-}, 'LanguageModel.availability() returns unavailable with unsupported options');
+}, 'LanguageModel.availability() returns unavailable and create() rejects with unsupported options');
 
 promise_test(async t => {
   await ensureLanguageModel();

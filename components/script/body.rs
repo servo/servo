@@ -46,7 +46,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::urlsearchparams::URLSearchParams;
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::SendableTaskSource;
 
@@ -268,35 +268,36 @@ impl TransmitBodyConnectHandler {
         }
 
         self.task_source.queue(
-            task!(setup_native_body_promise_handler: move || {
+            task!(setup_native_body_promise_handler: move |cx| {
                 let rooted_stream = stream.root();
                 let global = rooted_stream.global();
-                let cx = GlobalScope::get_cx();
 
                 // Step 4, the result of reading a chunk from body’s stream with reader.
-                let promise = rooted_stream.read_a_chunk(CanGc::note());
+                let promise = rooted_stream.read_a_chunk(cx);
 
                 // Step 5, the parallel steps waiting for and handling the result of the read promise,
                 // are a combination of the promise native handler here,
                 // and the corresponding IPC route in `component::net::http_loader`.
-                rooted!(in(*cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
+                rooted!(&in(cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
-                    stream: Dom::from_ref(&rooted_stream.clone()),
+                    stream: Dom::from_ref(&rooted_stream),
                     control_sender: control_sender.clone().unwrap(),
                 }));
 
-                rooted!(in(*cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
+                rooted!(&in(cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
-                    stream: Dom::from_ref(&rooted_stream.clone()),
+                    stream: Dom::from_ref(&rooted_stream),
                     control_sender: control_sender.unwrap(),
                 }));
 
                 let handler =
-                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::note());
+                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::from_cx(cx));
 
-                let realm = enter_realm(&*global);
-                let comp = InRealm::Entered(&realm);
-                promise.append_native_handler(&handler, comp, CanGc::note());
+                let mut realm = enter_auto_realm(cx, &*global);
+                let realm = &mut realm.current_realm();
+                let in_realm_proof = realm.into();
+                let comp = InRealm::Already(&in_realm_proof);
+                promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
             })
         );
     }
@@ -307,11 +308,9 @@ impl TransmitBodyConnectHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransmitBodyPromiseHandler {
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
     stream: Dom<ReadableStream>,
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
 }
@@ -366,11 +365,9 @@ impl Callback for TransmitBodyPromiseHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct TransmitBodyPromiseRejectionHandler {
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
     stream: Dom<ReadableStream>,
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
 }
@@ -531,13 +528,13 @@ impl Extractable for BodyInit {
                 // If keepalive is true, then throw a TypeError.
                 if keep_alive {
                     return Err(Error::Type(
-                        "The body's stream is for a keepalive request".to_string(),
+                        c"The body's stream is for a keepalive request".to_owned(),
                     ));
                 }
                 // If object is disturbed or locked, then throw a TypeError.
                 if stream.is_locked() || stream.is_disturbed() {
                     return Err(Error::Type(
-                        "The body's stream is disturbed or locked".to_string(),
+                        c"The body's stream is disturbed or locked".to_owned(),
                     ));
                 }
 
@@ -706,7 +703,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {
         promise.reject_error(
-            Error::Type("The body's stream is disturbed or locked".to_string()),
+            Error::Type(c"The body's stream is disturbed or locked".to_owned()),
             can_gc,
         );
         return promise;
@@ -951,7 +948,7 @@ fn content_type_from_headers(headers: &HeaderMap) -> Result<String, Error> {
     match headers.get(CONTENT_TYPE) {
         Some(value) => Ok(value
             .to_str()
-            .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?
+            .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?
             .to_string()),
         None => Ok("text/plain".to_string()),
     }
@@ -1007,7 +1004,7 @@ fn append_multipart_nodes(
             },
             Node::File(file_part) => {
                 let body = fs::read(&file_part.path)
-                    .map_err(|_| Error::Type("file part could not be read".to_string()))?;
+                    .map_err(|_| Error::Type(c"file part could not be read".to_owned()))?;
                 append_form_data_entry_from_part(root, formdata, &file_part.headers, body, can_gc)?;
             },
             Node::Multipart((_, inner)) => {
@@ -1030,7 +1027,7 @@ fn run_form_data_algorithm(
     let mime_str = str::from_utf8(mime).unwrap_or_default();
     let mime: Mime = mime_str
         .parse()
-        .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+        .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?;
 
     // Let mimeType be the result of get the MIME type with this.
     //
@@ -1044,7 +1041,7 @@ fn run_form_data_algorithm(
             CONTENT_TYPE,
             mime_str
                 .parse()
-                .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?,
+                .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?,
         );
 
         if let Some(boundary) = mime.get_param(mime::BOUNDARY) {
@@ -1059,7 +1056,7 @@ fn run_form_data_algorithm(
         let mut cursor = Cursor::new(bytes);
         // If that fails for some reason, then throw a TypeError.
         let nodes = read_multipart_body(&mut cursor, &headers, false)
-            .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+            .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?;
         // The above is a rough approximation of what is needed for `multipart/form-data`,
         // a more detailed parsing specification is to be written. Volunteers welcome.
 
@@ -1085,7 +1082,7 @@ fn run_form_data_algorithm(
     }
 
     // Throw a TypeError.
-    Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
+    Err(Error::Type(c"Inappropriate MIME-type for Body".to_owned()))
 }
 
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A1>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>moveBefore() moving display:inline element whose box becomes a flex item</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="new_parent" style="width: 100px; display: flex"></div>
+<div>
+  <div id="mv" style="display: contents">
+    <div style="display: inline; background: green; height: 100px; flex-grow: 1"></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  new_parent.moveBefore(mv, null);
+</script>

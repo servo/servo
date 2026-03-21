@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const big = document.getElementById("id_0")
+    const optgroup = document.getElementById("id_1")
+    const select1 = document.getElementById("id_2")
+    const select2 = document.getElementById("id_3")
+    const range = new Range()
+    const staticRange = new StaticRange({
+        "startContainer": select1,
+        "startOffset": (1916085768 % select1.childNodes.length || 0),
+        "endContainer": select2,
+        "endOffset": (344171980 % select2.childNodes.length || 0)
+    })
+    const highlight = new Highlight(staticRange, range, range)
+    CSS.highlights.set("custom_highlight_3", highlight)
+    range.setStartBefore(big)
+    range.setEndAfter(optgroup)
+    range.extractContents()
+    range.setEnd(big, (3581404846 % big.childNodes.length || 0))
+});
+</script>
+</head>
+<big id="id_0"></big>
+<select id="id_2">
+    <option></option>
+    <optgroup id="id_1"></optgroup>
+</select>
+<select id="id_3"></select>
+</html>

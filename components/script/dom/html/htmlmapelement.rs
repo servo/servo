@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLMapElementBinding::HTMLMapElementMethods;
@@ -67,7 +68,7 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
     make_atomic_setter!(SetName, "name");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-map-areas>
-    fn Areas(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Areas(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         // The areas attribute must return an HTMLCollection rooted at the map element, whose filter
         // matches only area elements.
         self.areas.or_init(|| {
@@ -75,7 +76,7 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
                 &self.owner_window(),
                 self.upcast(),
                 |element, _| element.is::<HTMLAreaElement>(),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         })
     }

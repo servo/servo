@@ -28,6 +28,17 @@ updates:
         - "emath"
         - "epaint"
         - "epaint_default_fonts"
+    futures-rs-related:
+      patterns:
+        - "futures"
+        - "futures-channel"
+        - "futures-core"
+        - "futures-executor"
+        - "futures-io"
+        - "futures-macro"
+        - "futures-sink"
+        - "futures-task"
+        - "futures-util"
     gstreamer-related:
       patterns:
         - "gio*"
@@ -91,7 +102,6 @@ updates:
   - dependency-name: servo_arc
   - dependency-name: stylo
   - dependency-name: stylo_atoms
-  - dependency-name: stylo_config
   - dependency-name: stylo_derive
   - dependency-name: stylo_dom
   - dependency-name: stylo_malloc_size_of

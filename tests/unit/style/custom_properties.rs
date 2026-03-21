@@ -11,15 +11,16 @@ use style::custom_properties::{
     ComputedCustomProperties, CustomPropertiesBuilder, DeferFontRelativeCustomPropertyResolution,
     Name, SpecifiedValue,
 };
-use style::dom::DummyAttributeProvider;
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
+use style::dom::AttributeTracker;
 use style::font_metrics::FontMetrics;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::MediaType;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
 use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
-use style::servo::media_queries::FontMetricsProvider;
 use style::stylesheets::UrlExtraData;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -60,7 +61,7 @@ fn cascade(
             let mut parser = Parser::new(&mut input);
             let name = Name::from(name);
             let value = CustomDeclarationValue::Unparsed(Arc::new(
-                SpecifiedValue::parse(&mut parser, &dummy_url_data).unwrap(),
+                SpecifiedValue::parse(&mut parser, None, &dummy_url_data).unwrap(),
             ));
             CustomDeclaration { name, value }
         })
@@ -87,18 +88,17 @@ fn cascade(
         ContainerSizeQuery::none(),
     );
     let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
+    let priority =
+        CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root());
+    let mut attribute_tracker = AttributeTracker::new_dummy();
 
     for declaration in &declarations {
-        builder.cascade(
-            declaration,
-            CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root()),
-            &DummyAttributeProvider,
-        );
+        builder.cascade(declaration, priority, &mut attribute_tracker);
     }
 
     builder.build(
         DeferFontRelativeCustomPropertyResolution::No,
-        &DummyAttributeProvider,
+        &mut attribute_tracker,
     );
     context.builder.custom_properties
 }

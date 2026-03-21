@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -14,7 +15,6 @@ use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
 
@@ -36,6 +36,7 @@ impl TestWorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        cx: &mut JSContext,
     ) -> DomRoot<TestWorkletGlobalScope> {
         debug!(
             "Creating test worklet global scope for pipeline {}.",
@@ -52,7 +53,7 @@ impl TestWorkletGlobalScope {
             ),
             lookup_table: Default::default(),
         });
-        TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global)
+        TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global)
     }
 
     pub(crate) fn perform_a_worklet_task(&self, task: TestWorkletTask) {

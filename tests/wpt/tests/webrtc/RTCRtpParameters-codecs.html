@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCRtpParameters codecs</title>
 <script src="/resources/testharness.js"></script>
@@ -9,7 +11,10 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script src="./third_party/sdp/sdp.js"></script>
 <script>
-  'use strict';
+'use strict';
+
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -138,6 +143,9 @@
           with a newly created InvalidModificationError. Note that this also applies
           to transactionId.
    */
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -291,6 +299,10 @@
       sender.setParameters(param));
   }, `setParameters() with codecs reordered should reject with InvalidModificationError (${kind})`);
 
+}
+
+if (rest) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -423,6 +435,10 @@
     checkCodecsAgainstSDP(codecs, sections[1]);
   }, `RTCRtpReceiver.getParameters() codecs should match local SDP (${kind}, offerer)`);
 
+}
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -436,6 +452,9 @@
     const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
     checkCodecsAgainstSDP(codecs, sections[1]);
   }, `RTCRtpReceiver.getParameters() codecs should match local SDP (${kind}, answerer)`);
+
+}
+
 });
 
   // SDP with unusual payload types and fmtp, and an unknown codec
@@ -545,6 +564,8 @@ a=rtpmap:118 rtx/90000
     },
   ];
 
+if (rest) {
+
   remoteSdpParamsTests.forEach(test => {
     promise_test(async t => {
       const pc = new RTCPeerConnection();
@@ -568,5 +589,7 @@ a=rtpmap:118 rtx/90000
       compareCodecParams(codecs, test.expectedCodecs);
     }, `RTCRtpSender.getParameters() codecs should match remote SDP (${test.description}, answerer)`);
   });
+
+}
 
 </script>

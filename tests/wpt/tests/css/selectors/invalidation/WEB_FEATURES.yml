@@ -17,7 +17,7 @@ features:
   - "any-link-*"
 - name: media-pseudos
   files:
-  - media-loading-pseudo-classes-in-has.html
+  - media-loading-pseudo-classes-in-has.sub.html
   - media-pseudo-classes-in-has.html
 - name: modal
   files:

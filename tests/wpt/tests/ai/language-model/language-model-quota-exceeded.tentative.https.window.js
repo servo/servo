@@ -11,18 +11,11 @@ promise_test(async t => {
 
   // Start a new session to get the max tokens.
   const session = await createLanguageModel();
-  const inputQuota = session.inputQuota;
-  const initialPrompt = kTestPrompt.repeat(inputQuota);
-  const measuredUsage = await session.measureInputUsage(initialPrompt);
-
-  assert_greater_than(
-      measuredUsage, inputQuota,
-      'Measured usage should be greater than inputQuota');
-
+  const contextWindow = session.contextWindow;
+  const initialPrompt = kTestPrompt.repeat(contextWindow);
+  const usage = await session.measureContextUsage(initialPrompt);
+  assert_greater_than(usage, contextWindow);
   const promise = createLanguageModel(
       { initialPrompts: [ { role: "system", content: initialPrompt } ] });
-  // Measured and actual usage may vary slightly for delimiter tokens.
-  await promise_rejects_quotaexceedederror(t, promise, (actual) => {
-    return isValueInRange(actual, measuredUsage);
-  }, inputQuota);
+  await promise_rejects_quotaexceedederror(t, promise, usage, contextWindow);
 }, 'QuotaExceededError is thrown when initial prompts are too large.');

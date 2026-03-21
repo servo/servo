@@ -15,7 +15,7 @@ pub(crate) struct UrlHelper;
 #[expect(non_snake_case)]
 impl UrlHelper {
     pub(crate) fn Origin(url: &ServoUrl) -> USVString {
-        USVString(quirks::origin(url.as_url()).to_owned())
+        USVString(quirks::origin(url.as_url()))
     }
     pub(crate) fn Href(url: &ServoUrl) -> USVString {
         USVString(quirks::href(url.as_url()).to_owned())

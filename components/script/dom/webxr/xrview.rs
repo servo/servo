@@ -29,7 +29,6 @@ pub(crate) struct XRView {
     viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
     proj: HeapBufferSource<Float32>,
-    #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     view: View<ApiSpace>,
     transform: Dom<XRRigidTransform>,

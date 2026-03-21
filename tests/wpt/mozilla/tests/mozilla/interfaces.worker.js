@@ -80,6 +80,7 @@ test_interfaces([
   "GPUValidationError",
   "Headers",
   "History",
+  "IDBFactory",
   "ImageBitmap",
   "ImageBitmapRenderingContext",
   "ImageData",

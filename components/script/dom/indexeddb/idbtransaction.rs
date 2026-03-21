@@ -3,15 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use base::generic_channel::{GenericSend, GenericSender};
+use base::id::ScriptEventLoopId;
 use dom_struct::dom_struct;
+use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use storage_traits::indexeddb::{IndexedDBIndex, IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{
+    IndexedDBIndex, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation, TxnCompleteMsg,
+};
 use stylo_atoms::Atom;
-use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
@@ -20,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBIndexPara
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
 };
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -45,25 +48,37 @@ pub struct IDBTransaction {
     error: MutNullableDom<DOMException>,
 
     store_handles: DomRefCell<HashMap<String, Dom<IDBObjectStore>>>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-request-list
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-request-list
     requests: DomRefCell<Vec<Dom<IDBRequest>>>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-active-flag
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-active-flag
     active: Cell<bool>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-finish
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-finish
     finished: Cell<bool>,
+    abort_initiated: Cell<bool>,
+    abort_requested: Cell<bool>,
+    committing: Cell<bool>,
+    version_change_old_version: Cell<Option<u64>>,
+    // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+    // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
+    version_change_old_object_store_names: DomRefCell<Option<Vec<DOMString>>>,
+    // https://w3c.github.io/IndexedDB/#transaction-concept
+    // “A transaction optionally has a cleanup event loop which is an event loop.”
+    #[no_trace]
+    cleanup_event_loop: Cell<Option<ScriptEventLoopId>>,
+    registered_in_global: Cell<bool>,
     // Tracks how many IDBRequest instances are still pending for this
     // transaction. The value is incremented when a request is added to the
     // transaction’s request list and decremented once the request has
     // finished.
     pending_request_count: Cell<usize>,
+    next_request_id: Cell<u64>,
+    // Smallest request_id that has not yet been marked handled (all < this are handled).
+    next_unhandled_request_id: Cell<u64>,
+    handled_pending: DomRefCell<HashSet<u64>>,
 
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
     serial_number: u64,
-
-    /// The id of the associated open request, if any.
-    #[no_trace]
-    open_request_id: Option<Uuid>,
 }
 
 impl IDBTransaction {
@@ -72,7 +87,6 @@ impl IDBTransaction {
         mode: IDBTransactionMode,
         scope: &DOMStringList,
         serial_number: u64,
-        open_request_id: Option<Uuid>,
     ) -> IDBTransaction {
         IDBTransaction {
             eventtarget: EventTarget::new_inherited(),
@@ -85,14 +99,25 @@ impl IDBTransaction {
             requests: Default::default(),
             active: Cell::new(true),
             finished: Cell::new(false),
+            abort_initiated: Cell::new(false),
+            abort_requested: Cell::new(false),
+            committing: Cell::new(false),
+            version_change_old_version: Cell::new(None),
+            version_change_old_object_store_names: DomRefCell::new(
+                (mode == IDBTransactionMode::Versionchange)
+                    .then(|| connection.object_store_names_snapshot()),
+            ),
+            cleanup_event_loop: Cell::new(None),
+            registered_in_global: Cell::new(false),
             pending_request_count: Cell::new(0),
+            next_request_id: Cell::new(0),
+            next_unhandled_request_id: Cell::new(0),
+            handled_pending: Default::default(),
             serial_number,
-            open_request_id,
         }
     }
 
-    /// Does a blocking call to get an id from the backend.
-    /// TODO: remove in favor of something like `new_with_id` below.
+    /// Does a blocking call to create a backend transaction and get its id.
     pub fn new(
         global: &GlobalScope,
         connection: &IDBDatabase,
@@ -100,30 +125,17 @@ impl IDBTransaction {
         scope: &DOMStringList,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
-        let serial_number = IDBTransaction::register_new(global, connection.get_name());
-        reflect_dom_object(
-            Box::new(IDBTransaction::new_inherited(
-                connection,
-                mode,
-                scope,
-                serial_number,
-                None,
-            )),
-            global,
-            can_gc,
-        )
+        let serial_number =
+            IDBTransaction::create_transaction(global, connection.get_name(), mode, scope);
+        IDBTransaction::new_with_serial(global, connection, mode, scope, serial_number, can_gc)
     }
 
-    /// Create a new WebIDL object,
-    /// based on an existign transaction on the backend.
-    /// The two are linked via the `transaction_id`.
-    pub(crate) fn new_with_id(
+    pub(crate) fn new_with_serial(
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
         scope: &DOMStringList,
-        transaction_id: u64,
-        open_request_id: Option<Uuid>,
+        serial_number: u64,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         reflect_dom_object(
@@ -131,50 +143,204 @@ impl IDBTransaction {
                 connection,
                 mode,
                 scope,
-                transaction_id,
-                open_request_id,
+                serial_number,
             )),
             global,
             can_gc,
         )
     }
 
-    // Registers a new transaction in the idb thread, and gets an unique serial number in return.
-    // The serial number is used when placing requests against a transaction
-    // and allows us to commit/abort transactions running in our idb thread.
-    // FIXME:(rasviitanen) We could probably replace this with a channel instead,
-    // and queue requests directly to that channel.
-    fn register_new(global: &GlobalScope, db_name: DOMString) -> u64 {
+    fn create_transaction(
+        global: &GlobalScope,
+        db_name: DOMString,
+        mode: IDBTransactionMode,
+        scope: &DOMStringList,
+    ) -> u64 {
+        let backend_mode = match mode {
+            IDBTransactionMode::Readonly => IndexedDBTxnMode::Readonly,
+            IDBTransactionMode::Readwrite => IndexedDBTxnMode::Readwrite,
+            IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
+        };
+        let scope: Vec<String> = (0..scope.Length())
+            .filter_map(|i| scope.Item(i))
+            .map(|name| name.to_string())
+            .collect();
         let (sender, receiver) = channel(global.time_profiler_chan().clone()).unwrap();
 
         global
             .storage_threads()
-            .send(IndexedDBThreadMsg::Sync(SyncOperation::RegisterNewTxn(
+            .send(IndexedDBThreadMsg::Sync(SyncOperation::CreateTransaction {
                 sender,
-                global.origin().immutable().clone(),
-                db_name.to_string(),
-            )))
-            .unwrap();
+                origin: global.origin().immutable().clone(),
+                db_name: db_name.to_string(),
+                mode: backend_mode,
+                scope,
+            }))
+            .expect("Failed to send IndexedDBThreadMsg::Sync");
 
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().expect("CreateTransaction failed")
     }
 
+    /// <https://w3c.github.io/IndexedDB/#transaction-lifecycle>
     pub fn set_active_flag(&self, status: bool) {
+        // inactive
+        // A transaction is in this state after control returns to the event loop after its creation,
+        //  and when events are not being dispatched.
+        // No requests can be made against the transaction when it is in this state.
         self.active.set(status);
-        // When the transaction becomes inactive and no requests are pending,
-        // it can transition to the finished state.
-        if !status && self.pending_request_count.get() == 0 && !self.finished.get() {
-            self.finished.set(true);
-            self.dispatch_complete();
-        }
     }
 
     pub fn is_active(&self) -> bool {
         self.active.get()
     }
 
-    pub fn is_finished(&self) -> bool {
+    /// <https://w3c.github.io/IndexedDB/#transaction-lifetime>
+    pub(crate) fn is_usable(&self) -> bool {
+        // A transaction can be aborted at any time before it is finished,
+        //  even if the transaction isn’t currently active or hasn’t yet started.
+        // An explicit call to abort() will initiate an abort.
+        // An abort will also be initiated following a failed request that is not handled by script.
+        !self.finished.get() && !self.abort_initiated.get() && !self.committing.get()
+    }
+
+    pub(crate) fn is_finished(&self) -> bool {
         self.finished.get()
+    }
+
+    pub(crate) fn set_cleanup_event_loop(&self) {
+        // https://w3c.github.io/IndexedDB/#transaction-concept
+        // A transaction optionally has a cleanup event loop which is an event loop.
+        self.cleanup_event_loop.set(ScriptEventLoopId::installed());
+    }
+
+    pub(crate) fn clear_cleanup_event_loop(&self) {
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        // Clear transaction’s cleanup event loop.
+        self.cleanup_event_loop.set(None);
+    }
+
+    pub(crate) fn cleanup_event_loop_matches_current(&self) -> bool {
+        match ScriptEventLoopId::installed() {
+            Some(current) => self.cleanup_event_loop.get() == Some(current),
+            None => false,
+        }
+    }
+
+    pub(crate) fn set_registered_in_global(&self) {
+        self.registered_in_global.set(true);
+    }
+
+    pub(crate) fn clear_registered_in_global(&self) {
+        self.registered_in_global.set(false);
+    }
+
+    pub(crate) fn set_versionchange_old_version(&self, version: u64) {
+        self.version_change_old_version.set(Some(version));
+    }
+
+    fn attempt_commit(&self) -> bool {
+        let this = Trusted::new(self);
+        let global = self.global();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+
+        // TODO: Reuse a shared transaction callback path (similar to IDBFactory
+        // connection callbacks) instead of creating one per transaction operation.
+        let callback = GenericCallback::new(
+            global.time_profiler_chan().clone(),
+            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
+                let this = this.clone();
+                let task_source = task_source.clone();
+                task_source.queue(task!(handle_commit_result: move || {
+                    let this = this.root();
+                    let message = message.expect("Could not unwrap message");
+                    match message.result {
+                        Ok(()) => {
+                            this.finalize_commit();
+                        }
+                        Err(_err) => {
+                             // TODO: Map backend commit/rollback failure to an appropriate DOMException
+                            this.initiate_abort(Error::Operation(None), CanGc::note());
+
+                            this.finalize_abort();
+                        }
+                    }
+                    // TODO: https://w3c.github.io/IndexedDB/#commit-a-transaction
+                    // Backend commit/rollback is not yet atomic.
+                }));
+            },
+        )
+        .expect("Could not create callback");
+
+        let commit_operation = SyncOperation::Commit(
+            callback,
+            global.origin().immutable().clone(),
+            self.db.get_name().to_string(),
+            self.serial_number,
+        );
+
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // When committing, the transaction state is set to committing.
+        let send_result = self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(commit_operation));
+        if send_result.is_err() {
+            return false;
+        }
+
+        self.committing.set(true);
+        true
+    }
+
+    pub(crate) fn maybe_commit(&self) {
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 5: transaction when all requests
+        //  placed against the transaction have completed and their returned results handled,
+        //  no new requests have been placed against the transaction, and the transaction has
+        //  not been aborted.
+        let finished = self.finished.get();
+        let abort_initiated = self.abort_initiated.get();
+        let committing = self.committing.get();
+        let active = self.active.get();
+        let pending_request_count = self.pending_request_count.get();
+        let next_unhandled_request_id = self.next_unhandled_request_id.get();
+        let issued_count = self.issued_count();
+        if finished || abort_initiated || committing {
+            return;
+        }
+        if active || pending_request_count != 0 {
+            return;
+        }
+        if next_unhandled_request_id != issued_count {
+            return;
+        }
+        if !self.attempt_commit() {
+            // We failed to initiate the commit algorithm (backend task could not be queued),
+            // so the transaction cannot progress to a successful "complete".
+            // Choose the most appropriate DOMException mapping for Servo here.
+            self.initiate_abort(Error::InvalidState(None), CanGc::note());
+            self.finalize_abort();
+        }
+    }
+
+    fn force_commit(&self) {
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // An explicit call to commit() will initiate a commit without waiting for request results
+        //  to be handled by script.
+        //
+        // This differs from automatic commit:
+        // The implementation must attempt to commit an inactive transaction when all requests
+        // placed against the transaction have completed and their returned results handled,
+        // no new requests have been placed against the transaction, and the transaction has not been aborted
+        if self.finished.get() || self.abort_initiated.get() || self.committing.get() {
+            return;
+        }
+        if self.active.get() || self.pending_request_count.get() != 0 {
+            return;
+        }
+        self.attempt_commit();
     }
 
     pub fn get_mode(&self) -> IDBTransactionMode {
@@ -189,6 +355,34 @@ impl IDBTransaction {
         self.serial_number
     }
 
+    pub(crate) fn issued_count(&self) -> u64 {
+        self.next_request_id.get()
+    }
+
+    /// request_id is only required to be unique within this transaction.
+    /// The backend keys “handled” state by (txn, request_id).
+    pub(crate) fn allocate_request_id(&self) -> u64 {
+        let id = self.next_request_id.get();
+        self.next_request_id.set(id + 1);
+        id
+    }
+
+    pub(crate) fn mark_request_handled(&self, request_id: u64) {
+        let current = self.next_unhandled_request_id.get();
+        if request_id == current {
+            let mut next = current + 1;
+            {
+                let mut pending = self.handled_pending.borrow_mut();
+                while pending.remove(&next) {
+                    next += 1;
+                }
+            }
+            self.next_unhandled_request_id.set(next);
+        } else if request_id > current {
+            self.handled_pending.borrow_mut().insert(request_id);
+        }
+    }
+
     pub fn add_request(&self, request: &IDBRequest) {
         self.requests.borrow_mut().push(Dom::from_ref(request));
         // Increase the number of outstanding requests so that we can detect when
@@ -197,20 +391,178 @@ impl IDBTransaction {
             .set(self.pending_request_count.get() + 1);
     }
 
-    /// Must be called by an `IDBRequest` when it finishes (either success or
-    /// error). When the last pending request has completed and the transaction
-    /// is no longer active, the `"complete"` event is dispatched and any
-    /// associated `IDBOpenDBRequest` `"success"` event is fired afterwards.
     pub fn request_finished(&self) {
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // finished
+        // Once a transaction has committed or aborted, it enters this state.
+        // No requests can be made against the transaction when it is in this state.
         if self.pending_request_count.get() == 0 {
             return;
         }
         let remaining = self.pending_request_count.get() - 1;
         self.pending_request_count.set(remaining);
+    }
 
-        if remaining == 0 && !self.active.get() && !self.finished.get() {
-            self.finished.set(true);
-            self.dispatch_complete();
+    pub(crate) fn initiate_abort(&self, error: Error, can_gc: CanGc) {
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 4: An abort will also be initiated following a failed request that is not handled by script.
+        // A transaction can be aborted at any time before it is finished,
+        // even if the transaction isn’t currently active or hasn’t yet started.
+        if self.finished.get() || self.abort_initiated.get() {
+            return;
+        }
+        if self.mode == IDBTransactionMode::Versionchange {
+            // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+            // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
+            // or the empty set if database was newly created.
+            if let Some(names) = self
+                .version_change_old_object_store_names
+                .borrow()
+                .as_ref()
+                .cloned()
+            {
+                self.db.restore_object_store_names(names);
+            }
+        }
+        self.abort_initiated.set(true);
+        // https://w3c.github.io/IndexedDB/#transaction-concept
+        // A transaction has a error which is set if the transaction is aborted.
+        // NOTE: Implementors need to keep in mind that the value "null" is considered an error, as it is set from abort()
+        if self.error.get().is_none() {
+            if let Ok(exception) = create_dom_exception(&self.global(), error, can_gc) {
+                self.error.set(Some(&exception));
+            }
+        }
+    }
+
+    pub(crate) fn request_backend_abort(&self) {
+        if self.abort_requested.get() {
+            return;
+        }
+        self.abort_requested.set(true);
+        let this = Trusted::new(self);
+        let global = self.global();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+        let callback = GenericCallback::new(
+            global.time_profiler_chan().clone(),
+            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
+                let this = this.clone();
+                let task_source = task_source.clone();
+                task_source.queue(task!(handle_abort_result: move || {
+                    let this = this.root();
+                    let _ = message.expect("Could not unwrap message");
+                    this.finalize_abort();
+                }));
+            },
+        )
+        .expect("Could not create callback");
+        let operation = SyncOperation::Abort(
+            callback,
+            global.origin().immutable().clone(),
+            self.db.get_name().to_string(),
+            self.serial_number,
+        );
+        let _ = self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(operation));
+    }
+
+    fn notify_backend_transaction_finished(&self) {
+        let global = self.global();
+        let _ = self.get_idb_thread().send(IndexedDBThreadMsg::Sync(
+            SyncOperation::TransactionFinished {
+                origin: global.origin().immutable().clone(),
+                db_name: self.db.get_name().to_string(),
+                txn: self.serial_number,
+            },
+        ));
+    }
+
+    pub(crate) fn finalize_abort(&self) {
+        if self.finished.get() {
+            return;
+        }
+        self.committing.set(false);
+        let this = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(send_abort_notification: move || {
+                let this = this.root();
+                this.active.set(false);
+                if this.mode == IDBTransactionMode::Versionchange {
+                    if let Some(old_version) = this.version_change_old_version.get() {
+                        // IndexedDB §5.8 "Aborting an upgrade transaction":
+                        // set connection's version to database's version (or 0 if newly created).
+                        // Spec note: this reverts the value of `IDBDatabase.version`.
+                        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+                        this.db.set_version(old_version);
+                    }
+                    this.db.clear_upgrade_transaction(&this);
+                }
+                let global = this.global();
+                let event = Event::new(
+                    &global,
+                    Atom::from("abort"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    CanGc::note(),
+                );
+                event.fire(this.upcast(), CanGc::note());
+                if this.mode == IDBTransactionMode::Versionchange {
+                    this.global()
+                        .get_indexeddb()
+                        .clear_open_request_transaction_for_txn(&this);
+                    let origin = this.global().origin().immutable().clone();
+                    let db_name = this.db.get_name().to_string();
+                    let txn = this.serial_number;
+                    let _ = this.get_idb_thread().send(IndexedDBThreadMsg::Sync(
+                        SyncOperation::UpgradeTransactionFinished {
+                            origin,
+                            db_name,
+                            txn,
+                            committed: false,
+                        },
+                    ));
+                }
+                // https://w3c.github.io/IndexedDB/#transaction-lifetime
+                // Step 6: When a transaction is committed or aborted, its state is set to finished.
+                this.finished.set(true);
+                this.version_change_old_version.set(None);
+                this.version_change_old_object_store_names.borrow_mut().take();
+                this.notify_backend_transaction_finished();
+                if this.registered_in_global.get() {
+                    this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
+                }
+            }));
+    }
+
+    pub(crate) fn finalize_commit(&self) {
+        if self.finished.get() {
+            return;
+        }
+        self.committing.set(false);
+        self.version_change_old_version.set(None);
+        self.version_change_old_object_store_names
+            .borrow_mut()
+            .take();
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 6: When a transaction is committed or aborted, its state is set to finished.
+        self.finished.set(true);
+        if self.mode == IDBTransactionMode::Versionchange {
+            self.db.clear_upgrade_transaction(self);
+        }
+        // Queue the "complete" event before unblocking later transactions in the backend.
+        // This preserves event ordering for overlapping transactions created on the same connection
+        self.dispatch_complete();
+        self.notify_backend_transaction_finished();
+        if self.registered_in_global.get() {
+            self.global()
+                .get_indexeddb()
+                .unregister_indexeddb_transaction(self);
         }
     }
 
@@ -229,6 +581,22 @@ impl IDBTransaction {
                     CanGc::note()
                 );
                 event.fire(this.upcast(), CanGc::note());
+                if this.mode == IDBTransactionMode::Versionchange {
+                    this.global()
+                        .get_indexeddb()
+                        .clear_open_request_transaction_for_txn(&this);
+                    let origin = this.global().origin().immutable().clone();
+                    let db_name = this.db.get_name().to_string();
+                    let txn = this.serial_number;
+                    let _ = this.get_idb_thread().send(IndexedDBThreadMsg::Sync(
+                        SyncOperation::UpgradeTransactionFinished {
+                            origin,
+                            db_name,
+                            txn,
+                            committed: true,
+                        },
+                    ));
+                }
             }),
         );
     }
@@ -240,7 +608,7 @@ impl IDBTransaction {
     fn object_store_parameters(
         &self,
         object_store_name: &DOMString,
-    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>)> {
+    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>, Option<i32>)> {
         let global = self.global();
         let idb_sender = global.storage_threads().sender();
         let (sender, receiver) =
@@ -250,12 +618,7 @@ impl IDBTransaction {
         let db_name = self.db.get_name().to_string();
         let object_store_name = object_store_name.to_string();
 
-        let operation = SyncOperation::GetObjectStore(
-            sender,
-            origin.clone(),
-            db_name.clone(),
-            object_store_name.clone(),
-        );
+        let operation = SyncOperation::GetObjectStore(sender, origin, db_name, object_store_name);
 
         let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 
@@ -266,10 +629,10 @@ impl IDBTransaction {
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
         let key_path = object_store.key_path.map(|key_path| match key_path {
-            KeyPath::String(s) => StringOrStringSequence::String(DOMString::from_string(s)),
-            KeyPath::Sequence(seq) => StringOrStringSequence::StringSequence(
-                seq.into_iter().map(DOMString::from_string).collect(),
-            ),
+            KeyPath::String(string) => StringOrStringSequence::String(string.into()),
+            KeyPath::Sequence(seq) => {
+                StringOrStringSequence::StringSequence(seq.into_iter().map(Into::into).collect())
+            },
         });
         Some((
             IDBObjectStoreParameters {
@@ -277,25 +640,33 @@ impl IDBTransaction {
                 keyPath: key_path,
             },
             object_store.indexes,
+            object_store.key_generator_current_number,
         ))
     }
 }
 
 impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-db>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-db>
     fn Db(&self) -> DomRoot<IDBDatabase> {
         DomRoot::from_ref(&*self.db)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstore>
     fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
-        if self.finished.get() {
+        if self.finished.get() || self.abort_initiated.get() {
             return Err(Error::InvalidState(None));
         }
 
-        // Step 2: Check that the object store exists
-        if !self.object_store_names.Contains(name.clone()) {
+        // Step 2: Check that the object store exists in this transaction's scope.
+        // For versionchange transactions, the scope tracks object store changes
+        // performed during the upgrade.
+        let in_scope = if self.mode == IDBTransactionMode::Versionchange {
+            self.db.object_store_exists(&name)
+        } else {
+            self.object_store_names.Contains(name.clone())
+        };
+        if !in_scope {
             return Err(Error::NotFound(None));
         }
 
@@ -311,14 +682,17 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             &self.global(),
             self.db.get_name(),
             name.clone(),
-            parameters.as_ref().map(|(params, _)| params),
+            parameters.as_ref().map(|(params, _, _)| params),
+            parameters
+                .as_ref()
+                .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
             can_gc,
             self,
         );
-        if let Some(indexes) = parameters.map(|(_, indexes)| indexes) {
+        if let Some(indexes) = parameters.map(|(_, indexes, _)| indexes) {
             for index in indexes {
                 store.add_index(
-                    DOMString::from_string(index.name),
+                    index.name.into(),
                     &IDBIndexParameters {
                         multiEntry: index.multi_entry,
                         unique: index.unique,
@@ -334,104 +708,69 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(store)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#commit-transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#commit-transaction>
     fn Commit(&self) -> Fallible<()> {
         // Step 1
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-        let start_operation = SyncOperation::Commit(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.db.get_name().to_string(),
-            self.serial_number,
-        );
-
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(start_operation))
-            .unwrap();
-
-        let result = receiver.recv().unwrap();
-
-        // Step 2
-        if let Err(_result) = result {
-            // FIXME:(rasviitanen) also support Unknown error
-            return Err(Error::QuotaExceeded {
-                quota: None,
-                requested: None,
-            });
-        }
-
-        // Step 3
-        // FIXME:(rasviitanen) https://www.w3.org/TR/IndexedDB-2/#commit-a-transaction
-
-        // Steps 3.1 and 3.3
-        self.dispatch_complete();
-
-        Ok(())
-    }
-
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-abort>
-    fn Abort(&self) -> Fallible<()> {
-        // FIXME:(rasviitanen)
-        // This only sets the flags, and does not abort the transaction
-        // see https://www.w3.org/TR/IndexedDB-2/#abort-a-transaction
         if self.finished.get() {
             return Err(Error::InvalidState(None));
         }
 
-        self.active.set(false);
-
-        if self.mode == IDBTransactionMode::Versionchange {
-            let name = self.db.get_name().to_string();
-            let global = self.global();
-            let origin = global.origin().immutable().clone();
-            let Some(id) = self.open_request_id else {
-                debug_assert!(
-                    false,
-                    "A Versionchange transaction should have an open request id."
-                );
-                return Err(Error::InvalidState(None));
-            };
-            if global
-                .storage_threads()
-                .send(IndexedDBThreadMsg::Sync(
-                    SyncOperation::AbortPendingUpgrade { name, id, origin },
-                ))
-                .is_err()
-            {
-                error!("Failed to send SyncOperation::AbortPendingUpgrade");
-            }
-        }
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 5: The implementation must attempt to commit an inactive transaction when all requests placed against
+        // the transaction have completed and their returned results handled, no new requests have been placed against the transaction, and the transaction has not been aborted
+        // An explicit call to commit() will initiate a commit without waiting for request results to be handled by script.
+        // When committing, the transaction state is set to committing. The implementation must atomically write any changes
+        // to the database made by requests placed against the transaction. That is, either all of the changes must be written,
+        // or if an error occurs, such as a disk write error, the implementation must not write any of the changes to the database, and the steps to abort a transaction will be followed.
+        self.set_active_flag(false);
+        self.force_commit();
 
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames>
-    fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
-        self.object_store_names.as_rooted()
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-abort>
+    fn Abort(&self) -> Fallible<()> {
+        if self.finished.get() || self.committing.get() {
+            return Err(Error::InvalidState(None));
+        }
+        self.active.set(false);
+        self.initiate_abort(Error::Abort(None), CanGc::note());
+        self.request_backend_abort();
+
+        Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstorenames>
+    fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
+        if self.mode == IDBTransactionMode::Versionchange {
+            self.db.object_stores()
+        } else {
+            self.object_store_names.as_rooted()
+        }
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode>
     fn Mode(&self) -> IDBTransactionMode {
         self.mode
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode
     // fn Durability(&self) -> IDBTransactionDurability {
     //     // FIXME:(arihant2math) Durability is not implemented at all
     //     unimplemented!();
     // }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-error>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-onabort
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-oncomplete
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-onerror
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 }

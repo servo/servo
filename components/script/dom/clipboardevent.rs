@@ -4,6 +4,8 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::str::DOMString;
+use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::ClipboardEventBinding::{
     ClipboardEventInit, ClipboardEventMethods,
@@ -12,7 +14,6 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
@@ -57,7 +58,7 @@ impl ClipboardEvent {
     pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         clipboard_data: Option<&DataTransfer>,
@@ -70,7 +71,7 @@ impl ClipboardEvent {
             can_gc,
         );
         ev.upcast::<Event>()
-            .InitEvent(type_, bool::from(can_bubble), bool::from(cancelable));
+            .init_event(event_type, bool::from(can_bubble), bool::from(cancelable));
         ev.clipboard_data.set(clipboard_data);
         ev
     }
@@ -90,7 +91,7 @@ impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &ClipboardEventInit,
     ) -> DomRoot<ClipboardEvent> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -98,7 +99,7 @@ impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
         let event = ClipboardEvent::new(
             window,
             proto,
-            type_,
+            event_type.into(),
             bubbles,
             cancelable,
             init.clipboardData.as_deref(),

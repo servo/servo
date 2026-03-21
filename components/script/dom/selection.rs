@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
@@ -104,6 +105,12 @@ impl Selection {
 
     fn is_same_root(&self, node: &Node) -> bool {
         &*node.GetRootNode(&GetRootNodeOptions::empty()) == self.document.upcast::<Node>()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
+    pub(crate) fn active_range(&self) -> Option<DomRoot<Range>> {
+        // > The active range is the range of the selection given by calling getSelection() on the context object. (Thus the active range may be null.)
+        self.range.get()
     }
 }
 
@@ -453,11 +460,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-deletecontents>
-    fn DeleteFromDocument(&self) -> ErrorResult {
+    fn DeleteFromDocument(&self, cx: &mut JSContext) -> ErrorResult {
         if let Some(range) = self.range.get() {
             // Since the range is changing, it should trigger a
             // selectionchange event as it would if if mutated any other way
-            return range.DeleteContents();
+            return range.DeleteContents(cx);
         }
         Ok(())
     }

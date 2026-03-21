@@ -5,17 +5,19 @@
 use std::collections::HashSet;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{GenericSender, channel};
-use devtools_traits::DevtoolScriptControlMsg;
-use serde::Serialize;
+use base::generic_channel::GenericSender;
+use devtools_traits::{DevtoolScriptControlMsg, PauseReason};
+use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
+use crate::generic_channel::channel;
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{BrowsingContextActor, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,20 +31,11 @@ struct ThreadAttached {
     recording_endpoint: u32,
     execution_point: u32,
     popped_frames: Vec<PoppedFrameMsg>,
-    why: WhyMsg,
+    why: PauseReason,
 }
 
 #[derive(Serialize)]
 enum PoppedFrameMsg {}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct WhyMsg {
-    #[serde(rename = "type")]
-    type_: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    on_next: Option<bool>,
-}
 
 #[derive(Serialize)]
 struct ThreadResumedReply {
@@ -52,13 +45,13 @@ struct ThreadResumedReply {
 }
 
 #[derive(Serialize)]
-struct ThreadInterruptedReply {
-    from: String,
+pub(crate) struct ThreadInterruptedReply {
+    pub from: String,
     #[serde(rename = "type")]
-    type_: String,
-    actor: String,
-    frame: FrameActorMsg,
-    why: WhyMsg,
+    pub type_: String,
+    pub actor: String,
+    pub frame: FrameActorMsg,
+    pub why: PauseReason,
 }
 
 #[derive(Serialize)]
@@ -73,20 +66,67 @@ struct FramesReply {
     frames: Vec<FrameActorMsg>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum ResumeLimitType {
+    Break,
+    Finish,
+    Next,
+    Restart,
+    Step,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct ResumeLimit {
+    #[serde(rename = "type")]
+    type_: ResumeLimitType,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ResumeRequest {
+    resume_limit: Option<ResumeLimit>,
+    #[serde(rename = "frameActorID")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    frame_actor_id: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+struct FramesRequest {
+    start: u32,
+    count: u32,
+}
+
+impl ResumeRequest {
+    fn get_type(&self) -> Option<String> {
+        let resume_limit = self.resume_limit.as_ref()?;
+        serde_json::to_string(&resume_limit.type_)
+            .ok()
+            .map(|s| s.trim_matches('"').into())
+    }
+}
+
+#[derive(MallocSizeOf)]
 pub(crate) struct ThreadActor {
     name: String,
     pub source_manager: SourceManager,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
-    frames: AtomicRefCell<HashSet<String>>,
+    pub frames: AtomicRefCell<HashSet<String>>,
+    browsing_context: Option<String>,
 }
 
 impl ThreadActor {
-    pub fn new(name: String, script_sender: GenericSender<DevtoolScriptControlMsg>) -> ThreadActor {
+    pub fn new(
+        name: String,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
+        browsing_context: Option<String>,
+    ) -> ThreadActor {
         ThreadActor {
-            name: name.clone(),
+            name,
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
+            browsing_context,
         }
     }
 }
@@ -101,7 +141,7 @@ impl Actor for ThreadActor {
         mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
@@ -119,7 +159,7 @@ impl Actor for ThreadActor {
                     recording_endpoint: 0,
                     execution_point: 0,
                     popped_frames: vec![],
-                    why: WhyMsg {
+                    why: PauseReason {
                         type_: "attached".to_owned(),
                         on_next: None,
                     },
@@ -129,6 +169,14 @@ impl Actor for ThreadActor {
             },
 
             "resume" => {
+                let resume: ResumeRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+
+                let _ = self.script_sender.send(DevtoolScriptControlMsg::Resume(
+                    resume.get_type(),
+                    resume.frame_actor_id,
+                ));
+
                 let msg = ThreadResumedReply {
                     from: self.name(),
                     type_: "resumed".to_owned(),
@@ -138,37 +186,10 @@ impl Actor for ThreadActor {
             },
 
             "interrupt" => {
-                let (tx, rx) = channel().ok_or(ActorError::Internal)?;
                 self.script_sender
-                    .send(DevtoolScriptControlMsg::Pause(tx))
+                    .send(DevtoolScriptControlMsg::Interrupt)
                     .map_err(|_| ActorError::Internal)?;
-                let result = rx.recv().map_err(|_| ActorError::Internal)?;
 
-                let pause = registry.new_name::<PauseActor>();
-                registry.register(PauseActor {
-                    name: pause.clone(),
-                });
-
-                let source = self
-                    .source_manager
-                    .find_source(registry, &result.url)
-                    .ok_or(ActorError::Internal)?;
-
-                let frame = FrameActor::register(registry, source.name(), result);
-                self.frames.borrow_mut().insert(frame.clone());
-
-                let msg = ThreadInterruptedReply {
-                    from: self.name(),
-                    type_: "paused".to_owned(),
-                    actor: pause,
-                    frame: registry.encode::<FrameActor, _>(&frame),
-                    // TODO: Read the msg for on_next
-                    why: WhyMsg {
-                        type_: "interrupted".into(),
-                        on_next: Some(true),
-                    },
-                };
-                request.write_json_packet(&msg)?;
                 request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 
@@ -194,11 +215,32 @@ impl Actor for ThreadActor {
             },
 
             "frames" => {
+                let Some(ref browsing_context) = self.browsing_context else {
+                    return Err(ActorError::Internal);
+                };
+                let browsing_context = registry.find::<BrowsingContextActor>(browsing_context);
+
+                let frames: FramesRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::ListFrames(
+                        browsing_context.pipeline_id(),
+                        frames.start,
+                        frames.count,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
+                // Frame actors should be registered here
+                // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425
                 let msg = FramesReply {
                     from: self.name(),
-                    frames: self
-                        .frames
-                        .borrow()
+                    frames: result
                         .iter()
                         .map(|frame| registry.encode::<FrameActor, _>(frame))
                         .collect(),

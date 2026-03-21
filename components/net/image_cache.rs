@@ -466,7 +466,6 @@ struct ImageCacheStore {
     broken_image_icon_image: OnceCell<Option<Arc<RasterImage>>>,
 
     /// Cross-process `Paint` API instance.
-    #[ignore_malloc_size_of = "Channel from another crate"]
     paint_api: CrossProcessPaintApi,
 
     /// The [`WebView`] of the `Webview` associated with this [`ImageCache`].

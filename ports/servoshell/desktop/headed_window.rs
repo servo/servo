@@ -228,7 +228,7 @@ impl HeadedWindow {
     ) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
         let keyboard_event = keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
-        if self.handle_intercepted_key_bindings(state.clone(), window, &keyboard_event) {
+        if self.handle_intercepted_key_bindings(state, window, &keyboard_event) {
             return;
         }
 
@@ -338,7 +338,6 @@ impl HeadedWindow {
 
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
-            .shortcut(CMD_OR_CONTROL, 'R', || active_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
@@ -572,7 +571,6 @@ impl HeadedWindow {
         // Handle the event
         let mut consumed = false;
         match event {
-            WindowEvent::Focused(true) => state.handle_focused(window.clone()),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                 // we can use our own logic for calculating the scale factor and set egui’s
@@ -632,6 +630,10 @@ impl HeadedWindow {
                     self.rebuild_user_interface(&state, &window);
                 }
 
+                if let WindowEvent::Focused(true) = event {
+                    state.handle_focused(window.clone());
+                }
+
                 if response.repaint && *event != WindowEvent::RedrawRequested {
                     self.winit_window.request_redraw();
                 }
@@ -657,7 +659,7 @@ impl HeadedWindow {
             if let Some(webview) = window.active_webview() {
                 match event {
                     WindowEvent::KeyboardInput { event, .. } => {
-                        self.handle_keyboard_input(state.clone(), &window, event)
+                        self.handle_keyboard_input(state, &window, event)
                     },
                     WindowEvent::ModifiersChanged(modifiers) => {
                         self.modifiers_state.set(modifiers.state())
@@ -710,7 +712,7 @@ impl HeadedWindow {
                         )));
                     },
                     WindowEvent::PinchGesture { delta, .. } => {
-                        webview.pinch_zoom(
+                        webview.adjust_pinch_zoom(
                             delta as f32 + 1.0,
                             self.webview_relative_mouse_point.get(),
                         );
@@ -822,7 +824,6 @@ impl PlatformWindow for HeadedWindow {
                 webview
                     .page_title()
                     .filter(|title| !title.is_empty())
-                    .map(|title| title.to_string())
                     .or_else(|| webview.url().map(|url| url.to_string()))
             })
             .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
@@ -1035,6 +1036,10 @@ impl PlatformWindow for HeadedWindow {
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.set_page_zoom(1.0);
+            })
+            .shortcut(CMD_OR_CONTROL, 'R', || webview.reload())
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
+                webview.reload()
             });
     }
 

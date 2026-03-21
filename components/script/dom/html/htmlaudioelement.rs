@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
@@ -56,9 +57,9 @@ impl HTMLAudioElement {
 impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-audio>
     fn Audio(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         src: Option<DOMString>,
     ) -> Fallible<DomRoot<HTMLAudioElement>> {
         // Step 1. Let document be the current global object's associated Document.
@@ -67,27 +68,31 @@ impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
         // Step 2. Let audio be the result of creating an element given document, "audio", and the
         // HTML namespace.
         let audio = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("audio")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            can_gc,
         );
 
         // Step 3. Set an attribute value for audio using "preload" and "auto".
         audio.set_attribute(
             &local_name!("preload"),
             AttrValue::String("auto".to_owned()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 4. If src is given, then set an attribute value for audio using "src" and src. (This
         // will cause the user agent to invoke the object's resource selection algorithm before
         // returning).
         if let Some(s) = src {
-            audio.set_attribute(&local_name!("src"), AttrValue::String(s.into()), can_gc);
+            audio.set_attribute(
+                &local_name!("src"),
+                AttrValue::String(s.into()),
+                CanGc::from_cx(cx),
+            );
         }
 
         // Step 5. Return audio.

@@ -176,9 +176,23 @@ for (const id of ['defaultbutton', 'custombutton']) {
     await test_driver.send_keys(document.activeElement, ArrowUp);
     await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionOne,
-      'The first option should be selected.');
+      'The first option should be focused.');
     assert_equals(select.value, 'two',
       'The selects value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowLeft);
+    await new Promise(requestAnimationFrame);
+    assert_equals(document.activeElement, optionOne,
+      'The first option should remain focused after pressing the left arrow key.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change after pressing the left arrow key.');
+
+    await test_driver.send_keys(document.activeElement, ArrowRight);
+    await new Promise(requestAnimationFrame);
+    assert_equals(document.activeElement, optionOne,
+      'The first option should remain focused after pressing the right arrow key.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change after pressing the right arrow key.');
 
     let firedInput = false;
     let firedChange = false;

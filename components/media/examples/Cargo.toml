@@ -1,5 +1,5 @@
 [package]
-name = "media-examples"
+name = "servo-media-examples"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -12,5 +12,5 @@ euclid = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
-servo-media-auto = { path = "../backends/auto" }
-servo-media-dummy = { path = "../backends/dummy" }
+servo-media-auto = { workspace = true }
+servo-media-dummy = { workspace = true }

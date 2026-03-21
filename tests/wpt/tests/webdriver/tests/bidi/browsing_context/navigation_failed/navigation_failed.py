@@ -14,7 +14,7 @@ NAVIGATION_STARTED_EVENT = "browsingContext.navigationStarted"
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
-async def test_unsubscribe(bidi_session, inline, new_tab, iframe):
+async def test_unsubscribe(bidi_session, configuration, inline, new_tab, iframe):
     await bidi_session.session.subscribe(events=[NAVIGATION_FAILED_EVENT])
     await bidi_session.session.unsubscribe(events=[NAVIGATION_FAILED_EVENT])
 
@@ -36,7 +36,7 @@ async def test_unsubscribe(bidi_session, inline, new_tab, iframe):
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -231,6 +231,7 @@ async def test_with_x_frame_options_header(
 
 async def test_with_new_navigation(
     bidi_session,
+    configuration,
     subscribe_events,
     inline,
     url,
@@ -268,7 +269,7 @@ async def test_with_new_navigation(
         context=new_tab["context"], url=second_url, wait="none"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=1)
 
     # Make sure that the first navigation failed or aborted.
     assert_navigation_info(
@@ -286,6 +287,7 @@ async def test_with_new_navigation(
 
 async def test_with_new_navigation_inside_page(
     bidi_session,
+    configuration,
     subscribe_events,
     inline,
     new_tab,
@@ -328,7 +330,7 @@ async def test_with_new_navigation_inside_page(
         context=new_tab["context"], url=slow_page_url, wait="none"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=1)
 
     # Make sure that the first navigation failed.
     assert_navigation_info(
@@ -347,6 +349,7 @@ async def test_with_new_navigation_inside_page(
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_close_context(
     bidi_session,
+    configuration,
     subscribe_events,
     url,
     wait_for_event,
@@ -379,7 +382,7 @@ async def test_close_context(
 
     await bidi_session.browsing_context.close(context=new_context["context"])
 
-    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=1)
 
     # Make sure that the navigation failed.
     assert_navigation_info(
@@ -397,6 +400,7 @@ async def test_close_context(
 
 async def test_close_iframe(
     bidi_session,
+    configuration,
     subscribe_events,
     inline,
     url,
@@ -441,7 +445,7 @@ async def test_close_iframe(
     # Reload the top context to destroy the iframe.
     await bidi_session.browsing_context.reload(context=new_tab["context"], wait="none")
 
-    await wait_for_bidi_events(bidi_session, events, 1, timeout=1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=1)
 
     # Make sure that the iframe navigation failed.
     assert_navigation_info(

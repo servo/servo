@@ -126,16 +126,17 @@ impl FetchResponseListener for XHRContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
 
         let rv = self.xhr.root().process_response_complete(
             self.gen_id,
             response.map(|_| ()),
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
         *self.sync_status.borrow_mut() = Some(rv);
     }
@@ -916,7 +917,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
-    fn Response(&self, cx: JSContext, can_gc: CanGc, mut rval: MutableHandleValue) {
+    fn Response(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 let ready_state = self.ready_state.get();
@@ -924,10 +925,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().safe_to_jsval(cx, rval, can_gc);
+                    self.text_response()
+                        .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx));
                 } else {
                     // Step 1
-                    "".safe_to_jsval(cx, rval, can_gc);
+                    "".safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx));
                 }
             },
             // Step 1
@@ -935,16 +937,19 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 rval.set(NullValue());
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => self
-                .document_response(can_gc)
-                .safe_to_jsval(cx, rval, can_gc),
-            XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
-            XMLHttpRequestResponseType::Blob => {
-                self.blob_response(can_gc).safe_to_jsval(cx, rval, can_gc)
+            XMLHttpRequestResponseType::Document => {
+                self.document_response(cx)
+                    .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
             },
+            XMLHttpRequestResponseType::Json => self.json_response(cx.into(), rval),
+            XMLHttpRequestResponseType::Blob => self
+                .blob_response(CanGc::from_cx(cx))
+                .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx)),
             XMLHttpRequestResponseType::Arraybuffer => {
-                match self.arraybuffer_response(cx, can_gc) {
-                    Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval, can_gc),
+                match self.arraybuffer_response(cx.into(), CanGc::from_cx(cx)) {
+                    Some(array_buffer) => {
+                        array_buffer.safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
+                    },
                     None => rval.set(NullValue()),
                 }
             },
@@ -970,12 +975,15 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-responsexml-attribute>
-    fn GetResponseXML(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Document>>> {
+    fn GetResponseXML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<Option<DomRoot<Document>>> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
                 if let XMLHttpRequestState::Done = self.ready_state.get() {
-                    Ok(self.document_response(can_gc))
+                    Ok(self.document_response(cx))
                 } else {
                     // Step 2
                     Ok(None)
@@ -1112,7 +1120,7 @@ impl XMLHttpRequest {
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
                 if !status.is_error() {
-                    *self.status.borrow_mut() = status.clone();
+                    *self.status.borrow_mut() = status;
                 }
                 if let Some(h) = headers.as_ref() {
                     *self.response_headers.borrow_mut() = h.clone();
@@ -1364,7 +1372,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
-    fn document_response(&self, can_gc: CanGc) -> Option<DomRoot<Document>> {
+    fn document_response(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<Document>> {
         // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
@@ -1407,7 +1415,7 @@ impl XMLHttpRequest {
             // Step 5.4: Let document be a document that represents the result parsing xhr’s
             // received bytes following the rules set forth in the HTML Standard for an HTML parser
             // with scripting disabled and a known definite encoding charset. [HTML]
-            temp_doc = self.document_text_html(can_gc);
+            temp_doc = self.document_text_html(cx);
         } else {
             assert!(is_xml_mime_type);
 
@@ -1417,7 +1425,7 @@ impl XMLHttpRequest {
             // return null. [HTML]
             //
             // TODO: The spec seems to suggest the charset should come from the XML parser here.
-            temp_doc = self.handle_xml(can_gc);
+            temp_doc = self.handle_xml(cx);
             charset = self.final_charset();
 
             // Not sure it the parser should throw an error for this case
@@ -1483,12 +1491,12 @@ impl XMLHttpRequest {
         self.response_json.set(rval.get());
     }
 
-    fn document_text_html(&self, can_gc: CanGc) -> DomRoot<Document> {
+    fn document_text_html(&self, cx: &mut js::context::JSContext) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(IsHTMLDocument::HTMLDocument, can_gc);
+        let document = self.new_doc(IsHTMLDocument::HTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_html_document(
             &document,
@@ -1496,24 +1504,24 @@ impl XMLHttpRequest {
             wr.get_url(),
             None,
             None,
-            can_gc,
+            cx,
         );
         document
     }
 
-    fn handle_xml(&self, can_gc: CanGc) -> DomRoot<Document> {
+    fn handle_xml(&self, cx: &mut js::context::JSContext) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, can_gc);
+        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_xml_document(
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
             None,
-            can_gc,
+            cx,
         );
         document
     }

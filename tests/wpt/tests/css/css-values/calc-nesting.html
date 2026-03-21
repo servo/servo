@@ -16,6 +16,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
 
 <style>
 #parent { width: 200px; }
@@ -33,7 +34,17 @@
   <div id=div3></div>
   <div id=div4></div>
 </div>
+<div id="target"></div>
 <script>
+// Parsing/serialization checks
+test_valid_value("left", "calc(20px + calc(80px))", "calc(100px)");
+test_valid_value("left", "calc(calc(100px))", "calc(100px)");
+test_valid_value("left", "calc(calc(2) * calc(50px))", "calc(100px)");
+test_valid_value("left", "calc(calc(150px*2/3))", "calc(100px)");
+test_valid_value("left", "calc(calc(2 * calc(calc(3)) + 4) * 10px)", "calc(100px)");
+test_valid_value("left", "calc(50px + calc(40%))", "calc(40% + 50px)");
+test_valid_value("border", "calc(calc(10px)) solid pink", "calc(10px) solid pink");
+
 // Tests that require layout
 test(function(){
     assert_equals(getComputedStyle(div1).width, "50px");

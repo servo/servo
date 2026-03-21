@@ -42,7 +42,7 @@ use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::create_writable_stream;
 use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkType;
 use crate::dom::types::{PromiseNativeHandler, TransformStreamDefaultController, WritableStream};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for TransformBackPressureChangePromiseFulfillment {}
@@ -489,7 +489,7 @@ impl TransformStream {
         self.initialize(
             cx,
             global,
-            start_promise.clone(),
+            start_promise,
             writable_high_water_mark,
             writable_size_algorithm,
             readable_high_water_mark,
@@ -571,7 +571,7 @@ impl TransformStream {
 
         let readable = create_readable_stream(
             global,
-            UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise.clone()),
+            UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise),
             Some(readable_size_algorithm),
             Some(readable_high_water_mark),
             can_gc,
@@ -789,7 +789,7 @@ impl TransformStream {
         let controller = self
             .controller
             .get()
-            .ok_or(Error::Type("controller is not set".to_string()))?;
+            .ok_or(Error::Type(c"controller is not set".to_owned()))?;
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
         if let Some(finish_promise) = controller.get_finish_promise() {
@@ -800,7 +800,7 @@ impl TransformStream {
         let readable = self
             .readable
             .get()
-            .ok_or(Error::Type("readable stream is not set".to_string()))?;
+            .ok_or(Error::Type(c"readable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
         controller.set_finish_promise(Promise::new(global, can_gc));
@@ -847,7 +847,7 @@ impl TransformStream {
         let controller = self
             .controller
             .get()
-            .ok_or(Error::Type("controller is not set".to_string()))?;
+            .ok_or(Error::Type(c"controller is not set".to_owned()))?;
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
         if let Some(finish_promise) = controller.get_finish_promise() {
@@ -858,7 +858,7 @@ impl TransformStream {
         let writable = self
             .writable
             .get()
-            .ok_or(Error::Type("writable stream is not set".to_string()))?;
+            .ok_or(Error::Type(c"writable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
         controller.set_finish_promise(Promise::new(global, can_gc));
@@ -950,18 +950,17 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-error>
     pub(crate) fn error(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
-        can_gc: CanGc,
     ) {
         // Perform ! ReadableStreamDefaultControllerError(stream.[[readable]].[[controller]], e).
         self.get_readable()
             .get_default_controller()
-            .error(error, can_gc);
+            .error(error, CanGc::from_cx(cx));
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, e).
-        self.error_writable_and_unblock_write(cx, global, error, can_gc);
+        self.error_writable_and_unblock_write(cx.into(), global, error, CanGc::from_cx(cx));
     }
 }
 
@@ -986,7 +985,9 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             rooted!(in(*cx) let obj_val = ObjectValue(transformer_obj.get()));
             match Transformer::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
-                Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
+                Ok(ConversionResult::Failure(error)) => {
+                    return Err(Error::Type(error.into_owned()));
+                },
                 _ => {
                     return Err(Error::JSFailed);
                 },
@@ -997,12 +998,12 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
 
         // If transformerDict["readableType"] exists, throw a RangeError exception.
         if !transformer_dict.readableType.handle().is_undefined() {
-            return Err(Error::Range("readableType is set".to_string()));
+            return Err(Error::Range(c"readableType is set".to_owned()));
         }
 
         // If transformerDict["writableType"] exists, throw a RangeError exception.
         if !transformer_dict.writableType.handle().is_undefined() {
-            return Err(Error::Range("writableType is set".to_string()));
+            return Err(Error::Range(c"writableType is set".to_owned()));
         }
 
         // Let readableHighWaterMark be ? ExtractHighWaterMark(readableStrategy, 0).
@@ -1097,12 +1098,14 @@ impl Transferable for TransformStream {
     type Data = TransformStreamData;
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps②>
-    fn transfer(&self) -> Fallible<(MessagePortId, TransformStreamData)> {
+    fn transfer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<(MessagePortId, TransformStreamData)> {
         let global = self.global();
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
-        let cx = GlobalScope::get_cx();
-        let can_gc = CanGc::note();
+        let mut realm = enter_auto_realm(cx, &*global);
+        let mut realm = realm.current_realm();
+        let cx = &mut realm;
 
         // Step 1. Let readable be value.[[readable]].
         let readable = self.get_readable();
@@ -1119,43 +1122,31 @@ impl Transferable for TransformStream {
         }
 
         // First port pair (readable → proxy writable)
-        let port1 = MessagePort::new(&global, can_gc);
+        let port1 = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port1, None);
-        let port1_peer = MessagePort::new(&global, can_gc);
+        let port1_peer = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port1_peer, None);
         global.entangle_ports(*port1.message_port_id(), *port1_peer.message_port_id());
 
-        let proxy_readable = ReadableStream::new_with_proto(&global, None, can_gc);
-        proxy_readable.setup_cross_realm_transform_readable(cx, &port1, can_gc);
+        let proxy_readable = ReadableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
+        proxy_readable.setup_cross_realm_transform_readable(cx.into(), &port1, CanGc::from_cx(cx));
         proxy_readable
-            .pipe_to(
-                cx, &global, &writable, false, false, false, None, comp, can_gc,
-            )
+            .pipe_to(cx, &global, &writable, false, false, false, None)
             .set_promise_is_handled();
 
         // Second port pair (proxy readable → writable)
-        let port2 = MessagePort::new(&global, can_gc);
+        let port2 = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port2, None);
-        let port2_peer = MessagePort::new(&global, can_gc);
+        let port2_peer = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port2_peer, None);
         global.entangle_ports(*port2.message_port_id(), *port2_peer.message_port_id());
 
-        let proxy_writable = WritableStream::new_with_proto(&global, None, can_gc);
-        proxy_writable.setup_cross_realm_transform_writable(cx, &port2, can_gc);
+        let proxy_writable = WritableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
+        proxy_writable.setup_cross_realm_transform_writable(cx.into(), &port2, CanGc::from_cx(cx));
 
         // Pipe readable into the proxy writable (→ port_1)
         readable
-            .pipe_to(
-                cx,
-                &global,
-                &proxy_writable,
-                false,
-                false,
-                false,
-                None,
-                comp,
-                can_gc,
-            )
+            .pipe_to(cx, &global, &proxy_writable, false, false, false, None)
             .set_promise_is_handled();
 
         // Step 5. Set dataHolder.[[readable]] to !
@@ -1165,42 +1156,40 @@ impl Transferable for TransformStream {
         Ok((
             *port1_peer.message_port_id(),
             TransformStreamData {
-                readable: port1_peer.transfer()?,
-                writable: port2_peer.transfer()?,
+                readable: port1_peer.transfer(cx)?,
+                writable: port2_peer.transfer(cx)?,
             },
         ))
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps②>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         _id: MessagePortId,
         data: TransformStreamData,
     ) -> Result<DomRoot<Self>, ()> {
-        let can_gc = CanGc::note();
-        let cx = GlobalScope::get_cx();
-
-        let port1 = MessagePort::transfer_receive(owner, data.readable.0, data.readable.1)?;
-        let port2 = MessagePort::transfer_receive(owner, data.writable.0, data.writable.1)?;
+        let port1 = MessagePort::transfer_receive(cx, owner, data.readable.0, data.readable.1)?;
+        let port2 = MessagePort::transfer_receive(cx, owner, data.writable.0, data.writable.1)?;
 
         // Step 1. Let readableRecord be !
         // StructuredDeserializeWithTransfer(dataHolder.[[readable]], the
         // current Realm).
-        let proxy_readable = ReadableStream::new_with_proto(owner, None, can_gc);
-        proxy_readable.setup_cross_realm_transform_readable(cx, &port2, can_gc);
+        let proxy_readable = ReadableStream::new_with_proto(owner, None, CanGc::from_cx(cx));
+        proxy_readable.setup_cross_realm_transform_readable(cx.into(), &port2, CanGc::from_cx(cx));
 
         // Step 2. Let writableRecord be !
         // StructuredDeserializeWithTransfer(dataHolder.[[writable]], the
         // current Realm).
-        let proxy_writable = WritableStream::new_with_proto(owner, None, can_gc);
-        proxy_writable.setup_cross_realm_transform_writable(cx, &port1, can_gc);
+        let proxy_writable = WritableStream::new_with_proto(owner, None, CanGc::from_cx(cx));
+        proxy_writable.setup_cross_realm_transform_writable(cx.into(), &port1, CanGc::from_cx(cx));
 
         // Step 3. Set value.[[readable]] to readableRecord.[[Deserialized]].
         // Step 4. Set value.[[writable]] to writableRecord.[[Deserialized]].
         // Step 5. Set value.[[backpressure]],
         // value.[[backpressureChangePromise]], and value.[[controller]] to
         // undefined.
-        let stream = TransformStream::new_with_proto(owner, None, can_gc);
+        let stream = TransformStream::new_with_proto(owner, None, CanGc::from_cx(cx));
         stream.readable.set(Some(&proxy_readable));
         stream.writable.set(Some(&proxy_writable));
 

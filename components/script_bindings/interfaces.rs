@@ -42,7 +42,7 @@ pub trait DomHelpers<D: DomTypes> {
         args: &CallArgs,
         global: &D::GlobalScope,
         proto_id: PrototypeList::ID,
-        creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
+        creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     ) -> bool;
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
@@ -61,7 +61,7 @@ pub trait DomHelpers<D: DomTypes> {
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;
 
-    fn report_pending_exception(cx: JSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc);
+    fn report_pending_exception(cx: JSContext, realm: InRealm, can_gc: CanGc);
 }
 
 /// Operations that must be invoked from the generated bindings.
@@ -81,7 +81,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
 
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
+    fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext);
 
     fn get_url(&self) -> ServoUrl;
 

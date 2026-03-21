@@ -183,8 +183,7 @@ impl CSSStyleOwner {
                     .url_data
                     .0
                     .clone()
-            })
-            .clone(),
+            }),
         }
     }
 }

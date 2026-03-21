@@ -4,15 +4,19 @@
 
 //! The walker actor is responsible for traversing the DOM tree in various ways to create new nodes
 
+use std::net::TcpStream;
+
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
-use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
+use devtools_traits::{DevtoolScriptControlMsg, DomMutation};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
 use crate::protocol::{ClientRequest, JsonPacketStream};
@@ -24,11 +28,12 @@ pub(crate) struct WalkerMsg {
     root: NodeActorMsg,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct WalkerActor {
     pub name: String,
-    pub mutations: AtomicRefCell<Vec<(AttrModification, String)>>,
-    pub pipeline: PipelineId,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub mutations: AtomicRefCell<Vec<DomMutation>>,
+    /// Name of the [`BrowsingContextActor`] that owns this walker.
+    pub browsing_context: String,
 }
 
 #[derive(Serialize)]
@@ -71,11 +76,22 @@ struct WatchRootNodeNotification {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct MutationMsg {
-    attribute_name: String,
-    new_value: Option<String>,
-    target: String,
+    #[serde(flatten)]
+    variant: MutationVariant,
     #[serde(rename = "type")]
     type_: String,
+    target: String,
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+enum MutationVariant {
+    AttributeModified {
+        #[serde(rename = "attributeName")]
+        attribute_name: String,
+        #[serde(rename = "newValue")]
+        new_value: Option<String>,
+    },
 }
 
 #[derive(Serialize)]
@@ -126,6 +142,7 @@ impl Actor for WalkerActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
+        let browsing_context = self.browsing_context(registry);
         match msg_type {
             "children" => {
                 let target = msg
@@ -136,9 +153,10 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                self.script_chan
+                browsing_context
+                    .script_chan()
                     .send(GetChildren(
-                        self.pipeline,
+                        browsing_context.pipeline_id(),
                         registry.actor_to_script(target.into()),
                         tx,
                     ))
@@ -156,8 +174,8 @@ impl Actor for WalkerActor {
                         .map(|child| {
                             child.encode(
                                 registry,
-                                self.script_chan.clone(),
-                                self.pipeline,
+                                browsing_context.script_chan(),
+                                browsing_context.pipeline_id(),
                                 self.name(),
                             )
                         })
@@ -174,8 +192,9 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                self.script_chan
-                    .send(GetDocumentElement(self.pipeline, tx))
+                browsing_context
+                    .script_chan()
+                    .send(GetDocumentElement(browsing_context.pipeline_id(), tx))
                     .map_err(|_| ActorError::Internal)?;
                 let doc_elem_info = rx
                     .recv()
@@ -183,8 +202,8 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    self.script_chan.clone(),
-                    self.pipeline,
+                    browsing_context.script_chan(),
+                    browsing_context.pipeline_id(),
                     self.name(),
                 );
 
@@ -206,23 +225,7 @@ impl Actor for WalkerActor {
                 };
                 request.reply_final(&msg)?
             },
-            "getMutations" => {
-                let msg = GetMutationsReply {
-                    from: self.name(),
-                    mutations: self
-                        .mutations
-                        .borrow_mut()
-                        .drain(..)
-                        .map(|(mutation, target)| MutationMsg {
-                            attribute_name: mutation.attribute_name,
-                            new_value: mutation.new_value,
-                            target,
-                            type_: "attributes".into(),
-                        })
-                        .collect(),
-                };
-                request.reply_final(&msg)?
-            },
+            "getMutations" => self.handle_get_mutations(request, registry)?,
             "getOffsetParent" => {
                 let msg = GetOffsetParentReply {
                     from: self.name(),
@@ -242,8 +245,8 @@ impl Actor for WalkerActor {
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
                 let mut hierarchy = find_child(
-                    &self.script_chan,
-                    self.pipeline,
+                    &browsing_context.script_chan(),
+                    browsing_context.pipeline_id(),
                     &self.name,
                     registry,
                     node,
@@ -279,26 +282,20 @@ impl Actor for WalkerActor {
 }
 
 impl WalkerActor {
-    pub(crate) fn new_mutations(
+    pub(crate) fn browsing_context(
         &self,
-        request: &mut ClientRequest,
-        target: &str,
-        modifications: &[AttrModification],
-    ) {
-        {
-            let mut mutations = self.mutations.borrow_mut();
-            mutations.extend(modifications.iter().cloned().map(|m| (m, target.into())));
-        }
-        let _ = request.write_json_packet(&NewMutationsNotification {
-            from: self.name(),
-            type_: "newMutations".into(),
-        });
+        registry: &ActorRegistry,
+    ) -> DowncastableActorArc<BrowsingContextActor> {
+        registry.find::<BrowsingContextActor>(&self.browsing_context)
     }
 
     pub(crate) fn root(&self, registry: &ActorRegistry) -> Result<NodeActorMsg, ActorError> {
+        let browsing_context = self.browsing_context(registry);
+        let pipeline = browsing_context.pipeline_id();
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
-        self.script_chan
-            .send(GetRootNode(self.pipeline, tx))
+        browsing_context
+            .script_chan()
+            .send(GetRootNode(pipeline, tx))
             .map_err(|_| ActorError::Internal)?;
         let root_node = rx
             .recv()
@@ -306,10 +303,72 @@ impl WalkerActor {
             .ok_or(ActorError::Internal)?;
         Ok(root_node.encode(
             registry,
-            self.script_chan.clone(),
-            self.pipeline,
+            browsing_context.script_chan(),
+            pipeline,
             self.name(),
         ))
+    }
+
+    pub(crate) fn handle_dom_mutation(
+        &self,
+        dom_mutation: DomMutation,
+        stream: &mut TcpStream,
+    ) -> Result<(), ActorError> {
+        let mut pending_mutations = self.mutations.borrow_mut();
+
+        // Discard all previous modifications to that same attribute
+        // which we didn't tell the devtools client about yet.
+        let DomMutation::AttributeModified {
+            node,
+            attribute_name,
+            ..
+        } = &dom_mutation;
+        pending_mutations.retain(|pending_mutation| match pending_mutation {
+            DomMutation::AttributeModified {
+                node: old_node,
+                attribute_name: old_attribute_name,
+                ..
+            } => old_node != node || old_attribute_name != attribute_name,
+        });
+
+        pending_mutations.push(dom_mutation);
+
+        stream.write_json_packet(&NewMutationsNotification {
+            from: self.name(),
+            type_: "newMutations".into(),
+        })
+    }
+
+    /// Handle the `getMutations` message from a devtools client.
+    fn handle_get_mutations(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+    ) -> Result<(), ActorError> {
+        let msg = GetMutationsReply {
+            from: self.name(),
+            mutations: self
+                .mutations
+                .borrow_mut()
+                .drain(..)
+                .map(|mutation| match mutation {
+                    DomMutation::AttributeModified {
+                        node,
+                        attribute_name,
+                        new_value,
+                    } => MutationMsg {
+                        variant: MutationVariant::AttributeModified {
+                            attribute_name,
+                            new_value,
+                        },
+                        target: registry.script_to_actor(node),
+                        type_: "attributes".to_owned(),
+                    },
+                })
+                .collect(),
+        };
+
+        request.reply_final(&msg)
     }
 }
 

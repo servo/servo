@@ -7,8 +7,8 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleArgument, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
+    ConsoleArgument, ConsoleArgumentObject, ConsoleArgumentPropertyValue, ConsoleLogLevel,
+    ConsoleMessage, ConsoleMessageFields, ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
@@ -84,7 +84,7 @@ impl Console {
 
         let arguments = messages
             .iter()
-            .map(|msg| console_argument_from_handle_value(cx, *msg))
+            .map(|msg| console_argument_from_handle_value(cx, *msg, &mut Vec::new()))
             .collect();
         let stacktrace = (include_stacktrace == IncludeStackTrace::Yes)
             .then_some(get_js_stack(*GlobalScope::get_cx()));
@@ -120,7 +120,7 @@ impl Console {
 
     // Directly logs a DOMString, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
-        Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message.clone()));
+        Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message));
     }
 }
 
@@ -130,14 +130,18 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
     match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
         Some(js_str) => {
             js_string.set(js_str.as_ptr());
-            DOMString::from_string(unsafe { jsstr_to_string(cx, js_str) })
+            unsafe { jsstr_to_string(cx, js_str) }.into()
         },
         None => "<error converting value to string>".into(),
     }
 }
 
 #[expect(unsafe_code)]
-fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) -> ConsoleArgument {
+fn console_argument_from_handle_value(
+    cx: JSContext,
+    handle_value: HandleValue,
+    seen: &mut Vec<u64>,
+) -> ConsoleArgument {
     if handle_value.is_string() {
         let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
         let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
@@ -154,18 +158,122 @@ fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) 
         return ConsoleArgument::Number(number);
     }
 
+    if handle_value.is_boolean() {
+        let boolean = handle_value.to_boolean();
+        return ConsoleArgument::Boolean(boolean);
+    }
+
+    if handle_value.is_object() {
+        // JS objects can create circular reference, and we want to avoid recursing infinitely
+        if seen.contains(&handle_value.asBits_) {
+            // FIXME: Handle this properly
+            return ConsoleArgument::String("[circular]".into());
+        }
+
+        seen.push(handle_value.asBits_);
+        let maybe_argument_object = console_object_from_handle_value(cx, handle_value, seen);
+        let js_value = seen.pop();
+        debug_assert_eq!(js_value, Some(handle_value.asBits_));
+
+        if let Some(console_argument_object) = maybe_argument_object {
+            return ConsoleArgument::Object(console_argument_object);
+        }
+    }
+
     // FIXME: Handle more complex argument types here
     let stringified_value = stringify_handle_value(handle_value);
+
     ConsoleArgument::String(stringified_value.into())
 }
 
 #[expect(unsafe_code)]
-fn stringify_handle_value(message: HandleValue) -> DOMString {
+fn console_object_from_handle_value(
+    cx: JSContext,
+    handle_value: HandleValue,
+    seen: &mut Vec<u64>,
+) -> Option<ConsoleArgumentObject> {
+    rooted!(in(*cx) let object = handle_value.to_object());
+    let mut object_class = ESClass::Other;
+    if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
+        return None;
+    }
+    if object_class != ESClass::Object {
+        return None;
+    }
+
+    let mut own_properties = Vec::new();
+    let mut ids = unsafe { IdVector::new(*cx) };
+    if !unsafe {
+        GetPropertyKeys(
+            *cx,
+            object.handle(),
+            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS | jsapi::JSITER_HIDDEN,
+            ids.handle_mut(),
+        )
+    } {
+        return None;
+    }
+
+    for id in ids.iter() {
+        rooted!(in(*cx) let id = *id);
+        rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
+
+        let mut is_none = false;
+        if !unsafe {
+            JS_GetOwnPropertyDescriptorById(
+                *cx,
+                object.handle(),
+                id.handle(),
+                descriptor.handle_mut(),
+                &mut is_none,
+            )
+        } {
+            return None;
+        }
+
+        rooted!(in(*cx) let mut property = UndefinedValue());
+        if !unsafe { JS_GetPropertyById(*cx, object.handle(), id.handle(), property.handle_mut()) }
+        {
+            return None;
+        }
+
+        let key = if id.is_string() {
+            rooted!(in(*cx) let mut key_value = UndefinedValue());
+            let raw_id: jsapi::HandleId = id.handle().into();
+            if !unsafe { JS_IdToValue(*cx, *raw_id.ptr, key_value.handle_mut()) } {
+                continue;
+            }
+            rooted!(in(*cx) let js_string = key_value.to_string());
+            let Some(js_string) = NonNull::new(js_string.get()) else {
+                continue;
+            };
+            unsafe { jsstr_to_string(*cx, js_string) }
+        } else {
+            continue;
+        };
+
+        own_properties.push(ConsoleArgumentPropertyValue {
+            key,
+            configurable: descriptor.hasConfigurable_() && descriptor.configurable_(),
+            enumerable: descriptor.hasEnumerable_() && descriptor.enumerable_(),
+            writable: descriptor.hasWritable_() && descriptor.writable_(),
+            value: console_argument_from_handle_value(cx, property.handle(), seen),
+        });
+    }
+
+    Some(ConsoleArgumentObject {
+        class: "Object".to_owned(),
+        own_properties,
+    })
+}
+
+#[expect(unsafe_code)]
+pub(crate) fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = GlobalScope::get_cx();
     unsafe {
         if message.is_string() {
             let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
-            return DOMString::from_string(jsstr_to_string(*cx, jsstr));
+            return jsstr_to_string(*cx, jsstr).into();
         }
         unsafe fn stringify_object_from_handle_value(
             cx: *mut jsapi::JSContext,
@@ -436,7 +544,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if !condition {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
 
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -444,7 +552,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -453,7 +561,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(delta) = global.time_log(&label) {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
 
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -462,7 +570,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(delta) = global.time_end(&label) {
             let message = format!("{label}: {delta}ms");
 
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -486,7 +594,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         let count = global.increment_console_count(&label);
         let message = format!("{label}: {count}");
 
-        Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+        Console::send_string_message(global, ConsoleLogLevel::Log, message);
     }
 
     /// <https://console.spec.whatwg.org/#countreset>

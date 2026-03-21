@@ -28,12 +28,14 @@ use crate::dom::compressionstream::{
 use crate::dom::decompressionstream::{
     decompress_and_enqueue_a_chunk, decompress_flush_and_enqueue,
 };
+use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
+use crate::dom::encoding::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
+use crate::dom::encoding::textencoderstream::{
+    Encoder, encode_and_enqueue_a_chunk, encode_and_flush,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::textdecodercommon::TextDecoderCommon;
-use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
-use crate::dom::textencoderstream::{Encoder, encode_and_enqueue_a_chunk, encode_and_flush};
 use crate::dom::types::{DecompressionStream, TransformStream};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -51,11 +53,8 @@ struct TransformTransformPromiseRejection {
 impl Callback for TransformTransformPromiseRejection {
     /// Reacting to transformPromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // Perform ! TransformStreamError(controller.[[stream]], r).
-        self.controller
-            .error(cx, &self.controller.global(), v, can_gc);
+        self.controller.error(cx, &self.controller.global(), v);
 
         // Throw r.
         // Note: this is done part of perform_transform().
@@ -590,7 +589,7 @@ impl TransformStreamDefaultController {
         // is false, throw a TypeError exception.
         if !readable_controller.can_close_or_enqueue() {
             return Err(Error::Type(
-                "ReadableStreamDefaultControllerCanCloseOrEnqueue is false".to_owned(),
+                c"ReadableStreamDefaultControllerCanCloseOrEnqueue is false".to_owned(),
             ));
         }
 
@@ -637,16 +636,15 @@ impl TransformStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-error>
     pub(crate) fn error(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) {
         // Perform ! TransformStreamError(controller.[[stream]], e).
         self.stream
             .get()
             .expect("stream is undefined")
-            .error(cx, global, reason, can_gc);
+            .error(cx, global, reason);
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-clear-algorithms>
@@ -682,7 +680,7 @@ impl TransformStreamDefaultController {
         readable_controller.close(can_gc);
 
         // Let error be a TypeError exception indicating that the stream has been terminated.
-        let error = Error::Type("stream has been terminated".to_owned());
+        let error = Error::Type(c"stream has been terminated".to_owned());
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, error).
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
@@ -715,9 +713,9 @@ impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#ts-default-controller-error>
-    fn Error(&self, cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
+    fn Error(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Fallible<()> {
         // Perform ? TransformStreamDefaultControllerError(this, e).
-        self.error(cx, &self.global(), reason, can_gc);
+        self.error(cx, &self.global(), reason);
         Ok(())
     }
 

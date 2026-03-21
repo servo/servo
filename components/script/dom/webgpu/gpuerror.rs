@@ -53,19 +53,19 @@ impl GPUError {
             Error::Validation(msg) => DomRoot::upcast(GPUValidationError::new_with_proto(
                 global,
                 None,
-                DOMString::from_string(msg),
+                msg.into(),
                 can_gc,
             )),
             Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::new_with_proto(
                 global,
                 None,
-                DOMString::from_string(msg),
+                msg.into(),
                 can_gc,
             )),
             Error::Internal(msg) => DomRoot::upcast(GPUInternalError::new_with_proto(
                 global,
                 None,
-                DOMString::from_string(msg),
+                msg.into(),
                 can_gc,
             )),
         }

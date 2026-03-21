@@ -10,6 +10,7 @@ use std::fmt::{Debug, Display, Formatter};
 use base::generic_channel::GenericSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback;
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 use uuid::Uuid;
@@ -29,6 +30,8 @@ pub enum BackendError {
     StoreNotFound,
     /// The storage quota was exceeded
     QuotaExceeded,
+    /// The transaction was aborted
+    Abort,
 
     DbErr(DbError),
 }
@@ -45,6 +48,7 @@ impl Display for BackendError {
             BackendError::DbNotFound => write!(f, "DbNotFound"),
             BackendError::StoreNotFound => write!(f, "StoreNotFound"),
             BackendError::QuotaExceeded => write!(f, "QuotaExceeded"),
+            BackendError::Abort => write!(f, "Abort"),
             BackendError::DbErr(err) => write!(f, "{err}"),
         }
     }
@@ -60,15 +64,15 @@ pub enum KeyPath {
     Sequence(Vec<String>),
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
-#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+// https://www.w3.org/TR/IndexedDB-3/#enumdef-idbtransactionmode
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
     Readwrite,
     Versionchange,
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#key-type>
+/// <https://www.w3.org/TR/IndexedDB-3/#key-type>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
@@ -79,7 +83,7 @@ pub enum IndexedDBKeyType {
     // FIXME:(arihant2math) implment ArrayBuffer
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#compare-two-keys>
+/// <https://www.w3.org/TR/IndexedDB-3/#compare-two-keys>
 impl PartialOrd for IndexedDBKeyType {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // 1. Let ta be the type of a.
@@ -159,7 +163,7 @@ impl PartialEq for IndexedDBKeyType {
     }
 }
 
-// <https://www.w3.org/TR/IndexedDB-2/#key-range>
+// <https://www.w3.org/TR/IndexedDB-3/#key-range>
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
@@ -215,7 +219,7 @@ impl IndexedDBKeyRange {
         }
     }
 
-    // <https://www.w3.org/TR/IndexedDB-2/#in>
+    // <https://www.w3.org/TR/IndexedDB-3/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
         // The lower bound is null, or it is less than key,
@@ -266,16 +270,17 @@ pub struct IndexedDBObjectStore {
     pub name: String,
     pub key_path: Option<KeyPath>,
     pub has_key_generator: bool,
+    pub key_generator_current_number: Option<i32>,
     pub indexes: Vec<IndexedDBIndex>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum PutItemResult {
-    Success,
+    Key(IndexedDBKeyType),
     CannotOverwrite,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetKey {
@@ -308,7 +313,20 @@ pub enum AsyncReadOnlyOperation {
     },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+impl AsyncReadOnlyOperation {
+    fn notify_error(&self, error: BackendError) {
+        let _ = match self {
+            Self::GetKey { callback, .. } => callback.send(Err(error)),
+            Self::GetItem { callback, .. } => callback.send(Err(error)),
+            Self::GetAllKeys { callback, .. } => callback.send(Err(error)),
+            Self::GetAllItems { callback, .. } => callback.send(Err(error)),
+            Self::Count { callback, .. } => callback.send(Err(error)),
+            Self::Iterate { callback, .. } => callback.send(Err(error)),
+        };
+    }
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem {
@@ -316,6 +334,8 @@ pub enum AsyncReadWriteOperation {
         key: Option<IndexedDBKeyType>,
         value: Vec<u8>,
         should_overwrite: bool,
+        /// New object store key generator current number to persist if the put succeeds.
+        key_generator_current_number: Option<i32>,
     },
 
     /// Removes the key/value pair for the given key in the associated idb data
@@ -327,15 +347,34 @@ pub enum AsyncReadWriteOperation {
     Clear(GenericCallback<BackendResult<()>>),
 }
 
+impl AsyncReadWriteOperation {
+    fn notify_error(&self, error: BackendError) {
+        let _ = match self {
+            Self::PutItem { callback, .. } => callback.send(Err(error)),
+            Self::RemoveItem { callback, .. } => callback.send(Err(error)),
+            Self::Clear(callback) => callback.send(Err(error)),
+        };
+    }
+}
+
 /// Operations that are not executed instantly, but rather added to a
 /// queue that is eventually run.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncOperation {
     ReadOnly(AsyncReadOnlyOperation),
     ReadWrite(AsyncReadWriteOperation),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+impl AsyncOperation {
+    pub fn notify_error(&self, error: BackendError) {
+        match self {
+            Self::ReadOnly(operation) => operation.notify_error(error),
+            Self::ReadWrite(operation) => operation.notify_error(error),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CreateObjectResult {
     Created,
     AlreadyExists,
@@ -355,6 +394,9 @@ pub enum ConnectionMsg {
         id: Uuid,
         version: u64,
         upgraded: bool,
+        // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+        // Step 3. Set transaction’s scope to connection’s object store set.
+        object_store_names: Vec<String>,
     },
     /// An upgrade transaction for a version started.
     Upgrade {
@@ -363,6 +405,9 @@ pub enum ConnectionMsg {
         version: u64,
         old_version: u64,
         transaction: u64,
+        // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+        // Step 3. Set transaction’s scope to connection’s object store set.
+        object_store_names: Vec<String>,
     },
     /// A `versionchange` event should be fired for a connection.
     VersionChange {
@@ -386,6 +431,16 @@ pub enum ConnectionMsg {
         id: Uuid,
         error: BackendError,
     },
+    /// Ask script to recheck whether a transaction can commit now.
+    TxnMaybeCommit { db_name: String, txn: u64 },
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct TxnCompleteMsg {
+    pub origin: ImmutableOrigin,
+    pub db_name: String,
+    pub txn: u64,
+    pub result: BackendResult<()>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -417,14 +472,58 @@ pub enum SyncOperation {
         String, // Database
         String, // Store
     ),
-
     /// Commits changes of a transaction to the database
     Commit(
-        GenericSender<BackendResult<()>>,
+        GenericCallback<TxnCompleteMsg>,
         ImmutableOrigin,
         String, // Database
         u64,    // Transaction serial number
     ),
+    /// Aborts a transaction in the backend
+    Abort(
+        GenericCallback<TxnCompleteMsg>,
+        ImmutableOrigin,
+        String, // Database
+        u64,    // Transaction serial number
+    ),
+    /// Upgrade transaction finished after its event was fired in script.
+    UpgradeTransactionFinished {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+        committed: bool,
+    },
+    /// <https://w3c.github.io/IndexedDB/#transaction-lifetime
+    /// Step 3:
+    /// When each request associated with a transaction is processed,
+    /// a success or error event will be fired. While the event is
+    /// being dispatched, the transaction state is set to active, allowing
+    /// additional requests to be made against the transaction. Once the
+    /// event dispatch is complete, the transaction’s state is set to inactive again.
+    RequestHandled {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+        request_id: u64,
+    },
+    CreateTransaction {
+        sender: GenericSender<BackendResult<u64>>,
+        origin: ImmutableOrigin,
+        db_name: String,
+        mode: IndexedDBTxnMode,
+        scope: Vec<String>,
+    },
+    /// Request script to recheck transaction commit eligibility.
+    TxnMaybeCommit {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+    },
+    TransactionFinished {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+    },
 
     /// Creates a new index for the database
     CreateIndex(
@@ -488,24 +587,6 @@ pub enum SyncOperation {
         Uuid,
     ),
 
-    /// Returns an unique identifier that is used to be able to
-    /// commit/abort transactions.
-    RegisterNewTxn(
-        /// The unique identifier of the transaction
-        GenericSender<u64>,
-        ImmutableOrigin,
-        String, // Database
-    ),
-
-    /// Starts executing the requests of a transaction
-    /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
-    StartTransaction(
-        GenericSender<BackendResult<()>>,
-        ImmutableOrigin,
-        String, // Database
-        u64,    // The serial number of the mutating transaction
-    ),
-
     /// Returns the version of the database
     Version(
         GenericSender<BackendResult<u64>>,
@@ -545,13 +626,18 @@ pub enum IndexedDBThreadMsg {
         String, // Database
         String, // ObjectStore
         u64,    // Serial number of the transaction that requests this operation
+        u64,    // Monotonic request id in the transaction
         IndexedDBTxnMode,
         AsyncOperation,
     ),
-    OpenTransactionInactive {
-        name: String,
+    EngineTxnBatchComplete {
         origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
     },
+
+    /// Measure memory used by this thread and send the report over the provided channel.
+    CollectMemoryReport(ReportsChan),
 }
 
 #[cfg(test)]

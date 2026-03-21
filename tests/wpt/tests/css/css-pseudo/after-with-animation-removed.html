@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#container {
+  display: flex;
+}
+@keyframes keyframe { }
+</style>
+
+<style id="remove">
+#container::after {
+  animation: keyframe 1s infinite;
+  content: '';
+  width: 100px;
+  height: 100px;
+  background-color: red;
+}
+</style>
+<body>
+  <p>Test passes if there is a filled green square.</p>
+  <div style="width: 100px; height: 100px; position: absolute; background-color: green; z-index: -1;"></div>
+  <div id="container"></div>
+</body>
+</head>
+<script>
+document.body.offsetHeight;
+document.getElementById("remove").remove();
+</script>
+</html>

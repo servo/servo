@@ -16,6 +16,7 @@ use std::net::TcpStream;
 use base::id::BrowsingContextId;
 use devtools_traits::get_time_stamp;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -42,7 +43,7 @@ pub mod thread_configuration;
 
 /// Describes the debugged context. It informs the server of which objects can be debugged.
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher/session-context.js>
-#[derive(Serialize)]
+#[derive(Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SessionContext {
     is_server_target_switching_enabled: bool,
@@ -97,7 +98,7 @@ impl SessionContext {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, MallocSizeOf)]
 pub enum SessionContextType {
     BrowserElement,
     _ContextProcess,
@@ -179,6 +180,7 @@ pub(crate) struct WatcherActorMsg {
     traits: WatcherTraits,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct WatcherActor {
     name: String,
     pub browsing_context_actor: String,
@@ -213,8 +215,14 @@ impl Actor for WatcherActor {
     ///   returns the associated `BrowsingContextActor`. Every target sent creates a
     ///   `target-available-form` event.
     ///
+    /// - `unwatchTargets`: Stop watching a set of targets.
+    ///   This is currently a no-op because `watchTargets` only returns a point-in-time snapshot.
+    ///
     /// - `watchResources`: Start watching certain resource types. This sends
     ///   `resources-available-array` events.
+    ///
+    /// - `unwatchResources`: Stop watching a set of resources.
+    ///   This is currently a no-op because `watchResources` only returns a point-in-time snapshot.
     ///
     /// - `getNetworkParentActor`: Returns the network parent actor. It doesn't seem to do much at
     ///   the moment.
@@ -271,6 +279,10 @@ impl Actor for WatcherActor {
                 // and processed the message so that it can continue
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
+            },
+            "unwatchTargets" => {
+                // "unwatchTargets" messages are one-way and expect no reply.
+                request.mark_handled();
             },
             "watchResources" => {
                 let Some(resource_types) = msg.get("resourceTypes") else {
@@ -354,6 +366,10 @@ impl Actor for WatcherActor {
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
+            },
+            "unwatchResources" => {
+                // "unwatchResources" messages are one-way and expect no reply.
+                request.mark_handled();
             },
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {
@@ -439,11 +455,11 @@ impl WatcherActor {
         watcher
     }
 
-    pub fn emit_will_navigate(
+    pub fn emit_will_navigate<'a>(
         &self,
         browsing_context_id: BrowsingContextId,
         url: ServoUrl,
-        connections: &mut Vec<TcpStream>,
+        connections: impl Iterator<Item = &'a mut TcpStream>,
         id_map: &mut IdMap,
     ) {
         let msg = WillNavigateMessage {

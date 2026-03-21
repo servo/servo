@@ -33,6 +33,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use net_traits::{DebugVec, TlsSecurityInfo};
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -62,6 +63,8 @@ pub enum DevtoolsControlMsg {
     FromChrome(ChromeToDevtoolsControlMsg),
     /// Messages from script threads
     FromScript(ScriptToDevtoolsControlMsg),
+    /// Sent when a devtools client thread terminates.
+    ClientExited,
 }
 
 /// Events that the devtools server must act upon.
@@ -76,6 +79,8 @@ pub enum ChromeToDevtoolsControlMsg {
     /// A network event occurred (request, reply, etc.). The actor with the
     /// provided name should be notified.
     NetworkEvent(String, NetworkEvent),
+    /// Perform a memory report.
+    CollectMemoryReport(ReportsChan),
 }
 
 /// The state of a page navigation.
@@ -124,18 +129,76 @@ pub enum ScriptToDevtoolsControlMsg {
     ),
 
     UpdateSourceContent(PipelineId, String),
+
+    DomMutation(PipelineId, DomMutation),
+
+    /// The debugger is paused, sending frame information.
+    DebuggerPause(PipelineId, FrameOffset, PauseReason),
+
+    /// Get frame information from script
+    CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
+
+    /// Get environment information from script
+    CreateEnvironmentActor(GenericSender<String>, EnvironmentInfo, Option<String>),
 }
 
-/// Serialized JS return values
-/// TODO: generalize this beyond the EvaluateJS message?
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum DomMutation {
+    AttributeModified {
+        node: String,
+        attribute_name: String,
+        new_value: Option<String>,
+    },
+}
+
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyPreview {
+    pub name: String,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub is_accessor: bool,
+    pub value_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boolean_value: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub number_value: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub string_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_name: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
-pub enum EvaluateJSReply {
+pub enum EvaluateJSReplyValue {
     VoidValue,
     NullValue,
     BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
-    ActorValue { class: String, uuid: String },
+    ActorValue {
+        class: String,
+        uuid: String,
+        name: Option<String>,
+        // Function-specific
+        display_name: Option<String>,
+        parameter_names: Option<Vec<String>>,
+        is_async: Option<bool>,
+        is_generator: Option<bool>,
+        // Object preview
+        own_properties: Option<Vec<PropertyPreview>>,
+        own_properties_length: Option<u32>,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EvaluateJSReply {
+    pub value: EvaluateJSReplyValue,
+    pub has_exception: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -175,6 +238,8 @@ pub struct NodeInfo {
 
     /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
     pub doctype_system_identifier: Option<String>,
+
+    pub has_event_listeners: bool,
 }
 
 pub struct StartedTimelineMarker {
@@ -246,8 +311,6 @@ pub struct AutoMargins {
 /// TODO: better error handling, e.g. if pipeline id lookup fails?
 #[derive(Debug, Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
-    /// Evaluate a JS snippet in the context of the global for the given pipeline.
-    EvaluateJS(PipelineId, String, GenericSender<EvaluateJSReply>),
     /// Retrieve the details of the root node (ie. the document) for the given pipeline.
     GetRootNode(PipelineId, GenericSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
@@ -273,6 +336,8 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Retrieve the computed CSS style properties for the given node.
     GetComputedStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
+    /// Get information about event listeners on a node.
+    GetEventListenerInfo(PipelineId, String, GenericSender<Vec<EventListenerInfo>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(
         PipelineId,
@@ -298,6 +363,15 @@ pub enum DevtoolScriptControlMsg {
     /// Request a callback directed at the given actor name from the next animation frame
     /// executed in the given pipeline.
     RequestAnimationFrame(PipelineId, String),
+    /// Direct the WebView containing the given pipeline to load a new URL,
+    /// as if it was typed by the user.
+    NavigateTo(PipelineId, ServoUrl),
+    /// Direct the WebView containing the given pipeline to traverse history backward
+    /// up to one step.
+    GoBack(PipelineId),
+    /// Direct the WebView containing the given pipeline to traverse history forward
+    /// up to one step.
+    GoForward(PipelineId),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
@@ -307,13 +381,22 @@ pub enum DevtoolScriptControlMsg {
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
+    Eval(
+        String,
+        PipelineId,
+        Option<String>,
+        GenericSender<EvaluateJSReply>,
+    ),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),
-    Pause(GenericSender<PauseFrameResult>),
+    Interrupt,
+    Resume(Option<String>, Option<String>),
+    ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
+    GetEnvironment(String, GenericSender<String>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct AttrModification {
     pub attribute_name: String,
@@ -331,7 +414,7 @@ pub struct RuleModification {
     pub priority: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct StackFrame {
     pub filename: String,
@@ -349,7 +432,7 @@ pub fn get_time_stamp() -> u64 {
         .as_millis() as u64
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct ConsoleMessageFields {
     pub level: ConsoleLogLevel,
@@ -364,6 +447,24 @@ pub enum ConsoleArgument {
     String(String),
     Integer(i32),
     Number(f64),
+    Boolean(bool),
+    Object(ConsoleArgumentObject),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleArgumentObject {
+    pub class: String,
+    pub own_properties: Vec<ConsoleArgumentPropertyValue>,
+}
+
+/// A property on a JS object passed as a console argument.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleArgumentPropertyValue {
+    pub key: String,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub value: ConsoleArgument,
 }
 
 impl From<String> for ConsoleArgument {
@@ -379,7 +480,7 @@ pub struct ConsoleMessage {
     pub stacktrace: Option<Vec<StackFrame>>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct PageError {
     pub error_message: String,
@@ -389,10 +490,12 @@ pub struct PageError {
     pub time_stamp: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpRequest {
     pub url: ServoUrl,
+    #[ignore_malloc_size_of = "http type"]
     pub method: Method,
+    #[ignore_malloc_size_of = "http type"]
     pub headers: HeaderMap,
     pub body: Option<DebugVec>,
     pub pipeline_id: PipelineId,
@@ -405,8 +508,9 @@ pub struct HttpRequest {
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
+    #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
     pub body: Option<DebugVec>,
@@ -476,7 +580,7 @@ impl FromStr for WorkerId {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct CssDatabaseProperty {
     pub is_inherited: bool,
@@ -521,16 +625,41 @@ pub struct RecommendedBreakpointLocation {
     pub is_step_start: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PauseFrameResult {
-    pub column: u32,
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct FrameInfo {
     pub display_name: String,
-    pub line: u32,
     pub on_stack: bool,
     pub oldest: bool,
     pub terminated: bool,
-    #[serde(rename = "type")]
     pub type_: String,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct EnvironmentInfo {
+    pub type_: Option<String>,
+    pub scope_kind: Option<String>,
+    pub function_display_name: Option<String>,
+    pub binding_variables: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EventListenerInfo {
+    pub event_type: String,
+    pub capturing: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseReason {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub on_next: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct FrameOffset {
+    pub actor: String,
+    pub column: u32,
+    pub line: u32,
 }

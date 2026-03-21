@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
@@ -68,9 +69,9 @@ impl HTMLTitleElementMethods<crate::DomTypeHolder> for HTMLTitleElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-title-text>
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+    fn SetText(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc)
+            .set_text_content_for_element(cx, Some(value))
     }
 }
 
@@ -79,9 +80,9 @@ impl VirtualMethods for HTMLTitleElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
 
         // Notify of title changes only after the initial full parsing
@@ -91,9 +92,9 @@ impl VirtualMethods for HTMLTitleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
         let node = self.upcast::<Node>();
         if context.tree_is_in_a_document_tree {

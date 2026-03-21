@@ -1,5 +1,5 @@
 [package]
-name = "jstraceable_derive"
+name = "servo-jstraceable-derive"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

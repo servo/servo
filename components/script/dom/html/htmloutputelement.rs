@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -64,8 +65,8 @@ impl HTMLOutputElement {
         )
     }
 
-    pub(crate) fn reset(&self, can_gc: CanGc) {
-        Node::string_replace_all(self.DefaultValue(), self.upcast::<Node>(), can_gc);
+    pub(crate) fn reset(&self, cx: &mut JSContext) {
+        Node::string_replace_all(cx, self.DefaultValue(), self.upcast::<Node>());
         *self.default_value_override.borrow_mut() = None;
     }
 }
@@ -90,10 +91,10 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue>
-    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetDefaultValue(&self, cx: &mut JSContext, value: DOMString) {
         if self.default_value_override.borrow().is_none() {
             // Step 1 ("and return")
-            Node::string_replace_all(value.clone(), self.upcast::<Node>(), can_gc);
+            Node::string_replace_all(cx, value, self.upcast::<Node>());
         } else {
             // Step 2, if not returned from step 1
             *self.default_value_override.borrow_mut() = Some(value);
@@ -106,9 +107,9 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
-        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
+        Node::string_replace_all(cx, value, self.upcast::<Node>());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-type>
@@ -133,13 +134,13 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
@@ -158,12 +159,17 @@ impl VirtualMethods for HTMLOutputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if attr.local_name() == &local_name!("form") {
-            self.form_attribute_mutated(mutation, can_gc);
+            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
         }
     }
 }

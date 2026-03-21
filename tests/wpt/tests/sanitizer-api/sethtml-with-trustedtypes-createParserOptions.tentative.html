@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      // We have to replace this global because we are overriding the default policy from within the test.
+      let createParserOptions = (options) => options;
+      let createHTML = (html) => html;
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+
+      trustedTypes.createPolicy("default", {
+        createHTML: (html) => createHTML(html),
+        createParserOptions: (options) => ({
+          sanitizer: { removeElements: ["div"] },
+        }),
+      });
+
+      const passthrough = trustedTypes.createPolicy("passthrough", {
+        createHTML: (html) => createHTML(html),
+        createParserOptions: (options) => options,
+      });
+
+      function cleanup() {}
+
+      function createTarget(target_type, t) {
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+          createHTML = (html) => html;
+        });
+
+        const target = document.createElement("div");
+        switch (target_type) {
+          case "Element":
+            return target;
+          case "ShadowRoot":
+            return target.attachShadow({ mode: "open" });
+        }
+      }
+
+      for (const target of ["ShadowRoot", "Element"]) {
+        test((t) => {
+          const node = createTarget(target, t);
+          node.setHTMLUnsafe(
+            "<div id='allowed'><span id=forbidden></span></div>",
+            passthrough.createParserOptions({
+              sanitizer: { removeElements: ["span"] },
+            }),
+          );
+          assert_equals(node.querySelector("#forbidden"), null);
+          assert_not_equals(node.querySelector("#allowed"), null);
+        }, `${target}.setHTMLUnsafe: passing a TrustedParserOptions overrides default policy`);
+      }
+    </script>
+  </body>
+</html>

@@ -22,14 +22,14 @@ use js::rust::wrappers2::{
 };
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
-use script_bindings::str::DOMString;
+use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -383,7 +383,7 @@ fn continue_dynamic_import(
                 &global_scope,
                 Some(on_fulfilled),
                 Some(Box::new(OnRejectedHandler {
-                    promise: inner_promise.clone(),
+                    promise: inner_promise,
                 })),
                 CanGc::note(),
             );
@@ -396,21 +396,20 @@ fn continue_dynamic_import(
 
     let mut realm = enter_auto_realm(cx, &*global);
     let mut realm = realm.current_realm();
-    let _ais = AutoIncumbentScript::new(&global);
-
-    // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
-    let handler = PromiseNativeHandler::new(
-        &global,
-        Some(link_and_evaluate),
-        Some(Box::new(OnRejectedHandler {
-            promise: promise.clone(),
-        })),
-        CanGc::from_cx(&mut realm),
-    );
-    let in_realm_proof = (&mut realm).into();
-    let in_realm = InRealm::Already(&in_realm_proof);
-    load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
-
+    run_a_callback::<DomTypeHolder, _>(&*global, || {
+        // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(link_and_evaluate),
+            Some(Box::new(OnRejectedHandler {
+                promise: promise.clone(),
+            })),
+            CanGc::from_cx(&mut realm),
+        );
+        let in_realm_proof = (&mut realm).into();
+        let in_realm = InRealm::Already(&in_realm_proof);
+        load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
+    });
     // Step 9. Return unused.
 }
 
@@ -463,8 +462,7 @@ pub(crate) fn host_load_imported_module(
     let url = ModuleTree::resolve_module_specifier(
         &global_scope,
         referencing_script,
-        DOMString::from_string(specifier.clone()),
-        CanGc::from_cx(cx),
+        specifier.clone().into(),
     );
 
     // Step 9 If the previous step threw an exception, then:
@@ -493,9 +491,11 @@ pub(crate) fn host_load_imported_module(
         return;
     };
 
+    let url = url.unwrap();
+
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.
-    let fetch_options = original_fetch_options.descendant_fetch_options();
+    let fetch_options = original_fetch_options.descendant_fetch_options(&url, &global_scope);
 
     // Step 13. If loadState is not undefined, then:
     // Note: loadState is undefined only in dynamic imports
@@ -521,7 +521,7 @@ pub(crate) fn host_load_imported_module(
             // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
             None => Err(gen_type_error(
                 &global_scope,
-                Error::Type("Module fetching failed".to_string()),
+                Error::Type(c"Module fetching failed".to_owned()),
                 CanGc::from_cx(cx),
             )),
             Some(module_tree) => {
@@ -555,7 +555,7 @@ pub(crate) fn host_load_imported_module(
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
     // Note: we don't have access to the requested `ModuleObject`, so we pass only its type.
     fetch_a_single_imported_module_script(
-        url.unwrap(),
+        url,
         fetch_client,
         destination,
         fetch_options,

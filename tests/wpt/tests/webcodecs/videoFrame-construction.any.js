@@ -332,6 +332,26 @@ test(t => {
 }, 'Test visibleRect metadata override where source display size = 2 * visible size for both width and height');
 
 test(t => {
+  const init = {
+    format: 'I420',
+    timestamp: 1234,
+    codedWidth: 300,
+    codedHeight: 150,
+    displayWidth: 1280,
+    displayHeight: 1
+  };
+  const data = new Uint8Array(1.5 * init.codedWidth * init.codedHeight);
+  const tinyDisplayFrame = new VideoFrame(data, init);
+  t.add_cleanup(() => tinyDisplayFrame.close());
+
+  // heightScale = 1/150, so round(1/150 * 40) = round(0.267) = 0: TypeError
+  assert_throws_js(
+      TypeError,
+      () => new VideoFrame(tinyDisplayFrame, {visibleRect: {width: 187, height: 40}}),
+      'computed display height rounds to zero');
+}, 'Test that a visibleRect override throwing when computed display size rounds to zero');
+
+test(t => {
   let image = makeImageBitmap(32, 16);
 
   let scaledFrame = new VideoFrame(image, {

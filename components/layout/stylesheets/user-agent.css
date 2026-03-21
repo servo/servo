@@ -103,7 +103,7 @@ input:focus, textarea:focus, button:focus {
   outline: thin solid black;
 }
 
-mark { background: yellow; color: black; }
+mark { background: Mark; color: MarkText; }
 
 abbr[title], acronym[title] { text-decoration: dotted underline; }
 ins, u { text-decoration: underline; }
@@ -416,6 +416,8 @@ iframe:fullscreen {
 /* https://drafts.csswg.org/css-lists-3/#ua-stylesheet */
 *::marker {
   text-align: end;
+  text-align-last: end;
+  text-indent: 0;
   text-transform: none;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;

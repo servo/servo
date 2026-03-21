@@ -10,7 +10,7 @@
 <script src="./support/helper.js" type="text/javascript"></script>
 <style>
   .target {
-    transition: --foo 10s step-start;
+    transition: --foo 10s step-end;
     transition-behavior: allow-discrete;
     --foo: bar;
   }
@@ -19,22 +19,54 @@
 <body>
 <div id="log"></div>
 <script>
+function assertTransitionKeyframes(div, startValue, endValue) {
+  const animations = div.getAnimations();
+  assert_equals(animations.length, 1, 'A single transition is running');
+  assert_equals(animations[0].transitionProperty, '--foo', 'transition is for --foo');
+
+  const frames = animations[0].effect.getKeyframes();
+  assert_equals(frames.length, 2, 'Transition has 2 keyframes');
+  assert_equals(frames[0]['--foo'].trim(), startValue, 'Start keyframe has the old value');
+  assert_equals(frames[1]['--foo'].trim(), endValue, 'End keyframe has the new value');
+
+  return animations[0];
+}
+
 promise_test(async t => {
   const div = addDiv(t, { class: 'target' });
 
   let transitionCount = 0;
   div.addEventListener("transitionstart", () => transitionCount++);
 
-  // Trigger a transition on the custom property.
-  getComputedStyle(div).getPropertyValue('--foo');
+  // Assert initial value.
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--foo').trim(),
+    'bar',
+    'Computed style reflects initial value before transition'
+  );
   div.style.setProperty('--foo', 'baz');
-  getComputedStyle(div).getPropertyValue('--foo');
 
+  const anim = assertTransitionKeyframes(div, 'bar', 'baz');
   // Wait two more frames to ensure only a single transition was started.
   await waitForFrame();
   await waitForFrame();
 
   assert_equals(transitionCount, 1, 'A single "transitionstart" event was dispatched');
+  // Assert value during transition.
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--foo').trim(),
+    'bar',
+    'Computed style stays at the old value while transition is running'
+  );
+
+  anim.finish();
+  await anim.finished;
+  // Assert final value.
+  assert_equals(
+    getComputedStyle(div).getPropertyValue('--foo').trim(),
+    'baz',
+    'Computed style reflects the new value after transition ends'
+  );
 }, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete"');
 
 promise_test(async t => {
@@ -46,7 +78,7 @@ promise_test(async t => {
   div.style.transition = "--foo 10s allow-discrete";
   div.style.setProperty('--foo', 'baz');
 
-  assert_equals(div.getAnimations()[0].transitionProperty, '--foo', 'A transition was started for the custom property');
+  assertTransitionKeyframes(div, 'bar', 'baz');
 }, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete" when setting "transition-property" in the style change that yields the transition');
 
 </script>

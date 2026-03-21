@@ -1,0 +1,49 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>CSS Backgrounds: local attachment with RTL scroll</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#the-background-attachment">
+<link rel="match" href="local-attachment-rtl-scroll-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  direction: rtl;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* This is a multi-layered background for testing. */
+  background:
+    local linear-gradient(to right, yellow 50%, blue 50%) 0 0 / 100% 100% no-repeat,
+    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.2), transparent) 0 0 / 20px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.2), transparent) 100% 0 / 20px 100% no-repeat;
+}
+.content {
+  width: 100px;
+  height: 20px;
+  flex-shrink: 0;
+}
+</style>
+<div id="init_scrolled" class="container">
+  <div class="content"></div>
+  <div class="content"></div>
+</div>
+<div id="mid_scrolled" class="container">
+  <div class="content"></div>
+  <div class="content"></div>
+</div>
+<div id="max_scrolled" class="container">
+  <div class="content"></div>
+  <div class="content"></div>
+</div>
+<script>
+  // In RTL, scrolling moves scrollLeft towards negative values.
+  mid_scrolled.scrollLeft = -50;
+  max_scrolled.scrollLeft = -100;
+
+  waitForAtLeastOneFrame().then(() => {
+    takeScreenshot();
+});
+</script>
+</html>

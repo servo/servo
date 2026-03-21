@@ -6,7 +6,7 @@
 
 use std::ffi::CStr;
 use std::os::raw;
-use std::ptr;
+use std::ptr::{self, NonNull};
 
 use base::id::{
     BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
@@ -30,6 +30,7 @@ use js::jsapi::{
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
 };
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{
     CustomAutoRooterGuard, HandleValue, JSAutoStructuredCloneBufferWrapper, MutableHandleValue,
@@ -319,8 +320,13 @@ unsafe extern "C" fn write_callback(
 
 fn receiver_for_type(
     val: TransferrableInterface,
-) -> fn(&GlobalScope, &mut StructuredDataReader<'_>, u64, RawMutableHandleObject) -> Result<(), ()>
-{
+) -> fn(
+    &mut js::context::JSContext,
+    &GlobalScope,
+    &mut StructuredDataReader<'_>,
+    u64,
+    RawMutableHandleObject,
+) -> Result<(), ()> {
     match val {
         TransferrableInterface::ImageBitmap => receive_object::<ImageBitmap>,
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
@@ -332,6 +338,7 @@ fn receiver_for_type(
 }
 
 fn receive_object<T: Transferable>(
+    cx: &mut js::context::JSContext,
     owner: &GlobalScope,
     sc_reader: &mut StructuredDataReader<'_>,
     extra_data: u64,
@@ -369,7 +376,7 @@ fn receive_object<T: Transferable>(
         );
     };
 
-    let Ok(received) = T::transfer_receive(owner, id, serialized) else {
+    let Ok(received) = T::transfer_receive(cx, owner, id, serialized) else {
         return Err(());
     };
     return_object.set(received.reflector().rootable().get());
@@ -388,13 +395,19 @@ unsafe extern "C" fn read_transfer_callback(
     return_object: RawMutableHandleObject,
 ) -> bool {
     let sc_reader = unsafe { &mut *(closure as *mut StructuredDataReader<'_>) };
-    let in_realm_proof = unsafe { AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx)) };
-    let owner = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
+    let mut cx = unsafe {
+        // This is safe because we are in SM hook
+        js::context::JSContext::from_ptr(
+            NonNull::new(cx).expect("JSContext pointer should not be null in SM hook"),
+        )
+    };
+    let mut cx = CurrentRealm::assert(&mut cx);
+    let owner = GlobalScope::from_current_realm(&cx);
 
     for transferrable in TransferrableInterface::iter() {
         if tag == StructuredCloneTags::from(transferrable) as u32 {
             let transfer_receiver = receiver_for_type(transferrable);
-            if transfer_receiver(&owner, sc_reader, extra_data, return_object).is_ok() {
+            if transfer_receiver(&mut cx, &owner, sc_reader, extra_data, return_object).is_ok() {
                 return true;
             }
         }
@@ -405,13 +418,13 @@ unsafe extern "C" fn read_transfer_callback(
 unsafe fn try_transfer<T: Transferable + IDLInterface>(
     interface: TransferrableInterface,
     obj: RawHandleObject,
-    cx: *mut JSContext,
+    cx: &mut js::context::JSContext,
     sc_writer: &mut StructuredDataWriter,
     tag: *mut u32,
     ownership: *mut TransferableOwnership,
     extra_data: *mut u64,
 ) -> Result<(), OperationError> {
-    let object = unsafe { root_from_object::<T>(*obj, cx) };
+    let object = unsafe { root_from_object::<T>(*obj, cx.raw_cx()) };
     let Ok(object) = object else {
         return Err(OperationError::InterfaceDoesNotMatch);
     };
@@ -419,7 +432,7 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
     unsafe { *tag = StructuredCloneTags::from(interface) as u32 };
     unsafe { *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM };
 
-    let (id, object) = object.transfer().map_err(OperationError::Exception)?;
+    let (id, object) = object.transfer(cx).map_err(OperationError::Exception)?;
 
     // 2. Store the transferred object at a given key.
     let objects = T::serialized_storage(StructuredData::Writer(sc_writer))
@@ -444,7 +457,7 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
 type TransferOperation = unsafe fn(
     TransferrableInterface,
     RawHandleObject,
-    *mut JSContext,
+    &mut js::context::JSContext,
     &mut StructuredDataWriter,
     *mut u32,
     *mut TransferableOwnership,
@@ -473,11 +486,26 @@ unsafe extern "C" fn write_transfer_callback(
     extra_data: *mut u64,
 ) -> bool {
     let sc_writer = unsafe { &mut *(closure as *mut StructuredDataWriter) };
+    let mut cx = unsafe {
+        // This is safe because we are in SM hook
+        js::context::JSContext::from_ptr(
+            NonNull::new(cx).expect("JSContext pointer should not be null in SM hook"),
+        )
+    };
     for transferable in TransferrableInterface::iter() {
         let try_transfer = transfer_for_type(transferable);
 
-        let transfer_result =
-            unsafe { try_transfer(transferable, obj, cx, sc_writer, tag, ownership, extra_data) };
+        let transfer_result = unsafe {
+            try_transfer(
+                transferable,
+                obj,
+                &mut cx,
+                sc_writer,
+                tag,
+                ownership,
+                extra_data,
+            )
+        };
         match transfer_result {
             Err(error) => match error {
                 OperationError::InterfaceDoesNotMatch => {},

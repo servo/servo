@@ -15,6 +15,7 @@ use base::generic_channel::{self, GenericReceiver, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
 use devtools_traits::{DevtoolScriptControlMsg, TimelineMarker, TimelineMarkerType};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 
@@ -24,15 +25,18 @@ use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
 use crate::protocol::{ClientRequest, JsonPacketStream};
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TimelineActor {
     name: String,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
     pipeline_id: PipelineId,
+    #[conditional_malloc_size_of]
     is_recording: Arc<Mutex<bool>>,
     stream: AtomicRefCell<Option<TcpStream>>,
     framerate_actor: AtomicRefCell<Option<String>>,
     memory_actor: AtomicRefCell<Option<String>>,
+    #[conditional_malloc_size_of]
     registry: Arc<Mutex<ActorRegistry>>,
     start_stamp: CrossProcessInstant,
 }
@@ -107,6 +111,7 @@ struct FramerateEmitterReply {
 /// with accuracy to microsecond that shows how much time has passed since
 /// actor registry inited
 /// analog <https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp>
+#[derive(MallocSizeOf)]
 pub(crate) struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {

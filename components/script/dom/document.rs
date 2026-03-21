@@ -21,7 +21,7 @@ use bitflags::bitflags;
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
-use content_security_policy::{CspList, PolicyDisposition};
+use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;
 use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -36,8 +36,8 @@ use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
-    PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, ScrollContainerQueryFlags,
-    TrustedNodeAddress,
+    PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
+    ScrollContainerQueryFlags, TrustedNodeAddress,
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
@@ -139,6 +139,9 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
+use crate::dom::execcommand::contenteditable::ContentEditableRange;
+use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -181,7 +184,7 @@ use crate::dom::text::Text;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::{HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
@@ -418,8 +421,10 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming>
     #[no_trace]
     dom_interactive: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-start-time>
     #[no_trace]
     dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-end-time>
     #[no_trace]
     dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
     #[no_trace]
@@ -610,7 +615,6 @@ pub(crate) struct Document {
     creation_sandboxing_flag_set: Cell<SandboxingFlagSet>,
     /// The cached favicon for that document.
     #[no_trace]
-    #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
     favicon: RefCell<Option<Image>>,
 
     /// All websockets created that are associated with this document.
@@ -625,6 +629,21 @@ pub(crate) struct Document {
 
     /// Reflect the value of that preferences to prevent paying the cost of a RwLock access.
     layout_animations_test_enabled: bool,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    #[no_trace]
+    state_override: DomRefCell<FxHashMap<CommandName, bool>>,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    #[no_trace]
+    value_override: DomRefCell<FxHashMap<CommandName, DOMString>>,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
+    #[no_trace]
+    default_single_line_container_name: Cell<DefaultSingleLineContainerName>,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
+    css_styling_flag: Cell<bool>,
 }
 
 impl Document {
@@ -836,7 +855,7 @@ impl Document {
         self.current_rendering_epoch.get()
     }
 
-    pub(crate) fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
+    pub(crate) fn set_activity(&self, cx: &mut js::context::JSContext, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -851,7 +870,7 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend(can_gc);
+            self.window().suspend(cx);
             media.suspend(&client_context_id);
             return;
         }
@@ -859,7 +878,7 @@ impl Document {
         self.title_changed();
         self.notify_embedder_favicon();
         self.dirty_all_nodes();
-        self.window().resume(can_gc);
+        self.window().resume(CanGc::from_cx(cx));
         media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {
@@ -1238,8 +1257,10 @@ impl Document {
         );
         // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback target.
         // TODO
+
         // Step 3.7. Move the sequential focus navigation starting point to target.
-        // TODO
+        self.event_handler()
+            .set_sequential_focus_navigation_starting_point(target.upcast());
     }
 
     fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {
@@ -1340,29 +1361,21 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
-    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element, can_gc: CanGc) {
-        // Return if `not_focusable` is not the designated focused area of the
-        // `Document`.
-        if Some(not_focusable) != self.focused.get().as_deref() {
+    /// > For each doc of docs, if the focused area of doc is not a focusable area, then run the
+    /// > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
+    /// > focus changed during ongoing navigation to false.
+    ///
+    /// TODO: Handle the "focus changed during ongoing navigation" flag.
+    pub(crate) fn perform_focus_fixup_rule(&self, can_gc: CanGc) {
+        if self
+            .focused
+            .get()
+            .as_deref()
+            .is_none_or(|focused| focused.is_focusable_area())
+        {
             return;
         }
-
-        let implicit_transaction = self.focus_transaction.borrow().is_none();
-
-        if implicit_transaction {
-            self.begin_focus_transaction();
-        }
-
-        // Designate the viewport as the new focused area of the `Document`, but
-        // do not run the focusing steps.
-        {
-            let mut focus_transaction = self.focus_transaction.borrow_mut();
-            focus_transaction.as_mut().unwrap().element = None;
-        }
-
-        if implicit_transaction {
-            self.commit_focus_transaction(FocusInitiator::Local, can_gc);
-        }
+        self.request_focus(None, FocusInitiator::Script, can_gc);
     }
 
     /// Request that the given element receive focus with default options.
@@ -1390,14 +1403,17 @@ impl Document {
     /// commits an implicit transaction.
     pub(crate) fn request_focus_with_options(
         &self,
-        elem: Option<&Element>,
+        target: Option<&Element>,
         focus_initiator: FocusInitiator,
         focus_options: FocusOptions,
         can_gc: CanGc,
     ) {
-        // If an element is specified, and it's non-focusable, ignore the
-        // request.
-        if elem.is_some_and(|e| !e.is_focusable_area()) {
+        // If a target element is specified, and it's non-focusable, ignore the request.
+        if target.is_some_and(|target| match focus_initiator {
+            FocusInitiator::Keyboard => !target.is_sequentially_focusable(),
+            FocusInitiator::Click => !target.is_click_focusable(),
+            FocusInitiator::Script | FocusInitiator::Remote => !target.is_focusable_area(),
+        }) {
             return;
         }
 
@@ -1410,7 +1426,7 @@ impl Document {
         {
             let mut focus_transaction = self.focus_transaction.borrow_mut();
             let focus_transaction = focus_transaction.as_mut().unwrap();
-            focus_transaction.element = elem.map(Dom::from_ref);
+            focus_transaction.element = target.map(Dom::from_ref);
             focus_transaction.has_focus = true;
             focus_transaction.focus_options = focus_options;
         }
@@ -1535,6 +1551,9 @@ impl Document {
             if let Some(elem) = &new_focused_filtered {
                 elem.set_focus_state(true);
                 let node = elem.upcast::<Node>();
+                if let Some(html_element) = elem.downcast::<HTMLElement>() {
+                    html_element.handle_focus_state_for_contenteditable(can_gc);
+                }
                 // FIXME: pass appropriate relatedTarget
                 self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
 
@@ -1562,7 +1581,7 @@ impl Document {
             }
         }
 
-        if focus_initiator != FocusInitiator::Local {
+        if focus_initiator == FocusInitiator::Remote {
             return;
         }
 
@@ -1793,28 +1812,30 @@ impl Document {
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
     pub(crate) fn node_from_nodes_and_strings(
         &self,
+        cx: &mut js::context::JSContext,
         mut nodes: Vec<NodeOrString>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
         if nodes.len() == 1 {
             Ok(match nodes.pop().unwrap() {
                 NodeOrString::Node(node) => node,
                 NodeOrString::String(string) => {
-                    DomRoot::upcast(self.CreateTextNode(string, can_gc))
+                    DomRoot::upcast(self.CreateTextNode(string, CanGc::from_cx(cx)))
                 },
             })
         } else {
-            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(can_gc));
+            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(CanGc::from_cx(cx)));
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        fragment.AppendChild(&node, can_gc)?;
+                        fragment.AppendChild(cx, &node)?;
                     },
                     NodeOrString::String(string) => {
-                        let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
+                        let node = DomRoot::upcast::<Node>(
+                            self.CreateTextNode(string, CanGc::from_cx(cx)),
+                        );
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(&node, can_gc).unwrap();
+                        fragment.AppendChild(cx, &node).unwrap();
                     },
                 }
             }
@@ -1867,15 +1888,48 @@ impl Document {
         self.render_blocking_element_count.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#block-rendering>
     pub(crate) fn increment_render_blocking_element_count(&self) {
+        // Step 1. Let document be el's node document.
+        //
+        // That's self
+
+        // Step 2. If document allows adding render-blocking elements,
+        // then append el to document's render-blocking element set.
+        assert!(self.allows_adding_render_blocking_elements());
         let count_cell = &self.render_blocking_element_count;
         count_cell.set(count_cell.get() + 1);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#unblock-rendering>
     pub(crate) fn decrement_render_blocking_element_count(&self) {
+        // Step 1. Let document be el's node document.
+        //
+        // That's self
+
+        // Step 2. Remove el from document's render-blocking element set.
         let count_cell = &self.render_blocking_element_count;
         assert!(count_cell.get() > 0);
         count_cell.set(count_cell.get() - 1);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#allows-adding-render-blocking-elements>
+    pub(crate) fn allows_adding_render_blocking_elements(&self) -> bool {
+        // > A Document document allows adding render-blocking elements
+        // > if document's content type is "text/html" and the body element of document is null.
+        self.is_html_document && self.GetBody().is_none()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#render-blocked>
+    pub(crate) fn is_render_blocked(&self) -> bool {
+        // > A Document document is render-blocked if both of the following are true:
+        // > document's render-blocking element set is non-empty,
+        // > or document allows adding render-blocking elements.
+        self.render_blocking_element_count() > 0
+        // TODO: add `allows_adding_render_blocking_elements` which currently breaks for empty iframes
+        // > The current high resolution time given document's relevant global object
+        // has not exceeded an implementation-defined timeout value.
+        // TODO
     }
 
     pub(crate) fn invalidate_stylesheets(&self) {
@@ -1968,8 +2022,20 @@ impl Document {
         self.policy_container.borrow_mut().set_csp_list(csp_list);
     }
 
-    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        self.policy_container.borrow().csp_list.clone()
+    /// <https://www.w3.org/TR/CSP/#enforced>
+    pub(crate) fn enforce_csp_policy(&self, policy: CspPolicy) {
+        // > A policy is enforced or monitored for a global object by inserting it into the global object’s CSP list.
+        let mut csp_list = self.get_csp_list().clone().unwrap_or(CspList(vec![]));
+        csp_list.push(policy);
+        self.policy_container
+            .borrow_mut()
+            .set_csp_list(Some(csp_list));
+    }
+
+    pub(crate) fn get_csp_list(&self) -> Ref<'_, Option<CspList>> {
+        Ref::map(self.policy_container.borrow(), |policy_container| {
+            &policy_container.csp_list
+        })
     }
 
     pub(crate) fn preloaded_resources(&self) -> std::cell::Ref<'_, PreloadedResources> {
@@ -2171,7 +2237,7 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
-    pub(crate) fn finish_load(&self, load: LoadType, can_gc: CanGc) {
+    pub(crate) fn finish_load(&self, load: LoadType, cx: &mut js::context::JSContext) {
         // This does not delay the load event anymore.
         debug!("Document got finish_load: {:?}", load);
         self.loader.borrow_mut().finish_load(&load);
@@ -2180,10 +2246,10 @@ impl Document {
             LoadType::Stylesheet(_) => {
                 // A stylesheet finishing to load may unblock any pending
                 // parsing-blocking script or deferred script.
-                self.process_pending_parsing_blocking_script(can_gc);
+                self.process_pending_parsing_blocking_script(cx);
 
                 // Step 3.
-                self.process_deferred_scripts(can_gc);
+                self.process_deferred_scripts(CanGc::from_cx(cx));
             },
             LoadType::PageSource(_) => {
                 // We finished loading the page, so if the `Window` is still waiting for
@@ -2196,7 +2262,7 @@ impl Document {
                 // this is the first opportunity to process them.
 
                 // Step 3.
-                self.process_deferred_scripts(can_gc);
+                self.process_deferred_scripts(CanGc::from_cx(cx));
             },
             _ => {},
         }
@@ -2552,7 +2618,7 @@ impl Document {
         &self,
         element: &HTMLScriptElement,
         result: ScriptResult,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         {
             let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
@@ -2560,10 +2626,10 @@ impl Document {
             assert!(&*entry.element == element);
             entry.loaded(result);
         }
-        self.process_pending_parsing_blocking_script(can_gc);
+        self.process_pending_parsing_blocking_script(cx);
     }
 
-    fn process_pending_parsing_blocking_script(&self, can_gc: CanGc) {
+    fn process_pending_parsing_blocking_script(&self, cx: &mut js::context::JSContext) {
         if self.script_blocking_stylesheets_count.get() > 0 {
             return;
         }
@@ -2576,7 +2642,7 @@ impl Document {
             *self.pending_parsing_blocking_script.borrow_mut() = None;
             self.get_current_parser()
                 .unwrap()
-                .resume_with_pending_parsing_blocking_script(&element, result, can_gc);
+                .resume_with_pending_parsing_blocking_script(&element, result, cx);
         }
     }
 
@@ -2668,7 +2734,7 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end step 4.
+    /// Step 6. of <https://html.spec.whatwg.org/multipage/#the-end>
     pub(crate) fn maybe_dispatch_dom_content_loaded(&self) {
         if self.domcontentloaded_dispatched.get() {
             return;
@@ -2680,9 +2746,8 @@ impl Document {
             "Complete before DOMContentLoaded?"
         );
 
-        update_with_current_instant(&self.dom_content_loaded_event_start);
-
-        // Step 4.1.
+        // Step 6 Queue a global task on the DOM manipulation task source given the Document's
+        // relevant global object to run the following substeps:
         let document = Trusted::new(self);
         self.owner_global()
             .task_manager()
@@ -2690,8 +2755,25 @@ impl Document {
             .queue(
                 task!(fire_dom_content_loaded_event: move || {
                 let document = document.root();
+
+                // Step 6.1 Set the Document's load timing info's DOM content loaded event start time
+                // to the current high resolution time given the Document's relevant global object.
+                update_with_current_instant(&document.dom_content_loaded_event_start);
+
+                // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
+                // attribute initialized to true.
                 document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
+
+                // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
+                // high resolution time given the Document's relevant global object.
                 update_with_current_instant(&document.dom_content_loaded_event_end);
+
+                // TODO Step 6.4 Enable the client message queue of the ServiceWorkerContainer object whose associated
+                // service worker client is the Document object's relevant settings object.
+
+                // TODO Step 6.5 Invoke WebDriver BiDi DOM content loaded with the Document's browsing context, and
+                // a new WebDriver BiDi navigation status whose id is the Document object's during-loading
+                // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
                 })
             );
 
@@ -2705,7 +2787,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
-    pub(crate) fn destroy_document_and_its_descendants(&self, can_gc: CanGc) {
+    pub(crate) fn destroy_document_and_its_descendants(&self, cx: &mut js::context::JSContext) {
         // Step 1. If document is not fully active, then:
         if !self.is_fully_active() {
             // Step 1.1. Let reason be a string from user-agent specific blocking reasons.
@@ -2731,22 +2813,22 @@ impl Document {
         // Step 5. Wait until numberDestroyed equals childNavigable's size.
         for exited_iframe in self.iframes().iter() {
             debug!("Destroying nested iframe document");
-            exited_iframe.destroy_document_and_its_descendants(can_gc);
+            exited_iframe.destroy_document_and_its_descendants(cx);
         }
         // Step 6. Queue a global task on the navigation and traversal task source
         // given document's relevant global object to perform the following steps:
         // TODO
         // Step 6.1. Destroy document.
-        self.destroy(can_gc);
+        self.destroy(cx);
         // Step 6.2. If afterAllDestruction was given, then run it.
         // TODO
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document>
-    pub(crate) fn destroy(&self, can_gc: CanGc) {
+    pub(crate) fn destroy(&self, cx: &mut js::context::JSContext) {
         let exited_window = self.window();
         // Step 2. Abort document.
-        self.abort(can_gc);
+        self.abort(cx);
         // Step 3. Set document's salvageable state to false.
         self.salvageable.set(false);
         // Step 4. Let ports be the list of MessagePorts whose relevant
@@ -2802,14 +2884,14 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
-    pub(crate) fn abort(&self, can_gc: CanGc) {
+    pub(crate) fn abort(&self, cx: &mut js::context::JSContext) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
         // Step 1.
         for iframe in self.iframes().iter() {
             if let Some(document) = iframe.GetContentDocument() {
-                document.abort(can_gc);
+                document.abort(cx);
             }
         }
 
@@ -2846,7 +2928,7 @@ impl Document {
             // Step 4.1. Set document's active parser was aborted to true.
             self.active_parser_was_aborted.set(true);
             // Step 4.2. Abort that parser.
-            parser.abort(can_gc);
+            parser.abort(cx);
             // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
         }
@@ -2969,8 +3051,8 @@ impl Document {
         can_gc: CanGc,
     ) {
         let (event_name, does_bubble) = match focus_event_type {
-            FocusEventType::Focus => (DOMString::from("focus"), EventBubbles::DoesNotBubble),
-            FocusEventType::Blur => (DOMString::from("blur"), EventBubbles::DoesNotBubble),
+            FocusEventType::Focus => ("focus".into(), EventBubbles::DoesNotBubble),
+            FocusEventType::Blur => ("blur".into(), EventBubbles::DoesNotBubble),
         };
         let event = FocusEvent::new(
             &self.window,
@@ -3124,18 +3206,16 @@ impl Document {
     // > doc and its node navigable to reflect the current state.
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
-    pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
-        if self.render_blocking_element_count() > 0 {
-            return Default::default();
-        }
+    pub(crate) fn update_the_rendering(&self) -> (ReflowPhasesRun, ReflowStatistics) {
+        assert!(!self.is_render_blocked());
 
-        let mut results = ReflowPhasesRun::empty();
+        let mut phases = ReflowPhasesRun::empty();
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
-            results.insert(ReflowPhasesRun::UpdatedImageData);
+            phases.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
         self.current_rendering_epoch
@@ -3154,7 +3234,7 @@ impl Document {
         // uploaded. This allows canvas image uploading to happen asynchronously.
         let pipeline_id = self.window().pipeline_id();
         if !image_keys.is_empty() {
-            results.insert(ReflowPhasesRun::UpdatedImageData);
+            phases.insert(ReflowPhasesRun::UpdatedImageData);
             self.waiting_on_canvas_image_updates.set(true);
             self.window().paint_api().delay_new_frame_for_canvas(
                 self.webview_id(),
@@ -3164,7 +3244,8 @@ impl Document {
             );
         }
 
-        let results = results.union(self.window().reflow(ReflowGoal::UpdateTheRendering));
+        let (reflow_phases, statistics) = self.window().reflow(ReflowGoal::UpdateTheRendering);
+        let phases = phases.union(reflow_phases);
 
         self.window().paint_api().update_epoch(
             self.webview_id(),
@@ -3172,7 +3253,7 @@ impl Document {
             current_rendering_epoch,
         );
 
-        results
+        (phases, statistics)
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
@@ -3267,6 +3348,7 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
+    #[expect(clippy::redundant_iter_cloned)]
     pub(crate) fn broadcast_active_resize_observations(
         &self,
         can_gc: CanGc,
@@ -3468,7 +3550,7 @@ impl Document {
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 let binding = PerformancePaintTiming::new(
                     self.window.as_global_scope(),
-                    metric_type,
+                    metric_type.clone(),
                     metric_value,
                     can_gc,
                 );
@@ -3476,14 +3558,15 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
                     self.window.as_global_scope(),
-                    metric_type,
                     metric_value,
+                    area,
+                    url,
                     can_gc,
                 );
-                metrics.set_largest_contentful_paint(metric_value, area, lcp_type);
+                metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
@@ -3496,11 +3579,11 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#document-write-steps>
     fn write(
         &self,
+        cx: &mut js::context::JSContext,
         text: Vec<TrustedHTMLOrString>,
         line_feed: bool,
         containing_class: &str,
         field: &str,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1: Let string be the empty string.
         let mut strings: Vec<String> = Vec::with_capacity(text.len());
@@ -3526,11 +3609,11 @@ impl Document {
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, sink, and "script".
         if !is_trusted {
-            string = TrustedHTML::get_trusted_script_compliant_string(
+            string = TrustedHTML::get_trusted_type_compliant_string(
+                cx,
                 &self.global(),
                 TrustedHTMLOrString::String(string.into()),
                 &format!("{} {}", containing_class, field),
-                can_gc,
             )?
             .str()
             .to_owned();
@@ -3567,13 +3650,13 @@ impl Document {
                     return Ok(());
                 }
                 // Step 9.2: Run the document open steps with document.
-                self.Open(None, None, can_gc)?;
+                self.Open(cx, None, None)?;
                 self.get_current_parser().unwrap()
             },
         };
 
         // Steps 10-11.
-        parser.write(string.into(), can_gc);
+        parser.write(string.into(), cx);
 
         Ok(())
     }
@@ -3599,6 +3682,7 @@ pub(crate) trait LayoutDocumentHelpers<'dom> {
     fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
     fn shadow_roots_styles_changed(self) -> bool;
     fn flush_shadow_roots_stylesheets(self);
+    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>];
 }
 
 #[expect(unsafe_code)]
@@ -3643,13 +3727,19 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     fn flush_shadow_roots_stylesheets(self) {
         (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
+
+    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
+        let id_map = unsafe { self.unsafe_get().id_map.borrow_for_layout() };
+        let matching_elements = id_map.get(id).map(Vec::as_slice).unwrap_or_default();
+        unsafe { LayoutDom::to_layout_slice(matching_elements) }
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
 // The spec says to return a bool, we actually return an Option<Host> containing
 // the parsed host in the successful case, to avoid having to re-parse the host.
-fn get_registrable_domain_suffix_of_or_is_equal_to(
-    host_suffix_string: &DOMString,
+pub(crate) fn get_registrable_domain_suffix_of_or_is_equal_to(
+    host_suffix_string: &str,
     original_host: Host,
 ) -> Option<Host> {
     // Step 1
@@ -3658,7 +3748,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
     }
 
     // Step 2-3.
-    let host = match Host::parse(&host_suffix_string.str()) {
+    let host = match Host::parse(host_suffix_string) {
         Ok(host) => host,
         Err(_) => return None,
     };
@@ -3912,12 +4002,16 @@ impl Document {
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),
+            state_override: Default::default(),
+            value_override: Default::default(),
+            default_single_line_container_name: Default::default(),
+            css_styling_flag: Default::default(),
         }
     }
 
     /// Returns a policy value that should be used for fetches initiated by this document.
     pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
-        if let Some(csp_list) = self.get_csp_list() {
+        if let Some(csp_list) = self.get_csp_list().as_ref() {
             for policy in &csp_list.0 {
                 if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests") &&
                     policy.disposition == PolicyDisposition::Enforce
@@ -4370,7 +4464,7 @@ impl Document {
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() {
             promise.reject_error(
-                Error::Type("Document is not fully active".to_owned()),
+                Error::Type(c"Document is not fully active".to_owned()),
                 can_gc,
             );
             return promise;
@@ -4486,7 +4580,7 @@ impl Document {
         if !self.is_fully_active() || self.fullscreen_element.get().is_none() {
             promise.reject_error(
                 Error::Type(
-                    "No fullscreen element to exit or document is not fully active".to_owned(),
+                    c"No fullscreen element to exit or document is not fully active".to_owned(),
                 ),
                 can_gc,
             );
@@ -4769,7 +4863,7 @@ impl Document {
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn update_animations_and_send_events(&self, can_gc: CanGc) {
+    pub(crate) fn update_animations_and_send_events(&self, cx: &mut js::context::JSContext) {
         // Only update the time if it isn't being managed by a test.
         if !self.layout_animations_test_enabled {
             self.animation_timeline.borrow_mut().update();
@@ -4787,11 +4881,12 @@ impl Document {
         self.maybe_mark_animating_nodes_as_dirty();
 
         // > 3. Perform a microtask checkpoint.
-        self.window().perform_a_microtask_checkpoint(can_gc);
+        self.window().perform_a_microtask_checkpoint(cx);
 
         // Steps 4 through 7 occur inside `send_pending_events().`
         let _realm = enter_realm(self);
-        self.animations().send_pending_events(self.window(), can_gc);
+        self.animations()
+            .send_pending_events(self.window(), CanGc::from_cx(cx));
     }
 
     pub(crate) fn image_animation_manager(&self) -> Ref<'_, ImageAnimationManager> {
@@ -5015,6 +5110,57 @@ impl Document {
         *self.favicon.borrow_mut() = Some(favicon);
         self.notify_embedder_favicon();
     }
+
+    pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {
+        self.fullscreen_element.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    pub(crate) fn state_override(&self, command_name: &CommandName) -> Option<bool> {
+        self.state_override.borrow().get(command_name).copied()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    pub(crate) fn set_state_override(&self, command_name: CommandName, state: bool) {
+        self.state_override.borrow_mut().insert(command_name, state);
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    pub(crate) fn value_override(&self, command_name: &CommandName) -> Option<DOMString> {
+        self.value_override.borrow().get(command_name).cloned()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    pub(crate) fn set_value_override(&self, command_name: CommandName, value: Option<DOMString>) {
+        if let Some(value) = value {
+            self.value_override.borrow_mut().insert(command_name, value);
+        } else {
+            self.value_override.borrow_mut().remove(&command_name);
+        }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
+    pub(crate) fn default_single_line_container_name(&self) -> DefaultSingleLineContainerName {
+        self.default_single_line_container_name.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
+    pub(crate) fn set_default_single_line_container_name(
+        &self,
+        value: DefaultSingleLineContainerName,
+    ) {
+        self.default_single_line_container_name.set(value)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
+    pub(crate) fn css_styling_flag(&self) -> bool {
+        self.css_styling_flag.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
+    pub(crate) fn set_css_styling_flag(&self, value: bool) {
+        self.css_styling_flag.set(value)
+    }
 }
 
 impl DocumentMethods<crate::DomTypeHolder> for Document {
@@ -5055,18 +5201,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-parsehtmlunsafe>
     fn ParseHTMLUnsafe(
+        cx: &mut js::context::JSContext,
         window: &Window,
         s: TrustedHTMLOrString,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML, the current global object,
         // html, "Document parseHTMLUnsafe", and "script".
-        let compliant_html = TrustedHTML::get_trusted_script_compliant_string(
+        let compliant_html = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             window.as_global_scope(),
             s,
             "Document parseHTMLUnsafe",
-            can_gc,
         )?;
 
         let url = window.get_url();
@@ -5099,18 +5245,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, can_gc);
+        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
         // Step 5. Return document.
-        document.set_ready_state(DocumentReadyState::Complete, can_gc);
+        document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
         Ok(document)
-    }
-
-    /// <https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()>
-    fn QueryCommandSupported(&self, _command: DOMString) -> bool {
-        false
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
@@ -5211,10 +5352,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         };
 
         // Step 5. If the given value is not a registrable domain suffix of and is not equal to effectiveDomain, then throw a "SecurityError" DOMException.
-        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
-            None => return Err(Error::Security(None)),
-            Some(host) => host,
-        };
+        let host =
+            match get_registrable_domain_suffix_of_or_is_equal_to(&value.str(), effective_domain) {
+                None => return Err(Error::Security(None)),
+                Some(host) => host,
+            };
 
         // Step 6. If the surrounding agent's agent cluster's is origin-keyed is true, then return.
         // TODO
@@ -5347,9 +5489,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-createelement>
     fn CreateElement(
         &self,
+        cx: &mut js::context::JSContext,
         mut local_name: DOMString,
         options: StringOrElementCreationOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. If localName is not a valid element local name,
         //      then throw an "InvalidCharacterError" DOMException.
@@ -5376,23 +5518,23 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             },
         };
         Ok(Element::create(
+            cx,
             name,
             is,
             self,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
-            can_gc,
         ))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createelementns>
     fn CreateElementNS(
         &self,
+        cx: &mut js::context::JSContext,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
         options: StringOrElementCreationOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. Let (namespace, prefix, localName) be the result of
         //      validating and extracting namespace and qualifiedName given "element".
@@ -5412,13 +5554,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 4. Return the result of creating an element given document, localName, namespace, prefix, is, and true.
         Ok(Element::create(
+            cx,
             name,
             is,
             self,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
-            can_gc,
         ))
     }
 
@@ -5533,9 +5675,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-importnode>
     fn ImportNode(
         &self,
+        cx: &mut js::context::JSContext,
         node: &Node,
         options: BooleanOrImportNodeOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
         // Step 1. If node is a document or shadow root, then throw a "NotSupportedError" DOMException.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
@@ -5565,11 +5707,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 7. Return the result of cloning a node given node with
         // document set to this, subtree set to subtree, and fallbackRegistry set to registry.
-        Ok(Node::clone(node, Some(self), subtree, registry, can_gc))
+        Ok(Node::clone(cx, node, Some(self), subtree, registry))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>
-    fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn AdoptNode(&self, cx: &mut js::context::JSContext, node: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported(None));
@@ -5581,7 +5723,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Node::adopt(node, self, can_gc);
+        Node::adopt(cx, node, self);
 
         // Step 4.
         Ok(DomRoot::from_ref(node))
@@ -5691,7 +5833,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document.title>
-    fn SetTitle(&self, title: DOMString, can_gc: CanGc) {
+    fn SetTitle(&self, cx: &mut js::context::JSContext, title: DOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
@@ -5706,18 +5848,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(
+                        cx,
                         name,
                         None,
                         self,
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Synchronous,
                         None,
-                        can_gc,
                     );
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
+                        .InsertBefore(cx, child, parent.GetFirstChild().as_deref())
                         .unwrap()
                 },
             }
@@ -5732,16 +5874,16 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     Some(head) => {
                         let name = QualName::new(None, ns!(html), local_name!("title"));
                         let elem = Element::create(
+                            cx,
                             name,
                             None,
                             self,
                             ElementCreator::ScriptCreated,
                             CustomElementCreationMode::Synchronous,
                             None,
-                            can_gc,
                         );
                         head.upcast::<Node>()
-                            .AppendChild(elem.upcast(), can_gc)
+                            .AppendChild(cx, elem.upcast())
                             .unwrap()
                     },
                     None => return,
@@ -5751,7 +5893,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return;
         };
 
-        node.set_text_content_for_element(Some(title), can_gc);
+        node.set_text_content_for_element(cx, Some(title));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>
@@ -5767,6 +5909,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
     fn GetBody(&self) -> Option<DomRoot<HTMLElement>> {
+        // > The body element of a document is the first of the html element's children
+        // > that is either a body element or a frameset element, or null if there is no such element.
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children()
@@ -5785,8 +5929,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
-    fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
+    fn SetBody(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_body: Option<&HTMLElement>,
+    ) -> ErrorResult {
+        // Step 1. If the new value is not a body or frameset element, then throw a "HierarchyRequestError" DOMException.
         let new_body = match new_body {
             Some(new_body) => new_body,
             None => return Err(Error::HierarchyRequest(None)),
@@ -5801,30 +5949,31 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             _ => return Err(Error::HierarchyRequest(None)),
         }
 
-        // Step 2.
+        // Step 2. Otherwise, if the new value is the same as the body element, return.
         let old_body = self.GetBody();
         if old_body.as_deref() == Some(new_body) {
             return Ok(());
         }
 
         match (self.GetDocumentElement(), &old_body) {
-            // Step 3.
+            // Step 3. Otherwise, if the body element is not null,
+            // then replace the body element with the new value within the body element's parent and return.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast(), can_gc)
-                    .unwrap();
+                root.ReplaceChild(cx, new_body.upcast(), child.upcast())
+                    .map(|_| ())
             },
 
-            // Step 4.
-            (None, _) => return Err(Error::HierarchyRequest(None)),
+            // Step 4. Otherwise, if there is no document element, throw a "HierarchyRequestError" DOMException.
+            (None, _) => Err(Error::HierarchyRequest(None)),
 
-            // Step 5.
+            // Step 5. Otherwise, the body element is null, but there's a document element.
+            // Append the new value to the document element.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast(), can_gc).unwrap();
+                root.AppendChild(cx, new_body.upcast()).map(|_| ())
             },
         }
-        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname>
@@ -5952,30 +6101,42 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes, can_gc)
+    fn Prepend(&self, cx: &mut js::context::JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().prepend(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().append(nodes, can_gc)
+    fn Append(&self, cx: &mut js::context::JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().append(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_children(nodes, can_gc)
+    fn ReplaceChildren(
+        &self,
+        cx: &mut js::context::JSContext,
+        nodes: Vec<NodeOrString>,
+    ) -> ErrorResult {
+        self.upcast::<Node>().replace_children(cx, nodes)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
+    fn MoveBefore(
+        &self,
+        cx: &mut js::context::JSContext,
+        node: &Node,
+        child: Option<&Node>,
+    ) -> ErrorResult {
+        self.upcast::<Node>().move_before(cx, node, child)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let root = self.upcast::<Node>();
-        root.query_selector(selectors)
+        self.upcast::<Node>().query_selector(selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        let root = self.upcast::<Node>();
-        root.query_selector_all(selectors)
+        self.upcast::<Node>().query_selector_all(selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>
@@ -6267,9 +6428,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-open>
     fn Open(
         &self,
+        cx: &mut js::context::JSContext,
         _unused1: Option<DOMString>,
         _unused2: Option<DOMString>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
@@ -6317,13 +6478,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if self.has_browsing_context() {
             // spec says "stop document loading",
             // which is a process that does more than just abort
-            self.abort(can_gc);
+            self.abort(cx);
         }
 
         // Step 9
         for node in self
             .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
+            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
         {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
@@ -6334,7 +6495,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 11. Replace all with null within document.
-        Node::replace_all(None, self.upcast::<Node>(), can_gc);
+        Node::replace_all(cx, None, self.upcast::<Node>());
 
         // Specs and tests are in a state of flux about whether
         // we want to clear the selection when we remove the contents;
@@ -6390,54 +6551,117 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-open-window>
     fn Open_(
         &self,
+        cx: &mut js::context::JSContext,
         url: USVString,
         target: DOMString,
         features: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess(None))?
-            .open(url, target, features, can_gc)
+            .open(cx, url, target, features)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-write>
-    fn Write(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
+    fn Write(
+        &self,
+        cx: &mut js::context::JSContext,
+        text: Vec<TrustedHTMLOrString>,
+    ) -> ErrorResult {
         // The document.write(...text) method steps are to run the document write steps
         // with this, text, false, and "Document write".
-        self.write(text, false, "Document", "write", can_gc)
+        self.write(cx, text, false, "Document", "write")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-writeln>
-    fn Writeln(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
+    fn Writeln(
+        &self,
+        cx: &mut js::context::JSContext,
+        text: Vec<TrustedHTMLOrString>,
+    ) -> ErrorResult {
         // The document.writeln(...text) method steps are to run the document write steps
         // with this, text, true, and "Document writeln".
-        self.write(text, true, "Document", "writeln", can_gc)
+        self.write(cx, text, true, "Document", "writeln")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-close>
-    fn Close(&self, can_gc: CanGc) -> ErrorResult {
+    fn Close(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         if !self.is_html_document() {
-            // Step 1.
+            // Step 1. If this is an XML document, then throw an "InvalidStateError" DOMException.
             return Err(Error::InvalidState(None));
         }
 
-        // Step 2.
+        // Step 2. If this's throw-on-dynamic-markup-insertion counter is greater than zero,
+        // then throw an "InvalidStateError" DOMException.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState(None));
         }
 
+        // Step 3. If there is no script-created parser associated with this, then return.
         let parser = match self.get_current_parser() {
             Some(ref parser) if parser.is_script_created() => DomRoot::from_ref(&**parser),
             _ => {
-                // Step 3.
                 return Ok(());
             },
         };
 
-        // Step 4-6.
-        parser.close(can_gc);
+        // parser.close implements the remainder of this algorithm
+        parser.close(cx);
 
         Ok(())
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
+    fn ExecCommand(
+        &self,
+        cx: &mut js::context::JSContext,
+        command_id: DOMString,
+        _show_ui: bool,
+        value: TrustedHTMLOrString,
+    ) -> Fallible<bool> {
+        let value = if command_id == "insertHTML" {
+            TrustedHTML::get_trusted_type_compliant_string(
+                cx,
+                self.window.as_global_scope(),
+                value,
+                "Document execCommand",
+            )?
+        } else {
+            match value {
+                TrustedHTMLOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
+                TrustedHTMLOrString::String(value) => value,
+            }
+        };
+
+        Ok(self.exec_command_for_command_id(cx, command_id, value))
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
+    fn QueryCommandEnabled(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
+        // Step 2. Return true if command is both supported and enabled, false otherwise.
+        self.check_support_and_enabled(cx, &command_id).is_some()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
+    fn QueryCommandSupported(&self, command_id: DOMString) -> bool {
+        // > When the queryCommandSupported(command) method on the Document interface is invoked,
+        // the user agent must return true if command is supported and available
+        // within the current script on the current site, and false otherwise.
+        self.is_command_supported(command_id)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
+    fn QueryCommandIndeterm(&self, command_id: DOMString) -> bool {
+        self.is_command_indeterminate(command_id)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
+    fn QueryCommandState(&self, command_id: DOMString) -> bool {
+        self.command_state_for_command(command_id)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
+    fn QueryCommandValue(&self, command_id: DOMString) -> DOMString {
+        self.command_value_for_command(command_id)
     }
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
@@ -6462,8 +6686,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
     fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
-        // TODO ShadowRoot
-        self.fullscreen_element.get()
+        DocumentOrShadowRoot::get_fullscreen_element(&self.node, self.fullscreen_element.get())
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen>
@@ -6605,9 +6828,15 @@ pub(crate) enum FocusType {
 /// Specifies the initiator of a focus operation.
 #[derive(Clone, Copy, PartialEq)]
 pub enum FocusInitiator {
-    /// The operation is initiated by this document and to be broadcasted
-    /// through the constellation.
-    Local,
+    /// The operation is initiated by this document via a keyboard event to be broadcast through the
+    /// constellation.
+    Keyboard,
+    /// The operation is initiated by this document via a click event to be broadcast through the
+    /// constellation.
+    Click,
+    /// The operation is initiated by this document via script to be broadcast through the
+    /// constellation.
+    Script,
     /// The operation is initiated somewhere else, and we are updating our
     /// internal state accordingly.
     Remote,

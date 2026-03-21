@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>CSS path-length property</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="match" href="path-length-css-property-ref.tentative.svg"/>
+  </metadata>
+  <style>
+    rect { path-length: 10; }
+  </style>
+  <rect x="20" y="20" width="200" height="200"
+        fill="none" stroke="black" stroke-width="5" stroke-dasharray="0.25"/>
+</svg>

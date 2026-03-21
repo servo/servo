@@ -704,6 +704,7 @@ impl Dialog {
             Dialog::ColorPicker { maybe_prompt, .. } => {
                 maybe_prompt.as_ref().map(|element| element.id())
             },
+            Dialog::ContextMenu { menu, .. } => menu.as_ref().map(|menu| menu.id()),
             _ => None,
         }
     }

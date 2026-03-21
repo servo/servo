@@ -5,7 +5,8 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use pixels::RasterImage;
 use servo_arc::Arc;
@@ -80,8 +81,8 @@ impl ProcessDataURL for &HTMLObjectElement {
 
         // TODO: support other values
         if let (None, Some(_uri)) = (
-            element.get_attribute(&ns!(), &local_name!("type")),
-            element.get_attribute(&ns!(), &local_name!("data")),
+            element.get_attribute(&local_name!("type")),
+            element.get_attribute(&local_name!("data")),
         ) {
             // TODO(gw): Prefetch the image here.
         }
@@ -111,13 +112,13 @@ impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
@@ -152,10 +153,15 @@ impl VirtualMethods for HTMLObjectElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("data") => {
                 if let AttributeMutation::Set(..) = mutation {
@@ -163,7 +169,7 @@ impl VirtualMethods for HTMLObjectElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             _ => {},
         }

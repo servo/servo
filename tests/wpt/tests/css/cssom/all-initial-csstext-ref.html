@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSSOM: cssText round-trip with `all: initial`</title>
+  <style>
+    .test {
+      all: initial;
+      display: block;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="test">First Element</div>
+  <br/>
+  <div class="test">Clone element</div>
+</body>
+</html>

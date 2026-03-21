@@ -5,18 +5,16 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use base::threadpool::ThreadPool;
-use log::{error, info};
-use profile_traits::generic_callback::GenericCallback;
+use log::{error, info, warn};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
-use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
     CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord,
     IndexedDBTxnMode, KeyPath, PutItemResult,
 };
-use tokio::sync::oneshot;
 
 use crate::indexeddb::IndexedDBDescription;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
@@ -183,7 +181,6 @@ impl SqliteEngine {
         key_range: IndexedDBKeyRange,
         count: Option<u32>,
     ) -> Result<Vec<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
         let mut sql_query = sea_query::Query::select();
         sql_query
             .from(object_data_model::Column::Table)
@@ -192,10 +189,7 @@ impl SqliteEngine {
                 object_data_model::Column::Key,
                 object_data_model::Column::Data,
             ])
-            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)));
-        if let Some(count) = count {
-            sql_query.limit(count as u64);
-        }
+            .and_where(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id));
         let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
         let mut stmt = connection.prepare(&sql)?;
         let models = stmt
@@ -203,6 +197,33 @@ impl SqliteEngine {
                 object_data_model::Model::try_from(row)
             })?
             .collect::<Result<Vec<_>, _>>()?;
+
+        let mut models_with_keys = models
+            .into_iter()
+            .map(|model| {
+                let key: IndexedDBKeyType = postcard::from_bytes(&model.key).unwrap();
+                (model, key)
+            })
+            .collect::<Vec<_>>();
+        // https://w3c.github.io/IndexedDB/#create-a-request-to-retrieve-multiple-items
+        // Step 8.2: Set direction to "next".
+        models_with_keys.sort_by(|(_, a_key), (_, b_key)| {
+            a_key
+                .partial_cmp(b_key)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        // https://w3c.github.io/IndexedDB/#retrieve-multiple-items-from-an-object-store
+        // Step 3.1: Let records be the first count records in store's list of records
+        // whose key is in range.
+        let mut models = models_with_keys
+            .into_iter()
+            .filter(|(_, key)| key_range.contains(key))
+            .map(|(model, _)| model)
+            .collect::<Vec<_>>();
+        if let Some(count) = count {
+            models.truncate(count as usize);
+        }
         Ok(models)
     }
 
@@ -239,10 +260,12 @@ impl SqliteEngine {
     fn put_item(
         connection: &Connection,
         store: object_store_model::Model,
-        serialized_key: Vec<u8>,
+        key: IndexedDBKeyType,
         value: Vec<u8>,
         should_overwrite: bool,
+        key_generator_current_number: Option<i32>,
     ) -> Result<PutItemResult, Error> {
+        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
             .and_then(|mut stmt| {
@@ -256,7 +279,13 @@ impl SqliteEngine {
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
-            Ok(PutItemResult::Success)
+            if let Some(next_key_generator_current_number) = key_generator_current_number {
+                connection.execute(
+                    "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+                    params![next_key_generator_current_number, store.id],
+                )?;
+            }
+            Ok(PutItemResult::Key(key))
         } else {
             Ok(PutItemResult::CannotOverwrite)
         }
@@ -299,22 +328,6 @@ impl SqliteEngine {
             .prepare(&sql)?
             .query_row(&*values.as_params(), |row| row.get(0))
             .map(|count: i64| count as usize)
-    }
-
-    fn generate_key(
-        connection: &Connection,
-        store: &object_store_model::Model,
-    ) -> Result<IndexedDBKeyType, Error> {
-        if store.auto_increment == 0 {
-            unreachable!("Should be caught in the script thread");
-        }
-        // TODO: handle overflows, this also needs to be able to handle 2^53 as per spec
-        let new_key = store.auto_increment + 1;
-        connection.execute(
-            "UPDATE object_store SET auto_increment = ? WHERE id = ?",
-            params![new_key, store.id],
-        )?;
-        Ok(IndexedDBKeyType::Number(new_key as f64))
     }
 }
 
@@ -379,9 +392,8 @@ impl KvsEngine for SqliteEngine {
     fn process_transaction(
         &self,
         transaction: KvsTransaction,
-    ) -> oneshot::Receiver<Option<Vec<u8>>> {
-        let (tx, rx) = oneshot::channel();
-
+        on_complete: Box<dyn FnOnce() + Send + 'static>,
+    ) {
         let spawning_pool = if transaction.mode == IndexedDBTxnMode::Readonly {
             self.read_pool.clone()
         } else {
@@ -389,7 +401,18 @@ impl KvsEngine for SqliteEngine {
         };
         let path = self.db_path.clone();
         spawning_pool.spawn(move || {
-            let connection = Connection::open(path).unwrap();
+            let connection = match Connection::open(path) {
+                Ok(connection) => connection,
+                Err(error) => {
+                    for request in transaction.requests {
+                        request
+                            .operation
+                            .notify_error(BackendError::DbErr(format!("{error:?}")));
+                    }
+                    on_complete();
+                    return;
+                },
+            };
             for request in transaction.requests {
                 let object_store = connection
                     .prepare("SELECT * FROM object_store WHERE name = ?")
@@ -399,22 +422,19 @@ impl KvsEngine for SqliteEngine {
                         })
                         .optional()
                     });
-                fn process_object_store<T: Send + Serialize + for<'de> Deserialize<'de>>(
-                    object_store: Result<Option<object_store_model::Model>, Error>,
-                    callback: &GenericCallback<BackendResult<T>>,
-                ) -> Result<object_store_model::Model, ()> {
-                    match object_store {
-                        Ok(Some(store)) => Ok(store),
-                        Ok(None) => {
-                            let _ = callback.send(Err(BackendError::StoreNotFound));
-                            Err(())
-                        },
-                        Err(e) => {
-                            let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                            Err(())
-                        },
-                    }
-                }
+                let object_store = match object_store {
+                    Ok(Some(store)) => store,
+                    Ok(None) => {
+                        request.operation.notify_error(BackendError::StoreNotFound);
+                        continue;
+                    },
+                    Err(error) => {
+                        request
+                            .operation
+                            .notify_error(BackendError::DbErr(format!("{error:?}")));
+                        continue;
+                    },
+                };
 
                 match request.operation {
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
@@ -422,28 +442,45 @@ impl KvsEngine for SqliteEngine {
                         key,
                         value,
                         should_overwrite,
+                        key_generator_current_number,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
-                        let key = match key
-                            .map(Ok)
-                            .unwrap_or_else(|| Self::generate_key(&connection, &object_store))
-                        {
-                            Ok(key) => key,
-                            Err(e) => {
-                                let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                                continue;
+                        let (key, key_generator_current_number) = match key {
+                            Some(key) => (key, key_generator_current_number),
+                            None => {
+                                if object_store.auto_increment == 0 {
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
+                                        "Missing key for PutItem request".to_string(),
+                                    ))) {
+                                        warn!("Failed to send PutItem missing key error: {error:?}");
+                                    }
+                                    continue;
+                                }
+                                let Some(next_key_generator_current_number) =
+                                    object_store.auto_increment.checked_add(1)
+                                else {
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
+                                        "Key generator overflow".to_string(),
+                                    ))) {
+                                        warn!(
+                                            "Failed to send PutItem key generator overflow error: {error:?}"
+                                        );
+                                    }
+                                    continue;
+                                };
+                                (
+                                    IndexedDBKeyType::Number(object_store.auto_increment as f64),
+                                    Some(next_key_generator_current_number),
+                                )
                             },
                         };
-                        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         let _ = callback.send(
                             Self::put_item(
                                 &connection,
                                 object_store,
-                                serialized_key,
+                                key,
                                 value,
                                 should_overwrite,
+                                key_generator_current_number,
                             )
                             .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
@@ -452,9 +489,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -465,9 +499,6 @@ impl KvsEngine for SqliteEngine {
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_all_keys(&connection, object_store, key_range, count)
                                 .map(|keys| {
@@ -483,9 +514,6 @@ impl KvsEngine for SqliteEngine {
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_all_items(&connection, object_store, key_range, count)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -495,9 +523,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::delete_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -507,9 +532,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::count(&connection, object_store, key_range)
                                 .map(|r| r as u64)
@@ -520,9 +542,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_all_records(&connection, object_store, key_range)
                                 .map(|records| {
@@ -539,9 +558,6 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
-                            continue;
-                        };
                         let _ = sender.send(
                             Self::clear(&connection, object_store)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -551,9 +567,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_key(&connection, object_store, key_range)
                                 .map(|key| key.map(|k| postcard::from_bytes(&k).unwrap()))
@@ -562,13 +575,11 @@ impl KvsEngine for SqliteEngine {
                     },
                 }
             }
-            let _ = tx.send(None);
+            on_complete();
         });
-        rx
     }
 
-    // TODO: we should be able to error out here, maybe change the trait definition?
-    fn has_key_generator(&self, store_name: &str) -> bool {
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")
             .and_then(|mut stmt| {
@@ -579,9 +590,7 @@ impl KvsEngine for SqliteEngine {
             })
             .optional()
             .unwrap()
-            // TODO: Wrong (change trait definition for this function)
-            .unwrap_or_default() !=
-            0
+            .and_then(|current_number| (current_number != 0).then_some(current_number))
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -599,6 +608,12 @@ impl KvsEngine for SqliteEngine {
             .unwrap()
             // TODO: Wrong, same issues as has_key_generator
             .unwrap_or_default()
+    }
+
+    fn object_store_names(&self) -> Result<Vec<String>, Self::Error> {
+        let mut stmt = self.connection.prepare("SELECT name FROM object_store")?;
+        stmt.query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()
     }
 
     fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error> {
@@ -641,7 +656,7 @@ impl KvsEngine for SqliteEngine {
 
         let index_exists: bool = self.connection.query_row(
             "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
-            params![index_name.to_string(), object_store.id],
+            params![index_name, object_store.id],
             |row| row.get(0),
         )?;
         if index_exists {
@@ -653,7 +668,7 @@ impl KvsEngine for SqliteEngine {
             VALUES (?, ?, ?, ?, ?)",
             params![
                 object_store.id,
-                index_name.to_string(),
+                index_name,
                 postcard::to_stdvec(&key_path).unwrap(),
                 unique,
                 multi_entry,
@@ -672,7 +687,7 @@ impl KvsEngine for SqliteEngine {
         // Delete the index if it exists
         let _ = self.connection.execute(
             "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
-            params![index_name.to_string(), object_store.id],
+            params![index_name, object_store.id],
         )?;
         Ok(())
     }
@@ -693,6 +708,33 @@ impl KvsEngine for SqliteEngine {
             return Err(Error::QueryReturnedNoRows);
         }
         Ok(())
+    }
+}
+
+fn get_db_status(connection: &Connection, op: i32) -> Result<i32, i32> {
+    let mut p_curr = 0;
+    let mut p_hiwater = 0;
+    let res = unsafe {
+        rusqlite::ffi::sqlite3_db_status(connection.handle(), op, &mut p_curr, &mut p_hiwater, 0)
+    };
+    if res != 0 { Err(res) } else { Ok(p_curr) }
+}
+
+impl MallocSizeOf for SqliteEngine {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // 48 KB (3.3.1 at https://sqlite.org/malloc.html)
+        const DEFAULT_LOOKASIDE_SIZE: usize = 48 * 1024;
+        self.created_db_path.size_of(ops) +
+            DEFAULT_LOOKASIDE_SIZE +
+            get_db_status(
+                &self.connection,
+                rusqlite::ffi::SQLITE_DBSTATUS_CACHE_USED_SHARED,
+            )
+            .unwrap_or_default() as usize +
+            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_SCHEMA_USED)
+                .unwrap_or_default() as usize +
+            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_STMT_USED)
+                .unwrap_or_default() as usize
     }
 }
 
@@ -784,7 +826,7 @@ mod tests {
         let create_result = result.unwrap();
         assert_eq!(create_result, CreateObjectResult::AlreadyExists);
         // Ensure store was not overwritten
-        assert!(db.has_key_generator(store_name));
+        assert!(db.key_generator_current_number(store_name).is_some());
     }
 
     #[test]
@@ -926,97 +968,107 @@ mod tests {
         let count = get_channel();
         let remove = get_channel();
         let clear = get_channel();
-        let rx = db.process_transaction(KvsTransaction {
-            mode: IndexedDBTxnMode::Readwrite,
-            requests: VecDeque::from(vec![
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put.0),
-                        key: Some(IndexedDBKeyType::Number(1.0)),
-                        value: vec![1, 2, 3],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put2.0),
-                        key: Some(IndexedDBKeyType::String("2.0".to_string())),
-                        value: vec![4, 5, 6],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put3.0),
-                        key: Some(IndexedDBKeyType::Array(vec![
-                            IndexedDBKeyType::String("3".to_string()),
-                            IndexedDBKeyType::Number(0.0),
-                        ])),
-                        value: vec![7, 8, 9],
-                        should_overwrite: false,
-                    }),
-                },
-                // Try to put a duplicate key without overwrite
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put_dup.0),
-                        key: Some(IndexedDBKeyType::Number(1.0)),
-                        value: vec![10, 11, 12],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        callback: get_callback(get_item_some.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        callback: get_callback(get_item_none.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
-                        callback: get_callback(get_all_items.0),
-                        key_range: IndexedDBKeyRange::lower_bound(
-                            IndexedDBKeyType::Number(0.0),
-                            false,
-                        ),
-                        count: None,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                        callback: get_callback(count.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                        callback: get_callback(remove.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
-                        get_callback(clear.0),
-                    )),
-                },
-            ]),
-        });
-        let _ = rx.blocking_recv().unwrap();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        db.process_transaction(
+            KvsTransaction {
+                mode: IndexedDBTxnMode::Readwrite,
+                requests: VecDeque::from(vec![
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![1, 2, 3],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put2.0),
+                            key: Some(IndexedDBKeyType::String("2.0".to_string())),
+                            value: vec![4, 5, 6],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put3.0),
+                            key: Some(IndexedDBKeyType::Array(vec![
+                                IndexedDBKeyType::String("3".to_string()),
+                                IndexedDBKeyType::Number(0.0),
+                            ])),
+                            value: vec![7, 8, 9],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    // Try to put a duplicate key without overwrite
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put_dup.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![10, 11, 12],
+                            should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                            callback: get_callback(get_item_some.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                            callback: get_callback(get_item_none.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                            callback: get_callback(get_all_items.0),
+                            key_range: IndexedDBKeyRange::lower_bound(
+                                IndexedDBKeyType::Number(0.0),
+                                false,
+                            ),
+                            count: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                            callback: get_callback(count.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                            callback: get_callback(remove.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
+                            get_callback(clear.0),
+                        )),
+                    },
+                ]),
+            },
+            Box::new(move || {
+                let _ = done_tx.send(());
+            }),
+        );
+        let _ = done_rx.recv().unwrap();
         put.1.recv().unwrap().unwrap();
         put2.1.recv().unwrap().unwrap();
         put3.1.recv().unwrap().unwrap();

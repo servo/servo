@@ -60,7 +60,7 @@ use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{enter_realm, InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
@@ -173,11 +173,9 @@ impl PipeTo {
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     pub(crate) fn abort_with_reason(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
     ) {
         // Abort should do nothing if we are already shutting down.
         if self.shutting_down.get() {
@@ -200,7 +198,7 @@ impl PipeTo {
 
         // Shutdown with an action consisting of getting a promise to wait for all of the actions in actions,
         // and with error.
-        self.shutdown(cx, global, Some(ShutdownAction::Abort), realm, can_gc);
+        self.shutdown(cx, global, Some(ShutdownAction::Abort));
     }
 }
 
@@ -215,10 +213,8 @@ impl Callback for PipeTo {
     /// - the state of a stored promise(in some cases).
     #[expect(unsafe_code)]
     fn callback(&self, cx: &mut CurrentRealm, result: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         let in_realm_proof = cx.into();
         let realm = InRealm::Already(&in_realm_proof);
-        let cx = cx.into();
         let global = self.reader.global();
 
         // Note: we only care about the result of writes when they are rejected,
@@ -254,7 +250,8 @@ impl Callback for PipeTo {
                 // If dest.[[state]] is "writable",
                 // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
                 if dest.is_writable() && !dest.close_queued_or_in_flight() {
-                    let Ok(done) = get_read_promise_done(cx, &result, can_gc) else {
+                    let Ok(done) = get_read_promise_done(cx.into(), &result, CanGc::from_cx(cx))
+                    else {
                         // This is the case that the microtask ran in reaction
                         // to the closed promise of the reader,
                         // so we should wait for subsequent chunks,
@@ -266,16 +263,16 @@ impl Callback for PipeTo {
 
                     if !done {
                         // If any chunks have been read but not yet written, write them to dest.
-                        self.write_chunk(cx, &global, result, can_gc);
+                        self.write_chunk(cx.into(), &global, result, CanGc::from_cx(cx));
                     }
                 }
             }
         }
 
-        self.check_and_propagate_errors_forward(cx, &global, realm, can_gc);
-        self.check_and_propagate_errors_backward(cx, &global, realm, can_gc);
-        self.check_and_propagate_closing_forward(cx, &global, realm, can_gc);
-        self.check_and_propagate_closing_backward(cx, &global, realm, can_gc);
+        self.check_and_propagate_errors_forward(cx, &global);
+        self.check_and_propagate_errors_backward(cx, &global);
+        self.check_and_propagate_closing_forward(cx, &global);
+        self.check_and_propagate_closing_backward(cx, &global);
 
         // Note: cloning to prevent re-borrow in methods called below.
         let state = self.state.borrow().clone();
@@ -291,11 +288,11 @@ impl Callback for PipeTo {
             PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
             PipeToState::PendingReady => {
                 // Read a chunk.
-                self.read_chunk(&global, realm, can_gc);
+                self.read_chunk(cx, &global);
             },
             PipeToState::PendingRead => {
                 // Write the chunk.
-                self.write_chunk(cx, &global, result, can_gc);
+                self.write_chunk(cx.into(), &global, result, CanGc::from_cx(cx));
 
                 // An early return is necessary if the write algorithm aborted the pipe.
                 if self.shutting_down.get() {
@@ -303,23 +300,23 @@ impl Callback for PipeTo {
                 }
 
                 // Wait for the writer to be ready again.
-                self.wait_for_writer_ready(&global, realm, can_gc);
+                self.wait_for_writer_ready(cx, &global);
             },
             PipeToState::ShuttingDownWithPendingWrites(action) => {
                 // Wait until every chunk that has been read has been written
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow_mut().front().cloned() {
-                    self.wait_on_pending_write(&global, write, realm, can_gc);
+                    self.wait_on_pending_write(&global, write, realm, CanGc::from_cx(cx));
                     return;
                 }
 
                 // Note: error is stored in `self.shutdown_error`.
                 if let Some(action) = action {
                     // Let p be the result of performing action.
-                    self.perform_action(cx, &global, action, realm, can_gc);
+                    self.perform_action(cx, &global, action);
                 } else {
                     // Finalize, passing along error if it was given.
-                    self.finalize(cx, &global, can_gc);
+                    self.finalize(cx, &global);
                 }
             },
             PipeToState::ShuttingDownPendingAction => {
@@ -337,7 +334,7 @@ impl Callback for PipeTo {
                     if !result.is_object() {
                         false
                     } else {
-                        unsafe { is_array_like::<crate::DomTypeHolder>(*cx, result) }
+                        unsafe { is_array_like::<crate::DomTypeHolder>(cx.raw_cx(), result) }
                     }
                 };
 
@@ -354,7 +351,7 @@ impl Callback for PipeTo {
                     // and should overwrite the current shutdown error.
                     self.set_shutdown_error(result);
                 }
-                self.finalize(cx, &global, can_gc);
+                self.finalize(cx, &global);
             },
             PipeToState::Finalized => {},
         }
@@ -374,7 +371,10 @@ impl PipeTo {
 
     /// Wait for the writer to be ready,
     /// which implements the constraint that backpressure must be enforced.
-    fn wait_for_writer_ready(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+    fn wait_for_writer_ready(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
+        let realm = cx.into();
+        let realm = InRealm::Already(&realm);
+
         {
             let mut state = self.state.borrow_mut();
             *state = PipeToState::PendingReady;
@@ -382,40 +382,43 @@ impl PipeTo {
 
         let ready_promise = self.writer.Ready();
         if ready_promise.is_fulfilled() {
-            self.read_chunk(global, realm, can_gc);
+            self.read_chunk(cx, global);
         } else {
             let handler = PromiseNativeHandler::new(
                 global,
                 Some(Box::new(self.clone())),
                 Some(Box::new(self.clone())),
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            ready_promise.append_native_handler(&handler, realm, can_gc);
+            ready_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
 
             // Note: if the writer is not ready,
             // in order to ensure progress we must
             // also react to the closure of the source(because source may close empty).
             let closed_promise = self.reader.Closed();
-            closed_promise.append_native_handler(&handler, realm, can_gc);
+            closed_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
         }
     }
 
     /// Read a chunk
-    fn read_chunk(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+    fn read_chunk(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
+        let realm = cx.into();
+        let realm = InRealm::Already(&realm);
+
         *self.state.borrow_mut() = PipeToState::PendingRead;
-        let chunk_promise = self.reader.Read(can_gc);
+        let chunk_promise = self.reader.Read(cx);
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        chunk_promise.append_native_handler(&handler, realm, can_gc);
+        chunk_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
 
         // Note: in order to ensure progress we must
         // also react to the closure of the destination.
         let ready_promise = self.writer.Closed();
-        ready_promise.append_native_handler(&handler, realm, can_gc);
+        ready_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
     }
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
@@ -466,13 +469,7 @@ impl PipeTo {
 
     /// Errors must be propagated forward part of
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    fn check_and_propagate_errors_forward(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn check_and_propagate_errors_forward(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
         // An early return is necessary if we are shutting down,
         // because in that case the source can already have been set to none.
         if self.shutting_down.get() {
@@ -485,7 +482,7 @@ impl PipeTo {
             .get_stream()
             .expect("Reader should still have a stream");
         if source.is_errored() {
-            rooted!(in(*cx) let mut source_error = UndefinedValue());
+            rooted!(&in(cx) let mut source_error = UndefinedValue());
             source.get_stored_error(source_error.handle_mut());
             self.set_shutdown_error(source_error.handle());
 
@@ -493,29 +490,17 @@ impl PipeTo {
             if !self.prevent_abort {
                 // shutdown with an action of ! WritableStreamAbort(dest, source.[[storedError]])
                 // and with source.[[storedError]].
-                self.shutdown(
-                    cx,
-                    global,
-                    Some(ShutdownAction::WritableStreamAbort),
-                    realm,
-                    can_gc,
-                )
+                self.shutdown(cx, global, Some(ShutdownAction::WritableStreamAbort))
             } else {
                 // Otherwise, shutdown with source.[[storedError]].
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, None);
             }
         }
     }
 
     /// Errors must be propagated backward part of
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    fn check_and_propagate_errors_backward(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn check_and_propagate_errors_backward(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
         // An early return is necessary if we are shutting down,
         // because in that case the destination can already have been set to none.
         if self.shutting_down.get() {
@@ -528,7 +513,7 @@ impl PipeTo {
             .get_stream()
             .expect("Writer should still have a stream");
         if dest.is_errored() {
-            rooted!(in(*cx) let mut dest_error = UndefinedValue());
+            rooted!(&in(cx) let mut dest_error = UndefinedValue());
             dest.get_stored_error(dest_error.handle_mut());
             self.set_shutdown_error(dest_error.handle());
 
@@ -536,29 +521,17 @@ impl PipeTo {
             if !self.prevent_cancel {
                 // shutdown with an action of ! ReadableStreamCancel(source, dest.[[storedError]])
                 // and with dest.[[storedError]].
-                self.shutdown(
-                    cx,
-                    global,
-                    Some(ShutdownAction::ReadableStreamCancel),
-                    realm,
-                    can_gc,
-                )
+                self.shutdown(cx, global, Some(ShutdownAction::ReadableStreamCancel))
             } else {
                 // Otherwise, shutdown with dest.[[storedError]].
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, None);
             }
         }
     }
 
     /// Closing must be propagated forward part of
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    fn check_and_propagate_closing_forward(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn check_and_propagate_closing_forward(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
         // An early return is necessary if we are shutting down,
         // because in that case the source can already have been set to none.
         if self.shutting_down.get() {
@@ -579,25 +552,17 @@ impl PipeTo {
                     cx,
                     global,
                     Some(ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation),
-                    realm,
-                    can_gc,
                 )
             } else {
                 // Otherwise, shutdown.
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, None);
             }
         }
     }
 
     /// Closing must be propagated backward part of
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
-    fn check_and_propagate_closing_backward(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn check_and_propagate_closing_backward(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
         // An early return is necessary if we are shutting down,
         // because in that case the destination can already have been set to none.
         if self.shutting_down.get() {
@@ -615,26 +580,25 @@ impl PipeTo {
             // Note: unclear how to perform this assertion.
 
             // Let destClosed be a new TypeError.
-            rooted!(in(*cx) let mut dest_closed = UndefinedValue());
+            rooted!(&in(cx) let mut dest_closed = UndefinedValue());
             let error =
-                Error::Type("Destination is closed or has closed queued or in flight".to_string());
-            error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
+                Error::Type(c"Destination is closed or has closed queued or in flight".to_owned());
+            error.to_jsval(
+                cx.into(),
+                global,
+                dest_closed.handle_mut(),
+                CanGc::from_cx(cx),
+            );
             self.set_shutdown_error(dest_closed.handle());
 
             // If preventCancel is false,
             if !self.prevent_cancel {
                 // shutdown with an action of ! ReadableStreamCancel(source, destClosed)
                 // and with destClosed.
-                self.shutdown(
-                    cx,
-                    global,
-                    Some(ShutdownAction::ReadableStreamCancel),
-                    realm,
-                    can_gc,
-                )
+                self.shutdown(cx, global, Some(ShutdownAction::ReadableStreamCancel))
             } else {
                 // Otherwise, shutdown with destClosed.
-                self.shutdown(cx, global, None, realm, can_gc);
+                self.shutdown(cx, global, None);
             }
         }
     }
@@ -644,12 +608,12 @@ impl PipeTo {
     /// Combined into one method with an optional action.
     fn shutdown(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         action: Option<ShutdownAction>,
-        realm: InRealm,
-        can_gc: CanGc,
     ) {
+        let realm = cx.into();
+        let realm = InRealm::Already(&realm);
         // If shuttingDown is true, abort these substeps.
         // Set shuttingDown to true.
         if !self.shutting_down.replace(true) {
@@ -664,7 +628,7 @@ impl PipeTo {
                 // (i.e. the corresponding promises have settled).
                 if let Some(write) = self.pending_writes.borrow_mut().front() {
                     *self.state.borrow_mut() = PipeToState::ShuttingDownWithPendingWrites(action);
-                    self.wait_on_pending_write(global, write.clone(), realm, can_gc);
+                    self.wait_on_pending_write(global, write.clone(), realm, CanGc::from_cx(cx));
                     return;
                 }
             }
@@ -672,25 +636,20 @@ impl PipeTo {
             // Note: error is stored in `self.shutdown_error`.
             if let Some(action) = action {
                 // Let p be the result of performing action.
-                self.perform_action(cx, global, action, realm, can_gc);
+                self.perform_action(cx, global, action);
             } else {
                 // Finalize, passing along error if it was given.
-                self.finalize(cx, global, can_gc);
+                self.finalize(cx, global);
             }
         }
     }
 
     /// The perform action part of
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action>
-    fn perform_action(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        action: ShutdownAction,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
-        rooted!(in(*cx) let mut error = UndefinedValue());
+    fn perform_action(&self, cx: &mut CurrentRealm, global: &GlobalScope, action: ShutdownAction) {
+        let realm = cx.into();
+        let realm = InRealm::Already(&realm);
+        rooted!(&in(cx) let mut error = UndefinedValue());
         if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
             error.set(shutdown_error.get());
         }
@@ -701,24 +660,24 @@ impl PipeTo {
         let promise = match action {
             ShutdownAction::WritableStreamAbort => {
                 let dest = self.writer.get_stream().expect("Stream must be set");
-                dest.abort(cx, global, error.handle(), realm, can_gc)
+                dest.abort(cx, global, error.handle())
             },
             ShutdownAction::ReadableStreamCancel => {
                 let source = self
                     .reader
                     .get_stream()
                     .expect("Reader should have a stream.");
-                source.cancel(cx, global, error.handle(), can_gc)
+                source.cancel(cx, global, error.handle())
             },
-            ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
-                self.writer.close_with_error_propagation(cx, global, can_gc)
-            },
+            ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => self
+                .writer
+                .close_with_error_propagation(cx.into(), global, CanGc::from_cx(cx)),
             ShutdownAction::Abort => {
                 // Note: implementation of the `abortAlgorithm`
                 // of the signal associated with this piping operation.
 
                 // Let error be signal’s abort reason.
-                rooted!(in(*cx) let mut error = UndefinedValue());
+                rooted!(&in(cx) let mut error = UndefinedValue());
                 error.set(self.abort_reason.get());
 
                 // Let actions be an empty ordered set.
@@ -734,10 +693,10 @@ impl PipeTo {
                     // If dest.[[state]] is "writable",
                     let promise = if dest.is_writable() {
                         // return ! WritableStreamAbort(dest, error)
-                        dest.abort(cx, global, error.handle(), realm, can_gc)
+                        dest.abort(cx, global, error.handle())
                     } else {
                         // Otherwise, return a promise resolved with undefined.
-                        Promise::new_resolved(global, cx, (), can_gc)
+                        Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
                     };
                     actions.push(promise);
                 }
@@ -749,10 +708,10 @@ impl PipeTo {
                     // If source.[[state]] is "readable",
                     let promise = if source.is_readable() {
                         // return ! ReadableStreamCancel(source, error).
-                        source.cancel(cx, global, error.handle(), can_gc)
+                        source.cancel(cx, global, error.handle())
                     } else {
                         // Otherwise, return a promise resolved with undefined.
-                        Promise::new_resolved(global, cx, (), can_gc)
+                        Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
                     };
                     actions.push(promise);
                 }
@@ -760,7 +719,7 @@ impl PipeTo {
                 // Shutdown with an action consisting
                 // of getting a promise to wait for all of the actions in actions,
                 // and with error.
-                wait_for_all_promise(cx, global, actions, realm, can_gc)
+                wait_for_all_promise(cx.into(), global, actions, realm, CanGc::from_cx(cx))
             },
         };
 
@@ -770,18 +729,18 @@ impl PipeTo {
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        promise.append_native_handler(&handler, realm, can_gc);
+        promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
         *self.shutdown_action_promise.borrow_mut() = Some(promise);
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
-    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
+    fn finalize(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
         *self.state.borrow_mut() = PipeToState::Finalized;
 
         // Perform ! WritableStreamDefaultWriterRelease(writer).
-        self.writer.release(cx, global, can_gc);
+        self.writer.release(cx.into(), global, CanGc::from_cx(cx));
 
         // If reader implements ReadableStreamBYOBReader,
         // perform ! ReadableStreamBYOBReaderRelease(reader).
@@ -789,7 +748,7 @@ impl PipeTo {
 
         // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
         self.reader
-            .release(can_gc)
+            .release(CanGc::from_cx(cx))
             .expect("Releasing the reader should not fail");
 
         // If signal is not undefined, remove abortAlgorithm from signal.
@@ -798,13 +757,14 @@ impl PipeTo {
         // so for now not implementing this step.
 
         if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             error.set(shutdown_error.get());
             // If error was given, reject promise with error.
-            self.result_promise.reject_native(&error.handle(), can_gc);
+            self.result_promise
+                .reject_native(&error.handle(), CanGc::from_cx(cx));
         } else {
             // Otherwise, resolve promise with undefined.
-            self.result_promise.resolve_native(&(), can_gc);
+            self.result_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
     }
 }
@@ -822,8 +782,7 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        self.result.resolve_native(&(), can_gc);
+        self.result.resolve_native(&(), CanGc::from_cx(cx));
     }
 }
 
@@ -840,8 +799,7 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
     /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        self.result.reject_native(&v, can_gc);
+        self.result.reject_native(&v, CanGc::from_cx(cx));
     }
 }
 
@@ -1066,16 +1024,16 @@ impl ReadableStream {
             Some(ControllerType::Default(controller)) => {
                 let controller = controller
                     .get()
-                    .ok_or_else(|| Error::Type("Stream should have controller.".to_string()))?;
+                    .ok_or_else(|| Error::Type(c"Stream should have controller.".to_owned()))?;
                 controller.perform_release_steps()
             },
             Some(ControllerType::Byte(controller)) => {
                 let controller = controller
                     .get()
-                    .ok_or_else(|| Error::Type("Stream should have controller.".to_string()))?;
+                    .ok_or_else(|| Error::Type(c"Stream should have controller.".to_owned()))?;
                 controller.perform_release_steps()
             },
-            None => Err(Error::Type("Stream should have controller.".to_string())),
+            None => Err(Error::Type(c"Stream should have controller.".to_owned())),
         }
     }
 
@@ -1361,7 +1319,7 @@ impl ReadableStream {
     /// and before `stop_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn read_a_chunk(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         match self.reader.borrow().as_ref() {
             Some(ReaderType::Default(reader)) => {
                 let Some(reader) = reader.get() else {
@@ -1369,7 +1327,7 @@ impl ReadableStream {
                         "Attempt to read stream chunk without having first acquired a reader."
                     );
                 };
-                reader.Read(can_gc)
+                reader.Read(cx)
             },
             _ => {
                 unreachable!("Native reading of a chunk can only be done with a default reader.")
@@ -1610,29 +1568,28 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     pub(crate) fn cancel(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Set stream.[[disturbed]] to true.
         self.disturbed.set(true);
 
         // If stream.[[state]] is "closed", return a promise resolved with undefined.
         if self.is_closed() {
-            return Promise::new_resolved(global, cx, (), can_gc);
+            return Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
         }
         // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {
-            let promise = Promise::new(global, can_gc);
-            rooted!(in(*cx) let mut rval = UndefinedValue());
+            let promise = Promise::new2(cx, global);
+            rooted!(&in(cx) let mut rval = UndefinedValue());
             self.stored_error
-                .safe_to_jsval(cx, rval.handle_mut(), can_gc);
-            promise.reject_native(&rval.handle(), can_gc);
+                .safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).
-        self.close(can_gc);
+        self.close(CanGc::from_cx(cx));
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         let byob_reader = {
@@ -1645,7 +1602,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-            reader.cancel(can_gc);
+            reader.cancel(CanGc::from_cx(cx));
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
@@ -1654,11 +1611,11 @@ impl ReadableStream {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_cancel_steps(cx, global, reason, can_gc),
+                .perform_cancel_steps(cx, global, reason),
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_cancel_steps(cx, global, reason, can_gc),
+                .perform_cancel_steps(cx, global, reason),
             None => {
                 panic!("Stream does not have a controller.");
             },
@@ -1667,7 +1624,7 @@ impl ReadableStream {
         // Create a new promise,
         // and setup a handler in order to react to the fulfillment of sourceCancelPromise.
         let global = self.global();
-        let result_promise = Promise::new(&global, can_gc);
+        let result_promise = Promise::new2(cx, &global);
         let fulfillment_handler = Box::new(SourceCancelPromiseFulfillmentHandler {
             result: result_promise.clone(),
         });
@@ -1678,11 +1635,11 @@ impl ReadableStream {
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
-        source_cancel_promise.append_native_handler(&handler, comp, can_gc);
+        source_cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
 
         // Return the result of reacting to sourceCancelPromise
         // with a fulfillment step that returns undefined.
@@ -1758,7 +1715,7 @@ impl ReadableStream {
             canceled_2,
             reason_1,
             reason_2,
-            cancel_promise.clone(),
+            cancel_promise,
             reader_version,
             ByteTeeCancelAlgorithm::Cancel2Algorithm,
             ByteTeePullAlgorithm::Pull2Algorithm,
@@ -1898,15 +1855,13 @@ impl ReadableStream {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn pipe_to(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         dest: &WritableStream,
         prevent_close: bool,
         prevent_abort: bool,
         prevent_cancel: bool,
         signal: Option<&AbortSignal>,
-        realm: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Assert: source implements ReadableStream.
         // Assert: dest implements WritableStream.
@@ -1931,12 +1886,12 @@ impl ReadableStream {
 
         // Otherwise, let reader be ! AcquireReadableStreamDefaultReader(source).
         let reader = self
-            .acquire_default_reader(can_gc)
+            .acquire_default_reader(CanGc::from_cx(cx))
             .expect("Acquiring a default reader for pipe_to cannot fail");
 
         // Let writer be ! AcquireWritableStreamDefaultWriter(dest).
         let writer = dest
-            .aquire_default_writer(cx, global, can_gc)
+            .aquire_default_writer(cx.into(), global, CanGc::from_cx(cx))
             .expect("Acquiring a default writer for pipe_to cannot fail");
 
         // Set source.[[disturbed]] to true.
@@ -1946,10 +1901,10 @@ impl ReadableStream {
         // Done below with default.
 
         // Let promise be a new promise.
-        let promise = Promise::new(global, can_gc);
+        let promise = Promise::new2(cx, global);
 
         // In parallel, but not really, using reader and writer, read all chunks from source and write them to dest.
-        rooted!(in(*cx) let pipe_to = PipeTo {
+        rooted!(&in(cx) let pipe_to = PipeTo {
             reader: Dom::from_ref(&reader),
             writer: Dom::from_ref(&writer),
             pending_writes: Default::default(),
@@ -1969,11 +1924,11 @@ impl ReadableStream {
         if let Some(signal) = signal {
             // Let abortAlgorithm be the following steps:
             // Note: steps are implemented at call site.
-            rooted!(in(*cx) let abort_algorithm = AbortAlgorithm::StreamPiping(pipe_to.clone()));
+            rooted!(&in(cx) let abort_algorithm = AbortAlgorithm::StreamPiping(pipe_to.clone()));
 
             // If signal is aborted, perform abortAlgorithm and return promise.
             if signal.aborted() {
-                signal.run_abort_algorithm(cx, global, &abort_algorithm, realm, can_gc);
+                signal.run_abort_algorithm(cx, global, &abort_algorithm);
                 return promise;
             }
 
@@ -1982,15 +1937,15 @@ impl ReadableStream {
         }
 
         // Note: perfom checks now, since streams can start as closed or errored.
-        pipe_to.check_and_propagate_errors_forward(cx, global, realm, can_gc);
-        pipe_to.check_and_propagate_errors_backward(cx, global, realm, can_gc);
-        pipe_to.check_and_propagate_closing_forward(cx, global, realm, can_gc);
-        pipe_to.check_and_propagate_closing_backward(cx, global, realm, can_gc);
+        pipe_to.check_and_propagate_errors_forward(cx, global);
+        pipe_to.check_and_propagate_errors_backward(cx, global);
+        pipe_to.check_and_propagate_closing_forward(cx, global);
+        pipe_to.check_and_propagate_closing_backward(cx, global);
 
         // If we are not closed or errored,
         if *pipe_to.state.borrow() == PipeToState::Starting {
             // Start the pipe, by waiting on the writer being ready for a chunk.
-            pipe_to.wait_for_writer_ready(global, realm, can_gc);
+            pipe_to.wait_for_writer_ready(cx, global);
         }
 
         // Return promise.
@@ -2048,7 +2003,7 @@ impl ReadableStream {
         // if it exists, or undefined otherwise.
         // If autoAllocateChunkSize is 0, then throw a TypeError exception.
         if let Some(0) = underlying_source_dict.autoAllocateChunkSize {
-            return Err(Error::Type("autoAllocateChunkSize cannot be 0".to_owned()));
+            return Err(Error::Type(c"autoAllocateChunkSize cannot be 0".to_owned()));
         }
 
         let controller = ReadableByteStreamController::new(
@@ -2129,7 +2084,9 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
             match JsUnderlyingSource::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
-                Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
+                Ok(ConversionResult::Failure(error)) => {
+                    return Err(Error::Type(error.into_owned()));
+                },
                 _ => {
                     return Err(Error::JSFailed);
                 },
@@ -2145,7 +2102,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If strategy["size"] exists, throw a RangeError exception.
             if strategy.size.is_some() {
                 return Err(Error::Range(
-                    "size is not supported for byte streams".to_owned(),
+                    c"size is not supported for byte streams".to_owned(),
                 ));
             }
 
@@ -2194,17 +2151,20 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
-    fn Cancel(&self, cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Rc<Promise> {
         let global = self.global();
         if self.is_locked() {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("stream is locked".to_owned()), can_gc);
+            let promise = Promise::new2(cx, &global);
+            promise.reject_error(
+                Error::Type(c"stream is locked".to_owned()),
+                CanGc::from_cx(cx),
+            );
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
-            self.cancel(cx, &global, reason, can_gc)
+            self.cancel(cx, &global, reason)
         }
     }
 
@@ -2238,29 +2198,30 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-pipe-to>
     fn PipeTo(
         &self,
+        cx: &mut CurrentRealm,
         destination: &WritableStream,
         options: &StreamPipeOptions,
-        realm: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
         let global = self.global();
 
         // If ! IsReadableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Source stream is locked".to_owned()), can_gc);
+            let promise = Promise::new2(cx, &global);
+            promise.reject_error(
+                Error::Type(c"Source stream is locked".to_owned()),
+                CanGc::from_cx(cx),
+            );
             return promise;
         }
 
         // If ! IsWritableStreamLocked(destination) is true,
         if destination.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new2(cx, &global);
             promise.reject_error(
-                Error::Type("Destination stream is locked".to_owned()),
-                can_gc,
+                Error::Type(c"Destination stream is locked".to_owned()),
+                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -2277,30 +2238,26 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             options.preventAbort,
             options.preventCancel,
             signal,
-            realm,
-            can_gc,
         )
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipe-through>
     fn PipeThrough(
         &self,
+        cx: &mut CurrentRealm,
         transform: &ReadableWritablePair,
         options: &StreamPipeOptions,
-        realm: InRealm,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStream>> {
         let global = self.global();
-        let cx = GlobalScope::get_cx();
 
         // If ! IsReadableStreamLocked(this) is true, throw a TypeError exception.
         if self.is_locked() {
-            return Err(Error::Type("Source stream is locked".to_owned()));
+            return Err(Error::Type(c"Source stream is locked".to_owned()));
         }
 
         // If ! IsWritableStreamLocked(transform["writable"]) is true, throw a TypeError exception.
         if transform.writable.is_locked() {
-            return Err(Error::Type("Destination stream is locked".to_owned()));
+            return Err(Error::Type(c"Destination stream is locked".to_owned()));
         }
 
         // Let signal be options["signal"] if it exists, or undefined otherwise.
@@ -2316,8 +2273,6 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             options.preventAbort,
             options.preventCancel,
             signal,
-            realm,
-            can_gc,
         );
 
         // Set promise.[[PromiseIsHandled]] to true.
@@ -2464,7 +2419,7 @@ pub(crate) fn get_read_promise_done(
     can_gc: CanGc,
 ) -> Result<bool, Error> {
     if !v.is_object() {
-        return Err(Error::Type("Unknown format for done property.".to_string()));
+        return Err(Error::Type(c"Unknown format for done property.".to_owned()));
     }
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
@@ -2472,10 +2427,10 @@ pub(crate) fn get_read_promise_done(
         match get_dictionary_property(*cx, object.handle(), c"done", done.handle_mut(), can_gc) {
             Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
-                _ => Err(Error::Type("Unknown format for done property.".to_string())),
+                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+                _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
             },
-            Ok(false) => Err(Error::Type("Promise has no done property.".to_string())),
+            Ok(false) => Err(Error::Type(c"Promise has no done property.".to_owned())),
             Err(()) => Err(Error::JSFailed),
         }
     }
@@ -2490,7 +2445,7 @@ pub(crate) fn get_read_promise_bytes(
 ) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
-            "Unknown format for for bytes read.".to_string(),
+            c"Unknown format for for bytes read.".to_owned(),
         ));
     }
     unsafe {
@@ -2505,11 +2460,11 @@ pub(crate) fn get_read_promise_bytes(
                     can_gc,
                 ) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
-                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
-                    _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
+                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+                    _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
                 }
             },
-            Ok(false) => Err(Error::Type("Promise has no value property.".to_string())),
+            Ok(false) => Err(Error::Type(c"Promise has no value property.".to_owned())),
             Err(()) => Err(Error::JSFailed),
         }
     }
@@ -2525,8 +2480,8 @@ pub(crate) fn bytes_from_chunk_jsval(
 ) -> Result<Vec<u8>, Error> {
     match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
-        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
-        _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+        _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
     }
 }
 
@@ -2536,7 +2491,10 @@ impl Transferable for ReadableStream {
     type Data = MessagePortImpl;
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps>
-    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+    fn transfer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<(MessagePortId, MessagePortImpl)> {
         // Step 1. If ! IsReadableStreamLocked(value) is true, throw a
         // "DataCloneError" DOMException.
         if self.is_locked() {
@@ -2544,52 +2502,47 @@ impl Transferable for ReadableStream {
         }
 
         let global = self.global();
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
-        let cx = GlobalScope::get_cx();
-        let can_gc = CanGc::note();
+        let mut realm = enter_auto_realm(cx, &*global);
+        let mut realm = realm.current_realm();
+        let cx = &mut realm;
 
         // Step 2. Let port1 be a new MessagePort in the current Realm.
-        let port_1 = MessagePort::new(&global, can_gc);
+        let port_1 = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port_1, None);
 
         // Step 3. Let port2 be a new MessagePort in the current Realm.
-        let port_2 = MessagePort::new(&global, can_gc);
+        let port_2 = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port_2, None);
 
         // Step 4. Entangle port1 and port2.
         global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
 
         // Step 5. Let writable be a new WritableStream in the current Realm.
-        let writable = WritableStream::new_with_proto(&global, None, can_gc);
+        let writable = WritableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
 
         // Step 6. Perform ! SetUpCrossRealmTransformWritable(writable, port1).
-        writable.setup_cross_realm_transform_writable(cx, &port_1, can_gc);
+        writable.setup_cross_realm_transform_writable(cx.into(), &port_1, CanGc::from_cx(cx));
 
         // Step 7. Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
-        let promise = self.pipe_to(
-            cx, &global, &writable, false, false, false, None, comp, can_gc,
-        );
+        let promise = self.pipe_to(cx, &global, &writable, false, false, false, None);
 
         // Step 8. Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();
 
         // Step 9. Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
-        port_2.transfer()
+        port_2.transfer(cx)
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        let cx = GlobalScope::get_cx();
-        let can_gc = CanGc::note();
-
         // Their transfer-receiving steps, given dataHolder and value, are:
         // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
-        let value = ReadableStream::new_with_proto(owner, None, can_gc);
+        let value = ReadableStream::new_with_proto(owner, None, CanGc::from_cx(cx));
 
         // Step 1. Let deserializedRecord be !
         // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current
@@ -2597,10 +2550,14 @@ impl Transferable for ReadableStream {
         // Done with the `Deserialize` derive of `MessagePortImpl`.
 
         // Step 2. Let port be deserializedRecord.[[Deserialized]].
-        let transferred_port = MessagePort::transfer_receive(owner, id, port_impl)?;
+        let transferred_port = MessagePort::transfer_receive(cx, owner, id, port_impl)?;
 
         // Step 3. Perform ! SetUpCrossRealmTransformReadable(value, port).
-        value.setup_cross_realm_transform_readable(cx, &transferred_port, can_gc);
+        value.setup_cross_realm_transform_readable(
+            cx.into(),
+            &transferred_port,
+            CanGc::from_cx(cx),
+        );
         Ok(value)
     }
 

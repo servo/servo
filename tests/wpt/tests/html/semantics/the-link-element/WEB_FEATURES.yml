@@ -1,4 +1,0 @@
-features:
-- name: fetch-priority
-  files:
-  - attr-link-fetchpriority.html

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CompositionEventBinding::{
     self, CompositionEventMethods,
@@ -38,7 +39,7 @@ impl CompositionEvent {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: bool,
         cancelable: bool,
         view: Option<&Window>,
@@ -47,7 +48,7 @@ impl CompositionEvent {
         can_gc: CanGc,
     ) -> DomRoot<CompositionEvent> {
         Self::new_with_proto(
-            window, None, type_, can_bubble, cancelable, view, detail, data, can_gc,
+            window, None, event_type, can_bubble, cancelable, view, detail, data, can_gc,
         )
     }
 
@@ -55,7 +56,7 @@ impl CompositionEvent {
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: bool,
         cancelable: bool,
         view: Option<&Window>,
@@ -73,7 +74,7 @@ impl CompositionEvent {
             can_gc,
         );
         ev.uievent
-            .InitUIEvent(type_, can_bubble, cancelable, view, detail);
+            .init_event(event_type, can_bubble, cancelable, view, detail);
         ev
     }
 
@@ -88,13 +89,13 @@ impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &CompositionEventBinding::CompositionEventInit,
     ) -> Fallible<DomRoot<CompositionEvent>> {
         let event = CompositionEvent::new_with_proto(
             window,
             proto,
-            type_,
+            event_type.into(),
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
             init.parent.view.as_deref(),

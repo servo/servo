@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-test-helper.js"></script>
+
+<button id="navigateButton">Click me!</button>
+<div id="target"></id>
+
+<script>
+  promise_test(async t => {
+    // Navigate to a URL that will be replaced.
+    history.pushState({}, '', '/initialUrl');
+
+    const navigate = url => history.replaceState({}, '', url);
+    const modifyDOM = () => {
+      const id = 'icpElement';
+      target.innerHTML = `<h1 id="${id}">replaceState Navigation</h1>`;
+      return id;
+    };
+    const url = '/replaced';
+    const helper = new SoftNavigationTestHelper(t);
+    const result = await helper.clickAndExpectSoftNavigation(
+        navigateButton, url, modifyDOM, navigate);
+    assert_equals(result.softNav.navigationType, 'replace');
+  }, 'Soft Navigation Detection detects replaceState navigations');
+</script>

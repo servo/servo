@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{io, mem, str};
 
+use base::generic_channel::CallbackSetter;
 use base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
@@ -16,7 +17,7 @@ use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcSender};
 use log::{debug, trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::{self, Mime};
@@ -29,7 +30,7 @@ use net_traits::request::{
     InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestId,
     RequestMode, ResponseTainting, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
-use net_traits::response::{Response, ResponseBody, ResponseType};
+use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
     ResourceTimeValue, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
@@ -70,13 +71,13 @@ pub enum Data {
 
 pub struct WebSocketChannel {
     pub sender: IpcSender<WebSocketNetworkEvent>,
-    pub receiver: Option<IpcReceiver<WebSocketDomAction>>,
+    pub receiver: Option<CallbackSetter<WebSocketDomAction>>,
 }
 
 impl WebSocketChannel {
     pub fn new(
         sender: IpcSender<WebSocketNetworkEvent>,
-        receiver: Option<IpcReceiver<WebSocketDomAction>>,
+        receiver: Option<CallbackSetter<WebSocketDomAction>>,
     ) -> Self {
         Self { sender, receiver }
     }
@@ -841,7 +842,11 @@ async fn wait_for_response(
                     target.process_response_chunk(request, vec);
                 },
                 Some(Data::Error(network_error)) => {
+                    if network_error == NetworkError::DecompressionError {
+                        response.termination_reason = Some(TerminationReason::Fatal);
+                    }
                     response.set_network_error(network_error);
+
                     break;
                 },
                 Some(Data::Done) => {

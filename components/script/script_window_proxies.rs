@@ -45,13 +45,6 @@ impl ScriptWindowProxies {
         None
     }
 
-    pub(crate) fn get(&self, id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
-        self.map
-            .borrow()
-            .get(&id)
-            .map(|context| DomRoot::from_ref(&**context))
-    }
-
     pub(crate) fn insert(&self, id: BrowsingContextId, proxy: DomRoot<WindowProxy>) {
         self.map.borrow_mut().insert(id, Dom::from_ref(&*proxy));
     }
@@ -68,6 +61,7 @@ impl ScriptWindowProxies {
     // to the `window_proxies` map, and return it.
     pub(crate) fn remote_window_proxy(
         &self,
+        cx: &mut js::context::JSContext,
         senders: &ScriptThreadSenders,
         global_to_clone: &GlobalScope,
         webview_id: WebViewId,
@@ -76,12 +70,12 @@ impl ScriptWindowProxies {
     ) -> Option<DomRoot<WindowProxy>> {
         let (browsing_context_id, parent_pipeline_id) =
             self.ask_constellation_for_browsing_context_info(senders, webview_id, pipeline_id)?;
-        if let Some(window_proxy) = self.get(browsing_context_id) {
+        if let Some(window_proxy) = self.find_window_proxy(browsing_context_id) {
             return Some(window_proxy);
         }
 
         let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
-            self.remote_window_proxy(senders, global_to_clone, webview_id, parent_id, opener)
+            self.remote_window_proxy(cx, senders, global_to_clone, webview_id, parent_id, opener)
         });
 
         let opener_browsing_context = opener.and_then(|id| self.find_window_proxy(id));
@@ -92,6 +86,7 @@ impl ScriptWindowProxies {
         );
 
         let window_proxy = WindowProxy::new_dissimilar_origin(
+            cx,
             global_to_clone,
             browsing_context_id,
             webview_id,
@@ -112,6 +107,7 @@ impl ScriptWindowProxies {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn local_window_proxy(
         &self,
+        cx: &mut js::context::JSContext,
         senders: &ScriptThreadSenders,
         documents: &DomRefCell<DocumentCollection>,
         window: &Window,
@@ -120,7 +116,7 @@ impl ScriptWindowProxies {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
-        if let Some(window_proxy) = self.get(browsing_context_id) {
+        if let Some(window_proxy) = self.find_window_proxy(browsing_context_id) {
             // Note: we do not set the window to be the currently-active one,
             // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return window_proxy;
@@ -132,9 +128,14 @@ impl ScriptWindowProxies {
         });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
-            (Some(parent_id), _) => {
-                self.remote_window_proxy(senders, window.upcast(), webview_id, parent_id, opener)
-            },
+            (Some(parent_id), _) => self.remote_window_proxy(
+                cx,
+                senders,
+                window.upcast(),
+                webview_id,
+                parent_id,
+                opener,
+            ),
             _ => None,
         };
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
@@ -24,6 +23,23 @@ use crate::script_runtime::CanGc;
 
 pub(crate) trait CollectionFilter: JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
+}
+
+/// Alternative to [`CollectionFilter`] that provides elements directly via
+/// a custom iterator, rather than filtering a tree traversal. This is more
+/// efficient when the collection's elements can be enumerated directly
+/// (e.g. `selectedOptions` iterating only the select's list of options).
+pub(crate) trait CollectionSource: JSTraceable {
+    fn iter<'a>(&'a self, root: &'a Node) -> Box<dyn Iterator<Item = DomRoot<Element>> + 'a>;
+}
+
+/// How a collection enumerates its elements.
+#[derive(JSTraceable)]
+enum CollectionKind {
+    /// Filter elements from a subtree traversal of the root node.
+    Filter(Box<dyn CollectionFilter + 'static>),
+    /// Provide elements directly via a custom iterator.
+    Source(Box<dyn CollectionSource + 'static>),
 }
 
 /// An optional `u32`, using `u32::MAX` to represent None.  It would be nicer
@@ -57,8 +73,8 @@ impl OptionU32 {
 pub(crate) struct HTMLCollection {
     reflector_: Reflector,
     root: Dom<Node>,
-    #[ignore_malloc_size_of = "Trait object (Box<dyn CollectionFilter>) cannot be sized"]
-    filter: Box<dyn CollectionFilter + 'static>,
+    #[ignore_malloc_size_of = "Trait objects cannot be sized"]
+    kind: CollectionKind,
     // We cache the version of the root node and all its decendents,
     // the length of the collection, and a cursor into the collection.
     // FIXME: make the cached cursor element a weak pointer
@@ -69,20 +85,31 @@ pub(crate) struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    pub(crate) fn new_inherited(
-        root: &Node,
-        filter: Box<dyn CollectionFilter + 'static>,
-    ) -> HTMLCollection {
+    fn new_inherited_with_kind(root: &Node, kind: CollectionKind) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             root: Dom::from_ref(root),
-            filter,
+            kind,
             // Default values for the cache
             cached_version: Cell::new(root.inclusive_descendants_version()),
             cached_cursor_element: MutNullableDom::new(None),
             cached_cursor_index: Cell::new(OptionU32::none()),
             cached_length: Cell::new(OptionU32::none()),
         }
+    }
+
+    pub(crate) fn new_inherited(
+        root: &Node,
+        filter: Box<dyn CollectionFilter + 'static>,
+    ) -> HTMLCollection {
+        Self::new_inherited_with_kind(root, CollectionKind::Filter(filter))
+    }
+
+    pub(crate) fn new_inherited_with_source(
+        root: &Node,
+        source: Box<dyn CollectionSource + 'static>,
+    ) -> HTMLCollection {
+        Self::new_inherited_with_kind(root, CollectionKind::Source(source))
     }
 
     /// Returns a collection which is always empty.
@@ -142,6 +169,20 @@ impl HTMLCollection {
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         Self::new(window, root, filter, can_gc)
+    }
+
+    /// Create a new [`HTMLCollection`] backed by a custom element source.
+    pub(crate) fn new_with_source(
+        window: &Window,
+        root: &Node,
+        source: Box<dyn CollectionSource + 'static>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(Self::new_inherited_with_source(root, source)),
+            window,
+            can_gc,
+        )
     }
 
     fn validate_cache(&self) {
@@ -315,31 +356,39 @@ impl HTMLCollection {
         )
     }
 
-    pub(crate) fn elements_iter_after<'a>(
+    /// Iterate forwards from a node, filtering by a [`CollectionFilter`].
+    /// Only usable with filter-based collections for cursor optimization.
+    fn filter_iter_after<'a>(
         &'a self,
         after: &'a Node,
+        filter: &'a (dyn CollectionFilter + 'static),
     ) -> impl Iterator<Item = DomRoot<Element>> + 'a {
-        // Iterate forwards from a node.
         after
             .following_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(element, &self.root))
+            .filter(move |element| filter.filter(element, &self.root))
     }
 
-    pub(crate) fn elements_iter(&self) -> impl Iterator<Item = DomRoot<Element>> + '_ {
-        // Iterate forwards from the root.
-        self.elements_iter_after(&self.root)
-    }
-
-    pub(crate) fn elements_iter_before<'a>(
+    /// Iterate backwards from a node, filtering by a [`CollectionFilter`].
+    /// Only usable with filter-based collections for cursor optimization.
+    fn filter_iter_before<'a>(
         &'a self,
         before: &'a Node,
+        filter: &'a (dyn CollectionFilter + 'static),
     ) -> impl Iterator<Item = DomRoot<Element>> + 'a {
-        // Iterate backwards from a node.
         before
             .preceding_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(element, &self.root))
+            .filter(move |element| filter.filter(element, &self.root))
+    }
+
+    pub(crate) fn elements_iter(&self) -> Box<dyn Iterator<Item = DomRoot<Element>> + '_> {
+        match &self.kind {
+            CollectionKind::Filter(filter) => {
+                Box::new(self.filter_iter_after(&self.root, filter.as_ref()))
+            },
+            CollectionKind::Source(source) => source.iter(&self.root),
+        }
     }
 
     pub(crate) fn root_node(&self) -> DomRoot<Node> {
@@ -370,38 +419,38 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         if let Some(element) = self.cached_cursor_element.get() {
             // Cache hit, the cursor element is set
             if let Some(cached_index) = self.cached_cursor_index.get().to_option() {
-                match cached_index.cmp(&index) {
-                    Ordering::Equal => {
-                        // The cursor is the element we're looking for
-                        Some(element)
-                    },
-                    Ordering::Less => {
-                        // The cursor is before the element we're looking for
-                        // Iterate forwards, starting at the cursor.
-                        let offset = index - (cached_index + 1);
-                        let node: DomRoot<Node> = DomRoot::upcast(element);
-                        let mut iter = self.elements_iter_after(&node);
-                        self.set_cached_cursor(index, iter.nth(offset as usize))
-                    },
-                    Ordering::Greater => {
-                        // The cursor is after the element we're looking for
-                        // Iterate backwards, starting at the cursor.
-                        let offset = cached_index - (index + 1);
-                        let node: DomRoot<Node> = DomRoot::upcast(element);
-                        let mut iter = self.elements_iter_before(&node);
-                        self.set_cached_cursor(index, iter.nth(offset as usize))
-                    },
+                if cached_index == index {
+                    // The cursor is the element we're looking for.
+                    return Some(element);
                 }
-            } else {
-                // Cache miss
-                // Iterate forwards through all the nodes
-                self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+
+                // Cursor-relative traversal is only possible for filter-based
+                // collections, where elements follow tree order.
+                if let CollectionKind::Filter(ref filter) = self.kind {
+                    let node: DomRoot<Node> = DomRoot::upcast(element);
+                    return if cached_index < index {
+                        // Iterate forwards from the cursor.
+                        let offset = index - (cached_index + 1);
+                        self.set_cached_cursor(
+                            index,
+                            self.filter_iter_after(&node, filter.as_ref())
+                                .nth(offset as usize),
+                        )
+                    } else {
+                        // Iterate backwards from the cursor.
+                        let offset = cached_index - (index + 1);
+                        self.set_cached_cursor(
+                            index,
+                            self.filter_iter_before(&node, filter.as_ref())
+                                .nth(offset as usize),
+                        )
+                    };
+                }
             }
-        } else {
-            // Cache miss
-            // Iterate forwards through all the nodes
-            self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
         }
+
+        // Cache miss or source-based collection: iterate from the beginning.
+        self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem>

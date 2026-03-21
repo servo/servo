@@ -5,6 +5,7 @@
 use std::num::NonZero;
 
 use aws_lc_rs::pbkdf2;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
@@ -13,10 +14,9 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_PBKDF2, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
-    SubtleKeyAlgorithm, SubtlePbkdf2Params,
+    CryptoAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleKeyAlgorithm,
+    SubtlePbkdf2Params,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>
 pub(crate) fn derive_bits(
@@ -45,10 +45,10 @@ pub(crate) fn derive_bits(
     // Step 4. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1] using
     // the hash function described by the hash member of normalizedAlgorithm.
     let prf = match normalized_algorithm.hash.name() {
-        ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
-        ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
-        ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
-        ALG_SHA512 => pbkdf2::PBKDF2_HMAC_SHA512,
+        CryptoAlgorithm::Sha1 => pbkdf2::PBKDF2_HMAC_SHA1,
+        CryptoAlgorithm::Sha256 => pbkdf2::PBKDF2_HMAC_SHA256,
+        CryptoAlgorithm::Sha384 => pbkdf2::PBKDF2_HMAC_SHA384,
+        CryptoAlgorithm::Sha512 => pbkdf2::PBKDF2_HMAC_SHA512,
         _ => {
             return Err(Error::NotSupported(None));
         },
@@ -79,12 +79,12 @@ pub(crate) fn derive_bits(
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If format is not "raw", throw a NotSupportedError
     if !matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
@@ -111,16 +111,16 @@ pub(crate) fn import_key(
     // Step 7. Set the name attribute of algorithm to "PBKDF2".
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_PBKDF2.to_string(),
+        name: CryptoAlgorithm::Pbkdf2,
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Pbkdf2(key_data.to_vec()),
-        can_gc,
     );
 
     // Step 9. Return key.

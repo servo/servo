@@ -6,7 +6,6 @@ from . import get_permission_state
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.asyncio
 async def test_set_permission(bidi_session, new_tab, url):
     test_url = url("/common/blank.html", protocol="https")
     await bidi_session.browsing_context.navigate(
@@ -44,7 +43,6 @@ async def test_set_permission(bidi_session, new_tab, url):
     assert await get_permission_state(bidi_session, new_tab, "geolocation") == "prompt"
 
 
-@pytest.mark.asyncio
 async def test_set_permission_new_context(bidi_session, new_tab, url):
     test_url = url("/common/blank.html", protocol="https")
 
@@ -103,7 +101,6 @@ async def test_set_permission_origin_unknown(bidi_session, new_tab, origin, url)
     assert await get_permission_state(bidi_session, new_tab, "geolocation") == "prompt"
 
 
-@pytest.mark.asyncio
 async def test_set_permission_iframe(
     bidi_session, new_tab, test_page_cross_origin_frame
 ):

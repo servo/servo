@@ -25,13 +25,11 @@ use nom_rfc8288::complete::link_lenient as parse_link_header;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::IntoStaticStr;
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
@@ -486,6 +484,7 @@ impl FetchResponseListener for LinkFetchContext {
     /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response_result: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -519,7 +518,7 @@ impl FetchResponseListener for LinkFetchContext {
             );
         }
 
-        submit_timing(&self, &response_result, &timing, CanGc::note());
+        submit_timing(&self, &response_result, &timing, CanGc::from_cx(cx));
 
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //
@@ -530,18 +529,13 @@ impl FetchResponseListener for LinkFetchContext {
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
             link.root()
-                .fire_event_after_response(response_result, CanGc::note());
+                .fire_event_after_response(response_result, CanGc::from_cx(cx));
         }
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        let source_position = self.link.as_ref().map(|link| {
-            let link = link.root();
-            link.upcast::<Element>()
-                .compute_source_position(link.line_number())
-        });
-        global.report_csp_violations(violations, None, source_position);
+        global.report_csp_violations(violations, None, None);
     }
 }
 

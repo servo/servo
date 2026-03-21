@@ -14,6 +14,7 @@ use embedder_traits::{
 };
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::router::ROUTER;
+use js::context::JSContext;
 use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
@@ -188,9 +189,9 @@ impl DocumentEmbedderControls {
 
     pub(crate) fn handle_embedder_control_response(
         &self,
+        cx: &mut JSContext,
         id: EmbedderControlId,
         response: EmbedderControlResponse,
-        can_gc: CanGc,
     ) {
         assert_eq!(self.window.pipeline_id(), id.pipeline_id);
         assert_eq!(self.window.webview_id(), id.webview_id);
@@ -209,25 +210,25 @@ impl DocumentEmbedderControls {
                 ControlElement::Select(select_element),
                 EmbedderControlResponse::SelectElement(response),
             ) => {
-                select_element.handle_menu_response(response, can_gc);
+                select_element.handle_menu_response(cx, response);
             },
             (
                 ControlElement::ColorInput(input_element),
                 EmbedderControlResponse::ColorPicker(response),
             ) => {
-                input_element.handle_color_picker_response(response, can_gc);
+                input_element.handle_color_picker_response(response, CanGc::from_cx(cx));
             },
             (
                 ControlElement::FileInput(input_element),
                 EmbedderControlResponse::FilePicker(response),
             ) => {
-                input_element.handle_file_picker_response(response, can_gc);
+                input_element.handle_file_picker_response(response, CanGc::from_cx(cx));
             },
             (
                 ControlElement::ContextMenu(context_menu_nodes),
                 EmbedderControlResponse::ContextMenu(action),
             ) => {
-                context_menu_nodes.handle_context_menu_action(action, can_gc);
+                context_menu_nodes.handle_context_menu_action(action, CanGc::from_cx(cx));
             },
             (_, _) => unreachable!(
                 "The response to a form control should always match it's originating type."
@@ -236,6 +237,24 @@ impl DocumentEmbedderControls {
     }
 
     pub(crate) fn show_context_menu(&self, hit_test_result: &HitTestResult) {
+        {
+            let mut visible_elements = self.visible_elements.borrow_mut();
+            visible_elements.retain(|index, control_element| {
+                if matches!(control_element, ControlElement::ContextMenu(..)) {
+                    let id = EmbedderControlId {
+                        webview_id: self.window.webview_id(),
+                        pipeline_id: self.window.pipeline_id(),
+                        index: index.0,
+                    };
+                    self.window
+                        .send_to_embedder(EmbedderMsg::HideEmbedderControl(id));
+                    false
+                } else {
+                    true
+                }
+            });
+        }
+
         let mut anchor_element = None;
         let mut image_element = None;
         let mut text_input_element = None;
@@ -472,7 +491,7 @@ impl ContextMenuNodes {
                     .as_ref()
                     .map(ServoUrl::to_string)
                     .unwrap_or_else(|| image_element.CurrentSrc().to_string());
-                set_clipboard_text(url_string.to_string());
+                set_clipboard_text(url_string);
             },
             ContextMenuAction::OpenImageInNewView => {
                 let Some(image_element) = &self.image_element else {

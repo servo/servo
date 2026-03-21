@@ -1,5 +1,5 @@
 [package]
-name = "webxr"
+name = "servo-webxr"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

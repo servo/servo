@@ -37,7 +37,7 @@ pub fn deinit(clean_shutdown: bool) {
 
 #[unsafe(link_section = "__TEXT,__info_plist")]
 #[unsafe(no_mangle)]
-pub static INFO_PLIST: [u8; 619] = *include_bytes!("Info.plist");
+pub static INFO_PLIST: [u8; 924] = *include_bytes!("Info.plist");
 
 #[link(name = "count_threads")]
 unsafe extern "C" {

@@ -1297,37 +1297,66 @@ fn rendered_text_collection_steps(
     items
 }
 
+struct ClosestFragment {
+    fragment: ArcRefCell<TextFragment>,
+    point_in_fragment: Point2D<Au, CSSPixel>,
+    distance: Au,
+    point_in_vertical_bounds: bool,
+}
+
+impl ClosestFragment {
+    fn should_replace(&self, new_distance: Au, point_in_vertical_bounds: bool) -> bool {
+        if point_in_vertical_bounds && !self.point_in_vertical_bounds {
+            return true;
+        }
+        if self.point_in_vertical_bounds && !point_in_vertical_bounds {
+            return false;
+        }
+        new_distance <= self.distance
+    }
+}
+
 pub fn find_character_offset_in_fragment_descendants(
     node: &ServoThreadSafeLayoutNode,
     stacking_context_tree: &StackingContextTree,
     point_in_viewport: Point2D<Au, CSSPixel>,
 ) -> Option<usize> {
-    type ClosestFragment = Option<(Au, Point2D<Au, CSSPixel>, ArcRefCell<TextFragment>)>;
     fn maybe_update_closest(
         fragment: &Fragment,
         point_in_fragment: Point2D<Au, CSSPixel>,
-        closest_relative_fragment: &mut ClosestFragment,
+        closest_relative_fragment: &mut Option<ClosestFragment>,
     ) {
         let Fragment::Text(text_fragment) = fragment else {
             return;
         };
-        let Some(new_distance) = text_fragment
-            .borrow()
-            .distance_to_point_for_glyph_offset(point_in_fragment)
-        else {
-            return;
+
+        let (distance, point_in_vertical_bounds) = {
+            let borrowed_text_fragment = text_fragment.borrow();
+            (
+                borrowed_text_fragment.distance_to_point_for_glyph_offset(point_in_fragment),
+                borrowed_text_fragment.point_is_within_vertical_boundaries(point_in_fragment),
+            )
         };
-        if matches!(closest_relative_fragment, Some((old_distance, _, _)) if *old_distance < new_distance)
+
+        if closest_relative_fragment
+            .as_ref()
+            .is_none_or(|closest_fragment| {
+                closest_fragment.should_replace(distance, point_in_vertical_bounds)
+            })
         {
-            return;
-        };
-        *closest_relative_fragment = Some((new_distance, point_in_fragment, text_fragment.clone()))
+            *closest_relative_fragment = Some(ClosestFragment {
+                fragment: text_fragment.clone(),
+                point_in_fragment,
+                distance,
+                point_in_vertical_bounds,
+            });
+        }
     }
 
     fn collect_relevant_children(
         fragment: &Fragment,
         point_in_viewport: Point2D<Au, CSSPixel>,
-        closest_relative_fragment: &mut ClosestFragment,
+        closest_relative_fragment: &mut Option<ClosestFragment>,
     ) {
         maybe_update_closest(fragment, point_in_viewport, closest_relative_fragment);
 
@@ -1352,8 +1381,11 @@ pub fn find_character_offset_in_fragment_descendants(
         }
     }
 
-    closest_relative_fragment.map(|(_, point_in_parent, text_fragment)| {
-        text_fragment.borrow().character_offset(point_in_parent)
+    closest_relative_fragment.and_then(|closest_fragment| {
+        closest_fragment
+            .fragment
+            .borrow()
+            .character_offset(closest_fragment.point_in_fragment)
     })
 }
 
@@ -1463,4 +1495,18 @@ pub(crate) fn transform_au_rectangle(
         },
     };
     outer_transformed_rect.map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
+}
+
+pub(crate) fn process_effective_overflow_query(
+    node: ServoThreadSafeLayoutNode<'_>,
+) -> Option<AxesOverflow> {
+    let fragments = node.fragments_for_pseudo(None);
+    let box_fragment = fragments.first()?.retrieve_box_fragment()?;
+    let box_fragment = box_fragment.borrow();
+
+    Some(
+        box_fragment
+            .style()
+            .effective_overflow(box_fragment.base.flags),
+    )
 }

@@ -8,6 +8,7 @@ use ecdsa::{Signature, SigningKey, VerifyingKey};
 use elliptic_curve::SecretKey;
 use elliptic_curve::rand_core::OsRng;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
+use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
@@ -29,12 +30,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ECDSA, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
-    NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm, SubtleEcKeyGenParams,
-    SubtleEcKeyImportParams, SubtleEcdsaParams,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, NormalizedAlgorithm, SUPPORTED_CURVES,
+    SubtleEcKeyAlgorithm, SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdsaParams,
+    ec_common,
 };
-use crate::script_runtime::CanGc;
 
 const P256_PREHASH_LENGTH: usize = 32;
 const P384_PREHASH_LENGTH: usize = 48;
@@ -58,10 +58,10 @@ pub(crate) fn sign(
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
     let m = match hash_algorithm.name() {
-        ALG_SHA1 => Sha1::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA256 => Sha256::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA384 => Sha384::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA512 => Sha512::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha1 => Sha1::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha256 => Sha256::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha384 => Sha384::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha512 => Sha512::new_with_prefix(message).finalize().to_vec(),
         _ => return Err(Error::NotSupported(None)),
     };
 
@@ -158,10 +158,10 @@ pub(crate) fn verify(
     // Step 3. Let M be the result of performing the digest operation specified by hashAlgorithm
     // using message.
     let m = match hash_algorithm.name() {
-        ALG_SHA1 => Sha1::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA256 => Sha256::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA384 => Sha384::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA512 => Sha512::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha1 => Sha1::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha256 => Sha256::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha384 => Sha384::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha512 => Sha512::new_with_prefix(message).finalize().to_vec(),
         _ => return Err(Error::NotSupported(None)),
     };
 
@@ -249,11 +249,11 @@ pub(crate) fn verify(
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleEcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
@@ -310,7 +310,7 @@ pub(crate) fn generate_key(
     // Step 6. Set the namedCurve attribute of algorithm to equal the namedCurve member of
     // normalizedAlgorithm.
     let algorithm = SubtleEcKeyAlgorithm {
-        name: ALG_ECDSA.to_string(),
+        name: CryptoAlgorithm::Ecdsa,
         named_curve: normalized_algorithm.named_curve.clone(),
     };
 
@@ -321,6 +321,7 @@ pub(crate) fn generate_key(
     // Step 11. Set the [[usages]] internal slot of publicKey to be the usage intersection of
     // usages and [ "verify" ].
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
@@ -331,7 +332,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         public_key_handle,
-        can_gc,
     );
 
     // Step 12. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -341,6 +341,7 @@ pub(crate) fn generate_key(
     // Step 16. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "sign" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -351,7 +352,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        can_gc,
     );
 
     // Step 17. Let result be a new CryptoKeyPair dictionary.
@@ -368,13 +368,13 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleEcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -490,19 +490,19 @@ pub(crate) fn import_key(
             // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDSA.to_string(),
+                name: CryptoAlgorithm::Ecdsa,
                 named_curve: named_curve
                     .expect("named_curve must exist here")
                     .to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
             )
         },
         // If format is "pkcs8":
@@ -628,19 +628,19 @@ pub(crate) fn import_key(
             // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDSA.to_string(),
+                name: CryptoAlgorithm::Ecdsa,
                 named_curve: named_curve
                     .expect("named_curve must exist here")
                     .to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
             )
         },
         // If format is "jwk":
@@ -650,7 +650,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the d field is present and usages contains a value which is not "sign",
             // or, if the d field is not present and usages contains a value which is not "verify"
@@ -863,17 +863,17 @@ pub(crate) fn import_key(
             // Step 2.13. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.14. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDSA.to_string(),
+                name: CryptoAlgorithm::Ecdsa,
                 named_curve,
             };
             CryptoKey::new(
+                cx,
                 global,
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
             )
         },
         // If format is "raw":
@@ -943,20 +943,20 @@ pub(crate) fn import_key(
             // Step 2.6. Set the namedCurve attribute of algorithm to equal the namedCurve member
             // of normalizedAlgorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDSA.to_string(),
+                name: CryptoAlgorithm::Ecdsa,
                 named_curve: normalized_algorithm.named_curve.clone(),
             };
 
             // Step 2.7. Set the [[type]] internal slot of key to "public"
             // Step 2.8. Set the [[algorithm]] internal slot of key to algorithm.
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
             )
         },
         // Otherwise:
@@ -1265,6 +1265,18 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 4. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for ECDSA
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    ec_common::get_public_key(cx, global, key, algorithm, usages)
 }
 
 /// A helper function that expand a prehash to a specified length if the prehash is shorter than

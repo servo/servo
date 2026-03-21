@@ -5,9 +5,7 @@
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -52,11 +50,12 @@ struct SupportsHighlightersReply {
     value: bool,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct InspectorActor {
     name: String,
     highlighter: String,
     page_style: String,
-    walker: String,
+    pub(crate) walker: String,
 }
 
 impl Actor for InspectorActor {
@@ -112,30 +111,20 @@ impl Actor for InspectorActor {
 }
 
 impl InspectorActor {
-    // TODO: Passing the pipeline id here isn't correct. We should query the browsing
-    // context for the active pipeline, otherwise reloading or navigating will break the inspector.
-    pub fn register(
-        registry: &ActorRegistry,
-        pipeline: PipelineId,
-        script_chan: GenericSender<DevtoolScriptControlMsg>,
-    ) -> String {
+    pub fn register(registry: &ActorRegistry, browsing_context: String) -> String {
         let highlighter = HighlighterActor {
             name: registry.new_name::<HighlighterActor>(),
-            script_sender: script_chan.clone(),
-            pipeline,
+            browsing_context: browsing_context.clone(),
         };
 
         let page_style = PageStyleActor {
             name: registry.new_name::<PageStyleActor>(),
-            script_chan: script_chan.clone(),
-            pipeline,
         };
 
         let walker = WalkerActor {
             name: registry.new_name::<WalkerActor>(),
             mutations: AtomicRefCell::new(vec![]),
-            script_chan,
-            pipeline,
+            browsing_context,
         };
 
         let actor = Self {

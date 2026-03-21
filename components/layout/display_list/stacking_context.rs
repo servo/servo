@@ -31,6 +31,7 @@ use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
 use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
+use style::values::specified::TransformStyle;
 use style::values::specified::box_::DisplayOutside;
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
@@ -593,11 +594,13 @@ impl StackingContext {
         // actually need to create a stacking context, just avoid creating one.
         let style = fragment.style();
         let effects = style.get_effects();
+        let transform_style = style.get_used_transform_style();
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
             !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
-            style.clone_clip_path() == ClipPath::None
+            style.clone_clip_path() == ClipPath::None &&
+            transform_style == TransformStyle::Flat
         {
             return false;
         }
@@ -630,7 +633,7 @@ impl StackingContext {
             spatial_id,
             style.get_webrender_primitive_flags(),
             clip_chain_id,
-            style.get_used_transform_style().to_webrender(),
+            transform_style.to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
             &[], // filter_datas

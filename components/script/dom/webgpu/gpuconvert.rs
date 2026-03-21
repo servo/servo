@@ -231,7 +231,7 @@ impl TryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
                 if v.is_empty() || v.len() > 3 {
                     Err(Error::Type(
-                        "GPUExtent3D size must be between 1 and 3 (inclusive)".to_string(),
+                        c"GPUExtent3D size must be between 1 and 3 (inclusive)".to_owned(),
                     ))
                 } else {
                     Ok(wgpu_types::Extent3d {
@@ -461,7 +461,7 @@ impl TryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin3d-shape
                 if v.len() > 3 {
                     Err(Error::Type(
-                        "sequence is too long for GPUOrigin3D".to_string(),
+                        c"sequence is too long for GPUOrigin3D".to_owned(),
                     ))
                 } else {
                     Ok(wgpu_types::Origin3d {
@@ -619,7 +619,7 @@ impl TryConvert<wgpu_types::Color> for &GPUColor {
             GPUColor::DoubleSequence(s) => {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpucolor-shape
                 if s.len() != 4 {
-                    Err(Error::Type("GPUColor sequence must be len 4".to_string()))
+                    Err(Error::Type(c"GPUColor sequence must be len 4".to_owned()))
                 } else {
                     Ok(wgpu_types::Color {
                         r: *s[0],

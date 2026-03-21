@@ -10,8 +10,10 @@
         color: green;
       }
       @mixin --m1() {
-        .cls {
-          color: red;
+        @result {
+          .cls {
+            color: red;
+          }
         }
       }
       @apply --m1;

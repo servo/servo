@@ -1,0 +1,456 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?preventDefault=no">
+<meta name="variant" content="?preventDefault=yes">
+<title>selectstart event</title>
+<link rel="help" href="https://w3c.github.io/selection-api/#selectstart-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const preventDefault = searchParams.get("preventDefault") == "yes";
+
+addEventListener("load", () => {
+  const shiftKey = "\uE008";
+  const arrowLeftKey = "\uE012";
+  const arrowUpKey = "\uE013";
+  const arrowRightKey = "\uE014";
+  const arrowDownKey = "\uE015";
+  const pageUpKey = "\uE00E";
+  const pageDownKey = "\uE00F";
+  const endKey = "\uE010";
+  const homeKey = "\uE011";
+  const metaKey = "\uE03d";
+  const controlKey = "\uE009";
+  const accelKey = navigator.platform.includes("Mac") ? metaKey : controlKey;
+  const editingHost = document.querySelector("div[contenteditable]");
+  const Text_abc = editingHost.firstChild;
+  const Text_def = editingHost.firstChild.nextSibling.nextSibling;
+  const Text_789 = editingHost.lastChild.previousSibling;
+
+  function getRangeDescription(range) {
+    if (range === null) {
+      return "null";
+    }
+    if (range === undefined) {
+      return "undefined";
+    }
+    function getNodeDescription(node) {
+      if (!node) {
+        return "null";
+      }
+      switch (node.nodeType) {
+        case Node.TEXT_NODE:
+        case Node.COMMENT_NODE:
+        case Node.CDATA_SECTION_NODE:
+          return `${node.nodeName} "${node.data.replaceAll("\n", "\\\\n")}"`;
+        case Node.ELEMENT_NODE:
+          return `<${node.nodeName.toLowerCase()}${
+              node.hasAttribute("id") ? ` id="${node.getAttribute("id")}"` : ""
+            }${
+              node.hasAttribute("class") ? ` class="${node.getAttribute("class")}"` : ""
+            }${
+              node.hasAttribute("contenteditable")
+                ? ` contenteditable="${node.getAttribute("contenteditable")}"`
+                : ""
+            }${
+              node.inert ? ` inert` : ""
+            }${
+              node.hidden ? ` hidden` : ""
+            }${
+              node.readonly ? ` readonly` : ""
+            }${
+              node.disabled ? ` disabled` : ""
+            }>`;
+        default:
+          return `${node.nodeName}`;
+      }
+    }
+    return range.startContainer == range.endContainer &&
+      range.startOffset == range.endOffset
+      ? `(${getNodeDescription(range.startContainer)}, ${range.startOffset})(collapsed)`
+      : `(${getNodeDescription(range.startContainer)}, ${
+          range.startOffset
+        }) - (${getNodeDescription(range.endContainer)}, ${range.endOffset})`;
+  }
+
+  let selectstartEvent = null;
+  document.addEventListener("selectstart", event => {
+    if (preventDefault) {
+      event.preventDefault();
+    }
+    selectstartEvent = event;
+  });
+
+  function assert_selectstart(testName, originalRange) {
+    if (!originalRange.includes("(collapsed)")) {
+      assert_equals(
+        selectstartEvent,
+        null,
+        `${testName}: "selectstart" shouldn't be fired because selection was not collapsed`
+      );
+      return;
+    }
+    if (preventDefault) {
+      assert_equals(
+        getRangeDescription(getSelection().rangeCount ? getSelection().getRangeAt(0) : null),
+        originalRange,
+        `${testName}: selection range should not be changed if preventDefault() of "selectstart" event is called`
+      );
+    } else {
+      if (getSelection().isCollapsed) {
+        assert_equals(
+          selectstartEvent,
+          null,
+          `${testName}: "selectstart" shouldn't be fired because selection is still collapsed`
+        );
+      } else {
+        assert_not_equals(
+          selectstartEvent,
+          null,
+          `${testName}: "selectstart" should be fired because selection is extended`
+        );
+      }
+    }
+  }
+
+  // character move
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 0);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowLeftKey)
+     .keyUp(arrowLeftKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowLeft when <div contenteditable>[]abc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowLeftKey)
+     .keyUp(arrowLeftKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowLeft when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowRightKey)
+     .keyUp(arrowRightKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowRight when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 3);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowRightKey)
+     .keyUp(arrowRightKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowRight when 789[]<br></div>`);
+
+  // line move
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 0);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowUpKey)
+     .keyUp(arrowUpKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowUp when <div contenteditable>[]abc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowUpKey)
+     .keyUp(arrowUpKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowUp when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowDownKey)
+     .keyUp(arrowDownKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowDown when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 3);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowDownKey)
+     .keyUp(arrowDownKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowDown when 789[]<br></div>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 2);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowDownKey)
+     .keyUp(arrowDownKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowDown when 78[]9<br></div>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 2);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(arrowUpKey)
+     .keyUp(arrowUpKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+ArrowUp when 78[]9<br></div>`);
+
+  // page move
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 0);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(pageUpKey)
+     .keyUp(pageUpKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+PageUp when <div contenteditable>[]abc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(pageUpKey)
+     .keyUp(pageUpKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+PageUp when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_abc, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(pageDownKey)
+     .keyUp(pageDownKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+PageDown when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 3);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(pageDownKey)
+     .keyUp(pageDownKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+PageDown when 789[]<br></div>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 2);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(pageDownKey)
+     .keyUp(pageDownKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+PageDown when 78[]9<br></div>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 2);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(pageUpKey)
+     .keyUp(pageUpKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+PageUp when 78[]9<br></div>`);
+
+  // Home/End
+  promise_test(async t => {
+    getSelection().collapse(editingHost, 0);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(homeKey)
+     .keyUp(homeKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+Home when <div contenteditable>[]abc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(editingHost, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(homeKey)
+     .keyUp(homeKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+Home when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(editingHost, 1);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(endKey)
+     .keyUp(endKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+End when <div contenteditable>a[]bc<br>`);
+
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 3);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(shiftKey)
+     .keyDown(endKey)
+     .keyUp(endKey)
+     .keyUp(shiftKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Shift+End when 789[]<br></div>`);
+
+  // Select All
+  promise_test(async t => {
+    getSelection().collapse(Text_789, 3);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(accelKey)
+     .keyDown("a")
+     .keyUp("a")
+     .keyUp(accelKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Select All when 789[]<br></div>`);
+
+  // not collapsed
+  for (const data of [
+    { modifierName: "Shift", keyName: "ArrowLeft",  modifier: shiftKey, key: arrowLeftKey },
+    { modifierName: "Shift", keyName: "ArrowRight", modifier: shiftKey, key: arrowRightKey },
+    { modifierName: "Shift", keyName: "ArrowUp",    modifier: shiftKey, key: arrowUpKey },
+    { modifierName: "Shift", keyName: "ArrowDown",  modifier: shiftKey, key: arrowDownKey },
+    { modifierName: "Shift", keyName: "PageDown",   modifier: shiftKey, key: pageDownKey },
+    { modifierName: "Shift", keyName: "PageUp",     modifier: shiftKey, key: pageUpKey },
+    { modifierName: "Shift", keyName: "Home",       modifier: shiftKey, key: homeKey },
+    { modifierName: "Shift", keyName: "End",        modifier: shiftKey, key: endKey },
+    ]) {
+    promise_test(async t => {
+      getSelection().setBaseAndExtent(Text_def, 1, Text_def, 2);
+      const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+      selectstartEvent = null;
+      await new test_driver.Actions()
+      .keyDown(data.modifier)
+      .keyDown(data.key)
+      .keyUp(data.key)
+      .keyUp(data.modifier)
+      .send();
+      assert_selectstart(t.name, originalRange);
+    }, `${data.modifierName}+${data.keyName} when d[e]f<br>`);
+  }
+
+  promise_test(async t => {
+    getSelection().setBaseAndExtent(Text_def, 1, Text_def, 2);
+    const originalRange = getRangeDescription(getSelection().getRangeAt(0));
+    selectstartEvent = null;
+    await new test_driver.Actions()
+     .keyDown(accelKey)
+     .keyDown("a")
+     .keyUp("a")
+     .keyUp(accelKey)
+     .send();
+    assert_selectstart(t.name, originalRange);
+  }, `Select All when d[e]f<br>`);
+}, {once: true});
+</script>
+</head>
+<body>
+<div contenteditable style="height:5em">abc<br
+>def<br
+>ghi<br
+>jkl<br
+>mno<br
+>pqr<br
+>stu<br
+>vwx<br
+>yz0<br
+>123<br
+>456<br
+>789<br></div>
+</body>
+</html>

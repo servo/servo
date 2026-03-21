@@ -12,16 +12,34 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUCommandBuffer {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    command_buffer: WebGPUCommandBuffer,
+}
+
+impl Drop for DroppableGPUCommandBuffer {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropCommandBuffer(self.command_buffer.0))
+        {
+            warn!(
+                "Failed to send DropCommandBuffer({:?}) ({})",
+                self.command_buffer.0, e
+            );
+        }
+    }
+}
 
 #[dom_struct]
 pub(crate) struct GPUCommandBuffer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    command_buffer: WebGPUCommandBuffer,
+    droppable: DroppableGPUCommandBuffer,
 }
 
 impl GPUCommandBuffer {
@@ -31,10 +49,12 @@ impl GPUCommandBuffer {
         label: USVString,
     ) -> Self {
         Self {
-            channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            command_buffer,
+            droppable: DroppableGPUCommandBuffer {
+                channel,
+                command_buffer,
+            },
         }
     }
 
@@ -57,24 +77,9 @@ impl GPUCommandBuffer {
     }
 }
 
-impl Drop for GPUCommandBuffer {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropCommandBuffer(self.command_buffer.0))
-        {
-            warn!(
-                "Failed to send DropCommandBuffer({:?}) ({})",
-                self.command_buffer.0, e
-            );
-        }
-    }
-}
-
 impl GPUCommandBuffer {
     pub(crate) fn id(&self) -> WebGPUCommandBuffer {
-        self.command_buffer
+        self.droppable.command_buffer
     }
 }
 

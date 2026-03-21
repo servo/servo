@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      var container = document.querySelector("#container");
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+      trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+      });
+
+      test((t) => {
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        assert_throws_js(TypeError, () => d.streamHTMLUnsafe());
+      }, "Streaming with trusted types and a default policy without createParserOptions throws.");
+    </script>
+  </body>
+</html>

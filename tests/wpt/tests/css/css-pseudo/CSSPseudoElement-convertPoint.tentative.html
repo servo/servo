@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>CSS Pseudo Test: CSSPseudoElement GeometryUtils - coordinate conversion</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#CSSPseudoElement-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#extension-to-the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    position: absolute;
+    left: 100px;
+    top: 50px;
+    width: 300px;
+    height: 200px;
+  }
+
+  #target {
+    position: absolute;
+    left: 50px;
+    top: 30px;
+    width: 100px;
+    height: 80px;
+  }
+
+  #target::before {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 10px;
+    top: 5px;
+    width: 30px;
+    height: 20px;
+  }
+
+  #reference {
+    position: absolute;
+    left: 200px;
+    top: 100px;
+    width: 50px;
+    height: 50px;
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+  <div id="reference"></div>
+</div>
+<script>
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    assert_true(typeof pseudo.convertPointFromNode === 'function', 'convertPointFromNode should be a function');
+    assert_true(typeof pseudo.convertQuadFromNode === 'function', 'convertQuadFromNode should be a function');
+    assert_true(typeof pseudo.convertRectFromNode === 'function', 'convertRectFromNode should be a function');
+  }, 'CSSPseudoElement should have coordinate conversion methods');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let point = pseudo.convertPointFromNode({ x: 0, y: 0 }, target);
+    assert_true(point instanceof DOMPoint, 'should return a DOMPoint');
+  }, 'convertPointFromNode returns DOMPoint');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let rect = new DOMRectReadOnly(0, 0, 10, 10);
+    let quad = pseudo.convertRectFromNode(rect, target);
+    assert_true(quad instanceof DOMQuad, 'should return a DOMQuad');
+  }, 'convertRectFromNode returns DOMQuad');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    let inputQuad = {
+      p1: { x: 0, y: 0 },
+      p2: { x: 10, y: 0 },
+      p3: { x: 10, y: 10 },
+      p4: { x: 0, y: 10 }
+    };
+    let quad = pseudo.convertQuadFromNode(inputQuad, target);
+    assert_true(quad instanceof DOMQuad, 'should return a DOMQuad');
+  }, 'convertQuadFromNode returns DOMQuad');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    // Convert origin of target to pseudo-element coordinate space
+    let point = pseudo.convertPointFromNode({ x: 0, y: 0 }, target);
+    // The ::before is at (10, 5) relative to target
+    // So target's (0,0) in ::before's space should be (-10, -5)
+    assert_approx_equals(point.x, -10, 1, 'x coordinate');
+    assert_approx_equals(point.y, -5, 1, 'y coordinate');
+  }, 'convertPointFromNode converts coordinates correctly');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    // Convert a point from document coordinates
+    let point = pseudo.convertPointFromNode({ x: 0, y: 0 }, document);
+    assert_true(point instanceof DOMPoint, 'should return a DOMPoint from document');
+  }, 'convertPointFromNode works with Document as source');
+
+  test(() => {
+    let pseudo = target.pseudo("::before");
+    // Convert from another element
+    let point = pseudo.convertPointFromNode({ x: 0, y: 0 }, reference);
+    assert_true(point instanceof DOMPoint, 'should return a DOMPoint from element');
+  }, 'convertPointFromNode works with Element as source');
+</script>

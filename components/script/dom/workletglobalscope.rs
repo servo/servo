@@ -12,7 +12,6 @@ use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
-use js::jsval::UndefinedValue;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
@@ -34,7 +33,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, IntroductionType, JSContext};
+use crate::script_runtime::{IntroductionType, JSContext};
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -72,6 +71,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                cx,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
                 webview_id,
@@ -80,6 +80,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                cx,
             )),
         };
 
@@ -138,16 +139,18 @@ impl WorkletGlobalScope {
     pub(crate) fn evaluate_js(
         &self,
         script: Cow<'_, str>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Result<(), JavaScriptEvaluationError> {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+
         debug!("Evaluating Dom in a worklet.");
-        rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global(
+            cx,
             script,
             "",
             Some(IntroductionType::WORKLET),
-            rval.handle_mut(),
-            can_gc,
+            None,
         )
     }
 

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Error - trailing decimal point</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Test: "23." is an error - path should render up to this point -->
+  <path id="test1" d="M 10,10 L 50,50 L 23.,100" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Reference: path should only render M 10,10 L 50,50 -->
+  <path id="ref1" d="M 10,10 L 50,50" fill="none" stroke="red" stroke-width="1" stroke-dasharray="2,2"/>
+</svg>
+
+<script>
+test(function() {
+  const testPath = document.getElementById('test1');
+  const refPath = document.getElementById('ref1');
+
+  // Path with error should render same as path without the error command
+  const testLength = testPath.getTotalLength();
+  const refLength = refPath.getTotalLength();
+
+  assert_approx_equals(testLength, refLength, 0.1,
+    "Path with trailing decimal should render only up to the error");
+}, "Error handling: Path renders up to (not including) trailing decimal error");
+
+test(function() {
+  const testPath = document.getElementById('test1');
+  const endPoint = testPath.getPointAtLength(testPath.getTotalLength());
+
+  // Should stop at L 50,50, not continue to the invalid L 23.,100
+  assert_approx_equals(endPoint.x, 50, 0.1, "Path should end at x=50");
+  assert_approx_equals(endPoint.y, 50, 0.1, "Path should end at y=50");
+}, "Error handling: Path ends at last valid segment before error");
+
+test(function() {
+  // Multiple trailing decimals
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,0 L 10,10 L 20.,30.');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  // Should render up to L 10,10
+  assert_approx_equals(endPoint.x, 10, 0.1, "Should stop before first trailing decimal");
+  assert_approx_equals(endPoint.y, 10, 0.1, "Should stop before first trailing decimal");
+}, "Error handling: First trailing decimal stops rendering");
+
+test(function() {
+  // Trailing decimal in middle of coordinate pair
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,0 L 15. 20');
+  svg.appendChild(path);
+
+  const totalLength = path.getTotalLength();
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 0,0');
+  svg.appendChild(path);
+
+  // Should only render M 0,0, not the L command
+  assert_approx_equals(totalLength, 0, 0.1,
+    "Path with trailing decimal in first coordinate should not render the L command");
+}, "Error handling: Trailing decimal in first coordinate of pair");
+
+test(function() {
+  // Valid path followed by error - should render valid part
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,100 L 150,100 L 150,150 L 100,150 Z M 200.,200.');
+  svg.appendChild(path);
+
+  // Should render the complete square (first subpath) before the error
+  const length = path.getTotalLength();
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 100,100 L 150,100 L 150,150 L 100,150 Z');
+  svg.appendChild(refPath);
+  const refLength = refPath.getTotalLength();
+
+  assert_approx_equals(length, refLength, 0.1,
+    "Valid closed path before error should render completely");
+}, "Error handling: Complete valid subpath renders before trailing decimal error");
+</script>
+</body>
+</html>

@@ -62,6 +62,21 @@ impl CommandEvent {
         }
         event
     }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        window: &Window,
+        type_: Atom,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+        source: Option<DomRoot<Element>>,
+        command: DOMString,
+        can_gc: CanGc,
+    ) -> DomRoot<CommandEvent> {
+        Self::new_with_proto(
+            window, None, type_, bubbles, cancelable, source, command, can_gc,
+        )
+    }
 }
 
 impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {

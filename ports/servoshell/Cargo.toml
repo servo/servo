@@ -1,7 +1,7 @@
 [package]
 name = "servoshell"
 build = "build.rs"
-version = "0.0.5"
+version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
@@ -14,7 +14,7 @@ path = "lib.rs"
 bench = false
 
 [[bin]]
-name = "servo"
+name = "servoshell"
 path = "main.rs"
 bench = false
 
@@ -33,35 +33,35 @@ cc = "1.2"
 winresource = "0.1"
 
 [package.metadata.winresource]
-FileDescription = "Servo"
+FileDescription = "ServoShell"
 LegalCopyright = "© The Servo Project Developers"
-OriginalFilename = "servo.exe"
-ProductName = "Servo"
+OriginalFilename = "servoshell.exe"
+ProductName = "ServoShell"
 
 [features]
-default = ["gamepad", "libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
-crown = ["libservo/crown"]
-debugmozjs = ["libservo/debugmozjs"]
-gamepad = ["libservo/gamepad"]
-jitspew = ["libservo/jitspew"]
-js_backtrace = ["libservo/js_backtrace"]
-js_jit = ["libservo/js_jit"]
+default = ["gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+crown = ["servo/crown"]
+debugmozjs = ["servo/debugmozjs"]
+gamepad = ["servo/gamepad"]
+jitspew = ["servo/jitspew"]
+js_backtrace = ["servo/js_backtrace"]
+js_jit = ["servo/js_jit"]
 max_log_level = ["log/release_max_level_info"]
-media-gstreamer = ["libservo/media-gstreamer"]
-native-bluetooth = ["libservo/native-bluetooth"]
-profilemozjs = ["libservo/profilemozjs"]
-refcell_backtrace = ["libservo/refcell_backtrace"]
-tracing = ["dep:tracing", "dep:tracing-subscriber", "libservo/tracing"]
+media-gstreamer = ["servo/media-gstreamer"]
+native-bluetooth = ["servo/native-bluetooth"]
+profilemozjs = ["servo/profilemozjs"]
+refcell_backtrace = ["servo/refcell_backtrace"]
+tracing = ["dep:tracing", "dep:tracing-subscriber", "servo/tracing"]
 tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
-vello = ["libservo/vello"]
-webgl_backtrace = ["libservo/webgl_backtrace"]
-webgpu = ["libservo/webgpu"]
-webxr = ["libservo/webxr"]
+vello = ["servo/vello"]
+webgl_backtrace = ["servo/webgl_backtrace"]
+webgpu = ["servo/webgpu"]
+webxr = ["servo/webxr"]
 
 [dependencies]
 accesskit = { workspace = true }
-bpaf = { version = "0.9.23", features = ["derive"] }
+bpaf = { version = "0.9.24", features = ["derive"] }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
@@ -70,7 +70,7 @@ hitrace = { workspace = true, optional = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
+servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -80,7 +80,7 @@ tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 url = { workspace = true }
-webdriver_server = { path = "../../components/webdriver_server" }
+webdriver_server = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
@@ -97,7 +97,7 @@ hilog = "0.2.2"
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.1.6"
 napi-ohos = "1.1.6"
-ohos-abilitykit-sys = { version = "0.1.4", features = ["api-14"] }
+ohos-abilitykit-sys = { version = "0.1.5", features = ["api-14"] }
 ohos-deviceinfo = "0.1.0"
 ohos-ime = "0.4.2"
 ohos-ime-sys = "0.2.3"
@@ -122,7 +122,7 @@ glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator and servo_allocator/allocation-tracking
-servo_allocator = { path = "../../components/allocator" }
+servo_allocator = { workspace = true }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }
 
@@ -130,7 +130,7 @@ winit = { workspace = true }
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-libservo = { path = "../../components/servo", features = ["no-wgl"] }
+servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]

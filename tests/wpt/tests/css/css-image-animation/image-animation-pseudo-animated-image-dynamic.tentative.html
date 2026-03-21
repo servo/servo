@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>The :animated-image pseudo-class updates dynamically when src changes</title>
+<link rel="author" title="Seokho Song" href="seokho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  img {
+    width: 20px;
+    height: 20px;
+  }
+
+  img {
+    outline: 5px solid red;
+  }
+
+  img:animated-image {
+    outline: 5px solid green;
+  }
+</style>
+
+<img id="test-img">
+
+<script>
+  const animatedGif = "../../images/anim-gr.gif";
+  const staticPng = "../../images/green.png";
+  const animatedPng = "../../images/anim-gr.png";
+
+  const GREEN = "rgb(0, 128, 0)"
+  const RED = "rgb(255, 0, 0)"
+
+  const img = document.getElementById("test-img");
+
+  function waitForLoad(img) {
+    return new Promise((resolve) => {
+      if (img.complete && img.naturalWidth > 0) {
+        resolve();
+        return;
+      }
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  }
+
+  function getOutlineColor(element) {
+    return getComputedStyle(element).outlineColor;
+  }
+
+  promise_test(async t => {
+    img.src = animatedGif;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), GREEN);
+
+    img.src = staticPng;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), RED);
+  }, "Changing from animated to non-animated image updates :animated-image");
+
+  promise_test(async t => {
+    img.src = staticPng;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), RED);
+
+    img.src = animatedGif;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), GREEN);
+  }, "Changing from non-animated to animated image updates :animated-image");
+
+  promise_test(async t => {
+    img.src = animatedGif;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), GREEN);
+
+    img.src = "";
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), RED);
+  }, "Setting src to empty string removes :animated-image match");
+
+  promise_test(async t => {
+    img.src = "";
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), RED)
+
+    img.src = animatedGif;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), GREEN);
+  }, "Setting src from empty to animated image applies :animated-image");
+
+  promise_test(async t => {
+    img.src = animatedPng;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), GREEN);
+
+    img.src = animatedGif;
+    await waitForLoad(img);
+    assert_equals(getOutlineColor(img), GREEN);
+  }, "Changing between different animated image types maintains :animated-image");
+</script>

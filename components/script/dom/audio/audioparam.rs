@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::sync::mpsc;
 
 use dom_struct::dom_struct;
+use script_bindings::cformat;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
@@ -183,7 +184,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         start_time: Finite<f64>,
     ) -> Fallible<DomRoot<AudioParam>> {
         if *start_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "start time {} should not be negative",
                 *start_time
             )));
@@ -202,7 +203,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         end_time: Finite<f64>,
     ) -> Fallible<DomRoot<AudioParam>> {
         if *end_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "end time {} should not be negative",
                 *end_time
             )));
@@ -221,13 +222,13 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         end_time: Finite<f64>,
     ) -> Fallible<DomRoot<AudioParam>> {
         if *end_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "end time {} should not be negative",
                 *end_time
             )));
         }
         if *value == 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "target value {} should not be 0",
                 *value
             )));
@@ -247,13 +248,13 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         time_constant: Finite<f32>,
     ) -> Fallible<DomRoot<AudioParam>> {
         if *start_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "start time {} should not be negative",
                 *start_time
             )));
         }
         if *time_constant < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "time constant {} should not be negative",
                 *time_constant
             )));
@@ -273,7 +274,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         end_time: Finite<f64>,
     ) -> Fallible<DomRoot<AudioParam>> {
         if *start_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "start time {} should not be negative",
                 *start_time
             )));
@@ -283,7 +284,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
         }
 
         if *end_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "end time {} should not be negative",
                 *end_time
             )));
@@ -302,7 +303,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
     /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues>
     fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> Fallible<DomRoot<AudioParam>> {
         if *cancel_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "cancel time {} should not be negative",
                 *cancel_time
             )));
@@ -317,7 +318,7 @@ impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
     /// <https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime>
     fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> Fallible<DomRoot<AudioParam>> {
         if *cancel_time < 0. {
-            return Err(Error::Range(format!(
+            return Err(Error::Range(cformat!(
                 "cancel time {} should not be negative",
                 *cancel_time
             )));

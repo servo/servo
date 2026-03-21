@@ -55,7 +55,7 @@ use net_traits::request::{
     is_cors_safelisted_request_header,
 };
 use net_traits::response::{
-    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType, TerminationReason,
+    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
 };
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
@@ -527,7 +527,7 @@ pub fn send_security_info_to_devtools(
 
     if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
         context.devtools_chan.clone(),
-        meta.tls_security_info.clone(),
+        meta.tls_security_info,
         request.target_webview_id,
     ) {
         let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {
@@ -553,7 +553,7 @@ pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchCont
     ) {
         // Build the partial DevtoolsHttpRequest
         let devtools_request = DevtoolsHttpRequest {
-            url: request.current_url().clone(),
+            url: request.current_url(),
             method: request.method.clone(),
             headers: request.headers.clone(),
             body: None,
@@ -2288,7 +2288,6 @@ async fn http_network_fetch(
                     debug!("Content decompression error for {:?}", url2);
                     let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
                     let mut body = res_body2.lock();
-                    response.termination_reason = Some(TerminationReason::Fatal);
 
                     *body = ResponseBody::Done(vec![]);
                 }

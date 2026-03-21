@@ -12,14 +12,13 @@ use crate::dom::bindings::codegen::Bindings::BluetoothAdvertisingEventBinding::{
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothadvertisingevent
 #[dom_struct]
@@ -53,6 +52,7 @@ impl BluetoothAdvertisingEvent {
 
     #[expect(clippy::too_many_arguments)]
     fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
@@ -63,15 +63,14 @@ impl BluetoothAdvertisingEvent {
         appearance: Option<u16>,
         txPower: Option<i8>,
         rssi: Option<i8>,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothAdvertisingEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let ev = reflect_dom_object_with_proto_and_cx(
             Box::new(BluetoothAdvertisingEvent::new_inherited(
                 device, name, appearance, txPower, rssi,
             )),
             global,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = ev.upcast::<Event>();
@@ -85,9 +84,9 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-bluetoothadvertisingevent
     #[expect(non_snake_case)]
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &BluetoothAdvertisingEventInit,
     ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
@@ -98,6 +97,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(BluetoothAdvertisingEvent::new(
+            cx,
             window.as_global_scope(),
             proto,
             Atom::from(type_),
@@ -108,7 +108,6 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
             appearance,
             txPower,
             rssi,
-            can_gc,
         ))
     }
 

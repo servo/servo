@@ -28,11 +28,11 @@ impl<'dom> TShadowRoot for ServoShadowRoot<'dom> {
     type ConcreteNode = ServoLayoutNode<'dom>;
 
     fn as_node(&self) -> Self::ConcreteNode {
-        ServoLayoutNode::from_layout_js(self.shadow_root.upcast())
+        ServoLayoutNode::from_layout_dom(self.shadow_root.upcast())
     }
 
     fn host(&self) -> ServoLayoutElement<'dom> {
-        ServoLayoutElement::from_layout_js(self.shadow_root.get_host_for_layout())
+        ServoLayoutElement::from_layout_dom(self.shadow_root.get_host_for_layout())
     }
 
     fn style_data<'a>(&self) -> Option<&'a CascadeData>
@@ -44,7 +44,7 @@ impl<'dom> TShadowRoot for ServoShadowRoot<'dom> {
 }
 
 impl<'dom> ServoShadowRoot<'dom> {
-    pub(super) fn from_layout_js(shadow_root: LayoutDom<'dom, ShadowRoot>) -> Self {
+    pub(super) fn from_layout_dom(shadow_root: LayoutDom<'dom, ShadowRoot>) -> Self {
         ServoShadowRoot { shadow_root }
     }
 
@@ -59,10 +59,7 @@ impl<'dom> ServoShadowRoot<'dom> {
         stylist: &mut Stylist,
         guard: &StyleSharedRwLockReadGuard,
     ) {
-        unsafe {
-            self.shadow_root
-                .flush_stylesheets::<ServoLayoutElement>(stylist, guard)
-        }
+        unsafe { self.shadow_root.flush_stylesheets(stylist, guard) }
     }
 
     pub fn is_ua_widget(&self) -> bool {

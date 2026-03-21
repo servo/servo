@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, LoadStatus};
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
@@ -119,9 +120,9 @@ impl VirtualMethods for HTMLBodyElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         if !context.tree_is_in_a_document_tree {
@@ -150,7 +151,12 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(..)) if name.starts_with("on") => {
                 let window = self.owner_window();
@@ -200,7 +206,7 @@ impl VirtualMethods for HTMLBodyElement {
         if do_super_mutate {
             self.super_type()
                 .unwrap()
-                .attribute_mutated(attr, mutation, can_gc);
+                .attribute_mutated(cx, attr, mutation);
         }
     }
 }

@@ -26,7 +26,7 @@ use crate::replaced::ReplacedContents;
 use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize,
 };
-use crate::style_ext::{AspectRatio, DisplayInside, LayoutStyle};
+use crate::style_ext::{AspectRatio, Display, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{
@@ -41,6 +41,9 @@ pub(crate) struct IndependentFormattingContext {
     // Private so that code outside of this module cannot match variants.
     // It should go through methods instead.
     contents: IndependentFormattingContextContents,
+    /// Data that was originally propagated down to this [`IndependentFormattingContext`]
+    /// during creation. This is used during incremental layout.
+    pub propagated_data: PropagatedBoxTreeData,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -75,11 +78,45 @@ impl Baselines {
 }
 
 impl IndependentFormattingContext {
-    pub(crate) fn new(base: LayoutBoxBase, contents: IndependentFormattingContextContents) -> Self {
-        Self { base, contents }
+    pub(crate) fn new(
+        base: LayoutBoxBase,
+        contents: IndependentFormattingContextContents,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> Self {
+        Self {
+            base,
+            contents,
+            propagated_data,
+        }
     }
 
-    pub fn construct(
+    pub(crate) fn rebuild(
+        &mut self,
+        layout_context: &LayoutContext,
+        node_and_style_info: &NodeAndStyleInfo,
+    ) {
+        let contents = Contents::for_element(node_and_style_info.node, layout_context);
+        let display = match Display::from(node_and_style_info.style.get_box().display) {
+            Display::None | Display::Contents => {
+                unreachable!("Should never try to rebuild IndependentFormattingContext with no box")
+            },
+            Display::GeneratingBox(display) => display.used_value_for_contents(&contents),
+        };
+        self.contents = Self::construct_contents(
+            layout_context,
+            node_and_style_info,
+            &mut self.base.base_fragment_info,
+            display.display_inside(),
+            contents,
+            self.propagated_data,
+        );
+
+        self.base.clear_fragments_and_fragment_cache();
+        *self.base.cached_inline_content_size.borrow_mut() = None;
+        self.base.repair_style(&node_and_style_info.style);
+    }
+
+    pub(crate) fn construct(
         context: &LayoutContext,
         node_and_style_info: &NodeAndStyleInfo,
         display_inside: DisplayInside,
@@ -87,7 +124,29 @@ impl IndependentFormattingContext {
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
+        let contents = Self::construct_contents(
+            context,
+            node_and_style_info,
+            &mut base_fragment_info,
+            display_inside,
+            contents,
+            propagated_data,
+        );
+        Self {
+            base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+            contents,
+            propagated_data,
+        }
+    }
 
+    fn construct_contents(
+        context: &LayoutContext,
+        node_and_style_info: &NodeAndStyleInfo,
+        base_fragment_info: &mut BaseFragmentInfo,
+        display_inside: DisplayInside,
+        contents: Contents,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> IndependentFormattingContextContents {
         let non_replaced_contents = match contents {
             Contents::Replaced(contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
@@ -116,12 +175,10 @@ impl IndependentFormattingContext {
                         ArcRefCell::new(IndependentFormattingContext::new(
                             widget_base,
                             widget_contents,
+                            propagated_data,
                         ))
                     });
-                return Self {
-                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
-                    contents: IndependentFormattingContextContents::Replaced(contents, widget),
-                };
+                return IndependentFormattingContextContents::Replaced(contents, widget);
             },
             Contents::Widget(non_replaced_contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_WIDGET);
@@ -129,7 +186,8 @@ impl IndependentFormattingContext {
             },
             Contents::NonReplaced(non_replaced_contents) => non_replaced_contents,
         };
-        let contents = match display_inside {
+
+        match display_inside {
             DisplayInside::Flow { is_list_item } | DisplayInside::FlowRoot { is_list_item } => {
                 IndependentFormattingContextContents::Flow(BlockFormattingContext::construct(
                     context,
@@ -173,10 +231,6 @@ impl IndependentFormattingContext {
                     propagated_data,
                 ))
             },
-        };
-        Self {
-            base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
-            contents,
         }
     }
 
@@ -220,8 +274,14 @@ impl IndependentFormattingContext {
                 // For replaced elements with no ratio, the returned value doesn't matter.
                 let ratio = preferred_aspect_ratio?;
                 let writing_mode = self.style().writing_mode;
-                let inline_size = contents.fallback_inline_size(writing_mode);
-                let block_size = ratio.compute_dependent_size(Direction::Block, inline_size);
+                let natural_sizes = contents.logical_natural_sizes(writing_mode);
+                let block_size = match (natural_sizes.block, natural_sizes.inline) {
+                    (Some(block_size), None) => block_size,
+                    _ => {
+                        let inline_size = contents.fallback_inline_size(writing_mode);
+                        ratio.compute_dependent_size(Direction::Block, inline_size)
+                    },
+                };
                 Some(block_size.into())
             },
             _ => None,
@@ -266,7 +326,7 @@ impl IndependentFormattingContext {
                 }
             },
             IndependentFormattingContextContents::Flow(block_formatting_context) => {
-                block_formatting_context.repair_style(node, new_style);
+                block_formatting_context.repair_style(context, node, new_style);
             },
             IndependentFormattingContextContents::Flex(flex_container) => {
                 flex_container.repair_style(new_style)

@@ -129,7 +129,7 @@ macro_rules! make_form_action_getter(
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let doc = $crate::dom::node::NodeTraits::owner_document(self);
-            let attr = element.get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
+            let attr = element.get_attribute(&html5ever::local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
                 Some(ref value) if !value.is_empty() => &***value,
@@ -166,7 +166,8 @@ macro_rules! make_enumerated_getter(
         $htmlname:tt,
         $($choices:literal)|+,
         missing => $missing:literal,
-        invalid => $invalid:literal
+        invalid => $invalid:literal,
+        empty => $empty:literal
     ) => (
         fn $attr(&self) -> DOMString {
             use $crate::dom::bindings::inheritance::Castable;
@@ -174,7 +175,7 @@ macro_rules! make_enumerated_getter(
             use $crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 
             let attr_or_none = self.upcast::<Element>()
-                .get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
+                .get_attribute(&html5ever::local_name!($htmlname));
             match attr_or_none  {
                 // Step 1. If the attribute is not specified:
                 None => {
@@ -193,9 +194,15 @@ macro_rules! make_enumerated_getter(
                         }
                     )+
 
-                    // Step 3. If the attribute has an invalid value default state defined, then return that invalid
+                    // Step 3. If the attribute has an empty value default state defined and the attribute's value
+                    // is the empty string, then return that empty value default state.
+                    if value.is_empty() {
+                        return DOMString::from($empty)
+                    }
+
+                    // Step 4. If the attribute has an invalid value default state defined, then return that invalid
                     // value default state.
-                    // Step 4. Return no state.
+                    // Step 5. Return no state.
                     return DOMString::from($invalid);
                 }
             }
@@ -210,7 +217,8 @@ macro_rules! make_enumerated_getter(
             $htmlname,
             $($choices)|+,
             missing => "",
-            invalid => ""
+            invalid => "",
+            empty => ""
         );
     );
     ($attr:ident,
@@ -223,7 +231,8 @@ macro_rules! make_enumerated_getter(
             $htmlname,
             $($choices)|+,
             missing => "",
-            invalid => $invalid
+            invalid => $invalid,
+            empty => $invalid
         );
     );
     ($attr:ident,
@@ -236,7 +245,23 @@ macro_rules! make_enumerated_getter(
             $htmlname,
             $($choices)|+,
             missing => $missing,
-            invalid => ""
+            invalid => "",
+            empty => ""
+        );
+    );
+    ($attr:ident,
+        $htmlname:tt,
+        $($choices:literal)|+,
+        missing => $missing:literal,
+        invalid => $invalid:literal
+    ) => (
+        make_enumerated_getter!(
+            $attr,
+            $htmlname,
+            $($choices)|+,
+            missing => $missing,
+            invalid => $invalid,
+            empty => $invalid
         );
     );
 );
@@ -402,7 +427,7 @@ macro_rules! make_dimension_uint_getter(
             use $crate::dom::values::UNSIGNED_LONG_MAX;
             let element = self.upcast::<Element>();
             element
-                .get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname))
+                .get_attribute(&html5ever::local_name!($htmlname))
                 .map_or($default, |attribute| parse_unsigned_integer(attribute.value().chars())
                     .map_or($default, |value| {
                         if value > UNSIGNED_LONG_MAX {
@@ -625,6 +650,14 @@ macro_rules! global_event_handlers(
         event_handler!(pause, GetOnpause, SetOnpause);
         event_handler!(play, GetOnplay, SetOnplay);
         event_handler!(playing, GetOnplaying, SetOnplaying);
+        event_handler!(pointercancel, GetOnpointercancel, SetOnpointercancel);
+        event_handler!(pointerdown, GetOnpointerdown, SetOnpointerdown);
+        event_handler!(pointerenter, GetOnpointerenter, SetOnpointerenter);
+        event_handler!(pointerleave, GetOnpointerleave, SetOnpointerleave);
+        event_handler!(pointermove, GetOnpointermove, SetOnpointermove);
+        event_handler!(pointerout, GetOnpointerout, SetOnpointerout);
+        event_handler!(pointerover, GetOnpointerover, SetOnpointerover);
+        event_handler!(pointerup, GetOnpointerup, SetOnpointerup);
         event_handler!(progress, GetOnprogress, SetOnprogress);
         event_handler!(ratechange, GetOnratechange, SetOnratechange);
         event_handler!(reset, GetOnreset, SetOnreset);

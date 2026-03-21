@@ -5,6 +5,7 @@
 use std::ops::{Mul, Sub};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
+use js::context::JSContext;
 use num_bigint_dig::{BigInt, ModInverse, Sign};
 use num_traits::One;
 use pkcs8::der::asn1::BitString;
@@ -29,12 +30,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_RSA_OAEP, ALG_RSA_PSS, ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512,
-    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, Operation,
-    SubtleRsaHashedImportParams, SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams,
-    normalize_algorithm,
+    CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleRsaHashedImportParams,
+    SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams, normalize_algorithm,
 };
-use crate::script_runtime::CanGc;
 
 pub(crate) enum RsaAlgorithm {
     RsassaPkcs1v1_5,
@@ -47,11 +46,11 @@ pub(crate) enum RsaAlgorithm {
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
 pub(crate) fn generate_key(
     rsa_algorithm: RsaAlgorithm,
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
@@ -117,13 +116,12 @@ pub(crate) fn generate_key(
     let algorithm = SubtleRsaHashedKeyAlgorithm {
         name: match rsa_algorithm {
             // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
-            RsaAlgorithm::RsassaPkcs1v1_5 => ALG_RSASSA_PKCS1_V1_5,
+            RsaAlgorithm::RsassaPkcs1v1_5 => CryptoAlgorithm::RsassaPkcs1V1_5,
             // Step 5. Set the name attribute of algorithm to "RSA-PSS".
-            RsaAlgorithm::RsaPss => ALG_RSA_PSS,
+            RsaAlgorithm::RsaPss => CryptoAlgorithm::RsaPss,
             // Step 5. Set the name attribute of algorithm to "RSA-OAEP".
-            RsaAlgorithm::RsaOaep => ALG_RSA_OAEP,
-        }
-        .to_string(),
+            RsaAlgorithm::RsaOaep => CryptoAlgorithm::RsaOaep,
+        },
         modulus_length: normalized_algorithm.modulus_length,
         public_exponent: normalized_algorithm.public_exponent.clone(),
         hash: normalized_algorithm.hash.clone(),
@@ -155,13 +153,13 @@ pub(crate) fn generate_key(
         },
     };
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.clone()),
         intersected_usages,
         Handle::RsaPublicKey(public_key),
-        can_gc,
     );
 
     // Step 14. Let privateKey be a new CryptoKey representing the private key of the generated key
@@ -190,13 +188,13 @@ pub(crate) fn generate_key(
         },
     };
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
         intersected_usages,
         Handle::RsaPrivateKey(private_key),
-        can_gc,
     );
 
     // Step 19. Let result be a new CryptoKeyPair dictionary.
@@ -221,13 +219,13 @@ pub(crate) fn generate_key(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn import_key(
     rsa_algorithm: RsaAlgorithm,
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -386,7 +384,6 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let cx = GlobalScope::get_cx();
             let jwk = JsonWebKey::parse(cx, key_data)?;
 
             match &rsa_algorithm {
@@ -510,10 +507,10 @@ pub(crate) fn import_key(
                     match &jwk.alg {
                         None => None,
                         Some(alg) => match &*alg.str() {
-                            "RS1" => Some(ALG_SHA1),
-                            "RS256" => Some(ALG_SHA256),
-                            "RS384" => Some(ALG_SHA384),
-                            "RS512" => Some(ALG_SHA512),
+                            "RS1" => Some("SHA-1"),
+                            "RS256" => Some("SHA-256"),
+                            "RS384" => Some("SHA-384"),
+                            "RS512" => Some("SHA-512"),
                             _ => None,
                         },
                     }
@@ -538,10 +535,10 @@ pub(crate) fn import_key(
                     match &jwk.alg {
                         None => None,
                         Some(alg) => match &*alg.str() {
-                            "PS1" => Some(ALG_SHA1),
-                            "PS256" => Some(ALG_SHA256),
-                            "PS384" => Some(ALG_SHA384),
-                            "PS512" => Some(ALG_SHA512),
+                            "PS1" => Some("SHA-1"),
+                            "PS256" => Some("SHA-256"),
+                            "PS384" => Some("SHA-384"),
+                            "PS512" => Some("SHA-512"),
                             _ => None,
                         },
                     }
@@ -566,10 +563,10 @@ pub(crate) fn import_key(
                     match &jwk.alg {
                         None => None,
                         Some(alg) => match &*alg.str() {
-                            "RSA-OAEP" => Some(ALG_SHA1),
-                            "RSA-OAEP-256" => Some(ALG_SHA256),
-                            "RSA-OAEP-384" => Some(ALG_SHA384),
-                            "RSA-OAEP-512" => Some(ALG_SHA512),
+                            "RSA-OAEP" => Some("SHA-1"),
+                            "RSA-OAEP-256" => Some("SHA-256"),
+                            "RSA-OAEP-384" => Some("SHA-384"),
+                            "RSA-OAEP-512" => Some("SHA-512"),
                             _ => None,
                         },
                     }
@@ -580,11 +577,9 @@ pub(crate) fn import_key(
             if let Some(hash) = hash {
                 // Step 2.8.1. Let normalizedHash be the result of normalize an algorithm with alg
                 // set to hash and op set to digest.
-                let normalized_hash = normalize_algorithm(
+                let normalized_hash = normalize_algorithm::<DigestOperation>(
                     cx,
-                    Operation::Digest,
                     &AlgorithmIdentifier::String(DOMString::from(hash)),
-                    can_gc,
                 )?;
 
                 // Step 2.8.2. If normalizedHash is not equal to the hash member of
@@ -702,15 +697,15 @@ pub(crate) fn import_key(
         name: match &rsa_algorithm {
             RsaAlgorithm::RsassaPkcs1v1_5 => {
                 // Step 4. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5"
-                ALG_RSASSA_PKCS1_V1_5.to_string()
+                CryptoAlgorithm::RsassaPkcs1V1_5
             },
             RsaAlgorithm::RsaPss => {
                 // Step 4. Set the name attribute of algorithm to "RSA-PSS"
-                ALG_RSA_PSS.to_string()
+                CryptoAlgorithm::RsaPss
             },
             RsaAlgorithm::RsaOaep => {
                 // Step 4. Set the name attribute of algorithm to "RSA-OAEP"
-                ALG_RSA_OAEP.to_string()
+                CryptoAlgorithm::RsaOaep
             },
         },
         modulus_length,
@@ -718,13 +713,13 @@ pub(crate) fn import_key(
         hash: normalized_algorithm.hash.clone(),
     };
     let key = CryptoKey::new(
+        cx,
         global,
         key_type,
         extractable,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
         usages,
         key_handle,
-        can_gc,
     );
 
     // Step 9. Return key.
@@ -866,14 +861,14 @@ pub(crate) fn export_key(
                     //     of key and obtaining alg.
                     //     Set the alg attribute of jwk to alg.
                     let alg = match hash {
-                        ALG_SHA1 => "RS1",
-                        ALG_SHA256 => "RS256",
-                        ALG_SHA384 => "RS384",
-                        ALG_SHA512 => "RS512",
+                        CryptoAlgorithm::Sha1 => "RS1",
+                        CryptoAlgorithm::Sha256 => "RS256",
+                        CryptoAlgorithm::Sha384 => "RS384",
+                        CryptoAlgorithm::Sha512 => "RS512",
                         _ => {
                             return Err(Error::NotSupported(Some(format!(
                                 "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                                hash
+                                hash.as_str()
                             ))));
                         },
                     };
@@ -895,14 +890,14 @@ pub(crate) fn export_key(
                     //     of key and obtaining alg.
                     //     Set the alg attribute of jwk to alg.
                     let alg = match hash {
-                        ALG_SHA1 => "PS1",
-                        ALG_SHA256 => "PS256",
-                        ALG_SHA384 => "PS384",
-                        ALG_SHA512 => "PS512",
+                        CryptoAlgorithm::Sha1 => "PS1",
+                        CryptoAlgorithm::Sha256 => "PS256",
+                        CryptoAlgorithm::Sha384 => "PS384",
+                        CryptoAlgorithm::Sha512 => "PS512",
                         _ => {
                             return Err(Error::NotSupported(Some(format!(
                                 "Unsupported \"{}\" hash for RSA-PSS",
-                                hash
+                                hash.as_str()
                             ))));
                         },
                     };
@@ -924,14 +919,14 @@ pub(crate) fn export_key(
                     //     of key and obtaining alg.
                     //     Set the alg attribute of jwk to alg.
                     let alg = match hash {
-                        ALG_SHA1 => "RSA-OAEP",
-                        ALG_SHA256 => "RSA-OAEP-256",
-                        ALG_SHA384 => "RSA-OAEP-384",
-                        ALG_SHA512 => "RSA-OAEP-512",
+                        CryptoAlgorithm::Sha1 => "RSA-OAEP",
+                        CryptoAlgorithm::Sha256 => "RSA-OAEP-256",
+                        CryptoAlgorithm::Sha384 => "RSA-OAEP-384",
+                        CryptoAlgorithm::Sha512 => "RSA-OAEP-512",
                         _ => {
                             return Err(Error::NotSupported(Some(format!(
                                 "Unsupported \"{}\" hash for RSA-OAEP",
-                                hash
+                                hash.as_str()
                             ))));
                         },
                     };
@@ -1061,4 +1056,63 @@ pub(crate) fn export_key(
 
     // Step 4. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for RSA algorithms
+pub(crate) fn get_public_key(
+    rsa_algorithm: RsaAlgorithm,
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
+    //
+    // NOTE: See "importKey" operation for supported usages
+    match rsa_algorithm {
+        RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
+            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"verify\"".to_string(),
+                )));
+            }
+        },
+        RsaAlgorithm::RsaOaep => {
+            if usages
+                .iter()
+                .any(|usage| !matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
+            {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not \"encrypt\" or \"wrapKey\"".to_string(),
+                )));
+            }
+        },
+    }
+
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    let Handle::RsaPrivateKey(private_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not an RSA private key".to_string(),
+        )));
+    };
+    let public_key = CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        Handle::RsaPublicKey(private_key.into()),
+    );
+
+    Ok(public_key)
 }

@@ -73,9 +73,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{
-    ELEMENT_CLICK_BUTTON, InputSourceState, PendingPointerMove, PointerInputState,
-};
+use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
@@ -183,8 +181,9 @@ struct Handler {
     /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
     pending_input_event_receivers: Vec<Receiver<()>>,
 
-    /// Moves that are currently in-progress and need to be ticked.
-    pending_pointer_moves: Vec<PendingPointerMove>,
+    /// Ongoing [`PointerMoveAction`] or [`WheelScrollAction`] that are being incrementally
+    /// processed across multiple execution cycles within the current tick.
+    pending_actions: Vec<PendingActions>,
 
     /// The base set of preferences to treat as default when resetting.
     default_preferences: Preferences,
@@ -468,7 +467,7 @@ impl Handler {
             event_loop_waker,
             default_preferences,
             pending_input_event_receivers: Default::default(),
-            pending_pointer_moves: Default::default(),
+            pending_actions: Default::default(),
         }
     }
 
@@ -486,6 +485,7 @@ impl Handler {
             .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
     }
 
+    // FIXME: This should be completely removed after we revamp the touch chain.
     fn send_input_event_to_embedder(&self, input_event: InputEvent) {
         let _ = self.send_message_to_embedder(WebDriverCommandMsg::InputEvent(
             self.verified_webview_id(),
@@ -1915,7 +1915,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         wait_for_ipc_response_flatten(receiver)?;
         Ok(WebDriverResponse::Void)
     }
@@ -2240,9 +2240,9 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    self.send_input_event_to_embedder(InputEvent::Ime(ImeEvent::Composition(
-                        event,
-                    )));
+                    self.send_blocking_input_event_to_embedder(InputEvent::Ime(
+                        ImeEvent::Composition(event),
+                    ));
                 },
             }
         }
@@ -2476,10 +2476,11 @@ impl Handler {
 
         let rect = wait_for_ipc_response_flatten(receiver)?;
 
+        // TODO: Consider writing mode. Convert `rect` before requesting screenshot.
         // Step 5
         let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
 
-        // Step 6 return success with data encoded string.
+        // Step 6. return success with data encoded string.
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(encoded)?,
         )))

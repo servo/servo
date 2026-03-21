@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random() invalid in media queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10982">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/mediaqueries/resources/matchmedia-utils.js"></script>
+<script>
+  query_should_be_unknown("(width > random(10px, 30px))");
+  query_should_be_unknown("(width > random(element-shared, 10px, 30px))");
+</script>

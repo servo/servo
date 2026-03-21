@@ -74,10 +74,10 @@
       softNavs[0].startTime,
       "Soft navigation should start after first LCP.",
     );
-    assert_less_than(
+    assert_equals(
       softNavs[0].startTime,
       icps[0].startTime,
-      "LCP should start after soft navigation.",
+      "LCP startTime should equal that of the soft navigation.",
     );
 
     // Examine navigation ids.

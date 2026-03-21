@@ -62,6 +62,14 @@ class ErrorSummaryFormatter(BaseFormatter):
 
     def suite_start(self, item):
         self.test_to_group = {v: k for k in item["tests"] for v in item["tests"][k]}
+        # Initialize groups with no tests (missing manifests) with SKIP status
+        for group, tests in item["tests"].items():
+            if not tests:  # Empty test list
+                self.groups[group] = {
+                    "status": "SKIP",
+                    "start": None,
+                    "end": None,
+                }
         return self._output("test_groups", {"groups": list(item["tests"].keys())})
 
     def suite_end(self, data):

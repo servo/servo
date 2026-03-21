@@ -10,12 +10,14 @@ use std::collections::HashMap;
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
-use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ShadowRootMode};
+use devtools_traits::{
+    AttrModification, DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode,
+};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -25,6 +27,29 @@ const TEXT_NODE: u16 = 3;
 
 /// The maximum length of a text node for it to appear as an inline child in the inspector.
 const MAX_INLINE_LENGTH: usize = 50;
+
+#[derive(Serialize)]
+struct GetEventListenerInfoReply {
+    from: String,
+    events: Vec<DevtoolsEventListenerInfo>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DevtoolsEventListenerInfo {
+    r#type: String,
+    handler: String,
+    origin: String,
+    tags: String,
+    capturing: bool,
+    // This will always be an empty object, we just need a value that serializes to "{}".
+    hide: Value,
+    native: bool,
+    source_actor: String,
+    enabled: bool,
+    is_user_defined: bool,
+    event_listener_info_id: String,
+}
 
 #[derive(Serialize)]
 struct GetUniqueSelectorReply {
@@ -97,8 +122,11 @@ pub(crate) struct NodeActorMsg {
     /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
     #[serde(skip_serializing_if = "Option::is_none")]
     system_id: Option<String>,
+
+    has_event_listeners: bool,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct NodeActor {
     name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
@@ -120,7 +148,7 @@ impl Actor for NodeActor {
     /// - `getUniqueSelector`: Returns the display name of this node
     fn handle_message(
         &self,
-        mut request: ClientRequest,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
@@ -133,15 +161,12 @@ impl Actor for NodeActor {
                     .ok_or(ActorError::MissingParameter)?
                     .as_array()
                     .ok_or(ActorError::BadParameterType)?;
-                let modifications: Vec<_> = mods
+                let modifications: Vec<AttrModification> = mods
                     .iter()
                     .filter_map(|json_mod| {
                         serde_json::from_str(&serde_json::to_string(json_mod).ok()?).ok()
                     })
                     .collect();
-
-                let walker = registry.find::<WalkerActor>(&self.walker);
-                walker.new_mutations(&mut request, &self.name, &modifications);
 
                 self.script_chan
                     .send(DevtoolScriptControlMsg::ModifyAttribute(
@@ -154,7 +179,29 @@ impl Actor for NodeActor {
                 let reply = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&reply)?
             },
+            "getEventListenerInfo" => {
+                let target = msg
+                    .get("to")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
 
+                let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
+                self.script_chan
+                    .send(DevtoolScriptControlMsg::GetEventListenerInfo(
+                        self.pipeline,
+                        registry.actor_to_script(target.to_owned()),
+                        tx,
+                    ))
+                    .unwrap();
+                let event_listeners = rx.recv().map_err(|_| ActorError::Internal)?;
+
+                let msg = GetEventListenerInfoReply {
+                    from: self.name(),
+                    events: event_listeners.into_iter().map(From::from).collect(),
+                };
+                request.reply_final(&msg)?
+            },
             "getUniqueSelector" => {
                 let (tx, rx) = generic_channel::channel().unwrap();
                 self.script_chan
@@ -331,6 +378,25 @@ impl NodeInfoToProtocol for NodeInfo {
             name: self.doctype_name,
             public_id: self.doctype_public_identifier,
             system_id: self.doctype_system_identifier,
+            has_event_listeners: self.has_event_listeners,
+        }
+    }
+}
+
+impl From<EventListenerInfo> for DevtoolsEventListenerInfo {
+    fn from(event_listener_info: EventListenerInfo) -> Self {
+        Self {
+            r#type: event_listener_info.event_type,
+            handler: "todo".to_owned(),
+            capturing: event_listener_info.capturing,
+            origin: "todo".to_owned(),
+            tags: "".to_owned(),
+            hide: Value::Object(Default::default()),
+            native: false,
+            source_actor: "todo".to_owned(),
+            enabled: true,
+            is_user_defined: false,
+            event_listener_info_id: "todo".to_owned(),
         }
     }
 }

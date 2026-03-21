@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>event handlers</title>
+<meta name=timeout content=long>
+<title>event handlers: reflection from frameset</title>
 <link rel="author" title="Intel" href="http://www.intel.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -10,7 +11,8 @@
 setup({ explicit_done: true });
 
 handlersListPromise.then(({ shadowedHandlers, notShadowedHandlers }) => {
-  eventHandlerTest(shadowedHandlers, notShadowedHandlers, "frameset");
+  const altBody = document.createElement("frameset");
+  runEventHandlerReflectionTest(shadowedHandlers, notShadowedHandlers, "document.body", document.body, altBody, window, "body", "alternative body", "window");
 
   // The testharness framework appends test results to document.body,
   // show test results in frame after test done.

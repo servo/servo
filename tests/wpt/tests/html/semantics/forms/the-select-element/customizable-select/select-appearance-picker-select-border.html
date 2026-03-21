@@ -11,6 +11,10 @@
 select, select::picker(select) {
   appearance: base-select;
 }
+/* :focus-visible behavior is UA-defined, do not exercise in the test */
+select:focus-visible {
+  outline: none;
+}
 select::picker(select) {
   border: 5px solid red;
 }

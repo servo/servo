@@ -77,35 +77,6 @@
 </div>
 
 <div>
-  <div popover>popover 1
-    <div popover>popover 2
-      <p id=anchorid>Anchor</p>
-      <div popover>popover 3</div>
-    </div>
-  </div>
-  <div popover=hint anchor=anchorid>Hint anchored to popover</div>
-  <script>
-  {
-    const popover1 = getPopovers()[0];
-    const popover2 = getPopovers()[1];
-    const popover3 = getPopovers()[2];
-    const hint = getPopovers()[3];
-    test(() => {
-      assertState([false,false,false,false]);
-      popover1.showPopover();
-      popover2.showPopover();
-      popover3.showPopover();
-      assertState([true,true,true,false]);
-      hint.showPopover(); // Because hint is nested in popover2, popover3 should be hidden
-      assertState([true,true,false,true]);
-      popover1.hidePopover(); // Should close the hint, which is anchored to popover2
-      assertState([false,false,false,false]);
-    },'hint is not closed by pre-existing auto');
-  }
-  </script>
-</div>
-
-<div>
   <div popover=hint>Hint
     <div popover=hint>Nested hint</div>
   </div>

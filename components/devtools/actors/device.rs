@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -34,6 +35,7 @@ struct SystemInfo {
 
 include!(concat!(env!("OUT_DIR"), "/build_id.rs"));
 
+#[derive(MallocSizeOf)]
 pub(crate) struct DeviceActor {
     name: String,
 }
@@ -58,7 +60,7 @@ impl Actor for DeviceActor {
                         apptype: "servo".to_string(),
                         version: env!("CARGO_PKG_VERSION").to_string(),
                         appbuildid: BUILD_ID.to_string(),
-                        platformversion: "145.0".to_string(),
+                        platformversion: "146.0".to_string(),
                         brand_name: "Servo".to_string(),
                     },
                 };

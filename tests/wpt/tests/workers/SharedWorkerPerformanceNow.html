@@ -16,7 +16,7 @@ async_test(function(t) {
           'workerStart not defined on the Worker object');
         assert_equals(results[1], 'object', 'self.performance is defined');
         assert_equals(results[2], 'function', 'self.performance.now is defined');
-        assert_greater_than(results[3], 0, 'Time in the worker should be positive');
+        assert_greater_than_equal(results[3], 0, 'Time in the worker should be non-negative');
         assert_greater_than(window.performance.now(), results[3], 'Time in the worker should be before the current time in the main document');
         setupIframe();
     });

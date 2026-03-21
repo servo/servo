@@ -22,22 +22,23 @@ use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandleValue;
 use js::jsapi::{
-    CompileJsonModule1, CompileModule1, ExceptionStackBehavior, GetModuleResolveHook,
-    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_ClearPendingException,
+    CallArgs, CompileJsonModule1, CompileModule1, ExceptionStackBehavior,
+    GetFunctionNativeReserved, GetModuleResolveHook, Handle as RawHandle,
+    HandleValue as RawHandleValue, Heap, JS_ClearPendingException, JS_GetFunctionObject,
     JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    ModuleErrorBehaviour, ModuleType, SetModuleDynamicImportHook, SetModuleMetadataHook,
-    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
+    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook,
+    SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException, ModuleEvaluate};
 use js::rust::wrappers2::{
-    GetModuleRequestSpecifier, GetModuleRequestType, JS_DefineProperty4, JS_NewStringCopyN,
-    ModuleLink,
+    DefineFunctionWithReserved, GetModuleRequestSpecifier, GetModuleRequestType,
+    JS_DefineProperty4, JS_NewStringCopyN, ModuleLink,
 };
 use js::rust::{
-    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue,
+    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, ToString,
     transform_str_to_source_text,
 };
 use mime::Mime;
@@ -47,15 +48,19 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
+use script_bindings::settings_stack::run_a_callback;
 use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
 
+use crate::DomTypeHolder;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
@@ -63,15 +68,15 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlscriptelement::{HTMLScriptElement, SCRIPT_JS_MIMES, Script};
-use crate::dom::htmlscriptelement::substitute_with_local_script;
+use crate::dom::html::htmlscriptelement::{
+    HTMLScriptElement, SCRIPT_JS_MIMES, Script, substitute_with_local_script,
+};
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -310,11 +315,8 @@ impl ModuleTree {
             loaded_modules: DomRefCell::new(IndexMap::new()),
         };
 
-        let mut compile_options =
-            unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
-        if let Some(introduction_type) = introduction_type {
-            compile_options.set_introduction_type(introduction_type);
-        }
+        let compile_options = fill_module_compile_options(cx, url, introduction_type, line_number);
+
         let mut module_source = ModuleSource {
             source,
             unminified_dir: global.unminified_js_dir(),
@@ -367,7 +369,7 @@ impl ModuleTree {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
     /// Although the CanGc argument appears unused, it represents the GC operations that
     /// can occur as part of compiling a script.
-    fn crate_a_json_module_script(
+    fn create_a_json_module_script(
         source: &str,
         global: &GlobalScope,
         url: &ServoUrl,
@@ -391,10 +393,7 @@ impl ModuleTree {
         // Step 3. Set script's base URL and fetch options to null.
         // Note: We don't need to call `SetModulePrivate` for json scripts
 
-        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), 1) };
-        if let Some(introduction_type) = introduction_type {
-            compile_options.set_introduction_type(introduction_type);
-        }
+        let compile_options = fill_module_compile_options(cx, url, introduction_type, 1);
 
         rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
 
@@ -482,7 +481,7 @@ impl ModuleTree {
                     ExceptionStackBehavior::Capture,
                 );
             }
-            report_pending_exception(GlobalScope::get_cx(), true, InRealm::Entered(&ar), can_gc);
+            report_pending_exception(GlobalScope::get_cx(), InRealm::Entered(&ar), can_gc);
         }
     }
 
@@ -491,7 +490,6 @@ impl ModuleTree {
         global: &GlobalScope,
         script: Option<&ModuleScript>,
         specifier: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<ServoUrl> {
         // Step 1~3 to get settingsObject and baseURL
         let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.global()));
@@ -516,17 +514,17 @@ impl ModuleTree {
         } else {
             None
         };
+        let specifier = &specifier.str();
 
         // Step 6. Let serializedBaseURL be baseURL, serialized.
         let serialized_base_url = base_url.as_str();
         // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
-        let as_url = Self::resolve_url_like_module_specifier(&specifier, base_url);
+        let as_url = Self::resolve_url_like_module_specifier(specifier, base_url);
         // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
         // otherwise, specifier.
-        let specifier = specifier.str();
         let normalized_specifier = match &as_url {
             Some(url) => url.as_str(),
-            None => &specifier,
+            None => specifier,
         };
 
         // Step 9. Let result be a URL-or-null, initially null.
@@ -542,27 +540,22 @@ impl ModuleTree {
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
-                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch,
-                    // and break.
-                    result = resolve_imports_match(
-                        normalized_specifier,
-                        as_url.as_ref(),
-                        imports,
-                        can_gc,
-                    )?;
-                    break;
+                    let scope_imports_match =
+                        resolve_imports_match(normalized_specifier, as_url.as_ref(), imports)?;
+
+                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch, and break.
+                    if scope_imports_match.is_some() {
+                        result = scope_imports_match;
+                        break;
+                    }
                 }
             }
 
             // Step 11. If result is null, set result to the result of resolving an imports match given
             // normalizedSpecifier, asURL, and importMap's imports.
             if result.is_none() {
-                result = resolve_imports_match(
-                    normalized_specifier,
-                    as_url.as_ref(),
-                    &map.imports,
-                    can_gc,
-                )?;
+                result =
+                    resolve_imports_match(normalized_specifier, as_url.as_ref(), &map.imports)?;
             }
         }
 
@@ -587,27 +580,22 @@ impl ModuleTree {
             // Step 14. Throw a TypeError indicating that specifier was a bare specifier,
             // but was not remapped to anything by importMap.
             None => Err(Error::Type(
-                "Specifier was a bare specifier, but was not remapped to anything by importMap."
+                c"Specifier was a bare specifier, but was not remapped to anything by importMap."
                     .to_owned(),
             )),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#resolving-a-url-like-module-specifier>
-    fn resolve_url_like_module_specifier(
-        specifier: &DOMString,
-        base_url: &ServoUrl,
-    ) -> Option<ServoUrl> {
+    fn resolve_url_like_module_specifier(specifier: &str, base_url: &ServoUrl) -> Option<ServoUrl> {
         // Step 1. If specifier starts with "/", "./", or "../", then:
-        if specifier.starts_with('/') ||
-            specifier.starts_with_str("./") ||
-            specifier.starts_with_str("../")
+        if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
-            return ServoUrl::parse_with_base(Some(base_url), &specifier.str()).ok();
+            return ServoUrl::parse_with_base(Some(base_url), specifier).ok();
         }
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        ServoUrl::parse(&specifier.str()).ok()
+        ServoUrl::parse(specifier).ok()
     }
 }
 
@@ -645,7 +633,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(worker) => (*worker.root()).global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -654,9 +642,10 @@ impl ModuleOwner {
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
-            ModuleOwner::DynamicModule(_) => unimplemented!(),
+            ModuleOwner::DynamicModule(_) => {},
             ModuleOwner::Window(script) => {
-                let document = script.root().owner_document();
+                let script = script.root();
+                let document = script.owner_document();
 
                 let load = match module_tree {
                     Some(module_tree) => Ok(Script::Module(module_tree)),
@@ -664,16 +653,15 @@ impl ModuleOwner {
                 };
 
                 let asynch = script
-                    .root()
                     .upcast::<Element>()
                     .has_attribute(&local_name!("async"));
 
-                if !asynch && (*script.root()).get_parser_inserted() {
-                    document.deferred_script_loaded(&script.root(), load, can_gc);
-                } else if !asynch && !(*script.root()).get_non_blocking() {
-                    document.asap_in_order_script_loaded(&script.root(), load, can_gc);
+                if !asynch && script.get_parser_inserted() {
+                    document.deferred_script_loaded(&script, load, can_gc);
+                } else if !asynch && !script.get_non_blocking() {
+                    document.asap_in_order_script_loaded(&script, load, can_gc);
                 } else {
-                    document.asap_script_loaded(&script.root(), load, can_gc);
+                    document.asap_script_loaded(&script, load, can_gc);
                 };
             },
         }
@@ -743,6 +731,7 @@ impl FetchResponseListener for ModuleContext {
     /// Step 13
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -750,13 +739,14 @@ impl FetchResponseListener for ModuleContext {
         let global = self.owner.global();
         let (url, module_type) = &self.module_request;
 
-        if let Some(window) = global.downcast::<Window>() {
+        if let ModuleOwner::Window(_) = self.owner {
+            let window = global.downcast::<Window>().unwrap();
             window
                 .Document()
-                .finish_load(LoadType::Script(url.clone()), CanGc::note());
+                .finish_load(LoadType::Script(url.clone()), cx);
         }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
 
         let Some(ModuleStatus::Fetching(pending)) =
             global.get_module_map_entry(&self.module_request)
@@ -773,7 +763,7 @@ impl FetchResponseListener for ModuleContext {
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
             global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
-            return promise.resolve_native(&(), CanGc::note());
+            return promise.resolve_native(&(), CanGc::from_cx(cx));
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -803,7 +793,7 @@ impl FetchResponseListener for ModuleContext {
 
         if let Some(mime) = mime_type {
             // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
-            let (mut source_text, _, _) = UTF_8.decode(&self.data);
+            let (mut source_text, _) = UTF_8.decode_with_bom_removal(&self.data);
 
             // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
             // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
@@ -822,7 +812,7 @@ impl FetchResponseListener for ModuleContext {
                     true,
                     1,
                     self.introduction_type,
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
@@ -830,19 +820,19 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
-                let module_tree = Rc::new(ModuleTree::crate_a_json_module_script(
+                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
                     &source_text,
                     &global,
                     &final_url,
                     self.introduction_type,
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
         }
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
-        promise.resolve_native(&(), CanGc::note());
+        promise.resolve_native(&(), CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -915,7 +905,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
 
     let mut realm = CurrentRealm::assert(cx);
-    let payload = Payload::PromiseRecord(promise.clone());
+    let payload = Payload::PromiseRecord(promise);
     host_load_imported_module(
         &mut realm,
         None,
@@ -958,10 +948,20 @@ impl ScriptFetchOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#descendant-script-fetch-options>
-    pub(crate) fn descendant_fetch_options(&self) -> ScriptFetchOptions {
+    pub(crate) fn descendant_fetch_options(
+        &self,
+        url: &ServoUrl,
+        global: &GlobalScope,
+    ) -> ScriptFetchOptions {
+        // Step 2. Let integrity be the result of resolving a module integrity metadata with url and settingsObject.
+        let integrity = global.import_map().resolve_a_module_integrity_metadata(url);
+
+        // Step 1. Let newOptions be a copy of originalOptions.
+        // TODO Step 4. Set newOptions's fetch priority to "auto".
         Self {
             referrer: self.referrer.clone(),
-            integrity_metadata: String::new(),
+            // Step 3. Set newOptions's integrity metadata to integrity.
+            integrity_metadata: integrity,
             cryptographic_nonce: self.cryptographic_nonce.clone(),
             credentials_mode: self.credentials_mode,
             parser_metadata: self.parser_metadata,
@@ -1006,7 +1006,6 @@ unsafe extern "C" fn HostResolveImportedModule(
         &global_scope,
         module_data,
         DOMString::from(specifier),
-        CanGc::from_cx(cx),
     );
 
     // Step 6.
@@ -1039,6 +1038,9 @@ unsafe extern "C" fn HostResolveImportedModule(
     unreachable!()
 }
 
+// https://searchfox.org/firefox-esr140/rev/3fccb0ec900b931a1a752b02eafab1fb9652d9b9/js/loader/ModuleLoaderBase.h#560
+const SLOT_MODULEPRIVATE: usize = 0;
+
 #[expect(unsafe_code)]
 #[expect(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
@@ -1059,24 +1061,99 @@ unsafe extern "C" fn HostPopulateImportMeta(
         None => global_scope.api_base_url(),
     };
 
-    let url_string = unsafe {
-        JS_NewStringCopyN(
+    unsafe {
+        let url_string = JS_NewStringCopyN(
             &mut cx,
             base_url.as_str().as_ptr() as *const _,
             base_url.as_str().len(),
-        )
-    };
-    rooted!(&in(cx) let url_string = url_string);
+        );
+        rooted!(&in(cx) let url_string = url_string);
 
-    // Step 3.
-    unsafe {
-        JS_DefineProperty4(
+        // Step 3.
+        if !JS_DefineProperty4(
             &mut cx,
             Handle::from_raw(meta_object),
             c"url".as_ptr(),
             url_string.handle(),
             JSPROP_ENUMERATE.into(),
-        )
+        ) {
+            return false;
+        }
+
+        // Step 5. Let resolveFunction be ! CreateBuiltinFunction(steps, 1, "resolve", « »).
+        let resolve_function = DefineFunctionWithReserved(
+            &mut cx,
+            meta_object.get(),
+            c"resolve".as_ptr(),
+            Some(import_meta_resolve),
+            1,
+            JSPROP_ENUMERATE.into(),
+        );
+
+        rooted!(&in(cx) let obj = JS_GetFunctionObject(resolve_function));
+        assert!(!obj.is_null());
+        SetFunctionNativeReserved(
+            obj.get(),
+            SLOT_MODULEPRIVATE,
+            &reference_private.get() as *const _,
+        );
+    }
+
+    true
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *mut JSVal) -> bool {
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let global_scope = GlobalScope::from_current_realm(&realm);
+
+    let cx = &mut realm;
+
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
+
+    rooted!(&in(cx) let module_private = unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_MODULEPRIVATE) });
+    let reference_private = module_private.handle().into();
+    let module_data = unsafe { module_script_from_reference_private(&reference_private) };
+
+    // https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties
+
+    // Step 4.1. Set specifier to ? ToString(specifier).
+    let specifier = unsafe {
+        let value = HandleValue::from_raw(args.get(0));
+
+        match NonNull::new(ToString(cx.raw_cx(), value)) {
+            Some(jsstr) => jsstr_to_string(cx.raw_cx(), jsstr).into(),
+            None => return false,
+        }
+    };
+
+    // Step 4.2. Let url be the result of resolving a module specifier given moduleScript and specifier.
+    let url = ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier);
+
+    match url {
+        Ok(url) => {
+            // Step 4.3. Return the serialization of url.
+            url.as_str().safe_to_jsval(
+                cx.into(),
+                unsafe { MutableHandleValue::from_raw(args.rval()) },
+                CanGc::from_cx(cx),
+            );
+            true
+        },
+        Err(error) => {
+            let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
+
+            unsafe {
+                JS_SetPendingException(
+                    cx.raw_cx(),
+                    resolution_error.handle(),
+                    ExceptionStackBehavior::Capture,
+                );
+            }
+            false
+        },
     }
 }
 
@@ -1108,6 +1185,52 @@ pub(crate) fn fetch_an_external_module_script(
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
             fetch_the_descendants_and_link_module_script(module, Destination::Script, owner);
+        },
+    );
+}
+
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-modulepreload-module-script-graph>
+pub(crate) fn fetch_a_modulepreload_module(
+    url: ServoUrl,
+    destination: Destination,
+    global: &GlobalScope,
+    options: ScriptFetchOptions,
+    on_complete: impl FnOnce(bool) + 'static,
+) {
+    let referrer = global.get_referrer();
+    let owner = ModuleOwner::DynamicModule(Trusted::new(global));
+
+    // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
+    // fetching top level JSON/CSS module scripts, but should be possible when preloading.
+    let module_type = if let Destination::Json = destination {
+        Some(ModuleType::JSON)
+    } else {
+        None
+    };
+
+    // Step 1. Fetch a single module script given url, settingsObject, destination, options, settingsObject,
+    // "client", true, and with the following steps given result:
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        destination,
+        options,
+        referrer,
+        module_type,
+        true,
+        Some(IntroductionType::SRC_SCRIPT),
+        move |result| {
+            // Step 1. Run onComplete given result.
+            on_complete(result.is_none());
+
+            // Step 2. Assert: settingsObject's global object implements Window.
+            assert!(owner.global().is::<Window>());
+
+            // Step 3. If result is not null, optionally fetch the descendants of and link result
+            // given settingsObject, destination, and an empty algorithm.
+            if let Some(module) = result {
+                fetch_the_descendants_and_link_module_script(module, destination, owner);
+            }
         },
     );
 }
@@ -1208,8 +1331,8 @@ fn fetch_the_descendants_and_link_module_script(
         }),
     ));
 
-    let rejection_owner = owner.clone();
-    let rejected_module = module_script.clone();
+    let rejection_owner = owner;
+    let rejected_module = module_script;
 
     // Step 7. Upon rejection of loadingPromise, run the following steps:
     let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
@@ -1235,9 +1358,9 @@ fn fetch_the_descendants_and_link_module_script(
 
     let realm = enter_realm(&*global);
     let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
-
-    loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+    run_a_callback::<DomTypeHolder, _>(&global, || {
+        loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+    });
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
@@ -1294,81 +1417,106 @@ pub(crate) fn fetch_a_single_module_script(
 
     let realm = enter_realm(&*global);
     let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
+    run_a_callback::<DomTypeHolder, _>(&global, || {
+        let has_pending_fetch = pending.borrow().is_some();
+        pending
+            .borrow_mut()
+            .get_or_insert_with(|| Promise::new_in_current_realm(comp, CanGc::note()))
+            .append_native_handler(&handler, comp, CanGc::note());
 
-    let has_pending_fetch = pending.borrow().is_some();
-    pending
-        .borrow_mut()
-        .get_or_insert_with(|| Promise::new_in_current_realm(comp, CanGc::note()))
-        .append_native_handler(&handler, comp, CanGc::note());
+        // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
+        // then queue a task on the networking task source to proceed with running the following steps.
+        if has_pending_fetch {
+            return;
+        }
 
-    // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
-    // then queue a task on the networking task source to proceed with running the following steps.
-    if has_pending_fetch {
-        return;
+        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
+        global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
+
+        let document: Option<DomRoot<Document>> = match &owner {
+            ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
+            ModuleOwner::Window(script) => Some(script.root().owner_document()),
+        };
+        let webview_id = document.as_ref().map(|document| document.webview_id());
+
+        // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
+
+        // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
+        // then set request's mode to "same-origin".
+        let mode = match destination {
+            Destination::Worker | Destination::SharedWorker if is_top_level => {
+                RequestMode::SameOrigin
+            },
+            _ => RequestMode::CorsMode,
+        };
+
+        // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
+        let destination = match module_type {
+            ModuleType::JSON => Destination::Json,
+            ModuleType::JavaScript | ModuleType::Unknown => destination,
+        };
+
+        // TODO Step 11. Set request's initiator type to "script".
+
+        // Step 12. Set up the module script request given request and options.
+        let request = RequestBuilder::new(webview_id, url.clone(), referrer)
+            .destination(destination)
+            .parser_metadata(options.parser_metadata)
+            .integrity_metadata(options.integrity_metadata.clone())
+            .credentials_mode(options.credentials_mode)
+            .referrer_policy(options.referrer_policy)
+            .mode(mode)
+            .with_global_scope(&global)
+            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
+
+        let context = ModuleContext {
+            owner,
+            data: vec![],
+            metadata: None,
+            module_request,
+            options,
+            status: Ok(()),
+            introduction_type,
+        };
+
+        let network_listener = NetworkListener::new(
+            context,
+            global.task_manager().networking_task_source().to_sendable(),
+        );
+        match document {
+            Some(document) => {
+                document.loader_mut().fetch_async_with_callback(
+                    LoadType::Script(url),
+                    request,
+                    network_listener.into_callback(),
+                );
+            },
+            None => global.fetch_with_network_listener(request, network_listener),
+        };
+    })
+}
+
+#[expect(unsafe_code)]
+fn fill_module_compile_options(
+    cx: SafeJSContext,
+    url: &ServoUrl,
+    introduction_type: Option<&'static CStr>,
+    line_number: u32,
+) -> CompileOptionsWrapper {
+    let mut options =
+        unsafe { CompileOptionsWrapper::new_raw(*cx, cformat!("{url}"), line_number) };
+    if let Some(introduction_type) = introduction_type {
+        options.set_introduction_type(introduction_type);
     }
 
-    // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-    global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#284
+    options.set_muted_errors(false);
 
-    let document: Option<DomRoot<Document>> = match &owner {
-        ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-        ModuleOwner::Window(script) => Some(script.root().owner_document()),
-    };
-    let webview_id = document.as_ref().map(|document| document.webview_id());
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#518
+    options.set_is_run_once(true);
+    options.set_no_script_rval(true);
 
-    // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
-
-    // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
-    // then set request's mode to "same-origin".
-    let mode = match destination {
-        Destination::Worker | Destination::SharedWorker if is_top_level => RequestMode::SameOrigin,
-        _ => RequestMode::CorsMode,
-    };
-
-    // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
-    let destination = match module_type {
-        ModuleType::JSON => Destination::Json,
-        ModuleType::JavaScript | ModuleType::Unknown => destination,
-    };
-
-    // TODO Step 11. Set request's initiator type to "script".
-
-    // Step 12. Set up the module script request given request and options.
-    let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-        .destination(destination)
-        .parser_metadata(options.parser_metadata)
-        .integrity_metadata(options.integrity_metadata.clone())
-        .credentials_mode(options.credentials_mode)
-        .referrer_policy(options.referrer_policy)
-        .mode(mode)
-        .with_global_scope(&global)
-        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
-
-    let context = ModuleContext {
-        owner,
-        data: vec![],
-        metadata: None,
-        module_request,
-        options,
-        status: Ok(()),
-        introduction_type,
-    };
-
-    let network_listener = NetworkListener::new(
-        context,
-        global.task_manager().networking_task_source().to_sendable(),
-    );
-    match document {
-        Some(document) => {
-            document.loader_mut().fetch_async_with_callback(
-                LoadType::Script(url),
-                request,
-                network_listener.into_callback(),
-            );
-        },
-        None => global.fetch_with_network_listener(request, network_listener),
-    };
+    options
 }
 
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
@@ -1411,6 +1559,17 @@ pub(crate) struct ImportMap {
     integrity: ModuleIntegrityMap,
 }
 
+impl ImportMap {
+    /// <https://html.spec.whatwg.org/multipage/#resolving-a-module-integrity-metadata>
+    pub(crate) fn resolve_a_module_integrity_metadata(&self, url: &ServoUrl) -> String {
+        // Step 1. Let map be settingsObject's global object's import map.
+
+        // Step 2. If map's integrity[url] does not exist, then return the empty string.
+        // Step 3. Return map's integrity[url].
+        self.integrity.get(url).cloned().unwrap_or_default()
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#register-an-import-map>
 pub(crate) fn register_import_map(
     global: &GlobalScope,
@@ -1425,7 +1584,7 @@ pub(crate) fn register_import_map(
         Err(exception) => {
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
-            throw_dom_exception(GlobalScope::get_cx(), global, exception.clone(), can_gc);
+            throw_dom_exception(GlobalScope::get_cx(), global, exception, can_gc);
         },
     }
 }
@@ -1469,8 +1628,7 @@ fn merge_existing_and_new_import_maps(
                                 record
                                     .specifier_url
                                     .as_ref()
-                                    .map(|u| u.is_special_scheme())
-                                    .unwrap_or_default()))
+                                    .is_some_and(|u| u.is_special_scheme())))
                     {
                         // The user agent may report a warning to the console indicating the ignored rule.
                         // They may choose to avoid reporting if the rule is identical to an existing one.
@@ -1531,7 +1689,10 @@ fn merge_existing_and_new_import_maps(
         // For each specifier → url of newImportMapImports:
         new_import_map_imports.retain(|specifier, val| {
             // If specifier starts with record's specifier, then:
-            if specifier.starts_with(&record.specifier) {
+            //
+            // Note: Spec is wrong, we need to check if record's specifier starts with specifier
+            // See: https://github.com/whatwg/html/issues/11875
+            if record.specifier.starts_with(specifier) {
                 // The user agent may report a warning to the console indicating the ignored rule.
                 // They may choose to avoid reporting if the rule is identical to an existing one.
                 Console::internal_warn(
@@ -1555,6 +1716,12 @@ fn merge_existing_and_new_import_maps(
         can_gc,
     );
     old_import_map.imports = merged_module_specifier_map;
+
+    // https://html.spec.whatwg.org/multipage/#the-resolution-algorithm
+    // Sort scopes to ensure entries are visited from most-specific to least-specific.
+    old_import_map
+        .scopes
+        .sort_by(|a_key, _, b_key, _| b_key.cmp(a_key));
 }
 
 /// <https://html.spec.whatwg.org/multipage/#merge-module-specifier-maps>
@@ -1594,16 +1761,15 @@ pub(crate) fn parse_an_import_map_string(
     module_owner: ModuleOwner,
     input: Rc<DOMString>,
     base_url: ServoUrl,
-    can_gc: CanGc,
 ) -> Fallible<ImportMap> {
     // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
     let parsed: JsonValue = serde_json::from_str(&input.str())
-        .map_err(|_| Error::Type("The value needs to be a JSON object.".to_owned()))?;
+        .map_err(|_| Error::Type(c"The value needs to be a JSON object.".to_owned()))?;
     // Step 2. If parsed is not an ordered map, then throw a TypeError indicating that the
     // top-level value needs to be a JSON object.
     let JsonValue::Object(mut parsed) = parsed else {
         return Err(Error::Type(
-            "The top-level value needs to be a JSON object.".to_owned(),
+            c"The top-level value needs to be a JSON object.".to_owned(),
         ));
     };
 
@@ -1615,17 +1781,13 @@ pub(crate) fn parse_an_import_map_string(
         // indicating that the value for the "imports" top-level key needs to be a JSON object.
         let JsonValue::Object(imports) = imports else {
             return Err(Error::Type(
-                "The \"imports\" top-level value needs to be a JSON object.".to_owned(),
+                c"The \"imports\" top-level value needs to be a JSON object.".to_owned(),
             ));
         };
         // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
         // normalizing a module specifier map given parsed["imports"] and baseURL.
-        sorted_and_normalized_imports = sort_and_normalize_module_specifier_map(
-            &module_owner.global(),
-            imports,
-            &base_url,
-            can_gc,
-        );
+        sorted_and_normalized_imports =
+            sort_and_normalize_module_specifier_map(&module_owner.global(), imports, &base_url);
     }
 
     // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
@@ -1636,13 +1798,13 @@ pub(crate) fn parse_an_import_map_string(
         // indicating that the value for the "scopes" top-level key needs to be a JSON object.
         let JsonValue::Object(scopes) = scopes else {
             return Err(Error::Type(
-                "The \"scopes\" top-level value needs to be a JSON object.".to_owned(),
+                c"The \"scopes\" top-level value needs to be a JSON object.".to_owned(),
             ));
         };
         // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
         // normalizing scopes given parsed["scopes"] and baseURL.
         sorted_and_normalized_scopes =
-            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url, can_gc)?;
+            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url)?;
     }
 
     // Step 7. Let normalizedIntegrity be an empty ordered map.
@@ -1653,13 +1815,13 @@ pub(crate) fn parse_an_import_map_string(
         // indicating that the value for the "integrity" top-level key needs to be a JSON object.
         let JsonValue::Object(integrity) = integrity else {
             return Err(Error::Type(
-                "The \"integrity\" top-level value needs to be a JSON object.".to_owned(),
+                c"The \"integrity\" top-level value needs to be a JSON object.".to_owned(),
             ));
         };
         // Step 8.2 Set normalizedIntegrity to the result of normalizing
         // a module integrity map given parsed["integrity"] and baseURL.
         normalized_integrity =
-            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url, can_gc);
+            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url);
     }
 
     // Step 9. If parsed's keys contains any items besides "imports", "scopes", or "integrity",
@@ -1689,7 +1851,6 @@ fn sort_and_normalize_module_specifier_map(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
-    can_gc: CanGc,
 ) -> ModuleSpecifierMap {
     // Step 1. Let normalized be an empty ordered map.
     let mut normalized = ModuleSpecifierMap::new();
@@ -1699,7 +1860,7 @@ fn sort_and_normalize_module_specifier_map(
         // Step 2.1 Let normalized_specifier_key be the result of
         // normalizing a specifier key given specifier_key and base_url.
         let Some(normalized_specifier_key) =
-            normalize_specifier_key(global, specifier_key, base_url, can_gc)
+            normalize_specifier_key(global, specifier_key, base_url)
         else {
             // Step 2.2 If normalized_specifier_key is null, then continue.
             continue;
@@ -1718,8 +1879,8 @@ fn sort_and_normalize_module_specifier_map(
         };
 
         // Step 2.4. Let address_url be the result of resolving a URL-like module specifier given value and baseURL.
-        let value = DOMString::from(value.as_str());
-        let Some(address_url) = ModuleTree::resolve_url_like_module_specifier(&value, base_url)
+        let Some(address_url) =
+            ModuleTree::resolve_url_like_module_specifier(value.as_str(), base_url)
         else {
             // Step 2.5 If address_url is null, then:
             // Step 2.5.1. The user agent may report a warning to the console
@@ -1772,7 +1933,6 @@ fn sort_and_normalize_scopes(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
-    can_gc: CanGc,
 ) -> Fallible<IndexMap<ServoUrl, ModuleSpecifierMap>> {
     // Step 1. Let normalized be an empty ordered map.
     let mut normalized: IndexMap<ServoUrl, ModuleSpecifierMap> = IndexMap::new();
@@ -1783,7 +1943,7 @@ fn sort_and_normalize_scopes(
         // that the value of the scope with prefix scopePrefix needs to be a JSON object.
         let JsonValue::Object(potential_specifier_map) = potential_specifier_map else {
             return Err(Error::Type(
-                "The value of the scope with prefix scopePrefix needs to be a JSON object."
+                c"The value of the scope with prefix scopePrefix needs to be a JSON object."
                     .to_owned(),
             ));
         };
@@ -1808,12 +1968,8 @@ fn sort_and_normalize_scopes(
 
         // Step 2.5 Set normalized[normalizedScopePrefix] to the result of sorting and
         // normalizing a module specifier map given potentialSpecifierMap and baseURL.
-        let normalized_specifier_map = sort_and_normalize_module_specifier_map(
-            global,
-            potential_specifier_map,
-            base_url,
-            can_gc,
-        );
+        let normalized_specifier_map =
+            sort_and_normalize_module_specifier_map(global, potential_specifier_map, base_url);
         normalized.insert(normalized_scope_prefix, normalized_specifier_map);
     }
 
@@ -1828,7 +1984,6 @@ fn normalize_module_integrity_map(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
-    _can_gc: CanGc,
 ) -> ModuleIntegrityMap {
     // Step 1. Let normalized be an empty ordered map.
     let mut normalized = ModuleIntegrityMap::new();
@@ -1838,7 +1993,7 @@ fn normalize_module_integrity_map(
         // Step 2.1 Let resolvedURL be the result of
         // resolving a URL-like module specifier given key and baseURL.
         let Some(resolved_url) =
-            ModuleTree::resolve_url_like_module_specifier(&DOMString::from(key.as_str()), base_url)
+            ModuleTree::resolve_url_like_module_specifier(key.as_str(), base_url)
         else {
             // Step 2.2 If resolvedURL is null, then:
             // Step 2.2.1 The user agent may report a warning
@@ -1876,7 +2031,6 @@ fn normalize_specifier_key(
     global: &GlobalScope,
     specifier_key: &str,
     base_url: &ServoUrl,
-    _can_gc: CanGc,
 ) -> Option<String> {
     // step 1. If specifierKey is the empty string, then:
     if specifier_key.is_empty() {
@@ -1890,8 +2044,7 @@ fn normalize_specifier_key(
         return None;
     }
     // step 2. Let url be the result of resolving a URL-like module specifier, given specifierKey and baseURL.
-    let url =
-        ModuleTree::resolve_url_like_module_specifier(&DOMString::from(specifier_key), base_url);
+    let url = ModuleTree::resolve_url_like_module_specifier(specifier_key, base_url);
 
     // step 3. If url is not null, then return the serialization of url.
     if let Some(url) = url {
@@ -1906,11 +2059,10 @@ fn normalize_specifier_key(
 ///
 /// When the error is thrown, it will terminate the entire resolve a module specifier algorithm
 /// without any further fallbacks.
-pub(crate) fn resolve_imports_match(
+fn resolve_imports_match(
     normalized_specifier: &str,
     as_url: Option<&ServoUrl>,
     specifier_map: &ModuleSpecifierMap,
-    _can_gc: CanGc,
 ) -> Fallible<Option<ServoUrl>> {
     // Step 1. For each specifierKey → resolutionResult of specifierMap:
     for (specifier_key, resolution_result) in specifier_map {
@@ -1924,7 +2076,7 @@ pub(crate) fn resolve_imports_match(
             } else {
                 // Step 1.1.1 If resolutionResult is null, then throw a TypeError.
                 return Err(Error::Type(
-                    "Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
                 ));
             }
         }
@@ -1935,13 +2087,13 @@ pub(crate) fn resolve_imports_match(
         // - either asURL is null, or asURL is special, then:
         if specifier_key.ends_with('\u{002f}') &&
             normalized_specifier.starts_with(specifier_key) &&
-            (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
+            (as_url.is_none() || as_url.is_some_and(|u| u.is_special_scheme()))
         {
             // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
             // Step 1.2.2 Assert: resolutionResult is a URL.
             let Some(resolution_result) = resolution_result else {
                 return Err(Error::Type(
-                    "Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
                 ));
             };
 
@@ -1960,7 +2112,7 @@ pub(crate) fn resolve_imports_match(
             // Step 1.2.7 Assert: url is a URL.
             let Ok(url) = url else {
                 return Err(Error::Type(
-                    "Resolution of normalizedSpecifier was blocked since
+                    c"Resolution of normalizedSpecifier was blocked since
                     the afterPrefix portion could not be URL-parsed relative to
                     the resolutionResult mapped to by the specifierKey prefix."
                         .to_owned(),
@@ -1971,7 +2123,7 @@ pub(crate) fn resolve_imports_match(
             // a code unit prefix of the serialization of url, then throw a TypeError
             if !url.as_str().starts_with(resolution_result.as_str()) {
                 return Err(Error::Type(
-                    "Resolution of normalizedSpecifier was blocked due to
+                    c"Resolution of normalizedSpecifier was blocked due to
                     it backtracking above its prefix specifierKey."
                         .to_owned(),
                 ));

@@ -57,7 +57,7 @@ impl<'dom> ModernContainerJob<'dom> {
         match self {
             ModernContainerJob::TextRuns(runs, box_slot) => {
                 let mut inline_formatting_context_builder =
-                    InlineFormattingContextBuilder::new(builder.info);
+                    InlineFormattingContextBuilder::new(builder.info, builder.context);
                 let mut last_style_from_display_contents: Option<SharedInlineStyles> = None;
                 for flex_text_run in runs.into_iter() {
                     match (
@@ -99,6 +99,9 @@ impl<'dom> ModernContainerJob<'dom> {
                 let formatting_context = IndependentFormattingContext::new(
                     LayoutBoxBase::new(info.into(), info.style.clone()),
                     IndependentFormattingContextContents::Flow(block_formatting_context),
+                    // This is just a series of anonymous text runs, so we don't need to worry
+                    // about what kind of PropagatedBoxTreeData is used here.
+                    Default::default(),
                 );
 
                 Some(ModernItem {
@@ -120,12 +123,15 @@ impl<'dom> ModernContainerJob<'dom> {
                     info.style.clone_order()
                 };
 
-                if let Some(layout_box) = box_slot
-                    .take_layout_box_if_undamaged(info.damage)
-                    .and_then(|layout_box| match &layout_box {
-                        LayoutBox::FlexLevel(_) | LayoutBox::TaffyItemBox(_) => Some(layout_box),
-                        _ => None,
-                    })
+                if let Some(layout_box) =
+                    box_slot
+                        .take_layout_box()
+                        .and_then(|layout_box| match &layout_box {
+                            LayoutBox::FlexLevel(_) | LayoutBox::TaffyItemBox(_) => {
+                                Some(layout_box)
+                            },
+                            _ => None,
+                        })
                 {
                     return Some(ModernItem {
                         kind: ModernItemKind::ReusedBox(layout_box),

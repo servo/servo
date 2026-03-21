@@ -30,6 +30,7 @@ mod refresh_driver;
 mod render_notifier;
 mod screenshot;
 mod touch;
+mod web_content_animation;
 mod webrender_external_images;
 mod webview_renderer;
 

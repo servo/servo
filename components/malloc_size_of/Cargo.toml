@@ -1,5 +1,5 @@
 [package]
-name = "servo_malloc_size_of"
+name = "servo-malloc-size-of"
 license = "MIT OR Apache-2.0"
 version.workspace = true
 authors.workspace = true
@@ -25,7 +25,7 @@ markup5ever = { workspace = true }
 mime = { workspace = true }
 parking_lot = { workspace = true }
 resvg = { workspace = true }
-servo_allocator = { path = "../allocator" }
+servo_allocator = { workspace = true }
 servo_arc = { workspace = true }
 smallvec = { workspace = true }
 string_cache = { workspace = true }

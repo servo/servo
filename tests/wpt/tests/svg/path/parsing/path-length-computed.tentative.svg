@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVG Path Properties: getComputedStyle().pathLength</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthProperty"/>
+  </metadata>
+  <path id="target"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="/css/support/computed-testcommon.js"/>
+  <script><![CDATA[
+
+test_computed_value("path-length", "none");
+test_computed_value("path-length", "0");
+test_computed_value("path-length", "0.5");
+test_computed_value("path-length", "1");
+test_computed_value("path-length", "100");
+test_computed_value("path-length", "3.14");
+test_computed_value("path-length", "calc(1 + 2)", "3");
+test_computed_value("path-length", "calc(-1)", "0");
+
+  ]]></script>
+</svg>
