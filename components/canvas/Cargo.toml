@@ -18,7 +18,6 @@ tracing = ["dep:tracing"]
 vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive"]
 
 [dependencies]
-base = { workspace = true }
 bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
 canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -30,11 +29,12 @@ log = { workspace = true }
 paint_api = { workspace = true }
 peniko = { workspace = true }
 pixels = { workspace = true }
-profile_traits = { workspace = true }
 pollster = { version = "0.4", optional = true }
+profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
-servo-tracing = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
+servo-tracing = { workspace = true }
 stylo = { workspace = true }
 tracing = { workspace = true, optional = true }
 vello = { workspace = true, optional = true }

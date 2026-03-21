@@ -16,8 +16,6 @@ path = "lib.rs"
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
-background_hang_monitor_api = { workspace = true }
-base = { workspace = true }
 bitflags = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
@@ -35,8 +33,10 @@ rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true }
-servo_arc = { workspace = true }
+servo-background-hang-monitor-api = { workspace = true }
+servo-base = { workspace = true }
 servo-url = { workspace = true }
+servo_arc = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 webrender_api = { workspace = true }

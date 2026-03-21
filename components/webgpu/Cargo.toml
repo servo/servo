@@ -15,12 +15,12 @@ path = "lib.rs"
 
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }
-base = { workspace = true }
 euclid = { workspace = true }
 log = { workspace = true }
 paint_api = { workspace = true }
 pixels = { workspace = true }
 rustc-hash = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }

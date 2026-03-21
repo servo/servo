@@ -14,7 +14,7 @@ name = "bluetooth_traits"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 embedder_traits = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }

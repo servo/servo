@@ -15,7 +15,6 @@ path = "lib.rs"
 
 [dependencies]
 atomic_refcell = { workspace = true }
-base = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
@@ -26,10 +25,11 @@ parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }
 servo-url = { workspace = true }
 stylo = { workspace = true }
-webrender_api = { workspace = true }
 uuid = { workspace = true }
+webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }

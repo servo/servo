@@ -16,5 +16,5 @@ test = false
 doctest = false
 
 [dependencies]
-base = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }

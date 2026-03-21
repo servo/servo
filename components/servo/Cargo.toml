@@ -18,10 +18,10 @@ crate-type = ["rlib"]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add features that should be default to ports/servoshell/Cargo.toml
 default = ["clipboard", "js_jit"]
-background_hang_monitor = ["background_hang_monitor/sampler"]
+background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 bluetooth = [
-    "bluetooth_traits",
-    "dep:bluetooth",
+    "servo-bluetooth-traits",
+    "dep:servo-bluetooth",
     "constellation/bluetooth",
     "constellation_traits/bluetooth",
     "script/bluetooth",
@@ -40,7 +40,7 @@ jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
-native-bluetooth = ["bluetooth/native-bluetooth"]
+native-bluetooth = ["servo-bluetooth/native-bluetooth"]
 no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
@@ -76,11 +76,7 @@ webxr = [
 
 [dependencies]
 accesskit = { workspace = true }
-background_hang_monitor = { workspace = true }
-base = { workspace = true }
 bitflags = { workspace = true }
-bluetooth = { workspace = true, optional = true }
-bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 constellation = { workspace = true }
 constellation_traits = { workspace = true }
@@ -112,12 +108,16 @@ rustc-hash = { workspace = true }
 script = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
+servo-background-hang-monitor = { workspace = true }
+servo-base = { workspace = true }
+servo-bluetooth = { workspace = true, optional = true }
+servo-bluetooth-traits = { workspace = true, optional = true }
+servo-config = { workspace = true }
+servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
-servo-config = { workspace = true }
-servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 storage = { workspace = true }
 storage_traits = { workspace = true }
@@ -151,11 +151,11 @@ accesskit_consumer = "0.35.0"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
+net = { workspace = true, features = ["test-util"] }
+rustls = { version = "0.23", default-features = false }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
 servo = { path = ".", features = ["tracing"] }
-net = { workspace = true, features = ["test-util"] }
-rustls = { version = "0.23", default-features = false }
 tracing = { workspace = true }
 winit = { workspace = true }
 
