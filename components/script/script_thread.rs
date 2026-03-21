@@ -848,11 +848,11 @@ impl ScriptThread {
         })
     }
 
-    pub(crate) fn invoke_backup_element_queue(can_gc: CanGc) {
+    pub(crate) fn invoke_backup_element_queue(cx: &mut js::context::JSContext) {
         with_script_thread(|script_thread| {
             script_thread
                 .custom_element_reaction_stack
-                .invoke_backup_element_queue(can_gc);
+                .invoke_backup_element_queue(cx);
         })
     }
 

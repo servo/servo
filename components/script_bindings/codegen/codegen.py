@@ -4187,7 +4187,7 @@ class CGCallGenerator(CGThing):
         ]))
 
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("<D as DomHelpers<D>>::pop_current_element_queue(CanGc::note());\n"))
+            self.cgRoot.append(CGGeneric("<D as DomHelpers<D>>::pop_current_element_queue(cx);\n"))
 
         if isFallible:
             if static:

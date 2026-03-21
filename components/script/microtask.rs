@@ -163,7 +163,7 @@ impl MicrotaskQueue {
                         task.handler(cx);
                     },
                     Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue(CanGc::from_cx(cx));
+                        ScriptThread::invoke_backup_element_queue(cx);
                     },
                     Microtask::NotifyMutationObservers => {
                         ScriptThread::mutation_observers()
