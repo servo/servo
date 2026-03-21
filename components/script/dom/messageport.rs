@@ -333,12 +333,11 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    fn Start(&self, can_gc: CanGc) {
+    fn Start(&self, cx: &mut JSContext) {
         if self.detached.get() {
             return;
         }
-        self.global()
-            .start_message_port(self.message_port_id(), can_gc);
+        self.global().start_message_port(cx, self.message_port_id());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
@@ -363,14 +362,13 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>, can_gc: CanGc) {
+    fn SetOnmessage(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.detached.get() {
             return;
         }
         self.set_onmessage(listener);
         // Note: we cannot use the event_handler macro, due to the need to start the port.
-        self.global()
-            .start_message_port(self.message_port_id(), can_gc);
+        self.global().start_message_port(cx, self.message_port_id());
     }
 
     // <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>

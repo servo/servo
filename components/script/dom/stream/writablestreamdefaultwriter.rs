@@ -155,10 +155,12 @@ impl WritableStreamDefaultWriter {
 
     pub(crate) fn reject_closed_promise_with_stored_error(
         &self,
+        cx: &mut js::context::JSContext,
         error: &SafeHandleValue,
-        can_gc: CanGc,
     ) {
-        self.closed_promise.borrow().reject_native(error, can_gc);
+        self.closed_promise
+            .borrow()
+            .reject_native(error, CanGc::from_cx(cx));
     }
 
     pub(crate) fn set_close_promise_is_handled(&self) {
@@ -280,7 +282,7 @@ impl WritableStreamDefaultWriter {
         };
 
         // Let chunkSize be ! WritableStreamDefaultControllerGetChunkSize(controller, chunk).
-        let chunk_size = controller.get_chunk_size(cx.into(), global, chunk, CanGc::from_cx(cx));
+        let chunk_size = controller.get_chunk_size(cx, global, chunk);
 
         // If stream is not equal to writer.[[stream]],
         // return a promise rejected with a TypeError exception.

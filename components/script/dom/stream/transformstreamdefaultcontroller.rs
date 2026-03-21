@@ -611,7 +611,7 @@ impl TransformStreamDefaultController {
 
         // Let enqueueResult be ReadableStreamDefaultControllerEnqueue(readableController, chunk).
         // If enqueueResult is an abrupt completion,
-        if let Err(error) = readable_controller.enqueue(cx.into(), chunk, CanGc::from_cx(cx)) {
+        if let Err(error) = readable_controller.enqueue(cx, chunk) {
             // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, enqueueResult.[[Value]]).
             rooted!(&in(cx) let mut rooted_error = UndefinedValue());
             error.clone().to_jsval(
@@ -620,12 +620,7 @@ impl TransformStreamDefaultController {
                 rooted_error.handle_mut(),
                 CanGc::from_cx(cx),
             );
-            stream.error_writable_and_unblock_write(
-                cx.into(),
-                global,
-                rooted_error.handle(),
-                CanGc::from_cx(cx),
-            );
+            stream.error_writable_and_unblock_write(cx, global, rooted_error.handle());
 
             // Throw stream.[[readable]].[[storedError]].
             unsafe {
@@ -692,7 +687,7 @@ impl TransformStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-terminate>
-    pub(crate) fn terminate(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
+    fn terminate(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().expect("stream is null");
 
@@ -701,15 +696,20 @@ impl TransformStreamDefaultController {
         let readable_controller = readable.get_default_controller();
 
         // Perform ! ReadableStreamDefaultControllerClose(readableController).
-        readable_controller.close(can_gc);
+        readable_controller.close(CanGc::from_cx(cx));
 
         // Let error be a TypeError exception indicating that the stream has been terminated.
         let error = Error::Type(c"stream has been terminated".to_owned());
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, error).
-        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        error.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
-        stream.error_writable_and_unblock_write(cx, global, rooted_error.handle(), can_gc);
+        rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+        error.to_jsval(
+            cx.into(),
+            global,
+            rooted_error.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        stream.error_writable_and_unblock_write(cx, global, rooted_error.handle());
     }
 }
 
@@ -744,9 +744,9 @@ impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#ts-default-controller-terminate>
-    fn Terminate(&self, can_gc: CanGc) -> Fallible<()> {
+    fn Terminate(&self, cx: &mut js::context::JSContext) -> Fallible<()> {
         // Perform ? TransformStreamDefaultControllerTerminate(this).
-        self.terminate(GlobalScope::get_cx(), &self.global(), can_gc);
+        self.terminate(cx, &self.global());
         Ok(())
     }
 }
