@@ -24,14 +24,6 @@ pub(crate) fn make_marker<'dom>(
     let style = &marker_info.style;
     let list_style = style.get_list();
 
-    // https://drafts.csswg.org/css-lists/#content-property
-    let marker_content = || match &marker_info.style.get_counters().content {
-        Content::Items(_item) => {
-            return Some(generate_pseudo_element_content(&marker_info, context));
-        },
-        Content::Normal | Content::None => None,
-    };
-
     // https://drafts.csswg.org/css-lists/#marker-image
     let marker_image = || match &list_style.list_style_image {
         Image::Url(url) => Some(vec![
@@ -51,13 +43,14 @@ pub(crate) fn make_marker<'dom>(
         Image::LightDark(..) => unreachable!("light-dark() should be disabled"),
     };
 
-    let content = marker_content().or_else(|| {
-        marker_image().or_else(|| {
+    let content = match &marker_info.style.get_counters().content {
+        Content::Items(_) => generate_pseudo_element_content(&marker_info, context),
+        _ => marker_image().or_else(|| {
             Some(vec![PseudoElementContentItem::Text(marker_string(
                 &list_style.list_style_type,
             )?)])
-        })
-    })?;
+        })?,
+    };
 
     Some((marker_info, content))
 }
