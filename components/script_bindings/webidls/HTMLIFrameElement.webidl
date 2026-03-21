@@ -32,8 +32,8 @@ partial interface HTMLIFrameElement {
   //         attribute DOMString scrolling;
   [CEReactions]
            attribute DOMString frameBorder;
-  // [CEReactions]
-  //         attribute DOMString longDesc;
+  [CEReactions]
+  attribute USVString longDesc;
 
   // [CEReactions, LegacyNullToEmptyString]
   // attribute DOMString marginHeight;

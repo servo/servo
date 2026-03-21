@@ -1978,10 +1978,10 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_uint_setter!(SetVspace, "vspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
-    make_getter!(LongDesc, "longdesc");
+    make_url_getter!(LongDesc, "longdesc");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
-    make_setter!(SetLongDesc, "longdesc");
+    make_url_setter!(SetLongDesc, "longdesc");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-border
     make_getter!(Border, "border");
