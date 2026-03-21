@@ -14,6 +14,7 @@ use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
+use paint_api::{PropertyBindingType, get_property_binding_key};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::{pref, prefs};
@@ -45,7 +46,7 @@ use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    PropertyBindingKey, SpatialId, SpatialTreeItemKey, units,
+    SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1117,7 +1118,8 @@ impl Fragment {
             // there is currently only a single thing that animates in this way (the caret).
             // This code should be updated if we ever add more paint-side animations.
             let pipeline_id: PipelineId = builder.paint_info.pipeline_id.into();
-            let property_binding_key = PropertyBindingKey::new(pipeline_id.into());
+            let property_binding_key =
+                get_property_binding_key(PropertyBindingType::Caret, pipeline_id);
             builder.paint_info.caret_property_binding = Some((property_binding_key, caret_color));
             PropertyBinding::Binding(property_binding_key, caret_color)
         } else {
