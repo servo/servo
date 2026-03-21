@@ -317,7 +317,13 @@ where
 }
 
 /// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
+<<<<<<< HEAD
 pub(crate) fn generate_pseudo_element_content(
+||||||| parent of b85c0364267 (feat: use generate_pseudo_element_content to get the content)
+fn generate_pseudo_element_content(
+=======
+pub fn generate_pseudo_element_content(
+>>>>>>> b85c0364267 (feat: use generate_pseudo_element_content to get the content)
     pseudo_element_info: &NodeAndStyleInfo,
     context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem> {

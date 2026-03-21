@@ -25,12 +25,19 @@ pub(crate) fn make_marker<'dom>(
     let list_style = style.get_list();
 
     // https://drafts.csswg.org/css-lists/#content-property
+<<<<<<< HEAD
     let marker_content = || match &marker_info.style.get_counters().content {
         Content::Items(_item) => {
             return Some(generate_pseudo_element_content(&marker_info, context));
         },
         Content::Normal | Content::None => None,
     };
+||||||| parent of b85c0364267 (feat: use generate_pseudo_element_content to get the content)
+=======
+    let _marker_content = generate_pseudo_element_content(&marker_info, context);
+    // TODO: Remove, comment is for debugging
+    // println!("{:?}", marker_content);
+>>>>>>> b85c0364267 (feat: use generate_pseudo_element_content to get the content)
 
     // https://drafts.csswg.org/css-lists/#marker-image
     let marker_image = || match &list_style.list_style_image {
