@@ -34,7 +34,7 @@ pub(crate) enum TaskSourceName {
     FileReading,
     /// <https://drafts.csswg.org/css-font-loading/#task-source>
     FontLoading,
-    /// <https://html.spec.whatwg.org/#navigation-and-traversal-task-source>
+    /// <https://html.spec.whatwg.org/multipage/#navigation-and-traversal-task-source>
     NavigationTraversal,
     Networking,
     PerformanceTimeline,
