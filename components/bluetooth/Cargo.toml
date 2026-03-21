@@ -21,7 +21,7 @@ blurmock = { version = "0.1.2", optional = true }
 embedder_traits = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
-servo_config = { workspace = true }
+servo-config = { workspace = true }
 uuid = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]

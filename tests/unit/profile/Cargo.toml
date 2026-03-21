@@ -16,5 +16,5 @@ doctest = false
 ipc-channel = { workspace = true }
 profile = { workspace = true }
 profile_traits = { workspace = true }
-servo_config = { workspace = true }
+servo-config = { workspace = true }
 time = { workspace = true }

@@ -27,8 +27,8 @@ log = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { workspace = true }
-servo_geometry = { workspace = true }
+servo-config = { workspace = true }
+servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }

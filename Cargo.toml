@@ -277,10 +277,10 @@ servo-media-traits = { version = "0.0.6", path = "components/media/traits" }
 servo-media-webrtc = { version = "0.0.6", path = "components/media/webrtc" }
 servo-tracing = { version = "0.0.6", path = "components/servo_tracing" }
 servo-url = { version = "0.0.6", path = "components/url" }
-servo_allocator = { package = "servo-allocator", version = "0.0.6", path = "components/allocator" }
-servo_config = { package = "servo-config", version = "0.0.6", path = "components/config" }
-servo_config_macro = { package = "servo-config-macro", version = "0.0.6", path = "components/config/macro" }
-servo_geometry = { package = "servo-geometry", version = "0.0.6", path = "components/geometry" }
+servo-allocator = { version = "0.0.6", path = "components/allocator" }
+servo-config = { version = "0.0.6", path = "components/config" }
+servo-config-macro = { version = "0.0.6", path = "components/config/macro" }
+servo-geometry = { version = "0.0.6", path = "components/geometry" }
 storage = { package = "servo-storage", version = "0.0.6", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "0.0.6", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "0.0.6", path = "components/timers" }

@@ -21,7 +21,7 @@ log = { workspace = true }
 paint_api = { workspace = true }
 pixels = { workspace = true }
 rustc-hash = { workspace = true }
-servo_config = { workspace = true }
+servo-config = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }

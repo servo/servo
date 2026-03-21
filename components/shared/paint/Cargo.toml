@@ -37,7 +37,7 @@ raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
-servo_geometry = { workspace = true }
+servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 smallvec = { workspace = true }
 strum = { workspace = true }

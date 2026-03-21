@@ -49,8 +49,8 @@ script_traits = { workspace = true }
 selectors = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { workspace = true }
-servo_geometry = { workspace = true }
+servo-config = { workspace = true }
+servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 smallvec = { workspace = true }
 strum = { workspace = true }

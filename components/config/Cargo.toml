@@ -16,5 +16,5 @@ path = "lib.rs"
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-servo_config_macro = { workspace = true }
+servo-config-macro = { workspace = true }
 stylo_static_prefs = { workspace = true }

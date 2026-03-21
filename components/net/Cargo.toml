@@ -68,7 +68,7 @@ rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { workspace = true }
+servo-config = { workspace = true }
 servo-url = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
