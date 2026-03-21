@@ -1,3 +1,7 @@
+.hidden {
+    display: none !important;
+}
+
 button {
   display: inline-block;
   width: 24px;

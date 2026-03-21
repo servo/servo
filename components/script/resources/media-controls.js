@@ -85,9 +85,13 @@
       this.media = this.controls.host;
 
       this.mutationObserver = new MutationObserver(() => {
-        // We can only get here if the `controls` attribute is removed.
-        this.cleanup();
+        if (this.media.controls) {
+          this.root.classList.remove("hidden");
+        } else {
+          this.root.classList.add("hidden");
+        }
       });
+
       this.mutationObserver.observe(this.media, {
         attributeFilter: ["controls"]
       });
@@ -237,16 +241,6 @@
       // Set initial state.
       this.state = this.media.paused ? PAUSED : PLAYING;
       this.onStateChange(null);
-    }
-
-    cleanup() {
-      this.mutationObserver.disconnect();
-      this.mediaEvents.forEach(event => {
-        this.media.removeEventListener(event, this);
-      });
-      this.controlEvents.forEach(({ el, type }) => {
-        el.removeEventListener(type, this);
-      });
     }
 
     // State change handler
