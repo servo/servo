@@ -53,10 +53,7 @@ pub(crate) fn make_marker<'dom>(
         })?),
     };
 
-    match content {
-        Some(items) => Some((marker_info, items)),
-        None => None,
-    }
+    content.map(|items| (marker_info, items))
 }
 
 fn symbol_to_string(symbol: &Symbol) -> &str {
