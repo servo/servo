@@ -107,7 +107,7 @@ pub enum ProfilerCategory {
     ScriptWorkletEvent = 0x7b,
     ScriptGeolocationEvent = 0x7c,
     ScriptPerformanceEvent = 0x7d,
-    ScriptHistoryEvent = 0x7e,
+    ScriptNavigationTraversalEvent = 0x7e,
     ScriptPortMessage = 0x7f,
     ScriptWebGPUMsg = 0x80,
 
@@ -158,7 +158,7 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptExitFullscreen => "ScriptExitFullscreen",
             ProfilerCategory::ScriptWorkletEvent => "ScriptWorkletEvent",
             ProfilerCategory::ScriptPerformanceEvent => "ScriptPerformanceEvent",
-            ProfilerCategory::ScriptHistoryEvent => "ScriptHistoryEvent",
+            ProfilerCategory::ScriptNavigationTraversalEvent => "ScriptNavigationTraversalEvent",
             ProfilerCategory::ScriptPortMessage => "ScriptPortMessage",
             ProfilerCategory::ScriptWebGPUMsg => "ScriptWebGPUMsg",
             ProfilerCategory::TimeToFirstPaint => "TimeToFirstPaint",

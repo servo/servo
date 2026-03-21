@@ -117,9 +117,9 @@ pub(crate) enum ScriptThreadEventCategory {
     FontLoading,
     FormPlannedNavigation,
     GeolocationEvent,
-    HistoryEvent,
     ImageCacheMsg,
     InputEvent,
+    NavigationTraversalEvent,
     NetworkEvent,
     PortMessage,
     Rendering,
@@ -159,7 +159,9 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
                 ProfilerCategory::ScriptPlannedNavigation
             },
             ScriptThreadEventCategory::GeolocationEvent => ProfilerCategory::ScriptGeolocationEvent,
-            ScriptThreadEventCategory::HistoryEvent => ProfilerCategory::ScriptHistoryEvent,
+            ScriptThreadEventCategory::NavigationTraversalEvent => {
+                ProfilerCategory::ScriptNavigationTraversalEvent
+            },
             ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
             ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
             ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
@@ -206,7 +208,9 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
                 ScriptHangAnnotation::FormPlannedNavigation
             },
             ScriptThreadEventCategory::GeolocationEvent => ScriptHangAnnotation::GeolocationEvent,
-            ScriptThreadEventCategory::HistoryEvent => ScriptHangAnnotation::HistoryEvent,
+            ScriptThreadEventCategory::NavigationTraversalEvent => {
+                ScriptHangAnnotation::NavigationTraversalEvent
+            },
             ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
             ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
             ScriptThreadEventCategory::Rendering => ScriptHangAnnotation::Rendering,

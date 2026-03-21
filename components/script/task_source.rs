@@ -69,7 +69,9 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,
             TaskSourceName::Geolocation => ScriptThreadEventCategory::GeolocationEvent,
-            TaskSourceName::NavigationTraversal => ScriptThreadEventCategory::HistoryEvent,
+            TaskSourceName::NavigationTraversal => {
+                ScriptThreadEventCategory::NavigationTraversalEvent
+            },
             TaskSourceName::Networking => ScriptThreadEventCategory::NetworkEvent,
             TaskSourceName::PerformanceTimeline => {
                 ScriptThreadEventCategory::PerformanceTimelineTask

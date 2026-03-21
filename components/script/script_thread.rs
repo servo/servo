@@ -1617,8 +1617,13 @@ impl ScriptThread {
                         f
                     )
                 },
-                ScriptThreadEventCategory::HistoryEvent => {
-                    time_profile!(ProfilerCategory::ScriptHistoryEvent, None, profiler_chan, f)
+                ScriptThreadEventCategory::NavigationTraversalEvent => {
+                    time_profile!(
+                        ProfilerCategory::ScriptNavigationTraversalEvent,
+                        None,
+                        profiler_chan,
+                        f
+                    )
                 },
                 ScriptThreadEventCategory::ImageCacheMsg => time_profile!(
                     ProfilerCategory::ScriptImageCacheMsg,
