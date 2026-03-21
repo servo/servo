@@ -178,11 +178,29 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-a-hreflang
+    make_getter!(Hreflang, "hreflang");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-hreflang
+    make_setter!(SetHreflang, "hreflang");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-type
+    make_getter!(Type, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-type
+    make_setter!(SetType, "type");
+
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
     make_getter!(Coords, "coords");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords
     make_setter!(SetCoords, "coords");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-charset
+    make_getter!(Charset, "charset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-charset
+    make_setter!(SetCharset, "charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-name
     make_getter!(Name, "name");
