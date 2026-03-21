@@ -68,7 +68,9 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
             }
 
             if OsRng.try_fill_bytes(data).is_err() {
-                return Err(Error::JSFailed);
+                return Err(Error::Operation(Some(
+                    "Failed to generate random values".into(),
+                )));
             }
 
             let underlying_object = unsafe { input.underlying_object() };
