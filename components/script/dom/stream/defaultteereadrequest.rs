@@ -217,7 +217,7 @@ impl DefaultTeeReadRequest {
     ) {
         stream
             .get_default_controller()
-            .enqueue(cx.into(), chunk, CanGc::from_cx(cx))
+            .enqueue(cx, chunk)
             .expect("enqueue failed for stream controller in DefaultTeeReadRequest");
     }
 

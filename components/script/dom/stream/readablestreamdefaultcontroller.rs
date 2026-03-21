@@ -11,7 +11,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers::JS_GetPendingException;
+use js::rust::wrappers2::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
@@ -652,9 +652,8 @@ impl ReadableStreamDefaultController {
     #[expect(unsafe_code)]
     pub(crate) fn enqueue(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         chunk: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Result<(), Error> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
         if !self.can_close_or_enqueue() {
@@ -670,7 +669,7 @@ impl ReadableStreamDefaultController {
         // and ! ReadableStreamGetNumReadRequests(stream) > 0,
         // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
-            stream.fulfill_read_request(chunk, false, can_gc);
+            stream.fulfill_read_request(chunk, false, CanGc::from_cx(cx));
         } else {
             // Otherwise,
             // Let result be the result of performing controller.[[strategySizeAlgorithm]],
@@ -683,17 +682,18 @@ impl ReadableStreamDefaultController {
             let size = if let Some(strategy_size) = strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
-                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow, can_gc);
+                let result =
+                    strategy_size.Call__(chunk, ExceptionHandling::Rethrow, CanGc::from_cx(cx));
                 match result {
                     // Let chunkSize be result.[[Value]].
                     Ok(size) => size,
                     Err(error) => {
                         // If result is an abrupt completion,
-                        rooted!(in(*cx) let mut rval = UndefinedValue());
-                        unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
+                        rooted!(&in(cx) let mut rval = UndefinedValue());
+                        unsafe { assert!(JS_GetPendingException(cx, rval.handle_mut())) };
 
                         // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
-                        self.error(rval.handle(), can_gc);
+                        self.error(rval.handle(), CanGc::from_cx(cx));
 
                         // Return result.
                         // Note: we need to return a type error, because no exception is pending.
@@ -718,15 +718,15 @@ impl ReadableStreamDefaultController {
                     // First, throw the exception.
                     // Note: this must be done manually here,
                     // because `enqueue_value_with_size` does not call into JS.
-                    throw_dom_exception(cx, &self.global(), error, can_gc);
+                    throw_dom_exception(cx.into(), &self.global(), error, CanGc::from_cx(cx));
 
                     // Then, get a handle to the JS val for the exception,
                     // and use that to error the stream.
-                    rooted!(in(*cx) let mut rval = UndefinedValue());
-                    unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
+                    rooted!(&in(cx) let mut rval = UndefinedValue());
+                    unsafe { assert!(JS_GetPendingException(cx, rval.handle_mut())) };
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
-                    self.error(rval.handle(), can_gc);
+                    self.error(rval.handle(), CanGc::from_cx(cx));
 
                     // Return enqueueResult.
                     // Note: because we threw the exception above,
@@ -737,7 +737,7 @@ impl ReadableStreamDefaultController {
         }
 
         // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-        self.call_pull_if_needed(can_gc);
+        self.call_pull_if_needed(CanGc::from_cx(cx));
 
         Ok(())
     }
@@ -903,7 +903,7 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
         }
 
         // Perform ? ReadableStreamDefaultControllerEnqueue(this, chunk).
-        self.enqueue(cx.into(), chunk, CanGc::from_cx(cx))
+        self.enqueue(cx, chunk)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>

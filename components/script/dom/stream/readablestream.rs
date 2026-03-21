@@ -2030,9 +2030,8 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     pub(crate) fn setup_cross_realm_transform_readable(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         port: &MessagePort,
-        can_gc: CanGc,
     ) {
         let port_id = port.message_port_id();
         let global = self.global();
@@ -2041,7 +2040,8 @@ impl ReadableStream {
         // Done in `new_inherited`.
 
         // Let sizeAlgorithm be an algorithm that returns 1.
-        let size_algorithm = extract_size_algorithm(&QueuingStrategy::default(), can_gc);
+        let size_algorithm =
+            extract_size_algorithm(&QueuingStrategy::default(), CanGc::from_cx(cx));
 
         // Note: other algorithms defined in the underlying source container.
 
@@ -2051,22 +2051,22 @@ impl ReadableStream {
             UnderlyingSourceType::Transfer(Dom::from_ref(port)),
             0.,
             size_algorithm,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Add a handler for port’s message event with the following steps:
         // Add a handler for port’s messageerror event with the following steps:
-        rooted!(in(*cx) let cross_realm_transform_readable = CrossRealmTransformReadable {
+        rooted!(&in(cx) let cross_realm_transform_readable = CrossRealmTransformReadable {
             controller: Dom::from_ref(&controller),
         });
         global.note_cross_realm_transform_readable(&cross_realm_transform_readable, port_id);
 
         // Enable port’s port message queue.
-        port.Start(can_gc);
+        port.Start(cx);
 
         // Perform ! SetUpReadableStreamDefaultController
         controller
-            .setup(DomRoot::from_ref(self), can_gc)
+            .setup(DomRoot::from_ref(self), CanGc::from_cx(cx))
             .expect("Setting up controller for transfer cannot fail.");
     }
 }
@@ -2352,41 +2352,45 @@ impl CrossRealmTransformReadable {
     #[expect(unsafe_code)]
     pub(crate) fn handle_message(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         port: &MessagePort,
         message: SafeHandleValue,
-        _realm: InRealm,
-        can_gc: CanGc,
     ) {
-        rooted!(in(*cx) let mut value = UndefinedValue());
-        let type_string =
-            unsafe { get_type_and_value_from_message(cx, message, value.handle_mut(), can_gc) };
+        rooted!(&in(cx) let mut value = UndefinedValue());
+        let type_string = unsafe {
+            get_type_and_value_from_message(
+                cx.into(),
+                message,
+                value.handle_mut(),
+                CanGc::from_cx(cx),
+            )
+        };
 
         // If type is "chunk",
         if type_string == "chunk" {
             // Perform ! ReadableStreamDefaultControllerEnqueue(controller, value).
             self.controller
-                .enqueue(cx, value.handle(), can_gc)
+                .enqueue(cx, value.handle())
                 .expect("Enqueing a chunk should not fail.");
         }
 
         // Otherwise, if type is "close",
         if type_string == "close" {
             // Perform ! ReadableStreamDefaultControllerClose(controller).
-            self.controller.close(can_gc);
+            self.controller.close(CanGc::from_cx(cx));
 
             // Disentangle port.
-            global.disentangle_port(port, can_gc);
+            global.disentangle_port(port, CanGc::from_cx(cx));
         }
 
         // Otherwise, if type is "error",
         if type_string == "error" {
             // Perform ! ReadableStreamDefaultControllerError(controller, value).
-            self.controller.error(value.handle(), can_gc);
+            self.controller.error(value.handle(), CanGc::from_cx(cx));
 
             // Disentangle port.
-            global.disentangle_port(port, can_gc);
+            global.disentangle_port(port, CanGc::from_cx(cx));
         }
     }
 
@@ -2394,25 +2398,24 @@ impl CrossRealmTransformReadable {
     /// Add a handler for port’s messageerror event with the following steps:
     pub(crate) fn handle_error(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         port: &MessagePort,
-        _realm: InRealm,
-        can_gc: CanGc,
     ) {
         // Let error be a new "DataCloneError" DOMException.
-        let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
-        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        error.safe_to_jsval(cx, rooted_error.handle_mut(), can_gc);
+        let error = DOMException::new(global, DOMErrorName::DataCloneError, CanGc::from_cx(cx));
+        rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+        error.safe_to_jsval(cx.into(), rooted_error.handle_mut(), CanGc::from_cx(cx));
 
         // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
+        port.cross_realm_transform_send_error(rooted_error.handle(), CanGc::from_cx(cx));
 
         // Perform ! ReadableStreamDefaultControllerError(controller, error).
-        self.controller.error(rooted_error.handle(), can_gc);
+        self.controller
+            .error(rooted_error.handle(), CanGc::from_cx(cx));
 
         // Disentangle port.
-        global.disentangle_port(port, can_gc);
+        global.disentangle_port(port, CanGc::from_cx(cx));
     }
 }
 
@@ -2526,7 +2529,7 @@ impl Transferable for ReadableStream {
         let writable = WritableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
 
         // Step 6. Perform ! SetUpCrossRealmTransformWritable(writable, port1).
-        writable.setup_cross_realm_transform_writable(cx.into(), &port_1, CanGc::from_cx(cx));
+        writable.setup_cross_realm_transform_writable(cx, &port_1);
 
         // Step 7. Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
         let promise = self.pipe_to(cx, &global, &writable, false, false, false, None);
@@ -2558,11 +2561,7 @@ impl Transferable for ReadableStream {
         let transferred_port = MessagePort::transfer_receive(cx, owner, id, port_impl)?;
 
         // Step 3. Perform ! SetUpCrossRealmTransformReadable(value, port).
-        value.setup_cross_realm_transform_readable(
-            cx.into(),
-            &transferred_port,
-            CanGc::from_cx(cx),
-        );
+        value.setup_cross_realm_transform_readable(cx, &transferred_port);
         Ok(value)
     }
 
