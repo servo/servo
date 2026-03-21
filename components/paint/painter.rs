@@ -23,8 +23,9 @@ use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableDisplayListPayload,
-    SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
+    ImageUpdate, PipelineExitSource, PropertyBindingType, SendableFrameTree,
+    SerializableDisplayListPayload, SerializableImageData, WebRenderExternalImageHandlers,
+    WebRenderImageHandlerType, WebViewTrait, get_property_binding_key,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -42,15 +43,15 @@ use webrender::{
     MemoryReport, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
 };
 use webrender_api::units::{
-    DevicePixel, DevicePoint, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D,
-    WorldPoint,
+    DevicePixel, DevicePoint, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
     DocumentId, DynamicProperties, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags,
     FontInstanceKey, FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey,
-    NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
-    RenderReasons, SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
+    NativeFontHandle, PipelineId as WebRenderPipelineId, PropertyBinding, PropertyValue,
+    ReferenceFrameKind, RenderReasons, SampledScrollOffset, SpaceAndClipInfo, SpatialId,
+    TransformStyle,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -312,7 +313,6 @@ impl Painter {
 
         if let Some(colors) = self.web_content_animator.update(&self.webview_renderers) {
             let mut transaction = Transaction::new();
-            transaction.reset_dynamic_properties();
             transaction.append_dynamic_properties(DynamicProperties {
                 transforms: Vec::new(),
                 floats: Vec::new(),
@@ -591,6 +591,29 @@ impl Painter {
             .send_transaction(self.webrender_document, transaction);
     }
 
+    fn send_pinch_zoom_update_in_transaction(&self, transaction: &mut Transaction) {
+        let mut dynamic_properties = vec![];
+
+        for webview_renderer in self.webview_renderers.values() {
+            if webview_renderer.hidden() {
+                continue;
+            }
+            let Some(pipeline_id) = webview_renderer.root_pipeline_id else {
+                continue;
+            };
+
+            let transform = webview_renderer.get_webview_transform();
+
+            let property_binding_key =
+                get_property_binding_key(PropertyBindingType::PinchZoom, pipeline_id);
+            dynamic_properties.push(PropertyValue {
+                key: property_binding_key,
+                value: transform,
+            });
+        }
+        transaction.append_dynamic_transform_properties(dynamic_properties);
+    }
+
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying a transformation on the root for
     /// pinch zoom, page zoom, and HiDPI scaling.
@@ -622,25 +645,17 @@ impl Painter {
                 continue;
             };
 
-            let pinch_zoom_transform = webview_renderer.pinch_zoom().transform().to_untyped();
-            let device_pixels_per_page_pixel_not_including_pinch_zoom = webview_renderer
-                .device_pixels_per_page_pixel_not_including_pinch_zoom()
-                .get();
-
-            let transform = LayoutTransform::scale(
-                device_pixels_per_page_pixel_not_including_pinch_zoom,
-                device_pixels_per_page_pixel_not_including_pinch_zoom,
-                1.0,
-            )
-            .then(&LayoutTransform::from_untyped(
-                &pinch_zoom_transform.to_3d(),
-            ));
+            let transform = webview_renderer.get_webview_transform();
+            let property_binding = PropertyBinding::Binding(
+                get_property_binding_key(PropertyBindingType::PinchZoom, pipeline_id),
+                transform,
+            );
 
             let webview_reference_frame = builder.push_reference_frame(
                 LayoutPoint::zero(),
                 root_reference_frame,
                 TransformStyle::Flat,
-                PropertyBinding::Value(transform),
+                property_binding,
                 ReferenceFrameKind::Transform {
                     is_2d_scale_translation: true,
                     should_snap: true,
@@ -725,7 +740,7 @@ impl Painter {
 
         let mut transaction = Transaction::new();
         if need_zoom {
-            self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+            self.send_pinch_zoom_update_in_transaction(&mut transaction);
         }
         for update in scroll_offset_updates {
             transaction.set_scroll_offsets(
