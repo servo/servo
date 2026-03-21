@@ -423,3 +423,13 @@ iframe:fullscreen {
   font-variant-numeric: tabular-nums;
   white-space: pre;
 }
+
+/* https://html.spec.whatwg.org/multipage/#the-marquee-element-2 */
+marquee {
+  display: inline-block;
+  text-align: initial;
+  overflow: hidden !important;
+  inline-size: stretch;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+}

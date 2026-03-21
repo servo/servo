@@ -269,6 +269,19 @@
       {}
      ]
     ],
+    "marquee.html": [
+     "4a5b8a6d16d85dcf6b74e704c55231dddee26e0b",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/marquee-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "text-advance-less-than-ink-clipping.html": [
      "a726bd2881ff7cb29a9e68f8e7f1fae728b9382e",
      [
@@ -8358,6 +8371,10 @@
     ],
     "input-textual-vertical-align-ref.html": [
      "ee442170edc3543c2838be3ef4edf78d1aae4753",
+     []
+    ],
+    "marquee-ref.html": [
+     "3bbe99f30eba1dfeda637b2e44e21d366c7fda6f",
      []
     ],
     "supports": {
