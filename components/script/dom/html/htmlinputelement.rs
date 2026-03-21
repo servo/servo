@@ -1982,6 +1982,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_setter!(SetStep, "step");
 
+    // https://html.spec.whatwg.org/multipage/#dom-input-usemap
+    make_getter!(UseMap, "usemap");
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-usemap
+    make_setter!(SetUseMap, "usemap");
+
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
     fn Indeterminate(&self) -> bool {
         self.upcast::<Element>()

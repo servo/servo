@@ -96,6 +96,12 @@ impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");
 
+    // https://html.spec.whatwg.org/multipage/#dom-object-usemap
+    make_getter!(UseMap, "usemap");
+
+    // https://html.spec.whatwg.org/multipage/#dom-object-usemap
+    make_setter!(SetUseMap, "usemap");
+
     /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()
