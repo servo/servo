@@ -1018,6 +1018,12 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-loading
     make_setter!(SetLoading, "loading");
+
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-longdesc
+    make_url_getter!(LongDesc, "longdesc");
+
+    // https://html.spec.whatwg.org/multipage/#dom-iframe-longdesc
+    make_url_setter!(SetLongDesc, "longdesc");
 }
 
 impl VirtualMethods for HTMLIFrameElement {

@@ -49,7 +49,7 @@ partial interface HTMLImageElement {
   [CEReactions]
            attribute unsigned long vspace;
   [CEReactions]
-           attribute DOMString longDesc;
+  attribute USVString longDesc;
 
   [CEReactions]
   attribute [LegacyNullToEmptyString] DOMString border;

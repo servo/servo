@@ -5,8 +5,10 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::HTMLFrameElementBinding::HTMLFrameElement_Binding::HTMLFrameElementMethods;
 
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
@@ -44,4 +46,12 @@ impl HTMLFrameElement {
             can_gc,
         )
     }
+}
+
+impl HTMLFrameElementMethods<crate::DomTypeHolder> for HTMLFrameElement {
+    // https://html.spec.whatwg.org/multipage/#dom-frame-longdesc
+    make_url_getter!(LongDesc, "longdesc");
+
+    // https://html.spec.whatwg.org/multipage/#dom-frame-longdesc
+    make_url_setter!(SetLongDesc, "longdesc");
 }

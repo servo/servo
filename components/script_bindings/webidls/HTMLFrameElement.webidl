@@ -15,8 +15,8 @@ interface HTMLFrameElement : HTMLElement {
   //          attribute DOMString src;
   // [CEReactions]
   //          attribute DOMString frameBorder;
-  // [CEReactions]
-  //          attribute DOMString longDesc;
+  [CEReactions]
+  attribute USVString longDesc;
   // [CEReactions]
   //          attribute boolean noResize;
   // readonly attribute Document? contentDocument;
