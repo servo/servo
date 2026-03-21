@@ -11,6 +11,7 @@ use std::cell::Cell;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{Theme, ViewportDetails};
@@ -26,7 +27,7 @@ use net_traits::{
     Metadata, fetch_async, set_default_accept_language,
 };
 use script_traits::{DocumentActivity, NewPipelineInfo};
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
@@ -244,4 +245,42 @@ impl InProgressLoad {
 
         request_builder
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#determining-the-origin>
+pub(crate) fn determine_the_origin(
+    url: Option<&ServoUrl>,
+    sandbox_flags: SandboxingFlagSet,
+    source_origin: Option<MutableOrigin>,
+) -> MutableOrigin {
+    // Step 1. If sandboxFlags has its sandboxed origin browsing context flag set, then return a new opaque origin.
+    let is_sandboxed =
+        sandbox_flags.contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG);
+    if is_sandboxed {
+        return MutableOrigin::new(ImmutableOrigin::new_opaque());
+    }
+
+    // Step 2. If url is null, then return a new opaque origin.
+    let Some(url) = url else {
+        return MutableOrigin::new(ImmutableOrigin::new_opaque());
+    };
+
+    // Step 3. If url is about:srcdoc, then:
+    if url.as_str() == "about:srcdoc" {
+        // Step 3.1 Assert: sourceOrigin is non-null.
+        let source_origin =
+            source_origin.expect("Can't have a null source origin for about:srcdoc");
+        // Step 3.2 Return sourceOrigin
+        return source_origin;
+    }
+
+    // Step 4. If url matches about:blank and sourceOrigin is non-null, then return sourceOrigin.
+    if url.as_str() == "about:blank" {
+        if let Some(source_origin) = source_origin {
+            return source_origin;
+        }
+    }
+
+    // Step 5. Return url's origin.
+    MutableOrigin::new(url.origin())
 }

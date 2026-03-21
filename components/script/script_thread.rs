@@ -151,7 +151,7 @@ use crate::messaging::{
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
-use crate::navigation::{InProgressLoad, NavigationListener};
+use crate::navigation::{InProgressLoad, NavigationListener, determine_the_origin};
 use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
@@ -2734,28 +2734,17 @@ impl ScriptThread {
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
             || {
-                // If this is an about:blank or about:srcdoc load, it must share the
-                // creator's origin. This must match the logic in the constellation
-                // when creating a new pipeline
-                let not_an_about_blank_and_about_srcdoc_load =
-                    new_pipeline_info.load_data.url.as_str() != "about:blank" &&
-                        new_pipeline_info.load_data.url.as_str() != "about:srcdoc";
-                let origin = if not_an_about_blank_and_about_srcdoc_load {
-                    MutableOrigin::new(new_pipeline_info.load_data.url.origin())
-                } else if let Some(parent) = new_pipeline_info
-                    .parent_info
-                    .and_then(|pipeline_id| self.documents.borrow().find_document(pipeline_id))
-                {
-                    parent.origin().clone()
-                } else if let Some(creator) = new_pipeline_info
-                    .load_data
-                    .creator_pipeline_id
-                    .and_then(|pipeline_id| self.documents.borrow().find_document(pipeline_id))
-                {
-                    creator.origin().clone()
-                } else {
-                    MutableOrigin::new(ImmutableOrigin::new_opaque())
+                let source_origin = match new_pipeline_info.load_data.load_origin {
+                    LoadOrigin::Script(ref snapshot) => {
+                        Some(MutableOrigin::from_snapshot(snapshot.clone()))
+                    },
+                    _ => None,
                 };
+                let origin = determine_the_origin(
+                    Some(&new_pipeline_info.load_data.url),
+                    new_pipeline_info.load_data.creation_sandboxing_flag_set,
+                    source_origin,
+                );
 
                 self.devtools_state
                     .notify_pipeline_created(new_pipeline_info.new_pipeline_id);

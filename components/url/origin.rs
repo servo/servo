@@ -199,6 +199,10 @@ pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 malloc_size_of_is_0!(MutableOrigin);
 
 impl MutableOrigin {
+    pub fn from_snapshot(snapshot: OriginSnapshot) -> MutableOrigin {
+        MutableOrigin(Rc::new((snapshot.0, RefCell::new(snapshot.1))))
+    }
+
     pub fn snapshot(&self) -> OriginSnapshot {
         OriginSnapshot(self.0.0.clone(), self.0.1.borrow().clone())
     }
