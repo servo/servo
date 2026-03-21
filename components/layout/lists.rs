@@ -44,7 +44,7 @@ pub(crate) fn make_marker<'dom>(
     };
 
     let content = match &marker_info.style.get_counters().content {
-        Content::Items(_) => generate_pseudo_element_content(&marker_info, context)),
+        Content::Items(_) => generate_pseudo_element_content(&marker_info, context),
         Content::None => return None,
         Content::Normal => marker_image().or_else(|| {
             Some(vec![PseudoElementContentItem::Text(marker_string(
@@ -53,7 +53,7 @@ pub(crate) fn make_marker<'dom>(
         })?,
     };
 
-    Some((marker_info, items))
+    Some((marker_info, content))
 }
 
 fn symbol_to_string(symbol: &Symbol) -> &str {
