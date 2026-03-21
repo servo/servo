@@ -15,8 +15,6 @@ interface HTMLObjectElement : HTMLElement {
   //         attribute boolean typeMustMatch;
   // [CEReactions]
   //         attribute DOMString name;
-  // [CEReactions]
-  //         attribute DOMString useMap;
   readonly attribute HTMLFormElement? form;
   // [CEReactions]
   //         attribute DOMString width;
@@ -48,6 +46,8 @@ partial interface HTMLObjectElement {
   //         attribute unsigned long vspace;
   //         attribute DOMString codeBase;
   //         attribute DOMString codeType;
+  [CEReactions]
+  attribute DOMString useMap;
 
   //[LegacyNullToEmptyString] attribute DOMString border;
 };
