@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "gamepad")]
 use std::cell::Cell;
 use std::convert::TryInto;
 use std::ops::Deref;
@@ -23,6 +24,7 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 
 use crate::body::Extractable;
+#[cfg(feature = "gamepad")]
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
