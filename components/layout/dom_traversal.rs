@@ -317,7 +317,7 @@ where
 }
 
 /// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
-fn generate_pseudo_element_content(
+pub(crate) fn generate_pseudo_element_content(
     pseudo_element_info: &NodeAndStyleInfo,
     context: &LayoutContext,
 ) -> Vec<PseudoElementContentItem> {

@@ -5,10 +5,13 @@
 use style::counter_style::{CounterStyle, Symbol, SymbolsType};
 use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
 use style::values::computed::Image;
+use style::values::generics::counters::Content;
 use stylo_atoms::atom;
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{NodeAndStyleInfo, PseudoElementContentItem};
+use crate::dom_traversal::{
+    NodeAndStyleInfo, PseudoElementContentItem, generate_pseudo_element_content,
+};
 use crate::replaced::ReplacedContents;
 
 /// <https://drafts.csswg.org/css-lists/#content-property>
@@ -20,6 +23,14 @@ pub(crate) fn make_marker<'dom>(
         info.with_pseudo_element(context, style::selector_parser::PseudoElement::Marker)?;
     let style = &marker_info.style;
     let list_style = style.get_list();
+
+    // https://drafts.csswg.org/css-lists/#content-property
+    let marker_content = || match &marker_info.style.get_counters().content {
+        Content::Items(_item) => {
+            return Some(generate_pseudo_element_content(&marker_info, context));
+        },
+        Content::Normal | Content::None => None,
+    };
 
     // https://drafts.csswg.org/css-lists/#marker-image
     let marker_image = || match &list_style.list_style_image {
@@ -39,10 +50,13 @@ pub(crate) fn make_marker<'dom>(
         Image::None => None,
         Image::LightDark(..) => unreachable!("light-dark() should be disabled"),
     };
-    let content = marker_image().or_else(|| {
-        Some(vec![PseudoElementContentItem::Text(marker_string(
-            &list_style.list_style_type,
-        )?)])
+
+    let content = marker_content().or_else(|| {
+        marker_image().or_else(|| {
+            Some(vec![PseudoElementContentItem::Text(marker_string(
+                &list_style.list_style_type,
+            )?)])
+        })
     })?;
 
     Some((marker_info, content))
