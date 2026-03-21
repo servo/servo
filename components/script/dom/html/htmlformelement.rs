@@ -836,7 +836,7 @@ impl HTMLFormElement {
             action = DOMString::from(base.as_str());
         }
         // Step 14. Let parsed action be the result of encoding-parsing a URL given action, relative to submitter's node document.
-        let action_components = match base.join(&action.str()) {
+        let action_components = match doc.encoding_parse_a_url(&action.str()) {
             Ok(url) => url,
             // Step 15. If parsed action is failure, then return.
             Err(_) => return,

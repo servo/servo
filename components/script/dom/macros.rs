@@ -135,7 +135,7 @@ macro_rules! make_form_action_getter(
                 Some(ref value) if !value.is_empty() => &***value,
                 _ => return doc.url().into_string().into(),
             };
-            match doc.base_url().join(value) {
+            match doc.encoding_parse_a_url(value) {
                 Ok(parsed) => parsed.into_string().into(),
                 Err(_) => value.to_owned().into(),
             }
