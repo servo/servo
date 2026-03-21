@@ -43,7 +43,7 @@ use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::{
     ExtractionResult, can_inject_key_into_value, convert_value_to_key, convert_value_to_key_range,
-    extract_key, inject_key_into_value,
+    extract_key, inject_key_into_value, is_valid_key_path,
 };
 use crate::script_runtime::CanGc;
 
@@ -841,10 +841,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-createindex>
     fn CreateIndex(
         &self,
+        cx: &mut JSContext,
         name: DOMString,
         key_path: StringOrStringSequence,
         options: &IDBIndexParameters,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBIndex>> {
         let key_path: KeyPath = key_path.into();
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
@@ -862,7 +862,15 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             return Err(Error::Constraint(None));
         }
 
-        // TODO: Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
+        let js_key_path = match key_path.clone() {
+            KeyPath::String(s) => StringOrStringSequence::String(s),
+            KeyPath::StringSequence(s) => StringOrStringSequence::StringSequence(s),
+        };
+
+        // Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
+        if !is_valid_key_path(cx, &js_key_path)? {
+            return Err(Error::Syntax(None));
+        }
         // Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
         // Step 9. Let multiEntry be set if options’s multiEntry member is true, and unset otherwise.
         // Step 10. If keyPath is a sequence and multiEntry is set, throw an "InvalidAccessError" DOMException.
@@ -891,7 +899,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
 
         // Step 12. Add index to this object store handle's index set.
-        let index = self.add_index(name, options, key_path, can_gc);
+        let index = self.add_index(name, options, key_path, CanGc::from_cx(cx));
 
         // Step 13. Return a new index handle associated with index and this object store handle.
         Ok(index)
