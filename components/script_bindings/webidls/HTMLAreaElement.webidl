@@ -29,6 +29,6 @@ HTMLAreaElement includes HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {
-  // [CEReactions]
-  //          attribute boolean noHref;
+  [CEReactions]
+  attribute boolean noHref;
 };

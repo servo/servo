@@ -520,6 +520,12 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     fn SetUsername(&self, value: USVString, can_gc: CanGc) {
         self.set_username(value, can_gc);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-area-nohref
+    make_bool_getter!(NoHref, "nohref");
+
+    // https://html.spec.whatwg.org/multipage/#dom-area-nohref
+    make_bool_setter!(SetNoHref, "nohref");
 }
 
 impl Activatable for HTMLAreaElement {
