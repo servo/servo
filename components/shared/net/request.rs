@@ -310,9 +310,11 @@ pub enum BodyChunkRequest {
     Error,
 }
 
-/// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
-/// After the last call to `extract_source`, `close_stream` must be called
-/// to not leak resources.
+/// A process local view into <https://fetch.spec.whatwg.org/#bodies>.
+/// After IPC serialization, each process gets its own shared sender state for the same body
+/// stream. the net side fetch entry points own clearing their local copy once that fetch invocation
+/// reaches its terminal state. Redirect replay can later deserialize a fresh "RequestBody", so
+/// lower level fetch steps cannot always clean up immediately.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
@@ -345,21 +347,30 @@ impl RequestBody {
                 let (chan, port) = ipc::channel().unwrap();
                 let mut lock = self.body_chunk_request_channel.lock();
                 let Some(selfchan) = lock.as_mut() else {
-                    error!("Could not extract_source because the stream already got closed.");
+                    error!(
+                        "Could not re-extract the request body source because the body stream has already been closed."
+                    );
                     return;
                 };
-                let _ = selfchan.send(BodyChunkRequest::Extract(port));
+                if let Err(error) = selfchan.send(BodyChunkRequest::Extract(port)) {
+                    error!(
+                        "Could not re-extract the request body source because the body stream has already been closed: {error}"
+                    );
+                    return;
+                }
                 *selfchan = chan;
             },
         }
     }
 
-    /// This is a shared optional sender to request BodyChunks.
+    /// This is the current process shared optional sender for requesting body chunks.
     pub fn clone_stream(&self) -> Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>> {
         self.body_chunk_request_channel.clone()
     }
 
-    /// This needs to be called the last time the body stream sender is used to not leak resources.
+    /// Clears the current process shared sender state for this "RequestBody" copy.
+    ///
+    /// This does not notify or mutate other deserialized "RequestBody" values in other processes.
     /// Can be called multiple times.
     pub fn close_stream(&self) {
         self.body_chunk_request_channel.lock().take();
