@@ -1374,6 +1374,17 @@ impl GlobalScope {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#encoding-parsing-a-url>
+    pub(crate) fn encoding_parse_a_url(&self, url: &str) -> Result<ServoUrl, url::ParseError> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().encoding_parse_a_url(url);
+        }
+
+        // encoding parsing for worker environments.
+        let base = self.api_base_url();
+        base.join(url)
+    }
+
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     /// The "Add a handler for port’s message event with the following steps:"
     /// and "Add a handler for port’s messageerror event with the following steps:" part.
