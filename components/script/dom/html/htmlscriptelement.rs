@@ -16,7 +16,7 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{CorsSettings, Destination, ParserMetadata, RequestBuilder, RequestId};
+use net_traits::request::{CorsSettings, Destination, ParserMetadata, RequestBuilder, RequestId, Referrer};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -513,6 +513,7 @@ pub(crate) fn script_fetch_request(
     url: ServoUrl,
     cors_setting: Option<CorsSettings>,
     options: ScriptFetchOptions,
+    referrer: Referrer,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -522,7 +523,7 @@ pub(crate) fn script_fetch_request(
         Destination::Script,
         cors_setting,
         None,
-        options.referrer,
+        referrer,
     )
     .parser_metadata(options.parser_metadata)
     .integrity_metadata(options.integrity_metadata.clone())
@@ -542,8 +543,9 @@ fn fetch_a_classic_script(
     // Step 1, 2.
     let doc = script.owner_document();
     let global = script.global();
+    let referrer = global.get_referrer();
     let request =
-        script_fetch_request(doc.webview_id(), url.clone(), cors_setting, options.clone())
+        script_fetch_request(doc.webview_id(), url.clone(), cors_setting, options.clone(), referrer)
             .with_global_scope(&global);
 
     // TODO: Step 3, Add custom steps to perform fetch
@@ -789,7 +791,6 @@ impl HTMLScriptElement {
             cryptographic_nonce,
             integrity_metadata: integrity_metadata.to_owned(),
             parser_metadata,
-            referrer: self.global().get_referrer(),
             referrer_policy,
             credentials_mode: module_credentials_mode,
         };

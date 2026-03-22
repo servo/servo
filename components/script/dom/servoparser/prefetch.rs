@@ -149,13 +149,13 @@ impl TokenSink for PrefetchSink {
                         url,
                         cors_setting,
                         ScriptFetchOptions {
-                            referrer: self.referrer.clone(),
                             referrer_policy: self.referrer_policy,
                             integrity_metadata,
                             cryptographic_nonce,
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                         },
+                        self.referrer.clone(),
                     )
                     .insecure_requests_policy(self.insecure_requests_policy)
                     .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin)
