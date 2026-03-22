@@ -61,7 +61,7 @@ pub enum GenericSelectionResult<T> {
     MessageReceived(u64, T),
     /// The channel has been closed for the [GenericReceiver] identified by the `u64` value.
     ChannelClosed(u64),
-    /// An error occured decoding the message.
+    /// An error occurred decoding the message.
     Error(String),
 }
 

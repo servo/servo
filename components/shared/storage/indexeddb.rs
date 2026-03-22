@@ -425,7 +425,7 @@ pub enum ConnectionMsg {
         version: u64,
         old_version: u64,
     },
-    /// A backend error related to the database occured.
+    /// A backend error related to the database occurred.
     DatabaseError {
         name: String,
         id: Uuid,
