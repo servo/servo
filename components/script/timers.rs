@@ -792,7 +792,7 @@ impl JsTimerTask {
                 // TODO Step 7. Let initiating script be the active script.
 
                 // Step 9.6.5. Let fetch options be the default script fetch options.
-                let fetch_options = ScriptFetchOptions::default_classic_script(&global);
+                let fetch_options = ScriptFetchOptions::default_classic_script();
 
                 // Step 9.6.6. Let base URL be settings object's API base URL.
                 let base_url = global.api_base_url();

@@ -969,7 +969,7 @@ pub(crate) struct ScriptFetchOptions {
 
 impl ScriptFetchOptions {
     /// <https://html.spec.whatwg.org/multipage/#default-classic-script-fetch-options>
-    pub(crate) fn default_classic_script(_global: &GlobalScope) -> ScriptFetchOptions {
+    pub(crate) fn default_classic_script() -> ScriptFetchOptions {
         Self {
             cryptographic_nonce: String::new(),
             integrity_metadata: String::new(),

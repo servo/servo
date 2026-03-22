@@ -414,7 +414,7 @@ impl ServiceWorkerGlobalScope {
                         &mut realm,
                         String::from_utf8_lossy(&source),
                         url,
-                        ScriptFetchOptions::default_classic_script(global_scope),
+                        ScriptFetchOptions::default_classic_script(),
                         ErrorReporting::Unmuted,
                         Some(IntroductionType::WORKER),
                         1,
