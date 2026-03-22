@@ -13,8 +13,8 @@ pub(crate) fn digest(
     normalized_algorithm: &SubtleCShakeParams,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. Let length be the length member of normalizedAlgorithm.
-    let length = normalized_algorithm.length as usize;
+    // Step 1. Let outputLength be the outputLength member of normalizedAlgorithm.
+    let output_length = normalized_algorithm.output_length;
 
     // Step 2. Let functionName be the functionName member of normalizedAlgorithm if present or the
     // empty octet string otherwise.
@@ -41,13 +41,13 @@ pub(crate) fn digest(
             let core = CShake128Core::new_with_function_name(function_name, customization);
             let mut hasher = CShake128::from_core(core);
             hasher.update(message);
-            hasher.finalize_boxed(length / 8).to_vec()
+            hasher.finalize_boxed(output_length as usize / 8).to_vec()
         },
         CryptoAlgorithm::CShake256 => {
             let core = CShake256Core::new_with_function_name(function_name, customization);
             let mut hasher = CShake256::from_core(core);
             hasher.update(message);
-            hasher.finalize_boxed(length / 8).to_vec()
+            hasher.finalize_boxed(output_length as usize / 8).to_vec()
         },
         algorithm_name => {
             return Err(Error::NotSupported(Some(format!(
@@ -57,6 +57,6 @@ pub(crate) fn digest(
         },
     };
 
-    // Step 6. Return result.
+    // Step 6. Return a byte sequence containing result.
     Ok(result)
 }

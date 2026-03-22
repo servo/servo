@@ -3077,8 +3077,8 @@ struct SubtleCShakeParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
-    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-length>
-    length: u32,
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-outputLength>
+    output_length: u32,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-functionName>
     function_name: Option<Vec<u8>>,
@@ -3097,10 +3097,10 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     ) -> Result<Self, Self::Error> {
         Ok(SubtleCShakeParams {
             name: algorithm_name,
-            length: get_required_parameter(
+            output_length: get_required_parameter(
                 cx,
                 object,
-                c"length",
+                c"outputLength",
                 ConversionBehavior::EnforceRange,
             )?,
             function_name: get_optional_buffer_source(cx, object, c"functionName")?,
