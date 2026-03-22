@@ -192,40 +192,10 @@ impl PlaybackBuffer {
         let pos_offset = pos - self.buffer_data_head;
 
         let available_data = self.buffer.len() as i64 - pos_offset;
-        // 1. If pos_offset < 0, it means the read position is before the buffer head, we need to seek.
-        let need_seek = if pos_offset < 0 {
-            true
-        } else {
-            if available_data <= 0 {
-                if self.has_active_request {
-                    // Just need to check whether we will eventually have that data.
-                    let buffer_end = self.buffer_data_head + self.buffer.capacity() as i64;
-                    if pos >= buffer_end {
-                        debug!(
-                            "We won't have data at position {} for current active request, buffer head is at {}, buffer end is at {}, buffer len is {}",
-                            pos,
-                            self.buffer_data_head,
-                            buffer_end,
-                            self.buffer.len()
-                        );
-                        true
-                    } else {
-                        debug!(
-                            "We might have data at position {} for current active request, buffer head is at {}, buffer end is at {}, buffer len is {}",
-                            pos,
-                            self.buffer_data_head,
-                            buffer_end,
-                            self.buffer.len()
-                        );
-                        false
-                    }
-                } else {
-                    true
-                }
-            } else {
-                false
-            }
-        };
+        let need_seek = pos_offset < 0 ||
+            (available_data <= 0 &&
+                (!self.has_active_request ||
+                    pos >= self.buffer_data_head + self.buffer.capacity() as i64));
         if need_seek {
             debug!(
                 "We don't have data at position {}, buffer head is at {}, buffer len is {}， has_active_request: {}",
