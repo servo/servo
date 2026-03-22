@@ -191,18 +191,25 @@ impl OhosPlayer {
 
     pub fn set_rate(&mut self, rate: f64) {
         self.playback_rate = rate;
-        let speed = match rate {
-            3.0.. => AVPlaybackSpeed::AV_SPEED_FORWARD_3_00_X,
-            2.0.. => AVPlaybackSpeed::AV_SPEED_FORWARD_2_00_X,
-            1.75.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_75_X,
-            1.5.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_50_X,
-            1.25.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_25_X,
-            1.0.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_00_X,
-            0.75.. => AVPlaybackSpeed::AV_SPEED_FORWARD_0_75_X,
-            0.5.. => AVPlaybackSpeed::AV_SPEED_FORWARD_0_50_X,
-            0.25.. => AVPlaybackSpeed::AV_SPEED_FORWARD_0_25_X,
-            0.125.. => AVPlaybackSpeed::AV_SPEED_FORWARD_0_125_X,
-            _ => AVPlaybackSpeed::AV_SPEED_FORWARD_1_00_X,
+        // Round toward 1x: for rates >= 1 round down, for rates < 1 round up.
+        let speed = if rate >= 1.0 {
+            match rate {
+                3.0.. => AVPlaybackSpeed::AV_SPEED_FORWARD_3_00_X,
+                2.0.. => AVPlaybackSpeed::AV_SPEED_FORWARD_2_00_X,
+                1.75.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_75_X,
+                1.5.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_50_X,
+                1.25.. => AVPlaybackSpeed::AV_SPEED_FORWARD_1_25_X,
+                _ => AVPlaybackSpeed::AV_SPEED_FORWARD_1_00_X,
+            }
+        } else {
+            match rate {
+                ..=0.0 => AVPlaybackSpeed::AV_SPEED_FORWARD_1_00_X,
+                ..=0.125 => AVPlaybackSpeed::AV_SPEED_FORWARD_0_125_X,
+                ..=0.25 => AVPlaybackSpeed::AV_SPEED_FORWARD_0_25_X,
+                ..=0.5 => AVPlaybackSpeed::AV_SPEED_FORWARD_0_50_X,
+                ..=0.75 => AVPlaybackSpeed::AV_SPEED_FORWARD_0_75_X,
+                _ => AVPlaybackSpeed::AV_SPEED_FORWARD_1_00_X,
+            }
         };
         unsafe {
             OH_AVPlayer_SetPlaybackSpeed(self.ohos_av_player, speed);
