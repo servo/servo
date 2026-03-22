@@ -1233,6 +1233,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
             // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
             // and onComplete.
             fetch_the_descendants_and_link_module_script(
+                cx,
                 module,
                 Destination::Worker,
                 owner,
@@ -1272,7 +1273,13 @@ pub(crate) fn fetch_an_external_module_script(
             };
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
-            fetch_the_descendants_and_link_module_script(module, Destination::Script, owner, None);
+            fetch_the_descendants_and_link_module_script(
+                cx,
+                module,
+                Destination::Script,
+                owner,
+                None,
+            );
         },
     );
 }
@@ -1322,7 +1329,13 @@ pub(crate) fn fetch_a_modulepreload_module(
             // given settingsObject, destination, and an empty algorithm.
             if pref!(dom_allow_preloading_module_descendants) {
                 if let Some(module) = result {
-                    fetch_the_descendants_and_link_module_script(module, destination, owner, None);
+                    fetch_the_descendants_and_link_module_script(
+                        cx,
+                        module,
+                        destination,
+                        owner,
+                        None,
+                    );
                 }
             }
         },
@@ -1331,12 +1344,12 @@ pub(crate) fn fetch_a_modulepreload_module(
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
 pub(crate) fn fetch_inline_module_script(
+    cx: &mut JSContext,
     owner: ModuleOwner,
     module_script_text: Rc<DOMString>,
     url: ServoUrl,
     options: ScriptFetchOptions,
     line_number: u32,
-    can_gc: CanGc,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
@@ -1347,25 +1360,22 @@ pub(crate) fn fetch_inline_module_script(
         false,
         line_number,
         Some(IntroductionType::INLINE_SCRIPT),
-        can_gc,
+        CanGc::from_cx(cx),
     ));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
-    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, None);
+    fetch_the_descendants_and_link_module_script(cx, module_tree, Destination::Script, owner, None);
 }
 
 #[expect(unsafe_code)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
 fn fetch_the_descendants_and_link_module_script(
+    cx: &mut JSContext,
     module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
     policy_container: Option<PolicyContainer>,
 ) {
-    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-    let mut realm = CurrentRealm::assert(&mut cx);
-    let cx = &mut realm;
-
     let global = owner.global();
 
     // Step 1. Let record be moduleScript's record.
@@ -1395,8 +1405,11 @@ fn fetch_the_descendants_and_link_module_script(
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise =
-        load_requested_modules(cx, module_script.clone(), Some(Rc::clone(&state)));
+    let loading_promise = load_requested_modules(
+        &mut CurrentRealm::assert(cx),
+        module_script.clone(),
+        Some(Rc::clone(&state)),
+    );
 
     let fulfillment_owner = owner.clone();
     let fulfilled_module = module_script.clone();
