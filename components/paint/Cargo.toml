@@ -24,7 +24,6 @@ unwrap_used = "deny"
 panic = "deny"
 
 [dependencies]
-base = { workspace = true }
 bitflags = { workspace = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
@@ -36,16 +35,17 @@ gleam = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
-media = { workspace = true }
 malloc_size_of = { workspace = true }
+media = { workspace = true }
 paint_api = { workspace = true }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
-servo-tracing = { workspace = true }
 servo-allocator = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-geometry = { workspace = true }
+servo-tracing = { workspace = true }
 smallvec = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true }

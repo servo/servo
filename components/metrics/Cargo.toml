@@ -14,11 +14,11 @@ name = "metrics"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 paint_api = { workspace = true }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }

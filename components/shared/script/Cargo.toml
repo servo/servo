@@ -14,13 +14,11 @@ name = "script_traits"
 path = "lib.rs"
 
 [features]
-bluetooth = ["bluetooth_traits"]
+bluetooth = ["servo-bluetooth-traits"]
 webgpu = ["webgpu_traits"]
 
 [dependencies]
 accesskit = { workspace = true }
-base = { workspace = true }
-bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -38,6 +36,8 @@ pixels = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }
+servo-bluetooth-traits = { workspace = true, optional = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
 storage_traits = { workspace = true }

@@ -15,7 +15,7 @@ name = "script"
 path = "lib.rs"
 
 [features]
-bluetooth = ['bluetooth_traits', 'script_bindings/bluetooth']
+bluetooth = ['servo-bluetooth-traits', 'script_bindings/bluetooth']
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
 gamepad = ["script_bindings/gamepad", "embedder_traits/gamepad"]
@@ -43,13 +43,10 @@ argon2 = { workspace = true }
 arrayvec = { workspace = true }
 atomic_refcell = { workspace = true }
 aws-lc-rs = { workspace = true }
-background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
-base = { workspace = true }
 base64 = { workspace = true }
 base64ct = { workspace = true }
 bitflags = { workspace = true }
-bluetooth_traits = { workspace = true, optional = true }
 brotli = { workspace = true }
 canvas_traits = { workspace = true }
 cbc = { workspace = true }
@@ -108,10 +105,10 @@ num-bigint-dig = { workspace = true }
 num-traits = { workspace = true }
 num_cpus = { workspace = true }
 ocb3 = { workspace = true }
-paint_api = { workspace = true }
 p256 = { workspace = true }
 p384 = { workspace = true }
 p521 = { workspace = true }
+paint_api = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.13"
@@ -129,11 +126,14 @@ sec1 = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
-servo-media = { workspace = true }
-servo_arc = { workspace = true }
+servo-background-hang-monitor-api = { workspace = true }
+servo-base = { workspace = true }
+servo-bluetooth-traits = { workspace = true, optional = true }
 servo-config = { workspace = true }
 servo-geometry = { workspace = true }
+servo-media = { workspace = true }
 servo-url = { workspace = true }
+servo_arc = { workspace = true }
 sha1 = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true }

@@ -18,7 +18,6 @@ webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 webxr = ["dep:webxr", "dep:webxr-api"]
 
 [dependencies]
-base = { workspace = true }
 bitflags = { workspace = true }
 byteorder = { workspace = true }
 canvas_traits = { workspace = true }
@@ -32,6 +31,7 @@ paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { workspace = true }
 rustc-hash = { workspace = true }
+servo-base = { workspace = true }
 surfman = { workspace = true }
 webrender_api = { workspace = true }
 webxr = { workspace = true, optional = true }

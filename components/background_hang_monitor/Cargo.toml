@@ -16,15 +16,15 @@ test = false
 doctest = false
 
 [dependencies]
-background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
-base = { workspace = true }
 crossbeam-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 rustc-demangle = { version = "0.1", optional = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
+servo-background-hang-monitor-api = { workspace = true }
+servo-base = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mach2 = { workspace = true, optional = true }

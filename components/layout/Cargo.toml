@@ -21,7 +21,6 @@ tracing = ["dep:tracing"]
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
-base = { workspace = true }
 bitflags = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
@@ -47,10 +46,11 @@ rustc-hash = { workspace = true }
 script = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
-servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-geometry = { workspace = true }
+servo-tracing = { workspace = true }
 servo-url = { workspace = true }
 smallvec = { workspace = true }
 strum = { workspace = true }
@@ -60,8 +60,8 @@ stylo_traits = { workspace = true }
 taffy = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
-unicode_categories = { workspace = true }
 unicode-script = { workspace = true }
+unicode_categories = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }

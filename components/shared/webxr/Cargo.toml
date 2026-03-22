@@ -17,12 +17,12 @@ but adapted to Rust design patterns.'''
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 embedder_traits = { workspace = true }
-ipc-channel = { workspace = true }
-profile_traits = { workspace = true }
 euclid = { workspace = true }
-serde = { workspace = true }
+ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+profile_traits = { workspace = true }
+serde = { workspace = true }
+servo-base = { workspace = true }

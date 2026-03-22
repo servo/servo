@@ -20,7 +20,6 @@ name = "script_bindings"
 path = "lib.rs"
 
 [dependencies]
-base = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 deny_public_fields = { workspace = true }
@@ -40,9 +39,10 @@ parking_lot = { workspace = true }
 phf = "0.13"
 profile_traits = { workspace = true }
 regex = { workspace = true }
-servo_arc = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
+servo_arc = { workspace = true }
 smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }

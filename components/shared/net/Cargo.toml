@@ -16,7 +16,6 @@ test = false
 doctest = false
 
 [dependencies]
-base = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -41,9 +40,10 @@ rand = { workspace = true }
 rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
-servo_arc = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
+servo_arc = { workspace = true }
 sys-locale = "0.3"
 tokio = { workspace = true }
 url = { workspace = true }

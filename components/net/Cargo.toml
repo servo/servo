@@ -23,7 +23,6 @@ test-util = ["hyper-util/server-graceful"]
 async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = "1.1"
 async-tungstenite = { workspace = true }
-base = { workspace = true }
 base64 = { workspace = true }
 bytes = "1"
 chrono = { workspace = true }
@@ -68,6 +67,7 @@ rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
+servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
 sha2 = { workspace = true }

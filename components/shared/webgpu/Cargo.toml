@@ -15,11 +15,11 @@ path = "lib.rs"
 
 [dependencies]
 arrayvec = { workspace = true }
-base = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 pixels = { workspace = true }
 serde = { workspace = true }
+servo-base = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }
