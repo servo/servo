@@ -6,13 +6,13 @@ pub mod source;
 use std::ffi::c_void;
 
 use libc::pollfd;
-use log::{debug, error, warn};
+use log::{debug, warn};
 use ohos_media_sys::avformat::OH_AVFormat;
 use ohos_media_sys::avplayer::{
     OH_AVPlayer_Create, OH_AVPlayer_Pause, OH_AVPlayer_Play, OH_AVPlayer_Prepare,
     OH_AVPlayer_Release, OH_AVPlayer_Seek, OH_AVPlayer_SetDataSource,
-    OH_AVPlayer_SetOnInfoCallback, OH_AVPlayer_SetPlaybackSpeed,
-    OH_AVPlayer_SetVideoSurface, OH_AVPlayer_SetVolume, OH_AVPlayer_Stop,
+    OH_AVPlayer_SetOnInfoCallback, OH_AVPlayer_SetPlaybackSpeed, OH_AVPlayer_SetVideoSurface,
+    OH_AVPlayer_SetVolume, OH_AVPlayer_Stop,
 };
 use ohos_media_sys::avplayer_base::{
     AVPlaybackSpeed, AVPlayerOnInfoType, AVPlayerSeekMode, AVPlayerState, OH_AVPlayer,
@@ -89,10 +89,13 @@ impl OhosPlayer {
     /// 2. after running external initialize step.
     ///    e.g. setup_window_buffer_listener
     pub fn initialize_check_state_action(&mut self) {
-        if self.state == AVPlayerState::AV_INITIALIZED && self.native_window.is_some() && !self.has_set_window {
-                self.has_set_window = true;
-                self.set_window_to_player();
-                self.prepare(); // only prepare after setting window.
+        if self.state == AVPlayerState::AV_INITIALIZED &&
+            self.native_window.is_some() &&
+            !self.has_set_window
+        {
+            self.has_set_window = true;
+            self.set_window_to_player();
+            self.prepare(); // only prepare after setting window.
         }
     }
 
@@ -181,7 +184,7 @@ impl OhosPlayer {
             OH_AVPlayer_Seek(
                 self.ohos_av_player,
                 second,
-                AVPlayerSeekMode::AV_SEEK_NEXT_SYNC,
+                AVPlayerSeekMode::AV_SEEK_CLOSEST,
             );
         }
     }
@@ -256,6 +259,10 @@ impl OhosPlayer {
             info_body: *mut OH_AVFormat,
             user_data: *mut c_void,
         ) {
+            assert!(
+                !user_data.is_null(),
+                "on_info_event: user_data must not be null"
+            );
             let f = unsafe {
                 &*(user_data as *const Box<dyn Fn(AVPlayerOnInfoType, *mut OH_AVFormat)>)
             };
@@ -277,7 +284,7 @@ impl OhosPlayer {
         self.event_info_callback_closure = Some(raw_ptr_f);
     }
 
-    /// External Initialization step. Only will be called if use_ohos_surface is false.
+    /// External Initialization step.
     pub fn setup_window_buffer_listener<F: Fn() + Send + 'static>(&mut self, f: F) {
         let f: Box<dyn Fn()> = Box::new(f);
         let f: Box<Box<dyn Fn()>> = Box::new(f);
@@ -296,6 +303,10 @@ impl OhosPlayer {
             debug!("Set consumer surface default usage: {}", ret);
 
             extern "C" fn frame_available_cb(context: *mut c_void) {
+                assert!(
+                    !context.is_null(),
+                    "frame_available_cb: context must not be null"
+                );
                 let f = unsafe { &*(context as *mut Box<dyn Fn()>) };
                 f();
             }
@@ -319,18 +330,21 @@ impl OhosPlayer {
         self.initialize_check_state_action();
     }
 
-    /// Only call this API when use_ohos_surface is false,
     /// Should pair with release_buffer.
     pub fn acquire_buffer(&self) -> Option<FrameInfo> {
         let native_image = self.native_image?;
         let mut native_window_buffer = std::ptr::null_mut();
         let mut fence_fd = 0;
-        unsafe {
+        let ret = unsafe {
             OH_NativeImage_AcquireNativeWindowBuffer(
                 native_image,
                 &mut native_window_buffer,
                 &mut fence_fd,
-            );
+            )
+        };
+        if ret != 0 || native_window_buffer.is_null() {
+            warn!("Failed to acquire native window buffer: ret={}", ret);
+            return None;
         }
         debug!("Fence fd: {}", fence_fd);
         if fence_fd != 0 && fence_fd != -1 {
@@ -341,7 +355,7 @@ impl OhosPlayer {
             };
             let ret = unsafe { libc::poll(&mut pollfds, 1, 3000) };
             if ret <= 0 {
-                error!("Pulling timeout or failed");
+                warn!("Pulling timeout or failed");
                 return None;
             }
         }
@@ -349,7 +363,7 @@ impl OhosPlayer {
         let ret =
             unsafe { OH_NativeWindow_NativeObjectReference(native_window_buffer as *mut c_void) };
         if ret != 0 {
-            error!("Native Window Buffer Reference Failed!");
+            warn!("Native Window Buffer Reference Failed!");
         }
 
         let frame_info = unsafe {
@@ -369,13 +383,12 @@ impl OhosPlayer {
         let ret =
             unsafe { OH_NativeWindow_NativeObjectUnreference(native_window_buffer as *mut c_void) };
         if ret != 0 {
-            error!("Native Window Buffer Unreference failed!");
+            warn!("Native Window Buffer Unreference failed!");
         }
         // FIXME(ray): Potential memory copying.
         Some(frame_info)
     }
 
-    /// Only call this API when use_ohos_surface is false,
     /// Should pair with acquire_buffer.
     pub fn release_buffer(&self, frame_info: FrameInfo) {
         let native_image = self.native_image.expect("native image should not be empty");

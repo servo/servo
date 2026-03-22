@@ -28,9 +28,9 @@ use yuv::yuv_nv12_to_bgra;
 use crate::ohos_media::OhosPlayer as OhosPlayerInner;
 use crate::ohos_media::source::MediaSourceWrapper;
 
-// Height of Decoded video frame from AVPlayer would be patch to multiples of 32 by codec.
+// Height of decoded video frame from AVPlayer is padded to multiples of this value by the codec.
 // https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/video-decoding
-const FRAME_HEIGHT_MULTIPLE: i32 = 64;
+const FRAME_HEIGHT_MULTIPLE: i32 = 32;
 
 /// This is used to fill the gap between internal AVPlayer state and Player State exposed to Media Element.
 pub struct StateManager {
@@ -88,9 +88,7 @@ impl OhosAvPlayer {
         backend_chan: Arc<Mutex<mpsc::Sender<BackendMsg>>>,
     ) -> OhosAvPlayer {
         let player_inner = Arc::new(Mutex::new(OhosPlayerInner::new()));
-
         let event_sender = Arc::new(Mutex::new(sender));
-        // Only initialize Video sink if we do not display directly with ohos surface.
         let video_sink = video_renderer.clone().map(|v| {
             Arc::new(Mutex::new(VideoSink::new(
                 v,
@@ -186,7 +184,6 @@ impl OhosAvPlayer {
                                     .send(PlayerEvent::StateChanged(PlaybackState::Stopped));
                             },
                             AVPlayerState::AV_COMPLETED => {
-                                log::debug!("Player: Current Request End of Stream reached!");
                                 let _ = sender_clone.lock().unwrap().send(PlayerEvent::EndOfStream);
                             },
                             _ => {
@@ -205,6 +202,7 @@ impl OhosAvPlayer {
                             OH_AVFormat_GetIntValue(info_body, OH_PLAYER_VIDEO_WIDTH, &mut width);
                             OH_AVFormat_GetIntValue(info_body, OH_PLAYER_VIDEO_HEIGHT, &mut height);
                         }
+                        // Todo fix the metadata update logic, we should only report metadata once during intialization.
                         let mut last_metadata = metadata_clone.lock().unwrap();
                         last_metadata.get_mut().height = height as u32;
                         last_metadata.get_mut().width = width as u32;
@@ -230,7 +228,7 @@ impl OhosAvPlayer {
                             1 => (true, false),
                             _ => (false, true),
                         };
-                        warn!("AVPlayer is live stream: {}. which is not supported", value);
+                        debug!("AVPlayer is live stream: {}. which is not supported", value);
                     },
                     AVPlayerOnInfoType::AV_INFO_TYPE_DURATION_UPDATE => {
                         let mut duration: i64 = -1;
@@ -295,11 +293,10 @@ impl OhosAvPlayer {
                                 &mut position,
                             );
                         }
-                        debug!("Player Seek to : {}", position);
                         let _ = sender_clone
                             .lock()
                             .unwrap()
-                            .send(PlayerEvent::SeekDone((position / 1000) as f64));
+                            .send(PlayerEvent::SeekDone(position as f64 / 1000.0));
                     },
                     _ => {
                         warn!("Unhandled info type: {:?}", info_type);
@@ -313,7 +310,6 @@ impl OhosAvPlayer {
             .connect_info_event_callback(event_info_closure);
 
         let seekdata_send_closure = move |pos: u64| {
-            debug!("Trying to seek data: {}", pos);
             let _ = sender_clone_clone
                 .lock()
                 .unwrap()
@@ -429,12 +425,15 @@ impl Player for OhosAvPlayer {
     }
 
     fn seek(&self, time: f64) -> Result<(), servo_media::player::PlayerError> {
+        log::error!("Seeking to {} seconds", time);
         self.player_inner
             .lock()
             .unwrap()
             .seek((time * 1000.0) as i32);
         let state_manger_lock = self.state_manager.lock().unwrap();
-        if !state_manger_lock.player_state.paused && state_manger_lock.internal_state.state == AVPlayerState::AV_COMPLETED {
+        if !state_manger_lock.player_state.paused &&
+            state_manger_lock.internal_state.state == AVPlayerState::AV_COMPLETED
+        {
             self.player_inner.lock().unwrap().play();
         }
         Ok(())
@@ -580,7 +579,10 @@ impl VideoSink {
         let renderer_clone = self.video_render.clone();
 
         let frame_available_closure = move || {
-            let _ = sender_clone.send(RenderMsg::FrameAvailable);
+            let res = sender_clone.send(RenderMsg::FrameAvailable);
+            if res.is_err() {
+                debug!("Failed to send frame available: {:?}", res.err());
+            }
         };
         self.player_inner
             .lock()
@@ -615,18 +617,32 @@ impl VideoSink {
                             frame_info.vir_addr
                         );
 
-                        let coded_height = (frame_info.height / FRAME_HEIGHT_MULTIPLE + 1) * FRAME_HEIGHT_MULTIPLE;
+                        let coded_height = ((frame_info.height + FRAME_HEIGHT_MULTIPLE - 1) / FRAME_HEIGHT_MULTIPLE) * FRAME_HEIGHT_MULTIPLE;
+                        let y_plane_size = (frame_info.stride * coded_height) as usize;
+                        let uv_plane_size = (frame_info.stride * coded_height / 2) as usize;
+                        let total_needed = y_plane_size + uv_plane_size;
+                        if total_needed > frame_info.size as usize || frame_info.vir_addr.is_null() {
+                            error!(
+                                "Buffer too small or null: needed {} bytes (y={}, uv={}), have {} bytes, vir_addr null={}",
+                                total_needed, y_plane_size, uv_plane_size, frame_info.size, frame_info.vir_addr.is_null()
+                            );
+                            player_inner_clone
+                                .lock()
+                                .unwrap()
+                                .release_buffer(frame_info);
+                            continue;
+                        }
                         let bi_planar_image = yuv::YuvBiPlanarImage {
                             y_plane: unsafe {
                                 std::slice::from_raw_parts(
                                     frame_info.vir_addr as *const u8,
-                                    (frame_info.stride * coded_height) as usize,
+                                    y_plane_size,
                                 )
                             },
                             uv_plane: unsafe {
                                 std::slice::from_raw_parts(
-                                    (frame_info.vir_addr as usize + (frame_info.stride * coded_height) as usize) as *const u8,
-                                    (frame_info.stride * coded_height / 2) as usize,
+                                    (frame_info.vir_addr as usize + y_plane_size) as *const u8,
+                                    uv_plane_size,
                                 )
                             },
                             width: frame_info.width as u32,
@@ -637,37 +653,41 @@ impl VideoSink {
                         let mut bgra = vec![0u8; (frame_info.width * frame_info.height * 4) as usize];
 
                         // Conversion from yuv to bgra8
-                        let conversion_res = yuv_nv12_to_bgra(
+                        let Ok(_) = yuv_nv12_to_bgra(
                             &bi_planar_image,
                             &mut bgra,
                             frame_info.width as u32 *4,
                             yuv::YuvRange::Full,
                             yuv::YuvStandardMatrix::Bt709,
                             yuv::YuvConversionMode::Balanced
-                        );
-
-                        if let Err(e) = conversion_res {
-                            error!("Failed to convert YUV to BGRA: {:?}", e);
+                        )else{
+                            error!("Failed to convert YUV to BGRA");
                             player_inner_clone
                                 .lock()
                                 .unwrap()
                                 .release_buffer(frame_info);
                             continue;
-                        }
-                        
-                        let frame = VideoFrame::new(
+                        };
+
+                        let Some(frame) = VideoFrame::new(
                             frame_info.width,
                             frame_info.height,
                             Arc::new(OhosBuffer::new(bgra)),
-                        )
-                        .expect("Should create frame");
-                        renderer_clone.lock().unwrap().render(frame);
-                        debug!("Trying to release buffer");
+                        ) else {
+                            error!("Failed to create VideoFrame");
+                            player_inner_clone
+                                .lock()
+                                .unwrap()
+                                .release_buffer(frame_info);
+                            continue;
+                        };
+                        renderer_clone.lock().expect(
+                            "Failed to acquire video renderer lock"
+                        ).render(frame);
                         player_inner_clone
                             .lock()
                             .unwrap()
                             .release_buffer(frame_info);
-                        debug!("Trying to send frame update info to media player!");
                         match event_sender_clone
                             .lock()
                             .unwrap()
@@ -675,7 +695,7 @@ impl VideoSink {
                         {
                             Ok(()) => {},
                             Err(e) => {
-                                debug!("Send PlayerEvent::VideoFrameUpdated Error: {}", e);
+                                warn!("Send PlayerEvent::VideoFrameUpdated Error: {}", e);
                             },
                         };
                     },

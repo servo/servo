@@ -8242,7 +8242,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-ohos"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "crossbeam-channel",
  "ipc-channel",

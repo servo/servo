@@ -321,6 +321,12 @@ impl Drop for MediaFrameRenderer {
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
+        debug!(
+            "Received frame for rendering: is_gl_texture: {}, player_id: {:?}, glplayer_id: {:?}",
+            frame.is_gl_texture(),
+            self.player_id,
+            self.glplayer_id
+        );
         if self.player_id.is_none() || (frame.is_gl_texture() && self.glplayer_id.is_none()) {
             return;
         }
@@ -751,7 +757,14 @@ impl HTMLMediaElement {
         // timeupdate event at the element in the past 15 to 250ms and is not still running event
         // handlers for such an event, then the user agent must queue a media element task given the
         // media element to fire an event named timeupdate at the element.
+        log::error!(
+            "time_marches_on: current_playback_position: {}, official_playback_position: {}, next_timeupdate_event: {:?}",
+            self.current_playback_position.get(),
+            self.official_playback_position.get(),
+            self.next_timeupdate_event.get()
+        );
         if Instant::now() > self.next_timeupdate_event.get() {
+            log::error!("time_marches_on: queueing timeupdate event");
             self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
             self.next_timeupdate_event
                 .set(Instant::now() + Duration::from_millis(250));
@@ -2166,11 +2179,11 @@ impl HTMLMediaElement {
 
                 task_source.queue(task!(handle_player_event: move |cx| {
                     trace!("HTMLMediaElement event: {event:?}");
-
+                    log::error!("Received player event: {event:?}");
                     let Some(event_handler) = weak_event_handler.upgrade() else {
                         return;
                     };
-
+                    log::error!("Handling player event: {event:?}");
                     event_handler.lock().unwrap().handle_player_event(player_id, event, cx);
                 }));
             }),
@@ -2376,7 +2389,7 @@ impl HTMLMediaElement {
         if self.ready_state.get() != ReadyState::HaveNothing {
             return;
         }
-
+        log::error!("playback_metadata_updated: {metadata:#?}");
         // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
         // => "If the media resource is found to have an audio track"
         for (i, _track) in metadata.audio_tracks.iter().enumerate() {
@@ -2542,7 +2555,7 @@ impl HTMLMediaElement {
                 .map_or(f64::INFINITY, |duration| duration.as_secs_f64()),
         );
         self.queue_media_element_task_to_fire_event(atom!("durationchange"));
-
+        log::error!("duration updated: {}", self.duration.get());
         // Step 5. For video elements, set the videoWidth and videoHeight attributes, and queue a
         // media element task given the media element to fire an event named resize at the media
         // element.
@@ -2622,7 +2635,7 @@ impl HTMLMediaElement {
         // at the media element.
         // <https://html.spec.whatwg.org/multipage/#offsets-into-the-media-resource:media-resource-22>
         self.queue_media_element_task_to_fire_event(atom!("durationchange"));
-
+        log::error!("duration updated: {}", self.duration.get());
         // If the duration is changed such that the current playback position ends up being greater
         // than the time of the end of the media resource, then the user agent must also seek to the
         // time of the end of the media resource.
@@ -2716,7 +2729,7 @@ impl HTMLMediaElement {
         if self.seeking.get() {
             return;
         }
-
+        log::error!("playback_position_changed: {position}");
         let _ = self
             .played
             .borrow_mut()
@@ -2737,7 +2750,12 @@ impl HTMLMediaElement {
     fn playback_seek_done(&self, position: f64) {
         // If the seek was initiated by script or by the user agent itself continue with the
         // following steps, otherwise abort.
-        if !self.seeking.get() || position != self.current_seek_position.get() {
+        // The media engine may report a seek-done position that differs slightly from the
+        // requested position (e.g. snapping to the nearest keyframe), so we use a threshold
+        // instead of strict equality.
+        const SEEK_POSITION_THRESHOLD_S: f64 = 0.5;
+        let delta = (position - self.current_seek_position.get()).abs();
+        if !self.seeking.get() || delta > SEEK_POSITION_THRESHOLD_S {
             return;
         }
 
@@ -4018,7 +4036,7 @@ impl HTMLMediaElementEventHandler {
         if element.player_id().is_none_or(|id| id != player_id) {
             return;
         }
-
+        log::error!("Position changed Received player event {event:?} for player id {player_id}");
         match event {
             PlayerEvent::DurationChanged(duration) => element.playback_duration_changed(duration),
             PlayerEvent::EndOfStream => element.playback_end(),
