@@ -1,8 +1,7 @@
 import pytest
 
-from tests.bidi import wait_for_bidi_events
-from webdriver.error import TimeoutException
 from webdriver.bidi.modules.script import ContextTarget
+from webdriver.error import TimeoutException
 
 from tests.support.sync import AsyncPoll
 from .. import assert_browsing_context, find_context_info
@@ -12,7 +11,7 @@ pytestmark = pytest.mark.asyncio
 CONTEXT_CREATED_EVENT = "browsingContext.contextCreated"
 
 
-async def test_not_unsubscribed(bidi_session, configuration):
+async def test_not_unsubscribed(bidi_session, wait_for_bidi_events):
     await bidi_session.session.subscribe(events=[CONTEXT_CREATED_EVENT])
     await bidi_session.session.unsubscribe(events=[CONTEXT_CREATED_EVENT])
 
@@ -27,7 +26,7 @@ async def test_not_unsubscribed(bidi_session, configuration):
     await bidi_session.browsing_context.create(type_hint="tab")
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -145,7 +144,7 @@ async def test_event_emitted_before_create_returns(
     remove_listener()
 
 
-async def test_navigate_creates_iframes(bidi_session, configuration, subscribe_events, top_context, test_page_multiple_frames):
+async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_context, test_page_multiple_frames, wait_for_bidi_events):
     # Subscribe before assigning the listener, as subscription emits the events
     # for already existing contexts.
     await subscribe_events([CONTEXT_CREATED_EVENT])
@@ -161,7 +160,7 @@ async def test_navigate_creates_iframes(bidi_session, configuration, subscribe_e
         context=top_context["context"], url=test_page_multiple_frames, wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 2)
+    await wait_for_bidi_events(events, 2)
 
     # Get all browsing contexts from the first tab
     contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
@@ -194,7 +193,7 @@ async def test_navigate_creates_iframes(bidi_session, configuration, subscribe_e
     remove_listener()
 
 
-async def test_navigate_creates_nested_iframes(bidi_session, configuration, subscribe_events, top_context, test_page_nested_frames):
+async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, top_context, test_page_nested_frames, wait_for_bidi_events):
     # Subscribe before assigning the listener, as subscription emits the events
     # for already existing contexts.
     await subscribe_events([CONTEXT_CREATED_EVENT])
@@ -210,7 +209,7 @@ async def test_navigate_creates_nested_iframes(bidi_session, configuration, subs
         context=top_context["context"], url=test_page_nested_frames, wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 2)
+    await wait_for_bidi_events(events, 2)
 
     # Get all browsing contexts from the first tab
     contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
@@ -246,7 +245,7 @@ async def test_navigate_creates_nested_iframes(bidi_session, configuration, subs
 
 
 async def test_subscribe_to_one_context(
-    bidi_session, configuration, subscribe_events, top_context, test_page_same_origin_frame
+    bidi_session, subscribe_events, top_context, test_page_same_origin_frame, wait_for_bidi_events
 ):
     # Subscribe to a specific context
     await subscribe_events(
@@ -265,14 +264,14 @@ async def test_subscribe_to_one_context(
 
     # Make sure we didn't receive the event for the new tab
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_same_origin_frame, wait="complete"
     )
 
     # Make sure we received the event for the iframe
-    await wait_for_bidi_events(bidi_session, configuration, events, 1)
+    await wait_for_bidi_events(events, 1)
 
     remove_listener()
 

@@ -1,7 +1,6 @@
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from ... import any_string, recursive_compare
 
 pytestmark = pytest.mark.asyncio
@@ -120,7 +119,7 @@ async def test_channel_with_multiple_arguments(
 
 async def test_two_channels(
     bidi_session,
-    configuration,
+    wait_for_bidi_events,
     top_context,
     subscribe_events,
 ):
@@ -149,7 +148,7 @@ async def test_two_channels(
     )
 
     # Wait for both events
-    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=0.5)
+    await wait_for_bidi_events(events, 2, timeout=0.5)
 
     recursive_compare(
         {

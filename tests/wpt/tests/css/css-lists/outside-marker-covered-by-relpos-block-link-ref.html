@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: outside marker covered by relatively positioned block link</title>
+<link rel="author" title="Jason Leo" href="mailto:m.jason.liu@outlook.com">
+<style>
+body {
+  background: white;
+  font: 16px/1.4 sans-serif;
+}
+
+ul {
+  list-style-position: outside;
+  padding-inline-start: 40px;
+}
+
+.hide-marker::marker {
+  color: transparent;
+}
+
+.LinkContainer {
+  width: 290px;
+}
+
+.faqviewmore {
+    background-color: #efefef;
+    display: block;
+    left: -22px;
+    padding-left: 22px;
+    position: relative;
+}
+</style>
+
+<div class="LinkContainer">
+  <ul>
+    <li><a href="#">Why doesn't my map print?</a></li>
+    <li class="hide-marker"><a class="faqviewmore" href="#">View more questions</a></li>
+  </ul>
+</div>

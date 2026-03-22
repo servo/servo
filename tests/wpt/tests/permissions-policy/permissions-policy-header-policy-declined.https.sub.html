@@ -17,7 +17,7 @@
   // Test that fullscreen's allowlist is [same_origin, cross_origin, 'https://www.example.com']
   test(function() {
     assert_array_equals(
-      document.featurePolicy.getAllowlistForFeature('fullscreen'),
+      document.permissionsPolicy.getAllowlistForFeature('fullscreen'),
       [cross_origin, 'https://www.example.com'].sort());
   }, header_policy + ' -- test allowlist is [cross_origin, https://www.example.com]');
 

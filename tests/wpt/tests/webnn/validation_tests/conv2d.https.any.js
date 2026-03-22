@@ -534,6 +534,21 @@ const tests = [
       label: label,
     },
   },
+  {
+    name: '[conv2d] Throw if the intermediate padded tensor is too large.',
+    input: {dataType: 'float32', shape: [5354, 5, 1, 33]},
+    filter: {dataType: 'float32', shape: [1, 6, 1, 33]},
+    options: {
+      inputLayout: 'nhwc',
+      filterLayout: 'ohwi',
+      padding: [0, 32767, 32766, 5],
+      dilations: [4963, 1],
+      strides: [5390, 21245],
+      bias: {dataType: 'float32', shape: [1]},
+      groups: 1,
+      label: label,
+    },
+  },
 ];
 
 tests.forEach(

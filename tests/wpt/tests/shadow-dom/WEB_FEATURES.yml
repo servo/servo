@@ -10,6 +10,7 @@ features:
   - "!slotchange*.html"
   - "!slots*.html"
   - "!Document-caretPositionFromPoint.tentative.html"
+  - "!HighlightRegistry-highlightsFromPoint.html"
 # Keep mappings below in sync with `shadow-map` mapping.
 - name: slot-assign
   files:
@@ -24,3 +25,6 @@ features:
 - name: document-caretpositionfrompoint
   files:
   - Document-caretPositionFromPoint.tentative.html
+- name: highlightsfrompoint
+  files:
+  - HighlightRegistry-highlightsFromPoint.html

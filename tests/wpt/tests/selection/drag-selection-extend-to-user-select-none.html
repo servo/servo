@@ -29,7 +29,12 @@
 </div>
 
 <script>
-promise_test(async function () {
+function clearSelection() {
+  window.getSelection().removeAllRanges();
+}
+
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
   const rect = target.getBoundingClientRect();
   let actions = new test_driver.Actions();
   await actions.pointerMove(rect.left + 5, rect.top + 5)
@@ -43,7 +48,8 @@ promise_test(async function () {
   assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
 }, 'Text with user-select:text is selectable even if it is inside a user-select:none element.');
 
-promise_test(async function () {
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
   const rect = target.getBoundingClientRect();
   let actions = new test_driver.Actions();
   await actions.pointerMove(rect.left + 5, rect.top + 5)
@@ -58,7 +64,8 @@ promise_test(async function () {
   assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
 }, 'Select user-select:text content and then extend selection to user-select:none content.');
 
-promise_test(async function () {
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
   const rect = target.getBoundingClientRect();
   let actions = new test_driver.Actions();
   await actions.pointerMove(rect.left + 5, rect.top + 5)

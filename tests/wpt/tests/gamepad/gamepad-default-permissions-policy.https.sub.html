@@ -6,12 +6,12 @@
   <script src=util/utils.js></script>
   <script>
   "use strict";
-  const relative_path = "/gamepad/feature-policy-gamepad.html";
+  const relative_path = "/gamepad/permissions-policy-gamepad.html";
   const base_src = "/permissions-policy/resources/redirect-on-load.html#";
   const sub = "https://{{domains[www]}}:{{ports[https][0]}}";
   const same_origin_src = base_src + relative_path;
   const cross_origin_src = sub + relative_path;
-  const header = 'Feature-Policy allow="gamepad"';
+  const header = 'Permissions-Policy allow="gamepad"';
 
   async_test((t) => {
     test_feature_availability(

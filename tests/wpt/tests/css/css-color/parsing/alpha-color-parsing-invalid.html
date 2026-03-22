@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 5: alpha() function - invalid parsing</title>
+<link rel="author" title="CGQAQ" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#relative-alpha">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+
+// Missing "from" keyword.
+test_invalid_value("color", "alpha(red / 0.5)");
+
+// Empty function.
+test_invalid_value("color", "alpha()");
+
+// Missing origin color.
+test_invalid_value("color", "alpha(from / 0.5)");
+test_invalid_value("color", "alpha(from)");
+
+// Extra tokens.
+test_invalid_value("color", "alpha(from red / 0.5 0.5)");
+test_invalid_value("color", "alpha(from red 0.5)");
+
+// Color channels not allowed (only alpha).
+test_invalid_value("color", "alpha(from red r g b / 0.5)");
+
+// Non-color value as origin.
+test_invalid_value("color", "alpha(from 42 / 0.5)");
+test_invalid_value("color", "alpha(from none / 0.5)");
+
+// Slash without alpha value.
+test_invalid_value("color", "alpha(from red /)");
+
+</script>

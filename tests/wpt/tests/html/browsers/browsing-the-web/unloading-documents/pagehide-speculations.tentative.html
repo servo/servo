@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>PageHideEvent speculations attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Test that the pagehide event exposes the speculations attribute
+// when the PageHideSpeculations feature is enabled.
+
+function isPageHideSpeculationsEnabled() {
+  return 'PageHideEvent' in window;
+}
+
+promise_test(async t => {
+  assert_true(isPageHideSpeculationsEnabled(),
+    "PageHideSpeculations feature must be enabled for these tests");
+}, "PageHideSpeculations feature check");
+
+promise_test(async t => {
+  if (!isPageHideSpeculationsEnabled()) {
+    return;
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.src = "support/page-with-pagehide-reporter.html";
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+
+  const result = await new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error("pagehide event did not fire within timeout"));
+    }, 5000);
+
+    // Set up callback that the iframe will call synchronously during pagehide
+    window.pagehideCallback = function(data) {
+      clearTimeout(timeoutId);
+      window.pagehideCallback = null;
+      resolve(data);
+    };
+
+    // Navigate the iframe to trigger pagehide
+    iframe.src = "support/blank.html";
+  });
+
+  assert_equals(result.eventConstructorName, 'PageHideEvent',
+    "event should be PageHideEvent");
+  assert_true(result.hasSpeculations,
+    "pagehide event should have speculations attribute");
+
+  if (result.speculations) {
+    assert_true('preloads' in result.speculations,
+      "speculations should have preloads");
+    assert_true(Array.isArray(result.speculations.preloads),
+      "preloads should be an array");
+  }
+}, "PageHideEvent should expose speculations attribute with expected shape");
+
+promise_test(async t => {
+  if (!isPageHideSpeculationsEnabled()) {
+    return;
+  }
+
+  // Test PageHideEvent constructor
+  const event = new PageHideEvent('pagehide', { persisted: true });
+  assert_true(event instanceof PageHideEvent, "Should create PageHideEvent");
+  assert_true(event instanceof PageTransitionEvent, "Should extend PageTransitionEvent");
+  assert_equals(event.persisted, true, "persisted should be set");
+  assert_equals(event.type, 'pagehide', "type should be pagehide");
+  assert_true('speculations' in event, "Should have speculations property");
+}, "PageHideEvent constructor should work");
+
+promise_test(async t => {
+  if (!isPageHideSpeculationsEnabled()) {
+    return;
+  }
+
+  // Test that SpeculationData and related interfaces exist
+  assert_true('PageHideEvent' in window, "PageHideEvent should exist");
+  assert_true('SpeculationData' in window, "SpeculationData should exist");
+  assert_true('Preload' in window, "Preload should exist");
+}, "All speculation interfaces should exist");
+</script>
+</body>

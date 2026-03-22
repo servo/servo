@@ -234,8 +234,7 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
           "fission": not kwargs.get("disable_fission"),
-          "sessionHistoryInParent": (not kwargs.get("disable_fission") or
-                                     not bool_pref("fission.disableSessionHistoryInParent")),
+          "sessionHistoryInParent": True,
           "swgl": bool_pref("gfx.webrender.software"),
           "useDrawSnapshot": bool_pref("reftest.use-draw-snapshot"),
           "privateBrowsing": bool_pref("browser.privatebrowsing.autostart"),
@@ -263,22 +262,23 @@ def run_info_browser_version(**kwargs):
 
 
 def update_properties():
-    return ([
-        "os",
-        "debug",
-        "display",
-        "fission",
-        "isolated_process",
-        "processor",
-        "swgl",
-        "useDrawSnapshot",
-        "asan",
-        "tsan",
-        "remoteAsyncEvents",
-        "sessionHistoryInParent",
-        "subsuite"], {
-        "os": ["version", "os_version"],
-        "processor": ["bits"]})
+    return (
+        [
+            "os",
+            "debug",
+            "fission",
+            "isolated_process",
+            "processor",
+            "swgl",
+            "useDrawSnapshot",
+            "asan",
+            "tsan",
+            "remoteAsyncEvents",
+            "sessionHistoryInParent",
+            "subsuite",
+        ],
+        {"os": ["display", "version", "os_version"], "processor": ["bits"]},
+    )
 
 
 def log_gecko_crashes(logger, process, test, profile_dir, symbols_path, stackwalk_binary):

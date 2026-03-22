@@ -5,7 +5,7 @@
 from .logger import Logger, getLogger
 
 
-class LoggingMixin(object):
+class LoggingMixin:
     """Expose a subset of logging functions to an inheriting class."""
 
     def set_logger(self, logger_instance=None, name=None):

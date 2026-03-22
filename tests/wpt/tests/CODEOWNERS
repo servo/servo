@@ -1647,14 +1647,11 @@ webtransport/back-forward-cache-with-open-webtransport-connection-ccns.https.ten
 webtransport/back-forward-cache-with-open-webtransport-connection.https.window.js @web-platform-tests/interop
 webtransport/close.https.any.js @web-platform-tests/interop
 webtransport/connect.https.any.js @web-platform-tests/interop
-webtransport/constructor.https.any.js @web-platform-tests/interop
 webtransport/csp-fail.https.window.js @web-platform-tests/interop
 webtransport/csp-pass.https.window.js @web-platform-tests/interop
 webtransport/datagram-bad-chunk.https.any.js @web-platform-tests/interop
-webtransport/datagram-cancel-crash.https.window.js @web-platform-tests/interop
 webtransport/datagrams.https.any.js @web-platform-tests/interop
 webtransport/echo-large-bidirectional-streams.https.any.js @web-platform-tests/interop
-webtransport/idlharness.https.any.js @web-platform-tests/interop
 webtransport/in-removed-iframe.https.html @web-platform-tests/interop
 webtransport/sendorder.https.any.js @web-platform-tests/interop
 webtransport/sendstream-bad-chunk.https.any.js @web-platform-tests/interop

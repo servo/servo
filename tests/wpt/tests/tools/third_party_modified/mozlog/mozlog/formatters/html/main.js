@@ -52,7 +52,7 @@ addEventListener("DOMContentLoaded", function () {
   });
 
   find_all(".sortable").forEach(function (elem) {
-    elem.addEventListener("click", function (event) {
+    elem.addEventListener("click", function () {
       toggle_sort_states(elem);
       var colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
       var key = elem.classList.contains("numeric") ? key_num : key_alpha;

@@ -41,7 +41,7 @@ async_test(function (t) {
         // Check the paint-timing entries from the listening iframe.
         assert_equals(e.data, '0');
         // Check that current frame receives first-paint but not first-contentful-paint.
-        assertFirstPaint(t, 0);
+        assertFirstPaint(t, 30);
         t.done();
     }));
 }, 'Frame ignores paint-timing events fired from sibling frame.');

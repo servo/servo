@@ -18,7 +18,7 @@ class SummaryHandler(LogHandler):
     """
 
     def __init__(self, **kwargs):
-        super(SummaryHandler, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.summary = OrderedDict()
         self.current_suite = None
@@ -74,8 +74,7 @@ class SummaryHandler(LogHandler):
         Yields a tuple of (suite, summary). The summary returned is
         the same format as returned by 'get'.
         """
-        for suite, data in self.summary.items():
-            yield suite, data
+        yield from self.summary.items()
 
     @classmethod
     def aggregate(cls, key, counts, include_skip=True):
@@ -95,7 +94,7 @@ class SummaryHandler(LogHandler):
         return res
 
     def suite_start(self, data):
-        self.current_suite = data.get("name", "suite {}".format(len(self.summary) + 1))
+        self.current_suite = data.get("name", f"suite {len(self.summary) + 1}")
         if self.current_suite not in self.summary:
             self.summary[self.current_suite] = {
                 "counts": {

@@ -23,7 +23,7 @@ class UnstructuredHandler(logging.Handler):
         self.emit(record)
 
 
-class LoggingWrapper(object):
+class LoggingWrapper:
     def __init__(self, wrapped):
         self.wrapped = wrapped
         self.wrapped.addHandler(

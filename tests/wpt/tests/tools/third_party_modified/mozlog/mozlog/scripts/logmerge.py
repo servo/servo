@@ -69,7 +69,7 @@ def main(**kwargs):
         output = sys.stdout
     else:
         output = open(kwargs["output"], "w")
-    readers = [read(open(filename, "r")) for filename in kwargs["files"]]
+    readers = [read(open(filename)) for filename in kwargs["files"]]
     start_events = [process_until_suite_start(reader, output) for reader in readers]
     validate_start_events(start_events)
     merged_start_event = merge_start_events(start_events)

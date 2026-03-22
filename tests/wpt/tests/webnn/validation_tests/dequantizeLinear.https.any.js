@@ -156,7 +156,7 @@ promise_test(async t => {
 
   const input = builder.input('input', {
       dataType: 'int8',
-      shape: [context.opSupportLimits().maxTensorByteLength / 5, 5]});
+      shape: [context.opSupportLimits().maxTensorByteLength / 20 + 1, 5]});
   const scale = builder.input('scale', {dataType: 'float32', shape: [5]});
   const zeroPoint = builder.input('zeroPoint', {dataType: 'int8', shape: [5]});
 

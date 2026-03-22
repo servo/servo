@@ -7,7 +7,7 @@ from threading import Thread
 from .structuredlog import StructuredLogger, get_default_logger
 
 
-class ProxyLogger(object):
+class ProxyLogger:
     """
     A ProxyLogger behaves like a
     :class:`mozlog.structuredlog.StructuredLogger`.
@@ -73,7 +73,7 @@ class LogQueueThread(Thread):
         while True:
             try:
                 msg = self.queue.get()
-            except (EOFError, IOError):
+            except (OSError, EOFError):
                 break
             if msg is None:
                 break

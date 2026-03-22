@@ -1,6 +1,7 @@
 # mypy: allow-untyped-defs
 
 import os
+import platform
 import plistlib
 from packaging.version import Version
 from shutil import which
@@ -72,7 +73,14 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {}
+    rv = {}
+
+    version, _, _ = platform.mac_ver()
+    if version:
+        if Version(version) >= Version("26.4"):
+            rv["enable_webtransport_h3"] = True
+
+    return rv
 
 
 def run_info_extras(logger, **kwargs):

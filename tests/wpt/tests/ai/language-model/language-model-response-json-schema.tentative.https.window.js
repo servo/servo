@@ -47,8 +47,20 @@ promise_test(async t => {
       t, 'NotSupportedError',
       session.prompt(
           kTestPrompt, {responseConstraint: invalidResponseJsonSchema}),
-      'Response json schema is invalid - it should be an object that can be stringified into a JSON string.');
-}, 'Prompt API should fail if an invalid response json schema is provided');
+      'Response constraint is not a supported json schema.');
+}, 'Prompt should reject response schemas with circular references');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel();
+  // The type does not conform to any valid JSON schema type.
+  const invalidResponseJsonSchema = {'type': 'soup'};
+  await promise_rejects_dom(
+      t, 'NotSupportedError',
+      session.prompt(
+          kTestPrompt, {responseConstraint: invalidResponseJsonSchema}),
+      'Response constraint is not a supported json schema.');
+}, 'Prompt should reject response schemas with invalid types');
 
 promise_test(async t => {
   await ensureLanguageModel();
@@ -56,21 +68,36 @@ promise_test(async t => {
   const response =
       await session.prompt('hello', {responseConstraint: kValidResponseSchema});
   testResponseJsonSchema(response, t);
-}, 'Prompt API should work when a valid response json schema is provided.');
+}, 'Prompt should work when a valid response json schema is provided.');
 
 promise_test(async t => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
-  const assistantPrefix = '{ "Rating": ';
+  const goodPrefix = '{ "Rating": ';
   const assistantResponse = await session.prompt(
       [
         {role: 'user', content: 'hello'},
-        {role: 'assistant', content: assistantPrefix, prefix: true}
+        {role: 'assistant', content: goodPrefix, prefix: true}
       ],
       {responseConstraint: kValidResponseSchema});
-  const response = assistantPrefix + assistantResponse;
+  const response = goodPrefix + assistantResponse;
   testResponseJsonSchema(response, t);
-}, 'Prompt API should work when a valid response json schema and model prefix is provided.');
+}, 'Prompt should work when a valid response json schema and matching prefix is provided.');
+
+promise_test(async t => {
+  await ensureLanguageModel();
+  const session = await createLanguageModel();
+  const badPrefix = 'invalid';
+  await promise_rejects_dom(
+      t, 'NotSupportedError',
+      session.prompt(
+          [
+            {role: 'user', content: 'hello'},
+            {role: 'assistant', content: badPrefix, prefix: true}
+          ],
+          {responseConstraint: kValidResponseSchema}),
+      'Response constraint is not a supported json schema.');
+}, 'Prompt should reject if the prefix deviates from the json schema constraint.');
 
 promise_test(async t => {
   await ensureLanguageModel();
@@ -80,13 +107,4 @@ promise_test(async t => {
     omitResponseConstraintInput: true
   });
   testResponseJsonSchema(response, t);
-}, 'Prompt API should omit response schema from input.');
-
-promise_test(async t => {
-  await ensureLanguageModel();
-  const session = await createLanguageModel();
-  const promptPromise =
-      session.prompt(kTestPrompt, {responseConstraint: /hello/});
-  const result = await promptPromise;
-  assert_true(typeof result === 'string');
-}, 'Prompt API should work when a valid regex constraint is provided.');
+}, 'Prompt should omit response schema from input.');

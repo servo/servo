@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>form element inside of template during fragment parse</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/12257">
+<link rel="help" href="https://issues.chromium.org/490290430">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form>
+  <template id="t"></template>
+</form>
+
+<script>
+
+test((t) => {
+  // This tests two things:
+  //
+  //  1. that the parser isn't exercising its code for dropping nested forms,
+  //     and
+  //
+  //  2. that the parser isn't setting the form on the elemnts that it parses.
+  //     Testing this case requires a case where insertion into the tree won't
+  //     set the form, which means it requires testing a case where the parser
+  //     sets the <form> on an element that's not a descendant of the form due
+  //     to badly nested tags.
+  let template = document.getElementById("t");
+  template.innerHTML = "<div><form></div><input type=text></form>";
+  assert_equals(template.content.querySelectorAll("form").length, 1, "<template> content should have 1 form element; it should not be dropped because it is inside a <template>");
+  let inputs = template.content.querySelectorAll("input");
+  assert_equals(inputs.length, 1, "<template> content should have 1 input element");
+  assert_equals(inputs[0].form, null, "<input> has no form since the form element pointer is null inside a <template>");
+}, "management of form element pointer inside of a <template>");
+
+</script>

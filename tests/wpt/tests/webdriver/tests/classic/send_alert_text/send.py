@@ -3,7 +3,7 @@ import pytest
 from webdriver.error import NoSuchAlertException
 from webdriver.transport import Response
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 from tests.support.sync import Poll
 
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    .container {
+        display: grid;
+        grid-template-rows: repeat(4, 100px);
+        grid-template-columns: 1fr;
+        row-gap: 10px;
+        width: 500px;
+        margin-left: 100px;
+        border: solid 2px blue;
+        font-family: Ahem;
+        font-size: 10px;
+    }
+    .row {
+        display: flex;
+        flex-direction: row-reverse;
+        column-gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Row 1: block, spanner, spanner -->
+    <div class="row">
+      <div style="background-color: lightcoral; width: 100px;">block</div>
+      <div style="background-color: lightcoral; width: 10px; height: 430px;">spanner</div>
+      <div style="background-color: lightcoral; width: 10px; height: 430px; margin-right: 110px;">spanner</div>
+    </div>
+    <!-- Row 2: Item 1, Item 5, Item 8, [spanner gap], Item 6, [spanner gap], Item 9, Item 10 -->
+    <div class="row">
+      <div style="background-color: lightgreen; width: 30px;">Item 1</div>
+      <div style="background-color: lightgreen; width: 30px;">Item 5</div>
+      <div style="background-color: lightblue; width: 15px;">Item 8</div>
+      <div style="width: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightblue; width: 100px; margin-right: 5px;">Item 6</div>
+      <div style="width: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightblue; width: 40px;">Item 9</div>
+      <div style="background-color: steelblue; width: 45px;">Item 10</div>
+    </div>
+    <!-- Row 3: Item 2, [spanner gap], Item 4 -->
+    <div class="row">
+      <div style="background-color: lightblue; width: 100px;">Item 2</div>
+      <div style="width: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightblue; width: 90px;">Item 4</div>
+    </div>
+    <!-- Row 4: Item 3, [spanner gap], Item 7, block2, [spanner gap] -->
+    <div class="row">
+      <div style="background-color: lightgreen; width: 30px;">Item 3</div>
+      <div style="width: 10px;"></div><!-- spanner space -->
+      <div style="background-color: lightgreen; width: 30px; margin-right: -20px;">Item 7</div>
+      <div style="background-color: lightcoral; width: 100px; margin-right: 50px;">block</div>
+      <div style="width: 20px;"></div><!-- spanner space -->
+    </div>
+  </div>
+</body>
+</html>

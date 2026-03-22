@@ -10,7 +10,7 @@
     var handle_message = evt => {
       if (evt.source === frame.contentWindow) {
         window.parent.postMessage({
-          "child": document.featurePolicy.allowedFeatures().includes("fullscreen"),
+          "child": document.permissionsPolicy.allowedFeatures().includes("fullscreen"),
           "grandchild": evt.data
         },"*");
         document.body.removeChild(frame);

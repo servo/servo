@@ -28,4 +28,26 @@
 
   // Descriptors are not accepted.
   test_supports("at-rule(@counter-style; system: fixed)", false);
+
+  // Combining at-rule() with <supports-decl> using 'and'.
+  test_supports("at-rule(@supports) and (color: red)", true);
+  test_supports("at-rule(@media) and (display: flex)", true);
+  test_supports("at-rule(@doesnotexist) and (color: red)", false);
+  test_supports("at-rule(@supports) and (doesnotexist: red)", false);
+
+  // Combining at-rule() with <supports-decl> using 'or'.
+  test_supports("at-rule(@supports) or (color: red)", true);
+  test_supports("at-rule(@doesnotexist) or (color: red)", true);
+  test_supports("at-rule(@supports) or (doesnotexist: red)", true);
+  test_supports("at-rule(@doesnotexist) or (doesnotexist: red)", false);
+
+  // 'not' with at-rule().
+  test_supports("not at-rule(@supports)", false);
+  test_supports("not at-rule(@doesnotexist)", true);
+
+  // <supports-decl> first, at-rule() second.
+  test_supports("(color: red) and at-rule(@supports)", true);
+  test_supports("(color: red) and at-rule(@doesnotexist)", false);
+  test_supports("(color: red) or at-rule(@doesnotexist)", true);
+  test_supports("(doesnotexist: red) or at-rule(@doesnotexist)", false);
 </script>

@@ -19,19 +19,6 @@
 <body>
 <div id="log"></div>
 <script>
-function assertTransitionKeyframes(div, startValue, endValue) {
-  const animations = div.getAnimations();
-  assert_equals(animations.length, 1, 'A single transition is running');
-  assert_equals(animations[0].transitionProperty, '--foo', 'transition is for --foo');
-
-  const frames = animations[0].effect.getKeyframes();
-  assert_equals(frames.length, 2, 'Transition has 2 keyframes');
-  assert_equals(frames[0]['--foo'].trim(), startValue, 'Start keyframe has the old value');
-  assert_equals(frames[1]['--foo'].trim(), endValue, 'End keyframe has the new value');
-
-  return animations[0];
-}
-
 promise_test(async t => {
   const div = addDiv(t, { class: 'target' });
 
@@ -46,10 +33,8 @@ promise_test(async t => {
   );
   div.style.setProperty('--foo', 'baz');
 
-  const anim = assertTransitionKeyframes(div, 'bar', 'baz');
-  // Wait two more frames to ensure only a single transition was started.
-  await waitForFrame();
-  await waitForFrame();
+  const anim = assertTransitionKeyframes(div, '--foo', 'bar', 'baz');
+  await waitForAnimationFrames(2);
 
   assert_equals(transitionCount, 1, 'A single "transitionstart" event was dispatched');
   // Assert value during transition.
@@ -78,7 +63,7 @@ promise_test(async t => {
   div.style.transition = "--foo 10s allow-discrete";
   div.style.setProperty('--foo', 'baz');
 
-  assertTransitionKeyframes(div, 'bar', 'baz');
+  assertTransitionKeyframes(div, '--foo', 'bar', 'baz');
 }, 'It is possible to transition an unregistered custom property using "transition-behavior: allows-discrete" when setting "transition-property" in the style change that yields the transition');
 
 </script>

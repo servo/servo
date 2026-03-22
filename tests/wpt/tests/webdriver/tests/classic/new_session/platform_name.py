@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 
 
 def test_corresponds_to_local_system(new_session, add_browser_capabilities, target_platform):

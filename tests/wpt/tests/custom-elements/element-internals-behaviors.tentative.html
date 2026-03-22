@@ -1,0 +1,26 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ElementInternals behaviors API</title>
+<link rel="author" href="mailto:ansollan@microsoft.com">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PlatformProvidedBehaviors/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+customElements.define('test-element', class extends HTMLElement {});
+
+test(() => {
+  const element = document.createElement('test-element');
+  const ei = element.attachInternals({ behaviors: [] });
+  assert_not_equals(ei, null);
+}, 'attachInternals({ behaviors: [] }) accepts empty behaviors array');
+
+test(() => {
+  const element = document.createElement('test-element');
+  const ei = element.attachInternals();
+  assert_not_equals(ei.behaviors, undefined);
+  assert_equals(ei.behaviors.length, 0);
+}, 'behaviors returns empty array when no behaviors configured');
+
+</script>

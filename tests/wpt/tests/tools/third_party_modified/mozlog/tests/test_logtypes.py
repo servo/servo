@@ -4,7 +4,7 @@
 
 import unittest
 
-from mozlog.logtypes import Any, Dict, Int, List, TestList as LogTypeTestList, Tuple, Unicode
+from mozlog.logtypes import Any, Dict, Int, List, TestList as TypeTestList, Tuple, Unicode
 
 
 class TestContainerTypes(unittest.TestCase):
@@ -40,25 +40,25 @@ class TestContainerTypes(unittest.TestCase):
         d({"foo": {"bar": [1]}})  # doesn't raise
 
     def test_list_type_basic(self):
-        lst = List("name")
+        l = List("name")
         with self.assertRaises(ValueError):
-            lst(["foo"])
+            l(["foo"])
 
-        lst = List(Any, "name")
-        lst(["foo", 1])  # doesn't raise
+        l = List(Any, "name")
+        l(["foo", 1])  # doesn't raise
 
     def test_list_type_with_recursive_item_types(self):
-        lst = List(Dict(List(Tuple((Unicode, Int)))), "name")
+        l = List(Dict(List(Tuple((Unicode, Int)))), "name")
         with self.assertRaises(ValueError):
-            lst(["foo"])
+            l(["foo"])
 
         with self.assertRaises(ValueError):
-            lst([{"foo": "bar"}])
+            l([{"foo": "bar"}])
 
         with self.assertRaises(ValueError):
-            lst([{"foo": ["bar"]}])
+            l([{"foo": ["bar"]}])
 
-        lst([{"foo": [("bar", 1)]}])  # doesn't raise
+        l([{"foo": [("bar", 1)]}])  # doesn't raise
 
     def test_tuple_type_basic(self):
         t = Tuple("name")
@@ -88,7 +88,7 @@ class TestContainerTypes(unittest.TestCase):
 
 class TestDataTypes(unittest.TestCase):
     def test_test_list(self):
-        t = LogTypeTestList("name")
+        t = TypeTestList("name")
         with self.assertRaises(ValueError):
             t("foo")
 
@@ -98,7 +98,7 @@ class TestDataTypes(unittest.TestCase):
         d1 = t({"default": ["bar"]})  # doesn't raise
         d2 = t(["bar"])  # doesn't raise
 
-        self.assertEqual(d1, d2)
+        self.assertLessEqual(d1.items(), d2.items())
 
 
 if __name__ == "__main__":

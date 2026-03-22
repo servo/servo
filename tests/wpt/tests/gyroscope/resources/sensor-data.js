@@ -4,7 +4,7 @@ const kGyroscopeSensorData = {
   sensorName: 'Gyroscope',
   permissionName: 'gyroscope',
   testDriverName: 'gyroscope',
-  featurePolicyNames: ['gyroscope']
+  permissionsPolicyNames: ['gyroscope']
 };
 
 // Due to the gyroscope input values being rounded using a precision of

@@ -2,7 +2,6 @@ import pytest
 import pytest_asyncio
 import webdriver.bidi.error as error
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     IMAGE_RESPONSE_BODY,
     IMAGE_RESPONSE_DATA,
@@ -17,7 +16,7 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def setup_cached_resource_test(bidi_session, configuration, top_context, setup_network_test, add_data_collector):
+async def setup_cached_resource_test(bidi_session, top_context, wait_for_bidi_events, setup_network_test, add_data_collector):
     async def _setup_cached_resource_test(page_url, resource_url):
         network_events = await setup_network_test(
             events=[
@@ -33,7 +32,7 @@ async def setup_cached_resource_test(bidi_session, configuration, top_context, s
         )
 
         # Expect two events, one for the document, one for the resource.
-        await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
+        await wait_for_bidi_events(events, 2, timeout=2)
 
         collector = await add_data_collector(
             collector_type="blob", data_types=["response"], max_encoded_data_size=1000
@@ -45,7 +44,7 @@ async def setup_cached_resource_test(bidi_session, configuration, top_context, s
         )
 
         # Expect two events after reload, for the document and the resource.
-        await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
+        await wait_for_bidi_events(events, 4, timeout=2)
 
         # Assert only cached events after reload.
         cached_events = events[2:]

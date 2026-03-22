@@ -335,5 +335,34 @@ root.waitForTransitionEnd = function(element) {
   });
 };
 
+/**
+ * Asserts that exactly one transition is running on |div| for |property|,
+ * with the expected start and end keyframe values.
+ *
+ * @param div       The element to inspect.
+ * @param property  The CSS property name (e.g. '--x').
+ * @param startValue  Expected value of the start keyframe, or null to skip
+ *                    the check (useful when the start value is indeterminate,
+ *                    e.g. during a retargeted transition).
+ * @param endValue  Expected value of the end keyframe.
+ * @returns The running Animation object.
+ */
+root.assertTransitionKeyframes = function(div, property, startValue, endValue) {
+  const animations = div.getAnimations();
+  assert_equals(animations.length, 1, 'exactly one transition is running');
+  assert_equals(animations[0].transitionProperty, property,
+                'transition is for ' + property);
+
+  const frames = animations[0].effect.getKeyframes();
+  assert_equals(frames.length, 2, 'Transition has 2 keyframes');
+  if (startValue !== null) {
+    assert_equals(frames[0][property].trim(), startValue,
+                  'Start keyframe has the old value');
+  }
+  assert_equals(frames[1][property].trim(), endValue,
+                'End keyframe has the new value');
+
+  return animations[0];
+};
 
 })(window);

@@ -15,4 +15,3 @@ features:
   - window-serviceworker-failure.https.html
   - window-sharedworker-failure.https.html
   - window-simple-success.https.html
-  - window-simple-success.https.html.headers

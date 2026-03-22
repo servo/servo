@@ -1,4 +1,4 @@
-marionette_driver==3.5.0
+marionette_driver==3.6.0
 mozcrash==2.2.1
 mozdevice==4.2.0
 mozinstall==2.1.0

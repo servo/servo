@@ -33,7 +33,8 @@ from ..manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_
 
 from ..metadata.yaml.load import load_data_to_dict
 from ..metadata.meta.schema import META_YML_FILENAME, MetaFile
-from ..metadata.webfeatures.schema import WEB_FEATURES_YML_FILENAME, WebFeaturesFile
+from ..metadata.webfeatures.schema import (WEB_FEATURES_YML_FILENAME, WebFeaturesFile,
+                                          FileMatchingMode)
 
 # The Ignorelist is a two level dictionary. The top level is indexed by
 # error names (e.g. 'TRAILING WHITESPACE'). Each of those then has a map of
@@ -755,22 +756,52 @@ def check_meta_file(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Err
     return []
 
 
+def check_web_features_file_path(repo_root: Text, path: Text) -> List[rules.Error]:
+    if os.path.basename(path) != WEB_FEATURES_YML_FILENAME:
+        return []
+    source_file = SourceFile(repo_root, path, "/")
+    if source_file.in_non_test_dir():
+        dir_path = os.path.dirname(path)
+        return [rules.WebFeaturesFileInNonTestDirectory.error(path, (dir_path,))]
+    return []
+
+
 def check_web_features_file(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]:
     if os.path.basename(path) != WEB_FEATURES_YML_FILENAME:
         return []
     try:
         web_features_file: WebFeaturesFile = WebFeaturesFile(load_data_to_dict(f))
-    except Exception:
-        return [rules.InvalidWebFeaturesFile.error(path)]
+    except Exception as e:
+        return [rules.InvalidWebFeaturesFile.error(path, (str(e),))]
     errors = []
     base_dir = os.path.join(repo_root, os.path.dirname(path))
     files_in_directory = [
         f for f in os.listdir(base_dir) if os.path.isfile(os.path.join(base_dir, f))]
     for feature in web_features_file.features:
         if isinstance(feature.files, list):
+            # Resolve inclusion patterns to files, then subtract exclusions.
+            included: Set[str] = set()
+            dir_path = os.path.dirname(path)
             for file in feature.files:
-                if not file.match_files(files_in_directory):
-                    errors.append(rules.MissingTestInWebFeaturesFile.error(path, (file)))
+                matched = file.match_files(files_in_directory)
+                if file.matching_mode == FileMatchingMode.INCLUDE:
+                    if not matched:
+                        errors.append(rules.MissingTestInWebFeaturesFile.error(path, (file)))
+                    included.update(matched)
+                    # Only check explicitly named files (no wildcards).
+                    if "*" not in str(file):
+                        for filename in matched:
+                            rel_path = os.path.join(dir_path, filename)
+                            source_file = SourceFile(repo_root, rel_path, "/")
+                            if source_file.possible_types == {"support"}:
+                                errors.append(rules.NonTestFileInWebFeaturesFile.error(path, (
+                                    filename, feature.name)))
+                elif file.matching_mode == FileMatchingMode.EXCLUDE:
+                    excluded = set(matched) & included
+                    if not excluded:
+                        errors.append(rules.UnnecessaryExclusionInWebFeaturesFile.error(path, (
+                            f"'{file}' in feature '{feature.name}'",)))
+                    included -= excluded
 
     return errors
 
@@ -1094,7 +1125,8 @@ def lint(repo_root: Text,
 
 
 path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,
-              check_mojom_js, check_tentative_directories, check_gitignore_file]
+              check_mojom_js, check_tentative_directories, check_gitignore_file,
+              check_web_features_file_path]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata,
               check_ahem_system_font, check_meta_file, check_web_features_file]
 

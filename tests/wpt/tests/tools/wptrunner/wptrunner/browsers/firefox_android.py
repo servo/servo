@@ -167,14 +167,7 @@ class ProfileCreator(FirefoxProfileCreator):
 
     @staticmethod
     def default_prefs():
-        # Until the test harness can understand default pref values,
-        # (https://bugzilla.mozilla.org/show_bug.cgi?id=1577912) this value
-        # should by synchronized with the default pref value indicated in
-        # StaticPrefList.yaml.
-        #
-        # Currently for automation, the pref defaults to false (but can be
-        # overridden with --setpref).
-        return {"fission.disableSessionHistoryInParent": False}
+        return {}
 
     def _get_required_prefs(self):
         return {

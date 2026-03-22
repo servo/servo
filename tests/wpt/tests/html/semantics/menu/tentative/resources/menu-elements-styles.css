@@ -64,3 +64,8 @@
     min-block-size: max(24px, 1lh);
   }
 }
+
+.expand-icon::after {
+  content: counter(fake-counter-name, disclosure-closed);
+  margin-inline-start: auto;
+}

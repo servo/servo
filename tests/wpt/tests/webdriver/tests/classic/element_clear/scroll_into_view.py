@@ -1,7 +1,7 @@
 import pytest
 
-from tests.support.asserts import assert_success
-from tests.support.helpers import is_element_in_viewport
+from tests.support.classic.asserts import assert_success
+from tests.support.classic.helpers import is_element_in_viewport
 
 from . import element_clear
 

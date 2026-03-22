@@ -1,6 +1,6 @@
 import pytest
 
-from tests.support.asserts import (
+from tests.support.classic.asserts import (
     assert_element_has_focus,
     assert_events_equal,
     assert_success,

@@ -7,7 +7,7 @@ window.onload = function() {
 
   if (document.ariaNotify) {
     result.supportsAriaNotify = true;
-    result.allowsFeature = document.featurePolicy?.allowsFeature('aria-notify');
+    result.allowsFeature = document.permissionsPolicy?.allowsFeature('aria-notify');
   } else {
     result.supportsAriaNotify = false;
   }

@@ -1,5 +1,3 @@
-# encoding: utf-8
-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -7,7 +5,8 @@
 import os
 import signal
 import unittest
-import xml.etree.ElementTree as Et
+import xml.etree.ElementTree as ET
+from io import StringIO
 from textwrap import dedent
 
 import pytest
@@ -20,7 +19,6 @@ from mozlog.formatters import (
 )
 from mozlog.handlers import StreamHandler
 from mozlog.structuredlog import StructuredLogger
-from six import StringIO, ensure_text, unichr
 
 FORMATS = {
     # A list of tuples consisting of (name, options, expected string).
@@ -100,8 +98,8 @@ FORMATS = {
               test: 2 (1 fail, 1 pass)
               subtest: 2 (1 fail, 1 timeout)
 
-            Unexpected Results
-            ------------------
+            Error Summary
+            -------------
             test_foo
               FAIL test_foo - expected 0 got 1
             test_bar
@@ -140,8 +138,8 @@ FORMATS = {
               test: 2 (1 fail, 1 pass)
               subtest: 2 (1 fail, 1 timeout)
 
-            Unexpected Results
-            ------------------
+            Error Summary
+            -------------
             test_foo
               FAIL test_foo - expected 0 got 1
             test_bar
@@ -177,8 +175,8 @@ FORMATS = {
               test: 1 (1 precondition_failed)
               subtest: 1 (1 precondition_failed)
 
-            Unexpected Results
-            ------------------
+            Error Summary
+            -------------
             test_foo
               PRECONDITION_FAILED test_foo
             test_bar
@@ -208,8 +206,8 @@ FORMATS = {
               test: 1 (1 precondition_failed)
               subtest: 1 (1 precondition_failed)
 
-            Unexpected Results
-            ------------------
+            Error Summary
+            -------------
             test_foo
               PRECONDITION_FAILED test_foo
             test_bar
@@ -291,10 +289,10 @@ FORMATS = {
 def ids(test):
     ids = []
     for value in FORMATS[test]:
-        args = ", ".join(["{}={}".format(k, v) for k, v in value[1].items()])
+        args = ", ".join([f"{k}={v}" for k, v in value[1].items()])
         if args:
-            args = "-{}".format(args)
-        ids.append("{}{}".format(value[0], args))
+            args = f"-{args}"
+        ids.append(f"{value[0]}{args}")
     return ids
 
 
@@ -332,9 +330,7 @@ def test_fail(get_logger, name, opts, expected):
     stack = """
     SimpleTest.is@SimpleTest/SimpleTest.js:312:5
     @caps/tests/mochitest/test_bug246699.html:53:1
-""".strip(
-        "\n"
-    )
+""".strip("\n")
 
     logger = get_logger(name, **opts)
 
@@ -428,7 +424,7 @@ class FormatterTest(unittest.TestCase):
     @property
     def loglines(self):
         self.output_file.seek(self.position)
-        return [ensure_text(line.rstrip()) for line in self.output_file.readlines()]
+        return [line.rstrip() for line in self.output_file.readlines()]
 
 
 class TestHTMLFormatter(FormatterTest):
@@ -445,7 +441,7 @@ class TestHTMLFormatter(FormatterTest):
     def test_base64_unicode(self):
         self.logger.suite_start([])
         self.logger.test_start("unicode_test")
-        self.logger.test_end("unicode_test", "FAIL", extra={"data": unichr(0x02A9)})
+        self.logger.test_end("unicode_test", "FAIL", extra={"data": chr(0x02A9)})
         self.logger.suite_end()
         self.assertIn("data:text/html;charset=utf-8;base64,yqk=", self.loglines[-3])
 
@@ -669,6 +665,33 @@ Unexpected results: 3
         self.logger.process_exit(1234, -signal.SIGTERM)
         self.assertIn("1234: killed by SIGTERM", self.loglines[0])
 
+    def test_expected_fail_log_conversion(self):
+        """Test that ERROR TEST-EXPECTED-FAIL messages are converted to TODO"""
+        self.set_position()
+
+        # Test a log message that starts with TEST-EXPECTED-FAIL
+        self.logger.error("TEST-EXPECTED-FAIL | some test failed")
+
+        # Test a regular ERROR message (should not be converted)
+        self.logger.error("Regular error message")
+
+        # Test a message containing but not starting with TEST-EXPECTED-FAIL (should not be converted)
+        self.logger.error("Some prefix TEST-EXPECTED-FAIL suffix")
+
+        # Check that the TEST-EXPECTED-FAIL message was converted to TODO
+        # and the prefix was removed
+        output = "\n".join(self.loglines)
+        self.assertIn("TODO | some test failed", output)
+
+        # Check that regular ERROR messages are unchanged
+        self.assertIn("ERROR Regular error message", output)
+
+        # Check that messages not starting with TEST-EXPECTED-FAIL are unchanged
+        self.assertIn("ERROR Some prefix TEST-EXPECTED-FAIL suffix", output)
+
+        # Ensure the original ERROR TEST-EXPECTED-FAIL format doesn't appear
+        self.assertNotIn("ERROR TEST-EXPECTED-FAIL", output)
+
 
 class TestGroupingFormatter(FormatterTest):
     def get_formatter(self):
@@ -699,9 +722,9 @@ class TestGroupingFormatter(FormatterTest):
         self.assertIn("  \u2022 1 ran as expected. 0 tests skipped.", self.loglines)
         self.assertIn("  \u2022 1 known intermittent results.", self.loglines)
         self.assertIn("  \u2022 1 tests failed unexpectedly", self.loglines)
-        self.assertIn("  \u25B6 FAIL [expected OK] test2", self.loglines)
+        self.assertIn("  \u25b6 FAIL [expected OK] test2", self.loglines)
         self.assertIn(
-            "  \u25B6 FAIL [expected PASS, known intermittent [FAIL] test2, subtest2",
+            "  \u25b6 FAIL [expected PASS, known intermittent [FAIL] test2, subtest2",
             self.loglines,
         )
 
@@ -711,7 +734,7 @@ class TestXUnitFormatter(FormatterTest):
         return XUnitFormatter()
 
     def log_as_xml(self):
-        return Et.fromstring("\n".join(self.loglines))
+        return ET.fromstring("\n".join(self.loglines))
 
     def test_stacktrace_is_present(self):
         self.logger.suite_start([])
@@ -757,7 +780,7 @@ class TestXUnitFormatter(FormatterTest):
         )
         xml_string = formatter.suite_end(dict(time=55559))
 
-        root = Et.fromstring(xml_string)
+        root = ET.fromstring(xml_string)
         self.assertEqual(root.get("time"), "0.56")
         self.assertEqual(root.find("testcase").get("time"), "0.46")
 

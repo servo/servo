@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <meta name="variant" content="?preventDefault=no">
 <meta name="variant" content="?preventDefault=yes">
 <title>selectstart event</title>
@@ -32,7 +33,7 @@ addEventListener("load", () => {
   const accelKey = navigator.platform.includes("Mac") ? metaKey : controlKey;
   const editingHost = document.querySelector("div[contenteditable]");
   const Text_abc = editingHost.firstChild;
-  const Text_def = editingHost.firstChild.nextSibling.nextSibling;
+  const Text_def = Text_abc.nextSibling.nextSibling;
   const Text_789 = editingHost.lastChild.previousSibling;
 
   function getRangeDescription(range) {
@@ -415,11 +416,11 @@ addEventListener("load", () => {
       const originalRange = getRangeDescription(getSelection().getRangeAt(0));
       selectstartEvent = null;
       await new test_driver.Actions()
-      .keyDown(data.modifier)
-      .keyDown(data.key)
-      .keyUp(data.key)
-      .keyUp(data.modifier)
-      .send();
+        .keyDown(data.modifier)
+        .keyDown(data.key)
+        .keyUp(data.key)
+        .keyUp(data.modifier)
+        .send();
       assert_selectstart(t.name, originalRange);
     }, `${data.modifierName}+${data.keyName} when d[e]f<br>`);
   }

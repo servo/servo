@@ -17,6 +17,7 @@ from .item import (ConformanceCheckerTest,
                    SpecItem,
                    SupportFile,
                    TestharnessTest,
+                   Test262Test,
                    VisualTest,
                    WebDriverSpecTest)
 from .log import get_logger
@@ -49,7 +50,8 @@ item_classes: Dict[Text, Type[ManifestItem]] = {"testharness": TestharnessTest,
                                                 "conformancechecker": ConformanceCheckerTest,
                                                 "visual": VisualTest,
                                                 "spec": SpecItem,
-                                                "support": SupportFile}
+                                                "support": SupportFile,
+                                                "test262": Test262Test}
 
 
 def compute_manifest_items(source_file: SourceFile) -> Optional[Tuple[Tuple[Text, ...], Text, Set[ManifestItem], Text]]:

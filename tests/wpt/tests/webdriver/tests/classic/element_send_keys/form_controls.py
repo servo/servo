@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_element_has_focus
+from tests.support.classic.asserts import assert_element_has_focus
 
 
 def element_send_keys(session, element, text):

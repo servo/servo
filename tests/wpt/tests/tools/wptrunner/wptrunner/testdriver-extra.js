@@ -528,6 +528,16 @@
         return create_context_action("get_computed_role", context, {selectors});
     };
 
+    window.test_driver_internal.get_accessibility_properties_for_element = function(element) {
+        const selector = get_selector(element);
+        const context = get_context(element);
+        return create_context_action("get_accessibility_properties_for_element", context, {selector});
+    };
+
+    window.test_driver_internal.get_accessibility_properties_for_accessibility_node = function(accId, context=null) {
+        return create_context_action("get_accessibility_properties_for_accessibility_node", context, { accId });
+    };
+
     window.test_driver_internal.get_named_cookie = function(name, context=null) {
         return create_context_action("get_named_cookie", context, {name});
     };

@@ -3,6 +3,6 @@
 <script>
   "use strict";
   window.onload = () => {
-    window.parent.postMessage(document.featurePolicy.allowedFeatures().includes("fullscreen"),"*");
+    window.parent.postMessage(document.permissionsPolicy.allowedFeatures().includes("fullscreen"),"*");
   };
 </script>

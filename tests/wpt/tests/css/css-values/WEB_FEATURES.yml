@@ -91,6 +91,9 @@ features:
   files:
   - rem-unit-*
   - rem-root-*
+- name: progress-function
+  files:
+  - progress-*
 - name: random-function
   files:
   - random-*

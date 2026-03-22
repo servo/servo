@@ -1029,3 +1029,39 @@ def test_html_testdriver_features(features):
 
     s = create("html/test.html", contents=contents)
     assert s.testdriver_features == features
+
+@pytest.mark.parametrize("rel_path, is_test262", [
+    ("test262/test.js", True),
+    ("other/test.js", False),
+])
+def test_name_is_test262(rel_path, is_test262):
+    tests_root = "/tmp"
+    url_base = "/"
+    sf = SourceFile(tests_root, rel_path, url_base)
+    assert sf.name_is_test262 == is_test262
+
+def test_test262_test_record():
+    contents = b"""/*---
+description: A simple test
+---*/"""
+    sf = create("test262/test.js", contents=contents)
+    record = sf.test262_test_record
+    assert record is not None
+
+@pytest.mark.parametrize("rel_path, contents, expected_url", [
+    ("test262/test.js",
+     b"/*---\ndescription: A simple test\n---*/",
+     "/test262/test.test262.html"),
+    ("test262/module.js",
+     b"/*---\ndescription: A module test\nflags: [module]\n---*/",
+     "/test262/module.test262-module.html"),
+    ("test262/strict.js",
+     b"/*---\ndescription: A strict mode test\nflags: [onlyStrict]\n---*/",
+     "/test262/strict.test262.strict.html"),
+])
+def test_manifest_items_test262(rel_path, contents, expected_url):
+    sf = create(rel_path, contents=contents)
+    item_type, items = sf.manifest_items()
+    assert item_type == "test262"
+    assert len(items) == 1
+    assert items[0].url == expected_url

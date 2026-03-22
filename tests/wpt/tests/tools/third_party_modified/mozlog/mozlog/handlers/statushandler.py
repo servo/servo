@@ -16,7 +16,7 @@ RunSummary = namedtuple(
 )
 
 
-class StatusHandler(object):
+class StatusHandler:
     """A handler used to determine an overall status for a test run according
     to a sequence of log messages."""
 
@@ -33,11 +33,24 @@ class StatusHandler(object):
         self.log_level_counts = defaultdict(int)
         # The count of "No tests run" error messages seen
         self.no_tests_run_count = 0
+        # Track tests that have already had a crash counted to avoid counting
+        # multiple crashes for the same test
+        self.tests_with_counted_crash = set()
 
     def __call__(self, data):
         action = data["action"]
         known_intermittent = data.get("known_intermittent", [])
-        self.action_counts[action] += 1
+
+        # Handle crash actions specially to only count once per test
+        if action == "crash":
+            test_name = data.get("test")
+            # Only count the first crash per test, or always count if no test name
+            if test_name is None or test_name not in self.tests_with_counted_crash:
+                self.action_counts["crash"] += 1
+                if test_name is not None:
+                    self.tests_with_counted_crash.add(test_name)
+        else:
+            self.action_counts[action] += 1
 
         if action == "log":
             if data["level"] == "ERROR" and data["message"] == "No tests ran":
@@ -54,6 +67,10 @@ class StatusHandler(object):
                 # Count known_intermittent as expected and intermittent.
                 if status in known_intermittent:
                     self.known_intermittent_statuses[status] += 1
+
+        # Clean up crash tracking when test ends to handle retry scenarios
+        if action == "test_end":
+            self.tests_with_counted_crash.discard(data.get("test"))
 
         if action == "assertion_count":
             if data["count"] < data["min_expected"]:

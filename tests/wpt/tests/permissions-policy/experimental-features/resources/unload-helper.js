@@ -5,7 +5,7 @@ const SUBFRAME = 'sub';
 
 async function isUnloadAllowed(remoteContextWrapper) {
   return remoteContextWrapper.executeScript(() => {
-    return document.featurePolicy.allowsFeature('unload');
+    return document.permissionsPolicy.allowsFeature('unload');
   });
 }
 

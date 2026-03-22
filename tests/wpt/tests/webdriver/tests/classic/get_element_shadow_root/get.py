@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import WebElement
 
-from tests.support.asserts import assert_error, assert_same_element, assert_success
+from tests.support.classic.asserts import assert_error, assert_same_element, assert_success
 
 
 def get_shadow_root(session, element_id):

@@ -1,5 +1,4 @@
 // META: global=window,worker
-// META: script=/common/get-host-info.sub.js
 // META: script=resources/webtransport-test-helpers.sub.js
 
 // Write datagrams until the producer receives the AbortSignal.

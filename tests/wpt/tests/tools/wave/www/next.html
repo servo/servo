@@ -4,14 +4,16 @@
     <script src="lib/wave-service.js"></script>
     <script src="lib/screen-console.js"></script>
     <script src="lib/query-parser.js"></script>
+    <script src="lib/hbbtv.js"></script>
   </head>
   <body>
-    <p id="console" style="font-family: monospace;"></p>
+    <p id="console" style="font-family: monospace"></p>
     <script>
       var consoleElement = document.getElementById("console");
       var screenConsole = new ScreenConsole(consoleElement);
       var queryParameters = QueryParser.parseQuery();
       var TOKEN = queryParameters["token"];
+      var DELAY = queryParameters["delay"] || 0;
       if (TOKEN)
         document.cookie =
           "resume_token=" + TOKEN + "; expires=Fri, 31 Dec 9999 23:59:59 GMT";
@@ -22,7 +24,9 @@
         TOKEN,
         function (url) {
           screenConsole.log("Redirecting to " + url);
-          location.href = url;
+          setTimeout(function () {
+            location.href = url;
+          }, DELAY);
         },
         function () {
           screenConsole.log("Connection failed.");

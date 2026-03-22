@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: ::scroll-marker-group matches hover when inner ::scroll-marker is hovered</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    height: 100px;
+    width: 100px;
+    background: red;
+  }
+
+  #scroller::scroll-marker-group:hover {
+    background: green;
+  }
+
+  #scroller>div {
+    height: 100px;
+  }
+
+  #scroller>div::scroll-marker {
+    content: "A";
+    display: block;
+    width: 50px;
+    height: 50px;
+    color: red;
+  }
+
+  #scroller>div::scroll-marker:hover {
+    color: green;
+  }
+</style>
+<div id="scroller">
+  <div></div>
+</div>
+<script>
+  promise_test(async t => {
+    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").backgroundColor, "rgb(255, 0, 0)", "::scroll-marker-group is unhovered initially");
+    assert_equals(getComputedStyle(scroller.querySelector("div"), "::scroll-marker").color, "rgb(255, 0, 0)", "::scroll-marker is unhovered initially");
+
+    // The ::scroll-marker is within the ::scroll-marker-group, so we hover over its coordinates
+    const watcher = new EventWatcher(t, scroller, "mouseover");
+    const waitMouseover = watcher.wait_for("mouseover");
+    await new test_driver.Actions()
+      .pointerMove(15, 15)
+      .send();
+    await waitMouseover;
+    assert_equals(getComputedStyle(scroller, "::scroll-marker-group").backgroundColor, "rgb(0, 128, 0)", "::scroll-marker-group matches hover when inner ::scroll-marker is hovered");
+    assert_equals(getComputedStyle(scroller.querySelector("div"), "::scroll-marker").color, "rgb(0, 128, 0)", "::scroll-marker is hovered");
+  });
+</script>

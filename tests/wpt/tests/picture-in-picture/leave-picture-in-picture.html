@@ -9,48 +9,53 @@
 <script src="resources/picture-in-picture-helpers.js"></script>
 <body></body>
 <script>
-promise_test(async t => {
-  let pictureInPictureWindow;
+promise_test(async () => {
   const video = await loadVideo();
 
-  video.addEventListener('enterpictureinpicture', t.step_func_done(event => {
-    pictureInPictureWindow = event.pictureInPictureWindow;
-  }));
+  const enterPipEventPromise = new Promise((resolve) =>
+    video.addEventListener('enterpictureinpicture', resolve),
+  );
 
-  video.addEventListener('leavepictureinpicture', t.step_func_done(event => {
-    assert_equals(pictureInPictureWindow, event.pictureInPictureWindow);
+  const leavePipEventPromise = new Promise((resolve) =>
+    video.addEventListener('leavepictureinpicture', resolve),
+  );
 
-    assert_equals(event.target, video);
-    assert_equals(event.bubbles, true);
-    assert_equals(event.cancelable, false);
-    assert_equals(event.composed, false);
-    assert_equals(document.pictureInPictureElement, null);
-  }));
+  await requestPictureInPictureWithTrustedClick(video);
+  const { pictureInPictureWindow } = await enterPipEventPromise;
 
-  return requestPictureInPictureWithTrustedClick(video)
-  .then(() => document.exitPictureInPicture());
+  await document.exitPictureInPicture();
+
+  const event = await leavePipEventPromise;
+  assert_equals(pictureInPictureWindow, event.pictureInPictureWindow);
+  assert_equals(event.target, video);
+  assert_equals(event.bubbles, true);
+  assert_equals(event.cancelable, false);
+  assert_equals(event.composed, false);
+  assert_equals(document.pictureInPictureElement, null);
 }, 'leavepictureinpicture event is fired if document.exitPictureInPicture');
 
-promise_test(async t => {
-  let pictureInPictureWindow;
+promise_test(async () => {
   const video = await loadVideo();
 
-  video.addEventListener('enterpictureinpicture', t.step_func_done(event => {
-    pictureInPictureWindow = event.pictureInPictureWindow;
-  }));
+  const enterPipEventPromise = new Promise((resolve) =>
+    video.addEventListener('enterpictureinpicture', resolve),
+  );
 
-  video.addEventListener('leavepictureinpicture', t.step_func_done(event => {
-    assert_equals(pictureInPictureWindow, event.pictureInPictureWindow);
-    assert_equals(event.target, video);
-    assert_equals(event.bubbles, true);
-    assert_equals(event.cancelable, false);
-    assert_equals(event.composed, false);
-    assert_equals(document.pictureInPictureElement, null);
-  }));
+  const leavePipEventPromise = new Promise((resolve) =>
+    video.addEventListener('leavepictureinpicture', resolve),
+  );
 
-  return requestPictureInPictureWithTrustedClick(video)
-  .then(() => {
-    video.disablePictureInPicture = true;
-  });
+  await requestPictureInPictureWithTrustedClick(video);
+  const { pictureInPictureWindow } = await enterPipEventPromise;
+
+  video.disablePictureInPicture = true;
+
+  const event = await leavePipEventPromise;
+  assert_equals(pictureInPictureWindow, event.pictureInPictureWindow);
+  assert_equals(event.target, video);
+  assert_equals(event.bubbles, true);
+  assert_equals(event.cancelable, false);
+  assert_equals(event.composed, false);
+  assert_equals(document.pictureInPictureElement, null);
 }, 'leavepictureinpicture event is fired if video.disablePictureInPicture is set to true');
 </script>

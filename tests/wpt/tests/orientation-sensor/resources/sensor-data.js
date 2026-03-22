@@ -4,14 +4,14 @@ const kAbsoluteOrientationSensorData = {
   sensorName: 'AbsoluteOrientationSensor',
   permissionName: 'accelerometer',
   testDriverName: 'absolute-orientation',
-  featurePolicyNames: ['accelerometer', 'gyroscope', 'magnetometer']
+  permissionsPolicyNames: ['accelerometer', 'gyroscope', 'magnetometer']
 };
 
 const kRelativeOrientationSensorData = {
   sensorName: 'RelativeOrientationSensor',
   permissionName: 'accelerometer',
   testDriverName: 'relative-orientation',
-  featurePolicyNames: ['accelerometer', 'gyroscope']
+  permissionsPolicyNames: ['accelerometer', 'gyroscope']
 };
 
 const kOrientationReadings = {

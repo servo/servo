@@ -10,8 +10,8 @@ import subprocess
 import sys
 
 
-def get_browser_args(product, channel, artifact_path):
-    if product == "firefox":
+def get_browser_args(product, channel, artifact_path, wpt_args):
+    if product == "firefox" and not any(item.startswith("--install-browser") for item in wpt_args):
         local_binary = os.path.expanduser(os.path.join("~", "build", "firefox", "firefox"))
         if os.path.exists(local_binary):
             return ["--binary=%s" % local_binary]
@@ -85,7 +85,7 @@ def main(product, channel, commit_range, artifact_path, wpt_args):
     # Enable headless mode for WPE MiniBrowser and Servo because they do not work under Xvfb/X11 (needs Wayland)
     wpt_args.append("--headless" if product in ("wpewebkit_minibrowser", "servo") else "--no-headless")
 
-    wpt_args += get_browser_args(product, channel, artifact_path)
+    wpt_args += get_browser_args(product, channel, artifact_path, wpt_args)
 
     wpt_args.append(product)
 

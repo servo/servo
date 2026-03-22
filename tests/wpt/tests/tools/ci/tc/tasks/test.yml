@@ -54,6 +54,7 @@ components:
       browser:
         - ${vars.browser}
       channel: ${vars.channel}
+    commit-args-name: wpt-args
     command: >-
       ./tools/ci/taskcluster-run.py
       ${vars.browser}

@@ -369,13 +369,34 @@ class InvalidMetaFile(Rule):
 
 class InvalidWebFeaturesFile(Rule):
     name = "INVALID-WEB-FEATURES-FILE"
-    description = "The WEB_FEATURES.yml file contains an invalid structure"
+    description = "The WEB_FEATURES.yml file contains an invalid structure: %s"
 
 
 class MissingTestInWebFeaturesFile(Rule):
     name = "MISSING-WEB-FEATURES-FILE"
     description = collapse("""
         The WEB_FEATURES.yml file references a test that does not exist: '%s'
+    """)
+
+
+class UnnecessaryExclusionInWebFeaturesFile(Rule):
+    name = "UNNECESSARY-EXCLUSION-IN-WEB-FEATURES-FILE"
+    description = collapse("""
+        The WEB_FEATURES.yml file contains a redundant or inoperable exclusion pattern: %s
+    """)
+
+
+class WebFeaturesFileInNonTestDirectory(Rule):
+    name = "WEB-FEATURES-FILE-IN-NON-TEST-DIRECTORY"
+    description = collapse("""
+        WEB_FEATURES.yml is located in a non-test directory: '%s'
+    """)
+
+
+class NonTestFileInWebFeaturesFile(Rule):
+    name = "NON-TEST-FILE-IN-WEB-FEATURES-FILE"
+    description = collapse("""
+        The WEB_FEATURES.yml file references a non-test file: '%s' in feature '%s'
     """)
 
 
