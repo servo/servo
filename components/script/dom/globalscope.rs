@@ -2871,7 +2871,7 @@ impl GlobalScope {
 
         run_a_script::<DomTypeHolder, _>(self, || {
             let url = self.api_base_url();
-            let fetch_options = ScriptFetchOptions::default_classic_script(self);
+            let fetch_options = ScriptFetchOptions::default_classic_script();
 
             let no_script_rval = rval.is_none();
 

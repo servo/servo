@@ -957,8 +957,6 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
 pub(crate) struct ScriptFetchOptions {
-    #[no_trace]
-    pub(crate) referrer: Referrer,
     pub(crate) integrity_metadata: String,
     #[no_trace]
     pub(crate) credentials_mode: CredentialsMode,
@@ -971,11 +969,10 @@ pub(crate) struct ScriptFetchOptions {
 
 impl ScriptFetchOptions {
     /// <https://html.spec.whatwg.org/multipage/#default-classic-script-fetch-options>
-    pub(crate) fn default_classic_script(global: &GlobalScope) -> ScriptFetchOptions {
+    pub(crate) fn default_classic_script() -> ScriptFetchOptions {
         Self {
             cryptographic_nonce: String::new(),
             integrity_metadata: String::new(),
-            referrer: global.get_referrer(),
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             referrer_policy: ReferrerPolicy::EmptyString,
@@ -994,7 +991,6 @@ impl ScriptFetchOptions {
         // Step 1. Let newOptions be a copy of originalOptions.
         // TODO Step 4. Set newOptions's fetch priority to "auto".
         Self {
-            referrer: self.referrer.clone(),
             // Step 3. Set newOptions's integrity metadata to integrity.
             integrity_metadata: integrity,
             cryptographic_nonce: self.cryptographic_nonce.clone(),
@@ -1208,7 +1204,6 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     // metadata is "not-parser-inserted", credentials mode is credentialsMode,
     // referrer policy is the empty string, and fetch priority is "auto".
     let options = ScriptFetchOptions {
-        referrer: referrer.clone(),
         integrity_metadata: "".into(),
         credentials_mode,
         cryptographic_nonce: "".into(),

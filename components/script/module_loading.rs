@@ -447,7 +447,7 @@ pub(crate) fn host_load_imported_module(
         ),
         None => (
             // Step 4. Let originalFetchOptions be the default script fetch options.
-            ScriptFetchOptions::default_classic_script(&global_scope),
+            ScriptFetchOptions::default_classic_script(),
             // Step 5. Let fetchReferrer be "client".
             global_scope.get_referrer(),
         ),
