@@ -962,12 +962,12 @@ impl HTMLScriptElement {
                     };
 
                     fetch_inline_module_script(
+                        cx,
                         ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
                         base_url,
                         options,
                         self.line_number as u32,
-                        CanGc::from_cx(cx),
                     );
                 },
                 ScriptType::ImportMap => {
