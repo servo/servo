@@ -5,8 +5,8 @@
 
 import pytest
 
-from tests.support.asserts import assert_success
-from tests.support.helpers import is_fullscreen
+from tests.support.classic.asserts import assert_success
+from tests.support.classic.helpers import is_fullscreen
 
 
 def fullscreen_window(session):

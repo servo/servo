@@ -1,7 +1,7 @@
 import pytest
 
-from tests.support.asserts import assert_success
-from tests.support.helpers import center_point
+from tests.support.classic.asserts import assert_success
+from tests.support.classic.helpers import center_point
 
 
 def element_click(session, element):

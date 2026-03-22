@@ -1,11 +1,6 @@
 import pytest
 from webdriver.error import TimeoutException
 
-from tests.support.sync import AsyncPoll
-
-
-from tests.bidi import wait_for_bidi_events
-
 pytestmark = pytest.mark.asyncio
 
 
@@ -13,7 +8,7 @@ pytestmark = pytest.mark.asyncio
 # is covered by tests for each event in the dedicated folders.
 
 
-async def test_unsubscribe_from_module(bidi_session, configuration, new_tab, inline):
+async def test_unsubscribe_from_module(bidi_session, new_tab, wait_for_bidi_events, inline):
     await bidi_session.session.subscribe(events=["browsingContext"])
     await bidi_session.session.unsubscribe(events=["browsingContext"])
 
@@ -35,7 +30,7 @@ async def test_unsubscribe_from_module(bidi_session, configuration, new_tab, inl
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener_domContentLoaded()
     remove_listener_load()

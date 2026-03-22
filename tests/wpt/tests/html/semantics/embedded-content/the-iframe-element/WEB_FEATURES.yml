@@ -2,6 +2,7 @@ features:
 - name: loading-lazy
   files:
   - iframe-loading-lazy*
+  - "!iframe-loading-lazy-base-url*"
 - name: base
   files:
   - iframe-loading-lazy-base-url*
@@ -22,7 +23,6 @@ features:
   files:
   - "*"
   - "!iframe-loading-lazy*"
-  - "!iframe-loading-lazy-base-url*"
   - "!iframe-with-base.html"
   - "!srcdoc*"
   - "!iframe_sandbox_*"

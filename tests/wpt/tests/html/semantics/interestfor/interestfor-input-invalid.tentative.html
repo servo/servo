@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<input type="button" interestfor="interestee" value="Input">
+<input type="text" interestfor="interestee" value="Input">
+<input type="email" interestfor="interestee" value="Input">
+<div id="interestee" popover>Popover</div>
+
+<style>
+[interestfor] {
+  interest-delay: 0s;
+}
+</style>
+
+<script>
+  const interestee = document.getElementById('interestee');
+  document.querySelectorAll('input').forEach(input => {
+    test(function () {
+      assert_false('interestForElement' in input, 'interestForElement should not be available on input');
+    }, `interestForElement should not be reflected on input type=${input.type}`);
+
+    promise_test(async function (t) {
+      assert_false(interestee.matches(':popover-open'));
+
+      // Attempt to invoke the popover using the input button
+      await hoverOver(input);
+      assert_false(interestee.matches(':popover-open'), 'interestfor should not work');
+    }, `interestfor should not function on input type=${input.type}`);
+  });
+</script>

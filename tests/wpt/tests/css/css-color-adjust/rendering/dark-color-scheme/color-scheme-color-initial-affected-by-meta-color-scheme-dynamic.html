@@ -1,0 +1,30 @@
+<!doctype html>
+
+<title>CSS Color Adjustment Test: initial color is affected by meta color-scheme</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<meta id="meta" name="color-scheme" />
+
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-processing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  #ref { color: CanvasText; }
+  #initial { color: initial; }
+</style>
+
+<div id="ref"></div>
+<div id="initial"></div>
+
+<script>
+  test(() => {
+    meta.setAttribute("content", "light")
+    assert_equals(getComputedStyle(initial).color, getComputedStyle(ref).color);
+  }, "In light mode as indicated by <meta> color-scheme, explicit color: initial matches CanvasText");
+
+  test(() => {
+    meta.setAttribute("content", "dark")
+    assert_equals(getComputedStyle(initial).color, getComputedStyle(ref).color);
+  }, "In dark mode as indicated by <meta> color-scheme, explicit color: initial matches CanvasText");
+</script>

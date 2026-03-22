@@ -1,4 +1,5 @@
 // META: title=WebCryptoAPI: digest() cSHAKE algorithms
+// META: script=../util/helpers.js
 // META: timeout=long
 
 var subtle = crypto.subtle; // Change to test prefixed implementations
@@ -162,7 +163,7 @@ Object.keys(digestedData).forEach(function (alg) {
     Object.keys(sourceData).forEach(function (size) {
       promise_test(function (test) {
         return crypto.subtle
-          .digest({ name: alg, length: length }, sourceData[size])
+          .digest({ name: alg, outputLength: length }, sourceData[size])
           .then(function (result) {
             assert_true(
               equalBuffers(result, digestedData[alg][length][size]),
@@ -183,7 +184,7 @@ Object.keys(digestedData).forEach(function (alg) {
                 buffer[0] = sourceData[size][0];
                 return alg;
               },
-              length
+              outputLength: length
             }, buffer)
             .then(function (result) {
               assert_true(
@@ -196,7 +197,7 @@ Object.keys(digestedData).forEach(function (alg) {
         promise_test(function (test) {
           var buffer = new Uint8Array(sourceData[size]);
           var promise = crypto.subtle
-            .digest({ name: alg, length: length }, buffer)
+            .digest({ name: alg, outputLength: length }, buffer)
             .then(function (result) {
               assert_true(
                 equalBuffers(result, digestedData[alg][length][size]),
@@ -217,7 +218,7 @@ Object.keys(digestedData).forEach(function (alg) {
                 buffer.buffer.transfer();
                 return alg;
               },
-              length
+              outputLength: length
             }, buffer)
             .then(function (result) {
               assert_true(
@@ -230,7 +231,7 @@ Object.keys(digestedData).forEach(function (alg) {
         promise_test(function (test) {
           var buffer = new Uint8Array(sourceData[size]);
           var promise = crypto.subtle
-            .digest({ name: alg, length: length }, buffer)
+            .digest({ name: alg, outputLength: length }, buffer)
             .then(function (result) {
               assert_true(
                 equalBuffers(result, digestedData[alg][length][size]),
@@ -245,17 +246,3 @@ Object.keys(digestedData).forEach(function (alg) {
     });
   });
 });
-
-function equalBuffers(a, b) {
-  if (a.byteLength !== b.byteLength) {
-    return false;
-  }
-  var aBytes = new Uint8Array(a);
-  var bBytes = new Uint8Array(b);
-  for (var i = 0; i < a.byteLength; i++) {
-    if (aBytes[i] !== bBytes[i]) {
-      return false;
-    }
-  }
-  return true;
-}

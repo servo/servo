@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 5: alpha() function - valid parsing</title>
+<link rel="author" title="CGQAQ" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#relative-alpha">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+
+// Basic usage with literal alpha.
+test_valid_value("color", "alpha(from red / 0.5)");
+test_valid_value("color", "alpha(from blue / 1)");
+test_valid_value("color", "alpha(from green / 0)");
+
+// Percentage alpha.
+test_valid_value("color", "alpha(from red / 50%)");
+test_valid_value("color", "alpha(from red / 0%)");
+test_valid_value("color", "alpha(from red / 100%)");
+
+// None alpha.
+test_valid_value("color", "alpha(from red / none)");
+
+// Omitted alpha (defaults to origin's alpha).
+test_valid_value("color", "alpha(from red)");
+test_valid_value("color", "alpha(from currentcolor)");
+
+// Alpha keyword referencing origin's alpha.
+test_valid_value("color", "alpha(from currentcolor / alpha)");
+
+// Calc with alpha keyword.
+test_valid_value("color", "alpha(from currentcolor / calc(alpha * 0.5))", "alpha(from currentcolor / calc(0.5 * alpha))");
+test_valid_value("color", "alpha(from currentcolor / calc(alpha + 0.1))", "alpha(from currentcolor / calc(0.1 + alpha))");
+
+// Nested in other color functions.
+test_valid_value("color", "color-mix(in srgb, alpha(from red / 0.5), blue)");
+test_valid_value("color", "rgb(from alpha(from currentcolor / 0.5) r g b)");
+
+// Other color functions as origin.
+test_valid_value("color", "alpha(from color-mix(in srgb, red, blue) / 0.5)");
+test_valid_value("color", "alpha(from rgb(from red r g b) / 0.8)");
+
+// Non-sRGB color spaces preserved.
+test_valid_value("color", "alpha(from color(display-p3 1 0 0) / 0.5)");
+test_valid_value("color", "alpha(from lab(50 20 -30) / 0.5)");
+test_valid_value("color", "alpha(from oklch(0.5 0.2 120) / 0.5)");
+
+// System and named colors.
+test_valid_value("color", "alpha(from currentcolor / 0.5)");
+
+// Out-of-range alpha values.
+test_valid_value("color", "alpha(from red / 2)");
+test_valid_value("color", "alpha(from red / -1)");
+
+</script>

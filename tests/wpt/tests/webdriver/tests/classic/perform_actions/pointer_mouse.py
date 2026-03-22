@@ -12,7 +12,8 @@ from tests.classic.perform_actions.support.mouse import (
 )
 from tests.classic.perform_actions.support.refine import get_events
 from tests.support.asserts import assert_move_to_coordinates
-from tests.support.helpers import center_point, filter_dict
+from tests.support.classic.helpers import center_point
+from tests.support.helpers import filter_dict
 from tests.support.sync import Poll
 
 from . import assert_pointer_events, record_pointer_events

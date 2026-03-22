@@ -46,21 +46,26 @@
 <body>
   <div id="log"></div>
   <p>
-    <math><mrow><mo id="moMrow">&#x21A8;</mo><mspace width="1px" height="100px" style="background: blue"></mspace></mrow></math>
-    <math><msqrt><mo id="moSqrt">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></msqrt></math>
-    <math><mstyle><mo id="moStyle">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mstyle></math>
-    <math><merror><mo id="moError">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></merror></math>
-    <math><mphantom><mo style="visibilty: visible;" id="moPhantom">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mphantom></math>
-    <math><mo id="moMath">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></math>
+<!-- mo operators below should stretch to cover the height of the mspace
+     sibling. The mn element ensures its parent is not an embellished operator,
+     so that this test really verifies the stretching is performed during the
+     layout of the parent and not as part of the stretching of an embellished
+     operator during the layout of the <math> ancestor. -->
+    <math><mrow><mo id="moMrow">&#x21A8;</mo><mspace width="1px" height="100px" style="background: blue"></mspace><mn></mn></mrow></math>
+    <math><msqrt><mo id="moSqrt">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></msqrt></math>
+    <math><mstyle><mo id="moStyle">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></mstyle></math>
+    <math><merror><mo id="moError">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></merror></math>
+    <math><mphantom><mo style="visibilty: visible;" id="moPhantom">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></mphantom></math>
+    <math><mo id="moMath">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></math>
     <!-- menclose is treated as <unknown> in MathML Core -->
-    <math><menclose notation="box"><mo id="moMenclose">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></menclose></math>
-    <math><mpadded lspace="10px"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
-    <math><unknown><mo id="moUnknown">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></unknown></math>
-    <math><mtable><mtr><mtd><mo id="moMtd">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mtd></mtr></mtable></math>
-    <math><none><mo id="moNone">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></none></math>
-    <math><mprescripts><mo id="moMprescripts">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mprescripts></math>
-    <math><mfenced><mo id="moMfenced">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mfenced></math>
-    <math><a><mo id="moA">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></a></math>
+    <math><menclose notation="box"><mo id="moMenclose">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></menclose></math>
+    <math><mpadded lspace="10px"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></mpadded></math>
+    <math><unknown><mo id="moUnknown">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></unknown></math>
+    <math><mtable><mtr><mtd><mo id="moMtd">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></mtd></mtr></mtable></math>
+    <math><none><mo id="moNone">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></none></math>
+    <math><mprescripts><mo id="moMprescripts">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></mprescripts></math>
+    <math><mfenced><mo id="moMfenced">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></mfenced></math>
+    <math><a><mo id="moA">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace><mn></mn></a></math>
   </p>
 </body>
 </html>

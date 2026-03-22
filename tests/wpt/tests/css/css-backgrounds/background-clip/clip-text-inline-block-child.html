@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>background-clip:text with display:inline-block child</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-inline-block-child-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.clip {
+  font: 50px/1 Ahem;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+.inline-block {
+  display: inline-block;
+}
+</style>
+<!-- Test passes if there is a 10-character green text. -->
+<div class="clip">XXXXX<span class="inline-block">XXXXX</span></div>

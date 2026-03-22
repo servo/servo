@@ -3,7 +3,7 @@ import pytest
 from .conftest import product, flatten
 
 from tests.classic.new_session.support.create import invalid_data, invalid_extensions
-from tests.support.asserts import assert_error
+from tests.support.classic.asserts import assert_error
 
 
 @pytest.mark.parametrize("value", [None, 1, "{}", []])

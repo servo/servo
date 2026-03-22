@@ -77,7 +77,7 @@ class BufferHandler(BaseHandler):
 
     def _flush_buffered(self):
         """Logs the contents of the current buffer"""
-        for msg in self._buffer[self._buffer_pos:]:
+        for msg in self._buffer[self._buffer_pos :]:
             if msg is not None:
                 self.inner(msg)
         for msg in self._buffer[: self._buffer_pos]:

@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 
 
 def maximize_window(session):

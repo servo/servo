@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-class MessageHandler(object):
+class MessageHandler:
     """A message handler providing message handling facilities to
     classes derived from BaseHandler and BaseFormatter. This is a
     composition class, to ensure handlers and formatters remain separate.

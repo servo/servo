@@ -4,8 +4,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-  #outer { overflow-y: scroll; overflow-x: visible; width: 100px; height: 100px; }
-  #inner { overflow-x: scroll; overflow-y: visible; width: 100px; height: 200px; }
+  #outer { overflow-y: scroll; overflow-x: clip; width: 100px; height: 100px; }
+  #inner { overflow-x: scroll; overflow-y: clip; width: 100px; height: 200px; }
 
   /* Only 'top' is set initially. */
   #sticky { position: sticky; top: 10px; width: 10px; height: 10px; background: green; }

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+test(() => {
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const fragment = document.createDocumentFragment();
+
+    const details1 = document.createElement("details");
+    details1.setAttribute("name", "group");
+    details1.setAttribute("open", "");
+    details1.textContent = "Details 1";
+    fragment.appendChild(details1);
+
+    const details2 = document.createElement("details");
+    details2.setAttribute("name", "group");
+    details2.setAttribute("open", "");
+    details2.textContent = "Details 2";
+    fragment.appendChild(details2);
+
+    container.appendChild(fragment);
+
+    // Exactly one should remain open. The first in tree order keeps its open
+    // attribute; later ones see the conflict during post-insertion steps and
+    // close themselves.
+    let openCount = 0;
+    if (details1.hasAttribute("open"))
+        openCount++;
+    if (details2.hasAttribute("open"))
+        openCount++;
+
+    assert_equals(openCount, 1);
+    assert_true(details1.hasAttribute('open'));
+    assert_false(details2.hasAttribute('open'));
+
+    // Also test with three open details in a fragment.
+    const container2 = document.createElement("div");
+    document.body.appendChild(container2);
+
+    const fragment2 = document.createDocumentFragment();
+
+    const detailsA = document.createElement("details");
+    detailsA.setAttribute("name", "group2");
+    detailsA.setAttribute("open", "");
+    fragment2.appendChild(detailsA);
+
+    const detailsB = document.createElement("details");
+    detailsB.setAttribute("name", "group2");
+    detailsB.setAttribute("open", "");
+    fragment2.appendChild(detailsB);
+
+    const detailsC = document.createElement("details");
+    detailsC.setAttribute("name", "group2");
+    detailsC.setAttribute("open", "");
+    fragment2.appendChild(detailsC);
+
+    container2.appendChild(fragment2);
+
+    openCount = 0;
+    if (detailsA.hasAttribute("open"))
+        openCount++;
+    if (detailsB.hasAttribute("open"))
+        openCount++;
+    if (detailsC.hasAttribute("open"))
+        openCount++;
+
+    assert_equals(openCount, 1);
+    assert_true(detailsA.hasAttribute('open'));
+
+    // Test inserting into a container that already has an open details with the same name.
+    const container3 = document.createElement("div");
+    document.body.appendChild(container3);
+
+    const existing = document.createElement("details");
+    existing.setAttribute("name", "group3");
+    existing.setAttribute("open", "");
+    container3.appendChild(existing);
+
+    const fragment3 = document.createDocumentFragment();
+
+    const detailsD = document.createElement("details");
+    detailsD.setAttribute("name", "group3");
+    detailsD.setAttribute("open", "");
+    fragment3.appendChild(detailsD);
+
+    container3.appendChild(fragment3);
+
+    assert_false(detailsD.hasAttribute('open'));
+    assert_true(existing.hasAttribute('open'));
+
+    container.remove();
+    container2.remove();
+    container3.remove();
+}, "Test that inserting two open details elements with the same name via DocumentFragment results in exactly one being open.");
+
+</script>
+</body>
+</html>

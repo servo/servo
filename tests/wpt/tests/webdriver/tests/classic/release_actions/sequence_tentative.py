@@ -10,7 +10,7 @@ from tests.support.helpers import filter_dict
     ids=["with release actions", "without release actions"],
 )
 def test_release_mouse_sequence_resets_dblclick_state(
-    session, http_new_tab, test_actions_page, mouse_chain, release_actions
+    session, new_tab_classic, test_actions_page, mouse_chain, release_actions
 ):
     """
     The actual behaviour of the double click, specifically in the light of the `release_actions`

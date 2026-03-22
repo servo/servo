@@ -2,7 +2,6 @@ import pytest
 from webdriver.error import TimeoutException
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from ... import int_interval
 from .. import assert_navigation_info
 
@@ -11,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 DOM_CONTENT_LOADED_EVENT = "browsingContext.domContentLoaded"
 
 
-async def test_unsubscribe(bidi_session, configuration, inline, top_context):
+async def test_unsubscribe(bidi_session, inline, top_context, wait_for_bidi_events):
     # test
     await bidi_session.session.subscribe(events=[DOM_CONTENT_LOADED_EVENT])
     await bidi_session.session.unsubscribe(events=[DOM_CONTENT_LOADED_EVENT])
@@ -35,7 +34,7 @@ async def test_unsubscribe(bidi_session, configuration, inline, top_context):
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -89,7 +88,7 @@ async def test_timestamp(
 
 
 async def test_iframe(
-    bidi_session, configuration, subscribe_events, new_tab, test_page, test_page_same_origin_frame
+    bidi_session, subscribe_events, wait_for_bidi_events, new_tab, test_page, test_page_same_origin_frame
 ):
     events = []
 
@@ -107,7 +106,7 @@ async def test_iframe(
         context=new_tab["context"], url=test_page_same_origin_frame
     )
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 2)
+    await wait_for_bidi_events(events, 2)
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
 
@@ -140,8 +139,8 @@ async def test_iframe(
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context_not_emitted(bidi_session, configuration, subscribe_events,
-      wait_for_event, wait_for_future_safe, type_hint):
+async def test_new_context_not_emitted(bidi_session, subscribe_events,
+      wait_for_event, wait_for_bidi_events, wait_for_future_safe, type_hint):
     await subscribe_events(events=[DOM_CONTENT_LOADED_EVENT])
 
     # Track all received browsingContext.domContentLoaded events in the events array
@@ -157,7 +156,7 @@ async def test_new_context_not_emitted(bidi_session, configuration, subscribe_ev
     await bidi_session.browsing_context.create(type_hint=type_hint)
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 

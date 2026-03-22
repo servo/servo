@@ -21,7 +21,7 @@ from .structuredlog import get_default_logger, set_default_logger
 
 # Backwards compatibility shim for consumers that use mozlog.structured
 structured = sys.modules[__name__]
-sys.modules["{}.structured".format(__name__)] = structured
+sys.modules[f"{__name__}.structured"] = structured
 
 __all__ = [
     "commandline",

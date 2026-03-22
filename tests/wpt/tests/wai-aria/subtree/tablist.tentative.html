@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+
+<div id="tablist" role="tablist" aria-label="the tablist">
+  <div id="tab1" role="tab" aria-label="tab1"></div>
+  <div id="tab2" role="tab" aria-label="tab2"></div>
+</div>
+
+<script>
+
+AriaUtils.verifyAccessibilitySubtree("#tablist", {
+  role: "tablist",
+  label: "the tablist",
+  children: [
+    { role: "tab", label: "tab1", children: [] },
+    { role: "tab", label: "tab2", children: [] },
+  ],
+});
+
+</script>

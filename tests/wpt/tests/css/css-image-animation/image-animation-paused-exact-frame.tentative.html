@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation: paused freezes at the current frame when transitioning from running</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-paused-exact-frame.tentative-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  function loaded() {
+    // The GIF has 3 frames:
+    //   Frame 1: red,   20ms  (passes quickly)
+    //   Frame 2: green, 200ms (we pause during this frame)
+    //   Frame 3: blue
+    //
+    // Wait 100ms so we are well past frame 1 (20ms) but still within
+    // frame 2 (200ms), then pause. The paused image should show frame 2
+    // (green), proving that pausing freezes at the current frame.
+    setTimeout(() => {
+      document.getElementById('img1').style.imageAnimation = 'paused';
+      requestAnimationFrame(()=> {
+        requestAnimationFrame(()=>{
+          takeScreenshot();
+        })
+      })
+    }, 100);
+  }
+</script>
+
+<img id="img1" src="../../images/anim-rgb.gif" onload="loaded()" />
+
+</html>

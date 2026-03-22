@@ -44,7 +44,8 @@ promise_test(async (t) => {
   assert_equals(typeof result, 'object');
   assert_not_equals(result.correctedInput, input);
   assert_greater_than(result.corrections.length, 0);
-  assert_not_equals(result.corrections[0].type, undefined);
+  assert_not_equals(result.corrections[0].types, undefined);
+  assert_greater_than(result.corrections[0].types.length, 0);
 }, 'Proofreader.proofread() returns correction types when requested');
 
 promise_test(async (t) => {

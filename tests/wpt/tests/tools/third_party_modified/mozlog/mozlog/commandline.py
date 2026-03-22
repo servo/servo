@@ -14,22 +14,22 @@ from .structuredlog import StructuredLogger, set_default_logger
 log_formatters = {
     "raw": (
         formatters.JSONFormatter,
-        "Raw structured log messages " "(provided by mozlog)",
+        "Raw structured log messages (provided by mozlog)",
     ),
     "unittest": (
         formatters.UnittestFormatter,
-        "Unittest style output " "(provided by mozlog)",
+        "Unittest style output (provided by mozlog)",
     ),
     "xunit": (
         formatters.XUnitFormatter,
-        "xUnit compatible XML " "(provided by mozlog)",
+        "xUnit compatible XML (provided by mozlog)",
     ),
-    "html": (formatters.HTMLFormatter, "HTML report " "(provided by mozlog)"),
-    "mach": (formatters.MachFormatter, "Human-readable output " "(provided by mozlog)"),
-    "tbpl": (formatters.TbplFormatter, "TBPL style log format " "(provided by mozlog)"),
+    "html": (formatters.HTMLFormatter, "HTML report (provided by mozlog)"),
+    "mach": (formatters.MachFormatter, "Human-readable output (provided by mozlog)"),
+    "tbpl": (formatters.TbplFormatter, "TBPL style log format (provided by mozlog)"),
     "grouped": (
         formatters.GroupingFormatter,
-        "Grouped summary of test results " "(provided by mozlog)",
+        "Grouped summary of test results (provided by mozlog)",
     ),
     "errorsummary": (formatters.ErrorSummaryFormatter, argparse.SUPPRESS),
 }

@@ -51,7 +51,7 @@ def each_log(log_iter, action_map):
             action_map[item["action"]](item)
 
 
-class LogHandler(object):
+class LogHandler:
     """Base class for objects that act as log handlers. A handler is a callable
     that takes a log entry as the only argument.
 
@@ -62,7 +62,7 @@ class LogHandler(object):
 
       class StartIdHandler(LogHandler):
           def test_start(data):
-              #For simplicity in the example pretend the id is always a string
+              # For simplicity in the example pretend the id is always a string
               return data["test"]
     """
 

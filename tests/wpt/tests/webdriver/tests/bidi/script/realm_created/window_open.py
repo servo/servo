@@ -1,8 +1,6 @@
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -12,7 +10,7 @@ REALM_CREATED_EVENT = "script.realmCreated"
 
 @pytest.mark.parametrize("window_url", ["", "about:blank", "inline"])
 async def test_window_open(
-    bidi_session, configuration, subscribe_events, top_context, inline, window_url
+    bidi_session, subscribe_events, top_context, wait_for_bidi_events, inline, window_url
 ):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
@@ -32,7 +30,7 @@ async def test_window_open(
         target=ContextTarget(top_context["context"]),
     )
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 1, equal_check=True)
+    await wait_for_bidi_events(events, 1, equal_check=True)
 
     realms = await bidi_session.script.get_realms()
     window_realm = None
@@ -47,7 +45,7 @@ async def test_window_open(
 
 @pytest.mark.parametrize("window_url", ["", "about:blank", "inline"])
 async def test_event_order(
-    bidi_session, configuration, subscribe_events, new_tab, inline, window_url
+    bidi_session, subscribe_events, wait_for_bidi_events, new_tab, inline, window_url
 ):
     await subscribe_events(events=[CONTEXT_CREATED_EVENT, REALM_CREATED_EVENT])
 
@@ -74,7 +72,7 @@ async def test_event_order(
         target=ContextTarget(new_tab["context"]),
     )
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 2, equal_check=True)
+    await wait_for_bidi_events(events, 2, equal_check=True)
 
     assert events[0] == CONTEXT_CREATED_EVENT
     assert events[1] == REALM_CREATED_EVENT

@@ -6,6 +6,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   test(() => {
-      assert_in_array('local-fonts', document.featurePolicy.features());
-  }, 'document.featurePolicy.features should advertise local-fonts.');
+      assert_in_array('local-fonts', document.permissionsPolicy.features());
+  }, 'document.permissionsPolicy.features should advertise local-fonts.');
 </script>

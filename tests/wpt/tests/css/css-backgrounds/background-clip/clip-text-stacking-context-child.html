@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>background-clip:text with stacking context children</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9563">
+<link rel="match" href="clip-text-stacking-context-child-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.clip {
+  font: 50px/1 Ahem;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+</style>
+<!-- Test passes if there are 8 5-character green texts. -->
+
+<!-- opacity creates stacking context -->
+<div class="clip">XXXXX<div style="opacity: 0.99">XXXXX</div></div>
+
+<!-- transform creates stacking context -->
+<div class="clip">XXXXX<div style="transform: translateX(0)">XXXXX</div></div>
+
+<!-- will-change creates stacking context -->
+<div class="clip">XXXXX<div style="will-change: opacity">XXXXX</div></div>
+
+<!-- filter creates stacking context -->
+<div class="clip">XXXXX<div style="filter: opacity(1)">XXXXX</div></div>

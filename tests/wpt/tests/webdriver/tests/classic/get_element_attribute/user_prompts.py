@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
+from tests.support.classic.asserts import assert_error, assert_success, assert_dialog_handled
 
 
 def get_element_attribute(session, element, attr):

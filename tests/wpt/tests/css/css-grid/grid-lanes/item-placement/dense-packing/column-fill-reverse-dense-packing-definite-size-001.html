@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Fill-reverse with dense-packing</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+  <link rel="match" href="column-fill-reverse-dense-packing-definite-size-001-ref.html">
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(4, 100px);
+      grid-auto-flow: dense;
+      grid-lanes-pack: dense;
+      grid-lanes-direction: column fill-reverse;
+      gap: 10px;
+      margin-top: 100px;
+      border: solid 2px blue;
+      width: min-content;
+      font-family: Ahem;
+      font-size: 10px;
+      height: 500px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes">
+    <div style="background-color: lightcoral; height: 100px;">block</div>
+    <div style="grid-column: span 4; background-color: lightcoral; height: 10px;">spanner</div>
+    <div style="background-color: lightgreen; height: 30px;">Item 1</div>
+    <div style="background-color: lightblue; height: 100px;">Item 2</div>
+    <div style="background-color: lightgreen; height: 30px;">Item 3</div>
+    <div style="background-color: lightblue; height: 90px; grid-column: 3;">Item 4</div>
+    <div style="background-color: lightgreen; height: 30px;">Item 5</div>
+    <div style="background-color: lightblue; height: 100px;">Item 6</div>
+    <div style="background-color: lightcoral; height: 100px;">block</div>
+    <div style="grid-column: span 4; background-color: lightcoral; height: 10px;">spanner</div>
+    <div style="background-color: lightgreen; height: 30px;">Item 7</div>
+    <div style="background-color: lightblue; height: 15px;">Item 8</div>
+    <div style="background-color: lightblue; grid-column: 2; height: 40px;">Item 9</div>
+    <div style="background-color: steelblue; grid-column: 2; height: 45px;">Item 10</div>
+  </div>
+</body>
+</html>

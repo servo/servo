@@ -1,7 +1,6 @@
 from io import StringIO
 
 import pytest
-
 from mozlog.formatters import ErrorSummaryFormatter, MachFormatter
 from mozlog.handlers import StreamHandler
 from mozlog.structuredlog import StructuredLogger

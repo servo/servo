@@ -19,7 +19,7 @@ class ValgrindHandler(BaseHandler):
             self.inner(tmp)
 
 
-class ValgrindFilter(object):
+class ValgrindFilter:
     """
     A class for handling Valgrind output.
 
@@ -57,19 +57,19 @@ class ValgrindFilter(object):
         # Valgrind is English-only, so we don't have to worry about
         # localization.
         self.re_error = re.compile(
-            r"==\d+== (" +
-            r"(Use of uninitialised value of size \d+)|" +
-            r"(Conditional jump or move depends on uninitialised value\(s\))|" +
-            r"(Syscall param .* contains uninitialised byte\(s\))|" +
-            r"(Syscall param .* points to (unaddressable|uninitialised) byte\(s\))|" +
-            r"((Unaddressable|Uninitialised) byte\(s\) found during client check request)|" +
-            r"(Invalid free\(\) / delete / delete\[\] / realloc\(\))|" +
-            r"(Mismatched free\(\) / delete / delete \[\])|" +
-            r"(Invalid (read|write) of size \d+)|" +
-            r"(Jump to the invalid address stated on the next line)|" +
-            r"(Source and destination overlap in .*)|" +
-            r"(.* bytes in .* blocks are .* lost)" +
-            r")"
+            r"==\d+== ("
+            + r"(Use of uninitialised value of size \d+)|"
+            + r"(Conditional jump or move depends on uninitialised value\(s\))|"
+            + r"(Syscall param .* contains uninitialised byte\(s\))|"
+            + r"(Syscall param .* points to (unaddressable|uninitialised) byte\(s\))|"
+            + r"((Unaddressable|Uninitialised) byte\(s\) found during client check request)|"
+            + r"(Invalid free\(\) / delete / delete\[\] / realloc\(\))|"
+            + r"(Mismatched free\(\) / delete / delete \[\])|"
+            + r"(Invalid (read|write) of size \d+)|"
+            + r"(Jump to the invalid address stated on the next line)|"
+            + r"(Source and destination overlap in .*)|"
+            + r"(.* bytes in .* blocks are .* lost)"
+            + r")"
         )
         # Match identifer chars, plus ':' for namespaces, and '\?' in order to
         # match "???" which Valgrind sometimes produces.
@@ -120,14 +120,14 @@ class ValgrindFilter(object):
                 # fields from the incoming message, since there's nowhere
                 # else to get them from.
                 output_message = {  # Mandatory fields
-                    u"action": "valgrind_error",
-                    u"time": msg["time"],
-                    u"thread": msg["thread"],
-                    u"pid": msg["pid"],
-                    u"source": msg["source"],
+                    "action": "valgrind_error",
+                    "time": msg["time"],
+                    "thread": msg["thread"],
+                    "pid": msg["pid"],
+                    "source": msg["source"],
                     # valgrind_error specific fields
-                    u"primary": self.curr_failure_msg,
-                    u"secondary": self.buffered_lines,
+                    "primary": self.curr_failure_msg,
+                    "secondary": self.buffered_lines,
                 }
                 self.curr_failure_msg = ""
                 self.buffered_lines = []

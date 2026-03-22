@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>{{ TEST_TITLE }}</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+{{ INCLUDES }}
+<body>
+  <script>
+    var testUrl = "{{ TEST_URL }}";
+  </script>
+  <iframe id="iframe" src="{{ IFRAME_TEST_URL }}"></iframe>
+  <script charset="UTF-8" src="/ecmascript/webplatform-adapter.js"></script>
+</body>

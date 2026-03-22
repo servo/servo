@@ -132,11 +132,10 @@ def main(**kwargs):
 
     if kwargs["json"]:
         print(json.dumps(unstable))
+    elif not kwargs["group"]:
+        print_results(unstable)
     else:
-        if not kwargs["group"]:
-            print_results(unstable)
-        else:
-            print_run(unstable)
+        print_run(unstable)
 
 
 if __name__ == "__main__":

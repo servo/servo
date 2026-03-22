@@ -76,9 +76,9 @@ function validate_sensor_data(sensorData) {
   if (!('testDriverName' in sensorData)) {
     throw new TypeError('sensorData.testDriverName is missing');
   }
-  if (sensorData.featurePolicyNames !== undefined &&
-      !Array.isArray(sensorData.featurePolicyNames)) {
-    throw new TypeError('sensorData.featurePolicyNames must be an array');
+  if (sensorData.permissionsPolicyNames !== undefined &&
+      !Array.isArray(sensorData.permissionsPolicyNames)) {
+    throw new TypeError('sensorData.permissionsPolicyNames must be an array');
   }
 }
 

@@ -2,7 +2,7 @@ import pytest
 
 from webdriver.client import ShadowRoot, WebElement
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 from . import execute_async_script
 
 

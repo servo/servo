@@ -1,0 +1,59 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!--
+
+These tests should remain solid and passing in any implementation that supports
+get_accessibility_properties_for_element and get_accessibility_properties_for_accessibility_node. They are very
+basic tests intended to test the core functionality of these test_driver
+functions. Tests should generally only be added here if there is some significant
+change to the functionality of these test_driver functions; e.g. a new complex
+property type.
+
+It uses a standard promise_test (rather than aria-utils.js) to reduce other dependencies.
+
+If you're adding something you expect to fail in one or more implementations,
+you probably want a different file.
+
+-->
+
+<div id="ariaCheckbox" role="checkbox" aria-checked="true"></div>
+<input type="checkbox" id="htmlCheckbox" checked>
+
+<div id="tablist" role="tablist" aria-label="tablist">
+  <div id="tab1" role="tab" aria-label="tab1"></div>
+  <div id="tab2" role="tab" aria-label="tab2"></div>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const acc = await test_driver.get_accessibility_properties_for_element(document.getElementById("ariaCheckbox"));
+  assert_equals(acc.checked, "true");
+}, "ARIA checkbox with aria-checked true");
+
+promise_test(async t => {
+  const acc = await test_driver.get_accessibility_properties_for_element(document.getElementById("htmlCheckbox"));
+  assert_equals(acc.checked, "true");
+}, "HTML checkbox with checked true");
+
+promise_test(async t => {
+  const tablist = await test_driver.get_accessibility_properties_for_element(document.getElementById("tablist"));
+  assert_equals(tablist.children.length, 2);
+  const tab1 = await test_driver.get_accessibility_properties_for_accessibility_node(tablist.children[0]);
+  assert_equals(tab1.accessibilityId, tablist.children[0]);
+  assert_equals(tab1.parent, tablist.accessibilityId);
+  assert_equals(tab1.role, "tab");
+  assert_equals(tab1.label, "tab1");
+  const tab2 = await test_driver.get_accessibility_properties_for_accessibility_node(tablist.children[1]);
+  assert_equals(tab2.accessibilityId, tablist.children[1]);
+  assert_equals(tab2.parent, tablist.accessibilityId);
+  assert_equals(tab2.role, "tab");
+  assert_equals(tab2.label, "tab2");
+}, "tablist subtree");
+
+</script>

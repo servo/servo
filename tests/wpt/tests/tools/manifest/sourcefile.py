@@ -24,10 +24,14 @@ from .item import (ConformanceCheckerTest,
                    RefTest,
                    SpecItem,
                    SupportFile,
+                   Test262Test,
                    TestharnessTest,
                    VisualTest,
                    WebDriverSpecTest)
+from .log import get_logger
 from .utils import cached_property
+
+from . import test262
 
 # Cannot do `from ..metadata.webfeatures.schema import WEB_FEATURES_YML_FILENAME`
 # because relative import beyond toplevel throws *ImportError*!
@@ -422,6 +426,12 @@ class SourceFile:
                 (self.type_flag == "print" or "print" in self.dir_path.split(os.path.sep)))
 
     @property
+    def name_is_test262(self) -> bool:
+        """Check if the file name matches the conditions for the file to be a
+        test262 file"""
+        return ("test262" in self.dir_path.split(os.path.sep) and self.ext == ".js")
+
+    @property
     def markup_type(self) -> Optional[Text]:
         """Return the type of markup contained in a file, based on its extension,
         or None if it doesn't contain markup"""
@@ -471,11 +481,31 @@ class SourceFile:
         return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='pac']")
 
     @cached_property
+    def test262_test_record(self) -> Optional[test262.TestRecord]:
+        if self.name_is_test262:
+            with self.open() as f:
+                return test262.parse(get_logger(), f.read().decode('utf-8'), self.path)
+        else:
+            return None
+
+    @cached_property
     def script_metadata(self) -> Optional[List[Tuple[Text, Text]]]:
         if self.name_is_worker or self.name_is_multi_global or self.name_is_window or self.name_is_extension:
             regexp = js_meta_re
         elif self.name_is_webdriver:
             regexp = python_meta_re
+        elif self.name_is_test262:
+            if self.test262_test_record is None:
+                return None
+            paths: List[Tuple[Text, Text]] = []
+            if self.test262_test_record.includes is None:
+                return paths
+            for filename in self.test262_test_record.includes:
+                if filename in ("assert.js", "sta.js"):
+                    paths.append(('script', "/third_party/test262/harness/%s" % filename))
+                else:
+                    paths.append(('script', "/resources/test262/%s" % filename))
+            return paths
         else:
             return None
 
@@ -919,6 +949,9 @@ class SourceFile:
         if self.name_is_window:
             return {TestharnessTest.item_type}
 
+        if self.name_is_test262:
+            return {Test262Test.item_type, SupportFile.item_type}
+
         if self.name_is_extension:
             return {TestharnessTest.item_type}
 
@@ -1101,6 +1134,38 @@ class SourceFile:
                 for variant in self.test_variants
             ]
             rv = TestharnessTest.item_type, tests
+
+        elif self.name_is_test262:
+            if self.test262_test_record is None:
+                rv = "support", [
+                    SupportFile(
+                        self.tests_root,
+                        self.rel_path
+                    )]
+            else:
+                suffix = ".test262"
+                if self.test262_test_record.is_module:
+                    suffix += "-module"
+                elif self.test262_test_record.is_only_strict:
+                    # Modules are always strict mode, so only append strict for
+                    # non-module tests.
+                    suffix += ".strict"
+                suffix += ".html"
+                test_url = replace_end(self.rel_url, ".js", suffix)
+                tests = [
+                    Test262Test(
+                        self.tests_root,
+                        self.rel_path,
+                        self.url_base,
+                        test_url + variant,
+                        timeout=self.timeout,
+                        pac=self.pac,
+                        testdriver_features=self.testdriver_features,
+                        script_metadata=self.script_metadata
+                    )
+                    for variant in self.test_variants
+                ]
+                rv = Test262Test.item_type, tests
 
         elif self.content_is_css_manual and not self.name_is_reference:
             rv = ManualTest.item_type, [

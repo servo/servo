@@ -3,7 +3,7 @@ import pytest
 
 from webdriver.error import InvalidArgumentException
 
-from tests.support.asserts import assert_error
+from tests.support.classic.asserts import assert_error
 from . import perform_actions
 
 

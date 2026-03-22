@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>{{ TEST_TITLE }}</title>
+<script charset="UTF-8" src="/ecmascript/harness/assert.js"></script>
+<script charset="UTF-8" src="/ecmascript/harness/timer.js"></script>
+<script charset="UTF-8" src="/ecmascript/harness/sta.js"></script>
+<script charset="UTF-8" src="/ecmascript/harness/cth.js"></script>
+<script charset="UTF-8" src="/ecmascript/harness/propertyHelper.js"></script>
+<script charset="UTF-8" src="/ecmascript/harness/promiseHelper.js"></script>
+{{ INCLUDES }}
+<body>
+  <script id="test" charset="UTF-8" src="{{ TEST_URL }}"></script>
+  <script>
+    parent.$TEST_COMPLETED();
+  </script>
+</body>

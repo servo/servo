@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import WebElement
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 from tests.support.image import png_dimensions
 from . import element_dimensions, take_element_screenshot
 

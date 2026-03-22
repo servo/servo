@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+
+<div data-testname="button with missing aria-pressed" role="button" data-expectedproperties='{ "pressed": "undefined" }' class="ex-props"></div>
+<div data-testname="button with aria-pressed true" role="button" aria-pressed="true" data-expectedproperties='{ "pressed": "true" }' class="ex-props"></div>
+<div data-testname="button with aria-pressed false" role="button" aria-pressed="false" data-expectedproperties='{ "pressed": "false" }' class="ex-props"></div>
+<div data-testname="button with aria-pressed mixed" role="button" aria-pressed="mixed" data-expectedproperties='{ "pressed": "mixed" }' class="ex-props"></div>
+
+<script>
+AriaUtils.verifyPropertiesBySelector(".ex-props");
+</script>

@@ -2,7 +2,6 @@ import pytest
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 from . import assert_file_dialog_opened_event
 
 
@@ -11,8 +10,8 @@ pytestmark = pytest.mark.asyncio
 FILE_DIALOG_OPENED_EVENT = "input.fileDialogOpened"
 
 
-async def test_unsubscribe(bidi_session, configuration, inline, top_context, wait_for_event,
-        wait_for_future_safe):
+async def test_unsubscribe(bidi_session, inline, top_context, wait_for_event,
+        wait_for_bidi_events, wait_for_future_safe):
     await bidi_session.session.subscribe(events=[FILE_DIALOG_OPENED_EVENT])
     await bidi_session.session.unsubscribe(events=[FILE_DIALOG_OPENED_EVENT])
 
@@ -37,7 +36,7 @@ async def test_unsubscribe(bidi_session, configuration, inline, top_context, wai
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 

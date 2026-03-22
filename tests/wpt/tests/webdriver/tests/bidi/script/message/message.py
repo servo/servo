@@ -2,7 +2,6 @@ import pytest
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 
 pytestmark = pytest.mark.asyncio
 
@@ -57,7 +56,7 @@ async def test_subscribe(bidi_session, subscribe_events, top_context, wait_for_e
 
 
 async def test_subscribe_to_one_context(
-    bidi_session, configuration, subscribe_events, top_context, new_tab
+    bidi_session, subscribe_events, top_context, wait_for_bidi_events, new_tab
 ):
     # Subscribe to a specific context
     await subscribe_events(
@@ -83,7 +82,7 @@ async def test_subscribe_to_one_context(
 
     # Make sure we didn't receive the event for the new tab
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     await bidi_session.script.call_function(
         raw_result=True,

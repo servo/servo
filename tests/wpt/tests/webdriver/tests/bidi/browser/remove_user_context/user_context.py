@@ -2,7 +2,6 @@ import pytest
 
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 from tests.bidi.browser import get_user_context_ids
 
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
@@ -21,7 +20,7 @@ async def test_remove_context(bidi_session, create_user_context):
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_remove_context_closes_contexts(
-    bidi_session, configuration, subscribe_events, create_user_context, type_hint
+    bidi_session, subscribe_events, wait_for_bidi_events, create_user_context, type_hint
 ):
     await subscribe_events(events=["browsingContext.contextDestroyed"])
 
@@ -54,7 +53,7 @@ async def test_remove_context_closes_contexts(
     # destroy user context 1 and wait for context 1 and 2 to be destroyed
     await bidi_session.browser.remove_user_context(user_context=user_context_1)
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 2)
+    await wait_for_bidi_events(events, 2)
     destroyed_contexts = [event["context"] for event in events]
     assert context_1["context"] in destroyed_contexts
     assert context_2["context"] in destroyed_contexts
@@ -62,7 +61,7 @@ async def test_remove_context_closes_contexts(
     # destroy user context 1 and wait for context 3 and 4 to be destroyed
     await bidi_session.browser.remove_user_context(user_context=user_context_2)
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 4)
+    await wait_for_bidi_events(events, 4)
     destroyed_contexts = [event["context"] for event in events]
     assert context_3["context"] in destroyed_contexts
     assert context_4["context"] in destroyed_contexts
@@ -73,8 +72,8 @@ async def test_remove_context_closes_contexts(
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_remove_context_skips_beforeunload_prompt(
     bidi_session,
-    configuration,
     subscribe_events,
+    wait_for_bidi_events,
     create_user_context,
     setup_beforeunload_page,
     type_hint,
@@ -101,6 +100,6 @@ async def test_remove_context_skips_beforeunload_prompt(
     await bidi_session.browser.remove_user_context(user_context=user_context)
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()

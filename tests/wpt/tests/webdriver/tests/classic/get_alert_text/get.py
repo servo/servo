@@ -1,6 +1,6 @@
 from webdriver.error import NoSuchAlertException
 
-from tests.support.asserts import assert_error, assert_success
+from tests.support.classic.asserts import assert_error, assert_success
 from tests.support.sync import Poll
 
 

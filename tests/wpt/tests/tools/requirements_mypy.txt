@@ -1,5 +1,6 @@
 mypy==1.14.1
 
+types-python-dateutil==2.9.0.20260124
 types-atomicwrites==1.4.5.1
 types-html5lib==1.1.11.20241018
 types-setuptools==75.8.0.20250110

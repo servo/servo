@@ -18,7 +18,7 @@ class LogThread(threading.Thread):
         while True:
             try:
                 msg = self.queue.get()
-            except (EOFError, IOError):
+            except (OSError, EOFError):
                 break
             if msg is None:
                 break
@@ -57,7 +57,7 @@ class LoggingWrapper(BytesIO):
         pass
 
 
-class CaptureIO(object):
+class CaptureIO:
     def __init__(self, logger, do_capture, mp_context=None):
         if mp_context is None:
             import multiprocessing as mp_context

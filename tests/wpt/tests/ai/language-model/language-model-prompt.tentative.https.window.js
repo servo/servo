@@ -29,7 +29,6 @@ promise_test(async () => {
 promise_test(async (t) => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
-  assert_true(!!(await session.prompt([])));
   // Invalid input should be stringified.
   assert_regexp_match(await session.prompt({}), /\[object Object\]/);
 }, 'Check empty Object input');

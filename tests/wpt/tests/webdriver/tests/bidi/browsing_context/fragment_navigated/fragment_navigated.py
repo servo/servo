@@ -3,7 +3,6 @@ import pytest
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 from ... import any_int, recursive_compare, int_interval
 from .. import assert_navigation_info
 
@@ -255,7 +254,7 @@ async def test_browsing_context_navigate(
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, configuration, subscribe_events, type_hint):
+async def test_new_context(bidi_session, subscribe_events, type_hint, wait_for_bidi_events):
     await subscribe_events(events=[FRAGMENT_NAVIGATED_EVENT])
 
     events = []
@@ -268,13 +267,13 @@ async def test_new_context(bidi_session, configuration, subscribe_events, type_h
     await bidi_session.browsing_context.create(type_hint=type_hint)
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
 
 @pytest.mark.parametrize("sandbox", [None, "sandbox_1"])
-async def test_document_write(bidi_session, configuration, subscribe_events, new_tab, sandbox):
+async def test_document_write(bidi_session, subscribe_events, wait_for_bidi_events, new_tab, sandbox):
     await subscribe_events(events=[FRAGMENT_NAVIGATED_EVENT])
 
     events = []
@@ -291,7 +290,7 @@ async def test_document_write(bidi_session, configuration, subscribe_events, new
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
@@ -303,7 +302,7 @@ async def test_document_write(bidi_session, configuration, subscribe_events, new
         ("#foo", ""),
     ]
 )
-async def test_regular_navigation(bidi_session, configuration, subscribe_events, url, new_tab, before, after):
+async def test_regular_navigation(bidi_session, subscribe_events, url, wait_for_bidi_events, new_tab, before, after):
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url(EMPTY_PAGE) + before, wait="complete")
 
     await subscribe_events(events=[FRAGMENT_NAVIGATED_EVENT])
@@ -318,6 +317,6 @@ async def test_regular_navigation(bidi_session, configuration, subscribe_events,
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url(EMPTY_PAGE + after), wait="complete")
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()

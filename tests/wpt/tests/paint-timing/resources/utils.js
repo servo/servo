@@ -17,7 +17,6 @@ function assertFirstPaint(t, timeout) {
         t.step_timeout(function() {
           testFP();
         }, timeout);
-        return;
       }
       t.step(function() {
           assert_equals(bufferedEntries.length, 1, "FP only.");

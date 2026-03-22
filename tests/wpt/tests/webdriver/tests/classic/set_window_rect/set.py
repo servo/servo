@@ -7,8 +7,8 @@ import pytest
 
 from webdriver.transport import Response
 
-from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import (
+from tests.support.classic.asserts import assert_error, assert_success
+from tests.support.classic.helpers import (
     is_fullscreen,
     is_maximized,
     is_not_maximized,

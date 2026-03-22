@@ -1,7 +1,6 @@
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from ... import any_string, recursive_compare
 
 
@@ -182,8 +181,8 @@ async def test_mutation_observer(
 
 async def test_two_channels(
     bidi_session,
-    configuration,
     subscribe_events,
+    wait_for_bidi_events,
     add_preload_script,
 ):
     await subscribe_events(["script.message"])
@@ -209,7 +208,7 @@ async def test_two_channels(
 
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
     # Wait for both events
-    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=0.5)
+    await wait_for_bidi_events(events, 2, timeout=0.5)
 
     recursive_compare(
         {

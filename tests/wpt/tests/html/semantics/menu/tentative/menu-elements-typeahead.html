@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/489358143">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<menubar>
+  <menuitem class=one>one</menuitem>
+  <menuitem>gap 1</menuitem>
+  <menuitem class=two>two</menuitem>
+  <menuitem>gap 2</menuitem>
+  <menuitem class=three>three</menuitem>
+</menubar>
+
+<menulist>
+  <menuitem class=one>one</menuitem>
+  <menuitem>gap 1</menuitem>
+  <menuitem class=two>two</menuitem>
+  <menuitem>gap 2</menuitem>
+  <menuitem class=three>three</menuitem>
+</menulist>
+
+<script>
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+
+document.querySelector('menulist').showPopover();
+
+['menubar', 'menulist'].forEach(tagName => {
+  promise_test(async () => {
+    const container = document.querySelector(tagName);
+
+    const itemOne = container.querySelector('.one');
+    const itemTwo = container.querySelector('.two');
+    const itemThree = container.querySelector('.three');
+
+    itemOne.focus();
+    await pressKey('t');
+    assert_equals(document.activeElement, itemTwo,
+      'Pressing "t" should move focus to item "two".');
+
+    await pressKey('h');
+    assert_equals(document.activeElement, itemThree,
+      'Pressing "th" should move focus to item "three".');
+  }, `${tagName}: Typeahead support.`);
+});
+</script>

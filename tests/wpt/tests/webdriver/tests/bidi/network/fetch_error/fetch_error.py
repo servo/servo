@@ -4,7 +4,6 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_fetch_error_event,
     assert_response_event,
@@ -97,9 +96,9 @@ async def test_aborted_request(
 
 async def test_iframe_load(
     bidi_session,
-    configuration,
     new_tab,
     setup_network_test,
+    wait_for_bidi_events,
     inline,
 ):
     network_events = await setup_network_test(
@@ -112,7 +111,7 @@ async def test_iframe_load(
         url=inline(f"<iframe src='{PAGE_INVALID_URL}'></iframe>"),
     )
 
-    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=2)
+    await wait_for_bidi_events(events, 1, timeout=2)
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     frame_context = contexts[0]["children"][0]
@@ -130,8 +129,8 @@ async def test_iframe_load(
 async def test_navigation_id(
     bidi_session,
     new_tab,
-    wait_for_event,
     url,
+    wait_for_event,
     fetch,
     setup_network_test,
     wait_for_future_safe,
@@ -175,9 +174,9 @@ async def test_navigation_id(
 )
 async def test_request_method(
     bidi_session,
-    configuration,
     new_tab,
     wait_for_event,
+    wait_for_bidi_events,
     wait_for_future_safe,
     fetch,
     setup_network_test,
@@ -195,7 +194,7 @@ async def test_request_method(
     # request which uses the OPTIONS method.
     expected_events = 2 if has_preflight else 1
 
-    await wait_for_bidi_events(bidi_session, configuration, events, expected_events, timeout=2)
+    await wait_for_bidi_events(events, expected_events, timeout=2)
 
     # TODO: At the moment the event order for preflight requests differs between
     # Chrome and Firefox so we cannot assume the order of fetchError events.

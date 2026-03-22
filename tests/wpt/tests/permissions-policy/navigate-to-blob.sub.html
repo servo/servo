@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Keep deny on navigate to blob: URL</title>
+  <meta charset="UTF-8" />
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+  <script>
+    'use strict';
+
+    let tests = {
+      "cross_to_blob_navigation": {iframe_src: "cross", target_result: false},
+      "same_to_blob_navigation": {iframe_src: "same", target_result: true},
+    };
+    for (const [testname, {iframe_src, target_result}] of Object.entries(tests)) {
+      promise_test(async t => {
+        let iframe = document.createElement("iframe");
+        let { promise: finish_promise, resolve: finish_resolve } = Promise.withResolvers();
+
+        // when the iframe loads it should tell us if it has fullscreen access
+        window.addEventListener('message', t.step_func(e => {
+          if (e.data.stage == "iframe-loaded") {
+            assert_equals(e.data.fullscreenEnabled, target_result);
+          }
+          if (e.data.stage == "blob-loaded") {
+            assert_equals(e.data.fullscreenEnabled, target_result);
+            finish_resolve();
+          }
+        }));
+
+        document.body.appendChild(iframe);
+        let hostname = iframe_src === "same" ? "{{hosts[][]}}" : "{{hosts[alt][]}}";
+        iframe.src = `http://${hostname}:{{ports[http][0]}}/permissions-policy/resources/navigate-to-blob.html`;
+
+        await finish_promise;
+      }, testname);
+    }
+  </script>
+</body>
+</html>

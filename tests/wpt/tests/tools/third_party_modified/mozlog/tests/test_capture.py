@@ -2,7 +2,7 @@ import sys
 import unittest
 
 from mozlog import capture, structuredlog
-from test_structured import LogHandler
+from test_structured import Handler
 
 
 class TestCaptureIO(unittest.TestCase):
@@ -10,7 +10,7 @@ class TestCaptureIO(unittest.TestCase):
 
     def setUp(self):
         self.logger = structuredlog.StructuredLogger("test")
-        self.handler = LogHandler()
+        self.handler = Handler()
         self.logger.add_handler(self.handler)
 
     def test_captureio_log(self):
@@ -29,7 +29,7 @@ class TestCaptureIO(unittest.TestCase):
         self.assertIn("STDOUT: message 1", messages)
         self.assertIn("STDOUT: message 2", messages)
         self.assertIn("STDERR: message 3", messages)
-        self.assertIn(u"STDOUT: \xff", messages)
+        self.assertIn("STDOUT: \xff", messages)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_element_has_focus
+from tests.support.classic.asserts import assert_element_has_focus
 
 
 def test_sets_insertion_point_to_end(session, inline):

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS ::picker(select) Pseudo-Element Test</title>
+<link rel="help" href="https://drafts.csswg.org/css-forms-1/#picker-pseudo">
+<meta name="assert" content="This test checks the validity of the ::picker(select) pseudo element selector.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_selector("::picker(select)");
+test_valid_selector("*::picker(select)", "::picker(select)");
+test_valid_selector("foo.bar[baz]::picker(select)");
+test_invalid_selector("::picker(select) *");
+
+test_invalid_selector("::picker(foo)");
+test_invalid_selector("::picker()");
+test_invalid_selector("::picker");
+test_valid_selector("::picker(SELECT)", "::picker(select)");
+
+test_valid_selector("::picker(select)::picker(select)");
+
+test_invalid_selector("::before::picker(select)");
+test_invalid_selector("::after::picker(select)");
+test_invalid_selector("::marker::picker(select)");
+test_invalid_selector("::placeholder::picker(select)");
+
+test_valid_selector("::picker(select)::before");
+test_valid_selector("::picker(select)::after");
+test_valid_selector("::picker(select)::marker");
+test_valid_selector("::picker(select)::placeholder");
+
+test_invalid_selector("::slotted(*)::picker(select)::slotted(*)");
+test_valid_selector("::slotted(*)::picker(select)");
+
+test_valid_selector("::part(foo)::picker(select)");
+</script>

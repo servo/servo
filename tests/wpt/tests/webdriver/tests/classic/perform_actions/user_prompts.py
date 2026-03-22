@@ -4,7 +4,7 @@ import pytest
 from webdriver import error
 
 from tests.classic.perform_actions.support.refine import get_keys
-from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
+from tests.support.classic.asserts import assert_error, assert_success, assert_dialog_handled
 from tests.support.sync import Poll
 from . import perform_actions
 

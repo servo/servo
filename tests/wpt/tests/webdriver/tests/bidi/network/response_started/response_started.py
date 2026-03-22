@@ -4,7 +4,6 @@ import random
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_response_event,
     get_network_event_timerange,
@@ -360,7 +359,7 @@ async def test_www_authenticate(
     )
 
 
-async def test_redirect(bidi_session, configuration, url, fetch, setup_network_test):
+async def test_redirect(bidi_session, url, wait_for_bidi_events, fetch, setup_network_test):
     text_url = url(PAGE_EMPTY_TEXT)
     redirect_url = url(
         f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}"
@@ -373,7 +372,7 @@ async def test_redirect(bidi_session, configuration, url, fetch, setup_network_t
 
     # Wait until we receive two events, one for the initial request and one for
     # the redirection.
-    await wait_for_bidi_events(bidi_session, configuration, events, 2)
+    await wait_for_bidi_events(events, 2)
     expected_request = {"method": "GET", "url": redirect_url}
     assert_response_event(
         events[0], expected_event={"request": expected_request, "redirectCount": 0}

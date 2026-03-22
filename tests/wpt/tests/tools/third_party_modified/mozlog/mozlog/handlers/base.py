@@ -3,14 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import locale
-import tempfile
 from threading import Lock
 
 from mozlog.handlers.messagehandler import MessageHandler
 from mozlog.structuredlog import log_levels
 
 
-class BaseHandler(object):
+class BaseHandler:
     """A base handler providing message handling facilities to
     derived classes.
     """
@@ -65,6 +64,8 @@ class StreamHandler(BaseHandler):
         with self._lock:
             import io
 
+            import mozfile
+
             source_enc = "utf-8"
             target_enc = "utf-8"
             if isinstance(self.stream, io.BytesIO):
@@ -74,13 +75,11 @@ class StreamHandler(BaseHandler):
             if target_enc is None:
                 target_enc = locale.getpreferredencoding()
 
-            if isinstance(self.stream, io.StringIO) and isinstance(
-                formatted, bytes
-            ):
+            if isinstance(self.stream, io.StringIO) and isinstance(formatted, bytes):
                 formatted = formatted.decode(source_enc, "replace")
             elif (
-                isinstance(self.stream, io.BytesIO) or
-                isinstance(self.stream, tempfile._TemporaryFileWrapper)
+                isinstance(self.stream, io.BytesIO)
+                or isinstance(self.stream, mozfile.NamedTemporaryFile)
             ) and isinstance(formatted, str):
                 formatted = formatted.encode(target_enc, "replace")
             elif isinstance(formatted, str):
@@ -96,7 +95,7 @@ class StreamHandler(BaseHandler):
             # consequences for the executed tests, anyways).
             try:
                 self.stream.write(formatted)
-            except (UnicodeEncodeError):
+            except UnicodeEncodeError:
                 return
 
             self.stream.flush()

@@ -15,7 +15,7 @@
   // Test that fullscreen's allowlist is []
   test(function() {
     assert_array_equals(
-      document.featurePolicy.getAllowlistForFeature('fullscreen'),
+      document.permissionsPolicy.getAllowlistForFeature('fullscreen'),
       []);
     assert_false(document.fullscreenEnabled, "fullscreenEnabled should reflect permissions policy properly");
   }, header_policy + ' -- test allowlist is []');

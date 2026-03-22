@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_success
+from tests.support.classic.asserts import assert_success
 from tests.support.sync import Poll
 
 from . import opener, window_name

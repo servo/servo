@@ -3,7 +3,6 @@ import pytest
 from webdriver.bidi.modules.network import AuthCredentials
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 from .. import (
     assert_response_event,
     get_network_event_timerange,
@@ -137,7 +136,7 @@ async def test_request_timing_info(
     )
 
 
-async def test_with_wrong_credentials(setup_blocked_request, bidi_session, configuration):
+async def test_with_wrong_credentials(setup_blocked_request, bidi_session, wait_for_bidi_events):
     # Setup unique username / password because browsers cache credentials.
     username = "test_with_wrong_credentials"
     password = "test_with_wrong_credentials_password"
@@ -160,17 +159,17 @@ async def test_with_wrong_credentials(setup_blocked_request, bidi_session, confi
     )
 
     # We expect to get authRequired event after providing wrong credentials
-    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=1)
+    await wait_for_bidi_events(events, 1, timeout=1)
 
     await bidi_session.network.continue_with_auth(
         request=request, action="provideCredentials", credentials=wrong_credentials
     )
 
     # We expect to get another authRequired event after providing wrong credentials
-    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=1)
+    await wait_for_bidi_events(events, 2, timeout=1)
 
     # Check no other authRequired event was received
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 3, timeout=1)
+        await wait_for_bidi_events(events, 3, timeout=1)
 
     remove_listener()

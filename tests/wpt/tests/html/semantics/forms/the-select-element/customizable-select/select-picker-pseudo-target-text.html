@@ -26,12 +26,12 @@ select::picker(select)::target-text {
 </select>
 
 <script>
-window.location.hash = "#:~:text=Hello";
-
 (async () => {
   await test_driver.bless();
   document.querySelector("select").showPicker();
   await new Promise(requestAnimationFrame);
+  window.location.hash = "#:~:text=Hello";
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   document.documentElement.classList.remove("reftest-wait");
 })();
 </script>

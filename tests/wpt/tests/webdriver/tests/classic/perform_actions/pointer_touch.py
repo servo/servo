@@ -31,7 +31,7 @@ def test_no_browsing_context(session, closed_frame, touch_chain):
 
 
 def test_pointer_down_closes_browsing_context(
-    session, configuration, http_new_tab, inline, touch_chain
+    session, configuration, new_tab_classic, inline, touch_chain
 ):
     session.url = inline(
         """<input onpointerdown="window.close()">close</input>""")

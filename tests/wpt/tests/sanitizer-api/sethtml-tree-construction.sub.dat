@@ -652,3 +652,13 @@ test<div>p</div>tt<p>div</p><test>test</test>
 | <a>
 |   href="about:blank"
 |   "Click."
+
+#data
+<div><b><em><foo><foob><fooc><aside></b></em></div>
+#config
+{ "removeElements": ["em"] }
+#document
+| <div>
+|   <b>
+|   <aside>
+|     <b>

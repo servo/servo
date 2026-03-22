@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .container {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      column-gap: 10px;
+      height: 200px;
+      width: min-content;
+      border: solid blue;
+    }
+
+    .track {
+      display: flex;
+      flex-direction: column;
+      height: 200px;
+      padding-bottom: 50px;
+    }
+
+    .item {
+      width: 50px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that grid-lanes items with fill-reverse and track-reverse placement are correctly positioned
+     within a definite-size container.</p>
+  <div class="container">
+    <div class="track">
+      <div class="item" style="background: gold; margin-top: 65px; height: 30px;">10</div>
+      <div class="item" style="background: lightskyblue; height: 35px;">6</div>
+      <div class="item" style="background: lavender; margin-top: 20px; height: 20px;">5</div>
+      <div class="item" style="background: lightgreen; margin-top: 10px; height: 20px;">3</div>
+    </div>
+    <div class="track">
+      <div class="item" style="background: tomato; margin-top: 60px; height: 15px;">11</div>
+      <div class="item" style="background: lightpink; margin-top: 10px; height: 40px;">8</div>
+      <div class="item" style="background: lightpink; margin-top: 10px; width: 110px; height: 25px;">4</div>
+      <div class="item" style="background: orchid; margin-top: 10px; height: 15px; z-index: 1;">12</div>
+      <div class="item" style="background: lightskyblue; height: 15px; overflow: hidden;"></div>
+    </div>
+    <div class="track">
+      <div class="item" style="background: coral; margin-top: 65px; height: 30px;">9</div>
+      <div class="item" style="background: lightgreen; margin-top: 10px; height: 20px;">7</div>
+      <div class="item" style="background: lavender; margin-top: 55px; height: 20px;">1</div>
+    </div>
+  </div>
+</body>
+</html>

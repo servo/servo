@@ -162,3 +162,27 @@ def test_unique_case_insensitive_paths(paths, errors):
     for (name, _, path, _), expected_path in zip(got_errors, errors):
         assert name == "DUPLICATE-CASE-INSENSITIVE-PATH"
         assert path == expected_path
+
+
+@pytest.mark.parametrize("path", [
+    os.path.join("css", "resources", "WEB_FEATURES.yml"),
+    os.path.join("css", "support", "WEB_FEATURES.yml"),
+    os.path.join("html", "tools", "WEB_FEATURES.yml"),
+    os.path.join("common", "WEB_FEATURES.yml"),
+    os.path.join("html", "semantics", "resources", "sub", "WEB_FEATURES.yml"),
+])
+def test_web_features_file_in_non_test_directory(path):
+    errors = check_path("/foo/", path)
+    assert len(errors) == 1
+    assert errors[0][0] == "WEB-FEATURES-FILE-IN-NON-TEST-DIRECTORY"
+
+
+@pytest.mark.parametrize("path", [
+    os.path.join("css", "css-images", "WEB_FEATURES.yml"),
+    os.path.join("html", "semantics", "WEB_FEATURES.yml"),
+    os.path.join("css", "WEB_FEATURES.yml"),
+    os.path.join("html", "semantics", "the-button-element", "WEB_FEATURES.yml"),
+])
+def test_web_features_file_in_non_test_directory_negative(path):
+    errors = check_path("/foo/", path)
+    assert not any(e[0] == "WEB-FEATURES-FILE-IN-NON-TEST-DIRECTORY" for e in errors)

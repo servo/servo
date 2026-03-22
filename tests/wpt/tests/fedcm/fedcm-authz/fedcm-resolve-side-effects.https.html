@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+
+promise_test(async t => {
+  const frame = document.createElement('iframe');
+  document.body.appendChild(frame);
+
+  const token = {};
+  Object.defineProperty(token, 'prop', {
+      get: function() {
+          frame.remove();
+          return "value";
+      },
+      enumerable: true
+  });
+
+  try {
+    frame.contentWindow.IdentityProvider.resolve(token, { accountId: '123' });
+  } catch(e) {}
+}, "If a getter in the token in IdentityProvider.resolve removes the frame, the user agent should not crash");
+
+</script>

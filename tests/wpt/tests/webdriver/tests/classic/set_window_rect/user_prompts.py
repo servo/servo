@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
+from tests.support.classic.asserts import assert_dialog_handled, assert_error, assert_success
 
 
 def set_window_rect(session, rect):

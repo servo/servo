@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>PageHideEvent speculations - unused preloads</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Test that unused preloads are reported in the pagehide event.
+
+function isPageHideSpeculationsEnabled() {
+  return 'PageHideEvent' in window;
+}
+
+// Poll the server stash until the preload request has been received.
+async function waitForPreloadRequest(uuid, timeout = 5000) {
+  const checkUrl = `support/preload-stash.py?uuid=${uuid}&check`;
+  const start = performance.now();
+  while (performance.now() - start < timeout) {
+    const response = await fetch(checkUrl);
+    const data = await response.json();
+    if (data.received) {
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error("Timed out waiting for server to receive preload request");
+}
+
+promise_test(async t => {
+  assert_true(isPageHideSpeculationsEnabled(),
+    "PageHideSpeculations feature must be enabled for these tests");
+}, "PageHideSpeculations feature check");
+
+promise_test(async t => {
+  if (!isPageHideSpeculationsEnabled()) {
+    return;
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.src = "support/page-with-pagehide-reporter.html";
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+
+  const result = await new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error("pagehide event did not fire within timeout"));
+    }, 5000);
+
+    window.pagehideCallback = function(data) {
+      clearTimeout(timeoutId);
+      window.pagehideCallback = null;
+      resolve(data);
+    };
+
+    iframe.src = "support/blank.html";
+  });
+
+  assert_equals(result.eventConstructorName, 'PageHideEvent',
+    "event should be PageHideEvent");
+  assert_not_equals(result.speculations, null,
+    "speculations should not be null");
+  assert_not_equals(result.speculations, undefined,
+    "speculations should not be undefined");
+  assert_true('preloads' in result.speculations,
+    "speculations should have preloads");
+
+  const preloads = result.speculations.preloads;
+  assert_array_equals(preloads, [],
+    "preloads should be an empty array when page has no preloads");
+}, "Preloads should be reported in pagehide event");
+
+promise_test(async t => {
+  if (!isPageHideSpeculationsEnabled()) {
+    return;
+  }
+
+  // This page has an unused preload
+  const uuid = crypto.randomUUID();
+  const iframe = document.createElement('iframe');
+  iframe.src = `support/page-with-unused-preload-and-reporter.html?uuid=${uuid}`;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+
+  // Wait for the server to confirm it received the preload request
+  await waitForPreloadRequest(uuid);
+
+  const result = await new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error("pagehide event did not fire within timeout"));
+    }, 5000);
+
+    window.pagehideCallback = function(data) {
+      clearTimeout(timeoutId);
+      window.pagehideCallback = null;
+      resolve(data);
+    };
+
+    iframe.src = "support/blank.html";
+  });
+
+  assert_not_equals(result.speculations, null,
+    "speculations should not be null");
+  assert_not_equals(result.speculations, undefined,
+    "speculations should not be undefined");
+
+  const preloads = result.speculations.preloads;
+  assert_equals(preloads.length, 1,
+    "should have exactly one preload entry");
+
+  const preload = preloads[0];
+  assert_true(preload.url.includes("preload-stash.py"),
+    "preload url should reference preload-stash.py");
+  assert_equals(preload.as, "script",
+    "preload as should be 'script'");
+  assert_equals(preload.used, false,
+    "preload should be unused");
+  assert_equals(preload.crossorigin, "none",
+    "preload crossorigin should be 'none' when not set");
+}, "Unused preload should have correct shape and values");
+</script>
+</body>

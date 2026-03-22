@@ -2,7 +2,8 @@ import base64
 
 import pytest
 
-from tests.support.asserts import assert_pdf, assert_success
+from tests.support.classic.asserts import assert_success
+from tests.support.asserts import assert_pdf
 from tests.support.image import pt_to_cm
 
 from . import do_print
@@ -31,8 +32,8 @@ WHITE_DOT_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQIW2P4DwQ
 def test_background(
     session,
     inline,
-    compare_png_http,
-    render_pdf_to_png_http,
+    compare_png_classic,
+    render_pdf_to_png_classic,
     print_with_background,
     expected_image,
 ):
@@ -49,10 +50,6 @@ def test_background(
     print_value = assert_success(print_result)
     assert_pdf(print_value)
 
-    png = render_pdf_to_png_http(
-        print_value
-    )
-    comparison = compare_png_http(
-        png, base64.b64decode(expected_image)
-    )
+    png = render_pdf_to_png_classic(print_value)
+    comparison = compare_png_classic(png, base64.b64decode(expected_image))
     assert comparison.equal()

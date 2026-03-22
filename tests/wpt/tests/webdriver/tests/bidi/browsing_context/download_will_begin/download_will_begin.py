@@ -5,7 +5,6 @@ import pytest_asyncio
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
-from tests.bidi import wait_for_bidi_events
 from ... import any_int, any_string, recursive_compare
 
 pytestmark = pytest.mark.asyncio
@@ -18,7 +17,7 @@ NAVIGATION_STARTED = "browsingContext.navigationStarted"
 # This fixture is a workaround until we can cancel downloads.
 # https://github.com/w3c/webdriver-bidi/issues/1031
 @pytest_asyncio.fixture
-async def expect_download_end(bidi_session, configuration, subscribe_events):
+async def expect_download_end(bidi_session, subscribe_events, wait_for_bidi_events):
     await subscribe_events(events=[DOWNLOAD_END])
 
     download_end_events = []
@@ -35,11 +34,11 @@ async def expect_download_end(bidi_session, configuration, subscribe_events):
 
     yield _expect_download_end
 
-    await wait_for_bidi_events(bidi_session, configuration, download_end_events, expected_events, timeout=2)
+    await wait_for_bidi_events(download_end_events, expected_events, timeout=2)
     remove_listener()
 
 
-async def test_unsubscribe(bidi_session, configuration, inline, new_tab, expect_download_end):
+async def test_unsubscribe(bidi_session, inline, new_tab, wait_for_bidi_events, expect_download_end):
     filename = f"some_file_name{random.random()}.txt"
     download_link = "data:text/plain;charset=utf-8,"
     url = inline(
@@ -72,18 +71,18 @@ async def test_unsubscribe(bidi_session, configuration, inline, new_tab, expect_
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
+        await wait_for_bidi_events(events, 1, timeout=0.5)
 
     remove_listener()
 
 
 async def test_download_attribute(
     bidi_session,
-    configuration,
     subscribe_events,
     new_tab,
     inline,
     wait_for_event,
+    wait_for_bidi_events,
     wait_for_future_safe,
     expect_download_end,
 ):
@@ -137,7 +136,7 @@ async def test_download_attribute(
     # Check that no browsingContext.navigationStarted event was emitted
     with pytest.raises(TimeoutException):
         await wait_for_bidi_events(
-            bidi_session, configuration, navigation_started_events, 1, timeout=0.5
+            navigation_started_events, 1, timeout=0.5
         )
 
     remove_listener()

@@ -1,0 +1,58 @@
+<!doctype html>
+<title>Reload preserves scroll position for non-ASCII fragment</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Regression test: reloading a page with a non-ASCII fragment identifier
+// should preserve the scroll position, just like it does for ASCII fragments.
+
+function waitForLoad(iframe) {
+  return new Promise(resolve => {
+    iframe.addEventListener("load", resolve, { once: true });
+  });
+}
+
+async function testScrollRestoreOnReload(fragment, description) {
+  const iframe = document.createElement("iframe");
+  iframe.style.width = "300px";
+  iframe.style.height = "300px";
+  document.body.appendChild(iframe);
+
+  const url = "resources/scroll-restore-on-reload-non-ascii-fragment-target.html#" + fragment;
+  iframe.src = url;
+  await waitForLoad(iframe);
+
+  const win = iframe.contentWindow;
+
+  // Verify we scrolled to the fragment.
+  assert_greater_than(win.scrollY, 0, "should have scrolled to the fragment");
+
+  // Scroll to the top.
+  win.scrollTo(0, 0);
+  assert_equals(win.scrollY, 0, "should be at the top after scrollTo");
+
+  // Reload and wait for load.
+  const loadPromise = waitForLoad(iframe);
+  win.location.reload();
+  await loadPromise;
+
+  // After reload, scroll position should be restored (to the top, where we
+  // scrolled before reloading), NOT scrolled back to the fragment.
+  assert_equals(iframe.contentWindow.scrollY, 0,
+    "scroll position should be preserved after reload, not scrolled to fragment");
+
+  iframe.remove();
+}
+
+promise_test(async t => {
+  await testScrollRestoreOnReload("ascii", "ASCII fragment");
+}, "Reload preserves scroll position for ASCII fragment");
+
+promise_test(async t => {
+  await testScrollRestoreOnReload(encodeURIComponent("\u4e2d\u6587"), "non-ASCII fragment");
+}, "Reload preserves scroll position for non-ASCII fragment");
+</script>
+</body>
+</html>

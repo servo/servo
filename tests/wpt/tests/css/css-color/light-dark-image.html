@@ -1,0 +1,71 @@
+<!doctype html>
+<meta name="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<title>light-dark() with image values</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#light-dark">
+<div id="light" style="color-scheme: light"></div>
+<div id="dark" style="color-scheme: dark"></div>
+<script>
+function test_light_dark_image(property, value, expected_light, expected_dark) {
+  test(() => {
+    for (let element of [light, dark]) {
+      element.style.setProperty(property, "");
+      element.style.setProperty(property, value);
+      assert_not_equals(element.style.getPropertyValue(property), "",
+                        "Should parse as valid: " + value);
+      let computed = getComputedStyle(element).getPropertyValue(property);
+      let expected = element.id == "dark" ? expected_dark : expected_light;
+      assert_true(computed.endsWith(expected),
+                  `Expected "${computed}" to end with "${expected}"`);
+      element.style.setProperty(property, "");
+    }
+  }, `${property}: ${value}`);
+}
+
+function test_invalid(property, value) {
+  test(() => {
+    light.style.setProperty(property, "initial");
+    light.style.setProperty(property, value);
+    assert_equals(light.style.getPropertyValue(property), "initial",
+                  "Should not parse: " + value);
+    light.style.setProperty(property, "");
+  }, `${property}: ${value} (invalid)`);
+}
+
+// background-image
+test_light_dark_image(
+  "background-image",
+  "light-dark(url('light.png'), url('dark.png'))",
+  'light.png")',
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(none, url('dark.png'))",
+  "none",
+  'dark.png")'
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(url('light.png'), none)",
+  'light.png")',
+  "none"
+);
+
+test_light_dark_image(
+  "background-image",
+  "light-dark(none, none)",
+  "none",
+  "none"
+);
+
+// Invalid cases
+test_invalid("background-image", "light-dark()");
+test_invalid("background-image", "light-dark(url(a.png))");
+test_invalid("background-image", "light-dark(url(a.png) url(b.png))");
+test_invalid("background-image", "light-dark(url(a.png),,url(b.png))");
+test_invalid("background-image", "light-dark(red, green)");
+</script>

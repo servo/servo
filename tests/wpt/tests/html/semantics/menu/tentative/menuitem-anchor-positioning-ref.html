@@ -11,6 +11,10 @@
     background: unset;
     border: 0;
   }
+
+  .menulist:not(:popover-open) {
+    display: none;
+  }
 </style>
 
 <div class=menubar>
@@ -19,11 +23,16 @@
 </div>
 
 <div popover class="menulist menulist-with-menubar-anchor" id=top-menulist>
-  <button class=menuitem id=trigger2 popovertarget=sub-menulist>Trigger 2</button>
+  <button class="menuitem expand-icon" id=trigger2 popovertarget=sub-menulist>Trigger 2</button>
+  <button class="menuitem expand-icon" id=trigger3 popovertarget=sub-menulist2>Trigger 3</button>
 </div>
 
 <div popover class="menulist menulist-with-menulist-anchor" id=sub-menulist>
   <div class=menuitem>Most nested item</div>
+</div>
+
+<div popover class="menulist menulist-with-menulist-anchor" id=sub-menulist2>
+  <div class=menuitem>Most nested item 2</div>
 </div>
 
 <script>

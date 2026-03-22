@@ -38,12 +38,19 @@ Allowed actions, and subfields:
       name - Name for the subsuite (must be unique)
       run_info - Updates to the suite run_info (optional)
 
+  group_start
+      name - Name for the test group
+
+  group_end
+      name - Name for the test group
+
   suite_end
 
   test_start
       test - ID for the test
       path - Relative path to test (optional)
       subsuite - Name of the subsuite to which test belongs (optional)
+      group - Name of the test group for the incoming test (optional)
 
   test_end
       test - ID for the test
@@ -55,6 +62,7 @@ Allowed actions, and subfields:
       known_intermittent - List of known intermittent statuses that should
                            not fail a test. eg. ['FAIL', 'TIMEOUT']
       subsuite - Name of the subsuite to which test belongs (optional)
+      group - Name of the test group for the incoming test (optional)
 
   test_status
       test - ID for the test
@@ -66,6 +74,7 @@ Allowed actions, and subfields:
       known_intermittent - List of known intermittent statuses that should
                            not fail a test. eg. ['FAIL', 'TIMEOUT']
       subsuite - Name of the subsuite to which test belongs (optional)
+      group - Name of the test group for the incoming test (optional)
 
   process_output
       process - PID of the process
@@ -126,8 +135,6 @@ def get_default_logger(component=None):
 
     :param component: The component name to tag log messages with
     """
-    global _default_logger_name
-
     if not _default_logger_name:
         return None
 
@@ -167,7 +174,7 @@ class LoggerShutdownError(Exception):
     """Raised when attempting to log after logger.shutdown() has been called."""
 
 
-class LoggerState(object):
+class LoggerState:
     def __init__(self):
         self.reset()
 
@@ -180,12 +187,12 @@ class LoggerState(object):
         self.has_shutdown = False
 
 
-class ComponentState(object):
+class ComponentState:
     def __init__(self):
         self.filter_ = None
 
 
-class StructuredLogger(object):
+class StructuredLogger:
     _lock = Lock()
     _logger_states = {}
     """Create a structured logger with the given name
@@ -221,9 +228,9 @@ class StructuredLogger(object):
         are removed, running tests are discarded and components are reset.
         """
         self._state.reset()
-        self._component_state = self._state.component_states[
-            self.component
-        ] = ComponentState()
+        self._component_state = self._state.component_states[self.component] = (
+            ComponentState()
+        )
 
     def send_message(self, topic, command, *args):
         """Send a message to each handler configured for this logger. This
@@ -240,6 +247,11 @@ class StructuredLogger(object):
             if hasattr(handler, "message_handler"):
                 rv += handler.message_handler.handle_message(topic, command, *args)
         return rv
+
+    @property
+    def has_shutdown(self):
+        """Property indicating whether the logger has been shutdown"""
+        return self._state.has_shutdown
 
     @property
     def handlers(self):
@@ -263,8 +275,8 @@ class StructuredLogger(object):
         converted_data = convertor_registry[action].convert_known(**raw_data)
         for k, v in raw_data.items():
             if (
-                k not in converted_data and
-                k not in convertor_registry[action].optional_args
+                k not in converted_data
+                and k not in convertor_registry[action].optional_args
             ):
                 converted_data[k] = v
 
@@ -272,9 +284,9 @@ class StructuredLogger(object):
 
         if action in ("test_status", "test_end"):
             if (
-                data["expected"] == data["status"] or
-                data["status"] == "SKIP" or
-                "expected" not in raw_data
+                data["expected"] == data["status"]
+                or data["status"] == "SKIP"
+                or "expected" not in raw_data
             ):
                 del data["expected"]
 
@@ -336,16 +348,16 @@ class StructuredLogger(object):
             if self._state.suite_started:
                 # limit data to reduce unnecessary log bloat
                 self.error(
-                    "Got second suite_start message before suite_end. " +
-                    "Logged with data: {}".format(json.dumps(data)[:100])
+                    "Got second suite_start message before suite_end. "
+                    + f"Logged with data: {json.dumps(data)[:100]}"
                 )
                 return False
             self._state.suite_started = True
         elif action == "suite_end":
             if not self._state.suite_started:
                 self.error(
-                    "Got suite_end message before suite_start. " +
-                    "Logged with data: {}".format(json.dumps(data))
+                    "Got suite_end message before suite_start. "
+                    + f"Logged with data: {json.dumps(data)}"
                 )
                 return False
             self._state.suite_started = False
@@ -394,6 +406,28 @@ class StructuredLogger(object):
         self._state.subsuites.add(data["name"])
         self._log_data("add_subsuite", data)
 
+    @log_action(
+        Unicode("name"),
+        Dict(Any, "extra", default=None, optional=True),
+    )
+    def group_start(self, data):
+        """Log a group_start message
+
+        :param str name: Name to identify the test group.
+        :param dict extra: Extra metadata, e.g. thread count for parallel groups.
+        """
+        self._log_data("group_start", data)
+
+    @log_action(
+        Unicode("name"),
+    )
+    def group_end(self, data):
+        """Log a group_end message
+
+        :param str name: Name to identify the test group.
+        """
+        self._log_data("group_end", data)
+
     @log_action(Dict(Any, "extra", default=None, optional=True))
     def suite_end(self, data):
         """Log a suite_end message"""
@@ -408,6 +442,7 @@ class StructuredLogger(object):
         TestId("test"),
         Unicode("path", default=None, optional=True),
         Unicode("subsuite", default=None, optional=True),
+        Unicode("group", default=None, optional=True),
     )
     def test_start(self, data):
         """Log a test_start message
@@ -416,6 +451,8 @@ class StructuredLogger(object):
         :param path: Path to test relative to some base (typically the root of
                      the source tree).
         :param subsuite: Optional name of the subsuite to which the test belongs.
+        :param group: Optional name of the test group or manifest name (useful
+                     when running in paralle)
         """
         if not self._state.suite_started:
             self.error(
@@ -439,6 +476,7 @@ class StructuredLogger(object):
         Dict(Any, "extra", default=None, optional=True),
         List(SubStatus, "known_intermittent", default=None, optional=True),
         Unicode("subsuite", default=None, optional=True),
+        Unicode("group", default=None, optional=True),
     )
     def test_status(self, data):
         """
@@ -454,6 +492,8 @@ class StructuredLogger(object):
         :param extra: Optional suite-specific data associated with the test result.
         :param known_intermittent: Optional list of string expected intermittent statuses
         :param subsuite: Optional name of the subsuite to which the test belongs.
+        :param group: Optional name of the test group or manifest name (useful
+                     when running in paralle)
         """
 
         if data["expected"] == data["status"] or data["status"] == "SKIP":
@@ -478,6 +518,7 @@ class StructuredLogger(object):
         Dict(Any, "extra", default=None, optional=True),
         List(Status, "known_intermittent", default=None, optional=True),
         Unicode("subsuite", default=None, optional=True),
+        Unicode("group", default=None, optional=True),
     )
     def test_end(self, data):
         """
@@ -493,6 +534,8 @@ class StructuredLogger(object):
         :param stack: Optional stack trace encountered during test execution.
         :param extra: Optional suite-specific data associated with the test result.
         :param subsuite: Optional name of the subsuite to which the test belongs.
+        :param group: Optional name of the test group or manifest name (useful
+                     when running in paralle)
         """
 
         if data["expected"] == data["status"] or data["status"] == "SKIP":
@@ -541,13 +584,19 @@ class StructuredLogger(object):
         Unicode("java_stack", default=None, optional=True),
         Unicode("process_type", default=None, optional=True),
         List(Unicode, "stackwalk_errors", default=None),
+        List(Any, "crashing_thread_stack", default=None, optional=True),
         Unicode("subsuite", default=None, optional=True),
+        Boolean("quiet", default=False, optional=True),
     )
     def crash(self, data):
         if data["stackwalk_errors"] is None:
             data["stackwalk_errors"] = []
 
         self._log_data("crash", data)
+
+    @log_action(Unicode("group", default=None), Unicode("message", default=None))
+    def shutdown_failure(self, data):
+        self._log_data("shutdown_failure", data)
 
     @log_action(
         Unicode("primary", default=None), List(Unicode, "secondary", default=None)
@@ -740,7 +789,7 @@ for level_name in lint_levels:
     setattr(StructuredLogger, name, _lint_func(level_name))
 
 
-class StructuredLogFileLike(object):
+class StructuredLogFileLike:
     """Wrapper for file-like objects to redirect writes to logger
     instead. Each call to `write` becomes a single log entry of type `log`.
 

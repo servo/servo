@@ -1,5 +1,5 @@
-from tests.support.asserts import assert_success
-from tests.support.helpers import document_hidden, is_maximized, is_not_maximized
+from tests.support.classic.asserts import assert_success
+from tests.support.classic.helpers import document_hidden, is_maximized, is_not_maximized
 
 
 def maximize(session):

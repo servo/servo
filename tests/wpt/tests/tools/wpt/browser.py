@@ -12,7 +12,7 @@ import tempfile
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta, timezone
 from shutil import which
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 from urllib.parse import urlsplit, quote
 
 import html5lib
@@ -141,23 +141,25 @@ class Browser:
 
         return output_path
 
-    def download(self, dest=None, channel=None, rename=None):
+    def download(self, dest=None, channel=None, rename=None, url=None):
         """Download a package or installer for the browser
         :param dest: Directory in which to put the dowloaded package
         :param channel: Browser channel to download
         :param rename: Optional name for the downloaded package; the original
                        extension is preserved.
+        :param url: Optional URL to download the browser from
         :return: The path to the downloaded package/installer
         """
         raise NotImplementedError
 
-    def install(self, dest=None, channel=None):
+    def install(self, dest=None, channel=None, url=None):
         """Download and install the browser.
 
         This method usually calls download().
 
         :param dest: Directory in which to install the browser
         :param channel: Browser channel to install
+        :param url: Optional URL to download the browser from
         :return: The path to the installed browser
         """
         raise NotImplementedError
@@ -195,27 +197,12 @@ class Browser:
         return None
 
 
-class FirefoxPrefs:
+class FirefoxVcsResources:
     def __init__(self, logger):
         self.logger = logger
 
     def install_prefs(self, binary: Optional[str], dest: Optional[str] = None, channel: Optional[str] = None) -> str:
-        if binary and not binary.endswith(".apk"):
-            version, channel_, rev = self.get_version_and_channel(binary)
-            if channel is not None and channel != channel_:
-                # Beta doesn't always seem to have the b in the version string, so allow the
-                # manually supplied value to override the one from the binary
-                self.logger.warning("Supplied channel doesn't match binary, using supplied channel")
-            elif channel is None:
-                channel = channel_
-        else:
-            rev = None
-            version = None
-
-        if channel is None:
-            self.logger.warning("No browser channel passed to install_prefs, taking prefs from main branch")
-            channel = "nightly"
-
+        version, channel, rev = self.get_version_and_channel(binary, channel)
         if dest is None:
             dest = os.curdir
 
@@ -244,6 +231,25 @@ class FirefoxPrefs:
 
         return dest
 
+    def get_openh264_data(self, binary: Optional[str], channel: Optional[str]) -> Optional[Mapping[str, Any]]:
+        version, channel, rev = self.get_version_and_channel(binary, channel)
+
+        openh264_json: Optional[Mapping[str, Any]] = None
+        for ref in self.get_git_refs(version, channel, rev):
+            self.logger.info("Downloading openh264.json from git ref %s" % ref)
+            try:
+                openh264_json = json.loads(
+                    get_file_github(
+                        "mozilla-firefox/firefox",
+                        ref,
+                        "toolkit/content/gmp-sources/openh264.json",
+                    )
+                )
+            except Exception as e:
+                self.logger.warning("Failed to download openh264.json: %s" % e)
+
+        return openh264_json
+
     def get_profile_github(self, version: Optional[str], channel: str, dest: str, rev: Optional[str]) -> None:
         """Read the testing/profiles data from firefox source on GitHub"""
 
@@ -260,10 +266,18 @@ class FirefoxPrefs:
         # directory listings. So we have to hardcode in all the files we need. In particular
         # for each profile we are currently just downloading the user.js file and ignoring the
         # extensions/ directory, which is currently unused.
-        ref = self.get_git_ref(version, channel, rev)
-        self.logger.info(f"Getting profile data from git ref {ref}")
+        refs = self.get_git_refs(version, channel, rev)
+        for ref in refs:
+            try:
+                profiles_bytes = get_file_github("mozilla-firefox/firefox", ref, "testing/profiles/profiles.json")
+            except requests.exceptions.HTTPError:
+                self.logger.debug(f"Failed to download ref {ref}")
+            else:
+                self.logger.info(f"Getting profile data from git ref {ref}")
+                break
+        else:
+            raise ValueError(f"Failed to download prefs, tried git refs: {' '.join(refs)}")
         file_data = {}
-        profiles_bytes = get_file_github("mozilla-firefox/firefox", ref, "testing/profiles/profiles.json")
         profiles = json.loads(profiles_bytes)
         file_data["profiles.json"] = profiles_bytes
         for subdir in profiles["web-platform-tests"]:
@@ -278,7 +292,26 @@ class FirefoxPrefs:
             with open(dest_path, "wb") as f:
                 f.write(data)
 
-    def get_version_and_channel(self, binary: str) -> Tuple[Optional[str], str, Optional[str]]:
+    def get_version_and_channel(self, binary: Optional[str], channel: Optional[str]) -> Tuple[Optional[str], str, Optional[str]]:
+        if binary and not binary.endswith(".apk"):
+            version, channel_, rev = self.get_binary_version_and_channel(binary)
+            if channel is not None and channel != channel_:
+                # Beta doesn't always seem to have the b in the version string, so allow the
+                # manually supplied value to override the one from the binary
+                self.logger.warning("Supplied channel doesn't match binary, using supplied channel")
+            elif channel is None:
+                channel = channel_
+        else:
+            rev = None
+            version = None
+
+        if channel is None:
+            self.logger.warning("No browser channel passed to install_prefs, taking prefs from main branch")
+            channel = "nightly"
+
+        return version, channel, rev
+
+    def get_binary_version_and_channel(self, binary: str) -> Tuple[Optional[str], str, Optional[str]]:
         application_ini_path = os.path.join(os.path.dirname(binary), "application.ini")
         if os.path.exists(application_ini_path):
             try:
@@ -351,19 +384,22 @@ class FirefoxPrefs:
             tags.append(tag)
         return tags
 
-    def get_git_ref(self, version: Optional[str], channel: str, rev: Optional[str]) -> str:
+    def get_git_refs(self, version: Optional[str], channel: str, rev: Optional[str]) -> List[str]:
         if rev is not None:
-            return rev
+            return [rev]
 
         ref_prefix = "FIREFOX_"
         ref_re = None
         tags = []
+        default = None
 
         if channel == "stable":
             if version:
-                return "FIREFOX_%s_RELEASE" % version.replace(".", "_")
+                return ["FIREFOX_%s_RELEASE" % version.replace(".", "_"), "release"]
+            default = "release"
             ref_re = re.compile(r"FIREFOX_(\d+)_(\d+)(?:_(\d+))?_RELEASE")
         elif channel == "beta":
+            default = "beta"
             if version:
                 ref_prefix = "FIREFOX_%s" % version.replace(".", "_")
                 if "b" not in version:
@@ -373,9 +409,10 @@ class FirefoxPrefs:
             else:
                 ref_re = re.compile(r"FIREFOX_(\d+)_(\d+)b(\d+)_(?:BUILD(\d+)|RELEASE)")
         else:
-            return "main"
+            return ["main"]
 
         assert ref_re is not None
+        assert default is not None
 
         for tag in self.get_git_tags(ref_prefix):
             m = ref_re.match(tag)
@@ -386,42 +423,52 @@ class FirefoxPrefs:
                 order[-1] = sys.maxsize
             tags.append((tuple(order), tag))
         if not tags:
-            raise ValueError(f"No tag found for version {version} channel {channel}")
-        return max(tags)[1]
+            self.logger.warning(f"No tag found for version {version} channel {channel}")
+            return [default]
+
+        return [max(tags)[1], default]
 
 
-class FirefoxAndroidPrefs(FirefoxPrefs):
-    def get_git_ref(self, version: Optional[str], channel: str, rev: Optional[str]) -> str:
+class FirefoxAndroidVcsResources(FirefoxVcsResources):
+    def get_openh264_data(self, binary: Optional[str], channel: Optional[str]) -> Optional[Mapping[str, Any]]:
+        raise NotImplementedError
+
+    def get_git_refs(self, version: Optional[str], channel: str, rev: Optional[str]) -> List[str]:
         if rev is not None:
-            return rev
+            return [rev]
 
         tags = []
         ref_prefix = "FIREFOX-ANDROID_"
         ref_re = None
+        default = None
         if channel == "stable":
+            default = "release"
             if version is not None:
-                return "FIREFOX-ANDROID_%s_RELEASE" % version.replace(".", "_")
+                return ["FIREFOX-ANDROID_%s_RELEASE" % version.replace(".", "_")]
 
             ref_re = re.compile(r"FIREFOX-ANDROID_(\d+)_(\d+)(?:_(\d+))?_RELEASE")
 
         elif channel == "beta":
+            default = "beta"
             if version:
                 ref_prefix = "FIREFOX-ANDROID_%s" % version.replace(".", "_")
             ref_re = re.compile(r"FIREFOX-ANDROID_(\d+)_(\d+)b(\d+)_RELEASE")
         else:
-            return "main"
+            return ["main"]
 
         assert ref_re is not None
         for tag in self.get_git_tags(ref_prefix):
             m = ref_re.match(tag)
             if m is None:
                 continue
-            order = tuple(int(item) for item in m.groups() if item is not None)
-            tags.append((order, tag))
+            order = [int(item) for item in m.groups() if item is not None]
+            tags.append((tuple(order), tag))
 
         if not tags:
-            raise ValueError(f"No tag found for {version} beta")
-        return max(tags)[1]
+            self.logger.warning(f"No tag found for {version} {channel}")
+            return [default]
+
+        return [max(tags)[1], default]
 
 
 class Firefox(Browser):
@@ -446,6 +493,16 @@ class Firefox(Browser):
         "nightly": "Firefox Nightly.app"
     }
 
+    openh264_platform = {
+        ("linux", "x86_64"): "Linux_x86_64-gcc3",
+        ("linux", "x86"): "Linux_x86-gcc3",
+        ("linux", "aarch64"): "Linux_aarch64-gcc3",
+        ("win", "AMD64"): "WINNT_x86_64-msvc",
+        ("win", "x86"): "WINNT_x86-msvc",
+        ("macos", "x86_64"): "Darwin_x86_64-gcc3",
+        ("macos", "arm64"): "Darwin_aarch64-gcc3",
+    }
+
     def platform_string_geckodriver(self):
         if self.platform is None:
             raise ValueError("Unable to construct a valid Geckodriver package name for current platform")
@@ -459,33 +516,34 @@ class Firefox(Browser):
 
         return "%s%s" % (self.platform, bits)
 
-    def download(self, dest=None, channel="nightly", rename=None):
-        product = {
-            "nightly": "firefox-nightly-latest-ssl",
-            "beta": "firefox-beta-latest-ssl",
-            "stable": "firefox-latest-ssl"
-        }
+    def download(self, dest=None, channel="nightly", rename=None, url=None):
+        if url is None:
+            product = {
+                "nightly": "firefox-nightly-latest-ssl",
+                "beta": "firefox-beta-latest-ssl",
+                "stable": "firefox-latest-ssl"
+            }
 
-        os_builds = {
-            ("linux", "x86"): "linux",
-            ("linux", "x86_64"): "linux64",
-            ("win", "x86"): "win",
-            ("win", "AMD64"): "win64",
-            ("macos", "x86_64"): "osx",
-            ("macos", "arm64"): "osx",
-        }
-        os_key = (self.platform, uname[4])
+            os_builds = {
+                ("linux", "x86"): "linux",
+                ("linux", "x86_64"): "linux64",
+                ("win", "x86"): "win",
+                ("win", "AMD64"): "win64",
+                ("macos", "x86_64"): "osx",
+                ("macos", "arm64"): "osx",
+            }
+            os_key = (self.platform, uname[4])
 
-        dest = self._get_browser_download_dir(dest, channel)
+            dest = self._get_browser_download_dir(dest, channel)
 
-        if channel not in product:
-            raise ValueError("Unrecognised release channel: %s" % channel)
+            if channel not in product:
+                raise ValueError("Unrecognised release channel: %s" % channel)
 
-        if os_key not in os_builds:
-            raise ValueError("Unsupported platform: %s %s" % os_key)
+            if os_key not in os_builds:
+                raise ValueError("Unsupported platform: %s %s" % os_key)
 
-        url = "https://download.mozilla.org/?product=%s&os=%s&lang=en-US" % (product[channel],
-                                                                             os_builds[os_key])
+            url = "https://download.mozilla.org/?product=%s&os=%s&lang=en-US" % (product[channel],
+                                                                                 os_builds[os_key])
         self.logger.info("Downloading Firefox from %s" % url)
         resp = get(url)
 
@@ -501,7 +559,7 @@ class Firefox(Browser):
 
         return installer_path
 
-    def install(self, dest=None, channel="nightly"):
+    def install(self, dest=None, channel="nightly", url=None):
         """Install Firefox."""
         import mozinstall
 
@@ -509,7 +567,7 @@ class Firefox(Browser):
 
         filename = os.path.basename(dest)
 
-        installer_path = self.download(dest, channel)
+        installer_path = self.download(dest, channel, rename=None, url=url)
 
         try:
             mozinstall.install(installer_path, dest)
@@ -523,10 +581,76 @@ class Firefox(Browser):
                 raise
 
         os.remove(installer_path)
-        return self.find_binary_path(dest)
+        binary = self.find_binary_path(dest)
+        self.install_openh264(binary_dir=dest, binary=binary, channel=channel)
+        return binary
+
+    def install_openh264(self, binary_dir, binary, channel="nightly"):
+        import hashlib
+        import io
+
+        platform_key = self.openh264_platform.get((self.platform, uname.machine))
+        if platform_key is None:
+            self.logger.warning(
+                "OpenH264: unsupported platform %s %s, skipping"
+                % (self.platform, uname.machine)
+            )
+            return None
+
+        openh264_json = FirefoxVcsResources(self.logger).get_openh264_data(binary, channel)
+        if openh264_json is None:
+            return None
+
+        version = openh264_json["vendors"]["gmp-gmpopenh264"]["version"]
+        if version is None:
+            self.logger.warning("OpenH264: no entry for version in openh264.json")
+            return None
+
+        openh264_dir = os.path.join(binary_dir, "gmp-gmpopenh264", version)
+        if os.path.isdir(openh264_dir):
+            self.logger.info("Using cached OpenH264 plugin from %s" % openh264_dir)
+            return openh264_dir
+
+        platforms = openh264_json["vendors"]["gmp-gmpopenh264"]["platforms"]
+        platform_data = platforms.get(platform_key)
+        if platform_data is None:
+            self.logger.warning(
+                "OpenH264: no entry for platform %s in openh264.json" % platform_key
+            )
+            return None
+        if "alias" in platform_data:
+            platform_data = platforms.get(platform_data["alias"])
+        if platform_data is None:
+            self.logger.warning("OpenH264: alias target missing in openh264.json")
+            return None
+
+        file_url = platform_data["fileUrl"]
+        expected_hash = platform_data["hashValue"]
+        hash_function = openh264_json.get("hashFunction", "sha512")
+
+        self.logger.info("Downloading OpenH264 plugin from %s" % file_url)
+        try:
+            resp = get(file_url)
+        except Exception as e:
+            self.logger.warning("Failed to download OpenH264 plugin: %s" % e)
+            return None
+
+        data = resp.content
+        actual_hash = getattr(hashlib, hash_function)(data).hexdigest()
+        if actual_hash != expected_hash:
+            self.logger.warning(
+                "OpenH264 hash mismatch: expected %s, got %s"
+                % (expected_hash, actual_hash)
+            )
+            return None
+
+        os.makedirs(openh264_dir, exist_ok=True)
+        unzip(io.BytesIO(data), dest=openh264_dir)
+        self.logger.info("OpenH264 plugin installed to %s" % openh264_dir)
+        return openh264_dir
 
     def install_prefs(self, binary, dest=None, channel=None):
-        return FirefoxPrefs(self.logger).install_prefs(binary, dest, channel)
+        return FirefoxVcsResources(self.logger).install_prefs(binary, dest, channel)
 
     def find_binary_path(self, path=None, channel="nightly"):
         """Looks for the firefox binary in the virtual environment"""
@@ -685,19 +809,22 @@ class FirefoxAndroid(Browser):
         self.apk_path = None
         self._fx_browser = Firefox(self.logger)
 
-    def download(self, dest=None, channel=None, rename=None):
-        if dest is None:
-            dest = os.pwd
+    def download(self, dest=None, channel=None, rename=None, url=None):
+        if url is None:
+            if dest is None:
+                dest = os.pwd
 
-        branches = {
-            "stable": "mozilla-release",
-            "beta": "mozilla-beta",
-        }
-        branch = branches.get(channel, "mozilla-central")
+            branches = {
+                "stable": "mozilla-release",
+                "beta": "mozilla-beta",
+            }
+            branch = branches.get(channel, "mozilla-central")
 
-        resp = get_taskcluster_artifact(
-            f"gecko.v2.{branch}.shippable.latest.mobile.android-x86_64-opt",
-            "public/build/geckoview-test_runner.apk")
+            resp = get_taskcluster_artifact(
+                f"gecko.v2.{branch}.shippable.latest.mobile.android-x86_64-opt",
+                "public/build/geckoview-test_runner.apk")
+        else:
+            resp = get(url)
 
         filename = "geckoview-test_runner.apk"
         if rename:
@@ -709,11 +836,11 @@ class FirefoxAndroid(Browser):
 
         return self.apk_path
 
-    def install(self, dest=None, channel=None):
-        return self.download(dest, channel)
+    def install(self, dest=None, channel=None, url=None):
+        return self.download(dest, channel, url)
 
     def install_prefs(self, binary, dest=None, channel=None):
-        return FirefoxAndroidPrefs(self.logger).install_prefs(binary, dest, channel)
+        return FirefoxAndroidVcsResources(self.logger).install_prefs(binary, dest, channel)
 
     def find_binary(self, venv_path=None, channel=None):
         return self.apk_path
@@ -1008,7 +1135,9 @@ class Chromium(ChromeChromiumBase):
 
         return self._build_snapshots_url(revision, filename)
 
-    def download(self, dest=None, channel=None, rename=None, version=None, revision=None):
+    def download(self, dest=None, channel=None, rename=None, version=None, revision=None, url=None):
+        if url is not None:
+            raise ValueError("--install-browser-url not supported")
         dest = self._get_browser_download_dir(dest, channel)
 
         filename = f"{self._chromium_package_name}.zip"
@@ -1036,7 +1165,9 @@ class Chromium(ChromeChromiumBase):
     def find_binary(self, venv_path=None, channel=None):
         return self._find_binary_in_directory(self._get_browser_binary_dir(venv_path, channel))
 
-    def install(self, dest=None, channel=None, version=None, revision=None):
+    def install(self, dest=None, channel=None, version=None, revision=None, url=None):
+        if url is not None:
+            raise ValueError("--install-browser-url not supported")
         dest = self._get_browser_binary_dir(dest, channel)
         installer_path = self.download(dest, channel, version=version, revision=revision)
         with open(installer_path, "rb") as f:
@@ -1334,10 +1465,13 @@ class Chrome(ChromeChromiumBase):
         with open(os.path.join(dest, CHROMEDRIVER_SAVED_DOWNLOAD_FILE), "w") as f:
             f.write(url)
 
-    def download(self, dest=None, channel="canary", rename=None, version=None):
+    def download(self, dest=None, channel="canary", rename=None, version=None, url=None):
         """Download Chrome for Testing. For more information,
         see: https://github.com/GoogleChromeLabs/chrome-for-testing
         """
+        if url is not None:
+            raise ValueError("--install-browser-url not supported")
+
         dest = self._get_browser_binary_dir(None, channel)
         filename = f"{self._chrome_package_name}.zip"
 
@@ -1408,7 +1542,9 @@ class Chrome(ChromeChromiumBase):
         self.logger.warning("Unable to find the browser binary.")
         return None
 
-    def install(self, dest=None, channel=None, version=None):
+    def install(self, dest=None, channel=None, version=None, url=None):
+        if url is not None:
+            raise ValueError("--install-browser-url not supported")
         dest = self._get_browser_binary_dir(dest, channel)
         installer_path = self.download(dest=dest, channel=channel, version=version)
         with open(installer_path, "rb") as f:
@@ -1552,7 +1688,7 @@ class HeadlessShell(ChromeChromiumBase):
     product = "headless_shell"
     requirements = None
 
-    def download(self, dest=None, channel=None, rename=None):
+    def download(self, dest=None, channel=None, rename=None, url=None):
         # TODO(crbug.com/344669542): Download binaries via CfT.
         raise NotImplementedError
 
@@ -1794,7 +1930,7 @@ class Edge(Browser):
             self.logger.info(f"Removing existing MSEdgeDriver binary: {existing_driver_notes_path}")
             rmtree(existing_driver_notes_path)
 
-    def download(self, dest=None, channel=None, rename=None):
+    def download(self, dest=None, channel=None, rename=None, url=None):
         raise NotImplementedError
 
     def install_mojojs(self, dest, browser_binary):
@@ -2164,7 +2300,7 @@ class Safari(Browser):
 
         return dest_path
 
-    def download(self, dest=None, channel="preview", rename=None, system_version=None):
+    def download(self, dest=None, channel="preview", rename=None, system_version=None, url=None):
         if channel != "preview":
             raise ValueError(f"can only install 'preview', not '{channel}'")
 
@@ -2176,7 +2312,7 @@ class Safari(Browser):
             image_path = self._download_image(stp_downloads, tmpdir, system_version)
             return self._download_extract(image_path, dest, rename)
 
-    def install(self, dest=None, channel=None):
+    def install(self, dest=None, channel=None, url=None):
         # We can't do this because stable/beta releases are system components and STP
         # requires admin permissions to install.
         raise NotImplementedError
@@ -2241,25 +2377,31 @@ class Servo(Browser):
         artifact = f"{filename}{extension}"
         return get(f"https://download.servo.org/nightly/{platform}/{artifact}")
 
-    def download(self, dest=None, channel="nightly", rename=None):
+    def download(self, dest=None, channel="nightly", rename=None, url=None):
         if dest is None:
             dest = os.pwd
 
-        resp = self._get(dest, channel)
+        if url is None:
+            resp = self._get(channel)
+        else:
+            resp = get(url)
         _, default_filename, extension, _ = self.platform_components()
 
         filename = rename if rename is not None else default_filename
         with open(os.path.join(dest, "%s%s" % (filename, extension,)), "w") as f:
             f.write(resp.content)
 
-    def install(self, dest=None, channel="nightly"):
+    def install(self, dest=None, channel="nightly", url=None):
         """Install latest Browser Engine."""
         if dest is None:
             dest = os.pwd
 
         _, _, _, decompress = self.platform_components()
 
-        resp = self._get(channel)
+        if url is None:
+            resp = self._get(channel)
+        else:
+            resp = get(url)
         decompress(resp.raw, dest=dest)
         path = which("servoshell", path=os.path.join(dest, "servo"))
         st = os.stat(path)
@@ -2296,6 +2438,7 @@ class WebKit(Browser):
 
     product = "webkit"
     requirements = None
+
 
 class Ladybird(Browser):
     product = "ladybird"
@@ -2381,8 +2524,11 @@ class WebKitTestRunner(Browser):
         }
 
     def download(
-        self, dest=None, channel="main", rename=None, version=None, revision=None
+        self, dest=None, channel="main", rename=None, version=None, revision=None, url=None
     ):
+        if url is not None:
+            raise ValueError("--install-browser-url not supported")
+
         if platform.system() == "Darwin":
             meta = self._download_metadata_apple_port(channel)
         else:
@@ -2403,9 +2549,9 @@ class WebKitTestRunner(Browser):
 
         return output_path
 
-    def install(self, dest=None, channel="main"):
+    def install(self, dest=None, channel="main", url=None):
         dest = self._get_browser_binary_dir(dest, channel)
-        installer_path = self.download(dest=dest, channel=channel)
+        installer_path = self.download(dest=dest, channel=channel, url=url)
         self.logger.info(f"Extracting to {dest}")
         with open(installer_path, "rb") as f:
             unzip(f, dest)
@@ -2444,7 +2590,9 @@ class WebKitGlibBaseMiniBrowser(WebKit):
                 raise NotImplementedError('subclass "%s" should define class variable "%s"' % (self.__class__.__name__, required_class_var))
         return super().__init__(*args, **kwargs)
 
-    def download(self, dest=None, channel=None, rename=None):
+    def download(self, dest=None, channel=None, rename=None, url=None):
+        if url is not None:
+            raise ValueError("--install-browser-url not supported")
         base_download_dir = self.BASE_DOWNLOAD_URI + platform.machine() + "/release/" + channel + "/MiniBrowser/"
         try:
             response = get(base_download_dir + "LAST-IS")
@@ -2475,9 +2623,9 @@ class WebKitGlibBaseMiniBrowser(WebKit):
             raise RuntimeError("The %s MiniBrowser bundle at %s has incorrect SHA256 hash." % (self.PORT_PRETTY_NAME, bundle_file_path))
         return bundle_file_path
 
-    def install(self, dest=None, channel=None, prompt=True):
+    def install(self, dest=None, channel=None, url=None):
         dest = self._get_browser_binary_dir(dest, channel)
-        bundle_path = self.download(dest, channel)
+        bundle_path = self.download(dest, channel, url)
         bundle_uncompress_directory = os.path.join(dest, self.product)
 
         # Clean it from previous runs

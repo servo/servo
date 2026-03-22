@@ -4,7 +4,10 @@
     "script": "run",
     "parser": "create_parser",
     "help": "Update the MANIFEST.json file",
-    "virtualenv": false
+    "virtualenv": true,
+    "requirements": [
+      "requirements.txt"
+    ]
   },
   "manifest-download": {
     "path": "download.py",
