@@ -41,13 +41,14 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-default = ["gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+default = ["gamepad", "servo/clipboard", "js_jit", "largest_contentful_paint", "max_log_level", "webgpu", "webxr"]
 crown = ["servo/crown"]
 debugmozjs = ["servo/debugmozjs"]
 gamepad = ["servo/gamepad"]
 jitspew = ["servo/jitspew"]
 js_backtrace = ["servo/js_backtrace"]
 js_jit = ["servo/js_jit"]
+largest_contentful_paint = ["servo/largest_contentful_paint"]
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["servo/media-gstreamer"]
 native-bluetooth = ["servo/native-bluetooth"]

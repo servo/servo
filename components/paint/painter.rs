@@ -24,6 +24,7 @@ use image::RgbaImage;
 use log::{debug, error, info, warn};
 use media::WindowGLContext;
 use paint_api::display_list::{PaintDisplayListInfo, ScrollType};
+#[cfg(feature = "largest_contentful_paint")]
 use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
@@ -55,6 +56,7 @@ use webrender_api::{
 use wr_malloc_size_of::MallocSizeOfOps;
 
 use crate::Paint;
+#[cfg(feature = "largest_contentful_paint")]
 use crate::largest_contentful_paint_calculator::LargestContentfulPaintCalculator;
 use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
@@ -122,6 +124,7 @@ pub(crate) struct Painter {
     /// The channel on which messages can be sent to the constellation.
     embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
 
+    #[cfg(feature = "largest_contentful_paint")]
     /// Calculater for largest-contentful-paint.
     lcp_calculator: LargestContentfulPaintCalculator,
 
@@ -277,6 +280,7 @@ impl Painter {
             webrender_gl,
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
+            #[cfg(feature = "largest_contentful_paint")]
             lcp_calculator: LargestContentfulPaintCalculator::new(),
             animation_image_cache: FxHashMap::default(),
             web_content_animator: WebContentAnimator::new(
@@ -521,6 +525,7 @@ impl Painter {
 
                 match pipeline.largest_contentful_paint_metric.get() {
                     PaintMetricState::Seen(epoch, _) if epoch <= current_epoch => {
+                        #[cfg(feature = "largest_contentful_paint")]
                         if let Some(lcp) = self
                             .lcp_calculator
                             .calculate_largest_contentful_paint(paint_time, pipeline_id.into())
@@ -842,6 +847,7 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.pipeline_exited(pipeline_id, pipeline_exit_source);
         }
+        #[cfg(feature = "largest_contentful_paint")]
         self.lcp_calculator
             .remove_lcp_candidates_for_pipeline(&pipeline_id.into());
     }
@@ -1229,6 +1235,7 @@ impl Painter {
         };
 
         self.send_root_pipeline_display_list();
+        #[cfg(feature = "largest_contentful_paint")]
         self.lcp_calculator.enable_for_webview(&webview_id);
     }
 
@@ -1321,6 +1328,7 @@ impl Painter {
                     self.last_mouse_move_position = None;
                 },
                 _ => {
+                    #[cfg(feature = "largest_contentful_paint")]
                     // Disable LCP calculation on any other input event except mouse moves.
                     self.lcp_calculator.disable_for_webview(webview_id);
                 },
@@ -1339,14 +1347,17 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.notify_scroll_event(scroll, point);
         }
+        #[cfg(feature = "largest_contentful_paint")]
         // Disable LCP calculation on any scroll event.
         self.lcp_calculator.disable_for_webview(webview_id);
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn enable_lcp_calculation(&mut self, webview_id: &WebViewId) {
         self.lcp_calculator.enable_for_webview(webview_id);
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn lcp_calculation_enabled_for_webview(&self, webview_id: &WebViewId) -> bool {
         self.lcp_calculator.enabled_for_webview(webview_id)
     }
@@ -1476,6 +1487,7 @@ impl Painter {
             .sum::<usize>()
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn append_lcp_candidate(
         &mut self,
         lcp_candidate: LCPCandidate,

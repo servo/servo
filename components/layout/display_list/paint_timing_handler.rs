@@ -3,22 +3,31 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::Rect;
+#[cfg(feature = "largest_contentful_paint")]
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
+#[cfg(feature = "largest_contentful_paint")]
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
+#[cfg(feature = "largest_contentful_paint")]
 use servo_url::ServoUrl;
+#[cfg(feature = "largest_contentful_paint")]
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
+#[cfg(feature = "largest_contentful_paint")]
 use crate::fragment_tree::Tag;
+#[cfg(feature = "largest_contentful_paint")]
 use crate::query::transform_au_rectangle;
 
 pub(crate) struct PaintTimingHandler {
+    #[cfg(feature = "largest_contentful_paint")]
     /// The document’s largest contentful paint size
     lcp_size: f32,
+    #[cfg(feature = "largest_contentful_paint")]
     /// The LCP candidate, it may be a image or text.
     lcp_candidate: Option<LCPCandidate>,
     /// The rect of viewport.
     viewport_rect: LayoutRect,
+    #[cfg(feature = "largest_contentful_paint")]
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
@@ -27,9 +36,12 @@ pub(crate) struct PaintTimingHandler {
 impl PaintTimingHandler {
     pub(crate) fn new(viewport_size: LayoutSize) -> Self {
         Self {
+            #[cfg(feature = "largest_contentful_paint")]
             lcp_size: 0.0,
+            #[cfg(feature = "largest_contentful_paint")]
             lcp_candidate: None,
             viewport_rect: LayoutRect::from_size(viewport_size),
+            #[cfg(feature = "largest_contentful_paint")]
             lcp_candidate_updated: false,
         }
     }
@@ -48,6 +60,7 @@ impl PaintTimingHandler {
         !bounding_rect.is_empty()
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     fn calculate_intersection_rect(
         &self,
         bounds: LayoutRect,
@@ -72,6 +85,7 @@ impl PaintTimingHandler {
         intersection_rect.unwrap_or(Rect::zero())
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn update_lcp_candidate(
         &mut self,
         tag: Option<Tag>,
@@ -102,14 +116,17 @@ impl PaintTimingHandler {
         self.lcp_candidate_updated = true;
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
         self.lcp_candidate_updated
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn unset_lcp_candidate_updated(&mut self) {
         self.lcp_candidate_updated = false;
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn largest_contentful_paint_candidate(&self) -> Option<LCPCandidate> {
         self.lcp_candidate.clone()
     }
