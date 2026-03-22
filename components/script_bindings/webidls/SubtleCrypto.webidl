@@ -332,7 +332,7 @@ dictionary AeadParams : Algorithm {
 // https://wicg.github.io/webcrypto-modern-algos/#cshake-params
 
 dictionary CShakeParams : Algorithm {
-  required [EnforceRange] unsigned long length;
+  required [EnforceRange] unsigned long outputLength;
   BufferSource functionName;
   BufferSource customization;
 };
