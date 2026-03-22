@@ -16,7 +16,9 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{CorsSettings, Destination, ParserMetadata, RequestBuilder, RequestId, Referrer};
+use net_traits::request::{
+    CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
+};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -544,9 +546,14 @@ fn fetch_a_classic_script(
     let doc = script.owner_document();
     let global = script.global();
     let referrer = global.get_referrer();
-    let request =
-        script_fetch_request(doc.webview_id(), url.clone(), cors_setting, options.clone(), referrer)
-            .with_global_scope(&global);
+    let request = script_fetch_request(
+        doc.webview_id(),
+        url.clone(),
+        cors_setting,
+        options.clone(),
+        referrer,
+    )
+    .with_global_scope(&global);
 
     // TODO: Step 3, Add custom steps to perform fetch
 
