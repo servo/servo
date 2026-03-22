@@ -560,9 +560,12 @@ pub async fn main_fetch(
                             !is_cors_safelisted_request_header(&name, &value)
                         })))
             {
-                // Substep 1.
+                // Substep 1. Set request’s response tainting to "cors".
                 request.response_tainting = ResponseTainting::CorsTainting;
-                // Substep 2.
+                let origin = request.origin.clone();
+                let url = request.current_url().clone();
+                // Substep 2. Let corsWithPreflightResponse be the result
+                // of running override fetch given "http-fetch", fetchParams, and true.
                 let response = http_fetch(
                     fetch_params,
                     cache,
@@ -574,9 +577,10 @@ pub async fn main_fetch(
                     context,
                 )
                 .await;
-                // Substep 3.
+                // Substep 3. If corsWithPreflightResponse is a network error,
+                // then clear cache entries using request.
                 if response.is_network_error() {
-                    // TODO clear cache entries using request
+                    cache.clear_entries_for_origin_and_url(&origin, &url);
                 }
                 // Substep 4.
                 response

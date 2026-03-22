@@ -189,4 +189,11 @@ impl CorsCache {
         self.cleanup();
         self.0.push(entry);
     }
+
+    /// <https://fetch.spec.whatwg.org/#concept-cache-clear>
+    pub(crate) fn clear_entries_for_origin_and_url(&mut self, origin: &Origin, url: &ServoUrl) {
+        self.cleanup();
+        self.0
+            .retain(|cache_entry| !(cache_entry.origin == *origin && cache_entry.url == *url));
+    }
 }
