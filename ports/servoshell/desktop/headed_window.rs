@@ -18,9 +18,9 @@ use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
-    AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
-    DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, EmbedderControl,
-    EmbedderControlId, GenericSender, ImeEvent, InputEvent, InputEventId, InputEventResult,
+    AuthenticationRequest, BluetoothPickDeviceRequest, Cursor, DeviceIndependentIntRect,
+    DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
+    EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
     InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
     OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
@@ -1106,18 +1106,9 @@ impl PlatformWindow for HeadedWindow {
     fn show_bluetooth_device_dialog(
         &self,
         webview_id: WebViewId,
-        devices: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        request: BluetoothPickDeviceRequest,
     ) {
-        if devices.is_empty() {
-            let _ = response_sender.send(None);
-            return;
-        }
-
-        self.add_dialog(
-            webview_id,
-            Dialog::new_device_selection_dialog(devices, response_sender),
-        );
+        self.add_dialog(webview_id, Dialog::new_device_selection_dialog(request));
     }
 
     fn show_permission_dialog(&self, webview_id: WebViewId, permission_request: PermissionRequest) {

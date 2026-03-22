@@ -424,6 +424,12 @@ impl From<ConsoleLogLevel> for log::Level {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothDeviceDescription {
+    pub address: String,
+    pub name: String,
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -483,7 +489,11 @@ pub enum EmbedderMsg {
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
+    GetSelectedBluetoothDevice(
+        WebViewId,
+        Vec<BluetoothDeviceDescription>,
+        GenericSender<Option<String>>,
+    ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
     /// Report a complete sampled profile

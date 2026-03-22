@@ -9,16 +9,16 @@ use constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "gamepad")]
 use embedder_traits::GamepadHapticEffectType;
 use embedder_traits::{
-    AlertResponse, AllowOrDeny, AuthenticationResponse, ConfirmResponse, ConsoleLogLevel,
-    ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor, EmbedderControlId,
-    EmbedderControlResponse, FilePickerRequest, FilterPattern, InputEventId, InputEventResult,
-    InputMethodType, LoadStatus, MediaSessionEvent, NewWebViewDetails, Notification,
-    PermissionFeature, PromptResponse, RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup,
-    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
-    WebResourceResponseMsg,
+    AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
+    ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
+    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
+    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
+    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
+    SelectElementOptionOrOptgroup, SimpleDialogRequest, TraversalId, WebResourceRequest,
+    WebResourceResponse, WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
-use servo_base::generic_channel::GenericSender;
+use servo_base::generic_channel::{GenericSender, SendError};
 use servo_base::id::PipelineId;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender;
@@ -124,6 +124,36 @@ pub struct ProtocolHandlerRegistration {
     pub scheme: String,
     pub url: Url,
     pub register_or_unregister: RegisterOrUnregister,
+}
+
+/// A request to let the user chose a Bluetooth device.
+pub struct BluetoothPickDeviceRequest {
+    pub devices: Vec<BluetoothDeviceDescription>,
+    responder: IpcResponder<Option<String>>,
+    response_sent: bool,
+}
+
+impl BluetoothPickDeviceRequest {
+    pub fn new(
+        devices: Vec<BluetoothDeviceDescription>,
+        responder: GenericSender<Option<String>>,
+    ) -> Self {
+        Self {
+            devices,
+            responder: IpcResponder::new(responder, None),
+            response_sent: false,
+        }
+    }
+
+    pub fn pick_device(&mut self, device: &str) -> Result<(), SendError> {
+        self.response_sent = true;
+        self.responder.send(Some(device.to_owned()))
+    }
+
+    pub fn cancel(&mut self) -> Result<(), SendError> {
+        self.response_sent = true;
+        self.responder.send(None)
+    }
 }
 
 /// A request to authenticate a [`WebView`] navigation. Embedders may choose to prompt
@@ -943,15 +973,7 @@ pub trait WebViewDelegate {
     }
 
     /// Open dialog to select bluetooth device.
-    /// TODO: This API needs to be reworked to match the new model of how responses are sent.
-    fn show_bluetooth_device_dialog(
-        &self,
-        _webview: WebView,
-        _: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
-    ) {
-        let _ = response_sender.send(None);
-    }
+    fn show_bluetooth_device_dialog(&self, _webview: WebView, _: BluetoothPickDeviceRequest) {}
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.
