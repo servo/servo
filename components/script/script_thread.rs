@@ -637,10 +637,10 @@ impl ScriptThread {
                         }
                     }
                 });
-                // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
+                // Step 20 of <https://html.spec.whatwg.org/multipage/#navigate>
                 global
                     .task_manager()
-                    .dom_manipulation_task_source()
+                    .navigation_and_traversal_task_source()
                     .queue(task);
             } else {
                 script_thread
@@ -1631,8 +1631,13 @@ impl ScriptThread {
                         f
                     )
                 },
-                ScriptThreadEventCategory::HistoryEvent => {
-                    time_profile!(ProfilerCategory::ScriptHistoryEvent, None, profiler_chan, f)
+                ScriptThreadEventCategory::NavigationAndTraversalEvent => {
+                    time_profile!(
+                        ProfilerCategory::ScriptNavigationAndTraversalEvent,
+                        None,
+                        profiler_chan,
+                        f
+                    )
                 },
                 ScriptThreadEventCategory::ImageCacheMsg => time_profile!(
                     ProfilerCategory::ScriptImageCacheMsg,

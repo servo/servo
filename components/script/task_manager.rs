@@ -145,6 +145,11 @@ impl TaskManager {
     // FIXME(arihant2math): uncomment when geolocation is implemented.
     // task_source_functions!(self, geolocation_task_source, Geolocation);
     task_source_functions!(self, media_element_task_source, MediaElement);
+    task_source_functions!(
+        self,
+        navigation_and_traversal_task_source,
+        NavigationAndTraversal
+    );
     task_source_functions!(self, networking_task_source, Networking);
     task_source_functions!(self, performance_timeline_task_source, PerformanceTimeline);
     task_source_functions!(self, port_message_queue, PortMessage);
