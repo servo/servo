@@ -321,12 +321,6 @@ impl Drop for MediaFrameRenderer {
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
-        debug!(
-            "Received frame for rendering: is_gl_texture: {}, player_id: {:?}, glplayer_id: {:?}",
-            frame.is_gl_texture(),
-            self.player_id,
-            self.glplayer_id
-        );
         if self.player_id.is_none() || (frame.is_gl_texture() && self.glplayer_id.is_none()) {
             return;
         }
