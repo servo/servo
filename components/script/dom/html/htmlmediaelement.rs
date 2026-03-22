@@ -2170,6 +2170,7 @@ impl HTMLMediaElement {
                     let Some(event_handler) = weak_event_handler.upgrade() else {
                         return;
                     };
+
                     event_handler.lock().unwrap().handle_player_event(player_id, event, cx);
                 }));
             }),
@@ -2715,6 +2716,7 @@ impl HTMLMediaElement {
         if self.seeking.get() {
             return;
         }
+
         let _ = self
             .played
             .borrow_mut()
@@ -4021,6 +4023,7 @@ impl HTMLMediaElementEventHandler {
         if element.player_id().is_none_or(|id| id != player_id) {
             return;
         }
+
         match event {
             PlayerEvent::DurationChanged(duration) => element.playback_duration_changed(duration),
             PlayerEvent::EndOfStream => element.playback_end(),
