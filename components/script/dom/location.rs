@@ -212,7 +212,7 @@ impl Location {
             if let Some(document) = window_proxy.document().filter(|document| {
                 self.entry_settings_object()
                     .origin()
-                    .same_origin_domain(document.origin())
+                    .same_origin_domain(&document.origin())
             }) {
                 Ok(Some(document))
             } else {

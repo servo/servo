@@ -1476,7 +1476,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .Document();
         if !current_doc
             .origin()
-            .same_origin_domain(container_doc.origin())
+            .same_origin_domain(&container_doc.origin())
         {
             return None;
         }
@@ -3197,7 +3197,7 @@ impl Window {
                 // Note: `targetNavigable` is not actually defined in the spec, "active document" is
                 // assumed to be the correct reference based on WPT results
                 if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
-                    if load_data.url == doc.url() && initiator_origin.same_origin(doc.origin()) {
+                    if load_data.url == doc.url() && initiator_origin.same_origin(&*doc.origin()) {
                         NavigationHistoryBehavior::Replace
                     } else {
                         // Step 12.2. Otherwise, set historyHandling to "push".
@@ -3938,7 +3938,7 @@ impl Window {
 
             // Step 7.1.
             if let Some(ref target_origin) = target_origin {
-                if !target_origin.same_origin(document.origin()) {
+                if !target_origin.same_origin(&*document.origin()) {
                     return;
                 }
             }

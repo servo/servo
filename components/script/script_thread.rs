@@ -536,7 +536,7 @@ impl ScriptThread {
     pub(crate) fn page_headers_available(
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        metadata: Option<Metadata>,
+        metadata: Option<&Metadata>,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         with_script_thread(|script_thread| {
@@ -3088,7 +3088,7 @@ impl ScriptThread {
         &self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        metadata: Option<Metadata>,
+        metadata: Option<&Metadata>,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
@@ -3107,8 +3107,10 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
         // 2. If response's status is 204 or 205, then abort these steps.
+        //
+        // TODO: The specification has been updated and we no longer should abort.
         let is_204_205 = match metadata {
-            Some(ref metadata) => metadata.status.in_range(204..=205),
+            Some(metadata) => metadata.status.in_range(204..=205),
             _ => false,
         };
 
@@ -3345,7 +3347,7 @@ impl ScriptThread {
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(
         &self,
-        metadata: Metadata,
+        metadata: &Metadata,
         incomplete: InProgressLoad,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServoParser> {
@@ -3489,6 +3491,13 @@ impl ScriptThread {
         }
         window.init_window_proxy(&window_proxy);
 
+        // https://html.spec.whatwg.org/multipage/#resource-metadata-management
+        // > The Document's source file's last modification date and time must be derived from
+        // > relevant features of the networking protocols used, e.g.
+        // > from the value of the HTTP `Last-Modified` header of the document,
+        // > or from metadata in the file system for local files.
+        // > If the last modification date and time are not known,
+        // > the attribute must return the current date and time in the above format.
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.typed_get::<LastModified>().map(|tm| {
                 let tm: SystemTime = tm.into();
@@ -3504,6 +3513,7 @@ impl ScriptThread {
 
         let content_type: Option<Mime> = metadata
             .content_type
+            .clone()
             .map(Serde::into_inner)
             .map(Mime::from_ct);
         let encoding_hint_from_content_type = content_type

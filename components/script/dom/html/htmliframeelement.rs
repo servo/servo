@@ -958,7 +958,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         if !self
             .owner_document()
             .origin()
-            .same_origin_domain(document.origin())
+            .same_origin_domain(&document.origin())
         {
             return None;
         }

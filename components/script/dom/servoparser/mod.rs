@@ -80,6 +80,7 @@ use crate::dom::processingoptions::{
     LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
 };
 use crate::dom::reporting::reportingendpoint::ReportingEndpoint;
+use crate::dom::security::xframeoptions::check_a_navigation_response_adherence_to_x_frame_options;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
@@ -1195,6 +1196,7 @@ impl ParserContext {
         cx: &mut js::context::JSContext,
     ) {
         self.is_synthesized_document = true;
+        parser.document.mark_as_internal();
         parser.push_string_input_chunk(page);
         parser.parse_sync(cx);
     }
@@ -1228,13 +1230,15 @@ impl ParserContext {
 impl FetchResponseListener for ParserContext {
     fn process_request_body(&mut self, _: RequestId) {}
 
+    /// Implements parts of
+    /// <https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry's-document>
     fn process_response(
         &mut self,
         cx: &mut js::context::JSContext,
         _: RequestId,
         meta_result: Result<FetchMetadata, NetworkError>,
     ) {
-        let (metadata, error) = match meta_result {
+        let (metadata, mut error) = match meta_result {
             Ok(meta) => (
                 Some(match meta {
                     FetchMetadata::Unfiltered(m) => m,
@@ -1279,7 +1283,7 @@ impl FetchResponseListener for ParserContext {
         let parser = match ScriptThread::page_headers_available(
             self.webview_id,
             self.pipeline_id,
-            metadata,
+            metadata.as_ref(),
             cx,
         ) {
             Some(parser) => parser,
@@ -1291,7 +1295,44 @@ impl FetchResponseListener for ParserContext {
 
         let mut realm = enter_auto_realm(cx, &*parser.document);
         let cx = &mut realm;
-        let window = parser.document.window();
+        let document = &parser.document;
+        let window = document.window();
+
+        // https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry%27s-document
+        // Step 4. Otherwise, if any of the following are true:
+        // navigationParams is null;
+        // TODO
+        // the result of should navigation response to navigation request of
+        // type in target be blocked by Content Security Policy? given
+        // navigationParams's request, navigationParams's response, navigationParams's policy container's CSP list,
+        // cspNavigationType, and navigable is "Blocked";
+        // TODO
+        // navigationParams's reserved environment is non-null and the result of
+        // checking a navigation response's adherence to its embedder policy given navigationParams's response,
+        // navigable, and navigationParams's policy container's embedder policy is false; or
+        // TODO
+        // the result of checking a navigation response's adherence to `X-Frame-Options`
+        // given navigationParams's response, navigable, navigationParams's policy container's CSP list,
+        // and navigationParams's origin is false,
+        if !check_a_navigation_response_adherence_to_x_frame_options(
+            window,
+            policy_container.csp_list.as_ref(),
+            &document.origin(),
+            metadata
+                .as_ref()
+                .and_then(|metadata| metadata.headers.as_ref()),
+        ) {
+            // Step 4.1. Set entry's document state's document to the result of creating a document for inline content
+            // that doesn't have a DOM, given navigable, null, navTimingType, and userInvolvement.
+            // The inline content should indicate to the user the sort of error that occurred.
+            error = Some(NetworkError::ContentSecurityPolicy);
+            // Step 4.2. Make document unsalvageable given entry's document state's document and "navigation-failure".
+            document.make_document_unsalvageable();
+            // Step 4.3. Set saveExtraDocumentState to false.
+            // TODO
+            // Step 4.4. If navigationParams is not null, then:
+            // TODO
+        }
 
         // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
         // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
@@ -1304,7 +1345,7 @@ impl FetchResponseListener for ParserContext {
             .as_ref()
             .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
             .unwrap_or(SandboxingFlagSet::empty())
-            .union(parser.document.creation_sandboxing_flag_set());
+            .union(document.creation_sandboxing_flag_set());
 
         if let Some(endpoints) = endpoints_list {
             window.set_endpoints_list(endpoints);
@@ -1315,7 +1356,7 @@ impl FetchResponseListener for ParserContext {
             content_type,
             final_sandboxing_flag_set,
             link_headers,
-            about_base_url: parser.document.about_base_url(),
+            about_base_url: document.about_base_url(),
             resource_header: vec![],
         };
         self.submit_resource_timing();
