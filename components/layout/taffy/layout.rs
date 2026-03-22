@@ -47,7 +47,7 @@ fn resolve_content_size(constraint: AvailableSpace, content_sizes: ContentSizes)
 }
 
 #[inline(always)]
-fn with_independant_formatting_context<T>(
+fn with_independent_formatting_context<T>(
     item: &mut TaffyItemBoxInner,
     cb: impl FnOnce(&IndependentFormattingContext) -> T,
 ) -> T {
@@ -138,7 +138,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
         let child = &mut *child;
 
-        with_independant_formatting_context(
+        with_independent_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
                 // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
