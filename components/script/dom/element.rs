@@ -473,7 +473,7 @@ impl Element {
         }
     }
 
-    pub(crate) fn invoke_reactions(&self, can_gc: CanGc) {
+    pub(crate) fn invoke_reactions(&self, cx: &mut JSContext) {
         loop {
             rooted_vec!(let mut reactions);
             match *self.rare_data_mut() {
@@ -488,7 +488,7 @@ impl Element {
             }
 
             for reaction in reactions.iter() {
-                reaction.invoke(self, can_gc);
+                reaction.invoke(cx, self);
             }
 
             reactions.clear();

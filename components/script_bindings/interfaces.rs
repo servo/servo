@@ -54,7 +54,7 @@ pub trait DomHelpers<D: DomTypes> {
     fn interface_map() -> &'static phf::Map<&'static [u8], Interface>;
 
     fn push_new_element_queue();
-    fn pop_current_element_queue(can_gc: CanGc);
+    fn pop_current_element_queue(cx: &mut js::context::JSContext);
 
     fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
     where

@@ -1510,7 +1510,7 @@ fn insert(
             }
             parent.InsertBefore(cx, &n, reference_child).unwrap();
             if element_in_non_fragment {
-                custom_element_reaction_stack.pop_current_element_queue(CanGc::from_cx(cx));
+                custom_element_reaction_stack.pop_current_element_queue(cx);
             }
         },
         NodeOrText::AppendText(t) => {
@@ -1967,7 +1967,7 @@ fn create_element_for_token(
         // custom element reactions stack. (This will be the same element queue as was
         // pushed above.)
         // Step 12.2 Invoke custom element reactions in queue.
-        custom_element_reaction_stack.pop_current_element_queue(CanGc::from_cx(cx));
+        custom_element_reaction_stack.pop_current_element_queue(cx);
         // Step 12.3. Decrement document's throw-on-dynamic-markup-insertion counter.
         document.decrement_throw_on_dynamic_markup_insertion_counter();
     }

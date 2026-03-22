@@ -158,7 +158,7 @@ fn create_html_element(
                 // Step 4.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
                     // Step 4.3.1. Upgrade result using definition.
-                    upgrade_element(definition, &element, CanGc::from_cx(cx));
+                    upgrade_element(cx, definition, &element);
                     // TODO: "If this step threw an exception exception:" steps.
                 },
                 // Step 4.4. Otherwise, enqueue a custom element upgrade reaction given result and definition.

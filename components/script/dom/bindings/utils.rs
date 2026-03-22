@@ -184,8 +184,8 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn push_new_element_queue() {
         ScriptThread::custom_element_reaction_stack().push_new_element_queue()
     }
-    fn pop_current_element_queue(can_gc: CanGc) {
-        ScriptThread::custom_element_reaction_stack().pop_current_element_queue(can_gc)
+    fn pop_current_element_queue(cx: &mut js::context::JSContext) {
+        ScriptThread::custom_element_reaction_stack().pop_current_element_queue(cx)
     }
 
     fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
