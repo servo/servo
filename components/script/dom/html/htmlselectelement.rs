@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
@@ -894,7 +895,11 @@ impl Activatable for HTMLSelectElement {
         !self.upcast::<Element>().disabled_state()
     }
 
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(&self, event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+        if !event.IsTrusted() {
+            return;
+        }
+
         self.show_menu();
     }
 }

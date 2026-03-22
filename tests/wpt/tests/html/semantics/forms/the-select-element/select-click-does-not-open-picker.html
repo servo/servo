@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>select.click() should not open select picker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select id="select">
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+test(() => {
+  assert_false(select.matches(':open'), 'select should start closed');
+
+  select.click();
+  assert_false(select.matches(':open'), 'select.click() should not open the picker');
+
+  select.dispatchEvent(new MouseEvent('click'));
+  assert_false(select.matches(':open'), 'dispatchEvent(click) should not open the picker');
+}, 'Synthetic click events do not open select picker');
+</script>
