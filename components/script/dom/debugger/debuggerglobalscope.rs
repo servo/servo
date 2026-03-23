@@ -527,7 +527,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                     opt.as_ref().map(|props| {
                         props
                             .iter()
-                            .map(|prop| devtools_traits::PropertyPreview {
+                            .map(|prop| devtools_traits::PropertyDescriptor {
                                 name: prop.name.to_string(),
                                 configurable: prop.configurable,
                                 enumerable: prop.enumerable,

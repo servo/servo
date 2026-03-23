@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::PropertyPreview;
+use devtools_traits::PropertyDescriptor;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Number, Value};
@@ -61,15 +61,15 @@ pub(crate) struct ObjectActorMsg {
 }
 
 #[derive(Serialize)]
-pub(crate) struct PropertyDescriptor {
+pub(crate) struct ObjectPropertyDescriptor {
     pub configurable: bool,
     pub enumerable: bool,
     pub writable: bool,
     pub value: Value,
 }
 
-impl From<&PropertyPreview> for PropertyDescriptor {
-    fn from(prop: &PropertyPreview) -> Self {
+impl From<&PropertyDescriptor> for ObjectPropertyDescriptor {
+    fn from(prop: &PropertyDescriptor) -> Self {
         Self {
             configurable: prop.configurable,
             enumerable: prop.enumerable,
@@ -80,7 +80,7 @@ impl From<&PropertyPreview> for PropertyDescriptor {
 }
 
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#148>
-fn property_value_to_json(prop: &PropertyPreview) -> Value {
+fn property_value_to_json(prop: &PropertyDescriptor) -> Value {
     match prop.value_type.as_str() {
         "undefined" => {
             let mut v = Map::new();
@@ -129,7 +129,7 @@ pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
     class: String,
-    properties: Vec<PropertyPreview>,
+    properties: Vec<PropertyDescriptor>,
 }
 
 impl Actor for ObjectActor {
@@ -204,7 +204,7 @@ impl ObjectActor {
         registry: &ActorRegistry,
         uuid: Option<String>,
         class: String,
-        properties: Vec<PropertyPreview>,
+        properties: Vec<PropertyDescriptor>,
     ) -> String {
         let Some(uuid) = uuid else {
             let name = registry.new_name::<Self>();
