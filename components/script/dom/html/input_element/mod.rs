@@ -22,6 +22,7 @@ use js::rust::{HandleObject, MutableHandleObject};
 use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::domstring::parse_floating_point_number;
+use script_bindings::script_runtime::temp_cx;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
@@ -1402,9 +1403,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
+    #[expect(unsafe_code)]
     fn SetIndeterminate(&self, val: bool) {
         self.upcast::<Element>()
-            .set_state(ElementState::INDETERMINATE, val)
+            .set_state(ElementState::INDETERMINATE, val);
+        let mut cx = unsafe { temp_cx() };
+        self.input_type()
+            .as_specific()
+            .update_shadow_tree(&mut cx, self);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
