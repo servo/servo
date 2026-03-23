@@ -11,8 +11,8 @@ use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::EvaluateJSReplyValue::{
-    ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
+use devtools_traits::DebuggerValue::{
+    BooleanValue, NullValue, NumberValue, ObjectValue, StringValue, VoidValue,
 };
 use devtools_traits::{
     ConsoleArgument, ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError,
@@ -370,20 +370,16 @@ impl ConsoleActor {
                 }
             },
             StringValue(s) => Value::String(s),
-            ActorValue {
-                class,
+            ObjectValue {
                 uuid,
-                name,
-                display_name,
-                parameter_names,
-                is_async,
-                is_generator,
-                own_properties,
-                own_properties_length,
-                kind,
-                array_length,
+                class,
+                preview,
             } => {
-                let properties = own_properties.clone().unwrap_or_default();
+                let properties = preview
+                    .clone()
+                    .map(|preview| preview.own_properties)
+                    .flatten()
+                    .unwrap_or_default();
                 // TODO: Replace this with a struct to avoid having the Map.
                 let mut m = Map::new();
                 let actor = ObjectActor::register_with_properties(
@@ -399,58 +395,62 @@ impl ConsoleActor {
                 m.insert("extensible".to_owned(), Value::Bool(true));
                 m.insert("frozen".to_owned(), Value::Bool(false));
                 m.insert("sealed".to_owned(), Value::Bool(false));
-                if let Some(name) = name {
-                    m.insert("name".to_owned(), Value::String(name));
-                }
-
-                // Function-specific metadata
-                if let Some(display_name) = display_name {
-                    m.insert("displayName".to_owned(), Value::String(display_name));
-                }
-                if let Some(param_names) = parameter_names {
-                    m.insert(
-                        "parameterNames".to_owned(),
-                        Value::Array(param_names.into_iter().map(Value::String).collect()),
-                    );
-                }
-                if let Some(is_async) = is_async {
-                    m.insert("isAsync".to_owned(), Value::Bool(is_async));
-                }
-                if let Some(is_generator) = is_generator {
-                    m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
-                }
 
                 // Build preview
                 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
-                let mut preview = Map::new();
-                let preview_kind = kind.unwrap_or_else(|| "Object".to_owned());
-                preview.insert("kind".to_owned(), Value::String(preview_kind.clone()));
-
-                if preview_kind == "ArrayLike" {
-                    if let Some(length) = array_length {
-                        preview.insert("length".to_owned(), Value::Number(length.into()));
-                    }
-                } else {
-                    if let Some(ref props) = own_properties {
-                        let mut own_props_map = Map::new();
-                        for prop in props {
-                            let descriptor =
-                                serde_json::to_value(ObjectPropertyDescriptor::from(prop)).unwrap();
-                            own_props_map.insert(prop.name.clone(), descriptor);
+                let mut preview_map = Map::new();
+                if let Some(preview) = preview {
+                    // Function-specific metadata
+                    if let Some(function) = preview.function {
+                        if let Some(name) = function.name {
+                            m.insert("name".to_owned(), Value::String(name));
                         }
-                        preview.insert("ownProperties".to_owned(), Value::Object(own_props_map));
+                        if let Some(display_name) = function.display_name {
+                            m.insert("displayName".to_owned(), Value::String(display_name));
+                        }
+                        m.insert(
+                            "parameterNames".to_owned(),
+                            Value::Array(
+                                function
+                                    .parameter_names
+                                    .into_iter()
+                                    .map(Value::String)
+                                    .collect(),
+                            ),
+                        );
+                        m.insert("isAsync".to_owned(), Value::Bool(function.is_async));
+                        m.insert("isGenerator".to_owned(), Value::Bool(function.is_generator));
                     }
 
-                    if let Some(length) = own_properties_length {
-                        preview.insert(
-                            "ownPropertiesLength".to_owned(),
-                            Value::Number(length.into()),
-                        );
-                        m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                    if preview.kind == "ArrayLike" {
+                        if let Some(length) = preview.array_length {
+                            preview_map.insert("length".to_owned(), Value::Number(length.into()));
+                        }
+                    } else {
+                        if let Some(ref props) = preview.own_properties {
+                            let mut own_props_map = Map::new();
+                            for prop in props {
+                                let descriptor =
+                                    serde_json::to_value(ObjectPropertyDescriptor::from(prop))
+                                        .unwrap();
+                                own_props_map.insert(prop.name.clone(), descriptor);
+                            }
+                            preview_map
+                                .insert("ownProperties".to_owned(), Value::Object(own_props_map));
+                        }
+
+                        if let Some(length) = preview.own_properties_length {
+                            preview_map.insert(
+                                "ownPropertiesLength".to_owned(),
+                                Value::Number(length.into()),
+                            );
+                            m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                        }
                     }
+                    preview_map.insert("kind".to_owned(), Value::String(preview.kind));
                 }
 
-                m.insert("preview".to_owned(), Value::Object(preview));
+                m.insert("preview".to_owned(), Value::Object(preview_map));
 
                 Value::Object(m)
             },

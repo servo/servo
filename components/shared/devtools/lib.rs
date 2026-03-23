@@ -151,56 +151,52 @@ pub enum DomMutation {
     },
 }
 
-/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PropertyDescriptor {
-    pub name: String,
-    pub configurable: bool,
-    pub enumerable: bool,
-    pub writable: bool,
-    pub is_accessor: bool,
-    pub value_type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub boolean_value: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub number_value: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub string_value: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub object_class: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub value_name: Option<String>,
+pub struct ObjectPreview {
+    pub kind: String,
+    pub own_properties: Option<Vec<PropertyDescriptor>>,
+    pub own_properties_length: Option<u32>,
+    pub function: Option<FunctionPreview>,
+    pub array_length: Option<u32>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum EvaluateJSReplyValue {
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct FunctionPreview {
+    pub name: Option<String>,
+    pub display_name: Option<String>,
+    pub parameter_names: Vec<String>,
+    pub is_async: bool,
+    pub is_generator: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum DebuggerValue {
     VoidValue,
     NullValue,
     BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
-    ActorValue {
-        class: String,
+    ObjectValue {
         uuid: String,
-        name: Option<String>,
-        // Function-specific
-        display_name: Option<String>,
-        parameter_names: Option<Vec<String>>,
-        is_async: Option<bool>,
-        is_generator: Option<bool>,
-        // Object preview
-        own_properties: Option<Vec<PropertyDescriptor>>,
-        own_properties_length: Option<u32>,
-        // Array-specific
-        kind: Option<String>,
-        array_length: Option<u32>,
+        class: String,
+        preview: Option<ObjectPreview>,
     },
+}
+
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PropertyDescriptor {
+    pub name: String,
+    pub value: DebuggerValue,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub is_accessor: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EvaluateJSReply {
-    pub value: EvaluateJSReplyValue,
+    pub value: DebuggerValue,
     pub has_exception: bool,
 }
 

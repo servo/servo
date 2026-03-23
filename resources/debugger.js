@@ -86,27 +86,29 @@ const previewers = {
 
 // Convert debuggee value to property descriptor value
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#116>
-function valueToPropertyValue(val) {
-    switch (typeof val) {
+function createValueGrip(value) {
+    switch (typeof value) {
         case "undefined":
             return { valueType: "undefined" };
         case "boolean":
-            return { valueType: "boolean", booleanValue: val };
+            return { valueType: "boolean", booleanValue: value };
         case "number":
-            return { valueType: "number", numberValue: val };
+            return { valueType: "number", numberValue: value };
         case "string":
-            return { valueType: "string", stringValue: val };
+            return { valueType: "string", stringValue: value };
         case "object":
-            if (val === null) {
+            if (value === null) {
                 return { valueType: "null" };
             }
+            // Debugger.Object - get preview using registered previewers
+            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html>
             return {
                 valueType: "object",
-                objectClass: val.class,
-                valueName: val.callable ? val.name : undefined,
+                objectClass: value.class,
+                preview: getPreview(value),
             };
         default:
-            return { valueType: "string", stringValue: String(val) };
+            return { valueType: "string", stringValue: String(value) };
     }
 }
 
@@ -136,20 +138,18 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
                     enumerable: desc.enumerable ?? false,
                     writable: desc.writable ?? false,
                     isAccessor: desc.get !== undefined || desc.set !== undefined,
-                    valueType: "undefined",
+                    value: createValueGrip(undefined),
                 };
 
                 if (desc.value !== undefined) {
-                    Object.assign(prop, valueToPropertyValue(desc.value));
+                    prop.value = createValueGrip(desc.value);
                 } else if (desc.get) {
                     try {
                         const result = desc.get.call(obj);
                         if (result && "return" in result) {
-                            Object.assign(prop, valueToPropertyValue(result.return));
+                            prop.value = createValueGrip(result.return);
                         }
-                    } catch (e) {
-                        prop.valueType = "undefined";
-                    }
+                    } catch (e) { }
                 }
 
                 ownProperties.push(prop);
@@ -166,14 +166,17 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
 previewers.Function.push(function FunctionPreviewer(obj) {
     const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
-
     return {
-        displayName: obj.displayName,
-        parameterNames: obj.parameterNames,
-        isAsync: obj.isAsyncFunction,
-        isGenerator: obj.isGeneratorFunction,
+        kind: "Object",
         ownProperties,
         ownPropertiesLength,
+        function: {
+            name: obj.name,
+            displayName: obj.displayName,
+            parameterNames: obj.parameterNames,
+            isAsync: obj.isAsyncFunction,
+            isGenerator: obj.isGeneratorFunction,
+        }
     };
 });
 
@@ -194,6 +197,7 @@ previewers.Array.push(function ArrayPreviewer(obj) {
 previewers.Object.push(function ObjectPreviewer(obj) {
     const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
     return {
+        kind: "Object",
         ownProperties,
         ownPropertiesLength,
     };
@@ -210,34 +214,6 @@ function getPreview(obj) {
     }
 
     return { ownProperties: [], ownPropertiesLength: 0 };
-}
-
-function createValueResult(value) {
-    switch (typeof value) {
-        case "undefined":
-            return { valueType: "undefined" };
-        case "boolean":
-            return { valueType: "boolean", booleanValue: value };
-        case "number":
-            return { valueType: "number", numberValue: value };
-        case "string":
-            return { valueType: "string", stringValue: value };
-        case "object":
-            if (value === null) {
-                return { valueType: "null" };
-            }
-            // Debugger.Object - get preview using registered previewers
-            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html>
-            const preview = getPreview(value);
-            return {
-                valueType: "object",
-                objectClass: value.class,
-                name: value.name,
-                ...preview,
-            };
-        default:
-            return { valueType: "string", stringValue: String(value) };
-    }
 }
 
 // Evaluate some javascript code in the global context of the debuggee
@@ -264,15 +240,21 @@ addEventListener("eval", event => {
     // Completion values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
     let resultValue;
     if (completionValue === null) {
-        resultValue = { completionType: "terminated", valueType: "undefined", hasException: false };
+        resultValue = { completionType: "terminated", value: createValueGrip(undefined), hasException: false };
     } else if ("throw" in completionValue) {
         // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.html#adoptdebuggeevalue-value>
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole/eval-with-debugger.js#312>
         // we probably don't need adoptDebuggeeValue, as we only have one debugger instance for now
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
-        resultValue = { completionType: "throw", ...createValueResult(completionValue.throw), hasException: true };
+        resultValue = { completionType: "throw", value: createValueGrip(completionValue.throw), hasException: true };
     } else if ("return" in completionValue) {
-        resultValue = { completionType: "return", ...createValueResult(completionValue.return), hasException: false };
+        resultValue = { completionType: "return", value: createValueGrip(completionValue.return), hasException: false };
+    }
+
+    // To avoid recursion errors in the WebIDL, preview needs to live outside of the property descriptor
+    if (resultValue.value.preview) {
+        resultValue.preview = resultValue.value.preview;
+        delete resultValue.value.preview;
     }
 
     evalResult(event, resultValue);

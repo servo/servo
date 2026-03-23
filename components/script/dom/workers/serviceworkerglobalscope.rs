@@ -11,7 +11,7 @@ use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 use crossbeam_channel::{Receiver, Sender, after};
-use devtools_traits::{DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue};
+use devtools_traits::{DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply};
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
@@ -509,7 +509,7 @@ impl ServiceWorkerGlobalScope {
                         );
                     } else {
                         let _ = reply.send(EvaluateJSReply {
-                            value: EvaluateJSReplyValue::VoidValue,
+                            value: DebuggerValue::VoidValue,
                             has_exception: true,
                         });
                     }

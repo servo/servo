@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::PropertyDescriptor;
+use devtools_traits::{DebuggerValue, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Number, Value};
@@ -74,23 +74,22 @@ impl From<&PropertyDescriptor> for ObjectPropertyDescriptor {
             configurable: prop.configurable,
             enumerable: prop.enumerable,
             writable: prop.writable,
-            value: property_value_to_json(prop),
+            value: debugger_value_to_json(&prop.value, &prop.name),
         }
     }
 }
 
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#148>
-fn property_value_to_json(prop: &PropertyDescriptor) -> Value {
-    match prop.value_type.as_str() {
-        "undefined" => {
+fn debugger_value_to_json(value: &DebuggerValue, name: &str) -> Value {
+    match value {
+        DebuggerValue::VoidValue => {
             let mut v = Map::new();
             v.insert("type".to_owned(), Value::String("undefined".to_owned()));
             Value::Object(v)
         },
-        "null" => Value::Null,
-        "boolean" => Value::Bool(prop.boolean_value.unwrap_or(false)),
-        "number" => {
-            let num = prop.number_value.unwrap_or(0.0);
+        DebuggerValue::NullValue => Value::Null,
+        DebuggerValue::BooleanValue(boolean) => Value::Bool(*boolean),
+        DebuggerValue::NumberValue(num) => {
             if num.is_nan() {
                 let mut v = Map::new();
                 v.insert("type".to_owned(), Value::String("NaN".to_owned()));
@@ -105,22 +104,17 @@ fn property_value_to_json(prop: &PropertyDescriptor) -> Value {
                 v.insert("type".to_owned(), Value::String(type_str.to_owned()));
                 Value::Object(v)
             } else {
-                Value::Number(Number::from_f64(num).unwrap_or(Number::from(0)))
+                Value::Number(Number::from_f64(*num).unwrap_or(Number::from(0)))
             }
         },
-        "string" => Value::String(prop.string_value.clone().unwrap_or_default()),
-        "object" => {
+        DebuggerValue::StringValue(str) => Value::String(str.clone()),
+        DebuggerValue::ObjectValue { class, .. } => {
             let mut v = Map::new();
             v.insert("type".to_owned(), Value::String("object".to_owned()));
-            if let Some(ref obj_class) = prop.object_class {
-                v.insert("class".to_owned(), Value::String(obj_class.clone()));
-            }
-            if let Some(ref obj_name) = prop.value_name {
-                v.insert("name".to_owned(), Value::String(obj_name.clone()));
-            }
+            v.insert("class".to_owned(), Value::String(class.clone()));
+            v.insert("name".to_owned(), Value::String(name.into()));
             Value::Object(v)
         },
-        _ => Value::Null,
     }
 }
 

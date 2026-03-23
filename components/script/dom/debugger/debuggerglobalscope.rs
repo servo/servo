@@ -6,8 +6,7 @@ use std::cell::RefCell;
 
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{
-    DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue, ScriptToDevtoolsControlMsg,
-    SourceInfo, WorkerId,
+    DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -16,25 +15,29 @@ use js::context::JSContext;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
-use script_bindings::codegen::GenericBindings::DebuggerEvalEventBinding::EvalResultValue;
-use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
-use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
-    DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
-};
-use script_bindings::reflector::DomObject;
-use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
+use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
+use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
+use crate::dom::bindings::codegen::GenericBindings::DebuggerEvalEventBinding::{
+    EvalResult, PropertyDescriptor,
+};
+use crate::dom::bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
+use crate::dom::bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
+    DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
+};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::debugger::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debugger::debuggerframeevent::DebuggerFrameEvent;
@@ -469,89 +472,15 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
     ///
     /// The result contains completion value information from the SpiderMonkey Debugger API:
     /// <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
-    fn EvalResult(&self, _event: &DebuggerEvalEvent, result: &EvalResultValue) {
+    fn EvalResult(&self, _event: &DebuggerEvalEvent, result: &EvalResult) {
         let sender = self
             .eval_result_sender
             .take()
             .expect("Guaranteed by Self::fire_eval()");
 
-        let has_exception = result.hasException.unwrap_or(false);
-
-        let value = match &*result.valueType.str() {
-            "undefined" => EvaluateJSReplyValue::VoidValue,
-            "null" => EvaluateJSReplyValue::NullValue,
-            "boolean" => EvaluateJSReplyValue::BooleanValue(result.booleanValue.unwrap_or(false)),
-            "number" => {
-                let num = result.numberValue.map(|f| *f).unwrap_or(0.0);
-                EvaluateJSReplyValue::NumberValue(num)
-            },
-            "string" => EvaluateJSReplyValue::StringValue(
-                result
-                    .stringValue
-                    .as_ref()
-                    .map(|s| s.to_string())
-                    .unwrap_or_default(),
-            ),
-            "object" => {
-                let class = result
-                    .objectClass
-                    .as_ref()
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| "Object".to_string());
-                let name = result.name.as_ref().map(|s| s.to_string());
-
-                // Function-specific metadata
-                let display_name = result.displayName.as_ref().map(|s| s.to_string());
-                let parameter_names = result
-                    .parameterNames
-                    .as_ref()
-                    .map(|v| v.iter().map(|s| s.to_string()).collect());
-                let is_async = result.isAsync;
-                let is_generator = result.isGenerator;
-
-                // Object preview properties
-                let own_properties = result.ownProperties.as_ref().map(|props| {
-                    props
-                        .iter()
-                        .map(|prop| devtools_traits::PropertyDescriptor {
-                            name: prop.name.to_string(),
-                            configurable: prop.configurable,
-                            enumerable: prop.enumerable,
-                            writable: prop.writable,
-                            is_accessor: prop.isAccessor,
-                            value_type: prop.valueType.to_string(),
-                            boolean_value: prop.booleanValue,
-                            number_value: prop.numberValue.map(|f| *f),
-                            string_value: prop.stringValue.as_ref().map(|s| s.to_string()),
-                            object_class: prop.objectClass.as_ref().map(|s| s.to_string()),
-                            value_name: prop.valueName.as_ref().map(|s| s.to_string()),
-                        })
-                        .collect()
-                });
-                let own_properties_length = result.ownPropertiesLength;
-                let kind = result.kind.as_ref().map(|s| s.to_string());
-                let array_length = result.arrayLength;
-
-                EvaluateJSReplyValue::ActorValue {
-                    class,
-                    uuid: uuid::Uuid::new_v4().to_string(),
-                    name,
-                    display_name,
-                    parameter_names,
-                    is_async,
-                    is_generator,
-                    own_properties,
-                    own_properties_length,
-                    kind,
-                    array_length,
-                }
-            },
-            _ => unreachable!(),
-        };
-
         let reply = EvaluateJSReply {
-            value,
-            has_exception,
+            value: parse_debugger_value(&result.value, result.preview.as_ref()),
+            has_exception: result.hasException.unwrap_or(false),
         };
 
         let _ = sender.send(reply);
@@ -665,5 +594,79 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .expect("Guaranteed by Self::fire_get_environment()");
 
         let _ = sender.send(environment_actor_id.into());
+    }
+}
+
+fn parse_property_descriptor(property: &PropertyDescriptor) -> devtools_traits::PropertyDescriptor {
+    devtools_traits::PropertyDescriptor {
+        name: property.name.to_string(),
+        value: parse_debugger_value(&property.value, None),
+        configurable: property.configurable,
+        enumerable: property.enumerable,
+        writable: property.writable,
+        is_accessor: property.isAccessor,
+    }
+}
+
+fn parse_object_preview(preview: &ObjectPreview) -> devtools_traits::ObjectPreview {
+    devtools_traits::ObjectPreview {
+        kind: preview.kind.clone().into(),
+        own_properties: preview
+            .ownProperties
+            .as_ref()
+            .map(|properties| properties.iter().map(parse_property_descriptor).collect()),
+        own_properties_length: preview.ownPropertiesLength,
+        function: preview
+            .function
+            .as_ref()
+            .map(|fields| devtools_traits::FunctionPreview {
+                name: fields.name.as_ref().map(|s| s.to_string()),
+                display_name: fields.displayName.as_ref().map(|s| s.to_string()),
+                parameter_names: fields
+                    .parameterNames
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect(),
+                is_async: fields.isAsync,
+                is_generator: fields.isGenerator,
+            }),
+        array_length: preview.arrayLength,
+    }
+}
+
+fn parse_debugger_value(
+    value: &DebuggerValue,
+    preview: Option<&ObjectPreview>,
+) -> devtools_traits::DebuggerValue {
+    use devtools_traits::DebuggerValue::*;
+    match &*value.valueType.str() {
+        "undefined" => VoidValue,
+        "null" => NullValue,
+        "boolean" => BooleanValue(value.booleanValue.unwrap_or(false)),
+        "number" => {
+            let num = value.numberValue.map(|f| *f).unwrap_or(0.0);
+            NumberValue(num)
+        },
+        "string" => StringValue(
+            value
+                .stringValue
+                .as_ref()
+                .map(|s| s.to_string())
+                .unwrap_or_default(),
+        ),
+        "object" => {
+            let class = value
+                .objectClass
+                .as_ref()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "Object".to_string());
+
+            ObjectValue {
+                uuid: uuid::Uuid::new_v4().to_string(),
+                class,
+                preview: preview.map(parse_object_preview),
+            }
+        },
+        _ => unreachable!(),
     }
 }
