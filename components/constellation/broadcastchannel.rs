@@ -4,11 +4,11 @@
 
 use std::collections::HashMap;
 
-use servo_base::id::BroadcastChannelRouterId;
 use constellation_traits::BroadcastChannelMsg;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use rustc_hash::FxHashMap;
+use servo_base::id::BroadcastChannelRouterId;
 use servo_url::ImmutableOrigin;
 
 #[derive(Default)]

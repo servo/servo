@@ -8,8 +8,6 @@ use std::ptr::NonNull;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
-use servo_base::Epoch;
-use servo_base::generic_channel::GenericSender;
 use euclid::default::Size2D;
 use log::warn;
 use paint_api::{
@@ -17,6 +15,8 @@ use paint_api::{
 };
 use pixels::{SharedSnapshot, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPUContextId, WebGPUMsg,
 };

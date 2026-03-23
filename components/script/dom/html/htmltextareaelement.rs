@@ -5,7 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 
-use servo_base::text::Utf16CodeUnitLength;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use fonts::{ByteIndex, TextByteRange};
@@ -15,6 +14,7 @@ use js::rust::HandleObject;
 use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::root::Dom;
+use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 

@@ -5,7 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use servo_base::Epoch;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use constellation_traits::BlobImpl;
 #[cfg(feature = "webgpu")]
@@ -19,6 +18,7 @@ use layout_api::HTMLCanvasData;
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::weakref::WeakRef;
+use servo_base::Epoch;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;

@@ -7,9 +7,9 @@
 use std::io::{self, Write};
 use std::{fs, path};
 
-use servo_base::cross_process_instant::CrossProcessInstant;
 use profile_traits::time::{ProfilerCategory, TimerMetadata};
 use serde::Serialize;
+use servo_base::cross_process_instant::CrossProcessInstant;
 
 /// An RAII class for writing the HTML trace dump.
 #[derive(Debug)]

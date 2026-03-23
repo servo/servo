@@ -5,10 +5,10 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use servo_base::generic_channel::GenericSender;
-use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
+use servo_base::generic_channel::GenericSender;
+use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;

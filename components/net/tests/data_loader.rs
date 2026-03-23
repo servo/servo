@@ -4,13 +4,13 @@
 
 use std::ops::Deref;
 
-use servo_base::id::TEST_WEBVIEW_ID;
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
 use net_traits::request::Referrer;
 use net_traits::response::ResponseBody;
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
+use servo_base::id::TEST_WEBVIEW_ID;
 use servo_url::ServoUrl;
 
 use crate::fetch;

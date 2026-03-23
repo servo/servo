@@ -8,9 +8,9 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::default::Default;
 
-use servo_base::id::PipelineId;
 use crossbeam_channel::{self, Receiver, Sender};
 use rustc_hash::{FxHashMap, FxHashSet};
+use servo_base::id::PipelineId;
 use strum::VariantArray;
 
 use crate::dom::bindings::cell::DomRefCell;

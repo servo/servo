@@ -6,8 +6,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{io, mem, str};
 
-use servo_base::generic_channel::CallbackSetter;
-use servo_base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy as csp;
@@ -41,6 +39,8 @@ use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
+use servo_base::generic_channel::CallbackSetter;
+use servo_base::id::PipelineId;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};

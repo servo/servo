@@ -7,9 +7,9 @@
 
 use std::hash::Hash;
 
-use servo_base::id::NamespaceIndex;
 use rustc_hash::FxHashMap;
 use script_bindings::structuredclone::MarkedAsTransferableInIdl;
+use servo_base::id::NamespaceIndex;
 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomObject;

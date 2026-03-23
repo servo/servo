@@ -7,9 +7,9 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::Builder;
 
-use servo_base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use servo_base::id::PipelineId;
 use servo_media::audio::context::OfflineAudioContextOptions as ServoMediaOfflineAudioContextOptions;
 
 use crate::dom::audio::audiobuffer::{AudioBuffer, MAX_SAMPLE_RATE, MIN_SAMPLE_RATE};

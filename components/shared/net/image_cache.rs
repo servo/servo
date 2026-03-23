@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use servo_base::id::{PipelineId, WebViewId};
 use log::debug;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -12,6 +11,7 @@ use paint_api::CrossProcessPaintApi;
 use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use serde::{Deserialize, Serialize};
+use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;

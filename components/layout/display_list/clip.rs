@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use servo_base::id::ScrollTreeNodeId;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_base::id::ScrollTreeNodeId;
 use style::values::computed::LengthPercentage;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
 use style::values::computed::position::Position;

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_base::generic_channel::GenericSender;
-use servo_bluetooth_traits::BluetoothRequest;
 use dom_struct::dom_struct;
 use profile_traits::generic_channel;
+use servo_base::generic_channel::GenericSender;
+use servo_bluetooth_traits::BluetoothRequest;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;

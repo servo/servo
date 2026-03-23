@@ -11,8 +11,6 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
-use servo_base::id::ScriptEventLoopId;
 use constellation_traits::ServiceWorkerManagerFactory;
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::IpcError;
@@ -21,6 +19,8 @@ use log::error;
 use media::WindowGLContext;
 use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
+use servo_base::id::ScriptEventLoopId;
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 

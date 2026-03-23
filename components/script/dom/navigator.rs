@@ -7,7 +7,6 @@ use std::convert::TryInto;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use servo_base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;
@@ -19,6 +18,7 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
+use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
 

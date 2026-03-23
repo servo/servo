@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
-use servo_base::generic_channel::GenericCallback;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;

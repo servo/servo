@@ -10,9 +10,9 @@ use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
 
-use servo_base::id::PipelineId;
 use js::jsapi::JobQueueMayNotBeEmpty;
 use js::realm::AutoRealm;
+use servo_base::id::PipelineId;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;

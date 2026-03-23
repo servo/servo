@@ -7,6 +7,14 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
+use euclid::default::{Rect, Size2D};
+use glow::{
+    self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
+    NativeRenderbuffer, NativeSampler, NativeShader, NativeTexture, NativeVertexArray,
+};
+use malloc_size_of_derive::MallocSizeOf;
+use pixels::{PixelFormat, SnapshotAlphaMode};
+use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
 /// Receiver type used in WebGLCommands.
 pub use servo_base::generic_channel::GenericReceiver;
@@ -16,14 +24,6 @@ use servo_base::generic_channel::GenericSharedMemory;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use servo_base::generic_channel::SendResult as WebGLSendResult;
 use servo_base::id::PainterId;
-use euclid::default::{Rect, Size2D};
-use glow::{
-    self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
-    NativeRenderbuffer, NativeSampler, NativeShader, NativeTexture, NativeVertexArray,
-};
-use malloc_size_of_derive::MallocSizeOf;
-use pixels::{PixelFormat, SnapshotAlphaMode};
-use serde::{Deserialize, Serialize};
 use webrender_api::ImageKey;
 use webxr_api::{
     ContextId as WebXRContextId, Error as WebXRError, LayerId as WebXRLayerId,

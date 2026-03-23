@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_base::generic_channel::GenericSender;
 use constellation_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
 use ipc_channel::IpcError;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSender;
 use servo_config::opts::{self, Opts};
 use servo_config::prefs;
 use servo_config::prefs::Preferences;

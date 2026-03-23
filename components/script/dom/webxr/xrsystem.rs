@@ -5,12 +5,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use servo_base::id::PipelineId;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 

@@ -7,13 +7,13 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use servo_base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphStore, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::is_bidi_control;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;

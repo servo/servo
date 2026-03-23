@@ -6,7 +6,6 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::{AU_PER_PX, Au};
-use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
@@ -15,6 +14,7 @@ use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
+use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::{pref, prefs};
 use servo_geometry::MaxRect;

@@ -4,11 +4,11 @@
 
 use std::cell::Cell;
 
-use servo_base::id::ScrollTreeNodeId;
 use euclid::Size2D;
 use paint_api::display_list::{
     AxesScrollSensitivity, ScrollTree, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo,
 };
+use servo_base::id::ScrollTreeNodeId;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation};
 

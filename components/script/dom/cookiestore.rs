@@ -6,8 +6,6 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
-use servo_base::id::CookieStoreId;
 use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
 use hyper_serde::Serde;
@@ -17,6 +15,8 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg};
 use script_bindings::codegen::GenericBindings::CookieStoreBinding::CookieSameSite;
 use script_bindings::script_runtime::CanGc;
+use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
+use servo_base::id::CookieStoreId;
 use servo_url::ServoUrl;
 use time::OffsetDateTime;
 

@@ -9,8 +9,8 @@
 use std::time::Duration;
 use std::{fmt, mem};
 
-use servo_base::id::ScriptEventLoopId;
 use serde::{Deserialize, Serialize};
+use servo_base::id::ScriptEventLoopId;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 /// The equivalent of script::script_runtime::ScriptEventCategory

@@ -4,8 +4,8 @@
 
 use std::rc::Rc;
 
-use servo_base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
+use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};

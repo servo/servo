@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use servo_base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
@@ -25,6 +24,7 @@ use js::rust::wrappers::{Call, Construct1};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
+use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style_traits::{CSSPixel, SpeculativePainter};

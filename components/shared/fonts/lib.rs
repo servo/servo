@@ -12,13 +12,13 @@ mod system_font_service_proxy;
 use std::ops::{Deref, Range};
 use std::sync::Arc;
 
-use servo_base::generic_channel::GenericSharedMemory;
 pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::{NumOps, One, Zero};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
 pub use system_font_service_proxy::*;
 use webrender_api::euclid::num::One;
 

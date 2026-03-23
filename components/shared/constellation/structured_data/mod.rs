@@ -8,15 +8,15 @@
 mod serializable;
 mod transferable;
 
-use servo_base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
-    ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
-};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use serde::{Deserialize, Serialize};
 pub use serializable::*;
+use servo_base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
+};
 use strum::IntoEnumIterator;
 pub use transferable::*;
 

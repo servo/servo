@@ -5,8 +5,6 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
 
-use servo_base::generic_channel::GenericSend;
-use servo_base::id::HistoryStateId;
 use constellation_traits::{
     ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
 };
@@ -17,6 +15,8 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::CoreResourceMsg;
 use profile_traits::generic_channel;
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::HistoryStateId;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;

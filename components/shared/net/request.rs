@@ -4,8 +4,6 @@
 
 use std::sync::Arc;
 
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
@@ -16,6 +14,8 @@ use mime::Mime;
 use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;

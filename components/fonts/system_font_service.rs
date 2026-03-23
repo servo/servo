@@ -8,8 +8,6 @@ use std::collections::HashMap;
 use std::thread;
 
 use app_units::Au;
-use servo_base::generic_channel::{self, GenericReceiver};
-use servo_base::id::PainterId;
 use fonts_traits::{
     FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
     SystemFontServiceMessage, SystemFontServiceProxySender,
@@ -22,6 +20,8 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::{self, GenericReceiver};
+use servo_base::id::PainterId;
 use servo_config::pref;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};

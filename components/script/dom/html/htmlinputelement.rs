@@ -9,8 +9,6 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use servo_base::generic_channel::GenericSender;
-use servo_base::text::Utf16CodeUnitLength;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::{
@@ -34,6 +32,8 @@ use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::domstring::parse_floating_point_number;
+use servo_base::generic_channel::GenericSender;
+use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;

@@ -9,8 +9,6 @@
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
-use servo_base::generic_channel::{self, GenericSender, SendError};
-use servo_base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;
@@ -18,6 +16,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_base::generic_channel::{self, GenericSender, SendError};
+use servo_base::id::PipelineId;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::inspector::InspectorActor;

@@ -9,12 +9,12 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::iter::once;
 
-use servo_base::generic_channel::{self};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{AutoMargins, ComputedNodeLayout};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
+use servo_base::generic_channel::{self};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};

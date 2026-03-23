@@ -11,10 +11,10 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId,
 };
-use servo_base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use log::{error, warn};
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 
 use crate::SamplerImpl;
 use crate::sampler::{NativeStack, Sampler};

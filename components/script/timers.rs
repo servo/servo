@@ -9,7 +9,6 @@ use std::default::Default;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use servo_base::id::PipelineId;
 use deny_public_fields::DenyPublicFields;
 use js::context::JSContext;
 use js::jsapi::Heap;
@@ -17,6 +16,7 @@ use js::jsval::JSVal;
 use js::rust::HandleValue;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use timers::{BoxedTimerCallback, TimerEventRequest};
 

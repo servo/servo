@@ -4,11 +4,11 @@
 
 use std::rc::Rc;
 
+use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
-use dom_struct::dom_struct;
-use js::realm::CurrentRealm;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;

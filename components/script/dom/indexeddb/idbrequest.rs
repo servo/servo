@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 
-use servo_base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -13,6 +12,7 @@ use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSend;
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
     IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult, SyncOperation,

@@ -32,12 +32,6 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel;
-use servo_base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
-    TEST_WEBVIEW_ID, WebViewId,
-};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use constellation_traits::{
@@ -91,6 +85,12 @@ use script_traits::{
     UpdatePipelineIdReason,
 };
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel;
+use servo_base::id::{
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
+    TEST_WEBVIEW_ID, WebViewId,
+};
 use servo_config::{opts, pref, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;

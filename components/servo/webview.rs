@@ -7,8 +7,6 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use servo_base::generic_channel::GenericSender;
-use servo_base::id::WebViewId;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -21,6 +19,8 @@ use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::WebViewId;
 use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;

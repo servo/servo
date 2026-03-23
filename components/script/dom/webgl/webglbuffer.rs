@@ -5,11 +5,11 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
-use servo_base::generic_channel;
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel};
 use dom_struct::dom_struct;
 use script_bindings::reflector::DomObject;
 use script_bindings::weakref::WeakRef;
+use servo_base::generic_channel;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;

@@ -8,9 +8,9 @@
 
 use std::collections::VecDeque;
 
-use servo_base::id::MessagePortId;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::id::MessagePortId;
 use strum::EnumIter;
 
 use crate::PortMessageTask;

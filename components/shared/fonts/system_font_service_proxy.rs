@@ -4,13 +4,13 @@
 
 use std::collections::HashMap;
 
-use servo_base::generic_channel::{self, GenericSender};
-use servo_base::id::PainterId;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PainterId;
 use style::values::computed::font::SingleFontFamily;
 use webrender_api::units::Au;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};

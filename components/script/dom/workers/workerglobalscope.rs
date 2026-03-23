@@ -9,9 +9,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
-use servo_base::id::{PipelineId, PipelineNamespace};
 use constellation_traits::WorkerGlobalScopeInit;
 use content_security_policy::CspList;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
@@ -28,6 +25,9 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
+use servo_base::id::{PipelineId, PipelineNamespace};
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;

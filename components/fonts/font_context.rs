@@ -9,7 +9,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
-use servo_base::id::{PainterId, WebViewId};
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
@@ -29,6 +28,7 @@ use paint_api::CrossProcessPaintApi;
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::FxHashSet;
 use servo_arc::Arc as ServoArc;
+use servo_base::id::{PainterId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;

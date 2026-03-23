@@ -12,7 +12,6 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::{fmt, slice, str};
 
-use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use html5ever::{LocalName, Namespace};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::MutableHandleValue;
@@ -22,6 +21,7 @@ use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
 use num_traits::{ToPrimitive, Zero};
 use regex::Regex;
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 

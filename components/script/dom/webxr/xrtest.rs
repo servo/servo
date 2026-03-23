@@ -8,10 +8,10 @@
 
 use std::rc::Rc;
 
-use servo_base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
 use crate::ScriptThread;

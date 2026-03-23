@@ -4,8 +4,8 @@
 
 //! Definitions for Largest Contentful Paint Candidate and Largest Contentful Paint.
 
-use servo_base::cross_process_instant::CrossProcessInstant;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 
 /// Largest Contentful Paint Candidate, include image and block-level element containing text

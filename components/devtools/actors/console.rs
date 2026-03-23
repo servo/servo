@@ -11,8 +11,6 @@ use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use servo_base::generic_channel::{self, GenericSender};
-use servo_base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReplyValue::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
@@ -23,6 +21,8 @@ use devtools_traits::{
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::TEST_PIPELINE_ID;
 use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};

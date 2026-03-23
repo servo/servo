@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::default::Default;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
 use bitflags::bitflags;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
@@ -14,6 +13,7 @@ use js::rust::HandleObject;
 use keyboard_types::{Key, NamedKey};
 use script_bindings::codegen::GenericBindings::PointerEventBinding::PointerEventMethods;
 use script_bindings::match_domstring_ascii;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::callback::ExceptionHandling;

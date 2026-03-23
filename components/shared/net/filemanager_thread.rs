@@ -5,13 +5,13 @@
 use std::cmp::{max, min};
 use std::ops::Range;
 
-use servo_base::generic_channel::GenericSender;
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequest};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
 use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSender;
 use servo_url::ImmutableOrigin;
 use uuid::Uuid;
 

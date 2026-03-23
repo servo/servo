@@ -5,13 +5,13 @@
 use std::thread;
 use std::time::Duration;
 
-use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use euclid::{Point2D, Rect, RigidTransform3D, Size2D};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 
 use crate::{
     ContextId, DeviceAPI, Error, Event, Floor, Frame, FrameUpdateEvent, HitTestId, HitTestSource,

@@ -4,8 +4,8 @@
 
 use std::ops::Deref;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentVisibilityState;

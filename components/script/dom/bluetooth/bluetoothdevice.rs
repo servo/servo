@@ -6,14 +6,14 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
+use profile_traits::generic_channel;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
     BluetoothServiceMsg,
 };
-use dom_struct::dom_struct;
-use js::realm::CurrentRealm;
-use profile_traits::generic_channel;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

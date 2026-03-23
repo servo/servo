@@ -8,8 +8,6 @@
 
 use std::cell::Cell;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
@@ -27,6 +25,8 @@ use net_traits::{
     Metadata, fetch_async, set_default_accept_language,
 };
 use script_traits::{DocumentActivity, NewPipelineInfo};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::fetch::FetchCanceller;

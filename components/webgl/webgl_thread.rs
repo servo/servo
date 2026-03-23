@@ -10,9 +10,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::{slice, thread};
 
-use servo_base::Epoch;
-use servo_base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory, RoutedReceiver};
-use servo_base::id::PainterId;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
@@ -43,6 +40,11 @@ use paint_api::{
 use parking_lot::RwLock;
 use pixels::{self, PixelFormat, SnapshotAlphaMode, unmultiply_inplace};
 use rustc_hash::FxHashMap;
+use servo_base::Epoch;
+use servo_base::generic_channel::{
+    GenericReceiver, GenericSender, GenericSharedMemory, RoutedReceiver,
+};
+use servo_base::id::PainterId;
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Context, ContextAttributeFlags, ContextAttributes, Device, GLVersion, SurfaceAccess,

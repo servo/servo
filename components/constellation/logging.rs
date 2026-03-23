@@ -11,7 +11,6 @@ use std::sync::Arc;
 use std::thread;
 
 use backtrace::Backtrace;
-use servo_base::id::{ScriptEventLoopId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use constellation_traits::{
     EmbedderToConstellationMessage, LogEntry, ScriptToConstellationMessage,
     ScriptToConstellationSender,
@@ -19,6 +18,7 @@ use constellation_traits::{
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
+use servo_base::id::{ScriptEventLoopId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]

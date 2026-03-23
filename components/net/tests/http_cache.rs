@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_base::id::TEST_PIPELINE_ID;
 use http::header::{CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
 use net::http_cache::{CacheKey, HttpCache, refresh};
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use servo_base::id::TEST_PIPELINE_ID;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::unbounded_channel as unbounded;
 

@@ -4,11 +4,11 @@
 
 use std::cell::Cell;
 
-use servo_base::Epoch;
-use servo_base::id::PipelineId;
 use euclid::Scale;
 use paint_api::display_list::ScrollTree;
 use paint_api::{CompositionPipeline, PipelineExitSource};
+use servo_base::Epoch;
+use servo_base::id::PipelineId;
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
 

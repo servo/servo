@@ -8,12 +8,6 @@ use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel::{
-    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
-    SendResult,
-};
-use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -32,6 +26,12 @@ use request::RequestId;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{
+    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
+    SendResult,
+};
+use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::fetch::headers::determine_nosniff;

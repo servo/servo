@@ -7,8 +7,6 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};
 
-use servo_base::Epoch;
-use servo_base::id::{PainterId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
 use euclid::{Rect, Scale, Size2D};
@@ -16,6 +14,8 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
+use servo_base::Epoch;
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use smallvec::SmallVec;
 use strum::IntoStaticStr;
 use style_traits::CSSPixel;
@@ -29,15 +29,15 @@ pub mod viewport_description;
 
 use std::sync::{Arc, Mutex};
 
-use servo_base::generic_channel::{
-    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
-};
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
 use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
+};
 pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
 use webrender_api::{

@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_base::{Epoch, generic_channel};
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::AssociatedMemory;
+use servo_base::{Epoch, generic_channel};
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 

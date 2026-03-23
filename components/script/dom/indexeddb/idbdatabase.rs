@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 
-use servo_base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use profile_traits::generic_channel::channel;
+use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;

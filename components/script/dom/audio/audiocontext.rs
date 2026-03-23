@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
-use servo_base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use servo_base::id::PipelineId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 
 use crate::conversions::Convert;

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use profile::mem as profile_mem;
 use servo_base::generic_channel as base_channel;
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::TEST_WEBVIEW_ID;
-use profile::mem as profile_mem;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};

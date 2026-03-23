@@ -7,8 +7,6 @@ use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::id::{PipelineId, WebViewId};
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -35,6 +33,8 @@ use profile_traits::time::{
 use profile_traits::time_profile;
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;

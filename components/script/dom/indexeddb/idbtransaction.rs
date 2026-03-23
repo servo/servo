@@ -5,12 +5,12 @@
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 
-use servo_base::generic_channel::{GenericSend, GenericSender};
-use servo_base::id::ScriptEventLoopId;
 use dom_struct::dom_struct;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
+use servo_base::generic_channel::{GenericSend, GenericSender};
+use servo_base::id::ScriptEventLoopId;
 use storage_traits::indexeddb::{
     IndexedDBIndex, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation, TxnCompleteMsg,
 };

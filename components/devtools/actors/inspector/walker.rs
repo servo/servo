@@ -7,13 +7,13 @@
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
-use servo_base::generic_channel::{self, GenericSender};
-use servo_base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::{DevtoolScriptControlMsg, DomMutation};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PipelineId;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc};
 use crate::actors::browsing_context::BrowsingContextActor;

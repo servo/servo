@@ -6,13 +6,6 @@
 
 use std::fmt;
 
-use servo_base::Epoch;
-use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
-use servo_base::id::{
-    BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
-    ServiceWorkerRegistrationId, WebViewId,
-};
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
@@ -35,6 +28,13 @@ use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
+use servo_base::id::{
+    BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
+    MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
+    ServiceWorkerRegistrationId, WebViewId,
+};
 use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;

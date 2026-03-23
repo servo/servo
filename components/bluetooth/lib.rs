@@ -19,9 +19,12 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 
+use bitflags::bitflags;
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use log::warn;
+use rand::{self, Rng};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::WebViewId;
-use bitflags::bitflags;
 use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use servo_bluetooth_traits::scanfilter::{
     BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions,
@@ -31,9 +34,6 @@ use servo_bluetooth_traits::{
     BluetoothRequest, BluetoothResponse, BluetoothResponseResult, BluetoothResult,
     BluetoothServiceMsg, GATTType,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
-use log::warn;
-use rand::{self, Rng};
 use servo_config::pref;
 
 use crate::bluetooth::{

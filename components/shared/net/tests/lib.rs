@@ -4,9 +4,9 @@
 
 use std::str::FromStr;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::{ResourceAttribute, ResourceFetchTiming, ResourceTimeValue, ResourceTimingType};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use uuid::Uuid;
 

@@ -7,12 +7,12 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use app_units::Au;
-use servo_base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D};
 use js::rust::{HandleObject, MutableHandleValue};
 use layout_api::BoxAreaType;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use style::parser::Parse;
 use style::stylesheets::CssRuleType;
 use style::values::computed::Overflow;

@@ -6,13 +6,13 @@
 
 use std::cell::Cell;
 
-use servo_base::id::PipelineId;
 use constellation_traits::ScriptToConstellationMessage;
 use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
 use libc::c_void;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
+use servo_base::id::PipelineId;
 use style::animation::{
     Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,
     KeyframesIterationState, Transition,

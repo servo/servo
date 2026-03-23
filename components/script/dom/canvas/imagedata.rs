@@ -5,8 +5,6 @@
 use std::borrow::Cow;
 use std::vec::Vec;
 
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::{ImageDataId, ImageDataIndex};
 use constellation_traits::SerializableImageData;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
@@ -17,6 +15,8 @@ use js::typedarray::{ClampedU8, HeapUint8ClampedArray, TypedArray, Uint8ClampedA
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::trace::RootedTraceableBox;
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{ImageDataId, ImageDataIndex};
 
 use crate::dom::bindings::buffer_source::{
     HeapBufferSource, create_buffer_source, create_heap_buffer_source_with_length,

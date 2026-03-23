@@ -10,8 +10,6 @@ use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::{Epoch, generic_channel};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -33,6 +31,8 @@ use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::AssociatedMemory;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::{Epoch, generic_channel};
 use servo_config::pref;
 use webrender_api::ImageKey;
 

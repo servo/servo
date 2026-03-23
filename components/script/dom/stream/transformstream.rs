@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use servo_base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::TransformStreamData;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
@@ -16,6 +15,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
 use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::realms::InRealm;
+use servo_base::id::{MessagePortId, MessagePortIndex};
 
 use super::readablestream::CrossRealmTransformReadable;
 use super::writablestream::CrossRealmTransformWritable;

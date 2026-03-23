@@ -9,8 +9,6 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::WebViewId;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -36,6 +34,8 @@ use script_bindings::codegen::InheritTypes::{
 };
 use script_bindings::root::assert_in_script;
 use script_bindings::weakref::WeakRef;
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::WebViewId;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};

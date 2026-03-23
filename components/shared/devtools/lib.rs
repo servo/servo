@@ -23,9 +23,6 @@ use std::net::TcpStream;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel::GenericSender;
-use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
@@ -35,6 +32,9 @@ use net_traits::request::Destination;
 use net_traits::{DebugVec, TlsSecurityInfo};
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 

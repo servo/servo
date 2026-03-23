@@ -5,8 +5,6 @@
 use std::borrow::ToOwned;
 use std::{f32, thread};
 
-use servo_base::generic_channel::GenericSender;
-use servo_base::{Epoch, generic_channel};
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use crossbeam_channel::{Sender, select, unbounded};
@@ -15,6 +13,8 @@ use log::warn;
 use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::GenericSender;
+use servo_base::{Epoch, generic_channel};
 use webrender_api::ImageKey;
 
 use crate::canvas_data::*;

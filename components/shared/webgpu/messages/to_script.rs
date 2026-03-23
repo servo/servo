@@ -4,8 +4,8 @@
 
 //! IPC messages that are sent to the ScriptThread.
 
-use servo_base::id::PipelineId;
 use serde::{Deserialize, Serialize};
+use servo_base::id::PipelineId;
 use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePassEncoderId,
     ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPassEncoderId,

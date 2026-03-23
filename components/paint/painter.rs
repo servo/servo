@@ -7,10 +7,6 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use servo_base::Epoch;
-use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
-use servo_base::id::{PainterId, PipelineId, WebViewId};
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
@@ -34,6 +30,10 @@ use paint_api::{
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
+use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use servo_config::{opts, pref};
 use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;

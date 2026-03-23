@@ -8,7 +8,6 @@ use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
 
-use servo_base::generic_channel::{self, GenericSharedMemory};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -24,6 +23,7 @@ use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, U
 use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
+use servo_base::generic_channel::{self, GenericSharedMemory};
 use servo_config::pref;
 use url::Host;
 use webrender_api::ImageKey;

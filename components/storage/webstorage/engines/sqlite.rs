@@ -5,9 +5,9 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use servo_base::threadpool::ThreadPool;
 use log::error;
 use rusqlite::Connection;
+use servo_base::threadpool::ThreadPool;
 
 use crate::shared::{DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS};
 use crate::webstorage::OriginEntry;

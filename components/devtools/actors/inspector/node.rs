@@ -8,14 +8,14 @@
 use std::collections::HashMap;
 
 use atomic_refcell::AtomicRefCell;
-use servo_base::generic_channel::{self, GenericSender};
-use servo_base::id::PipelineId;
 use devtools_traits::{
     AttrModification, DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PipelineId;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;

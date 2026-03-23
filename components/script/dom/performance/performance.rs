@@ -6,8 +6,8 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 
-use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};

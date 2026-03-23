@@ -4,11 +4,11 @@
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use servo_base::id::ScrollTreeNodeId;
-use servo_base::print_tree::PrintTree;
 use euclid::Rect;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
 use servo_geometry::f32_rect_to_au_rect;
 use style::Zero;
 use style::computed_values::border_collapse::T as BorderCollapse;

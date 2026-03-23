@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_base::generic_channel::GenericSender;
-use servo_base::id::WebViewId;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]

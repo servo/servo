@@ -4,7 +4,6 @@
 
 use std::default::Default;
 
-use servo_base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use net_traits::CoreResourceMsg;
@@ -12,6 +11,7 @@ use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::generic_channel;
 use script_bindings::cformat;
+use servo_base::generic_channel::GenericSend;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
