@@ -181,8 +181,8 @@ pub(crate) fn import_key(
     // Note: This is not explicitly spec'ed, but also throw a SyntaxError if usages is empty
     if usages
         .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-        || usages.is_empty()
+        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify)) ||
+        usages.is_empty()
     {
         return Err(Error::Syntax(Some(
             "Usages contains an entry which is not \"sign\" or \"verify\", or is empty".into(),
