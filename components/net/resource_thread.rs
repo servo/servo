@@ -60,7 +60,9 @@ use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{FetchParams, SharedPreloadedResources};
 use crate::fetch::methods::{
-    CancellationListener, FetchContext, SharedInflightKeepAliveRecords, WebSocketChannel, fetch,
+    AutoRequestBodyStreamCloser, CancellationListener, FetchContext,
+    SharedInflightKeepAliveRecords, WebSocketChannel, fetch,
+    transfers_request_body_stream_to_later_manual_redirect,
 };
 use crate::filemanager_thread::FileManager;
 use crate::hsts::{self, HstsList};
@@ -753,7 +755,9 @@ impl CoreResourceManager {
                     let response = Response::from_init(res_init, timing_type);
 
                     let mut fetch_params = FetchParams::new(request);
-                    http_redirect_fetch(
+                    let mut request_body_stream_closer =
+                        AutoRequestBodyStreamCloser::new(fetch_params.request.body.as_ref());
+                    let response = http_redirect_fetch(
                         &mut fetch_params,
                         &mut CorsCache::default(),
                         response,
@@ -763,6 +767,12 @@ impl CoreResourceManager {
                         &context,
                     )
                     .await;
+                    if transfers_request_body_stream_to_later_manual_redirect(
+                        &fetch_params.request,
+                        &response,
+                    ) {
+                        request_body_stream_closer.disarm();
+                    }
                 },
                 None => {
                     fetch(request, &mut sender, &context).await;

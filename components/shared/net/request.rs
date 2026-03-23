@@ -11,6 +11,7 @@ use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::Mutex;
@@ -309,12 +310,16 @@ pub enum BodyChunkRequest {
     Error,
 }
 
-/// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
+/// A process local view into <https://fetch.spec.whatwg.org/#bodies>.
+/// After IPC serialization, each process gets its own shared sender state for the same body
+/// stream. the net side fetch entry points own clearing their local copy once that fetch invocation
+/// reaches its terminal state. Redirect replay can later deserialize a fresh "RequestBody", so
+/// lower level fetch steps cannot always clean up immediately.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
-    #[conditional_malloc_size_of]
-    chan: Arc<Mutex<IpcSender<BodyChunkRequest>>>,
+    #[ignore_malloc_size_of = "Channels are hard"]
+    body_chunk_request_channel: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
@@ -323,12 +328,12 @@ pub struct RequestBody {
 
 impl RequestBody {
     pub fn new(
-        chan: IpcSender<BodyChunkRequest>,
+        body_chunk_request_channel: IpcSender<BodyChunkRequest>,
         source: BodySource,
         total_bytes: Option<usize>,
     ) -> Self {
         RequestBody {
-            chan: Arc::new(Mutex::new(chan)),
+            body_chunk_request_channel: Arc::new(Mutex::new(Some(body_chunk_request_channel))),
             source,
             total_bytes,
         }
@@ -340,15 +345,35 @@ impl RequestBody {
             BodySource::Null => panic!("Null sources should never be re-directed."),
             BodySource::Object => {
                 let (chan, port) = ipc::channel().unwrap();
-                let mut selfchan = self.chan.lock();
-                let _ = selfchan.send(BodyChunkRequest::Extract(port));
+                let mut lock = self.body_chunk_request_channel.lock();
+                let Some(selfchan) = lock.as_mut() else {
+                    error!(
+                        "Could not re-extract the request body source because the body stream has already been closed."
+                    );
+                    return;
+                };
+                if let Err(error) = selfchan.send(BodyChunkRequest::Extract(port)) {
+                    error!(
+                        "Could not re-extract the request body source because the body stream has already been closed: {error}"
+                    );
+                    return;
+                }
                 *selfchan = chan;
             },
         }
     }
 
-    pub fn take_stream(&self) -> Arc<Mutex<IpcSender<BodyChunkRequest>>> {
-        self.chan.clone()
+    /// This is the current process shared optional sender for requesting body chunks.
+    pub fn clone_stream(&self) -> Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>> {
+        self.body_chunk_request_channel.clone()
+    }
+
+    /// Clears the current process shared sender state for this "RequestBody" copy.
+    ///
+    /// This does not notify or mutate other deserialized "RequestBody" values in other processes.
+    /// Can be called multiple times.
+    pub fn close_stream(&self) {
+        self.body_chunk_request_channel.lock().take();
     }
 
     pub fn source_is_null(&self) -> bool {

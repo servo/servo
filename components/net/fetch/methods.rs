@@ -27,8 +27,9 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
-    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestId,
-    RequestMode, ResponseTainting, is_cors_safelisted_method, is_cors_safelisted_request_header,
+    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestBody,
+    RequestId, RequestMode, ResponseTainting, is_cors_safelisted_method,
+    is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
@@ -126,6 +127,52 @@ impl CancellationListener {
         self.cancelled.store(true, Ordering::Relaxed)
     }
 }
+
+/// Closes the current process request body sender state when the net side fetch invocation ends.
+/// Redirect replay for navigation requests happens in a later fetch invocation with a newly
+/// deserialized "RequestBody", so each invocation owns closing only its local copy.
+pub(crate) struct AutoRequestBodyStreamCloser {
+    body: Option<RequestBody>,
+}
+
+impl AutoRequestBodyStreamCloser {
+    pub(crate) fn new(body: Option<&RequestBody>) -> Self {
+        Self {
+            body: body.cloned(),
+        }
+    }
+
+    pub(crate) fn disarm(&mut self) {
+        self.body = None;
+    }
+}
+
+impl Drop for AutoRequestBodyStreamCloser {
+    fn drop(&mut self) {
+        if let Some(body) = self.body.take() {
+            body.close_stream();
+        }
+    }
+}
+
+/// A manual navigation redirect keeps the same request body alive for a later net side redirect
+/// replay invocation. That later invocation becomes the next lifecycle owner and must close its
+/// local shared sender state once it reaches a terminal response.
+pub(crate) fn transfers_request_body_stream_to_later_manual_redirect(
+    request: &Request,
+    response: &Response,
+) -> bool {
+    request.mode == RequestMode::Navigate &&
+        request.redirect_mode == RedirectMode::Manual &&
+        request.body.is_some() &&
+        !response.is_network_error() &&
+        response
+            .actual_response()
+            .status
+            .try_code()
+            .is_some_and(|status| status.is_redirection())
+}
+
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
@@ -151,6 +198,11 @@ pub async fn fetch_with_cors_cache(
 ) -> Response {
     // Step 8. Let fetchParams be a new fetch params whose request is request
     let mut fetch_params = FetchParams::new(request);
+    // Each net side fetch invocation owns closing its local deserialized request-body sender state
+    // once this function returns, even if navigation redirect replay later starts a new fetch with
+    // a fresh "RequestBody" copy.
+    let mut request_body_stream_closer =
+        AutoRequestBodyStreamCloser::new(fetch_params.request.body.as_ref());
     let request = &mut fetch_params.request;
 
     // Step 4. Populate request from client given request.
@@ -229,6 +281,10 @@ pub async fn fetch_with_cors_cache(
 
     // Step 17: Run main fetch given fetchParams.
     let response = main_fetch(&mut fetch_params, cache, false, target, &mut None, context).await;
+
+    if transfers_request_body_stream_to_later_manual_redirect(&fetch_params.request, &response) {
+        request_body_stream_closer.disarm();
+    }
 
     // Mimics <https://fetch.spec.whatwg.org/#done-flag>
     if should_track_in_flight_record {
@@ -948,11 +1004,31 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
         None => return error("No body found"),
     };
 
-    let stream = body.take_stream();
-    let stream = stream.lock();
+    let stream = body.clone_stream();
+    let mut stream = stream.lock();
     let (body_chan, body_port) = ipc::channel().unwrap();
-    let _ = stream.send(BodyChunkRequest::Connect(body_chan));
-    let _ = stream.send(BodyChunkRequest::Chunk);
+    let Some(chunk_requester) = stream.as_mut() else {
+        log::error!(
+            "Could not connect to the request body stream because it has already been closed."
+        );
+        return Err(std::io::Error::other("Could not send BodyChunkRequest"));
+    };
+    chunk_requester
+        .send(BodyChunkRequest::Connect(body_chan))
+        .map_err(|error| {
+            log::error!(
+                "Could not connect to the request body stream because it has already been closed: {error}"
+            );
+            std::io::Error::other("Could not connect to request body stream")
+        })?;
+    chunk_requester
+        .send(BodyChunkRequest::Chunk)
+        .map_err(|error| {
+            log::error!(
+                "Could not request the first request body chunk because the body stream has already been closed: {error}"
+            );
+            std::io::Error::other("Could not request request body chunk")
+        })?;
     let body_bytes = match body_port.recv().ok() {
         Some(BodyChunkResponse::Chunk(bytes)) => bytes,
         _ => return error("Certificate not sent in a single chunk"),

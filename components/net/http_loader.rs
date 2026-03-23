@@ -38,6 +38,7 @@ use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper_serde::Serde;
+use ipc_channel::IpcError;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
@@ -646,13 +647,34 @@ impl BodySink {
     }
 }
 
+fn request_body_stream_closed_error(action: &str) -> NetworkError {
+    NetworkError::Crash(format!(
+        "Request body stream has already been closed while trying to {action}."
+    ))
+}
+
+fn log_request_body_stream_closed(action: &str, error: Option<&IpcError>) {
+    match error {
+        Some(error) => {
+            error!("Request body stream has already been closed while trying to {action}: {error}")
+        },
+        None => error!("Request body stream has already been closed while trying to {action}."),
+    }
+}
+
+fn log_fetch_terminated_send_failure(terminated_with_error: bool, context: &str) {
+    warn!(
+        "Failed to notify request-body stream termination state ({terminated_with_error}) while {context} because the receiver was already dropped."
+    );
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn obtain_response(
     client: &ServoClient,
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
-    body: Option<StdArc<Mutex<IpcSender<BodyChunkRequest>>>>,
+    body: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
@@ -698,12 +720,35 @@ async fn obtain_response(
             let (body_chan, body_port) = ipc::channel().unwrap();
 
             {
-                let requester = chunk_requester.lock();
-                let _ = requester.send(BodyChunkRequest::Connect(body_chan));
+                let mut lock = chunk_requester.lock();
+                if let Some(chunk_requester) = lock.as_mut() {
+                    if let Err(error) = chunk_requester.send(BodyChunkRequest::Connect(body_chan)) {
+                        log_request_body_stream_closed(
+                            "connect to the request body stream",
+                            Some(&error),
+                        );
+                        return Err(request_body_stream_closed_error(
+                            "connect to the request body stream",
+                        ));
+                    }
 
-                // https://fetch.spec.whatwg.org/#concept-request-transmit-body
-                // Request the first chunk, corresponding to Step 3 and 4.
-                let _ = requester.send(BodyChunkRequest::Chunk);
+                    // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+                    // Request the first chunk, corresponding to Step 3 and 4.
+                    if let Err(error) = chunk_requester.send(BodyChunkRequest::Chunk) {
+                        log_request_body_stream_closed(
+                            "request the first request body chunk",
+                            Some(&error),
+                        );
+                        return Err(request_body_stream_closed_error(
+                            "request the first request body chunk",
+                        ));
+                    }
+                } else {
+                    log_request_body_stream_closed("connect to the request body stream", None);
+                    return Err(request_body_stream_closed_error(
+                        "connect to the request body stream",
+                    ));
+                }
             }
 
             let devtools_bytes = devtools_bytes.clone();
@@ -717,7 +762,12 @@ async fn obtain_response(
                         BodyChunkResponse::Chunk(bytes) => bytes,
                         BodyChunkResponse::Done => {
                             // Step 3, abort these parallel steps.
-                            let _ = fetch_terminated.send(false);
+                            if fetch_terminated.send(false).is_err() {
+                                log_fetch_terminated_send_failure(
+                                    false,
+                                    "handling request body completion",
+                                );
+                            }
                             sink.close();
 
                             return;
@@ -726,7 +776,12 @@ async fn obtain_response(
                             // Step 4 and/or 5.
                             // TODO: differentiate between the two steps,
                             // where step 5 requires setting an `aborted` flag on the fetch.
-                            let _ = fetch_terminated.send(true);
+                            if fetch_terminated.send(true).is_err() {
+                                log_fetch_terminated_send_failure(
+                                    true,
+                                    "handling request body stream error",
+                                );
+                            }
                             sink.close();
 
                             return;
@@ -741,7 +796,31 @@ async fn obtain_response(
 
                     // Step 5.1.2.3
                     // Request the next chunk.
-                    let _ = chunk_requester2.lock().send(BodyChunkRequest::Chunk);
+                    let mut chunk_requester2 = chunk_requester2.lock();
+                    if let Some(chunk_requester2) = chunk_requester2.as_mut() {
+                        if let Err(error) = chunk_requester2.send(BodyChunkRequest::Chunk) {
+                            log_request_body_stream_closed(
+                                "request the next request body chunk",
+                                Some(&error),
+                            );
+                            if fetch_terminated.send(true).is_err() {
+                                log_fetch_terminated_send_failure(
+                                    true,
+                                    "handling failure to request the next request body chunk",
+                                );
+                            }
+                            sink.close();
+                        }
+                    } else {
+                        log_request_body_stream_closed("request the next request body chunk", None);
+                        if fetch_terminated.send(true).is_err() {
+                            log_fetch_terminated_send_failure(
+                                true,
+                                "handling a closed request body stream while requesting the next chunk",
+                            );
+                        }
+                        sink.close();
+                    }
                 }),
             );
 
@@ -2044,7 +2123,7 @@ async fn http_network_fetch(
     // The receiver will receive true if there has been an error streaming the request body.
     let (fetch_terminated_sender, mut fetch_terminated_receiver) = unbounded_channel();
 
-    let body = request.body.as_ref().map(|body| body.take_stream());
+    let body = request.body.as_ref().map(|body| body.clone_stream());
 
     if body.is_none() {
         // There cannot be an error streaming a non-existent body.
@@ -2143,9 +2222,7 @@ async fn http_network_fetch(
     // Check if there was an error while streaming the request body.
     //
     match fetch_terminated_receiver.recv().await {
-        Some(true) => {
-            return Response::network_error(NetworkError::ConnectionFailure);
-        },
+        Some(true) => return Response::network_error(NetworkError::ConnectionFailure),
         Some(false) => {},
         _ => warn!("Failed to receive confirmation request was streamed without error."),
     }
@@ -2350,7 +2427,6 @@ async fn http_network_fetch(
 
     // Ensure we don't override "responseEnd" on successful return of this function
     response_end_timer.neuter();
-
     response
 }
 
