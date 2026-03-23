@@ -267,10 +267,9 @@ impl AnonymousBlockBox {
         // during layout of this anonymous block to account for the block's final position,
         // including any resolved margin-top. This mirrors the identical pattern in
         // `layout_block_level_children_sequentially`.
-        layout.positioning_context.adjust_static_position_of_hoisted_fragments(
-            &fragment,
-            positioning_context_length,
-        );
+        layout
+            .positioning_context
+            .adjust_static_position_of_hoisted_fragments(&fragment, positioning_context_length);
 
         let Fragment::Box(fragment) = fragment else {
             unreachable!("The fragment should still be a Fragment::Box()");
