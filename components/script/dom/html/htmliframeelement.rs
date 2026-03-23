@@ -129,7 +129,7 @@ impl HTMLIFrameElement {
                     // Step 2.1. Let maybeURL be the result of encoding-parsing a URL given that attribute's value,
                     // relative to element's node document.
                     // Step 2.2. If maybeURL is not failure, then set url to maybeURL.
-                    self.owner_document().base_url().join(&url).ok()
+                    self.owner_document().encoding_parse_a_url(&url).ok()
                 }
             })
             // Step 1. Let url be the URL record about:blank.
