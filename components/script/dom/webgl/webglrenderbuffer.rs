@@ -10,6 +10,7 @@ use canvas_traits::webgl::{
     WebGLVersion, webgl_channel,
 };
 use dom_struct::dom_struct;
+use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
@@ -20,32 +21,88 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::script_runtime::CanGc;
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLRenderbuffer {
+    context: WeakRef<WebGLRenderingContext>,
+    #[no_trace]
+    id: WebGLRenderbufferId,
+    is_deleted: Cell<bool>,
+}
+
+impl DroppableWebGLRenderbuffer {
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn delete(&self, operation_fallibility: Operation) {
+        if !self.is_deleted.get() {
+            self.is_deleted.set(true);
+
+            /*
+            If a renderbuffer object is deleted while its image is attached to one or more
+            attachment points in a currently bound framebuffer object, then it is as if
+            FramebufferRenderbuffer had been called, with a renderbuffer of zero, for each
+            attachment point to which this image was attached in that framebuffer object.
+            In other words,the renderbuffer image is first detached from all attachment points
+            in that frame-buffer object.
+            - GLES 3.0, 4.4.2.3, "Attaching Renderbuffer Images to a Framebuffer"
+            */
+            if let Some(context) = self.context.root() {
+                if let Some(fb) = context.get_draw_framebuffer_slot().get() {
+                    let _ = fb.detach_renderbuffer_by_id(&self.id);
+                }
+                if let Some(fb) = context.get_read_framebuffer_slot().get() {
+                    let _ = fb.detach_renderbuffer_by_id(&self.id);
+                }
+            }
+
+            self.send_with_fallibility(
+                WebGLCommand::DeleteRenderbuffer(self.id),
+                operation_fallibility,
+            );
+        }
+    }
+}
+
+impl Drop for DroppableWebGLRenderbuffer {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
 
 #[dom_struct(associated_memory)]
 pub(crate) struct WebGLRenderbuffer {
     webgl_object: WebGLObject,
-    #[no_trace]
-    id: WebGLRenderbufferId,
     ever_bound: Cell<bool>,
-    is_deleted: Cell<bool>,
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     is_initialized: Cell<bool>,
     attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    droppable: DroppableWebGLRenderbuffer,
 }
 
 impl WebGLRenderbuffer {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id,
             ever_bound: Cell::new(false),
-            is_deleted: Cell::new(false),
             internal_format: Cell::new(None),
             size: Cell::new(None),
             is_initialized: Cell::new(false),
             attached_framebuffer: Default::default(),
+            droppable: DroppableWebGLRenderbuffer {
+                context: WeakRef::new(context),
+                id,
+                is_deleted: Cell::new(false),
+            },
         }
     }
 
@@ -73,7 +130,7 @@ impl WebGLRenderbuffer {
 
 impl WebGLRenderbuffer {
     pub(crate) fn id(&self) -> WebGLRenderbufferId {
-        self.id
+        self.droppable.id
     }
 
     pub(crate) fn size(&self) -> Option<(i32, i32)> {
@@ -95,41 +152,15 @@ impl WebGLRenderbuffer {
     pub(crate) fn bind(&self, target: u32) {
         self.ever_bound.set(true);
         self.upcast()
-            .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
+            .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id())));
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if !self.is_deleted.get() {
-            self.is_deleted.set(true);
-
-            /*
-            If a renderbuffer object is deleted while its image is attached to one or more
-            attachment points in a currently bound framebuffer object, then it is as if
-            FramebufferRenderbuffer had been called, with a renderbuffer of zero, for each
-            attachment point to which this image was attached in that framebuffer object.
-            In other words,the renderbuffer image is first detached from all attachment points
-            in that frame-buffer object.
-            - GLES 3.0, 4.4.2.3, "Attaching Renderbuffer Images to a Framebuffer"
-            */
-            let webgl_object = self.upcast();
-            if let Some(context) = webgl_object.context() {
-                if let Some(fb) = context.get_draw_framebuffer_slot().get() {
-                    let _ = fb.detach_renderbuffer(self);
-                }
-                if let Some(fb) = context.get_read_framebuffer_slot().get() {
-                    let _ = fb.detach_renderbuffer(self);
-                }
-            }
-
-            webgl_object.send_with_fallibility(
-                WebGLCommand::DeleteRenderbuffer(self.id),
-                operation_fallibility,
-            );
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn is_deleted(&self) -> bool {
-        self.is_deleted.get()
+        self.droppable.is_deleted.get()
     }
 
     pub(crate) fn ever_bound(&self) -> bool {
@@ -275,11 +306,5 @@ impl WebGLRenderbuffer {
 
     pub(crate) fn detach_from_framebuffer(&self) {
         self.attached_framebuffer.set(None);
-    }
-}
-
-impl Drop for WebGLRenderbuffer {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
     }
 }
