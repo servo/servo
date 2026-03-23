@@ -5,12 +5,12 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 use std::thread;
 
+use rusqlite::{Connection, Transaction};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
-use rusqlite::{Connection, Transaction};
 use servo_url::ImmutableOrigin;
 use storage_traits::client_storage::{
-    ClientStorageThreadHandle, ClientStorageThreadMessage, CreateBottleError, StorageIdentifier,
+    ClientStorageErrorr, ClientStorageThreadHandle, ClientStorageThreadMessage, StorageIdentifier,
     StorageProxyMap, StorageType,
 };
 use uuid::Uuid;
@@ -21,12 +21,12 @@ trait RegistryEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<PathBuf, CreateBottleError<Self::Error>>;
+    ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>>;
     fn delete_database(
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<(), CreateBottleError<Self::Error>>;
+    ) -> Result<(), ClientStorageErrorr<Self::Error>>;
     fn obtain_a_storage_bottle_map(
         &mut self,
         storage_type: StorageType,
@@ -34,7 +34,7 @@ trait RegistryEngine {
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: &GenericSender<ClientStorageThreadMessage>,
-    ) -> Result<StorageProxyMap, CreateBottleError<Self::Error>>;
+    ) -> Result<StorageProxyMap, ClientStorageErrorr<Self::Error>>;
 }
 
 struct SqliteEngine {
@@ -230,7 +230,7 @@ impl RegistryEngine for SqliteEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<PathBuf, CreateBottleError<Self::Error>> {
+    ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
 
         // Ensure no duplicate database
@@ -241,7 +241,7 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         if exists {
-            return Err(CreateBottleError::DatabaseAlreadyExists);
+            return Err(ClientStorageErrorr::DatabaseAlreadyExists);
         }
 
         // Cluster directory path by last character of UUID
@@ -266,7 +266,9 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         let path_str = path.to_str().ok_or_else(|| {
-            CreateBottleError::Internal(rusqlite::Error::InvalidParameterName(String::from("path")))
+            ClientStorageErrorr::Internal(rusqlite::Error::InvalidParameterName(String::from(
+                "path",
+            )))
         })?;
         tx.execute(
             "INSERT INTO directories (database_id, path) VALUES (?1, ?2);",
@@ -274,7 +276,7 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         // Create the directory on disk
-        std::fs::create_dir_all(&path).map_err(|_| CreateBottleError::DirectoryCreationFailed)?;
+        std::fs::create_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryCreationFailed)?;
 
         tx.commit()?;
 
@@ -286,7 +288,7 @@ impl RegistryEngine for SqliteEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<(), CreateBottleError<Self::Error>> {
+    ) -> Result<(), ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
 
         // Ensure no duplicate database
@@ -297,7 +299,7 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         if !exists {
-            return Err(CreateBottleError::DatabaseDoesNotExist);
+            return Err(ClientStorageErrorr::DatabaseDoesNotExist);
         }
 
         let database_id: i64 = tx.query_row(
@@ -322,7 +324,7 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         // Delete the directory on disk
-        std::fs::remove_dir_all(&path).map_err(|_| CreateBottleError::DirectoryDeletionFailed)?;
+        std::fs::remove_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryDeletionFailed)?;
 
         tx.commit()?;
 
@@ -337,7 +339,7 @@ impl RegistryEngine for SqliteEngine {
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: &GenericSender<ClientStorageThreadMessage>,
-    ) -> Result<StorageProxyMap, CreateBottleError<Self::Error>> {
+    ) -> Result<StorageProxyMap, ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
 
         // Step 1: Let shed be null.

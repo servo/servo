@@ -4,9 +4,9 @@
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::WebViewId;
-use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -140,7 +140,7 @@ impl<T> From<T> for CreateBucketError<T> {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum CreateBottleError<T> {
+pub enum ClientStorageErrorr<T> {
     BottleAlreadyExists,
     BucketDoesNotExist,
     DatabaseAlreadyExists,
@@ -150,9 +150,9 @@ pub enum CreateBottleError<T> {
     Internal(T),
 }
 
-impl<T> From<T> for CreateBottleError<T> {
+impl<T> From<T> for ClientStorageErrorr<T> {
     fn from(err: T) -> Self {
-        CreateBottleError::Internal(err)
+        ClientStorageErrorr::Internal(err)
     }
 }
 
