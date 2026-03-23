@@ -10,6 +10,7 @@ use app_units::Au;
 use fonts::{
     FontContext, FontRef, GlyphStore, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
+use icu_locid::subtags::Language;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -410,6 +411,12 @@ impl TextRun {
         } else {
             None
         };
+        let language = parent_style
+            .get_font()
+            ._x_lang
+            .0
+            .parse()
+            .unwrap_or(Language::UND);
 
         let mut flags = ShapingFlags::empty();
         if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
@@ -459,6 +466,7 @@ impl TextRun {
                     letter_spacing,
                     word_spacing,
                     script: segment.script,
+                    language,
                     flags,
                 };
 

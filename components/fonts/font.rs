@@ -16,6 +16,7 @@ use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use fonts_traits::FontDescriptor;
+use icu_locid::subtags::Language;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -391,6 +392,8 @@ pub struct ShapingOptions {
     pub word_spacing: Au,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
+    /// The preferred language, obtained from the `lang` attribute.
+    pub language: Language,
     /// Various flags.
     pub flags: ShapingFlags,
 }

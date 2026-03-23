@@ -18,13 +18,13 @@ use harfbuzz_sys::{
     HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT, HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
     hb_blob_create, hb_blob_t, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
     hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
-    hb_buffer_set_cluster_level, hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t,
-    hb_codepoint_t, hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t,
-    hb_font_create, hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
-    hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
-    hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
-    hb_ot_layout_get_baseline, hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
-    hb_variation_t,
+    hb_buffer_set_cluster_level, hb_buffer_set_direction, hb_buffer_set_language,
+    hb_buffer_set_script, hb_buffer_t, hb_codepoint_t, hb_face_create_for_tables, hb_face_destroy,
+    hb_face_t, hb_feature_t, hb_font_create, hb_font_destroy, hb_font_funcs_create,
+    hb_font_funcs_set_glyph_h_advance_func, hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t,
+    hb_font_set_funcs, hb_font_set_ppem, hb_font_set_scale, hb_font_set_variations, hb_font_t,
+    hb_glyph_info_t, hb_glyph_position_t, hb_language_from_string, hb_ot_layout_get_baseline,
+    hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t, hb_variation_t,
 };
 use num_traits::Zero;
 use read_fonts::types::Tag;
@@ -263,6 +263,13 @@ impl Shaper {
                 0,
                 text.len() as c_int,
             );
+
+            let language = options.language;
+            let hb_language = hb_language_from_string(
+                language.as_str().as_ptr() as *const c_char,
+                language.as_str().len() as c_int,
+            );
+            hb_buffer_set_language(hb_buffer, hb_language);
 
             let mut features = Vec::new();
             if options

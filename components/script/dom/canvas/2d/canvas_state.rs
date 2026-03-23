@@ -22,6 +22,7 @@ use fonts::{
     FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
     LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
+use icu_locid::subtags::Language;
 use js::context::JSContext;
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
@@ -34,7 +35,6 @@ use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
-use style::values::computed::XLang;
 use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
@@ -2343,19 +2343,19 @@ impl CanvasState {
         font_group: &FontGroup,
     ) -> Vec<UnshapedTextRun<'text>> {
         let mut runs = Vec::new();
-        let mut current_text_run = UnshapedTextRun::default();
+        // TODO: canvas also has experimental `lang` attribute (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lang),
+        // which Servo doesn't support yet. When this attribute is supported, some changes may be needed here.
+        let x_language = self.font_style()._x_lang.clone();
+        let language = x_language.0.parse().unwrap_or(Language::UND);
+        let mut current_text_run = UnshapedTextRun::new(language);
         let mut current_text_run_start_index = 0;
 
         for (index, character) in text.char_indices() {
             // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
             // have support for color glyphs.
             let script = Script::from(character);
-            let font = font_group.find_by_codepoint(
-                font_context,
-                character,
-                None,
-                XLang::get_initial_value(),
-            );
+            let font =
+                font_group.find_by_codepoint(font_context, character, None, x_language.clone());
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = std::mem::replace(
@@ -2363,7 +2363,8 @@ impl CanvasState {
                     UnshapedTextRun {
                         font: font.clone(),
                         script,
-                        ..Default::default()
+                        string: Default::default(),
+                        language,
                     },
                 );
                 current_text_run_start_index = index;
@@ -2432,14 +2433,23 @@ impl Drop for CanvasState {
     }
 }
 
-#[derive(Default)]
 struct UnshapedTextRun<'a> {
     font: Option<FontRef>,
     script: Script,
     string: &'a str,
+    language: Language,
 }
 
 impl UnshapedTextRun<'_> {
+    fn new(language: Language) -> Self {
+        Self {
+            font: Default::default(),
+            script: Default::default(),
+            string: Default::default(),
+            language,
+        }
+    }
+
     fn script_and_font_compatible(&self, script: Script, other_font: &Option<FontRef>) -> bool {
         if self.script != script {
             return false;
@@ -2467,6 +2477,7 @@ impl UnshapedTextRun<'_> {
             letter_spacing: None,
             word_spacing,
             script: self.script,
+            language: self.language,
             flags: ShapingFlags::empty(),
         };
 
