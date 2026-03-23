@@ -770,7 +770,7 @@ impl LayoutThread {
             if succeeded {
                 let _ = locked_script_channel
                     .lock()
-                    .send(ScriptThreadMessage::WebFontLoaded(pipeline_id, succeeded));
+                    .send(ScriptThreadMessage::WebFontLoaded(pipeline_id));
             }
         };
 
