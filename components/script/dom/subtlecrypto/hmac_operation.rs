@@ -33,9 +33,17 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
             CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
             CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
             CryptoAlgorithm::Sha512 => hmac::HMAC_SHA512,
-            _ => return Err(Error::NotSupported(None)),
+            _ => {
+                return Err(Error::NotSupported(Some(
+                    "Unsupported hash algorithm for HMAC".into(),
+                )));
+            },
         },
-        _ => return Err(Error::NotSupported(None)),
+        _ => {
+            return Err(Error::NotSupported(Some(
+                "The key algorithm is not HMAC".into(),
+            )));
+        },
     };
     let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
     let mac = hmac::sign(&sign_key, message);
@@ -56,9 +64,17 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
             CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
             CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
             CryptoAlgorithm::Sha512 => hmac::HMAC_SHA512,
-            _ => return Err(Error::NotSupported(None)),
+            _ => {
+                return Err(Error::NotSupported(Some(
+                    "Unsupported hash algorithm for HMAC".into(),
+                )));
+            },
         },
-        _ => return Err(Error::NotSupported(None)),
+        _ => {
+            return Err(Error::NotSupported(Some(
+                "The key algorithm is not HMAC".into(),
+            )));
+        },
     };
     let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
     let mac = hmac::sign(&sign_key, message);
@@ -80,7 +96,9 @@ pub(crate) fn generate_key(
         .iter()
         .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
     {
-        return Err(Error::Syntax(None));
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
+        )));
     }
 
     // Step 2.
@@ -99,7 +117,9 @@ pub(crate) fn generate_key(
         // Otherwise:
         _ => {
             // throw an OperationError.
-            return Err(Error::Operation(None));
+            return Err(Error::Operation(Some(
+                "The length member of normalizedAlgorithm is zero".into(),
+            )));
         },
     };
 
@@ -164,7 +184,9 @@ pub(crate) fn import_key(
         .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify)) ||
         usages.is_empty()
     {
-        return Err(Error::Syntax(None));
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"sign\" or \"verify\", or is empty".into(),
+        )));
     }
 
     // Step 3. Let hash be a new KeyAlgorithm.
@@ -190,7 +212,9 @@ pub(crate) fn import_key(
 
             // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "The kty field of jwk is not \"oct\"".into(),
+                )));
             }
 
             // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
@@ -209,28 +233,36 @@ pub(crate) fn import_key(
                 CryptoAlgorithm::Sha1 => {
                     // If the alg field of jwk is present and is not "HS1", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS1") {
-                        return Err(Error::Data(None));
+                        return Err(Error::Data(Some(
+                            "The alg field of jwk is present, and is not \"HS1\"".into(),
+                        )));
                     }
                 },
                 // If the name attribute of hash is "SHA-256":
                 CryptoAlgorithm::Sha256 => {
                     // If the alg field of jwk is present and is not "HS256", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS256") {
-                        return Err(Error::Data(None));
+                        return Err(Error::Data(Some(
+                            "The alg field of jwk is present, and is not \"HS256\"".into(),
+                        )));
                     }
                 },
                 // If the name attribute of hash is "SHA-384":
                 CryptoAlgorithm::Sha384 => {
                     // If the alg field of jwk is present and is not "HS384", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS384") {
-                        return Err(Error::Data(None));
+                        return Err(Error::Data(Some(
+                            "The alg field of jwk is present, and is not \"HS384\"".into(),
+                        )));
                     }
                 },
                 // If the name attribute of hash is "SHA-512":
                 CryptoAlgorithm::Sha512 => {
                     // If the alg field of jwk is present and is not "HS512", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS512") {
-                        return Err(Error::Data(None));
+                        return Err(Error::Data(Some(
+                            "The alg field of jwk is present, and is not \"HS512\"".into(),
+                        )));
                     }
                 },
                 // Otherwise,
@@ -239,14 +271,19 @@ pub(crate) fn import_key(
                     // Perform any key import steps defined by other applicable specifications,
                     // passing format, jwk and hash and obtaining hash
                     // NOTE: Currently not support applicable specification.
-                    return Err(Error::NotSupported(None));
+                    return Err(Error::NotSupported(Some(
+                        "Unsupported hash algorithm".into(),
+                    )));
                 },
             }
 
             // Step 2.7. If usages is non-empty and the use field of jwk is present and is not
             // "sig", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "sig") {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "Usages is non-empty and the use field of jwk is present and is not \"sig\""
+                        .into(),
+                )));
             }
 
             // Step 2.8. If the key_ops field of jwk is present, and is invalid according to
@@ -257,13 +294,18 @@ pub(crate) fn import_key(
             // Step 2.9. If the ext field of jwk is present and has the value false and
             // extractable is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
-                return Err(Error::Data(None));
+                return Err(Error::Data(Some(
+                    "The ext field of jwk is present and has the value false and extractable is true"
+                        .into(),
+                )));
             }
         },
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Unsupported import key format for HMAC key".into(),
+            )));
         },
     }
 
@@ -272,7 +314,9 @@ pub(crate) fn import_key(
 
     // Step 6. If length is zero then throw a DataError.
     if length == 0 {
-        return Err(Error::Data(None));
+        return Err(Error::Data(Some(
+            "The length in bits of data is zero".into(),
+        )));
     }
 
     // Step 7. If the length member of normalizedAlgorithm is present:
@@ -280,7 +324,10 @@ pub(crate) fn import_key(
         //  If the length member of normalizedAlgorithm is greater than length:
         if given_length > length {
             // throw a DataError.
-            return Err(Error::Data(None));
+            return Err(Error::Data(Some(
+                "The length member of normalizedAlgorithm is greater than the length in bits of data"
+                    .into(),
+            )));
         }
         // Otherwise:
         else {
@@ -323,7 +370,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
     match format {
         KeyFormat::Raw | KeyFormat::Raw_secret => match key.handle() {
             Handle::Hmac(key_data) => Ok(ExportedKey::Bytes(key_data.as_slice().to_vec())),
-            _ => Err(Error::Operation(None)),
+            _ => Err(Error::Operation(Some(
+                "The key handle is not representing an HMAC key".into(),
+            ))),
         },
         KeyFormat::Jwk => {
             // Step 4.1. Let jwk be a new JsonWebKey dictionary.
@@ -361,10 +410,18 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                         CryptoAlgorithm::Sha256 => "HS256",
                         CryptoAlgorithm::Sha384 => "HS384",
                         CryptoAlgorithm::Sha512 => "HS512",
-                        _ => return Err(Error::NotSupported(None)),
+                        _ => {
+                            return Err(Error::NotSupported(Some(
+                                "Unsupported hash algorithm for HMAC".into(),
+                            )));
+                        },
                     }
                 },
-                _ => return Err(Error::NotSupported(None)),
+                _ => {
+                    return Err(Error::NotSupported(Some(
+                        "The key algorithm is not HMAC".into(),
+                    )));
+                },
             };
             jwk.alg = Some(DOMString::from(hash_algorithm));
 
@@ -380,7 +437,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            Err(Error::NotSupported(None))
+            Err(Error::NotSupported(Some(
+                "Unsupported export key format for HMAC key".into(),
+            )))
         },
     }
 }
