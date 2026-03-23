@@ -411,10 +411,9 @@ impl WebViewRenderer {
         render_api: &RenderApi,
         repaint_reason: &Cell<RepaintReason>,
         event_and_id: InputEventAndId,
-    ) {
+    ) -> bool {
         if let InputEvent::Touch(touch_event) = event_and_id.event {
-            self.on_touch_event(render_api, repaint_reason, touch_event, event_and_id.id);
-            return;
+            return self.on_touch_event(render_api, repaint_reason, touch_event, event_and_id.id);
         }
 
         if let InputEvent::Wheel(wheel_event) = event_and_id.event {
@@ -422,7 +421,7 @@ impl WebViewRenderer {
                 .insert(event_and_id.id, wheel_event);
         }
 
-        self.dispatch_input_event_with_hit_testing(render_api, event_and_id);
+        self.dispatch_input_event_with_hit_testing(render_api, event_and_id)
     }
 
     fn send_touch_event(
@@ -458,30 +457,41 @@ impl WebViewRenderer {
         repaint_reason: &Cell<RepaintReason>,
         event: TouchEvent,
         id: InputEventId,
-    ) {
-        match event.event_type {
+    ) -> bool {
+        let result = match event.event_type {
             TouchEventType::Down => self.on_touch_down(render_api, event, id),
             TouchEventType::Move => self.on_touch_move(render_api, event, id),
             TouchEventType::Up => self.on_touch_up(render_api, event, id),
             TouchEventType::Cancel => self.on_touch_cancel(render_api, event, id),
-        }
+        };
 
         self.touch_handler
             .add_touch_move_refresh_observer_if_necessary(
                 self.refresh_driver.clone(),
                 repaint_reason,
             );
+        result
     }
 
-    fn on_touch_down(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
+    fn on_touch_down(
+        &mut self,
+        render_api: &RenderApi,
+        event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         self.touch_handler.on_touch_down(event.touch_id, point);
-        self.send_touch_event(render_api, event, id);
+        self.send_touch_event(render_api, event, id)
     }
 
-    fn on_touch_move(&mut self, render_api: &RenderApi, mut event: TouchEvent, id: InputEventId) {
+    fn on_touch_move(
+        &mut self,
+        render_api: &RenderApi,
+        mut event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
@@ -503,37 +513,45 @@ impl WebViewRenderer {
                 self.pending_scroll_zoom_events.push(action);
             }
         }
+        let mut reached_constellation = false;
         // When the event is touchmove, if the script thread is processing the touch
         // move event, we skip sending the event to the script thread.
         // This prevents the script thread from stacking up for a large amount of time.
         if !self.touch_handler.is_handling_touch_move_for_touch_id(
             self.touch_handler.current_sequence_id,
             event.touch_id,
-        ) && self.send_touch_event(render_api, event, id) &&
-            event.is_cancelable()
-        {
-            self.touch_handler.set_handling_touch_move_for_touch_id(
-                self.touch_handler.current_sequence_id,
-                event.touch_id,
-                TouchIdMoveTracking::Track,
-            );
+        ) {
+            reached_constellation = self.send_touch_event(render_api, event, id);
+            if reached_constellation && event.is_cancelable() {
+                self.touch_handler.set_handling_touch_move_for_touch_id(
+                    self.touch_handler.current_sequence_id,
+                    event.touch_id,
+                    TouchIdMoveTracking::Track,
+                );
+            }
         }
+        reached_constellation
     }
 
-    fn on_touch_up(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
+    fn on_touch_up(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         self.touch_handler.on_touch_up(event.touch_id, point);
-        self.send_touch_event(render_api, event, id);
+        self.send_touch_event(render_api, event, id)
     }
 
-    fn on_touch_cancel(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) {
+    fn on_touch_cancel(
+        &mut self,
+        render_api: &RenderApi,
+        event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         self.touch_handler.on_touch_cancel(event.touch_id, point);
-        self.send_touch_event(render_api, event, id);
+        self.send_touch_event(render_api, event, id)
     }
 
     fn on_touch_event_processed(

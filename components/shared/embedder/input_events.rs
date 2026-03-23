@@ -33,6 +33,10 @@ bitflags! {
         /// behavior (such as keybindings) when the WebView has already consumed the event for its
         /// own purpose.
         const Consumed = 1 << 1;
+        /// Whether or not the input event failed to dispatch. This can happen when an event
+        /// is sent while Servo is shutting down or when it is in an intermediate state.
+        /// Typically these events should be considered to be consumed.
+        const DispatchFailed = 1 << 2;
     }
 }
 
