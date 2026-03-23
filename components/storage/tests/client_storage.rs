@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel;
-use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
+use servo_base::generic_channel;
+use servo_base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 use servo_url::ServoUrl;
 use storage::ClientStorageThreadFactory;
 use storage_traits::client_storage::{
@@ -39,7 +39,7 @@ fn test_workflow() {
 
     let receiver = handle.obtain_a_storage_bottle_map(
         StorageType::Local,
-        WebViewId::new(base::id::TEST_PAINTER_ID),
+        WebViewId::new(servo_base::id::TEST_PAINTER_ID),
         StorageIdentifier::IndexedDB,
         url.origin(),
     );

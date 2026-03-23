@@ -4,7 +4,7 @@
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
-use servo_base::generic_channel::GenericSender;
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::WebViewId;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
