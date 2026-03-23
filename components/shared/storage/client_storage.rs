@@ -146,6 +146,7 @@ pub enum CreateBottleError<T> {
     DatabaseAlreadyExists,
     DatabaseDoesNotExist,
     DirectoryCreationFailed,
+    DirectoryDeletionFailed,
     Internal(T),
 }
 

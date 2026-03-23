@@ -150,27 +150,25 @@ fn create_a_storage_bucket(
     // <https://storage.spec.whatwg.org/#registered-storage-endpoints>
     let registered_endpoints = match storage_type {
         StorageType::Local => vec![
-            "caches",
-            "indexedDB",
-            "localStorage",
-            "serviceWorkerRegistrations",
+            StorageIdentifier::Caches,
+            StorageIdentifier::IndexedDB,
+            StorageIdentifier::LocalStorage,
+            StorageIdentifier::ServiceWorkerRegistrations,
         ],
-        StorageType::Session => vec!["sessionStorage"],
+        StorageType::Session => vec![StorageIdentifier::SessionStorage],
     };
 
     for identifier in registered_endpoints {
         let exists: bool = tx.query_row(
             "SELECT EXISTS(SELECT 1 FROM bottles WHERE bucket_id = ?1 AND identifier = ?2);",
-            (bucket_id, identifier),
+            (bucket_id, identifier.as_str()),
             |row| row.get(0),
         )?;
 
-        // TODO: quota.
-        // <https://storage.spec.whatwg.org/#storage-endpoint-quota>
         if !exists {
             tx.execute(
                 "INSERT INTO bottles (bucket_id, identifier) VALUES (?1, ?2);",
-                (bucket_id, identifier),
+                (bucket_id, identifier.as_str()),
             )?;
         }
     }
@@ -192,8 +190,8 @@ fn create_a_storage_shelf(
         [origin.ascii_serialization(), shed.to_string()],
     )?;
     let shelf_id: i64 = tx.query_row(
-        "SELECT id FROM shelves WHERE origin = ?1;",
-        [&origin.ascii_serialization()],
+        "SELECT id FROM shelves WHERE origin = ?1 AND shed_id = ?2;",
+        [&origin.ascii_serialization(), &shed.to_string()],
         |row| row.get(0),
     )?;
 
@@ -309,24 +307,22 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         let path: String = tx.query_row(
-            "SELECT path FROM directories WHERE bottle_id = ?1 AND name = ?2;",
-            (bottle_id, name.clone()),
-            |row| row.get(1),
+            "SELECT path FROM directories WHERE database_id = ?1;",
+            [database_id],
+            |row| row.get(0),
         )?;
 
         tx.execute(
-            "DELETE FROM databases (bottle_id, name) VALUES (?1, ?2);",
+            "DELETE FROM databases WHERE bottle_id = ?1 AND name = ?2;",
             (bottle_id, name),
         )?;
-
-        let path_str = path.to_string();
         tx.execute(
-            "DELETE FROM directories (database_id, path) VALUES (?1, ?2);",
-            (database_id, path_str),
+            "DELETE FROM directories WHERE database_id = ?1;",
+            [database_id],
         )?;
 
         // Delete the directory on disk
-        std::fs::create_dir_all(&path).map_err(|_| CreateBottleError::DirectoryCreationFailed)?;
+        std::fs::remove_dir_all(&path).map_err(|_| CreateBottleError::DirectoryDeletionFailed)?;
 
         tx.commit()?;
 
@@ -419,7 +415,10 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
 
         let storage_dir = config_dir
-            .unwrap_or_else(|| PathBuf::from("."))
+            .unwrap_or_else(|| {
+                let tmp_dir = tempfile::tempdir().unwrap();
+                tmp_dir.path().to_path_buf()
+            })
             .join("clientstorage");
         std::fs::create_dir_all(&storage_dir)
             .expect("Failed to create ClientStorage storage directory");
