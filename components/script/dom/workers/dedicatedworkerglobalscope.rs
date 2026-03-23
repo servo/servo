@@ -500,61 +500,62 @@ impl DedicatedWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
 
                 let fetch_client = ModuleFetchClient {
-                    insecure_requests_policy: insecure_requests_policy,
+                    insecure_requests_policy,
                     has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
-                    policy_container: policy_container.clone(),
+                    policy_container,
                     client: request_client,
-                    pipeline_id: pipeline_id,
-                    origin: origin,
+                    pipeline_id,
+                    origin,
                     https_state: current_global_https_state,
                 };
 
-                let _ar = AutoWorkerReset::new(&global, worker.clone());
-
                 // Step 12. Obtain script by switching on options["type"]:
-                match worker_type {
-                    WorkerType::Classic => {
-                        fetch_a_classic_worker_script(
-                            scope,
-                            worker_url,
-                            fetch_client,
-                            Destination::Worker,
-                            webview_id,
-                            referrer,
+                {
+                    let _ar = AutoWorkerReset::new(&global, worker.clone());
+                    match worker_type {
+                        WorkerType::Classic => {
+                            fetch_a_classic_worker_script(
+                                scope,
+                                worker_url,
+                                fetch_client,
+                                Destination::Worker,
+                                webview_id,
+                                referrer,
+                            );
+                        },
+                        WorkerType::Module => {
+                            fetch_a_module_worker_script_graph(
+                                cx,
+                                worker_url,
+                                fetch_client,
+                                ModuleOwner::Worker(Trusted::new(scope)),
+                                referrer,
+                                credentials,
+                            );
+                        },
+                    }
+
+                    let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
+                    scope
+                        .upcast::<GlobalScope>()
+                        .mem_profiler_chan()
+                        .run_with_memory_reporting(
+                            || {
+                                // Step 27, Run the responsible event loop specified
+                                // by inside settings until it is destroyed.
+                                // The worker processing model remains on this step
+                                // until the event loop is destroyed,
+                                // which happens after the closing flag is set to true.
+                                while !scope.is_closing() {
+                                    run_worker_event_loop(&*global, Some(&worker), cx);
+                                }
+                            },
+                            reporter_name,
+                            event_loop_sender,
+                            CommonScriptMsg::CollectReports,
                         );
-                    },
-                    WorkerType::Module => {
-                        fetch_a_module_worker_script_graph(
-                            cx,
-                            worker_url,
-                            fetch_client,
-                            ModuleOwner::Worker(Trusted::new(scope)),
-                            referrer,
-                            credentials,
-                        );
-                    },
                 }
 
-                let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
-                scope
-                    .upcast::<GlobalScope>()
-                    .mem_profiler_chan()
-                    .run_with_memory_reporting(
-                        || {
-                            // Step 27, Run the responsible event loop specified
-                            // by inside settings until it is destroyed.
-                            // The worker processing model remains on this step
-                            // until the event loop is destroyed,
-                            // which happens after the closing flag is set to true.
-                            while !scope.is_closing() {
-                                run_worker_event_loop(&*global, Some(&worker), cx);
-                            }
-                        },
-                        reporter_name,
-                        event_loop_sender,
-                        CommonScriptMsg::CollectReports,
-                    );
-                drop(_ar);
                 scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")

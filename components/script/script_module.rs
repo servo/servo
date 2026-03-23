@@ -12,7 +12,6 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::{mem, ptr};
 
-use base::id::PipelineId;
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
@@ -58,6 +57,7 @@ use script_bindings::error::Fallible;
 use script_bindings::settings_stack::run_a_callback;
 use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
