@@ -7,6 +7,7 @@ use std::mem;
 
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, ToCss};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
 use style::selector_parser::SelectorParser;
@@ -104,7 +105,7 @@ impl SpecificCSSRule for CSSStyleRule {
 
 impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-style>
-    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, cx: &mut JSContext) -> DomRoot<CSSStyleDeclaration> {
         self.style_declaration.or_init(|| {
             let guard = self.css_grouping_rule.shared_lock().read();
             CSSStyleDeclaration::new(
@@ -115,7 +116,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         })
     }
