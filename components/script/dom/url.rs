@@ -13,6 +13,7 @@ use profile_traits::generic_channel;
 use script_bindings::cformat;
 use servo_base::generic_channel::GenericSend;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use url::Url;
 use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -155,19 +156,12 @@ impl URLMethods<crate::DomTypeHolder> for URL {
 
     /// <https://url.spec.whatwg.org/#dom-url-canparse>
     fn CanParse(_global: &GlobalScope, url: USVString, base: Option<USVString>) -> bool {
-        // Step 1.
-        let parsed_base = match base {
-            None => None,
-            Some(base) => match ServoUrl::parse(&base.0) {
-                Ok(base) => Some(base),
-                Err(_) => {
-                    // Step 2.1
-                    return false;
-                },
-            },
-        };
-        // Step 2.2, 3
-        ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0).is_ok()
+        // Step 1. Let parsedURL be the result of running the API URL parser on url with base, if given.
+        let parsed_url = run_api_url_parser(url, base);
+
+        // Step 2. If parsedURL is failure, then return false.
+        // Step 3. Return true.
+        parsed_url.is_ok()
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-parse>
@@ -179,18 +173,20 @@ impl URLMethods<crate::DomTypeHolder> for URL {
     ) -> Option<DomRoot<URL>> {
         // Step 1: Let parsedURL be the result of running the API URL parser on url with base,
         // if given.
-        let parsed_base = base.and_then(|base| ServoUrl::parse(base.0.as_str()).ok());
-        let parsed_url = ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0);
-
         // Step 2: If parsedURL is failure, then return null.
+        let parsed_url = run_api_url_parser(url, base).ok()?;
+
         // Step 3: Let url be a new URL object.
         // Step 4: Initialize url with parsedURL.
         // Step 5: Return url.
-
-        // These steps are all handled while mapping the Result to an Option<ServoUrl>.
         // Regarding initialization, the same condition should apply here as stated in the comments
         // in Self::Constructor above - construct it on-demand inside `URL::SearchParams`.
-        Some(URL::new(global, None, parsed_url.ok()?, can_gc))
+        Some(URL::new(
+            global,
+            None,
+            ServoUrl::from_url(parsed_url),
+            can_gc,
+        ))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>
@@ -351,4 +347,16 @@ impl URLMethods<crate::DomTypeHolder> for URL {
     fn ToJSON(&self) -> USVString {
         self.Href()
     }
+}
+
+/// <https://url.spec.whatwg.org/#api-url-parser>
+fn run_api_url_parser(url: USVString, base: Option<USVString>) -> Result<Url, url::ParseError> {
+    // Step 1. Let parsedBase be null.
+    // Step 2. If base is non-null:
+    // Step 2.1 Set parsedBase to the result of running the basic URL parser on base.
+    // Step 2.2 If parsedBase is failure, then return failure.
+    let parsed_base = base.map(|base| Url::parse(&base.0)).transpose()?;
+
+    // Step 3. Return the result of running the basic URL parser on url with parsedBase.
+    Url::options().base_url(parsed_base.as_ref()).parse(&url.0)
 }
