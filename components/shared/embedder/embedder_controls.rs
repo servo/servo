@@ -17,13 +17,20 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{InputMethodType, RgbColor};
+
+/// The id of a user interface control that the engine requests that the
+/// embedder show.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct EmbedderControlId {
+    #[doc(hidden)]
     pub webview_id: WebViewId,
+    #[doc(hidden)]
     pub pipeline_id: PipelineId,
+    #[doc(hidden)]
     pub index: Epoch,
 }
 
+/// A request from the engine to the embedder to display a user interface control.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlRequest {
     /// Indicates that the user has activated a `<select>` element.
@@ -153,6 +160,7 @@ pub struct FilePickerRequest {
     pub accept_current_paths_for_testing: bool,
 }
 
+/// Response from the embedder to an [`EmbedderControlRequest`].
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlResponse {
     SelectElement(Option<usize>),
@@ -172,6 +180,7 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
+/// Request from Servo to the embedder with the details of the simple dialog to be displayed.
 #[derive(Deserialize, Serialize)]
 pub enum SimpleDialogRequest {
     Alert {
@@ -192,17 +201,20 @@ pub enum SimpleDialogRequest {
     },
 }
 
+/// The action selected by the user in the alert dialog.
 #[derive(Deserialize, PartialEq, Serialize)]
 pub enum AlertResponse {
     Ok,
 }
 
+/// The action selected by the user in the confirm dialog.
 #[derive(Deserialize, PartialEq, Serialize)]
 pub enum ConfirmResponse {
     Ok,
     Cancel,
 }
 
+/// The action selected by the user in the prompt dialog.
 #[derive(Deserialize, PartialEq, Serialize)]
 pub enum PromptResponse {
     Ok(String),
