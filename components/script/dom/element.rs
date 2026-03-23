@@ -2425,10 +2425,8 @@ impl Element {
             return Default::default();
         };
         let value = &**attribute.value();
-        // XXXManishearth this doesn't handle `javascript:` urls properly
         self.owner_document()
-            .base_url()
-            .join(value)
+            .encoding_parse_a_url(value)
             .map(|parsed| USVString(parsed.into_string()))
             .unwrap_or_else(|_| USVString(value.to_owned()))
     }
@@ -2450,10 +2448,8 @@ impl Element {
             return TrustedScriptURLOrUSVString::USVString(USVString::default());
         };
         let value = &**attribute.value();
-        // XXXManishearth this doesn't handle `javascript:` urls properly
         self.owner_document()
-            .base_url()
-            .join(value)
+            .encoding_parse_a_url(value)
             .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
             .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
     }
