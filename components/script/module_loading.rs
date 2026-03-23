@@ -428,7 +428,7 @@ pub(crate) fn host_load_imported_module(
 ) {
     // Step 1. Let settingsObject be the current settings object.
     let realm = CurrentRealm::assert(cx);
-    let global_scope = GlobalScope::from_current_realm(&realm);
+    let mut global_scope = GlobalScope::from_current_realm(&realm);
 
     // TODO Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
 
@@ -452,12 +452,18 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
+    // TODO: investigate providing a `ModuleOwner` to classic scripts.
+    let script_owner = referencing_script.and_then(|script| script.owner.clone());
+
     // Step 6.2. Set settingsObject to referencingScript's settings object.
-    let owner = referencing_script
-        .and_then(|script| script.owner.clone())
+    if let Some(ref owner) = script_owner {
+        global_scope = owner.global();
+    }
+
+    // Note: loadState is undefined when performing a dynamic import, fall back to `ModuleOwner::DynamicModule`.
+    let owner = script_owner
+        .filter(|_| load_state.is_some())
         .unwrap_or(ModuleOwner::DynamicModule(Trusted::new(&global_scope)));
-    // Note: We later set fetchClient to the `ModuleOwner` provided by loadState,
-    // which provides the `GlobalScope` that we will use for fetching.
 
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
     // Note: These substeps are implemented by `GetRequestedModuleSpecifier`,
