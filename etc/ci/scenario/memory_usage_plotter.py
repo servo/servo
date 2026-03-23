@@ -22,6 +22,7 @@ from pathlib import Path
 from selenium import webdriver
 import sys
 from hdc_py.hdc import HarmonyDeviceConnector
+from common_function_for_servo_test import create_driver
 
 PACKAGE_NAME = "org.servo.servo"
 
@@ -40,8 +41,8 @@ class MemoryLoggingOptions:
     set_minimal_history: bool = False
     from_dump: str = None
     mode: str = "collect"
-    reset_the_tab: bool = False
-    set_reset_to_memory: bool = False
+    reset_tab: str = None
+    create_own_webdriver: bool = False
 
 
 @dataclass
@@ -195,10 +196,15 @@ class NonBlockingMemoryLogging:
 
     def __init__(self, options: MemoryLoggingOptions = None):
         # Defaults:
-        self.driver = None
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
+        self.driver = None
+        if self.options.create_own_webdriver:
+            self.driver = create_driver(timeout=1)
+            if self.driver is None:
+                print("Doublecheck that servo is running and has `--psn=--webdriver`")
+                sys.exit(0)
 
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
@@ -222,9 +228,17 @@ class NonBlockingMemoryLogging:
             daemon=True,
         )
 
+    def __enter__(self):
+        self.start()
+        self.csv_file = None
+        return self
+
     def __exit__(self, exc_type, exc, tb):
+        self.stop()
         if self.csv_file:
-            self.csv_file.close
+            self.csv_file.close()
+        if self.driver is not None:
+            self.driver.quit()
         return False
 
     def start(self):
@@ -245,13 +259,13 @@ class NonBlockingMemoryLogging:
         self.event("stop")
         if self.options.post_time is not None:
             self.verbose_print(f"post-logging for {self.options.post_time}s...")
-            if self.options.reset_the_tab:
+            if self.options.reset_tab:
                 if self.driver is None:
                     raise WebDriverIsNotSet("The `-r` argument or Tab Reset was passed, but the webdriver is not set")
-                if self.options.set_reset_to_memory:
-                    self.driver.get("about:memory")
-                else:
-                    self.driver.get("about:blank")
+                self.verbose_print(f"Setting the url to reset_tab: {self.options.reset_tab}")
+                if self.options.reset_tab is not str:
+                    self.options.reset_tab = "about:blank"
+                self.driver.get(self.options.reset_tab)
             time.sleep(self.options.post_time)
         self.verbose_print("Memory plotter stop")
         if self.options.pid is not None:
@@ -382,15 +396,17 @@ if __name__ == "__main__":
     )
     collect.add_argument(
         "-r",
-        "--reset-the-tab",
-        action="store_true",
-        help="on stop event, reset the tap to `about:blank`",
+        "--reset-tab",
+        nargs="?",
+        const="about:blank",
+        default=None,
+        help="on stop event, reset the tab to `about:blank` or to specified str value",
     )
     collect.add_argument(
         "-m",
         "--set-reset-to-memory",
         action="store_true",
-        help="when doing reset_the_tab, reset the tap to `about:memory` instead of `about:blank`",
+        help="when doing reset-tab, reset the tab to `about:memory` instead of `about:blank`",
     )
 
     collect.add_argument(
@@ -418,7 +434,8 @@ if __name__ == "__main__":
 
     plot = subparsers.add_parser("plot", help="plot from csv dump")
     plot.add_argument(
-        "from-dump",
+        "from_dump",
+        metavar="from-dump",
         type=str,
         help="csv file to analyze",
     )
@@ -429,11 +446,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    worker = NonBlockingMemoryLogging(args)
-    worker.start()
-
-    time.sleep(2)
-
-    worker.stop()
-
-    print("Exiting memory_usage_plotter.py")
+    args.create_own_webdriver = True
+    with NonBlockingMemoryLogging(args) as worker:
+        time.sleep(2)
+        print("Exiting memory_usage_plotter.py")

@@ -20,7 +20,7 @@ from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
 
 def operator():
     memory_logging_options = MemoryLoggingOptions(
-        log_to_file=True, plot=True, pre_time=2, post_time=5, verbose=True, reset_the_tab=True
+        log_to_file=True, plot=True, pre_time=2, post_time=5, verbose=True, reset_tab=True
     )
     memory_logging = NonBlockingMemoryLogging(memory_logging_options)
     memory_logging.start()

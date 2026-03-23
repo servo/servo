@@ -18,7 +18,7 @@ from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
 
 def operator():
     memory_logging_options = MemoryLoggingOptions(
-        log_to_file=True, plot=True, pre_time=0.2, post_time=1, verbose=True, reset_the_tab=True
+        log_to_file=True, plot=True, pre_time=0.2, post_time=1, verbose=True, reset_tab=True
     )
     memory_logging = NonBlockingMemoryLogging(memory_logging_options)
     memory_logging.start()
@@ -52,4 +52,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "open_servo_org", minimal_history_mode=True)
+    common_function_for_servo_test.run_test(operator, "open_servo_org", session_history_max_length=0)
