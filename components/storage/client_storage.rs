@@ -67,7 +67,7 @@ impl SqliteEngine {
             r#"CREATE TABLE IF NOT EXISTS shelves (
                     id INTEGER PRIMARY KEY,
                     origin TEXT NOT NULL,
-                    shed_id INTEGER NOT NULL,
+                    shed_id INTEGER NOT NULL
                 );"#,
             [],
         )?;
@@ -79,7 +79,7 @@ impl SqliteEngine {
                     persisted BOOLEAN DEFAULT 0,
                     quota INTEGER,
                     expires DATETIME,
-                    UNIQUE (shelf_id, name),
+                    UNIQUE (shelf_id, storage_type),
                     FOREIGN KEY (shelf_id) REFERENCES shelves(id) ON DELETE CASCADE
                 );"#,
             [],

@@ -193,11 +193,11 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             return false;
         };
         self.txn_info.iter().any(|(other_txn, other)| {
-            *other_txn != txn &&
-                other.live &&
-                other.created_seq < current.created_seq &&
-                Self::scopes_overlap(current, other) &&
-                predicate(other)
+            *other_txn != txn
+                && other.live
+                && other.created_seq < current.created_seq
+                && Self::scopes_overlap(current, other)
+                && predicate(other)
         })
     }
 
@@ -731,10 +731,10 @@ impl OpenRequest {
                 pending_versionchange,
                 id: _,
             } => {
-                !processed ||
-                    pending_upgrade.is_some() ||
-                    !pending_close.is_empty() ||
-                    !pending_versionchange.is_empty()
+                !processed
+                    || pending_upgrade.is_some()
+                    || !pending_close.is_empty()
+                    || !pending_versionchange.is_empty()
             },
             OpenRequest::Delete {
                 sender: _,
@@ -1471,8 +1471,8 @@ impl IndexedDBManager {
             // Step 10.4: If any of the connections in openConnections are still not closed,
             // queue a database task to fire a version change event named blocked
             // at request with db’s version and version.
-            if !pending_close.is_empty() &&
-                sender
+            if !pending_close.is_empty()
+                && sender
                     .send(ConnectionMsg::Blocked {
                         name,
                         id: *id,
@@ -1845,9 +1845,9 @@ impl IndexedDBManager {
                 pending_close.remove(&id);
                 (
                     // Note: need to exclude requests that have already started upgrading.
-                    pending_close.is_empty() &&
-                        pending_versionchange.is_empty() &&
-                        !pending_upgrade.is_some(),
+                    pending_close.is_empty()
+                        && pending_versionchange.is_empty()
+                        && !pending_upgrade.is_some(),
                     *version,
                 )
             } else {
@@ -2211,9 +2211,9 @@ impl IndexedDBManager {
             reports.push(Report {
                 path: path!["indexeddb"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.connections.size_of(ops) +
-                    self.databases.size_of(ops) +
-                    self.connection_queues.size_of(ops),
+                size: self.connections.size_of(ops)
+                    + self.databases.size_of(ops)
+                    + self.connection_queues.size_of(ops),
             });
         });
         reports

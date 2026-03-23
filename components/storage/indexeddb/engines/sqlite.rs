@@ -724,16 +724,16 @@ impl MallocSizeOf for SqliteEngine {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         // 48 KB (3.3.1 at https://sqlite.org/malloc.html)
         const DEFAULT_LOOKASIDE_SIZE: usize = 48 * 1024;
-        self.created_db_path.size_of(ops) +
-            DEFAULT_LOOKASIDE_SIZE +
-            get_db_status(
+        self.created_db_path.size_of(ops)
+            + DEFAULT_LOOKASIDE_SIZE
+            + get_db_status(
                 &self.connection,
                 rusqlite::ffi::SQLITE_DBSTATUS_CACHE_USED_SHARED,
             )
-            .unwrap_or_default() as usize +
-            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_SCHEMA_USED)
-                .unwrap_or_default() as usize +
-            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_STMT_USED)
+            .unwrap_or_default() as usize
+            + get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_SCHEMA_USED)
+                .unwrap_or_default() as usize
+            + get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_STMT_USED)
                 .unwrap_or_default() as usize
     }
 }

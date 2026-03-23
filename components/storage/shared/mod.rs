@@ -44,22 +44,22 @@ pub(crate) fn is_sqlite_disk_full_error(error: &RusqliteError) -> bool {
     match error {
         RusqliteError::SqliteFailure(sqlite_err, _) => {
             // High confidence "database or disk is full".
-            if sqlite_err.code == ffi::ErrorCode::DiskFull ||
-                sqlite_err.extended_code == ffi::SQLITE_FULL
+            if sqlite_err.code == ffi::ErrorCode::DiskFull
+                || sqlite_err.extended_code == ffi::SQLITE_FULL
             {
                 return true;
             }
 
             // Only treat IO errors as quota-related if ENOSPC is present.
-            if saw_enospc &&
-                matches!(
+            if saw_enospc
+                && matches!(
                     sqlite_err.extended_code,
-                    ffi::SQLITE_IOERR |
-                        ffi::SQLITE_IOERR_WRITE |
-                        ffi::SQLITE_IOERR_FSYNC |
-                        ffi::SQLITE_IOERR_DIR_FSYNC |
-                        ffi::SQLITE_IOERR_TRUNCATE |
-                        ffi::SQLITE_IOERR_MMAP
+                    ffi::SQLITE_IOERR
+                        | ffi::SQLITE_IOERR_WRITE
+                        | ffi::SQLITE_IOERR_FSYNC
+                        | ffi::SQLITE_IOERR_DIR_FSYNC
+                        | ffi::SQLITE_IOERR_TRUNCATE
+                        | ffi::SQLITE_IOERR_MMAP
                 )
             {
                 return true;

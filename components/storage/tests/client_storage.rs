@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::generic_channel;
+use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
 use servo_url::ServoUrl;
 use storage::ClientStorageThreadFactory;
-use storage::client_storage::ClientStorageThreadHandle;
 use storage_traits::client_storage::{
-    Bottle, BottleIdent, BucketIdent, ClientStorageThreadMessage,
+    ClientStorageThreadHandle, ClientStorageThreadMessage, StorageIdentifier, StorageType,
 };
 
 #[test]
@@ -29,27 +29,27 @@ fn test_exit() {
 
 #[test]
 fn test_workflow() {
+    PipelineNamespace::install(PipelineNamespaceId(1));
     let tmp_dir = tempfile::tempdir().unwrap();
     let handle: ClientStorageThreadHandle =
         ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
 
     // Create some storage
     let url = ServoUrl::parse("https://example.com").unwrap();
-    let origin = url.origin();
 
     let receiver = handle.obtain_a_storage_bottle_map(
         StorageType::Local,
         WebViewId::new(base::id::TEST_PAINTER_ID),
         StorageIdentifier::IndexedDB,
-        ImmutableOrigin::new(origin),
+        url.origin(),
     );
 
-    let storage_proxy_map = receiver.recv().unwrap();
+    let storage_proxy_map = receiver.recv().unwrap().unwrap();
 
-    let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1");
+    let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1".to_string());
     receiver.recv().unwrap().expect("Path should be created");
 
-    let receiver = handle.delate_database(storage_proxy_map.bottle_id, "test1");
+    let receiver = handle.delete_database(storage_proxy_map.bottle_id, "test1".to_string());
     receiver.recv().unwrap().expect("Db should be deleted");
 
     // Workaround for https://github.com/servo/servo/issues/32912
