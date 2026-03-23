@@ -11,7 +11,7 @@ use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 use crossbeam_channel::{Receiver, Sender, after};
-use devtools_traits::DevtoolScriptControlMsg;
+use devtools_traits::{DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue};
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
@@ -33,12 +33,13 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::csp::Violation;
+use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -182,6 +183,8 @@ pub(crate) struct ServiceWorkerGlobalScope {
     /// currently only used to signal shutdown.
     #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
+
+    debugger_global: Option<Dom<DebuggerGlobalScope>>,
 }
 
 impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
@@ -240,6 +243,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        debugger_global: Option<&DebuggerGlobalScope>,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -262,6 +266,7 @@ impl ServiceWorkerGlobalScope {
             swmanager_sender,
             scope_url,
             control_receiver,
+            debugger_global: debugger_global.map(Dom::from_ref),
         }
     }
 
@@ -279,6 +284,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
+        debugger_global: Option<&DebuggerGlobalScope>,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
@@ -294,6 +300,7 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
             font_context,
+            debugger_global,
         ));
         ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
@@ -341,6 +348,28 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
+                let debugger_global =
+                    init.from_devtools_sender
+                        .clone()
+                        .map(|from_devtools_sender| {
+                            let debugger_global = DebuggerGlobalScope::new(
+                                pipeline_id,
+                                init.to_devtools_sender.clone(),
+                                from_devtools_sender,
+                                init.mem_profiler_chan.clone(),
+                                init.time_profiler_chan.clone(),
+                                init.script_to_constellation_chan.clone(),
+                                init.script_to_embedder_chan.clone(),
+                                init.resource_threads.clone(),
+                                init.storage_threads.clone(),
+                                #[cfg(feature = "webgpu")]
+                                Arc::new(IdentityHub::default()),
+                                cx,
+                            );
+                            debugger_global.execute(cx);
+                            debugger_global
+                        });
+
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
                 let sw_lifetime_timeout = pref!(dom_serviceworker_timeout_seconds) as u64;
@@ -362,11 +391,21 @@ impl ServiceWorkerGlobalScope {
                     control_receiver,
                     closing,
                     font_context,
+                    debugger_global.as_deref(),
                     cx,
                 );
 
                 let worker_scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
+
+                if let Some(debugger_global) = debugger_global.as_deref() {
+                    debugger_global.fire_add_debuggee(
+                        CanGc::from_cx(cx),
+                        global_scope,
+                        pipeline_id,
+                        Some(worker_scope.worker_id()),
+                    );
+                }
 
                 let referrer = referrer_url
                     .map(Referrer::ReferrerUrl)
@@ -457,6 +496,23 @@ impl ServiceWorkerGlobalScope {
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, wants_updates) => {
                     self.upcast::<GlobalScope>()
                         .set_devtools_wants_updates(wants_updates);
+                },
+                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+                    if let Some(debugger_global) = self.debugger_global.as_deref() {
+                        debugger_global.fire_eval(
+                            CanGc::from_cx(cx),
+                            code.into(),
+                            id,
+                            Some(self.upcast::<WorkerGlobalScope>().worker_id()),
+                            frame_actor_id,
+                            reply,
+                        );
+                    } else {
+                        let _ = reply.send(EvaluateJSReply {
+                            value: EvaluateJSReplyValue::VoidValue,
+                            has_exception: true,
+                        });
+                    }
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },
