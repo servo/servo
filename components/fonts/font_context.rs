@@ -459,6 +459,31 @@ impl FontContext {
 
         false
     }
+
+    pub fn is_url_source_web_font_loaded(
+        &self,
+        family_name: &LowercaseFontFamilyName,
+        url: &UrlSource,
+    ) -> bool {
+        url.url
+            .url()
+            .cloned()
+            .map(ServoUrl::from)
+            .map(FontIdentifier::Web)
+            .filter(|ident| self.font_data.read().contains_key(&ident))
+            .is_some_and(|ident| {
+                self.web_fonts
+                    .read()
+                    .families
+                    .get(family_name)
+                    .is_some_and(|templates| {
+                        templates
+                            .templates
+                            .iter()
+                            .any(|template| template.borrow().identifier == ident)
+                    })
+            })
+    }
 }
 
 pub(crate) struct WebFontDownloadState {
@@ -810,12 +835,7 @@ impl FontContext {
             .filter(Self::is_supported_web_font_source)
             .filter(|source| {
                 if let Source::Url(url) = source {
-                    url.url
-                        .url()
-                        .cloned()
-                        .map(ServoUrl::from)
-                        .map(FontIdentifier::Web)
-                        .is_some_and(|ident| !self.font_data.read().contains_key(&ident))
+                    !self.is_url_source_web_font_loaded(&css_font_face_descriptors.family_name, url)
                 } else {
                     true
                 }
