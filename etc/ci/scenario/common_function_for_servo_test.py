@@ -334,7 +334,12 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
 
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
-def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY):
+def run_test(
+    test_fn,
+    test_name: str,
+    use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
+    session_history_max_length: int | None = None,
+):
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
         print("Setting mitmproxy replay")
@@ -356,6 +361,8 @@ def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProx
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
             if use_mitmproxy.should_servo_proxy():
                 cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
+                if session_history_max_length is not None:
+                    cmd_str += f" --psn=--pref=session_history_max_length={str(session_history_max_length)} "
             hdc.cmd(
                 cmd_str,
                 timeout=10,
