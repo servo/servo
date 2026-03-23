@@ -174,6 +174,7 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
+use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
@@ -1315,6 +1316,20 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 ));
                 push(PropertyDeclaration::Height(height_value));
             },
+        }
+
+        if let Some(this) = self.downcast::<SVGSVGElement>() {
+            let data = this.data();
+            if let Some(AttrValue::Length(_, Some(length))) = data.width {
+                push(PropertyDeclaration::Width(
+                    specified::Size::LengthPercentage(NonNegative(length.clone().into())),
+                ));
+            }
+            if let Some(AttrValue::Length(_, Some(length))) = data.height {
+                push(PropertyDeclaration::Height(
+                    specified::Size::LengthPercentage(NonNegative(length.clone().into())),
+                ));
+            }
         }
 
         // Aspect ratio when providing both width and height.
