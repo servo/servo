@@ -362,10 +362,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                     return Err(Error::Syntax(None));
                 }
 
-                // Step 2
-                let base = self.global().api_base_url();
-                // Step 6
-                let mut parsed_url = match base.join(&url.0) {
+                // Step 5 and 6
+                let mut parsed_url = match self.global().encoding_parse_a_url(&url.0) {
                     Ok(parsed) => parsed,
                     // Step 7
                     Err(_) => return Err(Error::Syntax(None)),
