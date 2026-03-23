@@ -470,8 +470,8 @@ impl FontContext {
             .cloned()
             .map(ServoUrl::from)
             .map(FontIdentifier::Web)
-            .filter(|ident| self.font_data.read().contains_key(ident))
-            .is_some_and(|ident| {
+            .filter(|font_identifier| self.font_data.read().contains_key(font_identifier))
+            .is_some_and(|font_identifier| {
                 self.web_fonts
                     .read()
                     .families
@@ -480,7 +480,7 @@ impl FontContext {
                         templates
                             .templates
                             .iter()
-                            .any(|template| template.borrow().identifier == ident)
+                            .any(|template| template.borrow().identifier == font_identifier)
                     })
             })
     }
