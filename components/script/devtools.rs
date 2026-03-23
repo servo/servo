@@ -342,7 +342,7 @@ pub(crate) fn handle_get_stylesheet_style(
                 if selector != style.SelectorText() {
                     return None;
                 };
-                Some(style.Style(CanGc::from_cx(cx)))
+                Some(style.Style(cx))
             })
             .flat_map(|style| {
                 (0..style.Length()).map(move |i| {
