@@ -1320,14 +1320,14 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         if let Some(this) = self.downcast::<SVGSVGElement>() {
             let data = this.data();
-            if let Some(AttrValue::Length(_, Some(length))) = data.width {
+            if let Some(width) = data.width.and_then(AttrValue::as_length_percentage) {
                 push(PropertyDeclaration::Width(
-                    specified::Size::LengthPercentage(NonNegative(length.clone().into())),
+                    specified::Size::LengthPercentage(NonNegative(width.clone())),
                 ));
             }
-            if let Some(AttrValue::Length(_, Some(length))) = data.height {
+            if let Some(height) = data.height.and_then(AttrValue::as_length_percentage) {
                 push(PropertyDeclaration::Height(
-                    specified::Size::LengthPercentage(NonNegative(length.clone().into())),
+                    specified::Size::LengthPercentage(NonNegative(height.clone())),
                 ));
             }
         }

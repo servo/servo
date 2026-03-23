@@ -247,8 +247,10 @@ impl ReplacedContents {
         );
 
         let attr_to_computed = |attr_val: &AttrValue| {
-            if let AttrValue::Length(_, length) = attr_val {
-                length.to_computed_value(&to_computed_context)
+            if let AttrValue::LengthPercentage(_, length_percentage) = attr_val {
+                length_percentage
+                    .to_computed_value(&to_computed_context)?
+                    .to_length()
             } else {
                 None
             }
