@@ -460,7 +460,7 @@ pub(crate) struct Document {
     https_state: Cell<HttpsState>,
     /// The document's origin.
     #[no_trace]
-    origin: MutableOrigin,
+    origin: DomRefCell<MutableOrigin>,
     /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
     referrer: Option<String>,
     /// <https://html.spec.whatwg.org/multipage/#target-element>
@@ -937,8 +937,14 @@ impl Document {
             }))
     }
 
-    pub(crate) fn origin(&self) -> &MutableOrigin {
-        &self.origin
+    pub(crate) fn origin(&self) -> Ref<'_, MutableOrigin> {
+        self.origin.borrow()
+    }
+
+    /// Part of <https://html.spec.whatwg.org/multipage/#navigate-ua-inline>
+    /// TODO: Remove this when we create documents after processing headers
+    pub(crate) fn mark_as_internal(&self) {
+        *self.origin.borrow_mut() = MutableOrigin::new(ImmutableOrigin::new_opaque());
     }
 
     pub(crate) fn set_protocol_handler_automation_mode(&self, mode: CustomHandlersAutomationMode) {
@@ -3994,7 +4000,7 @@ impl Document {
             unload_event_start: Cell::new(Default::default()),
             unload_event_end: Cell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
-            origin,
+            origin: DomRefCell::new(origin),
             referrer,
             target_element: MutNullableDom::new(None),
             policy_container: DomRefCell::new(PolicyContainer::default()),
@@ -4351,6 +4357,16 @@ impl Document {
 
     pub(crate) fn salvageable(&self) -> bool {
         self.salvageable.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#make-document-unsalvageable>
+    pub(crate) fn make_document_unsalvageable(&self) {
+        // Step 1. Let details be a new not restored reason details whose reason is reason.
+        // TODO
+        // Step 2. Append details to document's bfcache blocking details.
+        // TODO
+        // Step 3. Set document's salvageable state to false.
+        self.salvageable.set(false);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
@@ -5376,7 +5392,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-domain>
     fn Domain(&self) -> DOMString {
         // Step 1. Let effectiveDomain be this's origin's effective domain.
-        match self.origin.effective_domain() {
+        match self.origin().effective_domain() {
             // Step 2. If effectiveDomain is null, then return the empty string.
             None => DOMString::new(),
             // Step 3. Return effectiveDomain, serialized.
@@ -5401,7 +5417,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3. Let effectiveDomain be this's origin's effective domain.
-        let effective_domain = match self.origin.effective_domain() {
+        let effective_domain = match self.origin().effective_domain() {
             Some(effective_domain) => effective_domain,
             // Step 4. If effectiveDomain is null, then throw a "SecurityError" DOMException.
             None => return Err(Error::Security(None)),
@@ -5418,7 +5434,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // TODO
 
         // Step 7. Set this's origin's domain to the result of parsing the given value.
-        self.origin.set_domain(host);
+        self.origin().set_domain(host);
 
         Ok(())
     }
@@ -6215,7 +6231,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return Ok(DOMString::new());
         }
 
-        if !self.origin.is_tuple() {
+        if !self.origin().is_tuple() {
             return Err(Error::Security(None));
         }
 
@@ -6237,7 +6253,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return Ok(());
         }
 
-        if !self.origin.is_tuple() {
+        if !self.origin().is_tuple() {
             return Err(Error::Security(None));
         }
 
@@ -6503,7 +6519,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
         // Step 4
-        if !self.origin.same_origin(&entry_responsible_document.origin) {
+        if !self
+            .origin()
+            .same_origin(&entry_responsible_document.origin())
+        {
             return Err(Error::Security(None));
         }
 

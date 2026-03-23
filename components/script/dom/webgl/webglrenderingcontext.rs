@@ -719,7 +719,7 @@ impl WebGLRenderingContext {
                         return Ok(None);
                     },
                 };
-                if !image.same_origin(document.origin()) {
+                if !image.same_origin(&document.origin()) {
                     return Err(Error::Security(None));
                 }
 
