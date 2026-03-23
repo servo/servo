@@ -7,10 +7,13 @@ mod common;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use cookie::Cookie;
+use http::HeaderValue;
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{Server, make_body, make_server, replace_host_table};
+use net_traits::CookieSource;
 use servo::{JSValue, Servo, ServoUrl, SiteData, StorageType, WebView, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
@@ -608,4 +611,79 @@ fn test_clear_cookies() {
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "document.cookie");
     assert_eq!(result, Ok(JSValue::String("".into())));
+}
+
+#[test]
+fn test_get_cookie() {
+    let servo_test = ServoTest::new();
+
+    // Serve a minimal page that sets a cookie via Set-Cookie response header.
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            response.headers_mut().insert(
+                http::header::SET_COOKIE,
+                HeaderValue::from_static("foo=bar; Path=/"),
+            );
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let page_url = url.clone().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_url.clone())
+        .build();
+
+    // Wait for LoadStatus::Complete to ensure the HTTP response and Set-Cookie header are processed.
+    servo_test.spin(move || !delegate.load_status_changed.get());
+    let _ = server.close();
+
+    let cookies = servo_test.servo().site_data_manager().get_cookies_for_url(
+        ServoUrl::from_url(page_url),
+        false,
+        CookieSource::NonHTTP,
+    );
+    assert_eq!(cookies, Some("foo=bar".to_string()));
+}
+
+#[test]
+fn test_set_cookie() {
+    let servo_test = ServoTest::new();
+
+    // Serve a minimal page with no server-set cookies.
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
+        };
+    let (server, url) = make_server(handler);
+    let page_url = url.clone().into_url();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_url.clone())
+        .build();
+
+    servo_test.spin(move || !delegate.load_status_changed.get());
+    let _ = server.close();
+
+    // Set a cookie via the site data manager.
+    let cookie = Cookie::build(("foo", "bar")).path("/").build();
+    servo_test.servo().site_data_manager().set_cookie_for_url(
+        ServoUrl::from_url(page_url.clone()),
+        cookie,
+        false,
+        CookieSource::NonHTTP,
+    );
+
+    // Verify it is returned by get_cookies_for_url.
+    let cookies = servo_test.servo().site_data_manager().get_cookies_for_url(
+        ServoUrl::from_url(page_url),
+        false,
+        CookieSource::NonHTTP,
+    );
+    assert_eq!(cookies, Some("foo=bar".to_string()));
 }

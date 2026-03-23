@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use cookie::Cookie;
 use log::warn;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{ResourceThreads, SiteDescriptor};
+use net_traits::{CookieSource, ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
@@ -202,5 +203,34 @@ impl SiteDataManager {
     pub fn clear_cookies(&self) {
         self.public_resource_threads.clear_cookies();
         self.private_resource_threads.clear_cookies();
+    }
+
+    pub fn get_cookies_for_url(
+        &self,
+        url: ServoUrl,
+        private: bool,
+        source: CookieSource,
+    ) -> Option<String> {
+        let resource_threads = if private {
+            &self.private_resource_threads
+        } else {
+            &self.public_resource_threads
+        };
+        resource_threads.get_cookies_for_url(url, source)
+    }
+
+    pub fn set_cookie_for_url(
+        &self,
+        url: ServoUrl,
+        cookie: Cookie<'static>,
+        private: bool,
+        source: CookieSource,
+    ) {
+        let resource_threads = if private {
+            &self.private_resource_threads
+        } else {
+            &self.public_resource_threads
+        };
+        resource_threads.set_cookie_for_url(url, cookie, source)
     }
 }

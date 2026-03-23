@@ -541,6 +541,20 @@ impl ResourceThreads {
             .send(CoreResourceMsg::DeleteCookies(None, Some(sender)));
         let _ = receiver.recv();
     }
+
+    pub fn get_cookies_for_url(&self, url: ServoUrl, source: CookieSource) -> Option<String> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::GetCookiesForUrl(url, sender, source));
+        receiver.recv().unwrap()
+    }
+
+    pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::SetCookieForUrl(url, Serde(cookie), source));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
