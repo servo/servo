@@ -47,10 +47,14 @@ fn test_workflow() {
     let storage_proxy_map = receiver.recv().unwrap().unwrap();
 
     let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1".to_string());
-    receiver.recv().unwrap().expect("Path should be created");
+    let path = receiver.recv().unwrap().expect("Path should be created");
+
+    assert!(std::fs::read_dir(path.clone()).is_ok());
 
     let receiver = handle.delete_database(storage_proxy_map.bottle_id, "test1".to_string());
     receiver.recv().unwrap().expect("Db should be deleted");
+
+    assert!(std::fs::read_dir(path).is_err());
 
     // Workaround for https://github.com/servo/servo/issues/32912
     #[cfg(windows)]
