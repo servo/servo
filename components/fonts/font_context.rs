@@ -460,7 +460,7 @@ impl FontContext {
         false
     }
 
-    pub fn is_url_source_web_font_loaded(
+    fn is_url_source_web_font_loaded(
         &self,
         family_name: &LowercaseFontFamilyName,
         url: &UrlSource,
