@@ -154,7 +154,7 @@ pub enum DomMutation {
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PropertyPreview {
+pub struct PropertyDescriptor {
     pub name: String,
     pub configurable: bool,
     pub enumerable: bool,
@@ -190,7 +190,7 @@ pub enum EvaluateJSReplyValue {
         is_async: Option<bool>,
         is_generator: Option<bool>,
         // Object preview
-        own_properties: Option<Vec<PropertyPreview>>,
+        own_properties: Option<Vec<PropertyDescriptor>>,
         own_properties_length: Option<u32>,
         // Array-specific
         kind: Option<String>,

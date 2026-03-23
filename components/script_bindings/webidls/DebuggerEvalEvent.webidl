@@ -48,7 +48,7 @@ dictionary EvalResultValue {
     boolean? isGenerator;
 
     // Object preview properties
-    sequence<PropertyPreview>? ownProperties;
+    sequence<PropertyDescriptor>? ownProperties;
     unsigned long? ownPropertiesLength;
 
     // Array-specific
@@ -57,7 +57,7 @@ dictionary EvalResultValue {
 };
 
 // TODO: Maybe merge some parts of this with the EvalResultValue
-dictionary PropertyPreview {
+dictionary PropertyDescriptor {
     required DOMString name;
     required boolean configurable;
     required boolean enumerable;

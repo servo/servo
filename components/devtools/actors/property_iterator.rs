@@ -4,31 +4,31 @@
 
 use std::collections::HashMap;
 
-use devtools_traits::PropertyPreview;
+use devtools_traits::PropertyDescriptor;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::object::PropertyDescriptor;
+use crate::actors::object::ObjectPropertyDescriptor;
 use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SliceReply {
     from: String,
-    own_properties: HashMap<String, PropertyDescriptor>,
+    own_properties: HashMap<String, ObjectPropertyDescriptor>,
 }
 
 #[derive(MallocSizeOf)]
 pub(crate) struct PropertyIteratorActor {
     name: String,
-    properties: Vec<PropertyPreview>,
+    properties: Vec<PropertyDescriptor>,
 }
 
 impl PropertyIteratorActor {
-    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyPreview>) -> String {
+    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyDescriptor>) -> String {
         let name = registry.new_name::<Self>();
         let actor = Self {
             name: name.clone(),
@@ -66,7 +66,7 @@ impl Actor for PropertyIteratorActor {
 
                 let mut own_properties = HashMap::new();
                 for prop in self.properties.iter().skip(start).take(count) {
-                    own_properties.insert(prop.name.clone(), PropertyDescriptor::from(prop));
+                    own_properties.insert(prop.name.clone(), ObjectPropertyDescriptor::from(prop));
                 }
 
                 let reply = SliceReply {
