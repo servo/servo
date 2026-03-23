@@ -604,9 +604,9 @@ dependencies = [
 
 [[package]]
 name = "async-tungstenite"
-version = "0.33.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3b465d66478a9bb84abed46695c44a58e34f3e8d0abfb2e958218d420969049"
+checksum = "eb26fbd2a93308b1c1b74ac4e494a11ac10db57c476882240573bdf961463520"
 dependencies = [
  "atomic-waker",
  "futures-core",
@@ -10021,9 +10021,9 @@ dependencies = [
 
 [[package]]
 name = "tungstenite"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8628dcc84e5a09eb3d8423d6cb682965dea9133204e8fb3efee74c2a0c259442"
+checksum = "6c01152af293afb9c7c2a57e4b559c5620b421f6d133261c60dd2d0cdb38e6b8"
 dependencies = [
  "bytes",
  "data-encoding",
@@ -10035,7 +10035,6 @@ dependencies = [
  "rustls-pki-types",
  "sha1",
  "thiserror 2.0.17",
- "utf-8",
 ]
 
 [[package]]
