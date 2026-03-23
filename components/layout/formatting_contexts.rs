@@ -266,7 +266,23 @@ impl IndependentFormattingContext {
     pub(crate) fn tentative_block_content_size(
         &self,
         preferred_aspect_ratio: Option<AspectRatio>,
+        inline_stretch_size: Au,
     ) -> Option<ContentSizes> {
+        let result = self.tentative_block_content_size_with_dependency(
+            preferred_aspect_ratio,
+            inline_stretch_size,
+        );
+        Some(result?.0)
+    }
+
+    /// Same as [`Self::tentative_block_content_size()`], but if there is a tentative intrinsic
+    /// block size, it also includes a bool which will be true if the former depends on
+    /// the provided `inline_stretch_size`.
+    pub(crate) fn tentative_block_content_size_with_dependency(
+        &self,
+        preferred_aspect_ratio: Option<AspectRatio>,
+        inline_stretch_size: Au,
+    ) -> Option<(ContentSizes, bool)> {
         // See <https://github.com/w3c/csswg-drafts/issues/12333> regarding the difference
         // in behavior for the replaced and non-replaced cases.
         match &self.contents {
@@ -275,14 +291,19 @@ impl IndependentFormattingContext {
                 let ratio = preferred_aspect_ratio?;
                 let writing_mode = self.style().writing_mode;
                 let natural_sizes = contents.logical_natural_sizes(writing_mode);
-                let block_size = match (natural_sizes.block, natural_sizes.inline) {
-                    (Some(block_size), None) => block_size,
-                    _ => {
-                        let inline_size = contents.fallback_inline_size(writing_mode);
-                        ratio.compute_dependent_size(Direction::Block, inline_size)
-                    },
-                };
-                Some(block_size.into())
+                let (block_size, depends_on_inline_stretch_size) =
+                    match (natural_sizes.block, natural_sizes.inline) {
+                        (Some(block_size), None) => (block_size, false),
+                        (_, Some(inline_size)) => (
+                            ratio.compute_dependent_size(Direction::Block, inline_size),
+                            false,
+                        ),
+                        (None, None) => (
+                            ratio.compute_dependent_size(Direction::Block, inline_stretch_size),
+                            true,
+                        ),
+                    };
+                Some((block_size.into(), depends_on_inline_stretch_size))
             },
             _ => None,
         }
@@ -305,7 +326,9 @@ impl IndependentFormattingContext {
             true, /* establishes_containing_block */
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
-            |preferred_aspect_ratio| self.tentative_block_content_size(preferred_aspect_ratio),
+            |preferred_aspect_ratio| {
+                self.tentative_block_content_size(preferred_aspect_ratio, Au(0))
+            },
         )
     }
 
