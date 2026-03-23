@@ -8,9 +8,11 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use html5ever::local_name;
-use layout_api::combine_id_with_fragment_type;
 use layout_api::wrapper_traits::{
     PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
+use layout_api::{
+    AuxiliaryFragmentType, combine_id_with_fragment_type, combine_id_with_fragment_type_and_aux,
 };
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
@@ -284,6 +286,16 @@ pub(crate) struct Tag {
 impl Tag {
     pub(crate) fn to_display_list_fragment_id(self) -> u64 {
         combine_id_with_fragment_type(self.node.id(), self.pseudo_element_chain.primary.into())
+    }
+    pub(crate) fn to_display_list_fragment_id_for_aux(
+        self,
+        aux_fragment_type: AuxiliaryFragmentType,
+    ) -> u64 {
+        combine_id_with_fragment_type_and_aux(
+            self.node.id(),
+            self.pseudo_element_chain.primary.into(),
+            aux_fragment_type,
+        )
     }
 }
 

@@ -17,7 +17,7 @@ use embedder_traits::{
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
-use paint_api::display_list::ScrollType;
+use paint_api::display_list::{ScrollResult as ScrollTreeScrollResult, ScrollType};
 use paint_api::viewport_description::{
     DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
 };
@@ -59,12 +59,8 @@ pub(crate) enum ScrollZoomEvent {
 #[derive(Clone, Debug)]
 pub(crate) struct ScrollResult {
     pub hit_test_result: PaintHitTestResult,
-    /// The [`ExternalScrollId`] of the node that was actually scrolled.
-    ///
-    /// Note that this is an inclusive ancestor of `external_scroll_id` in
-    /// [`Self::hit_test_result`].
-    pub external_scroll_id: ExternalScrollId,
-    pub offset: LayoutVector2D,
+    /// The pairs of [`ExternalScrollId`] and offset of the nodes that was actually scrolled.
+    pub inner: ScrollTreeScrollResult,
 }
 
 #[derive(Debug, PartialEq)]
@@ -807,7 +803,7 @@ impl WebViewRenderer {
         if let Some(ref scroll_result) = scroll_result {
             self.send_scroll_positions_to_layout_for_pipeline(
                 scroll_result.hit_test_result.pipeline_id,
-                scroll_result.external_scroll_id,
+                scroll_result.inner.first().0,
             );
         } else {
             self.touch_handler.stop_fling_if_needed();
@@ -858,12 +854,12 @@ impl WebViewRenderer {
             if previous_pipeline_id.replace(hit_test_result.pipeline_id) !=
                 Some(hit_test_result.pipeline_id)
             {
-                let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
+                let maybe_scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
                     hit_test_result.external_scroll_id,
                     scroll_location,
                     ScrollType::InputEvents,
                 );
-                if let Some((external_scroll_id, offset)) = scroll_result {
+                if let Some(scroll_result) = maybe_scroll_result {
                     // We would like to cache the hit test for the node that that actually scrolls
                     // while panning, which we don't know until right now (as some nodes
                     // might be at the end of their scroll area). In particular, directionality of
@@ -875,8 +871,7 @@ impl WebViewRenderer {
                     );
                     return Some(ScrollResult {
                         hit_test_result,
-                        external_scroll_id,
-                        offset,
+                        inner: scroll_result,
                     });
                 }
             }
@@ -914,7 +909,7 @@ impl WebViewRenderer {
         };
 
         let remaining = remaining / device_pixels_per_page_pixel;
-        let Some((external_scroll_id, offset)) = root_pipeline.scroll_tree.scroll_node_or_ancestor(
+        let Some(result) = root_pipeline.scroll_tree.scroll_node_or_ancestor(
             ExternalScrollId(0, root_pipeline_id.into()),
             ScrollLocation::Delta(remaining.cast_unit()),
             // These are initiated only by keyboard events currently.
@@ -923,15 +918,17 @@ impl WebViewRenderer {
             return (pinch_zoom_result, vec![]);
         };
 
+        let (external_scroll_id, _) = result.first();
+
         let hit_test_result = PaintHitTestResult {
             pipeline_id: root_pipeline_id,
             // It's difficult to get a good value for this as it needs to be piped
             // all the way through script and back here.
             point_in_viewport: Default::default(),
-            external_scroll_id,
+            external_scroll_id: *external_scroll_id,
         };
 
-        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
+        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, *external_scroll_id);
 
         if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
             self.send_pinch_zoom_infos_to_script();
@@ -939,8 +936,7 @@ impl WebViewRenderer {
 
         let scroll_result = ScrollResult {
             hit_test_result,
-            external_scroll_id,
-            offset,
+            inner: result,
         };
         (pinch_zoom_result, vec![scroll_result])
     }

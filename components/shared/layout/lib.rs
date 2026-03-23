@@ -667,6 +667,31 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
+/// The type to represent the additional fragment that is generated along with the main [`FragmentType`].
+///
+/// Currently we use this to identify such fragment, maintain the offset of such fragment across reflow.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum AuxiliaryFragmentType {
+    None,
+    /// Fragment representing the horizontal scrollbar of a scroll container.
+    HorizontalScrollbar,
+    /// Fragment representing the vertical scrollbar of a scroll container.
+    VerticalScrollbar,
+}
+
+/// The size of [`FragmentType`] in bits.
+const SIZE_OF_AUXILIRARY_FRAGMENT_TYPE: usize = 2;
+/// The size of [`AuxiliaryFragmentType`] in bits. MYTODO: maybe there is a programmatical way to get this.
+const SIZE_OF_FRAGMENT_TYPE: usize = 2;
+
+const TOTAL_SIZE_OF_FRAGMENT_TYPE: usize = SIZE_OF_FRAGMENT_TYPE + SIZE_OF_AUXILIRARY_FRAGMENT_TYPE;
+
+impl FragmentType {
+    const fn into_mask_with_aux(self, aux_fragment_type: AuxiliaryFragmentType) -> u64 {
+        ((self as u64) << SIZE_OF_AUXILIRARY_FRAGMENT_TYPE) | (aux_fragment_type as u64)
+    }
+}
+
 impl From<Option<PseudoElement>> for FragmentType {
     fn from(value: Option<PseudoElement>) -> Self {
         match value {
@@ -684,27 +709,36 @@ static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicU64 = AtomicU64::new(0);
 
 /// If none of the bits outside this mask are set, the scroll root is a special scroll root.
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
+const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff; //MYTODO: what is this
 
 /// Returns a new scroll root ID for a scroll root.
 fn next_special_id() -> u64 {
     // We shift this left by 2 to make room for the fragment type ID.
-    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << SIZE_OF_FRAGMENT_TYPE) &
         SPECIAL_SCROLL_ROOT_ID_MASK
 }
 
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
-    debug_assert_eq!(id & (fragment_type as usize), 0);
-    if fragment_type == FragmentType::FragmentBody {
-        id as u64
-    } else {
-        next_special_id() | (fragment_type as u64)
-    }
+    combine_id_with_fragment_type_and_aux(id, fragment_type, AuxiliaryFragmentType::None)
 }
 
-pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        return Some(id & !3);
+pub fn combine_id_with_fragment_type_and_aux(
+    id: usize,
+    fragment_type: FragmentType,
+    aux_fragment_type: AuxiliaryFragmentType,
+) -> u64 {
+    let shifted_id = (id as u64) << TOTAL_SIZE_OF_FRAGMENT_TYPE;
+    shifted_id | fragment_type.into_mask_with_aux(aux_fragment_type)
+}
+
+pub fn node_id_from_scroll_id(id: u64) -> Option<usize> {
+    if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
+        let node_id = id >> TOTAL_SIZE_OF_FRAGMENT_TYPE;
+        return Some(
+            node_id
+                .try_into()
+                .expect("We have ensured that this fits in u32"),
+        );
     }
     None
 }
