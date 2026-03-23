@@ -107,6 +107,9 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
+    # btleplug requires 0.19
+    "jni",
+
     # Duplicated by egui
     "foldhash",
     "windows-collections",

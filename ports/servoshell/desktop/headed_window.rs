@@ -1109,6 +1109,11 @@ impl PlatformWindow for HeadedWindow {
         devices: Vec<String>,
         response_sender: GenericSender<Option<String>>,
     ) {
+        if devices.is_empty() {
+            let _ = response_sender.send(None);
+            return;
+        }
+
         self.add_dialog(
             webview_id,
             Dialog::new_device_selection_dialog(devices, response_sender),

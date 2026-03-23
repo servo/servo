@@ -512,8 +512,11 @@ fn create_glucose_heart_rate_devices(adapter: &BluetoothAdapter) -> Result<(), B
     Ok(())
 }
 
-pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(), Box<dyn Error>> {
-    let may_existing_adapter = manager.get_or_create_adapter();
+pub async fn test(
+    manager: &mut BluetoothManager,
+    data_set_name: String,
+) -> Result<(), Box<dyn Error>> {
+    let may_existing_adapter = manager.get_or_create_adapter().await;
     let adapter = match may_existing_adapter.as_ref() {
         Some(adapter) => adapter,
         None => return Err(Box::from(ADAPTER_ERROR.to_string())),
