@@ -337,6 +337,13 @@ dictionary CShakeParams : Algorithm {
   BufferSource customization;
 };
 
+// https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams
+
+dictionary TurboShakeParams : Algorithm {
+  required [EnforceRange] unsigned long outputLength;
+  [EnforceRange] octet domainSeparation;
+};
+
 // https://wicg.github.io/webcrypto-modern-algos/#argon2-params
 
 dictionary Argon2Params : Algorithm {

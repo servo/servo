@@ -26,6 +26,7 @@ mod rsa_pss_operation;
 mod rsassa_pkcs1_v1_5_operation;
 mod sha3_operation;
 mod sha_operation;
+mod turboshake_operation;
 mod x25519_operation;
 
 use std::fmt::Display;
@@ -142,6 +143,10 @@ enum CryptoAlgorithm {
     CShake128,
     #[strum(serialize = "cSHAKE256")]
     CShake256,
+    #[strum(serialize = "TurboSHAKE128")]
+    TurboShake128,
+    #[strum(serialize = "TurboSHAKE256")]
+    TurboShake256,
     #[strum(serialize = "Argon2d")]
     Argon2D,
     #[strum(serialize = "Argon2i")]
@@ -3109,6 +3114,45 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     }
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams>
+#[derive(Clone, MallocSizeOf)]
+struct SubtleTurboShakeParams {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    name: CryptoAlgorithm,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams-outputLength>
+    output_length: u32,
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams-domainSeparation>
+    domain_separation: Option<u8>,
+}
+
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
+    type Error = Error;
+
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error> {
+        Ok(SubtleTurboShakeParams {
+            name: algorithm_name,
+            output_length: get_required_parameter(
+                cx,
+                object,
+                c"outputLength",
+                ConversionBehavior::EnforceRange,
+            )?,
+            domain_separation: get_optional_parameter(
+                cx,
+                object,
+                c"domainSeparation",
+                ConversionBehavior::EnforceRange,
+            )?,
+        })
+    }
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
 #[derive(Clone, MallocSizeOf)]
 struct SubtleArgon2Params {
@@ -4203,6 +4247,7 @@ enum DigestAlgorithm {
     Sha(SubtleAlgorithm),
     Sha3(SubtleAlgorithm),
     CShake(SubtleCShakeParams),
+    TurboShake(SubtleTurboShakeParams),
 }
 
 impl NormalizedAlgorithm for DigestAlgorithm {
@@ -4226,6 +4271,9 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             CryptoAlgorithm::CShake128 | CryptoAlgorithm::CShake256 => Ok(DigestAlgorithm::CShake(
                 object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
+            CryptoAlgorithm::TurboShake128 | CryptoAlgorithm::TurboShake256 => Ok(
+                DigestAlgorithm::TurboShake(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"digest\" operation",
                 algorithm_name.as_str()
@@ -4238,6 +4286,7 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             DigestAlgorithm::Sha(algorithm) => algorithm.name,
             DigestAlgorithm::Sha3(algorithm) => algorithm.name,
             DigestAlgorithm::CShake(algorithm) => algorithm.name,
+            DigestAlgorithm::TurboShake(algorithm) => algorithm.name,
         }
     }
 }
@@ -4248,6 +4297,9 @@ impl DigestAlgorithm {
             DigestAlgorithm::Sha(algorithm) => sha_operation::digest(algorithm, message),
             DigestAlgorithm::Sha3(algorithm) => sha3_operation::digest(algorithm, message),
             DigestAlgorithm::CShake(algorithm) => cshake_operation::digest(algorithm, message),
+            DigestAlgorithm::TurboShake(algorithm) => {
+                turboshake_operation::digest(algorithm, message)
+            },
         }
     }
 }
