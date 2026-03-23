@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<title>Encoding of form action URL</title>
+<iframe id=frame src="resources/form-charset.html?start"></iframe>
+<script>
+  async_test(t => {
+      frame.onload = t.step_func(() => {
+          let step = frame.contentWindow.location.search;
+          if (step == "?start") {
+              frame.contentDocument.forms[0].submit();
+          } else if (step.indexOf("end=") !== -1) {
+              assert_equals(step, "?end=%DF");
+              t.done();
+          }
+      });
+  });
+</script>
