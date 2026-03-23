@@ -88,15 +88,15 @@ impl BtleplugDevice {
     }
 
     pub async fn is_connected(&self) -> Result<bool, Box<dyn Error>> {
-        self.peripheral.is_connected().await.map_err(Box::new)
+        Ok(self.peripheral.is_connected().await.map_err(Box::new)?)
     }
 
     pub async fn connect(&self) -> Result<(), Box<dyn Error>> {
-        self.peripheral.connect().await.map_err(Box::new)
+        Ok(self.peripheral.connect().await.map_err(Box::new)?)
     }
 
     pub async fn disconnect(&self) -> Result<(), Box<dyn Error>> {
-        self.peripheral.disconnect().await.map_err(Box::new)
+        Ok(self.peripheral.disconnect().await.map_err(Box::new)?)
     }
 
     pub async fn get_manufacturer_data(&self) -> Result<HashMap<u16, Vec<u8>>, Box<dyn Error>> {
@@ -253,10 +253,11 @@ impl BtleplugGATTCharacteristic {
     }
 
     pub async fn read_value(&self) -> Result<Vec<u8>, Box<dyn Error>> {
-        self.peripheral
+        Ok(self
+            .peripheral
             .read(&self.characteristic)
             .await
-            .map_err(Box::new)
+            .map_err(Box::new)?)
     }
 
     pub async fn write_value(&self, values: Vec<u8>) -> Result<(), Box<dyn Error>> {
@@ -269,24 +270,27 @@ impl BtleplugGATTCharacteristic {
         } else {
             WriteType::WithoutResponse
         };
-        self.peripheral
+        Ok(self
+            .peripheral
             .write(&self.characteristic, &values, write_type)
             .await
-            .map_err(Box::new)
+            .map_err(Box::new)?)
     }
 
     pub async fn start_notify(&self) -> Result<(), Box<dyn Error>> {
-        self.peripheral
+        Ok(self
+            .peripheral
             .subscribe(&self.characteristic)
             .await
-            .map_err(Box::new)
+            .map_err(Box::new)?)
     }
 
     pub async fn stop_notify(&self) -> Result<(), Box<dyn Error>> {
-        self.peripheral
+        Ok(self
+            .peripheral
             .unsubscribe(&self.characteristic)
             .await
-            .map_err(Box::new)
+            .map_err(Box::new)?)
     }
 }
 
@@ -313,17 +317,19 @@ impl BtleplugGATTDescriptor {
     }
 
     pub async fn read_value(&self) -> Result<Vec<u8>, Box<dyn Error>> {
-        self.peripheral
+        Ok(self
+            .peripheral
             .read_descriptor(&self.descriptor)
             .await
-            .map_err(Box::new)
+            .map_err(Box::new)?)
     }
 
     pub async fn write_value(&self, values: Vec<u8>) -> Result<(), Box<dyn Error>> {
-        self.peripheral
+        Ok(self
+            .peripheral
             .write_descriptor(&self.descriptor, &values)
             .await
-            .map_err(Box::new)
+            .map_err(Box::new)?)
     }
 }
 
