@@ -78,9 +78,6 @@ pub(crate) struct ServoShellPreferences {
     pub output_image_path: Option<String>,
     /// Whether or not to exit after Servo detects a stable output image in all WebViews.
     pub exit_after_stable_image: bool,
-    /// Where to load userscripts from, if any.
-    /// and if the option isn't passed userscripts won't be loaded.
-    pub userscripts_directory: Option<PathBuf>,
     /// A set of [`UserStylesheets`] to load for content.
     pub user_stylesheets: Vec<Rc<UserStyleSheet>>,
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
@@ -113,7 +110,6 @@ impl Default for ServoShellPreferences {
             url: None,
             output_image_path: None,
             exit_after_stable_image: false,
-            userscripts_directory: None,
             user_stylesheets: Default::default(),
             webdriver_port: Cell::new(None),
             #[cfg(target_env = "ohos")]
@@ -338,17 +334,6 @@ fn profile() -> impl Parser<Option<OutputOptions>> {
     )
 }
 
-fn userscripts() -> impl Parser<Option<PathBuf>> {
-    flag_with_default_parser(
-        None,
-        "userscripts_directory",
-        "your/directory",
-        "Uses userscripts in resources/user-agent-js, or a specified full path",
-        PathBuf::from("resources/user-agent-js"),
-        |val: String| PathBuf::from(val),
-    )
-}
-
 fn webdriver_port() -> impl Parser<Option<u16>> {
     flag_with_default_parser(
         None,
@@ -533,11 +518,6 @@ struct CmdArgs {
     user_agent: Option<String>,
 
     ///
-    ///  Uses userscripts in resources/user-agent-js, or a specified full path.
-    #[bpaf(external)]
-    userscripts: Option<PathBuf>,
-
-    ///
     /// Add each of the given UTF-8 encoded CSS files in the space or comma-separated
     /// list as user stylesheet to apply to every page loaded.
     #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets),
@@ -685,7 +665,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         webdriver_port: Cell::new(cmd_args.webdriver_port),
         output_image_path: cmd_args.output.map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
-        userscripts_directory: cmd_args.userscripts,
         user_stylesheets: cmd_args.user_stylesheet,
         experimental_preferences_enabled: cmd_args.enable_experimental_web_platform_features,
         #[cfg(target_env = "ohos")]
