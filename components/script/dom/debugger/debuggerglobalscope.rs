@@ -475,23 +475,20 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .take()
             .expect("Guaranteed by Self::fire_eval()");
 
-        let has_exception = result.hasException.flatten().unwrap_or(false);
+        let has_exception = result.hasException.unwrap_or(false);
 
         let value = match &*result.valueType.str() {
             "undefined" => EvaluateJSReplyValue::VoidValue,
             "null" => EvaluateJSReplyValue::NullValue,
-            "boolean" => {
-                EvaluateJSReplyValue::BooleanValue(result.booleanValue.flatten().unwrap_or(false))
-            },
+            "boolean" => EvaluateJSReplyValue::BooleanValue(result.booleanValue.unwrap_or(false)),
             "number" => {
-                let num = result.numberValue.flatten().map(|f| *f).unwrap_or(0.0);
+                let num = result.numberValue.map(|f| *f).unwrap_or(0.0);
                 EvaluateJSReplyValue::NumberValue(num)
             },
             "string" => EvaluateJSReplyValue::StringValue(
                 result
                     .stringValue
                     .as_ref()
-                    .and_then(|opt| opt.as_ref())
                     .map(|s| s.to_string())
                     .unwrap_or_default(),
             ),
@@ -499,69 +496,41 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 let class = result
                     .objectClass
                     .as_ref()
-                    .and_then(|opt| opt.as_ref())
                     .map(|s| s.to_string())
                     .unwrap_or_else(|| "Object".to_string());
-                let name = result
-                    .name
-                    .as_ref()
-                    .and_then(|opt| opt.as_ref())
-                    .map(|s| s.to_string());
+                let name = result.name.as_ref().map(|s| s.to_string());
 
                 // Function-specific metadata
-                let display_name = result
-                    .displayName
-                    .as_ref()
-                    .and_then(|opt| opt.as_ref())
-                    .map(|s| s.to_string());
+                let display_name = result.displayName.as_ref().map(|s| s.to_string());
                 let parameter_names = result
                     .parameterNames
                     .as_ref()
-                    .and_then(|opt| opt.as_ref())
                     .map(|v| v.iter().map(|s| s.to_string()).collect());
-                let is_async = result.isAsync.flatten();
-                let is_generator = result.isGenerator.flatten();
+                let is_async = result.isAsync;
+                let is_generator = result.isGenerator;
 
                 // Object preview properties
-                let own_properties = result.ownProperties.as_ref().and_then(|opt| {
-                    opt.as_ref().map(|props| {
-                        props
-                            .iter()
-                            .map(|prop| devtools_traits::PropertyDescriptor {
-                                name: prop.name.to_string(),
-                                configurable: prop.configurable,
-                                enumerable: prop.enumerable,
-                                writable: prop.writable,
-                                is_accessor: prop.isAccessor,
-                                value_type: prop.valueType.to_string(),
-                                boolean_value: prop.booleanValue.flatten(),
-                                number_value: prop.numberValue.flatten().map(|f| *f),
-                                string_value: prop
-                                    .stringValue
-                                    .as_ref()
-                                    .and_then(|o| o.as_ref())
-                                    .map(|s| s.to_string()),
-                                object_class: prop
-                                    .objectClass
-                                    .as_ref()
-                                    .and_then(|o| o.as_ref())
-                                    .map(|s| s.to_string()),
-                                value_name: prop
-                                    .valueName
-                                    .as_ref()
-                                    .and_then(|o| o.as_ref())
-                                    .map(|s| s.to_string()),
-                            })
-                            .collect()
-                    })
+                let own_properties = result.ownProperties.as_ref().map(|props| {
+                    props
+                        .iter()
+                        .map(|prop| devtools_traits::PropertyDescriptor {
+                            name: prop.name.to_string(),
+                            configurable: prop.configurable,
+                            enumerable: prop.enumerable,
+                            writable: prop.writable,
+                            is_accessor: prop.isAccessor,
+                            value_type: prop.valueType.to_string(),
+                            boolean_value: prop.booleanValue,
+                            number_value: prop.numberValue.map(|f| *f),
+                            string_value: prop.stringValue.as_ref().map(|s| s.to_string()),
+                            object_class: prop.objectClass.as_ref().map(|s| s.to_string()),
+                            value_name: prop.valueName.as_ref().map(|s| s.to_string()),
+                        })
+                        .collect()
                 });
-                let own_properties_length = result.ownPropertiesLength.flatten();
-                let kind = result
-                    .kind
-                    .as_ref()
-                    .and_then(|o| o.as_ref())
-                    .map(|s| s.to_string());
-                let array_length = result.arrayLength.flatten();
+                let own_properties_length = result.ownPropertiesLength;
+                let kind = result.kind.as_ref().map(|s| s.to_string());
+                let array_length = result.arrayLength;
 
                 EvaluateJSReplyValue::ActorValue {
                     class,

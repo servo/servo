@@ -30,30 +30,30 @@ partial interface DebuggerGlobalScope {
 dictionary EvalResultValue {
     required DOMString completionType;
     required DOMString valueType;
-    boolean? booleanValue;
-    double? numberValue;
-    DOMString? stringValue;
+    boolean booleanValue;
+    double numberValue;
+    DOMString stringValue;
 
     // A string naming the ECMAScript [[Class]] of the referent.
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#accessor-properties-of-the-debugger-object-prototype>
-    DOMString? objectClass;
-    DOMString? name;
-    boolean? hasException;
+    DOMString objectClass;
+    DOMString name;
+    boolean hasException;
 
     // Function-specific metadata
     // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js>
-    DOMString? displayName;
-    sequence<DOMString>? parameterNames;
-    boolean? isAsync;
-    boolean? isGenerator;
+    DOMString displayName;
+    sequence<DOMString> parameterNames;
+    boolean isAsync;
+    boolean isGenerator;
 
     // Object preview properties
-    sequence<PropertyDescriptor>? ownProperties;
-    unsigned long? ownPropertiesLength;
+    sequence<PropertyDescriptor> ownProperties;
+    unsigned long ownPropertiesLength;
 
     // Array-specific
-    DOMString? kind;
-    unsigned long? arrayLength;
+    DOMString kind;
+    unsigned long arrayLength;
 };
 
 // TODO: Maybe merge some parts of this with the EvalResultValue
@@ -64,9 +64,9 @@ dictionary PropertyDescriptor {
     required boolean writable;
     required boolean isAccessor;
     required DOMString valueType;
-    boolean? booleanValue;
-    double? numberValue;
-    DOMString? stringValue;
-    DOMString? objectClass;
-    DOMString? valueName;
+    boolean booleanValue;
+    double numberValue;
+    DOMString stringValue;
+    DOMString objectClass;
+    DOMString valueName;
 };
