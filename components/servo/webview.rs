@@ -504,28 +504,22 @@ impl WebView {
         let event: InputEventAndId = event.into();
         let event_id = event.id;
         let webview_id = self.id();
+        let servo = &self.inner().servo;
         // Events with a `point` first go to `Paint` for hit testing.
         if event.event.point().is_some() {
-            if !self
-                .inner()
-                .servo
-                .paint()
-                .notify_input_event(self.id(), event)
-            {
-                self.inner()
-                    .servo
-                    .add_pending_handled_input_event(PendingHandledInputEvent {
-                        event_id,
-                        webview_id,
-                    });
-                self.inner().servo.event_loop_waker().wake();
+            if !servo.paint().notify_input_event(self.id(), event) {
+                servo.add_pending_handled_input_event(PendingHandledInputEvent {
+                    event_id,
+                    webview_id,
+                });
+                servo.event_loop_waker().wake();
             }
         } else {
-            self.inner().servo.constellation_proxy().send(
-                EmbedderToConstellationMessage::ForwardInputEvent(
+            servo
+                .constellation_proxy()
+                .send(EmbedderToConstellationMessage::ForwardInputEvent(
                     webview_id, event, None, /* hit_test */
-                ),
-            );
+                ));
         }
 
         event_id
