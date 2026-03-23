@@ -1121,6 +1121,7 @@ malloc_size_of_is_0!(Uuid);
 malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(content_security_policy::Destination);
 malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
+malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
@@ -1153,7 +1154,6 @@ malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(urlpattern::UrlPattern);
-malloc_size_of_is_0!(utf8::Incomplete);
 malloc_size_of_is_0!(std::net::TcpStream);
 
 impl<S: tendril::TendrilSink<tendril::fmt::UTF8, A>, A: tendril::Atomicity> MallocSizeOf
