@@ -8,9 +8,9 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use base::id::WebViewId;
 use embedder_traits::EventLoopWaker;
 use rustc_hash::FxHashMap;
+use servo_base::id::WebViewId;
 use servo_config::prefs;
 use webrender_api::{ColorF, PropertyBindingKey, PropertyValue};
 

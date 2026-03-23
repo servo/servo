@@ -7,14 +7,14 @@
 use std::default::Default;
 use std::ops::Range;
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
 use script_bindings::trace::CustomTraceable;
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;

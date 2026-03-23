@@ -10,14 +10,14 @@ use std::thread;
 use std::time::Duration;
 
 use atomic_refcell::AtomicRefCell;
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{self, GenericReceiver, GenericSender};
-use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
 use devtools_traits::{DevtoolScriptControlMsg, TimelineMarker, TimelineMarkerType};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::id::PipelineId;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};

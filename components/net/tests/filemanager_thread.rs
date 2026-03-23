@@ -6,8 +6,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
-use base::{Epoch, generic_channel};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
 };
@@ -19,6 +17,8 @@ use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
+use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use servo_base::{Epoch, generic_channel};
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 

@@ -7,7 +7,6 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str::FromStr;
 
-use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
@@ -23,6 +22,7 @@ use net_traits::{
 use pixels::PixelFormat;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
+use servo_base::generic_channel::GenericSharedMemory;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::media_queries::MediaList as StyleMediaList;

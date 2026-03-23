@@ -7,7 +7,7 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
-use base::text::Utf16CodeUnitLength;
+use servo_base::text::Utf16CodeUnitLength;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::bindings::cell::DomRefCell;

@@ -16,7 +16,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use async_tungstenite::WebSocketStream;
 use async_tungstenite::tokio::{ConnectStream, client_async_tls_with_connector_and_config};
-use base::generic_channel::CallbackSetter;
 use base64::Engine;
 use futures::stream::StreamExt;
 use http::HeaderMap;
@@ -25,6 +24,7 @@ use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
 use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
+use servo_base::generic_channel::CallbackSetter;
 use servo_url::ServoUrl;
 use tokio::net::TcpStream;
 use tokio::select;

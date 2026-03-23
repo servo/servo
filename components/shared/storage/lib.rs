@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{self, GenericSend, GenericSender, SendResult};
 use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{self, GenericSend, GenericSender, SendResult};
 
 use crate::client_storage::ClientStorageThreadMessage;
 use crate::indexeddb::IndexedDBThreadMsg;

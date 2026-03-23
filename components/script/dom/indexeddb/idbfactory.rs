@@ -4,13 +4,13 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::inheritance::Castable;
+use servo_base::generic_channel::GenericSend;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, SyncOperation,

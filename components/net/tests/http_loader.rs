@@ -10,7 +10,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use content_security_policy as csp;
 use cookie::Cookie as CookiePair;
 use crossbeam_channel::{Receiver, unbounded};
@@ -45,6 +44,7 @@ use net_traits::request::{
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
 use parking_lot::{Mutex, RwLock};
+use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
 

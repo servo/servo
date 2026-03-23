@@ -6,8 +6,6 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use base::generic_channel;
-use base::id::BrowsingContextId;
 use embedder_traits::{
     InputEvent, KeyboardEvent, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, TouchEvent,
     TouchEventType, TouchId, WebDriverCommandMsg, WebDriverScriptCommand, WebViewPoint, WheelDelta,
@@ -17,6 +15,8 @@ use euclid::Point2D;
 use keyboard_types::webdriver::KeyInputState;
 use log::info;
 use rustc_hash::FxHashSet;
+use servo_base::generic_channel;
+use servo_base::id::BrowsingContextId;
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerDownAction,

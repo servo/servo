@@ -5,8 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 
-use base::generic_channel::GenericSend;
-use base::id::{PipelineId, WebViewId};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
 use html5ever::tokenizer::{
@@ -21,6 +19,8 @@ use net_traits::request::{
     RequestClient,
 };
 use net_traits::{CoreResourceMsg, FetchChannels, ReferrerPolicy, ResourceThreads};
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::reflector::DomGlobal;

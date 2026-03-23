@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use base::id::WebViewId;
 use ipc_channel::ipc;
 use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
@@ -24,6 +23,7 @@ use net_traits::{
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use serde::{Deserialize, Serialize};
+use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
 use uuid::Uuid;

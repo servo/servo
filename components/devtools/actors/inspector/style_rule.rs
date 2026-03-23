@@ -8,13 +8,13 @@
 
 use std::collections::HashMap;
 
-use base::generic_channel;
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_base::generic_channel;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};

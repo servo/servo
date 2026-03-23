@@ -4,9 +4,9 @@
 
 use std::collections::HashMap;
 
-use base::id::{BrowsingContextId, WebViewId};
 use rustc_hash::FxHashSet;
 use serde_json::{Map, Value, json};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use uuid::Uuid;
 use webdriver::error::WebDriverResult;
 

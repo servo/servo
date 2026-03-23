@@ -5,7 +5,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use base::id::PainterId;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
 use fonts::FontContext;
@@ -20,6 +19,7 @@ use net_traits::image_cache::{
 use parking_lot::{Mutex, RwLock};
 use pixels::RasterImage;
 use script::layout_dom::ServoThreadSafeLayoutNode;
+use servo_base::id::PainterId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;

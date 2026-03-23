@@ -4,12 +4,12 @@
 
 use std::cell::Cell;
 
-use base::id::ServiceWorkerId;
 use constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use servo_base::id::ServiceWorkerId;
 use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;

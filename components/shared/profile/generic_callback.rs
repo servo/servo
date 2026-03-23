@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::SendResult;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::SendResult;
 
 use crate::time::{ProfilerCategory, ProfilerChan};
 use crate::time_profile;
@@ -14,7 +14,7 @@ pub struct GenericCallback<T>
 where
     T: Serialize + Send + 'static,
 {
-    callback: base::generic_channel::GenericCallback<T>,
+    callback: servo_base::generic_channel::GenericCallback<T>,
     time_profiler_chan: ProfilerChan,
 }
 
@@ -27,7 +27,7 @@ where
         callback: F,
     ) -> Result<Self, ipc_channel::IpcError> {
         Ok(GenericCallback {
-            callback: base::generic_channel::GenericCallback::new(callback)?,
+            callback: servo_base::generic_channel::GenericCallback::new(callback)?,
             time_profiler_chan,
         })
     }

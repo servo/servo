@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{DomExceptionId, DomExceptionIndex};
 use constellation_traits::DomException;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
+use servo_base::id::{DomExceptionId, DomExceptionIndex};
 
 use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
     DOMExceptionConstants, DOMExceptionMethods,

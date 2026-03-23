@@ -9,7 +9,6 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use crossbeam_channel::Sender;
 use html5ever::interface::{Tracer as HtmlTracer, TreeSink};
 use html5ever::tokenizer::{TokenSink, Tokenizer};
@@ -21,6 +20,7 @@ use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use smallvec::SmallVec;
 use style::author_styles::AuthorStyles;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};

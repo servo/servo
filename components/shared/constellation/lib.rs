@@ -15,9 +15,6 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericCallback;
-use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
@@ -32,6 +29,9 @@ use paint_api::PinchZoomInfos;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericCallback;
+use servo_base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;

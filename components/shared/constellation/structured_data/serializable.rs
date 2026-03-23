@@ -10,16 +10,16 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
-    ImageDataId, QuotaExceededErrorId,
-};
 use euclid::default::Transform3D;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use pixels::SharedSnapshot;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    ImageDataId, QuotaExceededErrorId,
+};
 use servo_url::ImmutableOrigin;
 use strum::EnumIter;
 use uuid::Uuid;

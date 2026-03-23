@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::channel;
 use devtools_traits::{DevtoolScriptControlMsg, FrameInfo};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_base::generic_channel::channel;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};

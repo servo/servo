@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
+use servo_base::generic_channel::GenericSend;
 use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;

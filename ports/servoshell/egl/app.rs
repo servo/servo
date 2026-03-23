@@ -4,7 +4,6 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
 use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
@@ -19,6 +18,7 @@ use servo::{
     TouchEventType, TouchId, UserContentManager, WebView, WebViewId, WindowRenderingContext,
     convert_rect_to_css_pixel,
 };
+use servo_base::generic_channel::GenericCallback;
 use url::Url;
 
 use crate::egl::host_trait::HostTrait;

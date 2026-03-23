@@ -30,8 +30,6 @@ mod webview_delegate;
 // These are Servo's public exports. Everything (apart from a couple exceptions below)
 // should be exported at the root. See <https://github.com/servo/servo/issues/18475>.
 pub use accesskit;
-pub use base::generic_channel::GenericSender;
-pub use base::id::WebViewId;
 pub use embedder_traits::user_contents::UserScript;
 pub use embedder_traits::*;
 pub use image::RgbaImage;
@@ -51,6 +49,8 @@ pub use paint_api::rendering_context::{
 // This should be replaced with an API on ServoBuilder.
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;
+pub use servo_base::generic_channel::GenericSender;
+pub use servo_base::id::WebViewId;
 pub use servo_config::opts::{DiagnosticsLogging, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 pub use servo_config::{opts, pref, prefs};

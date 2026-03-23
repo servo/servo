@@ -12,8 +12,6 @@ use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
-use base::generic_channel::GenericSender;
-use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -41,6 +39,8 @@ use rustc_hash::FxHashMap;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_config::opts::{self, DiagnosticsLogging};
 use servo_config::pref;
 use servo_url::ServoUrl;

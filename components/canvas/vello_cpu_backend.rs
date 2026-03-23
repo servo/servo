@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use base::generic_channel::GenericSharedMemory;
 use canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
@@ -16,6 +15,7 @@ use fonts::FontIdentifier;
 use kurbo::Shape;
 use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use servo_base::generic_channel::GenericSharedMemory;
 use vello_cpu::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 

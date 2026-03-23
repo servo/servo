@@ -5,11 +5,11 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::id::WebViewId;
 use embedder_traits::{InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
+use servo_base::id::WebViewId;
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceVector2D};
 

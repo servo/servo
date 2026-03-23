@@ -12,7 +12,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, SystemTime};
 
-use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use content_security_policy as csp;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
@@ -47,6 +46,7 @@ use net_traits::{
 };
 use parking_lot::Mutex;
 use servo_arc::Arc as ServoArc;
+use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 use uuid::Uuid;

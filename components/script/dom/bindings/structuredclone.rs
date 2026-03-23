@@ -8,11 +8,6 @@ use std::ffi::CStr;
 use std::os::raw;
 use std::ptr::{self, NonNull};
 
-use base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
-    ImageDataId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId,
-    QuotaExceededErrorId,
-};
 use constellation_traits::{
     BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl,
     Serializable as SerializableInterface, SerializableImageBitmap, SerializableImageData,
@@ -37,6 +32,11 @@ use js::rust::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::{IDLInterface, SafeToJSValConvertible};
+use servo_base::id::{
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
+    ImageDataId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId,
+    QuotaExceededErrorId,
+};
 use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::root_from_object;

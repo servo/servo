@@ -9,12 +9,12 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::thread;
 
-use base::generic_channel::{self, GenericCallback, GenericReceiver};
 use log::debug;
 use profile_traits::mem::{
     MemoryReport, MemoryReportResult, ProfilerChan, ProfilerMsg, Report, Reporter, ReporterRequest,
     ReportsChan,
 };
+use servo_base::generic_channel::{self, GenericCallback, GenericReceiver};
 
 use crate::system_reporter;
 

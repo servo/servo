@@ -4,7 +4,6 @@
 
 use std::str::FromStr;
 
-use base::id::WebViewId;
 use cssparser::match_ignore_ascii_case;
 use http::header::HeaderMap;
 use hyper_serde::Serde;
@@ -22,6 +21,7 @@ use net_traits::{
 };
 pub use nom_rfc8288::complete::LinkDataOwned as LinkHeader;
 use nom_rfc8288::complete::link_lenient as parse_link_header;
+use servo_base::id::WebViewId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::IntoStaticStr;
 

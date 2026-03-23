@@ -6,8 +6,6 @@
 
 use std::collections::HashMap;
 
-use base::generic_channel::{GenericOneshotSender, GenericSender};
-use base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use euclid::default::Rect as UntypedRect;
@@ -17,6 +15,8 @@ use image::RgbaImage;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{GenericOneshotSender, GenericSender};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use style_traits::CSSPixel;
 use url::Url;

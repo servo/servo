@@ -8,8 +8,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::generic_channel::GenericSender;
-use base::{Epoch, generic_channel};
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
@@ -29,6 +27,8 @@ use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_arc::Arc as ServoArc;
+use servo_base::generic_channel::GenericSender;
+use servo_base::{Epoch, generic_channel};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;

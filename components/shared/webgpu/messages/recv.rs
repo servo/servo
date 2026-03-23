@@ -6,13 +6,13 @@
 //! (usually from the ScriptThread, and more specifically from DOM objects)
 
 use arrayvec::ArrayVec;
-use base::Epoch;
-use base::generic_channel::{
-    GenericCallback, GenericOneshotSender, GenericSender, GenericSharedMemory,
-};
-use base::id::PipelineId;
 use pixels::SharedSnapshot;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::generic_channel::{
+    GenericCallback, GenericOneshotSender, GenericSender, GenericSharedMemory,
+};
+use servo_base::id::PipelineId;
 use webrender_api::ImageKey;
 use webrender_api::euclid::default::Size2D;
 use webrender_api::units::DeviceIntSize;

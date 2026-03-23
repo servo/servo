@@ -5,7 +5,6 @@
 use std::ops::{Bound, Deref, DerefMut, Range, RangeBounds};
 use std::sync::Arc;
 
-use base::generic_channel::GenericSharedMemory;
 use euclid::default::{Rect, Size2D};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
@@ -13,6 +12,7 @@ use image::codecs::webp::WebPEncoder;
 use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageError, Rgb};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericSharedMemory;
 
 use crate::{EncodedImageType, Multiply, rgba8_get_rect, transform_inplace};
 

@@ -5,7 +5,6 @@
 use std::ffi::{CStr, CString};
 use std::ptr;
 
-use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use fontconfig_sys::constants::{
     FC_FAMILY, FC_FILE, FC_FONTFORMAT, FC_INDEX, FC_SLANT, FC_SLANT_ITALIC, FC_SLANT_OBLIQUE,
     FC_WEIGHT, FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABLACK, FC_WEIGHT_REGULAR, FC_WIDTH,
@@ -22,6 +21,7 @@ use fontconfig_sys::{
 use fonts_traits::{FontTemplate, FontTemplateDescriptor, LocalFontIdentifier};
 use libc::{c_char, c_int};
 use log::debug;
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight, XLang};

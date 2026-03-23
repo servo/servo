@@ -5,7 +5,6 @@
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
-use base::id::{ImageBitmapId, ImageBitmapIndex};
 use constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -13,6 +12,7 @@ use js::realm::CurrentRealm;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::error::{Error, Fallible};
+use servo_base::id::{ImageBitmapId, ImageBitmapIndex};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{

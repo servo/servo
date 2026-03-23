@@ -8,7 +8,6 @@ use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -21,6 +20,7 @@ use js::rust::{
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::SafeToJSValConvertible;
+use servo_base::id::{MessagePortId, MessagePortIndex};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{

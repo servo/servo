@@ -14,13 +14,13 @@ use crate::script_runtime::CanGc;
 pub(crate) struct PipelineId {
     reflector_: Reflector,
     #[no_trace]
-    inner: base::id::PipelineId,
+    inner: servo_base::id::PipelineId,
 }
 
 impl PipelineId {
     pub(crate) fn new(
         global: &GlobalScope,
-        pipeline_id: base::id::PipelineId,
+        pipeline_id: servo_base::id::PipelineId,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(

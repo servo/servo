@@ -10,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "background_hang_monitor"
+name = "servo_background_hang_monitor"
 path = "lib.rs"
 test = false
 doctest = false

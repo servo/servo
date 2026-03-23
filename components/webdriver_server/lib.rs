@@ -22,8 +22,6 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use std::{env, fmt, process, thread};
 
-use base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
-use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};
@@ -44,6 +42,8 @@ use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_config::prefs::{self, PrefValue, Preferences};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::ServoUrl;

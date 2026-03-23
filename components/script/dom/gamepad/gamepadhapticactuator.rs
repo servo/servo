@@ -5,10 +5,10 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
 use js::rust::MutableHandleValue;
+use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{

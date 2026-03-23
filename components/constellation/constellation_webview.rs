@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
 use rustc_hash::FxHashMap;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use style_traits::CSSPixel;
 
 use crate::browsingcontext::BrowsingContext;

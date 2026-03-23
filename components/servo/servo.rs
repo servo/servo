@@ -8,14 +8,6 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
-use background_hang_monitor::HangMonitorRegister;
-use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
-pub use base::id::WebViewId;
-use base::id::{PipelineNamespace, PipelineNamespaceId};
-#[cfg(feature = "bluetooth")]
-use bluetooth::BluetoothThreadFactory;
-#[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -61,6 +53,14 @@ use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
 use rustc_hash::FxHashMap;
 use script::{JSEngineSetup, ServiceWorkerManager};
+use servo_background_hang_monitor::HangMonitorRegister;
+use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
+pub use servo_base::id::WebViewId;
+use servo_base::id::{PipelineNamespace, PipelineNamespaceId};
+#[cfg(feature = "bluetooth")]
+use servo_bluetooth::BluetoothThreadFactory;
+#[cfg(feature = "bluetooth")]
+use servo_bluetooth_traits::BluetoothRequest;
 use servo_config::opts::Opts;
 use servo_config::prefs::{PrefValue, Preferences};
 use servo_config::{opts, pref, prefs};

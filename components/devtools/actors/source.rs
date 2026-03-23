@@ -6,12 +6,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{GenericSender, channel};
-use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use servo_base::generic_channel::{GenericSender, channel};
+use servo_base::id::PipelineId;
 use servo_url::ServoUrl;
 
 use crate::StreamId;

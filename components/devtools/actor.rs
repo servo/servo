@@ -10,12 +10,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use base::id::PipelineId;
 use log::{debug, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
+use servo_base::id::PipelineId;
 
 use crate::StreamId;
 use crate::protocol::{ClientRequest, JsonPacketStream};

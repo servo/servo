@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io};
 
-use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use log::{debug, error, warn};
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{

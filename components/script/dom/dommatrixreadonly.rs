@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::{f64, ptr};
 
-use base::id::{DomMatrixId, DomMatrixIndex};
 use constellation_traits::DomMatrix;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
@@ -19,6 +18,7 @@ use js::typedarray::{Float32Array, Float64Array, HeapFloat32Array, HeapFloat64Ar
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use script_bindings::trace::RootedTraceableBox;
+use servo_base::id::{DomMatrixId, DomMatrixIndex};
 use style::stylesheets::CssRuleType;
 use style_traits::ParsingMode;
 use url::Url;

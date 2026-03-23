@@ -7,15 +7,15 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
-use base::Epoch;
-use base::id::ScrollTreeNodeId;
-use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
 use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};

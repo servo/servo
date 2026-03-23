@@ -8,11 +8,11 @@ use std::borrow::Cow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
-use base::id::PipelineId;
 use log::{info, warn};
 use paint_api::{CrossProcessPaintApi, WebRenderExternalImageIdManager, WebRenderImageHandlerType};
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory};
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use webgpu_traits::{
     Adapter, ComputePassId, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,

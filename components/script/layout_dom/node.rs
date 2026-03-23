@@ -8,7 +8,6 @@ use std::borrow::Cow;
 use std::fmt;
 use std::iter::FusedIterator;
 
-use base::id::{BrowsingContextId, PipelineId};
 use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, PseudoElementChain, SharedSelection, ThreadSafeLayoutElement,
     ThreadSafeLayoutNode,
@@ -22,6 +21,7 @@ use pixels::ImageMetadata;
 use script_bindings::error::Fallible;
 use selectors::Element as _;
 use servo_arc::Arc;
+use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use style;
 use style::context::SharedStyleContext;

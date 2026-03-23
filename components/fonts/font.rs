@@ -12,8 +12,6 @@ use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
-use base::id::PainterId;
-use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
@@ -25,6 +23,8 @@ use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::id::PainterId;
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
 use style::properties::style_structs::Font as FontStyleStruct;

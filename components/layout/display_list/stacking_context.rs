@@ -8,8 +8,6 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::id::ScrollTreeNodeId;
-use base::print_tree::PrintTree;
 use embedder_traits::ViewportDetails;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use log::warn;
@@ -18,6 +16,8 @@ use paint_api::display_list::{
     AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
     SpatialTreeNodeInfo, StickyNodeInfo,
 };
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
 use servo_config::opts::DiagnosticsLogging;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};

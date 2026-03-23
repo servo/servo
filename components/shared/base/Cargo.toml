@@ -10,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "base"
+name = "servo_base"
 path = "lib.rs"
 test = true
 doctest = false

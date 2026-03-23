@@ -6,13 +6,13 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::GenericSender;
-use base::id::TEST_PIPELINE_ID;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::TEST_PIPELINE_ID;
 use servo_url::ServoUrl;
 
 use crate::StreamId;

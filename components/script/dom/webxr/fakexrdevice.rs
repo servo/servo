@@ -5,10 +5,10 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Point3D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
     MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,

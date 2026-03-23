@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::Epoch;
 use canvas_traits::canvas::*;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
+use servo_base::Epoch;
 use webrender_api::ImageKey;
 
 use crate::backend::GenericDrawTarget;

@@ -4,12 +4,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use base::threadpool::ThreadPool;
 use log::{error, info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
+use servo_base::threadpool::ThreadPool;
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
     CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord,
@@ -743,11 +743,11 @@ mod tests {
     use std::collections::VecDeque;
     use std::sync::Arc;
 
-    use base::generic_channel::{self, GenericReceiver, GenericSender};
-    use base::threadpool::ThreadPool;
     use profile_traits::generic_callback::GenericCallback;
     use profile_traits::time::ProfilerChan;
     use serde::{Deserialize, Serialize};
+    use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+    use servo_base::threadpool::ThreadPool;
     use servo_url::ImmutableOrigin;
     use storage_traits::indexeddb::{
         AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,

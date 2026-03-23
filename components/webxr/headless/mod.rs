@@ -6,9 +6,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use base::generic_channel::GenericReceiver;
 use euclid::{Point2D, RigidTransform3D};
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use servo_base::generic_channel::GenericReceiver;
 use surfman::chains::SwapChains;
 use webxr_api::util::{self, ClipPlanes, HitTestList};
 use webxr_api::{

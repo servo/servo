@@ -7,12 +7,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{RopeIndex, RopeMovement};
 use keyboard_types::{Key, Modifiers, NamedKey};
 use script::test::DOMString;
 use script::test::textinput::{ClipboardProvider, Direction, SelectionDirection, TextInput};
 use script::textinput::Lines;
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::{RopeIndex, RopeMovement};
 
 pub struct DummyClipboardContext {
     content: String,

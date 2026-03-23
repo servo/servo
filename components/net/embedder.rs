@@ -4,11 +4,11 @@
 
 use std::path::PathBuf;
 
-use base::id::WebViewId;
 use embedder_traits::{
     AuthenticationResponse, EmbedderControlId, FilePickerRequest, WebResourceRequest,
     WebResourceResponseMsg,
 };
+use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender as TokioOneshotSender;

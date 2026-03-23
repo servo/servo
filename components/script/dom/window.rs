@@ -15,12 +15,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use app_units::Au;
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{self, GenericCallback, GenericSender};
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use base64::Engine;
-#[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
 use constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
@@ -83,6 +78,11 @@ use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{self, GenericCallback, GenericSender};
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+#[cfg(feature = "bluetooth")]
+use servo_bluetooth_traits::BluetoothRequest;
 use servo_config::pref;
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};

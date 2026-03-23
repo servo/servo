@@ -4,7 +4,6 @@
 
 use std::io::{Read, Seek, Write};
 
-use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
@@ -15,6 +14,7 @@ use net_traits::{
     ResourceFetchTiming,
 };
 use servo_arc::Arc;
+use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;

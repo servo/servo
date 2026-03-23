@@ -8,10 +8,6 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
-use base::id::{PipelineId, WebViewId};
-#[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
 use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
@@ -22,6 +18,10 @@ use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use rustc_hash::FxHashSet;
 use script_traits::{Painter, ScriptThreadMessage};
+use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
+use servo_base::id::{PipelineId, WebViewId};
+#[cfg(feature = "bluetooth")]
+use servo_bluetooth_traits::BluetoothRequest;
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]

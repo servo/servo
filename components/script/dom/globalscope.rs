@@ -16,12 +16,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use base::generic_channel;
-use base::generic_channel::{GenericCallback, GenericSend};
-use base::id::{
-    BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
-    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
-};
 use constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
@@ -66,6 +60,12 @@ use profile_traits::{
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::settings_stack::run_a_script;
+use servo_base::generic_channel;
+use servo_base::generic_channel::{GenericCallback, GenericSend};
+use servo_base::id::{
+    BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
+    ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
+};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use strum::VariantArray;

@@ -6,9 +6,6 @@ use std::cell::Cell;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
-use base::generic_channel;
-use base::generic_channel::GenericSend;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
     ScriptToConstellationMessage,
@@ -40,6 +37,9 @@ use net_traits::request::Referrer;
 use script_bindings::reflector::MutDomObject;
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel;
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;

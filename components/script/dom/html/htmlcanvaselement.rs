@@ -5,7 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::Epoch;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use constellation_traits::BlobImpl;
 #[cfg(feature = "webgpu")]
@@ -19,6 +18,7 @@ use layout_api::HTMLCanvasData;
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::weakref::WeakRef;
+use servo_base::Epoch;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
@@ -320,7 +320,7 @@ impl HTMLCanvasElement {
 
     #[cfg(feature = "webgpu")]
     fn get_or_init_webgpu_context(&self, can_gc: CanGc) -> Option<DomRoot<GPUCanvasContext>> {
-        use base::generic_channel;
+        use servo_base::generic_channel;
 
         if let Some(ctx) = self.context() {
             return match *ctx {

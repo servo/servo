@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 use constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -14,6 +13,7 @@ use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
 use script_bindings::weakref::WeakRef;
+use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::dom::bindings::cell::{DomRefCell, Ref};

@@ -14,7 +14,6 @@ use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
 use app_units::Au;
-use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
@@ -41,6 +40,7 @@ use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_traits::DocumentActivity;
 use servo_arc::Arc as ServoArc;
+use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;

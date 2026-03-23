@@ -14,7 +14,6 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
-    use base::generic_channel::{self, GenericReceiver};
     use fonts::platform::font::PlatformFont;
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
@@ -26,6 +25,7 @@ mod font_context {
     use paint_api::CrossProcessPaintApi;
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
+    use servo_base::generic_channel::{self, GenericReceiver};
     use style::ArcSlice;
     use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;

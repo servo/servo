@@ -5,11 +5,11 @@
 use std::collections::HashSet;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::GenericSender;
 use devtools_traits::{DevtoolScriptControlMsg, PauseReason};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use servo_base::generic_channel::GenericSender;
 
 use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};

@@ -4,11 +4,11 @@
 
 use std::cell::Cell;
 
-use base::id::ServiceWorkerRegistrationId;
 use constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
+use servo_base::id::ServiceWorkerRegistrationId;
 use servo_url::ServoUrl;
 use uuid::Uuid;
 

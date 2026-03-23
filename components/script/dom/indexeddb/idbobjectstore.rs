@@ -4,7 +4,6 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
-use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -14,6 +13,7 @@ use js::rust::HandleValue;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
+use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{
     self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
     IndexedDBThreadMsg, SyncOperation,

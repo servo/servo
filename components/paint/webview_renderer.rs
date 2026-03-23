@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
-use base::id::{PipelineId, WebViewId};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollStateUpdate, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
@@ -23,6 +22,7 @@ use paint_api::viewport_description::{
 };
 use paint_api::{PipelineExitSource, SendableFrameTree, WebViewTrait};
 use rustc_hash::FxHashMap;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::RenderApi;

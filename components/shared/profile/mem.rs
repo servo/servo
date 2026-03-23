@@ -11,13 +11,13 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::marker::Send;
 
-use base::generic_channel::{GenericCallback, GenericSender};
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::{GenericCallback, GenericSender};
 
 /// A trait to abstract away the various kinds of message senders we use.
 pub trait OpaqueSender<T> {

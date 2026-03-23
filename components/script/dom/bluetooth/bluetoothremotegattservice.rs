@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
-use bluetooth_traits::{BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
+use servo_bluetooth_traits::{BluetoothResponse, GATTType};
 
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;

@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 
-use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use servo_base::id::{PipelineId, WebViewId};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;

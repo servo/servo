@@ -21,8 +21,6 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::sync::Arc;
 
-use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
-use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -31,6 +29,10 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_base::generic_channel::{
+    GenericCallback, GenericSender, GenericSharedMemory, SendResult,
+};
+use servo_base::id::{PipelineId, WebViewId};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use servo_url::ServoUrl;
 use strum::{EnumMessage, IntoStaticStr};

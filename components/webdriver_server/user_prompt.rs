@@ -5,10 +5,10 @@
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 
-use base::generic_channel;
-use base::id::WebViewId;
 use embedder_traits::{WebDriverCommandMsg, WebDriverUserPrompt, WebDriverUserPromptAction};
 use serde_json::{Map, Value};
+use servo_base::generic_channel;
+use servo_base::id::WebViewId;
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::response::{ValueResponse, WebDriverResponse};
 

@@ -10,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "bluetooth"
+name = "servo_bluetooth"
 path = "lib.rs"
 
 [dependencies]

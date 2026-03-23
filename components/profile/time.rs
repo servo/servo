@@ -11,11 +11,11 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver};
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
     TimerMetadataFrameType, TimerMetadataReflowType,
 };
+use servo_base::generic_channel::{self, GenericReceiver};
 use servo_config::opts::OutputOptions;
 use time::Duration;
 

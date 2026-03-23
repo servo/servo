@@ -9,7 +9,6 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
@@ -20,6 +19,7 @@ use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};

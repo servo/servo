@@ -7,8 +7,8 @@ use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use base::generic_channel::GenericSharedMemory;
-use base::id::{MessagePortId, MessagePortIndex};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
