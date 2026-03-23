@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{GenericCallback, GenericSender};
-use bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
-use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
-use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
-use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
-use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
+use servo_base::generic_channel::{GenericCallback, GenericSender};
+use servo_bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
+use servo_bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
+use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
+use servo_bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
+use servo_bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use js::realm::CurrentRealm;
 use script_bindings::cformat;
 use crate::conversions::Convert;

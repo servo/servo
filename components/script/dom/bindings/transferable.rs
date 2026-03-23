@@ -7,7 +7,7 @@
 
 use std::hash::Hash;
 
-use base::id::NamespaceIndex;
+use servo_base::id::NamespaceIndex;
 use rustc_hash::FxHashMap;
 use script_bindings::structuredclone::MarkedAsTransferableInIdl;
 

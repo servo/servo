@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericCallback;
-use base::id::WebViewId;
+use servo_base::generic_channel::GenericCallback;
+use servo_base::id::WebViewId;
 use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan};
 use malloc_size_of_derive::MallocSizeOf;
 

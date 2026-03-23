@@ -5,8 +5,8 @@
 use std::cell::{Cell, RefCell};
 use std::ops::Deref;
 
-use base::generic_channel::GenericSend;
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::{PipelineId, WebViewId};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
 use html5ever::tokenizer::{

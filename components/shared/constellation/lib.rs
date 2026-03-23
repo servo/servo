@@ -15,9 +15,9 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericCallback;
-use base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericCallback;
+use servo_base::id::{MessagePortId, PipelineId, ScriptEventLoopId, WebViewId};
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };

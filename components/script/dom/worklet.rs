@@ -18,8 +18,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::thread;
 
-use base::generic_channel::GenericSend;
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JSGCParamKey, JSTracer};

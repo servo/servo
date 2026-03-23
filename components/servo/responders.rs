@@ -4,7 +4,7 @@
 
 use std::cell::RefCell;
 
-use base::generic_channel::{GenericSender, SendError, SendResult};
+use servo_base::generic_channel::{GenericSender, SendError, SendResult};
 use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use log::warn;
 use serde::Serialize;

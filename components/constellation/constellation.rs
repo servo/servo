@@ -95,21 +95,21 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::{process, thread};
 
-use background_hang_monitor::HangMonitorRegister;
+use servo_background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::generic_channel::{
+use servo_base::generic_channel::{
     GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
 };
-use base::id::{
+use servo_base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
     ScriptEventLoopId, WebViewId,
 };
-use base::{Epoch, generic_channel};
+use servo_base::{Epoch, generic_channel};
 #[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
+use servo_bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};

@@ -8,8 +8,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::generic_channel::GenericSender;
-use base::{Epoch, generic_channel};
+use servo_base::generic_channel::GenericSender;
+use servo_base::{Epoch, generic_channel};
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,

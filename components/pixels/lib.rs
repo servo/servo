@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{cmp, fmt, vec};
 
-use base::generic_channel::GenericSharedMemory;
+use servo_base::generic_channel::GenericSharedMemory;
 use euclid::default::{Point2D, Rect, Size2D};
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;

@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str::FromStr;
 
-use base::generic_channel::GenericSharedMemory;
+use servo_base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;

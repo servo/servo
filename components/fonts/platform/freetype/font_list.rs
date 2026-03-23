@@ -5,7 +5,7 @@
 use std::ffi::{CStr, CString};
 use std::ptr;
 
-use base::text::{UnicodeBlock, UnicodeBlockMethod};
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use fontconfig_sys::constants::{
     FC_FAMILY, FC_FILE, FC_FONTFORMAT, FC_INDEX, FC_SLANT, FC_SLANT_ITALIC, FC_SLANT_OBLIQUE,
     FC_WEIGHT, FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABLACK, FC_WEIGHT_REGULAR, FC_WIDTH,

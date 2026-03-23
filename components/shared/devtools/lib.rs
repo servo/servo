@@ -23,9 +23,9 @@ use std::net::TcpStream;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericSender;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};

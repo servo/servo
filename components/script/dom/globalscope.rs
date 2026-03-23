@@ -16,9 +16,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use base::generic_channel;
-use base::generic_channel::{GenericCallback, GenericSend};
-use base::id::{
+use servo_base::generic_channel;
+use servo_base::generic_channel::{GenericCallback, GenericSend};
+use servo_base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };

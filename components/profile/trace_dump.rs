@@ -7,7 +7,7 @@
 use std::io::{self, Write};
 use std::{fs, path};
 
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use profile_traits::time::{ProfilerCategory, TimerMetadata};
 use serde::Serialize;
 

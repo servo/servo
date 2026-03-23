@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use base::id::ScrollTreeNodeId;
+use servo_base::id::ScrollTreeNodeId;
 use euclid::Size2D;
 use paint_api::display_list::{
     AxesScrollSensitivity, ScrollTree, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo,

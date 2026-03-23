@@ -8,7 +8,7 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericSender;
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;

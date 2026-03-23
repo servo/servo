@@ -11,8 +11,8 @@ use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{self, GenericSender};
-use base::id::TEST_PIPELINE_ID;
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReplyValue::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };

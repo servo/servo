@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::threadpool::ThreadPool;
+use servo_base::threadpool::ThreadPool;
 use log::error;
 use rusqlite::Connection;
 

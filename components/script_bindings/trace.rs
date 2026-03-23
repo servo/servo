@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use crossbeam_channel::Sender;
 use html5ever::interface::{Tracer as HtmlTracer, TreeSink};
 use html5ever::tokenizer::{TokenSink, Tokenizer};

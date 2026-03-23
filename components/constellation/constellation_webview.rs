@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;

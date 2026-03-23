@@ -4,7 +4,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
+use servo_base::generic_channel::GenericCallback;
 use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};

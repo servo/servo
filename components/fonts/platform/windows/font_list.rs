@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use dwrote::{Font, FontCollection, FontStretch, FontStyle};
 use fonts_traits::LocalFontIdentifier;
 use style::values::computed::font::GenericFontFamily;

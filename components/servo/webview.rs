@@ -7,8 +7,8 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use base::generic_channel::GenericSender;
-use base::id::WebViewId;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::WebViewId;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{

@@ -4,8 +4,8 @@
 
 use std::cell::RefCell;
 
-use base::generic_channel::{GenericCallback, GenericSender, channel};
-use base::id::{Index, PipelineId, PipelineNamespaceId};
+use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
+use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{
     DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue, ScriptToDevtoolsControlMsg,

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::BroadcastChannelRouterId;
+use servo_base::id::BroadcastChannelRouterId;
 use constellation_traits::BroadcastChannelMsg;
 use ipc_channel::ipc::IpcSender;
 use log::warn;

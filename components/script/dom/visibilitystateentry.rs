@@ -4,7 +4,7 @@
 
 use std::ops::Deref;
 
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use time::Duration;
 

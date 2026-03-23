@@ -5,8 +5,8 @@
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::PipelineId;
 use constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "gamepad")]
 use embedder_traits::GamepadHapticEffectType;
@@ -1020,7 +1020,7 @@ mod test {
 
     #[test]
     fn test_allow_deny_request() {
-        use base::generic_channel;
+        use servo_base::generic_channel;
 
         use crate::responders::ServoErrorChannel;
 

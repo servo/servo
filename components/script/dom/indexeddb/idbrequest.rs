@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use base::generic_channel::GenericSend;
+use servo_base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;

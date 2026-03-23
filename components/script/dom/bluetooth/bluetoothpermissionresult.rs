@@ -4,8 +4,8 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
+use servo_base::generic_channel::GenericSender;
+use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::DomRefCell;

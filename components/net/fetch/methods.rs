@@ -6,8 +6,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{io, mem, str};
 
-use base::generic_channel::CallbackSetter;
-use base::id::PipelineId;
+use servo_base::generic_channel::CallbackSetter;
+use servo_base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy as csp;

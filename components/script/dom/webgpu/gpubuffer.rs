@@ -6,7 +6,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::string::String;
 
-use base::generic_channel::GenericSharedMemory;
+use servo_base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use js::typedarray::HeapArrayBuffer;
 use script_bindings::trace::RootedTraceableBox;

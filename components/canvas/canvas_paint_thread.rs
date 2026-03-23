@@ -5,8 +5,8 @@
 use std::borrow::ToOwned;
 use std::{f32, thread};
 
-use base::generic_channel::GenericSender;
-use base::{Epoch, generic_channel};
+use servo_base::generic_channel::GenericSender;
+use servo_base::{Epoch, generic_channel};
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
 use crossbeam_channel::{Sender, select, unbounded};

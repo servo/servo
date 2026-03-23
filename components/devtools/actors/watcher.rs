@@ -13,7 +13,7 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 
-use base::id::BrowsingContextId;
+use servo_base::id::BrowsingContextId;
 use devtools_traits::get_time_stamp;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;

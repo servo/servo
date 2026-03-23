@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use base::generic_channel::{GenericCallback, GenericSender};
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::{GenericCallback, GenericSender};
+use servo_base::id::{PipelineId, WebViewId};
 use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;

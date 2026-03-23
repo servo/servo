@@ -7,7 +7,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::RoutedReceiver;
+use servo_base::generic_channel::RoutedReceiver;
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use embedder_traits::{EventLoopWaker, ShutdownState};

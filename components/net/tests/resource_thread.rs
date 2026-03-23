@@ -4,7 +4,7 @@
 
 use std::net::IpAddr;
 
-use base::generic_channel;
+use servo_base::generic_channel;
 use net::connector::CACertificates;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_core_resource_thread;

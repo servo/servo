@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::WebViewId;
+use servo_base::id::WebViewId;
 use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId};
 use rustc_hash::FxHashMap;

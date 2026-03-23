@@ -7,7 +7,7 @@
     not(target_os = "android"),
     not(target_env = "ohos")
 ))]
-use base::text::{UnicodeBlock, UnicodeBlockMethod};
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 #[cfg(all(
     any(target_os = "linux", target_os = "macos"),
     not(target_os = "android"),

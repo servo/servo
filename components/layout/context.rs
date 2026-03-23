@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use base::id::PainterId;
+use servo_base::id::PainterId;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::Size2D;
 use fonts::FontContext;

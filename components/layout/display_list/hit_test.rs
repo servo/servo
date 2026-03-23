@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use base::id::ScrollTreeNodeId;
+use servo_base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use euclid::{Box2D, Vector2D};
 use kurbo::{Ellipse, Shape};

@@ -7,7 +7,7 @@ use std::convert::TryInto;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use base::generic_channel;
+use servo_base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOrUnregister};
 use headers::HeaderMap;

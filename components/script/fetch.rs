@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use base::id::WebViewId;
+use servo_base::id::WebViewId;
 use ipc_channel::ipc;
 use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;

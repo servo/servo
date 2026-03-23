@@ -9,8 +9,8 @@ use std::ptr::NonNull;
 use std::str::FromStr;
 use std::{f64, ptr};
 
-use base::generic_channel::GenericSender;
-use base::text::Utf16CodeUnitLength;
+use servo_base::generic_channel::GenericSender;
+use servo_base::text::Utf16CodeUnitLength;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::{

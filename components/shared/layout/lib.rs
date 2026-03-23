@@ -20,9 +20,9 @@ use std::time::Duration;
 
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
-use base::Epoch;
-use base::generic_channel::GenericSender;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};

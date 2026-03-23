@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
+use servo_base::generic_channel::GenericCallback;
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg, GamepadSupportedHapticEffects};
 use js::rust::MutableHandleValue;

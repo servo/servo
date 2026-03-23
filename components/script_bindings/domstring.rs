@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::{fmt, slice, str};
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use html5ever::{LocalName, Namespace};
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::MutableHandleValue;

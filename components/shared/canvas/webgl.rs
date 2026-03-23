@@ -7,15 +7,15 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
-use base::Epoch;
+use servo_base::Epoch;
 /// Receiver type used in WebGLCommands.
-pub use base::generic_channel::GenericReceiver;
+pub use servo_base::generic_channel::GenericReceiver;
 /// Sender type used in WebGLCommands.
-pub use base::generic_channel::GenericSender;
-use base::generic_channel::GenericSharedMemory;
+pub use servo_base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericSharedMemory;
 /// Result type for send()/recv() calls in in WebGLCommands.
-pub use base::generic_channel::SendResult as WebGLSendResult;
-use base::id::PainterId;
+pub use servo_base::generic_channel::SendResult as WebGLSendResult;
+use servo_base::id::PainterId;
 use euclid::default::{Rect, Size2D};
 use glow::{
     self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
@@ -35,7 +35,7 @@ pub fn webgl_channel<T>() -> Option<(GenericSender<T>, GenericReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    base::generic_channel::channel()
+    servo_base::generic_channel::channel()
 }
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.

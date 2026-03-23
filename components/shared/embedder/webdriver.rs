@@ -6,8 +6,8 @@
 
 use std::collections::HashMap;
 
-use base::generic_channel::{GenericOneshotSender, GenericSender};
-use base::id::{BrowsingContextId, WebViewId};
+use servo_base::generic_channel::{GenericOneshotSender, GenericSender};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use euclid::default::Rect as UntypedRect;

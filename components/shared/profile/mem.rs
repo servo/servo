@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use std::ffi::c_void;
 use std::marker::Send;
 
-use base::generic_channel::{GenericCallback, GenericSender};
+use servo_base::generic_channel::{GenericCallback, GenericSender};
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::IpcSender;
 use log::warn;

@@ -11,10 +11,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver, GenericSender};
-use base::id::WebViewId;
-use base::threadpool::ThreadPool;
-use base::{read_json_from_file, write_json_to_file};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::id::WebViewId;
+use servo_base::threadpool::ThreadPool;
+use servo_base::{read_json_from_file, write_json_to_file};
 use log::warn;
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;

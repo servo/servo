@@ -14,7 +14,7 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
-    use base::generic_channel::{self, GenericReceiver};
+    use servo_base::generic_channel::{self, GenericReceiver};
     use fonts::platform::font::PlatformFont;
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,

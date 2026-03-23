@@ -4,7 +4,7 @@
 
 use std::collections::hash_map;
 
-use base::id::{BrowsingContextId, PipelineId};
+use servo_base::id::{BrowsingContextId, PipelineId};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::dom::bindings::inheritance::Castable;

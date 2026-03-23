@@ -4,7 +4,7 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
-use base::generic_channel::{GenericSend, GenericSender};
+use servo_base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;

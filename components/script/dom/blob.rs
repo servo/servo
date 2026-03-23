@@ -5,7 +5,7 @@
 use std::ptr;
 use std::rc::Rc;
 
-use base::id::{BlobId, BlobIndex};
+use servo_base::id::{BlobId, BlobIndex};
 use constellation_traits::{BlobData, BlobImpl};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;

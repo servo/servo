@@ -8,7 +8,7 @@ use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
 
-use base::generic_channel::{self, GenericSharedMemory};
+use servo_base::generic_channel::{self, GenericSharedMemory};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{

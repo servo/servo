@@ -13,10 +13,10 @@ use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericSend;
-use base::id::WebViewId;
-use base::{Epoch, generic_channel};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::WebViewId;
+use servo_base::{Epoch, generic_channel};
 use bitflags::bitflags;
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};

@@ -4,7 +4,7 @@
 
 use std::ops::Add;
 
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActivationMethods;
 use time::Duration;

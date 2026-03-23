@@ -8,9 +8,9 @@ use std::sync::Arc as StdArc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::GenericSharedMemory;
-use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,

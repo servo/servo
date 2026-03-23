@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
     NavigationHistoryBehavior, ScriptToConstellationMessage,

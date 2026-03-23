@@ -10,8 +10,8 @@ use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
-use base::generic_channel::GenericSharedMemory;
-use base::{Epoch, generic_channel};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::{Epoch, generic_channel};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{

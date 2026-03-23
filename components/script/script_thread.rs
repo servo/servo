@@ -32,9 +32,9 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel;
-use base::id::{
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel;
+use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
 };

@@ -7,8 +7,8 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Error, Formatter};
 
-use base::Epoch;
-use base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::Epoch;
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
 use euclid::{Rect, Scale, Size2D};
@@ -29,7 +29,7 @@ pub mod viewport_description;
 
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{
+use servo_base::generic_channel::{
     self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
 };
 use bitflags::bitflags;

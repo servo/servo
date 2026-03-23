@@ -10,7 +10,7 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use base::id::{
+use servo_base::id::{
     BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
     ImageDataId, QuotaExceededErrorId,
 };

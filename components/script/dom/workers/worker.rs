@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use base::generic_channel;
+use servo_base::generic_channel;
 use constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};

@@ -9,7 +9,7 @@ pub mod render_commands;
 
 use std::ops::Range;
 
-use base::generic_channel::{GenericOneshotSender, GenericSender, GenericSharedMemory};
+use servo_base::generic_channel::{GenericOneshotSender, GenericSender, GenericSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::euclid::default::Size2D;

@@ -5,7 +5,7 @@
 pub mod blocklist;
 pub mod scanfilter;
 
-use base::generic_channel::{GenericCallback, GenericSender};
+use servo_base::generic_channel::{GenericCallback, GenericSender};
 use serde::{Deserialize, Serialize};
 
 use crate::scanfilter::{BluetoothScanfilterSequence, RequestDeviceoptions};

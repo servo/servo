@@ -8,7 +8,7 @@ use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;

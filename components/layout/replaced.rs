@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, MAX_AU};
-use base::id::{BrowsingContextId, PipelineId};
+use servo_base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};

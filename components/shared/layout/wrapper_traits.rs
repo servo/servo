@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use std::ops::Range;
 
 use atomic_refcell::AtomicRefCell;
-use base::id::{BrowsingContextId, PipelineId};
+use servo_base::id::{BrowsingContextId, PipelineId};
 use fonts::TextByteRange;
 use html5ever::{LocalName, Namespace};
 use malloc_size_of_derive::MallocSizeOf;

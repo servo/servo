@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use app_units::Au;
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D};

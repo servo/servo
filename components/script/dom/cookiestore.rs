@@ -6,8 +6,8 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use base::generic_channel::{GenericCallback, GenericSend, GenericSender};
-use base::id::CookieStoreId;
+use servo_base::generic_channel::{GenericCallback, GenericSend, GenericSender};
+use servo_base::id::CookieStoreId;
 use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
 use hyper_serde::Serde;

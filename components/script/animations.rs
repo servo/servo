@@ -6,7 +6,7 @@
 
 use std::cell::Cell;
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use constellation_traits::ScriptToConstellationMessage;
 use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};

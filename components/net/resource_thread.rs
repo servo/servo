@@ -12,11 +12,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::thread;
 
-use base::generic_channel::{
+use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericReceiver, GenericReceiverSet,
     GenericSelectionResult,
 };
-use base::id::CookieStoreId;
+use servo_base::id::CookieStoreId;
 use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -198,9 +198,9 @@ fn create_http_states(
     let mut auth_cache = AuthCache::default();
     let mut cookie_jar = CookieStorage::new(150);
     if let Some(config_dir) = config_dir {
-        base::read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
-        base::read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
-        base::read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
+        servo_base::read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
+        servo_base::read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
+        servo_base::read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
     let override_manager = CertificateErrorOverrideManager::new();
@@ -578,11 +578,11 @@ impl ResourceChannelManager {
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     let auth_cache = http_state.auth_cache.read();
-                    base::write_json_to_file(&*auth_cache, config_dir, "auth_cache.json");
+                    servo_base::write_json_to_file(&*auth_cache, config_dir, "auth_cache.json");
                     let jar = http_state.cookie_jar.read();
-                    base::write_json_to_file(&*jar, config_dir, "cookie_jar.json");
+                    servo_base::write_json_to_file(&*jar, config_dir, "cookie_jar.json");
                     let hsts = http_state.hsts_list.read();
-                    base::write_json_to_file(&*hsts, config_dir, "hsts_list.json");
+                    servo_base::write_json_to_file(&*hsts, config_dir, "hsts_list.json");
                 }
                 self.resource_manager.exit();
                 let _ = sender.send(());

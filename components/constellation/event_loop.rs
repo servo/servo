@@ -11,8 +11,8 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
-use base::id::ScriptEventLoopId;
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
+use servo_base::id::ScriptEventLoopId;
 use constellation_traits::ServiceWorkerManagerFactory;
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::IpcError;
@@ -68,7 +68,7 @@ impl EventLoop {
         is_private: bool,
     ) -> Result<Rc<Self>, IpcError> {
         let (script_chan, script_port) =
-            base::generic_channel::channel().expect("Pipeline script chan");
+            servo_base::generic_channel::channel().expect("Pipeline script chan");
 
         let embedder_chan = constellation.embedder_proxy.sender.clone();
         let eventloop_waker = constellation.embedder_proxy.event_loop_waker.clone();

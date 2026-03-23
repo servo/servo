@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
-use base::id::{PainterId, WebViewId};
+use servo_base::id::{PainterId, WebViewId};
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,

@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::Epoch;
+use servo_base::Epoch;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use constellation_traits::BlobImpl;
 #[cfg(feature = "webgpu")]
@@ -320,7 +320,7 @@ impl HTMLCanvasElement {
 
     #[cfg(feature = "webgpu")]
     fn get_or_init_webgpu_context(&self, can_gc: CanGc) -> Option<DomRoot<GPUCanvasContext>> {
-        use base::generic_channel;
+        use servo_base::generic_channel;
 
         if let Some(ctx) = self.context() {
             return match *ctx {

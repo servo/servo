@@ -6,9 +6,9 @@ use std::cell::Cell;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
-use base::generic_channel;
-use base::generic_channel::GenericSend;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::generic_channel;
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
     ScriptToConstellationMessage,

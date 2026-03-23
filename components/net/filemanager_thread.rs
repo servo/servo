@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
-use base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericSender;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
     SelectedFile,

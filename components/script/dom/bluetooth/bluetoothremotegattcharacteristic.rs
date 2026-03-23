@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
-use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
+use servo_base::generic_channel::GenericSender;
+use servo_bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
+use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 

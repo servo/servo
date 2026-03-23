@@ -6,7 +6,7 @@ use core::cell::RefCell;
 use core::sync::atomic::Ordering;
 use std::cell::Ref;
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use rustc_hash::FxHashMap;
 use strum::VariantArray;
 

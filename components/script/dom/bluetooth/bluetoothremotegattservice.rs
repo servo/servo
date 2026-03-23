@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use bluetooth_traits::{BluetoothResponse, GATTType};
+use servo_bluetooth_traits::{BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 

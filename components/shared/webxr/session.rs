@@ -5,7 +5,7 @@
 use std::thread;
 use std::time::Duration;
 
-use base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use euclid::{Point2D, Rect, RigidTransform3D, Size2D};
 use ipc_channel::ipc::IpcSender;
 use log::warn;

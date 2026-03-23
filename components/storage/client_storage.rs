@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use storage_traits::client_storage::ClientStorageThreadMessage;
 
 pub trait ClientStorageThreadFactory {

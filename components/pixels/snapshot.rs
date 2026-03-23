@@ -5,7 +5,7 @@
 use std::ops::{Bound, Deref, DerefMut, Range, RangeBounds};
 use std::sync::Arc;
 
-use base::generic_channel::GenericSharedMemory;
+use servo_base::generic_channel::GenericSharedMemory;
 use euclid::default::{Rect, Size2D};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;

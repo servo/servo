@@ -4,7 +4,7 @@
 
 use std::ffi::c_void;
 
-use base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
+use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, unicode_plane};
 use fonts_traits::LocalFontIdentifier;
 use log::debug;
 use objc2_core_foundation::{CFDictionary, CFRetained, CFSet, CFString, CFType, CFURL};

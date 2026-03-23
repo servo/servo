@@ -9,7 +9,7 @@ use std::default::Default;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use deny_public_fields::DenyPublicFields;
 use js::context::JSContext;
 use js::jsapi::Heap;

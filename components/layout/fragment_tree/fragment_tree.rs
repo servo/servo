@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use app_units::Au;
-use base::print_tree::PrintTree;
+use servo_base::print_tree::PrintTree;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::AxesScrollSensitivity;
 use rustc_hash::FxHashSet;

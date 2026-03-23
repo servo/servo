@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
+use servo_base::generic_channel::GenericCallback;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 

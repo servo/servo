@@ -22,8 +22,8 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use std::{env, fmt, process, thread};
 
-use base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
-use base::id::{BrowsingContextId, WebViewId};
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, RoutedReceiver};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use cookie::{CookieBuilder, Expiration, SameSite};

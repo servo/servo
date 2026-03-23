@@ -9,8 +9,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::{mem, thread};
 
-use base::id::{PipelineId, WebViewId};
-use base::threadpool::ThreadPool;
+use servo_base::id::{PipelineId, WebViewId};
+use servo_base::threadpool::ThreadPool;
 use imsz::imsz_from_reader;
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};

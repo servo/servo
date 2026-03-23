@@ -4,7 +4,7 @@
 
 use std::ops::Deref;
 
-use base::id::TEST_WEBVIEW_ID;
+use servo_base::id::TEST_WEBVIEW_ID;
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};

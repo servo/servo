@@ -8,7 +8,7 @@ use std::f64::consts::{FRAC_PI_2, PI};
 use std::rc::Rc;
 use std::{mem, ptr};
 
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;

@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use base::id::WebViewId;
+use servo_base::id::WebViewId;
 use embedder_traits::{InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};

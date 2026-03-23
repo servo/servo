@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use base::generic_channel;
-use base::id::BrowsingContextId;
+use servo_base::generic_channel;
+use servo_base::id::BrowsingContextId;
 use embedder_traits::{
     InputEvent, KeyboardEvent, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, TouchEvent,
     TouchEventType, TouchId, WebDriverCommandMsg, WebDriverScriptCommand, WebViewPoint, WheelDelta,

@@ -8,8 +8,8 @@
 
 use std::cell::Cell;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;

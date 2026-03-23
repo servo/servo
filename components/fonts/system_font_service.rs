@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use std::thread;
 
 use app_units::Au;
-use base::generic_channel::{self, GenericReceiver};
-use base::id::PainterId;
+use servo_base::generic_channel::{self, GenericReceiver};
+use servo_base::id::PainterId;
 use fonts_traits::{
     FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, LowercaseFontFamilyName,
     SystemFontServiceMessage, SystemFontServiceProxySender,

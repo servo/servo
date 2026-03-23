@@ -7,7 +7,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use base::text::is_bidi_control;
+use servo_base::text::is_bidi_control;
 use fonts::{
     FontContext, FontRef, GlyphStore, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };

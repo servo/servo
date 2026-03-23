@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use base::generic_channel::GenericSharedMemory;
+use servo_base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 

@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, SystemTime};
 
-use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use content_security_policy as csp;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};

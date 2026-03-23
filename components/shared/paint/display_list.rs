@@ -7,9 +7,9 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 
-use base::Epoch;
-use base::id::ScrollTreeNodeId;
-use base::print_tree::PrintTree;
+use servo_base::Epoch;
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
 use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
 use euclid::SideOffsets2D;

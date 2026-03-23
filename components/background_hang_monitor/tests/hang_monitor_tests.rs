@@ -9,13 +9,13 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use background_hang_monitor::HangMonitorRegister;
+use servo_background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorExitSignal, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId, MonitoredComponentType, ScriptHangAnnotation,
 };
-use base::generic_channel;
-use base::id::TEST_SCRIPT_EVENT_LOOP_ID;
+use servo_base::generic_channel;
+use servo_base::id::TEST_SCRIPT_EVENT_LOOP_ID;
 
 static SERIAL: Mutex<()> = Mutex::new(());
 

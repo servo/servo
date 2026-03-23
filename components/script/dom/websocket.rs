@@ -6,7 +6,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
 
-use base::generic_channel::{LazyCallback, lazy_callback};
+use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;

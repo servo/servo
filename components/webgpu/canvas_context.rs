@@ -8,8 +8,8 @@ use std::ptr::NonNull;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
-use base::Epoch;
-use base::generic_channel::GenericSender;
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
 use euclid::default::Size2D;
 use log::warn;
 use paint_api::{

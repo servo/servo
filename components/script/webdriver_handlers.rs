@@ -6,8 +6,8 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
-use base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
-use base::id::{BrowsingContextId, PipelineId};
+use servo_base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
+use servo_base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
     CustomHandlersAutomationMode, JSValue, JavaScriptEvaluationError,

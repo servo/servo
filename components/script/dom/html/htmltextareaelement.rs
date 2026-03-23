@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 
-use base::text::Utf16CodeUnitLength;
+use servo_base::text::Utf16CodeUnitLength;
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use fonts::{ByteIndex, TextByteRange};

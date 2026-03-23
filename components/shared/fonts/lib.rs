@@ -12,7 +12,7 @@ mod system_font_service_proxy;
 use std::ops::{Deref, Range};
 use std::sync::Arc;
 
-use base::generic_channel::GenericSharedMemory;
+use servo_base::generic_channel::GenericSharedMemory;
 pub use font_descriptor::*;
 pub use font_identifier::*;
 pub use font_template::*;

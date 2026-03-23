@@ -6,7 +6,7 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::{AU_PER_PX, Au};
-use base::id::{PipelineId, ScrollTreeNodeId};
+use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;

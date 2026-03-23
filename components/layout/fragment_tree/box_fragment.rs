@@ -4,8 +4,8 @@
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use base::id::ScrollTreeNodeId;
-use base::print_tree::PrintTree;
+use servo_base::id::ScrollTreeNodeId;
+use servo_base::print_tree::PrintTree;
 use euclid::Rect;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;

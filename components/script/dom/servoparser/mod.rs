@@ -7,8 +7,8 @@ use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, WebViewId};
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::id::{PipelineId, WebViewId};
 use base64::Engine as _;
 use base64::engine::general_purpose;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;

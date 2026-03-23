@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use base::generic_channel::GenericCallback;
+use servo_base::generic_channel::GenericCallback;
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,

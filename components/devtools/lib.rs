@@ -19,8 +19,8 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use base::generic_channel::{self, GenericSender};
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,

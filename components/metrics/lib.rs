@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
@@ -308,7 +308,7 @@ impl ProgressiveWebMetrics {
 
 #[cfg(test)]
 mod test {
-    use base::generic_channel;
+    use servo_base::generic_channel;
 
     use super::*;
 

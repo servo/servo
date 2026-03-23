@@ -8,8 +8,8 @@
 use std::collections::HashMap;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{self, GenericSender};
-use base::id::PipelineId;
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PipelineId;
 use devtools_traits::{
     AttrModification, DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode,
 };

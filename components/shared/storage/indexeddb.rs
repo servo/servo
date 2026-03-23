@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
-use base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::mem::ReportsChan;

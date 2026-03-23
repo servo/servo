@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use base::id::PipelineId;
-use base::print_tree::PrintTree;
+use servo_base::id::PipelineId;
+use servo_base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, GlyphStore};
 use layout_api::BoxAreaType;

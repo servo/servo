@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use base::threadpool::ThreadPool;
+use servo_base::threadpool::ThreadPool;
 use log::{error, info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
@@ -743,8 +743,8 @@ mod tests {
     use std::collections::VecDeque;
     use std::sync::Arc;
 
-    use base::generic_channel::{self, GenericReceiver, GenericSender};
-    use base::threadpool::ThreadPool;
+    use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+    use servo_base::threadpool::ThreadPool;
     use profile_traits::generic_callback::GenericCallback;
     use profile_traits::time::ProfilerChan;
     use serde::{Deserialize, Serialize};

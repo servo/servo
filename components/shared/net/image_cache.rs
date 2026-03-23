@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use base::id::{PipelineId, WebViewId};
+use servo_base::id::{PipelineId, WebViewId};
 use log::debug;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;

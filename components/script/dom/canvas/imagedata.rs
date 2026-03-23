@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 use std::vec::Vec;
 
-use base::generic_channel::GenericSharedMemory;
-use base::id::{ImageDataId, ImageDataIndex};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{ImageDataId, ImageDataIndex};
 use constellation_traits::SerializableImageData;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};

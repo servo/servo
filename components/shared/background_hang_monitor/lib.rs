@@ -9,7 +9,7 @@
 use std::time::Duration;
 use std::{fmt, mem};
 
-use base::id::ScriptEventLoopId;
+use servo_base::id::ScriptEventLoopId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

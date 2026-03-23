@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
 use strum::VariantArray;
 use stylo_atoms::Atom;

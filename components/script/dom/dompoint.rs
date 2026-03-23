@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::id::{DomPointId, DomPointIndex};
+use servo_base::id::{DomPointId, DomPointIndex};
 use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;

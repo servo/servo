@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericSender;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;

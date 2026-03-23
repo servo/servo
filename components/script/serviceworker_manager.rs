@@ -12,8 +12,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
-use base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
-use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
+use servo_base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
+use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use constellation_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
     ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,

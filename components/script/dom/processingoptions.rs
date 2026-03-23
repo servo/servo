@@ -4,7 +4,7 @@
 
 use std::str::FromStr;
 
-use base::id::WebViewId;
+use servo_base::id::WebViewId;
 use cssparser::match_ignore_ascii_case;
 use http::header::HeaderMap;
 use hyper_serde::Serde;

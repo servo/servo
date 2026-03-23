@@ -12,8 +12,8 @@ use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
-use base::generic_channel::GenericSender;
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};

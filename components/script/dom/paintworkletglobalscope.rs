@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use base::id::{PipelineId, WebViewId};
+use servo_base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};

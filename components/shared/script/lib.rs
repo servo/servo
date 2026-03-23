@@ -11,14 +11,14 @@
 
 use std::fmt;
 
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
-use base::id::{
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
+use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
     ScriptEventLoopId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
+use servo_bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,

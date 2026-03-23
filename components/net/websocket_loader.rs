@@ -16,7 +16,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use async_tungstenite::WebSocketStream;
 use async_tungstenite::tokio::{ConnectStream, client_async_tls_with_connector_and_config};
-use base::generic_channel::CallbackSetter;
+use servo_base::generic_channel::CallbackSetter;
 use base64::Engine;
 use futures::stream::StreamExt;
 use http::HeaderMap;

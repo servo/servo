@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use base::generic_channel;
+use servo_base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{self, AllowOrDeny, EmbedderMsg, PermissionFeature};
 use js::conversions::ConversionResult;

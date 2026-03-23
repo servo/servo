@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::iter::FusedIterator;
 
-use base::id::{BrowsingContextId, PipelineId};
+use servo_base::id::{BrowsingContextId, PipelineId};
 use layout_api::wrapper_traits::{
     LayoutDataTrait, LayoutNode, PseudoElementChain, SharedSelection, ThreadSafeLayoutElement,
     ThreadSafeLayoutNode,

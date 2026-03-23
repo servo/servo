@@ -21,8 +21,8 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::sync::Arc;
 
-use base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::{GenericCallback, GenericSender, GenericSharedMemory, SendResult};
+use servo_base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};

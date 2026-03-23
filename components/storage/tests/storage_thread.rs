@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::{self, GenericSend};
+use servo_base::generic_channel::{self, GenericSend};
 use profile::mem as profile_mem;
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;

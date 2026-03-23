@@ -5,8 +5,8 @@
 use std::default::Default;
 use std::str::FromStr;
 
-use base::Epoch;
-use base::generic_channel::GenericSender;
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
 use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};

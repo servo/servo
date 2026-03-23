@@ -4,8 +4,8 @@
 
 use std::cell::Cell;
 
-use base::Epoch;
-use base::id::PipelineId;
+use servo_base::Epoch;
+use servo_base::id::PipelineId;
 use euclid::Scale;
 use paint_api::display_list::ScrollTree;
 use paint_api::{CompositionPipeline, PipelineExitSource};

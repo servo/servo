@@ -4,8 +4,8 @@
 
 use std::collections::HashMap;
 
-use base::generic_channel::{self, GenericSender};
-use base::id::PainterId;
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PainterId;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;

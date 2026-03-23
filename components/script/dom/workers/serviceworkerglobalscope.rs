@@ -7,8 +7,8 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
-use base::id::PipelineId;
+use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
+use servo_base::id::PipelineId;
 use constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };

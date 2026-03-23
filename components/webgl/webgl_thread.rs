@@ -10,9 +10,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::{slice, thread};
 
-use base::Epoch;
-use base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory, RoutedReceiver};
-use base::id::PainterId;
+use servo_base::Epoch;
+use servo_base::generic_channel::{GenericReceiver, GenericSender, GenericSharedMemory, RoutedReceiver};
+use servo_base::id::PainterId;
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;

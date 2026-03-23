@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use base::id::WebViewId;
+use servo_base::id::WebViewId;
 use embedder_traits::{
     AuthenticationResponse, EmbedderControlId, FilePickerRequest, WebResourceRequest,
     WebResourceResponseMsg,

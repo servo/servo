@@ -7,9 +7,9 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use base::Epoch;
-use base::generic_channel::GenericSender;
-use base::id::{PipelineId, WebViewId};
+use servo_base::Epoch;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;

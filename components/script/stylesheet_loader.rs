@@ -4,7 +4,7 @@
 
 use std::io::{Read, Seek, Write};
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;

@@ -8,10 +8,10 @@ use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
 
-use base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
+use servo_base::id::{PipelineId, WebViewId};
 #[cfg(feature = "bluetooth")]
-use bluetooth_traits::BluetoothRequest;
+use servo_bluetooth_traits::BluetoothRequest;
 use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};

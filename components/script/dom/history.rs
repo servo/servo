@@ -5,8 +5,8 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
 
-use base::generic_channel::GenericSend;
-use base::id::HistoryStateId;
+use servo_base::generic_channel::GenericSend;
+use servo_base::id::HistoryStateId;
 use constellation_traits::{
     ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
 };

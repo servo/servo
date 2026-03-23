@@ -11,8 +11,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
-use base::threadpool::ThreadPool;
+use servo_base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
+use servo_base::threadpool::ThreadPool;
 use log::{debug, error, warn};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;

@@ -5,7 +5,7 @@
 use std::cmp::PartialEq;
 use std::fmt;
 
-use base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
+use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
 use constellation_traits::LoadData;
 use embedder_traits::ViewportDetails;
 use log::debug;

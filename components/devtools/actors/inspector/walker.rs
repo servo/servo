@@ -7,8 +7,8 @@
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{self, GenericSender};
-use base::id::PipelineId;
+use servo_base::generic_channel::{self, GenericSender};
+use servo_base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::{DevtoolScriptControlMsg, DomMutation};
 use malloc_size_of_derive::MallocSizeOf;

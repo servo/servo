@@ -9,8 +9,8 @@
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{self, GenericSender, SendError};
-use base::id::PipelineId;
+use servo_base::generic_channel::{self, GenericSender, SendError};
+use servo_base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;

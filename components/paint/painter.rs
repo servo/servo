@@ -7,10 +7,10 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use base::Epoch;
-use base::cross_process_instant::CrossProcessInstant;
-use base::generic_channel::{GenericReceiver, GenericSharedMemory};
-use base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::Epoch;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;

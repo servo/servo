@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::thread;
 
 use backtrace::Backtrace;
-use base::id::{ScriptEventLoopId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use servo_base::id::{ScriptEventLoopId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use constellation_traits::{
     EmbedderToConstellationMessage, LogEntry, ScriptToConstellationMessage,
     ScriptToConstellationSender,

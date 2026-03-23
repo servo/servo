@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::default::Default;
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use crossbeam_channel::{self, Receiver, Sender};
 use rustc_hash::{FxHashMap, FxHashSet};
 use strum::VariantArray;

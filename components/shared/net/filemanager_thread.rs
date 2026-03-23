@@ -5,7 +5,7 @@
 use std::cmp::{max, min};
 use std::ops::Range;
 
-use base::generic_channel::GenericSender;
+use servo_base::generic_channel::GenericSender;
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequest};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;

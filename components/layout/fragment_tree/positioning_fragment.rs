@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use base::print_tree::PrintTree;
+use servo_base::print_tree::PrintTree;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;

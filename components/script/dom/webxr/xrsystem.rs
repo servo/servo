@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use base::id::PipelineId;
+use servo_base::id::PipelineId;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;

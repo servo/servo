@@ -6,8 +6,8 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use base::generic_channel::GenericSender;
-use bluetooth_traits::{
+use servo_base::generic_channel::GenericSender;
+use servo_bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
     BluetoothServiceMsg,
 };

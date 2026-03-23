@@ -5,8 +5,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use base::Epoch;
-use base::id::{PipelineId, WebViewId};
+use servo_base::Epoch;
+use servo_base::id::{PipelineId, WebViewId};
 use embedder_traits::ScreenshotCaptureError;
 use euclid::{Point2D, Size2D};
 use image::RgbaImage;

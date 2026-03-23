@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::{BrowsingContextId, WebViewId};
+use servo_base::id::{BrowsingContextId, WebViewId};
 use rustc_hash::FxHashSet;
 use serde_json::{Map, Value, json};
 use uuid::Uuid;

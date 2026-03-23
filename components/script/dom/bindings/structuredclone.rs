@@ -8,7 +8,7 @@ use std::ffi::CStr;
 use std::os::raw;
 use std::ptr::{self, NonNull};
 
-use base::id::{
+use servo_base::id::{
     BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
     ImageDataId, Index, MessagePortId, NamespaceIndex, OffscreenCanvasId, PipelineNamespaceId,
     QuotaExceededErrorId,

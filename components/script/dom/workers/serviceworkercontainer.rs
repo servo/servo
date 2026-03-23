@@ -5,7 +5,7 @@
 use std::default::Default;
 use std::rc::Rc;
 
-use base::generic_channel::GenericCallback;
+use servo_base::generic_channel::GenericCallback;
 use constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };

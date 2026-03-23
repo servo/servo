@@ -5,7 +5,7 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
-use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
+use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 use rustc_hash::FxHashMap;
 use script_bindings::structuredclone::MarkedAsSerializableInIdl;
 

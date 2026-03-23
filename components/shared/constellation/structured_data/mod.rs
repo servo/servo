@@ -8,7 +8,7 @@
 mod serializable;
 mod transferable;
 
-use base::id::{
+use servo_base::id::{
     BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
     ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
 };

@@ -4,8 +4,8 @@
 
 use std::sync::Arc;
 
-use base::generic_channel::GenericSharedMemory;
-use base::id::{PipelineId, WebViewId};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
 use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};

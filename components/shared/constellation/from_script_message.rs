@@ -6,9 +6,9 @@
 
 use std::fmt;
 
-use base::Epoch;
-use base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
-use base::id::{
+use servo_base::Epoch;
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
+use servo_base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
     ServiceWorkerRegistrationId, WebViewId,

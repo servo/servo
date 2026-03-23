@@ -5,8 +5,8 @@
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 
-use base::generic_channel::{GenericSend, GenericSender};
-use base::id::ScriptEventLoopId;
+use servo_base::generic_channel::{GenericSend, GenericSender};
+use servo_base::id::ScriptEventLoopId;
 use dom_struct::dom_struct;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;

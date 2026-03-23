@@ -4,7 +4,7 @@
 
 use std::default::Default;
 
-use base::id::BrowsingContextId;
+use servo_base::id::BrowsingContextId;
 use constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use layout_api::IFrameSizes;

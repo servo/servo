@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::iter::once;
 
-use base::generic_channel::{self};
+use servo_base::generic_channel::{self};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{AutoMargins, ComputedNodeLayout};
 use malloc_size_of_derive::MallocSizeOf;

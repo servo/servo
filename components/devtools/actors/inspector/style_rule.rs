@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use base::generic_channel;
+use servo_base::generic_channel;
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };

@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use servo_base::id::{PipelineId, TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{

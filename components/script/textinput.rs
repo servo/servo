@@ -7,8 +7,8 @@
 use std::default::Default;
 use std::ops::Range;
 
-use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
-use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
+use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;

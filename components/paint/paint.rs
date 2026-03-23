@@ -9,8 +9,8 @@ use std::fs::create_dir_all;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use base::generic_channel::{self, GenericSender, RoutedReceiver};
-use base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::generic_channel::{self, GenericSender, RoutedReceiver};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use constellation_traits::EmbedderToConstellationMessage;

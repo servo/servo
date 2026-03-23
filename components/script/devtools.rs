@@ -6,8 +6,8 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::str;
 
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
+use servo_base::generic_channel::GenericSender;
+use servo_base::id::PipelineId;
 use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EventListenerInfo,
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,

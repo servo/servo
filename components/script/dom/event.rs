@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::default::Default;
 
-use base::cross_process_instant::CrossProcessInstant;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use bitflags::bitflags;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
