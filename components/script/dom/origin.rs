@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
-use crate::dom::url::url::URL;
+use crate::dom::url::URL;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
 
