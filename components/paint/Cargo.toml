@@ -25,8 +25,6 @@ panic = "deny"
 
 [dependencies]
 bitflags = { workspace = true }
-canvas_traits = { workspace = true }
-constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
@@ -43,7 +41,9 @@ rayon = { workspace = true }
 rustc-hash = { workspace = true }
 servo-allocator = { workspace = true }
 servo-base = { workspace = true }
+servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
+servo-constellation-traits = { workspace = true }
 servo-geometry = { workspace = true }
 servo-tracing = { workspace = true }
 smallvec = { workspace = true }

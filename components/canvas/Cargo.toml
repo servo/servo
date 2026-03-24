@@ -19,7 +19,6 @@ vello = ["dep:vello", "dep:pollster", "dep:futures-intrusive"]
 
 [dependencies]
 bytemuck = { workspace = true, features = ["extern_crate_alloc"] }
-canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
@@ -33,6 +32,7 @@ pollster = { version = "0.4", optional = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 servo-base = { workspace = true }
+servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
 servo-tracing = { workspace = true }
 stylo = { workspace = true }

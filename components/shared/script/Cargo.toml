@@ -19,8 +19,6 @@ webgpu = ["webgpu_traits"]
 
 [dependencies]
 accesskit = { workspace = true }
-canvas_traits = { workspace = true }
-constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -38,7 +36,9 @@ rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-base = { workspace = true }
 servo-bluetooth-traits = { workspace = true, optional = true }
+servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
+servo-constellation-traits = { workspace = true }
 servo-url = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
