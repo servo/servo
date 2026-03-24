@@ -22,19 +22,19 @@ pub(crate) struct Cause {
 }
 
 pub(crate) fn handle_network_event(
-    actors: Arc<ActorRegistry>,
+    registry: Arc<ActorRegistry>,
     netevent_actor_name: String,
     mut connections: Vec<TcpStream>,
     network_event: NetworkEvent,
 ) {
-    let actor = actors.find::<NetworkEventActor>(&netevent_actor_name);
-    let watcher = actors.find::<WatcherActor>(&actor.watcher);
+    let actor = registry.find::<NetworkEventActor>(&netevent_actor_name);
+    let watcher = registry.find::<WatcherActor>(&actor.watcher);
 
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
             actor.add_request(httprequest);
-            let msg = actor.encode(&actors);
-            let resource = actor.resource_updates(&actors);
+            let msg = actor.encode(&registry);
+            let resource = actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
@@ -56,7 +56,7 @@ pub(crate) fn handle_network_event(
 
         NetworkEvent::HttpRequestUpdate(httprequest) => {
             actor.add_request(httprequest);
-            let resource = actor.resource_updates(&actors);
+            let resource = actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
@@ -69,7 +69,7 @@ pub(crate) fn handle_network_event(
         },
         NetworkEvent::HttpResponse(httpresponse) => {
             actor.add_response(httpresponse);
-            let resource = actor.resource_updates(&actors);
+            let resource = actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
@@ -82,7 +82,7 @@ pub(crate) fn handle_network_event(
         },
         NetworkEvent::SecurityInfo(update) => {
             actor.add_security_info(update.security_info);
-            let resource = actor.resource_updates(&actors);
+            let resource = actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
