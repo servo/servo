@@ -16,8 +16,8 @@ use std::time::{Duration, Instant};
 
 use app_units::Au;
 use base64::Engine;
-use canvas_traits::webgl::WebGLChan;
-use constellation_traits::{
+use servo_canvas_traits::webgl::WebGLChan;
+use servo_constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
     WindowSizeType,

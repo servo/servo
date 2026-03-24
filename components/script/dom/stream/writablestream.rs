@@ -8,7 +8,7 @@ use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use constellation_traits::MessagePortImpl;
+use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};

@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::rc::Rc;
 
-use constellation_traits::{MessagePortImpl, PortMessageTask};
+use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JS_NewObject, JSObject};

@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::thread;
 
 use backtrace::Backtrace;
-use constellation_traits::{
+use servo_constellation_traits::{
     EmbedderToConstellationMessage, LogEntry, ScriptToConstellationMessage,
     ScriptToConstellationSender,
 };

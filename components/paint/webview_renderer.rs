@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
-use constellation_traits::{EmbedderToConstellationMessage, ScrollStateUpdate, WindowSizeType};
+use servo_constellation_traits::{EmbedderToConstellationMessage, ScrollStateUpdate, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, InputEvent, InputEventAndId, InputEventId, InputEventResult, MouseButton,

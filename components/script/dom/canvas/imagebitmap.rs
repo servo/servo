@@ -5,7 +5,7 @@
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
-use constellation_traits::SerializableImageBitmap;
+use servo_constellation_traits::SerializableImageBitmap;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::realm::CurrentRealm;

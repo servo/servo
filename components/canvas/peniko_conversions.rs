@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::*;
+use servo_canvas_traits::canvas::*;
 use peniko::ImageAlphaType;
 use pixels::{Alpha, SnapshotPixelFormat};
 use style::color::AbsoluteColor;
@@ -144,7 +144,7 @@ impl Convert<ImageAlphaType> for Alpha {
 
 impl Convert<peniko::Brush> for FillOrStrokeStyle {
     fn convert(self) -> peniko::Brush {
-        use canvas_traits::canvas::FillOrStrokeStyle::*;
+        use servo_canvas_traits::canvas::FillOrStrokeStyle::*;
         match self {
             Color(absolute_color) => peniko::Brush::Solid(absolute_color.convert()),
             LinearGradient(style) => {

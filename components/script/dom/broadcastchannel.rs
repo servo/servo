@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::BroadcastChannelMsg;
+use servo_constellation_traits::BroadcastChannelMsg;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};

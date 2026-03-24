@@ -11,8 +11,8 @@ use std::rc::Rc;
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use bitflags::bitflags;
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{
     AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
     TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
     WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
@@ -195,7 +195,7 @@ pub(crate) struct WebGLRenderingContext {
     #[no_trace]
     limits: GLLimits,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    #[ignore_malloc_size_of = "Defined in canvas_traits"]
+    #[ignore_malloc_size_of = "Defined in servo_canvas_traits"]
     #[no_trace]
     last_error: Cell<Option<WebGLError>>,
     texture_packing_alignment: Cell<u8>,

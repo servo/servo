@@ -8,7 +8,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::LoadData;
+use servo_constellation_traits::LoadData;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
 use embedder_traits::user_contents::UserContentManagerId;

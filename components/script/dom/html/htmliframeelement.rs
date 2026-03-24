@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use constellation_traits::{
+use servo_constellation_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
     NavigationHistoryBehavior, ScriptToConstellationMessage,
 };

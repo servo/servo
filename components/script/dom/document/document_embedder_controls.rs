@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::{LoadData, NavigationHistoryBehavior};
+use servo_constellation_traits::{LoadData, NavigationHistoryBehavior};
 use embedder_traits::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, ContextMenuRequest, EditingActionEvent, EmbedderControlId,

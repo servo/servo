@@ -4,7 +4,7 @@
 
 use std::convert::TryInto;
 
-use canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use js::rust::HandleObject;

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
 
-use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
+use servo_canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};

@@ -6,7 +6,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 
-use constellation_traits::BlobImpl;
+use servo_constellation_traits::BlobImpl;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;

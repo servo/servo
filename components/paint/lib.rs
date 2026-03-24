@@ -7,7 +7,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use constellation_traits::EmbedderToConstellationMessage;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use embedder_traits::{EventLoopWaker, ShutdownState};
 use paint_api::{PaintMessage, PaintProxy};

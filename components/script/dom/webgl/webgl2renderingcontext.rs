@@ -9,8 +9,8 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use bitflags::bitflags;
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{
     AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
     WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
 };

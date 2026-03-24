@@ -7,7 +7,7 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
+use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,

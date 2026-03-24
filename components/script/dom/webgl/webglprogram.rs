@@ -6,7 +6,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
     WebGLProgramId, WebGLResult, webgl_channel,
 };

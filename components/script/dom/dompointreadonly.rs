@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::DomPoint;
+use servo_constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;

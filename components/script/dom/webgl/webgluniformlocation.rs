@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{WebGLContextId, WebGLProgramId};
+use servo_canvas_traits::webgl::{WebGLContextId, WebGLProgramId};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};

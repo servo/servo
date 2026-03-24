@@ -32,9 +32,9 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
-use canvas_traits::webgl::WebGLPipeline;
+use servo_canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use constellation_traits::{
+use servo_constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
     StructuredSerializedData, TraversalDirection, WindowSizeType,

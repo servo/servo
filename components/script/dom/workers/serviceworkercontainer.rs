@@ -5,7 +5,7 @@
 use std::default::Default;
 use std::rc::Rc;
 
-use constellation_traits::{
+use servo_constellation_traits::{
     Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
 };
 use dom_struct::dom_struct;

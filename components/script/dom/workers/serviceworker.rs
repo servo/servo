@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::{DOMMessage, ScriptToConstellationMessage};
+use servo_constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};

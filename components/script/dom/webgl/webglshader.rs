@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::os::raw::c_int;
 use std::sync::Once;
 
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::{
     GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
     WebGLVersion, webgl_channel,
 };

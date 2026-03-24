@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
+use servo_constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;

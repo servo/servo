@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLMsgSender};
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLMsgSender};
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
 use script_bindings::reflector::AssociatedMemory;

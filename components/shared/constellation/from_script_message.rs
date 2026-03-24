@@ -6,7 +6,7 @@
 
 use std::fmt;
 
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::user_contents::UserContentManagerId;

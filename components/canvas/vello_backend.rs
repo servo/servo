@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::rc::Rc;
 
-use canvas_traits::canvas::{
+use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
 };

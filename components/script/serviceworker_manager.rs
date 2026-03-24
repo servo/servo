@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
-use constellation_traits::{
+use servo_constellation_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
     ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
 };

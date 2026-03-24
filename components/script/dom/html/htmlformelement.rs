@@ -5,7 +5,7 @@
 use std::borrow::ToOwned;
 use std::cell::Cell;
 
-use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
+use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};

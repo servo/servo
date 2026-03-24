@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use constellation_traits::BlobImpl;
+use servo_constellation_traits::BlobImpl;
 use indexmap::IndexMap;
 use pixels::RasterImage;
 

@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+﻿/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
@@ -46,7 +46,7 @@ mod from_embedder {
         };
     }
 
-    impl LogTarget for constellation_traits::EmbedderToConstellationMessage {
+    impl LogTarget for servo_constellation_traits::EmbedderToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
@@ -120,7 +120,7 @@ mod from_script {
         };
     }
 
-    impl LogTarget for constellation_traits::ScriptToConstellationMessage {
+    impl LogTarget for servo_constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),
@@ -190,3 +190,4 @@ mod from_script {
         }
     }
 }
+

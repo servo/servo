@@ -5,7 +5,7 @@
 use std::num::NonZeroU32;
 use std::rc::Rc;
 
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::{
     GenericSender, WebGLMsg, WebXRCommand, WebXRLayerManagerId, webgl_channel,
 };
 use rustc_hash::FxHashMap;

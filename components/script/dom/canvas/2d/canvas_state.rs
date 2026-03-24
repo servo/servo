@@ -8,12 +8,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
-use canvas_traits::canvas::{
+use servo_canvas_traits::canvas::{
     Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
     FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
     LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
 };
-use constellation_traits::ScriptToConstellationMessage;
+use servo_constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};

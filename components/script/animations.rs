@@ -6,7 +6,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::ScriptToConstellationMessage;
+use servo_constellation_traits::ScriptToConstellationMessage;
 use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
 use libc::c_void;

@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use constellation_traits::TransformStreamData;
+use servo_constellation_traits::TransformStreamData;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};

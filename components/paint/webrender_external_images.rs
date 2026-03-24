@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
+use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use euclid::default::Size2D;
 use log::debug;
 use paint_api::rendering_context::RenderingContext;

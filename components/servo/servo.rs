@@ -16,12 +16,12 @@ use std::time::Duration;
     not(target_arch = "aarch64"),
     not(target_env = "ohos"),
 ))]
-use constellation::content_process_sandbox_profile;
-use constellation::{
+use servo_constellation::content_process_sandbox_profile;
+use servo_constellation::{
     Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     NewScriptEventLoopProcessInfo, UnprivilegedContent,
 };
-use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
+use servo_constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;

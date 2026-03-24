@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{GLLimits, WebGLVersion};
+use servo_canvas_traits::webgl::{GLLimits, WebGLVersion};
 use glow::{self as gl, Context as Gl, HasContext};
 type GLenum = u32;
 

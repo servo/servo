@@ -16,7 +16,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use constellation_traits::{
+use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };

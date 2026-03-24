@@ -12,10 +12,10 @@ use std::{slice, thread};
 
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
-use canvas_traits::webgl;
+use servo_canvas_traits::webgl;
 #[cfg(feature = "webxr")]
-use canvas_traits::webgl::WebXRCommand;
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::WebXRCommand;
+use servo_canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, AlphaTreatment,
     GLContextAttributes, GLLimits, GlType, InternalFormatIntVec, ProgramLinkInfo, TexDataType,
     TexFormat, WebGLBufferId, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,

@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use bitflags::bitflags;
 use chrono::Local;
-use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
+use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;

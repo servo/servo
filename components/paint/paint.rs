@@ -10,8 +10,8 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use bitflags::bitflags;
-use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
-use constellation_traits::EmbedderToConstellationMessage;
+use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
+use servo_constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{

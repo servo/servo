@@ -4,7 +4,7 @@
 
 use std::cell::RefCell;
 
-use canvas_traits::canvas::Path;
+use servo_canvas_traits::canvas::Path;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;

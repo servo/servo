@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::vec::Vec;
 
-use constellation_traits::SerializableImageData;
+use servo_constellation_traits::SerializableImageData;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use js::gc::CustomAutoRooterGuard;

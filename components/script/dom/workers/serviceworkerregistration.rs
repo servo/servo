@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
+use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;

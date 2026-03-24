@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use constellation_traits::EmbedderToConstellationMessage;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Sender, select};
 use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;

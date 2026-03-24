@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::{
     WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
     WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };

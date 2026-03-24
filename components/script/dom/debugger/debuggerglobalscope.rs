@@ -4,7 +4,7 @@
 
 use std::cell::RefCell;
 
-use constellation_traits::ScriptToConstellationChan;
+use servo_constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{
     DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue, ScriptToDevtoolsControlMsg,
     SourceInfo, WorkerId,

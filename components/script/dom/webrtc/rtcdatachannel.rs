@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::ptr;
 
-use constellation_traits::BlobImpl;
+use servo_constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;

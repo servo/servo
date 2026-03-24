@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
-use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
+use servo_constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;

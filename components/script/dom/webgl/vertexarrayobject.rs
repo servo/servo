@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVersion, WebGLVertexArrayId,
 };
 use script_bindings::weakref::WeakRef;

@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
-use constellation_traits::{
+use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
     ScriptToConstellationMessage,
 };

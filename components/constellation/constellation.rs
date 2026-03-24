@@ -98,11 +98,11 @@ use std::{process, thread};
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use canvas::canvas_paint_thread::CanvasPaintThread;
-use canvas_traits::ConstellationCanvasMsg;
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use canvas_traits::webgl::WebGLThreads;
-use constellation_traits::{
+use servo_canvas::canvas_paint_thread::CanvasPaintThread;
+use servo_canvas_traits::ConstellationCanvasMsg;
+use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+use servo_canvas_traits::webgl::WebGLThreads;
+use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
     LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,

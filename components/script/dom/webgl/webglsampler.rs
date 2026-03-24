@@ -4,8 +4,8 @@
 
 use std::cell::Cell;
 
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{WebGLCommand, WebGLSamplerId, webgl_channel};
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLSamplerId, webgl_channel};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
@@ -113,7 +113,7 @@ impl WebGLSampler {
         &self,
         context: &WebGLRenderingContext,
         unit: u32,
-    ) -> Result<(), canvas_traits::webgl::WebGLError> {
+    ) -> Result<(), servo_canvas_traits::webgl::WebGLError> {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }
@@ -126,7 +126,7 @@ impl WebGLSampler {
         context: &WebGLRenderingContext,
         pname: u32,
         value: WebGLSamplerValue,
-    ) -> Result<(), canvas_traits::webgl::WebGLError> {
+    ) -> Result<(), servo_canvas_traits::webgl::WebGLError> {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }
@@ -149,7 +149,7 @@ impl WebGLSampler {
         &self,
         context: &WebGLRenderingContext,
         pname: u32,
-    ) -> Result<WebGLSamplerValue, canvas_traits::webgl::WebGLError> {
+    ) -> Result<WebGLSamplerValue, servo_canvas_traits::webgl::WebGLError> {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }

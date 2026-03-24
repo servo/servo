@@ -8,7 +8,7 @@ use std::ffi::CStr;
 use std::os::raw;
 use std::ptr::{self, NonNull};
 
-use constellation_traits::{
+use servo_constellation_traits::{
     BlobImpl, DomException, DomMatrix, DomPoint, DomQuad, DomRect, MessagePortImpl,
     Serializable as SerializableInterface, SerializableImageBitmap, SerializableImageData,
     SerializableQuotaExceededError, StructuredSerializedData, TransferableOffscreenCanvas,

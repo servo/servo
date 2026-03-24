@@ -6,7 +6,7 @@ use std::io::Cursor;
 use std::rc::Rc;
 use std::{fs, ptr, slice, str};
 
-use constellation_traits::BlobImpl;
+use servo_constellation_traits::BlobImpl;
 use encoding_rs::{Encoding, UTF_8};
 use http::HeaderMap;
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};

@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use constellation_traits::EmbedderToConstellationMessage;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender};
 use log::warn;
 use servo_config::prefs::{PrefValue, PreferencesObserver};

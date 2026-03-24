@@ -4,7 +4,7 @@
 
 use std::default::Default;
 
-use constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
+use servo_constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use layout_api::IFrameSizes;
 use paint_api::PinchZoomInfos;

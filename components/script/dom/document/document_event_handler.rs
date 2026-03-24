@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
+use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,

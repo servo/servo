@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
+use servo_canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
 use log::debug;
 use paint_api::{CrossProcessPaintApi, PainterSurfmanDetailsMap, WebRenderExternalImageIdManager};
 use surfman::Device;

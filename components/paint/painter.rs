@@ -7,7 +7,7 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
+use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{

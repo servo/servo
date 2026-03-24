@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use constellation_traits::BroadcastChannelMsg;
+use servo_constellation_traits::BroadcastChannelMsg;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use rustc_hash::FxHashMap;

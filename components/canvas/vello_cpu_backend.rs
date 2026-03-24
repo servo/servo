@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use canvas_traits::canvas::{
+use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
 };
@@ -511,7 +511,7 @@ fn snapshot_as_pixmap(mut snapshot: Snapshot) -> Arc<vello_cpu::Pixmap> {
 
 impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle {
     fn convert(self) -> vello_cpu::PaintType {
-        use canvas_traits::canvas::FillOrStrokeStyle::*;
+        use servo_canvas_traits::canvas::FillOrStrokeStyle::*;
         match self {
             Color(absolute_color) => vello_cpu::PaintType::Solid(absolute_color.convert()),
             LinearGradient(style) => {

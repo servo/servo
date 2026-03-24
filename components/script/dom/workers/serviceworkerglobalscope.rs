@@ -7,7 +7,7 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use constellation_traits::{
+use servo_constellation_traits::{
     ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 use crossbeam_channel::{Receiver, Sender, after};

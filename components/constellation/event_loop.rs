@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use constellation_traits::ServiceWorkerManagerFactory;
+use servo_constellation_traits::ServiceWorkerManagerFactory;
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::IpcError;
 use layout_api::ScriptThreadFactory;

@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::{f64, ptr};
 
-use constellation_traits::DomMatrix;
+use servo_constellation_traits::DomMatrix;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Angle;

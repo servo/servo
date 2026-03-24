@@ -5,7 +5,7 @@
 use std::rc::Rc;
 use std::str::FromStr;
 
-use constellation_traits::BlobImpl;
+use servo_constellation_traits::BlobImpl;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;

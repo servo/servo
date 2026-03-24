@@ -9,7 +9,7 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use std::time::Duration;
 
-use constellation_traits::BlobImpl;
+use servo_constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;

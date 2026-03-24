@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
 
-use constellation_traits::{
+use servo_constellation_traits::{
     ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
 };
 use dom_struct::dom_struct;

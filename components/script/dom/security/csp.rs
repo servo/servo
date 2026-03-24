@@ -4,7 +4,7 @@
 
 use std::borrow::Cow;
 
-use constellation_traits::{LoadData, LoadOrigin};
+use servo_constellation_traits::{LoadData, LoadOrigin};
 /// Used to determine which inline check to run
 pub use content_security_policy::InlineCheckType;
 /// Used to report CSP violations in Fetch handlers

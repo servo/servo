@@ -7,7 +7,7 @@
 use std::cell::Cell;
 use std::cmp;
 
-use canvas_traits::webgl::{
+use servo_canvas_traits::webgl::{
     TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
     WebGLError, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };

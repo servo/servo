@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use constellation_traits::EmbedderToConstellationMessage;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "gamepad")]
 use embedder_traits::GamepadHapticEffectType;
 use embedder_traits::{

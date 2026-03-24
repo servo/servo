@@ -11,8 +11,8 @@
 
 use std::fmt;
 
-use canvas_traits::webgl::WebGLPipeline;
-use constellation_traits::{
+use servo_canvas_traits::webgl::WebGLPipeline;
+use servo_constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
     ScrollStateUpdate, StructuredSerializedData, WindowSizeType,
 };

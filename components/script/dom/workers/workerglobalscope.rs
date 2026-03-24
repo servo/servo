@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use constellation_traits::WorkerGlobalScopeInit;
+use servo_constellation_traits::WorkerGlobalScopeInit;
 use content_security_policy::CspList;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
