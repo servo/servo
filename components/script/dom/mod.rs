@@ -444,6 +444,8 @@ pub(crate) mod workers;
 pub(crate) use self::workers::*;
 pub(crate) mod worklet;
 pub(crate) mod workletglobalscope;
+pub(crate) use self::xml::*;
+#[allow(clippy::module_inception, reason = "The interface name is XML")]
 pub(crate) mod xml;
 pub(crate) mod xpathevaluator;
 pub(crate) mod xpathexpression;
