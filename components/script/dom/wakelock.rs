@@ -2,11 +2,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentVisibilityState;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, DocumentVisibilityState,
+};
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{WakeLockMethods, WakeLockType};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
