@@ -12,6 +12,7 @@ use embedder_traits::EmbedderMsg;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
 
+use super::clipboarditem::Representation;
 use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{
     ClipboardMethods, PresentationStyle,
 };
@@ -21,7 +22,6 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
-use crate::dom::clipboard::clipboarditem::Representation;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
