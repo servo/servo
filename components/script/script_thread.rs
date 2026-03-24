@@ -134,7 +134,7 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext};
+use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
@@ -3784,7 +3784,7 @@ impl ScriptThread {
             iframe.navigate_or_reload_child_browsing_context(
                 load_data,
                 history_handling,
-                false,
+                ProcessingMode::NotFirstTime,
                 cx,
             );
         }
@@ -3841,8 +3841,7 @@ impl ScriptThread {
                 // the UTF-8 encoding of result, as a body.
                 Some(String::from(s))
             },
-            // Should be unreachable.
-            _ => None,
+            _ => unreachable!("Couldn't get a string from a JS string??"),
         }
     }
 
