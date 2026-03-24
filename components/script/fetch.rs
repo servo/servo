@@ -398,11 +398,13 @@ pub(crate) fn FetchLater(
     if !url.is_potentially_trustworthy() {
         return Err(Error::Type(c"URL is not trustworthy".to_owned()));
     }
-    // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
-    if let Some(body) = request.body.as_ref() {
-        if body.len().is_none_or(|len| len == 0) {
-            return Err(Error::Type(c"Body is empty".to_owned()));
-        }
+    // Step 10. If request’s body is not null, and request’s body length is null, then throw a TypeError.
+    if request
+        .body
+        .as_ref()
+        .is_some_and(|body| body.len().is_none())
+    {
+        return Err(Error::Type(c"Body is empty".to_owned()));
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
     // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
