@@ -1849,8 +1849,8 @@ impl ScriptThread {
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
             },
-            ScriptThreadMessage::WebFontLoaded(pipeline_id) => {
-                self.handle_web_font_loaded(pipeline_id)
+            ScriptThreadMessage::WebFontLoaded(pipeline_id, success) => {
+                self.handle_web_font_loaded(pipeline_id, success)
             },
             ScriptThreadMessage::DispatchIFrameLoadEvent {
                 target: browsing_context_id,
