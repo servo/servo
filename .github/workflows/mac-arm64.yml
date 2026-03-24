@@ -72,6 +72,11 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
+  # Increment this to purge the cache (https://github.com/mozilla/sccache/blob/main/docs/GHA.md)
+  SCCACHE_GHA_VERSION: 1
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+  CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -111,6 +116,8 @@ jobs:
       - if: runner.environment != 'self-hosted'
         name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
