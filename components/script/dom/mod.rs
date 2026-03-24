@@ -442,6 +442,5 @@ pub(crate) mod xmlhttprequest;
 pub(crate) mod xmlhttprequesteventtarget;
 pub(crate) mod xmlhttprequestupload;
 pub(crate) mod xmlserializer;
-pub(crate) mod xpathevaluator;
-pub(crate) mod xpathexpression;
-pub(crate) mod xpathresult;
+pub(crate) mod xpath;
+pub(crate) use self::xpath::*;
