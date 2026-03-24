@@ -13,7 +13,7 @@ use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
-use style::values::specified::Length;
+use style::values::specified::LengthPercentage;
 use style_traits::ParsingMode;
 use uuid::Uuid;
 use xml5ever::serialize::TraversalScope;
@@ -240,12 +240,12 @@ impl VirtualMethods for SVGSVGElement {
                     None,
                     None,
                 );
-                let val = Length::parse_quirky(
+                let val = LengthPercentage::parse_quirky(
                     &context,
                     parser,
                     style::values::specified::AllowQuirks::Always,
                 );
-                AttrValue::Length(value.to_string(), val.ok())
+                AttrValue::LengthPercentage(value.to_string(), val.ok())
             },
             _ => self
                 .super_type()
