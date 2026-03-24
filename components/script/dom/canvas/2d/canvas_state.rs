@@ -2360,10 +2360,7 @@ impl CanvasState {
         }
 
         for (index, character) in text.char_indices() {
-            let next_char = text[index + character.len_utf8()..]
-                .chars()
-                .next()
-                .filter(|&c| is_variation_selector(c));
+            let next_char = text[index + character.len_utf8()..].chars().next();
 
             let script = Script::from(character);
 
