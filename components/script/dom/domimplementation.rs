@@ -27,7 +27,7 @@ use crate::dom::element::{CustomElementCreationMode, ElementCreator};
 use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::types::Element;
-use crate::dom::xmldocument::XMLDocument;
+use crate::dom::xml::xmldocument::XMLDocument;
 use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#domimplementation

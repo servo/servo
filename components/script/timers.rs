@@ -39,7 +39,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
-use crate::dom::xmlhttprequest::XHRTimeoutCallback;
+use crate::dom::xml::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType};
 use crate::script_thread::ScriptThread;
