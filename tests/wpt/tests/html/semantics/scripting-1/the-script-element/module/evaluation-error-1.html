@@ -8,7 +8,7 @@
 
     window.log = [];
 
-    window.addEventListener("error", ev => log.push(ev.error));
+  window.addEventListener("error", ev => {console.log("error handler");log.push(ev.error)});
     window.addEventListener("unhandledrejection", unreachable);
 
     const test_load = async_test(
@@ -21,7 +21,7 @@
       assert_true(exn.foo);
     }));
 
-    function logLoad() { log.push("load") }
+  function logLoad() { console.log("load handler");log.push("load") }
 
     function unreachable() { log.push("unexpected"); }
 </script>

@@ -295,13 +295,13 @@ impl GlobalScope {
             if let Some(record) = record {
                 // Step 7.2. Set evaluationPromise to record.Evaluate().
                 rooted!(&in(cx) let mut rval = UndefinedValue());
-                let evaluated =
+                let _evaluated =
                     module_tree.execute_module(self, record, rval.handle_mut(), CanGc::from_cx(cx));
 
                 // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
                 // with reason, report an exception given by reason for script's settings object's
                 // global object.
-                if evaluated.is_err() {
+                //if evaluated.is_err() {
                     assert!(rval.is_object());
                     rooted!(in(*cx) let evaluation_promise_obj = rval.to_object());
                     let evaluation_promise = Promise::new_with_js_promise(evaluation_promise_obj.handle(), cx);
@@ -320,7 +320,7 @@ impl GlobalScope {
 
                     //module_tree.set_rethrow_error(exception);
                     //module_tree.report_error(self, CanGc::from_cx(cx));
-                }
+                //}
             }
         });
     }

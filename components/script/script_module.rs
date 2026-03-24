@@ -67,7 +67,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
-    Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
+    Error, ErrorToJsval, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -472,7 +472,7 @@ impl ModuleTree {
         }
     }
 
-    #[expect(unsafe_code)]
+    /*#[expect(unsafe_code)]
     pub(crate) fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
         let module_error = self.rethrow_error.borrow();
 
@@ -487,7 +487,7 @@ impl ModuleTree {
             }
             report_pending_exception(GlobalScope::get_cx(), InRealm::Entered(&ar), can_gc);
         }
-    }
+    }*/
 
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     pub(crate) fn resolve_module_specifier(
