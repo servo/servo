@@ -436,7 +436,7 @@ impl ModuleTree {
         module_record: js::gc::HandleObject,
         mut eval_result: MutableHandleValue,
         _can_gc: CanGc,
-    ) -> Result<(), RethrowError> {
+    ) -> Result<(), ()> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
@@ -457,13 +457,14 @@ impl ModuleTree {
             if !throw_result {
                 warn!("fail to evaluate module");
 
-                rooted!(in(*cx) let mut exception = UndefinedValue());
+                /*rooted!(in(*cx) let mut exception = UndefinedValue());
                 assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
                     exception.get(),
-                ))))
+            ))))*/
+                Err(())
             } else {
                 debug!("module evaluated successfully");
                 Ok(())

@@ -1063,7 +1063,7 @@ impl HTMLScriptElement {
                 // Step 6."module".2. Run the module script given by el's result.
                 self.owner_window()
                     .as_global_scope()
-                    .run_a_module_script(cx, module_tree, false);
+                    .run_a_module_script(cx, module_tree);
             },
             Script::ImportMap(script) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
