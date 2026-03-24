@@ -114,6 +114,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
             // Step 4. Return the keyword corresponding to the value of command.
             CommandState::Close => DOMString::from("close"),
             CommandState::ShowModal => DOMString::from("show-modal"),
+            CommandState::RequestClose => DOMString::from("request-close"),
         }
     }
 
@@ -310,6 +311,9 @@ impl HTMLButtonElement {
         let value = command.to_ascii_lowercase();
         if value == "close" {
             return CommandState::Close;
+        }
+        if value == "request-close" {
+            return CommandState::RequestClose;
         }
         if value == "show-modal" {
             return CommandState::ShowModal;
@@ -568,5 +572,6 @@ pub(crate) enum CommandState {
     Unknown,
     Custom,
     ShowModal,
+    RequestClose,
     Close,
 }

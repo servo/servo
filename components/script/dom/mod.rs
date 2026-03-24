@@ -235,6 +235,8 @@ pub(crate) mod client;
 pub(crate) mod clipboard;
 pub(crate) use self::clipboard::*;
 pub(crate) mod closeevent;
+pub(crate) mod closewatcher;
+pub(crate) mod closewatchermanager;
 pub(crate) mod commandevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
