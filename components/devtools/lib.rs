@@ -559,7 +559,12 @@ impl DevtoolsInstance {
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
 
         for stream in self.connections.lock().unwrap().values_mut() {
-            console_actor.handle_console_resource(resource.clone(), id.clone(), &self.registry, stream);
+            console_actor.handle_console_resource(
+                resource.clone(),
+                id.clone(),
+                &self.registry,
+                stream,
+            );
         }
     }
 
@@ -611,7 +616,12 @@ impl DevtoolsInstance {
     ) -> Option<String> {
         if let Some(worker_id) = worker_id {
             let actor_name = self.actor_workers.get(&worker_id)?;
-            Some(self.registry.find::<WorkerActor>(actor_name).console.clone())
+            Some(
+                self.registry
+                    .find::<WorkerActor>(actor_name)
+                    .console
+                    .clone(),
+            )
         } else {
             let id = self.pipelines.get(&pipeline_id)?;
             let actor_name = self.browsing_contexts.get(id)?;
@@ -693,14 +703,21 @@ impl DevtoolsInstance {
             source_info.introduction_type,
             script_sender,
         );
-        let source_form = self.registry.find::<SourceActor>(&source_actor).source_form();
+        let source_form = self
+            .registry
+            .find::<SourceActor>(&source_actor)
+            .source_form();
 
         if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
                 return;
             };
 
-            let thread_actor_name = self.registry.find::<WorkerActor>(worker_actor_name).thread.clone();
+            let thread_actor_name = self
+                .registry
+                .find::<WorkerActor>(worker_actor_name)
+                .thread
+                .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
             thread_actor.source_manager.add_source(&source_actor);
@@ -756,7 +773,8 @@ impl DevtoolsInstance {
 
         // Store the source content separately for any future source actors that get created *after* we finish parsing
         // the HTML. For example, adding an `import` to an inline module script can delay it until after parsing.
-        self.registry.set_inline_source_content(pipeline_id, source_content);
+        self.registry
+            .set_inline_source_content(pipeline_id, source_content);
     }
 
     fn handle_debugger_pause(
@@ -814,7 +832,10 @@ impl DevtoolsInstance {
         let browsing_context = self.registry.find::<BrowsingContextActor>(browsing_context);
         let thread = self.registry.find::<ThreadActor>(&browsing_context.thread);
 
-        let source = match thread.source_manager.find_source(&self.registry, &frame.url) {
+        let source = match thread
+            .source_manager
+            .find_source(&self.registry, &frame.url)
+        {
             Some(source) => source.name(),
             None => {
                 warn!("No source actor found for URL: {}", frame.url);
@@ -884,9 +905,11 @@ fn handle_client(
     loop {
         match stream.read_json_packet() {
             Ok(Some(json_packet)) => {
-                if let Err(()) =
-                    registry.handle_message(json_packet.as_object().unwrap(), &mut stream, stream_id)
-                {
+                if let Err(()) = registry.handle_message(
+                    json_packet.as_object().unwrap(),
+                    &mut stream,
+                    stream_id,
+                ) {
                     log::error!("Devtools actor stopped responding");
                     let _ = stream.shutdown(Shutdown::Both);
                     break;
