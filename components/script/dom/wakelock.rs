@@ -2,11 +2,16 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentVisibilityState;
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{WakeLockMethods, WakeLockType};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::wakelocksentinel::WakeLockSentinel;
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/screen-wake-lock/#the-wakelock-interface>
@@ -29,7 +34,31 @@ impl WakeLock {
 
 impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
-    fn Request(&self, _type_: WakeLockType) -> Rc<Promise> {
-        todo!()
+    fn Request(&self, type_: WakeLockType) -> Rc<Promise> {
+        let global = self.global();
+        let can_gc = CanGc::note();
+        let promise = Promise::new(&global, can_gc);
+
+        // Step 1. Let document be this's relevant global object's associated Document.
+        let document = global.as_window().Document();
+
+        // Step 2. If document is not fully active, reject with NotAllowedError.
+        if !document.is_fully_active() {
+            promise.reject_error(Error::NotAllowed(None), can_gc);
+            return promise;
+        }
+
+        // Step 3. If document's visibility state is "hidden", reject with NotAllowedError.
+        if document.VisibilityState() == DocumentVisibilityState::Hidden {
+            promise.reject_error(Error::NotAllowed(None), can_gc);
+            return promise;
+        }
+
+        // Step 4. Create a WakeLockSentinel and resolve the promise with it.
+        // TODO: Notify the embedder to actually acquire the platform wake lock.
+        let sentinel = WakeLockSentinel::new(&global, type_, can_gc);
+        promise.resolve_native(&sentinel, can_gc);
+
+        promise
     }
 }
