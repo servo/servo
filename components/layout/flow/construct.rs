@@ -687,7 +687,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         };
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             if builder.currently_processing_inline_box() {
-                builder.push_block_level_box(job.finish(self.context), self.info, self.context);
+                builder.push_block_level_box(job.finish(self.context));
                 return;
             }
             if let Some(context) = self.finish_ongoing_inline_formatting_context() {
