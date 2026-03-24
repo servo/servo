@@ -652,13 +652,11 @@ pub struct PendingRestyle {
     pub damage: RestyleDamage,
 }
 
-/// The type of fragment that a scroll node is created for. We cram this value into the lower
-/// 2 bits of the `OpaqueNode` id, which contains a 32-bit-aligned heap address.
+/// The type of fragment that a scroll root is created for.
 ///
-/// Therefore, in order to expand this instance to have more than 4 entries, we need to make
-/// sure that it doesn't interleave with the `OpaqueNode` id. Since we only use the first 32
-/// bits of the identifier, this could be done by utilizing the unused bits in the unsigned
-/// 64-bit integer.
+/// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
+/// into the lower 2 bits of the `OpaqueNodeId`, which otherwise contains a 32-bit-aligned
+/// or 64-bit-aligned heap address depending on the machine.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FragmentType {
     /// A StackingContext for the fragment body itself.
@@ -673,15 +671,14 @@ impl TryFrom<usize> for FragmentType {
     type Error = ();
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            x if x == FragmentType::FragmentBody as usize => Ok(FragmentType::AfterPseudoContent),
-            x if x == FragmentType::BeforePseudoContent as usize => {
-                Ok(FragmentType::BeforePseudoContent)
-            },
-            x if x == FragmentType::AfterPseudoContent as usize => {
-                Ok(FragmentType::AfterPseudoContent)
-            },
-            _ => Err(()),
+        if value == FragmentType::FragmentBody as usize {
+            Ok(FragmentType::FragmentBody)
+        } else if value == FragmentType::BeforePseudoContent as usize {
+            Ok(FragmentType::BeforePseudoContent)
+        } else if value == FragmentType::AfterPseudoContent as usize {
+            Ok(FragmentType::AfterPseudoContent)
+        } else {
+            Err(())
         }
     }
 }
@@ -703,8 +700,7 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
 
 pub fn node_id_from_scroll_id(id: usize) -> Option<(usize, FragmentType)> {
     let node_id = id & !3;
-    let pseudo = FragmentType::try_from(id & 3)
-        .expect("The scroll id should have convertible back to `FragmentType`.");
+    let pseudo = FragmentType::try_from(id & 3).ok()?;
     Some((node_id, pseudo))
 }
 

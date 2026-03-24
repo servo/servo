@@ -32,12 +32,9 @@
         await waitForCompositorCommit();
         let rect = target.getBoundingClientRect();
         let middle_point = (rect.top + rect.bottom) / 2;
-        let scroll_event_promise = () => new Promise((resolve) => {
-          target.addEventListener("scroll", () => resolve());
-        });
 
         // Scrolls the `::before` pseudo element and wait for the event.
-        let promise_scroll_before = scroll_event_promise();
+        let promise_scroll_before = waitForScrollEndOrTimeout(target, MAX_FRAME);
         new test_driver
           .Actions()
           .scroll(rect.left + 10, Math.round(middle_point - rect.height / 4), 0, 1000)
@@ -45,7 +42,7 @@
         await promise_scroll_before;
 
         // Scrolls the `::after` pseudo element and wait for the event.
-        let promise_scroll_after = scroll_event_promise();
+        let promise_scroll_after = waitForScrollEndOrTimeout(target, MAX_FRAME);
         new test_driver
           .Actions()
           .scroll(rect.left + 10, Math.round(middle_point + rect.height / 4), 0, 1000)
