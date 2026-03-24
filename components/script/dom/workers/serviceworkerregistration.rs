@@ -23,6 +23,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
+use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::script_runtime::CanGc;
 
@@ -127,12 +128,21 @@ impl ServiceWorkerRegistration {
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
         let init = prepare_workerscope_init(global, None, Some(worker_id));
+        let browsing_context_id = global
+            .downcast::<Window>()
+            .map(|w| w.window_proxy().browsing_context_id())
+            .expect("Service worker must be registered from a Window global");
+        let webview_id = global
+            .webview_id()
+            .expect("Service worker must have a WebViewId");
         ScopeThings {
             script_url,
             init,
             worker_load_origin,
             devtools_chan,
             worker_id,
+            browsing_context_id,
+            webview_id,
         }
     }
 
