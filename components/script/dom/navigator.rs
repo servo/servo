@@ -57,6 +57,7 @@ use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::servointernals::ServoInternals;
 use crate::dom::types::UserActivation;
+use crate::dom::wakelock::WakeLock;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
@@ -133,6 +134,7 @@ pub(crate) struct Navigator {
     has_gamepad_gesture: Cell<bool>,
     servo_internals: MutNullableDom<ServoInternals>,
     user_activation: MutNullableDom<UserActivation>,
+    wake_lock: MutNullableDom<WakeLock>,
 }
 
 impl Navigator {
@@ -159,6 +161,7 @@ impl Navigator {
             has_gamepad_gesture: Cell::new(false),
             servo_internals: Default::default(),
             user_activation: Default::default(),
+            wake_lock: Default::default(),
         }
     }
 
@@ -609,6 +612,12 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn UserActivation(&self, can_gc: CanGc) -> DomRoot<UserActivation> {
         self.user_activation
             .or_init(|| UserActivation::new(&self.global(), can_gc))
+    }
+
+    /// <https://w3c.github.io/screen-wake-lock/#dom-navigator-wakelock>
+    fn WakeLock(&self) -> DomRoot<WakeLock> {
+        self.wake_lock
+            .or_init(|| WakeLock::new(&self.global(), CanGc::note()))
     }
 }
 
