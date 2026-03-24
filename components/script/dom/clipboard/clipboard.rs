@@ -21,7 +21,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
-use crate::dom::clipboarditem::Representation;
+use crate::dom::clipboard::clipboarditem::Representation;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
