@@ -3,47 +3,34 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::LazyLock;
 
-static RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = RwLock::new(None);
+pub type ResourceReader = &'static (dyn ResourceReaderMethods + Sync + Send);
 
-#[cfg(feature = "baked-default-resources")]
-static INIT_TEST_RESOURCES: std::sync::Once = std::sync::Once::new();
+// The embedder may register a resource reader via `inventory::submit!()`
+// Note: A weak symbol would perhaps be preferable, but that isn't available in stable rust yet.
+inventory::collect!(ResourceReader);
 
-#[cfg(all(feature = "baked-default-resources", servo_production))]
-const _: () = assert!(
-    false,
-    "baked-default-resources should not be used in production"
-);
-
-/// The Embedder should initialize the ResourceReader early.
-pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
-    *RES.write().unwrap() = Some(reader);
-}
-
-#[cfg(not(feature = "baked-default-resources"))]
-pub fn read_bytes(res: Resource) -> Vec<u8> {
-    if let Some(reader) = RES.read().unwrap().as_ref() {
-        reader.read(res)
-    } else {
-        log::error!("Resource reader not set.");
-        vec![]
-    }
-}
-
-#[cfg(feature = "baked-default-resources")]
-pub fn read_bytes(res: Resource) -> Vec<u8> {
-    INIT_TEST_RESOURCES.call_once(|| {
-        let mut reader = RES.write().unwrap();
-        if reader.is_none() {
-            *reader = Some(resources_for_tests())
+static RES: LazyLock<ResourceReader> = {
+    LazyLock::new(|| {
+        let mut resource_reader_iterator = inventory::iter::<ResourceReader>.into_iter();
+        let Some(resource_reader) = resource_reader_iterator.next() else {
+            panic!("No resource reader registered");
+        };
+        if resource_reader_iterator.next().is_some() {
+            log::error!(
+                "Multiple resource readers registered. Taking the first implementation \
+                (random, non deterministic order). This is a bug! Check usages of \
+                `inventory::submit!()`. Perhaps you meant to disable the default resource reader \
+                (selected by depending on the `servo-default-resources` crate) ?"
+            );
         }
-    });
-    RES.read()
-        .unwrap()
-        .as_ref()
-        .expect("Resource reader not set.")
-        .read(res)
+        *resource_reader
+    })
+};
+
+pub fn read_bytes(res: Resource) -> Vec<u8> {
+    RES.read(res)
 }
 
 pub fn read_string(res: Resource) -> String {
@@ -51,19 +38,11 @@ pub fn read_string(res: Resource) -> String {
 }
 
 pub fn sandbox_access_files() -> Vec<PathBuf> {
-    RES.read()
-        .unwrap()
-        .as_ref()
-        .map(|reader| reader.sandbox_access_files())
-        .unwrap_or_default()
+    RES.sandbox_access_files()
 }
 
 pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
-    RES.read()
-        .unwrap()
-        .as_ref()
-        .map(|reader| reader.sandbox_access_files_dirs())
-        .unwrap_or_default()
+    RES.sandbox_access_files_dirs()
 }
 
 pub enum Resource {
@@ -145,38 +124,4 @@ pub trait ResourceReaderMethods {
     /// If resources are shipped as files, then the directory containing them be listed
     /// here to ensure the content process can access the files.
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
-}
-
-/// Provides baked in resources for tests.
-///
-/// Embedder builds (e.g. servoshell) should use [`set`] and ship the resources themselves.
-#[cfg(feature = "baked-default-resources")]
-fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
-    struct ResourceReader;
-    impl ResourceReaderMethods for ResourceReader {
-        fn sandbox_access_files(&self) -> Vec<PathBuf> {
-            vec![]
-        }
-        fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
-            vec![]
-        }
-        fn read(&self, file: Resource) -> Vec<u8> {
-            match file {
-                Resource::BluetoothBlocklist => &include_bytes!("resources/gatt_blocklist.txt")[..],
-                Resource::DomainList => &include_bytes!("resources/public_domains.txt")[..],
-                Resource::HstsPreloadList => &include_bytes!("resources/hsts_preload.fstmap")[..],
-                Resource::BadCertHTML => &include_bytes!("resources/badcert.html")[..],
-                Resource::NetErrorHTML => &include_bytes!("resources/neterror.html")[..],
-                Resource::BrokenImageIcon => &include_bytes!("resources/rippy.png")[..],
-                Resource::CrashHTML => &include_bytes!("resources/crash.html")[..],
-                Resource::DirectoryListingHTML => {
-                    &include_bytes!("resources/directory-listing.html")[..]
-                },
-                Resource::AboutMemoryHTML => &include_bytes!("resources/about-memory.html")[..],
-                Resource::DebuggerJS => &include_bytes!("resources/debugger.js")[..],
-            }
-            .to_owned()
-        }
-    }
-    Box::new(ResourceReader)
 }

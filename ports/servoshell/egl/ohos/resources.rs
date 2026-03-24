@@ -3,24 +3,37 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::fs;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
-use servo::resources::{Resource, ResourceReaderMethods};
+use servo::resources::{Resource, ResourceReader, ResourceReaderMethods};
 
-pub(crate) struct ResourceReaderInstance {
-    resource_dir: PathBuf,
+pub(crate) struct ResourceReaderImpl {
+    resource_dir: OnceLock<PathBuf>,
 }
 
-impl ResourceReaderInstance {
-    pub(crate) fn new(resource_dir: PathBuf) -> Self {
-        assert!(resource_dir.is_dir());
-        Self { resource_dir }
+static RESOURCE_READER: ResourceReaderImpl = ResourceReaderImpl {
+    resource_dir: OnceLock::new(),
+};
+
+inventory::submit!(&RESOURCE_READER as ResourceReader);
+
+pub(crate) fn set_resource_dir(resource_dir: PathBuf) {
+    if let Err(e) = RESOURCE_READER.resource_dir.set(resource_dir) {
+        log::warn!("Failed to set resource dir: {:?}", e);
     }
 }
 
-impl ResourceReaderMethods for ResourceReaderInstance {
+impl ResourceReaderMethods for ResourceReaderImpl {
     fn read(&self, res: Resource) -> Vec<u8> {
-        let file_path = self.resource_dir.join(res.filename());
-        fs::read(&file_path).expect("failed to read resource file")
+        let file_path = RESOURCE_READER
+            .resource_dir
+            .get()
+            .expect("Attempted to read resources before reader initialized")
+            .join("named_resources")
+            .join(res.filename());
+        fs::read(&file_path).unwrap_or_else(|e| {
+            panic!("Failed to read resource file: {:?}: {:?}", file_path, e);
+        })
     }
 
     fn sandbox_access_files(&self) -> Vec<PathBuf> {

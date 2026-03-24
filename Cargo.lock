@@ -4439,6 +4439,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4f0c30c76f2f4ccee3fe55a2435f691ca00c0e4bd87abe4f4a851b1d4dac39b"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "ipc-channel"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7713,6 +7722,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-default-resources"
+version = "0.0.6"
+dependencies = [
+ "inventory",
+ "servo-embedder-traits",
+]
+
+[[package]]
 name = "servo-deny-public-fields"
 version = "0.0.6"
 dependencies = [
@@ -7784,6 +7801,7 @@ dependencies = [
  "euclid",
  "http 1.4.0",
  "image",
+ "inventory",
  "keyboard-types",
  "log",
  "malloc_size_of_derive",
@@ -8304,6 +8322,7 @@ dependencies = [
  "serde",
  "servo-base",
  "servo-config",
+ "servo-default-resources",
  "servo-devtools-traits",
  "servo-embedder-traits",
  "servo-hyper-serde",
@@ -8353,6 +8372,7 @@ dependencies = [
  "serde",
  "servo-base",
  "servo-config",
+ "servo-default-resources",
  "servo-embedder-traits",
  "servo-hyper-serde",
  "servo-malloc-size-of",
@@ -8936,6 +8956,7 @@ dependencies = [
  "hilog",
  "hitrace",
  "image",
+ "inventory",
  "ipc-channel",
  "jni 0.21.1",
  "keyboard-types",
@@ -8959,7 +8980,7 @@ dependencies = [
  "servo",
  "servo-allocator",
  "servo-base",
- "servo-embedder-traits",
+ "servo-default-resources",
  "servo-webdriver-server",
  "sig",
  "surfman",

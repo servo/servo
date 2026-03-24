@@ -84,7 +84,7 @@ webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-embedder_traits = { workspace = true, features = ["baked-default-resources"] }
+servo-default-resources = { workspace = true }
 flate2 = { workspace = true }
 fst = "0.4"
 hyper = { workspace = true, features = ["full"] }

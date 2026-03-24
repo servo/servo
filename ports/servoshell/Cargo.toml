@@ -41,7 +41,10 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-default = ["gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+default = ["baked-in-resources", "gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+# This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
+# which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
+baked-in-resources = ["dep:servo-default-resources"]
 crown = ["servo/crown"]
 debugmozjs = ["servo/debugmozjs"]
 gamepad = ["servo/gamepad"]
@@ -86,8 +89,14 @@ webdriver_server = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
-embedder_traits = { workspace = true, features = ["baked-default-resources"] }
 jni = "0.21.1"
+
+# On most platforms we bake in the resources for simplicity. On ohos we load resources via the filesystem.
+# In the future we might want to use this approach also for the other platforms.
+# If the feature is turned off, a resource reader must be injected into the build via `inventory::submit!()`.
+[target.'cfg(not(target_env = "ohos"))'.dependencies]
+servo-default-resources = { workspace = true, optional = true }
+
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
@@ -96,6 +105,7 @@ backtrace = { workspace = true }
 env_filter = "0.1.4"
 euclid = { workspace = true }
 hilog = "0.2.2"
+inventory = { workspace = true }
 # force inprocess until we add multi-process support for ohos
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 napi-derive-ohos = "1.1.6"

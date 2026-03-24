@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::env;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use std::{env, fs};
 
 use cfg_if::cfg_if;
-use servo::resources::{self, Resource};
+// We need to reference this crate, in order for the linker not to eliminate it.
+#[cfg(feature = "baked-in-resources")]
+use servo_default_resources as _;
 
 static CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
 
-struct ResourceReader;
-
-pub fn init() {
-    resources::set(Box::new(ResourceReader));
+pub(crate) fn resource_protocol_dir_path() -> PathBuf {
+    resource_root_dir_path().join("resource_protocol")
 }
 
-pub(crate) fn resources_dir_path() -> PathBuf {
+fn resource_root_dir_path() -> PathBuf {
     // This needs to be called before the process is sandboxed
     // as we only give permission to read inside the resources directory,
     // not the permissions the "search" for the resources directory.
@@ -27,7 +27,7 @@ pub(crate) fn resources_dir_path() -> PathBuf {
     }
 
     // Try ./resources and ./Resources relative to the directory containing the
-    // canonicalised executable path, then each of its ancestors.
+    // canonicalized executable path, then each of its ancestors.
     let mut path = env::current_exe().unwrap().canonicalize().unwrap();
     while path.pop() {
         path.push("resources");
@@ -51,7 +51,7 @@ pub(crate) fn resources_dir_path() -> PathBuf {
             panic!("Can't find resources directory")
         } else {
             // Static assert that this is really a non-production build, rather
-            // than a failure of the build script’s production check.
+            // than a failure of the build script's production check.
             const _: () = assert!(cfg!(servo_do_not_use_in_production));
 
             // Try ./resources in the current directory, then each of its ancestors.
@@ -70,19 +70,5 @@ pub(crate) fn resources_dir_path() -> PathBuf {
                 }
             }
         }
-    }
-}
-
-impl resources::ResourceReaderMethods for ResourceReader {
-    fn read(&self, file: Resource) -> Vec<u8> {
-        let mut path = resources_dir_path();
-        path.push(file.filename());
-        fs::read(path).unwrap_or_else(|e| panic!("Can't read file {}", file.filename()))
-    }
-    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
-        vec![resources_dir_path()]
-    }
-    fn sandbox_access_files(&self) -> Vec<PathBuf> {
-        vec![]
     }
 }
