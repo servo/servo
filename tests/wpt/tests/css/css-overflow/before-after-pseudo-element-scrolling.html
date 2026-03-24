@@ -4,7 +4,7 @@
     <title>Scrolls of `::before` and `::after` pseudo element should persist after a reflow.</title>
     <link rel="help" href="https://github.com/servo/servo/pull/42005">
     <link rel="author" title="Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
-    <link rel="match" href="reference/before-after-pseudo-element-scrolling-ref.html">
+    <link rel="match" href="/css/reference/ref-green-image-100px-square.html">
     <script src="/resources/testdriver.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
     <script src="/resources/testdriver-actions.js"></script>
@@ -12,33 +12,26 @@
     <style>
     #target::before, #target::after {
       display: block;
-      content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et "
-                "dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip "
-                "ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu "
-                "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt "
-                "mollit anim id est laborum.";
-      text-wrap: wrap;
-      height: 100px;
+      content: url("/images/red.png") url("/images/green.png");
+      height: 50px;
       width: 100px;
       overflow: scroll;
       scrollbar-width: none;
-      background-color: lightblue;
-    }
-    #item {
-      height: 20px;
+      background: url("/images/green.png");
     }
     </style>
   </head>
   <body>
     <div id="dummy">dummy</div>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
     <div id="target">
-      Content
     </div>
 
     <script>
       window.onload = async () => {
         await waitForCompositorCommit();
         let rect = target.getBoundingClientRect();
+        let middle_point = (rect.top + rect.bottom) / 2;
         let scroll_event_promise = () => new Promise((resolve) => {
           target.addEventListener("scroll", () => resolve());
         });
@@ -47,7 +40,7 @@
         let promise_scroll_before = scroll_event_promise();
         new test_driver
           .Actions()
-          .scroll(rect.left + 10, Math.round(rect.top + 50), 0, 1000)
+          .scroll(rect.left + 10, Math.round(middle_point - rect.height / 4), 0, 1000)
           .send();
         await promise_scroll_before;
 
@@ -55,7 +48,7 @@
         let promise_scroll_after = scroll_event_promise();
         new test_driver
           .Actions()
-          .scroll(rect.left + 10, Math.round(rect.top + 170), 0, 1000)
+          .scroll(rect.left + 10, Math.round(middle_point + rect.height / 4), 0, 1000)
           .send();
         await promise_scroll_after;
 
