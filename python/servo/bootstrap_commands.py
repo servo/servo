@@ -108,12 +108,19 @@ class MachCommands(CommandBase):
 
     @Command(
         "update-pub-domains",
-        description="Download the public domains list and update resources/public_domains.txt",
+        description="Download the public domains list and update the copy in embedder_traits",
         category="bootstrap",
     )
     def bootstrap_pub_suffix(self, force: bool = False) -> None:
         list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
-        dst_filename = path.join(self.context.topdir, "shared", "embedder", "resources", "public_domains.txt")
+        dst_filename = path.join(
+            self.context.topdir,
+            "components",
+            "shared",
+            "embedder",
+            "resources",
+            "public_domains.txt",
+        )
         not_implemented_case = re.compile(r"^[^*]+\*")
 
         try:
