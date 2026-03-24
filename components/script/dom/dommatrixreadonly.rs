@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::{f64, ptr};
 
-use servo_constellation_traits::DomMatrix;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Angle;
@@ -19,6 +18,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::id::{DomMatrixId, DomMatrixIndex};
+use servo_constellation_traits::DomMatrix;
 use style::stylesheets::CssRuleType;
 use style_traits::ParsingMode;
 use url::Url;

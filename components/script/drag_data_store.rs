@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
-use servo_constellation_traits::BlobImpl;
 use indexmap::IndexMap;
 use pixels::RasterImage;
+use servo_constellation_traits::BlobImpl;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;

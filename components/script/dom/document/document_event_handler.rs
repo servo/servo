@@ -11,7 +11,6 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
@@ -47,6 +46,7 @@ use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
+use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;

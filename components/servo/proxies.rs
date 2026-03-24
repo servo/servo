@@ -5,10 +5,10 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use servo_constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender};
 use log::warn;
 use servo_config::prefs::{PrefValue, PreferencesObserver};
+use servo_constellation_traits::EmbedderToConstellationMessage;
 
 #[derive(Clone)]
 pub(crate) struct ConstellationProxy {

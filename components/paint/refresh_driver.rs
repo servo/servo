@@ -9,10 +9,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use servo_constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Sender, select};
 use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
 use crate::painter::Painter;

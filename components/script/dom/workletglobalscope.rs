@@ -5,7 +5,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use servo_constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -16,6 +15,7 @@ use profile_traits::{mem, time};
 use script_traits::Painter;
 use servo_base::generic_channel::{GenericCallback, GenericSender};
 use servo_base::id::{PipelineId, WebViewId};
+use servo_constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;

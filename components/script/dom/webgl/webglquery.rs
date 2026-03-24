@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 
-use servo_canvas_traits::webgl::WebGLError::*;
-use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 use dom_struct::dom_struct;
 use script_bindings::weakref::WeakRef;
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::refcounted::Trusted;

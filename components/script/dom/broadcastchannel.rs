@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 
-use servo_constellation_traits::BroadcastChannelMsg;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
+use servo_constellation_traits::BroadcastChannelMsg;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;

@@ -7,7 +7,6 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
-use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
@@ -22,6 +21,7 @@ use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
+use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;

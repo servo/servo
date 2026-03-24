@@ -6,7 +6,6 @@ use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::rc::Rc;
 
-use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
@@ -15,6 +14,7 @@ use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::id::{MessagePortId, MessagePortIndex};
+use servo_constellation_traits::{MessagePortImpl, PortMessageTask};
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{

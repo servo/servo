@@ -4,9 +4,9 @@
 
 use std::cell::Cell;
 
+use dom_struct::dom_struct;
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLSamplerId, webgl_channel};
-use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;

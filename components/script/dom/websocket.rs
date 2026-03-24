@@ -6,7 +6,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
 
-use servo_constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSObject;
@@ -24,6 +23,7 @@ use net_traits::{
 use profile_traits::ipc as ProfiledIpc;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
+use servo_constellation_traits::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::cell::DomRefCell;

@@ -7,7 +7,6 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -35,6 +34,7 @@ use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
 use servo_config::{opts, pref};
+use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;

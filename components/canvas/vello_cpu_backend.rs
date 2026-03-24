@@ -6,16 +6,16 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use servo_canvas_traits::canvas::{
-    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
-    LineOptions, Path, ShadowOptions, TextRun,
-};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::FontIdentifier;
 use kurbo::Shape;
 use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_base::generic_channel::GenericSharedMemory;
+use servo_canvas_traits::canvas::{
+    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
+    LineOptions, Path, ShadowOptions, TextRun,
+};
 use vello_cpu::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 

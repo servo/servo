@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 
-use servo_constellation_traits::{LoadData, NavigationHistoryBehavior};
 use embedder_traits::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, ContextMenuRequest, EditingActionEvent, EmbedderControlId,
@@ -24,6 +23,7 @@ use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSend;
+use servo_constellation_traits::{LoadData, NavigationHistoryBehavior};
 use servo_url::ServoUrl;
 use webrender_api::units::{DeviceIntRect, DevicePoint};
 

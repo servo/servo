@@ -15,7 +15,6 @@ use std::time::Duration;
 
 use bitflags::bitflags;
 use chrono::Local;
-use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;
@@ -59,6 +58,7 @@ use servo_base::generic_channel::GenericSend;
 use servo_base::id::WebViewId;
 use servo_base::{Epoch, generic_channel};
 use servo_config::pref;
+use servo_constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;

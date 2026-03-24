@@ -16,12 +16,6 @@ use std::time::{Duration, Instant};
 
 use app_units::Au;
 use base64::Engine;
-use servo_canvas_traits::webgl::WebGLChan;
-use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
-    WindowSizeType,
-};
 use content_security_policy::Violation;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
@@ -83,7 +77,13 @@ use servo_base::generic_channel::{self, GenericCallback, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
+use servo_canvas_traits::webgl::WebGLChan;
 use servo_config::pref;
+use servo_constellation_traits::{
+    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
+    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
+    WindowSizeType,
+};
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;

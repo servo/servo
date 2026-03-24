@@ -7,12 +7,12 @@ use std::cell::Cell;
 use std::os::raw::c_int;
 use std::sync::Once;
 
+use dom_struct::dom_struct;
+use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 use servo_canvas_traits::webgl::{
     GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
     WebGLVersion, webgl_channel,
 };
-use dom_struct::dom_struct;
-use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;

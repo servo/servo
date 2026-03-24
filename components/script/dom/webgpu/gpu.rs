@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
-use servo_constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::jsapi::HandleObject;
+use servo_constellation_traits::ScriptToConstellationMessage;
 use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
 

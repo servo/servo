@@ -11,11 +11,6 @@
 
 use std::fmt;
 
-use servo_canvas_traits::webgl::WebGLPipeline;
-use servo_constellation_traits::{
-    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
-    ScrollStateUpdate, StructuredSerializedData, WindowSizeType,
-};
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
@@ -43,7 +38,12 @@ use servo_base::id::{
 };
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
+use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::prefs::PrefValue;
+use servo_constellation_traits::{
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
+    ScrollStateUpdate, StructuredSerializedData, WindowSizeType,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;

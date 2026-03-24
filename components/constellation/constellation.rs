@@ -98,18 +98,6 @@ use std::{process, thread};
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use servo_canvas::canvas_paint_thread::CanvasPaintThread;
-use servo_canvas_traits::ConstellationCanvasMsg;
-use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
-use servo_canvas_traits::webgl::WebGLThreads;
-use servo_constellation_traits::{
-    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
-    EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
-    LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
-    PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
-    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TraversalDirection, UserContentManagerAction, WindowSizeType,
-};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
@@ -164,7 +152,19 @@ use servo_base::id::{
 use servo_base::{Epoch, generic_channel};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
+use servo_canvas::canvas_paint_thread::CanvasPaintThread;
+use servo_canvas_traits::ConstellationCanvasMsg;
+use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+use servo_canvas_traits::webgl::WebGLThreads;
 use servo_config::{opts, pref};
+use servo_constellation_traits::{
+    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
+    EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
+    LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
+    PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
+    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TraversalDirection, UserContentManagerAction, WindowSizeType,
+};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;

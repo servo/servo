@@ -9,11 +9,6 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use bitflags::bitflags;
-use servo_canvas_traits::webgl::WebGLError::*;
-use servo_canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
-    WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
-};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::jsapi::{JSObject, Type};
@@ -24,6 +19,11 @@ use pixels::{Alpha, Snapshot};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use servo_base::generic_channel::{self, GenericSharedMemory};
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{
+    AlphaTreatment, GLContextAttributes, InternalFormatParameter, TexDataType, TexFormat,
+    WebGLCommand, WebGLContextId, WebGLResult, WebGLVersion, YAxisTreatment, webgl_channel,
+};
 use servo_config::pref;
 use url::Host;
 use webrender_api::ImageKey;

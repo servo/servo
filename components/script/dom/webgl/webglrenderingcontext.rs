@@ -11,13 +11,6 @@ use std::rc::Rc;
 #[cfg(feature = "webgl_backtrace")]
 use backtrace::Backtrace;
 use bitflags::bitflags;
-use servo_canvas_traits::webgl::WebGLError::*;
-use servo_canvas_traits::webgl::{
-    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
-    TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
-    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
-    WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLVersion, YAxisTreatment, webgl_channel,
-};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::jsapi::{JSContext, JSObject, Type};
@@ -33,6 +26,13 @@ use script_bindings::reflector::AssociatedMemory;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::{Epoch, generic_channel};
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{
+    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
+    TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
+    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
+    WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLVersion, YAxisTreatment, webgl_channel,
+};
 use servo_config::pref;
 use webrender_api::ImageKey;
 

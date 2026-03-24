@@ -5,12 +5,12 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
+use dom_struct::dom_struct;
+use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult,
     WebGLVersion, webgl_channel,
 };
-use dom_struct::dom_struct;
-use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
 use crate::dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;

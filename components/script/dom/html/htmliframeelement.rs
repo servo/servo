@@ -5,10 +5,6 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use servo_constellation_traits::{
-    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
-    NavigationHistoryBehavior, ScriptToConstellationMessage,
-};
 use content_security_policy::sandboxing_directive::{
     SandboxingFlagSet, parse_a_sandboxing_directive,
 };
@@ -23,6 +19,10 @@ use profile_traits::ipc as ProfiledIpc;
 use script_bindings::script_runtime::temp_cx;
 use script_traits::{NewPipelineInfo, UpdatePipelineIdReason};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_constellation_traits::{
+    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
+    NavigationHistoryBehavior, ScriptToConstellationMessage,
+};
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use stylo_atoms::Atom;
