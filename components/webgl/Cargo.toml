@@ -14,13 +14,12 @@ name = "webgl"
 path = "lib.rs"
 
 [features]
-webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
 webxr = ["dep:webxr", "dep:webxr-api"]
 
 [dependencies]
 bitflags = { workspace = true }
 byteorder = { workspace = true }
-canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glow = { workspace = true }
@@ -32,6 +31,7 @@ parking_lot = { workspace = true }
 pixels = { workspace = true }
 rustc-hash = { workspace = true }
 servo-base = { workspace = true }
+servo-canvas-traits = { workspace = true }
 surfman = { workspace = true }
 webrender_api = { workspace = true }
 webxr = { workspace = true, optional = true }

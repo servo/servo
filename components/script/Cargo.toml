@@ -26,7 +26,7 @@ profilemozjs = ['js/profilemozjs']
 refcell_backtrace = ["accountable-refcell"]
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
-webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
 webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
 webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 
@@ -48,13 +48,11 @@ base64 = { workspace = true }
 base64ct = { workspace = true }
 bitflags = { workspace = true }
 brotli = { workspace = true }
-canvas_traits = { workspace = true }
 cbc = { workspace = true }
 chacha20poly1305 = { workspace = true }
 chardetng = { workspace = true }
 chrono = { workspace = true }
 cipher = { workspace = true }
-constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -130,7 +128,9 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 servo-background-hang-monitor-api = { workspace = true }
 servo-base = { workspace = true }
 servo-bluetooth-traits = { workspace = true, optional = true }
+servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
+servo-constellation-traits = { workspace = true }
 servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-url = { workspace = true }

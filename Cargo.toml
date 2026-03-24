@@ -229,10 +229,6 @@ xml5ever = "0.39"
 # be listed here, between the `Begin` and `End` comments, so that we can easily find and
 # update the version requirements when bumping the workspace version.
 # Begin workspace-version dependencies - Don't change this comment, we grep for it in scripts!
-canvas = { package = "servo-canvas", version = "0.0.6", path = "components/canvas" }
-canvas_traits = { package = "servo-canvas-traits", version = "0.0.6", path = "components/shared/canvas" }
-constellation = { package = "servo-constellation", version = "0.0.6", path = "components/constellation" }
-constellation_traits = { package = "servo-constellation-traits", version = "0.0.6", path = "components/shared/constellation" }
 deny_public_fields = { package = "servo-deny-public-fields", version = "0.0.6", path = "components/deny_public_fields" }
 devtools = { package = "servo-devtools", version = "0.0.6", path = "components/devtools" }
 devtools_traits = { package = "servo-devtools-traits", version = "0.0.6", path = "components/shared/devtools" }
@@ -263,8 +259,12 @@ servo-background-hang-monitor-api = { version = "0.0.6", path = "components/shar
 servo-base = { version = "0.0.6", path = "components/shared/base" }
 servo-bluetooth = { version = "0.0.6", path = "components/bluetooth" }
 servo-bluetooth-traits = { version = "0.0.6", path = "components/shared/bluetooth" }
+servo-canvas = { version = "0.0.6", path = "components/canvas" }
+servo-canvas-traits = { version = "0.0.6", path = "components/shared/canvas" }
 servo-config = { version = "0.0.6", path = "components/config" }
 servo-config-macro = { version = "0.0.6", path = "components/config/macro" }
+servo-constellation = { version = "0.0.6", path = "components/constellation" }
+servo-constellation-traits = { version = "0.0.6", path = "components/shared/constellation" }
 servo-geometry = { version = "0.0.6", path = "components/geometry" }
 servo-media = { version = "0.0.6", path = "components/media/servo-media" }
 servo-media-audio = { version = "0.0.6", path = "components/media/audio" }
