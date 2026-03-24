@@ -20,6 +20,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
@@ -130,7 +131,7 @@ impl ServiceWorkerRegistration {
         let init = prepare_workerscope_init(global, None, Some(worker_id));
         let browsing_context_id = global
             .downcast::<Window>()
-            .map(|w| w.window_proxy().browsing_context_id())
+            .map(|w: &Window| w.window_proxy().browsing_context_id())
             .expect("Service worker must be registered from a Window global");
         let webview_id = global
             .webview_id()
