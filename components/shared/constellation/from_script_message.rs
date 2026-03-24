@@ -628,6 +628,8 @@ pub enum ScriptToConstellationMessage {
         usize,
         GenericSender<Option<BrowsingContextId>>,
     ),
+    /// Get the origin of the document corresponding to the given pipeline
+    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,
