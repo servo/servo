@@ -6810,7 +6810,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         expression: DOMString,
         resolver: Option<Rc<XPathNSResolver>>,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<super::types::XPathExpression>> {
+    ) -> Fallible<DomRoot<crate::dom::types::XPathExpression>> {
         let parsed_expression =
             parse_expression(&expression.str(), resolver, self.is_html_document())?;
         Ok(XPathExpression::new(
@@ -6834,9 +6834,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         context_node: &Node,
         resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
-        result: Option<&super::types::XPathResult>,
+        result: Option<&crate::dom::types::XPathResult>,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<super::types::XPathResult>> {
+    ) -> Fallible<DomRoot<crate::dom::types::XPathResult>> {
         let parsed_expression =
             parse_expression(&expression.str(), resolver, self.is_html_document())?;
         XPathExpression::new(&self.window, None, can_gc, parsed_expression).evaluate_internal(
