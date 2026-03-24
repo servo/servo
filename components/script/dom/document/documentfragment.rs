@@ -8,7 +8,6 @@ use js::rust::HandleObject;
 use rustc_hash::FxBuildHasher;
 use stylo_atoms::Atom;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -17,6 +16,7 @@ use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::html::htmlcollection::HTMLCollection;

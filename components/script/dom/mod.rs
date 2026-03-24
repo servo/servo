@@ -259,11 +259,7 @@ pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 #[expect(dead_code)]
 pub(crate) mod document;
-mod document_embedder_controls;
-pub(crate) mod document_event_handler;
-pub(crate) mod documentfragment;
-pub(crate) mod documentorshadowroot;
-pub(crate) mod documenttype;
+pub(crate) use self::document::*;
 pub(crate) mod domexception;
 pub(crate) mod domimplementation;
 pub(crate) mod dommatrix;
