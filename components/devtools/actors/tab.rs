@@ -167,12 +167,12 @@ impl Actor for TabDescriptorActor {
 
 impl TabDescriptorActor {
     pub(crate) fn new(
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
         browsing_context_actor: String,
         is_top_level_global: bool,
     ) -> TabDescriptorActor {
-        let name = actors.new_name::<Self>();
-        let root = actors.find::<RootActor>("root");
+        let name = registry.new_name::<Self>();
+        let root = registry.find::<RootActor>("root");
         root.tabs.borrow_mut().push(name.clone());
         TabDescriptorActor {
             name,

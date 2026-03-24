@@ -207,16 +207,16 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
     ) -> BrowsingContextActor {
-        let name = actors.new_name::<BrowsingContextActor>();
+        let name = registry.new_name::<BrowsingContextActor>();
         let DevtoolsPageInfo {
             title,
             url,
             is_top_level_global,
         } = page_info;
 
-        let accessibility = AccessibilityActor::new(actors.new_name::<AccessibilityActor>());
+        let accessibility = AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -225,24 +225,24 @@ impl BrowsingContextActor {
         })()
         .unwrap_or_default();
         let css_properties =
-            CssPropertiesActor::new(actors.new_name::<CssPropertiesActor>(), properties);
+            CssPropertiesActor::new(registry.new_name::<CssPropertiesActor>(), properties);
 
-        let inspector = InspectorActor::register(actors, name.clone());
+        let inspector = InspectorActor::register(registry, name.clone());
 
-        let reflow = ReflowActor::new(actors.new_name::<ReflowActor>());
+        let reflow = ReflowActor::new(registry.new_name::<ReflowActor>());
 
-        let style_sheets = StyleSheetsActor::new(actors.new_name::<StyleSheetsActor>());
+        let style_sheets = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
 
-        let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
+        let tabdesc = TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
 
         let thread = ThreadActor::new(
-            actors.new_name::<ThreadActor>(),
+            registry.new_name::<ThreadActor>(),
             script_sender.clone(),
             Some(name.clone()),
         );
 
         let watcher = WatcherActor::new(
-            actors,
+            registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
         );
@@ -270,13 +270,13 @@ impl BrowsingContextActor {
             watcher: watcher.name(),
         };
 
-        actors.register(accessibility);
-        actors.register(css_properties);
-        actors.register(reflow);
-        actors.register(style_sheets);
-        actors.register(tabdesc);
-        actors.register(thread);
-        actors.register(watcher);
+        registry.register(accessibility);
+        registry.register(css_properties);
+        registry.register(reflow);
+        registry.register(style_sheets);
+        registry.register(tabdesc);
+        registry.register(thread);
+        registry.register(watcher);
 
         target
     }
