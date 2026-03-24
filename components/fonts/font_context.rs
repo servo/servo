@@ -460,29 +460,33 @@ impl FontContext {
         false
     }
 
-    fn is_url_source_web_font_loaded(
+    fn is_local_or_unknown_url_font(
         &self,
         family_name: &LowercaseFontFamilyName,
-        url: &UrlSource,
+        source: &Source,
     ) -> bool {
-        url.url
-            .url()
-            .cloned()
-            .map(ServoUrl::from)
-            .map(FontIdentifier::Web)
-            .filter(|font_identifier| self.font_data.read().contains_key(font_identifier))
-            .is_some_and(|font_identifier| {
-                self.web_fonts
-                    .read()
-                    .families
-                    .get(family_name)
-                    .is_some_and(|templates| {
-                        templates
-                            .templates
-                            .iter()
-                            .any(|template| template.borrow().identifier == font_identifier)
-                    })
-            })
+        match source {
+            Source::Url(url) => !url
+                .url
+                .url()
+                .cloned()
+                .map(ServoUrl::from)
+                .map(FontIdentifier::Web)
+                .filter(|font_identifier| self.font_data.read().contains_key(font_identifier))
+                .is_some_and(|font_identifier| {
+                    self.web_fonts
+                        .read()
+                        .families
+                        .get(family_name)
+                        .is_some_and(|templates| {
+                            templates
+                                .templates
+                                .iter()
+                                .any(|template| template.borrow().identifier == font_identifier)
+                        })
+                }),
+            Source::Local(_) => true,
+        }
     }
 }
 
@@ -834,11 +838,7 @@ impl FontContext {
             .rev()
             .filter(Self::is_supported_web_font_source)
             .filter(|source| {
-                if let Source::Url(url) = source {
-                    !self.is_url_source_web_font_loaded(&css_font_face_descriptors.family_name, url)
-                } else {
-                    true
-                }
+                self.is_local_or_unknown_url_font(&css_font_face_descriptors.family_name, source)
             })
             .cloned()
             .collect();

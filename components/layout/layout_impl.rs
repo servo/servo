@@ -767,11 +767,9 @@ impl LayoutThread {
         let locked_script_channel = Mutex::new(self.script_chan.clone());
         let pipeline_id = self.id;
         let web_font_finished_loading_callback = move |succeeded: bool| {
-            if succeeded {
-                let _ = locked_script_channel
-                    .lock()
-                    .send(ScriptThreadMessage::WebFontLoaded(pipeline_id));
-            }
+            let _ = locked_script_channel
+                .lock()
+                .send(ScriptThreadMessage::WebFontLoaded(pipeline_id, succeeded));
         };
 
         self.font_context.add_all_web_fonts_from_stylesheet(
