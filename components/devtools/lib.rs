@@ -617,7 +617,12 @@ impl DevtoolsInstance {
     ) -> Option<String> {
         if let Some(worker_id) = worker_id {
             let actor_name = self.actor_workers.get(&worker_id)?;
-            Some(self.registry.find::<WorkerActor>(actor_name).console_name.clone())
+            Some(
+                self.registry
+                    .find::<WorkerActor>(actor_name)
+                    .console_name
+                    .clone(),
+            )
         } else {
             let id = self.pipelines.get(&pipeline_id)?;
             let actor_name = self.browsing_contexts.get(id)?;
