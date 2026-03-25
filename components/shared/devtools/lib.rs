@@ -45,6 +45,7 @@ pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: ServoUrl,
     pub is_top_level_global: bool,
+    pub is_service_worker: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

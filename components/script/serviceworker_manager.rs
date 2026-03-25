@@ -475,6 +475,7 @@ fn update_serviceworker(
                 title: format!("Service Worker for {}", scope_things.script_url),
                 url: scope_things.script_url.clone(),
                 is_top_level_global: false,
+                is_service_worker: true,
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                 (

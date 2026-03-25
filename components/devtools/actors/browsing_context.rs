@@ -214,6 +214,7 @@ impl BrowsingContextActor {
             title,
             url,
             is_top_level_global,
+            ..
         } = page_info;
 
         let accessibility = AccessibilityActor::new(registry.new_name::<AccessibilityActor>());

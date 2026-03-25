@@ -28,6 +28,35 @@ use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+struct ServiceWorkerInfo {
+    actor: String,
+    url: String,
+    state: u32,
+    state_text: String,
+    id: String,
+    fetch: bool,
+    traits: HashMap<&'static str, bool>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ServiceWorkerRegistrationMsg {
+    actor: String,
+    scope: String,
+    url: String,
+    registration_state: String,
+    last_update_time: u64,
+    traits: HashMap<&'static str, bool>,
+    // Firefox DevTools (LegacyServiceWorkersWatcher) matches workers via these
+    // four named fields, not via a `workers` array.
+    evaluating_worker: Option<ServiceWorkerInfo>,
+    installing_worker: Option<ServiceWorkerInfo>,
+    waiting_worker: Option<ServiceWorkerInfo>,
+    active_worker: Option<ServiceWorkerInfo>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct RootTraits {
     sources: bool,
     highlightable: bool,
@@ -100,7 +129,7 @@ struct ListWorkersReply {
 #[derive(Serialize)]
 struct ListServiceWorkerRegistrationsReply {
     from: String,
-    registrations: Vec<u32>, // TODO: follow actual JSON structure.
+    registrations: Vec<ServiceWorkerRegistrationMsg>,
 }
 
 #[derive(Serialize)]
@@ -137,6 +166,7 @@ pub(crate) struct RootActor {
     process: String,
     pub tabs: AtomicRefCell<Vec<String>>,
     pub workers: AtomicRefCell<Vec<String>>,
+    pub service_workers: AtomicRefCell<Vec<String>>,
 }
 
 impl Actor for RootActor {
@@ -213,9 +243,42 @@ impl Actor for RootActor {
             },
 
             "listServiceWorkerRegistrations" => {
+                let registrations = self
+                    .service_workers
+                    .borrow()
+                    .iter()
+                    .map(|worker_name| {
+                        let worker = registry.find::<WorkerActor>(worker_name);
+                        let url_str = worker.url.to_string();
+                        let scope = url_str
+                            .rsplit_once('/')
+                            .map(|(dir, _)| format!("{dir}/"))
+                            .unwrap_or_else(|| url_str.clone());
+                        ServiceWorkerRegistrationMsg {
+                            actor: worker.name(),
+                            scope,
+                            url: url_str,
+                            registration_state: "".to_string(),
+                            last_update_time: 0,
+                            traits: HashMap::new(),
+                            evaluating_worker: None,
+                            installing_worker: None,
+                            waiting_worker: None,
+                            active_worker: Some(ServiceWorkerInfo {
+                                actor: worker.name(),
+                                url: worker.url.to_string(),
+                                state: 4, // activated
+                                state_text: "activated".to_string(),
+                                id: worker.worker_id.to_string(),
+                                fetch: false,
+                                traits: HashMap::new(),
+                            }),
+                        }
+                    })
+                    .collect();
                 let reply = ListServiceWorkerRegistrationsReply {
                     from: self.name(),
-                    registrations: vec![],
+                    registrations,
                 };
                 request.reply_final(&reply)?
             },

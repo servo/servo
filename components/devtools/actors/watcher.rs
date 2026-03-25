@@ -61,7 +61,7 @@ impl SessionContext {
                 ("frame", true),
                 ("process", false),
                 ("worker", true),
-                ("service_worker", false),
+                ("service_worker", true),
                 ("shared_worker", false),
             ]),
             // At the moment, we are blocking most resources to avoid errors
@@ -260,6 +260,17 @@ impl Actor for WatcherActor {
                     target.frame_update(&mut request);
                 } else if target_type == "worker" {
                     for worker_name in &*root.workers.borrow() {
+                        let worker_msg = WatchTargetsReply {
+                            from: self.name(),
+                            type_: "target-available-form".into(),
+                            target: TargetActorMsg::Worker(
+                                registry.encode::<WorkerActor, _>(worker_name),
+                            ),
+                        };
+                        let _ = request.write_json_packet(&worker_msg);
+                    }
+                } else if target_type == "service_worker" {
+                    for worker_name in &*root.service_workers.borrow() {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),

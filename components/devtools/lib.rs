@@ -473,8 +473,6 @@ impl DevtoolsInstance {
         let console_name = self.registry.new_name::<ConsoleActor>();
 
         let parent_actor = if let Some(id) = worker_id {
-            assert!(self.pipelines.contains_key(&pipeline_id));
-            assert!(self.browsing_contexts.contains_key(&browsing_context_id));
 
             let thread = ThreadActor::new(
                 self.registry.new_name::<ThreadActor>(),
@@ -484,6 +482,11 @@ impl DevtoolsInstance {
             let thread_name = thread.name();
             self.registry.register(thread);
 
+            let worker_type = if page_info.is_service_worker {
+                WorkerType::Service
+            } else {
+                WorkerType::Dedicated
+            };
             let worker_name = self.registry.new_name::<WorkerActor>();
             let worker = WorkerActor {
                 name: worker_name.clone(),
@@ -491,12 +494,16 @@ impl DevtoolsInstance {
                 thread: thread_name,
                 worker_id: id,
                 url: page_info.url,
-                type_: WorkerType::Dedicated,
+                type_: worker_type,
                 script_chan: script_sender,
                 streams: Default::default(),
             };
             let root = self.registry.find::<RootActor>("root");
-            root.workers.borrow_mut().push(worker.name.clone());
+            if page_info.is_service_worker {
+                root.service_workers.borrow_mut().push(worker.name.clone());
+            } else {
+                root.workers.borrow_mut().push(worker.name.clone());
+            }
 
             self.actor_workers.insert(id, worker_name.clone());
             self.registry.register(worker);

@@ -97,6 +97,14 @@ impl Actor for WorkerActor {
                 request.write_json_packet(&msg)?;
             },
 
+            "getPushSubscription" => {
+                let msg = GetPushSubscriptionReply {
+                    from: self.name(),
+                    subscription: None,
+                };
+                request.reply_final(&msg)?
+            },
+
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
@@ -110,6 +118,12 @@ impl Actor for WorkerActor {
                 .unwrap();
         }
     }
+}
+
+#[derive(Serialize)]
+struct GetPushSubscriptionReply {
+    from: String,
+    subscription: Option<()>,
 }
 
 #[derive(Serialize)]
@@ -172,7 +186,11 @@ impl ActorEncode<WorkerActorMsg> for WorkerActor {
                 supports_top_level_target_flag: false,
             },
             type_: self.type_ as u32,
-            target_type: "worker".to_string(),
+            target_type: match self.type_ {
+                WorkerType::Service => "service_worker",
+                _ => "worker",
+            }
+            .to_string(),
         }
     }
 }
