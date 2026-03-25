@@ -1,5 +1,23 @@
 <!DOCTYPE html>
-<body style="overflow-y: auto; width: 100%; height: 200px; margin: 0;">
-    <div id="overflowing-child" style="background-color: red; height: 200%; width: 100%;"></div>
-    <div id="target" style="background-color: green; height: 100%; width: 100%;"></div>
+<style>
+    body {
+        overflow-y: auto;
+        width: 100%;
+        height: 200px;
+        margin: 0;
+    }
+    #overflowing-child {
+        background-color: red;
+        height: 200%;
+        width: 100%;
+    }
+    #target {
+        background-color: green;
+        height: 100%;
+        width: 100%;
+    }
+</style>
+<body>
+    <div id="overflowing-child"></div>
+    <div id="target"></div>
 </body>

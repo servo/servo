@@ -506,7 +506,7 @@ impl IntersectionObserver {
                 if document != &target.owner_document() {
                     return IntersectionObservationOutput::default_skipped();
                 }
-            }
+            },
             Some(ElementOrDocument::Element(element)) => {
                 // To ensure consistency, we also checks for element's right now, but we could depends on the
                 // layout query later.
@@ -627,8 +627,7 @@ impl IntersectionObserver {
             registration.last_update_time.set(time);
 
             // step 4-14
-            let intersection_output =
-                self.maybe_compute_intersection_output(target, root_bounds);
+            let intersection_output = self.maybe_compute_intersection_output(target, root_bounds);
 
             // Step 15-17
             // > 15. Let previousThresholdIndex be the registration’s previousThresholdIndex property.
@@ -966,7 +965,11 @@ fn compute_the_intersection(
         // >      of container.
         // Additionally, for a node that doesn't have an element that establish it's containing block, it should be contained
         // by the browsing context's document.
-        container = match containing_element.upcast::<Node>().containing_block_node().and_then(DomRoot::downcast::<Element>) {
+        container = match containing_element
+            .upcast::<Node>()
+            .containing_block_node()
+            .and_then(DomRoot::downcast::<Element>)
+        {
             Some(element) => ElementOrDocument::Element(element),
             None => ElementOrDocument::Document(containing_element.owner_document()),
         };
