@@ -271,19 +271,13 @@ impl DevtoolsInstance {
                     }
 
                     let connection: DevtoolsConnection = stream.into();
-                    let registry_clone = self.registry.clone();
-                    let connections_clone = self.connections.clone();
+                    let registry = self.registry.clone();
+                    let connections = self.connections.clone();
                     let sender_clone = self.sender.clone();
                     thread::Builder::new()
                         .name("DevtoolsClientHandler".to_owned())
                         .spawn(move || {
-                            handle_client(
-                                registry_clone,
-                                connection,
-                                id,
-                                connections_clone,
-                                sender_clone,
-                            )
+                            handle_client(registry, connection, id, connections, sender_clone)
                         })
                         .expect("Thread spawning failed");
                 },
