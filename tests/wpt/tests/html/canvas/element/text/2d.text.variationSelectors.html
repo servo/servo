@@ -3,12 +3,14 @@
 <link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/css/css-fonts/support/css/variation-sequences.css">
+<link rel="help" href="https://github.com/servo/servo/issues/43650">
 <canvas id="canvas" width="400" height="200"></canvas>
 <script>
 test(() => {
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-
+    ctx.font = '32px ColorEmojiFont';
     // Anchor: U+2693
     const base = '\u2693';
     const vs15 = '\uFE0E'; // text selector
