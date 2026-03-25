@@ -69,7 +69,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
         // <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
         let window = global.as_window();
         let (sender, receiver) =
-            generic_channel::channel().expect("Failed to create wake lock channel");
+            generic_channel::channel::<AllowOrDeny>().expect("Failed to create wake lock channel");
         window.send_to_embedder(EmbedderMsg::AcquireWakeLock(window.webview_id(), sender));
 
         // Step 5. If the embedder denied the request, reject with NotAllowedError.
