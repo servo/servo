@@ -119,10 +119,15 @@ impl FetchResponseListener for XHRContext {
         }
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         self.xhr
             .root()
-            .process_data_available(self.gen_id, chunk, CanGc::note());
+            .process_data_available(self.gen_id, chunk, CanGc::from_cx(cx));
     }
 
     fn process_response_eof(

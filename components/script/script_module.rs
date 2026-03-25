@@ -756,7 +756,12 @@ impl FetchResponseListener for ModuleContext {
         };
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        mut chunk: Vec<u8>,
+    ) {
         if self.status.is_ok() {
             self.data.append(&mut chunk);
         }
