@@ -54,17 +54,21 @@ enum SegmentStartSoftWrapPolicy {
     FollowLinebreaker,
 }
 
+/// A data structure which contains font and language information about a run of text or
+/// glyphs processed during inline layout.
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct FontAndScriptInfo {
+    pub font: FontRef,
+    pub script: Script,
+    pub bidi_level: Level,
+}
+
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextRunSegment {
-    /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
-    /// information.
-    pub font: FontRef,
-
-    /// The [`Script`] of this segment.
-    pub script: Script,
-
-    /// The bidi Level of this segment.
-    pub bidi_level: Level,
+    /// Information about the font and language used in this text run. This is produced by
+    /// segmenting the inline formatting context's text content by font, script, and bidi level.
+    #[conditional_malloc_size_of]
+    pub info: Arc<FontAndScriptInfo>,
 
     /// The range of bytes in the parent [`super::InlineFormattingContext`]'s text content.
     pub range: Range<usize>,
@@ -83,16 +87,12 @@ pub(crate) struct TextRunSegment {
 
 impl TextRunSegment {
     fn new(
-        font: FontRef,
-        script: Script,
-        bidi_level: Level,
+        info: Arc<FontAndScriptInfo>,
         start_offset: usize,
         start_character_offset: usize,
     ) -> Self {
         Self {
-            font,
-            script,
-            bidi_level,
+            info,
             range: start_offset..start_offset,
             character_range: start_character_offset..start_character_offset,
             runs: Vec::new(),
@@ -103,35 +103,18 @@ impl TextRunSegment {
     /// Update this segment if the Font and Script are compatible. The update will only
     /// ever make the Script specific. Returns true if the new Font and Script are
     /// compatible with this segment or false otherwise.
-    fn update_if_compatible(
-        &mut self,
-        layout_context: &LayoutContext,
-        new_font: &FontRef,
-        script: Script,
-        bidi_level: Level,
-    ) -> bool {
+    fn update_if_compatible(&mut self, info: &FontAndScriptInfo) -> bool {
+        if self.info.bidi_level != info.bidi_level || !Arc::ptr_eq(&self.info.font, &info.font) {
+            return false;
+        }
+
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
         }
-
-        if bidi_level != self.bidi_level {
-            return false;
+        if !is_specific(self.info.script) && is_specific(info.script) {
+            self.info = Arc::new(info.clone());
         }
-
-        let painter_id = layout_context.painter_id;
-        let font_context = &layout_context.font_context;
-        if new_font.key(painter_id, font_context) !=
-            self.font
-                .key(layout_context.painter_id, &layout_context.font_context) ||
-            new_font.descriptor.pt_size != self.font.descriptor.pt_size
-        {
-            return false;
-        }
-
-        if !is_specific(self.script) && is_specific(script) {
-            self.script = script;
-        }
-        script == self.script || !is_specific(script)
+        info.script == self.info.script || !is_specific(info.script)
     }
 
     fn layout_into_line_items(
@@ -164,10 +147,7 @@ impl TextRunSegment {
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
                 ifc.possibly_push_empty_text_run_to_unbreakable_segment(
-                    text_run,
-                    &self.font,
-                    self.bidi_level,
-                    offsets,
+                    text_run, &self.info, offsets,
                 );
                 character_range_start = new_character_range_end;
                 ifc.defer_forced_line_break();
@@ -180,13 +160,7 @@ impl TextRunSegment {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            ifc.push_glyph_store_to_unbreakable_segment(
-                run.clone(),
-                text_run,
-                &self.font,
-                self.bidi_level,
-                offsets,
-            );
+            ifc.push_glyph_store_to_unbreakable_segment(run.clone(), text_run, &self.info, offsets);
             character_range_start = new_character_range_end;
         }
     }
@@ -198,7 +172,8 @@ impl TextRunSegment {
         options: &ShapingOptions,
     ) {
         self.runs.push(
-            self.font
+            self.info
+                .font
                 .shape_text(&formatting_context_text[range.clone()], options),
         );
     }
@@ -438,22 +413,23 @@ impl TextRun {
             .map(|mut segment| {
                 let word_spacing = style_word_spacing.unwrap_or_else(|| {
                     let space_width = segment
+                        .info
                         .font
                         .glyph_index(' ')
-                        .map(|glyph_id| segment.font.glyph_h_advance(glyph_id))
+                        .map(|glyph_id| segment.info.font.glyph_h_advance(glyph_id))
                         .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
                     specified_word_spacing.to_used_value(Au::from_f64_px(space_width))
                 });
 
                 let mut flags = flags;
-                if segment.bidi_level.is_rtl() {
+                if segment.info.bidi_level.is_rtl() {
                     flags.insert(ShapingFlags::RTL_FLAG);
                 }
 
                 // From https://www.w3.org/TR/css-text-3/#cursive-script:
                 // Cursive scripts do not admit gaps between their letters for either
                 // justification or letter-spacing.
-                let letter_spacing = if is_cursive_script(segment.script) {
+                let letter_spacing = if is_cursive_script(segment.info.script) {
                     None
                 } else {
                     letter_spacing
@@ -465,7 +441,7 @@ impl TextRun {
                 let shaping_options = ShapingOptions {
                     letter_spacing,
                     word_spacing,
-                    script: segment.script,
+                    script: segment.info.script,
                     language,
                     flags,
                 };
@@ -520,12 +496,6 @@ impl TextRun {
                 continue;
             }
 
-            // If the script and BiDi level do not change, use the current font as the first fallback. This
-            // can potentially speed up fallback on long font lists or with uncommon scripts which might be
-            // at the bottom of the list.
-            let script = Script::from(character);
-            let bidi_level = bidi_info.levels[current_byte_index];
-
             let Some(font) = font_group.find_by_codepoint(
                 &layout_context.font_context,
                 character,
@@ -535,9 +505,15 @@ impl TextRun {
                 continue;
             };
 
+            let info = FontAndScriptInfo {
+                font,
+                script: Script::from(character),
+                bidi_level: bidi_info.levels[current_byte_index],
+            };
+
             // If the existing segment is compatible with the character, keep going.
             if let Some(current) = current.as_mut() {
-                if current.update_if_compatible(layout_context, &font, script, bidi_level) {
+                if current.update_if_compatible(&info) {
                     continue;
                 }
             }
@@ -550,13 +526,7 @@ impl TextRun {
                 Some(_) => (current_byte_index, current_character_index),
                 None => (self.text_range.start, self.character_range.start),
             };
-            let new = TextRunSegment::new(
-                font,
-                script,
-                bidi_level,
-                start_byte_index,
-                start_character_index,
-            );
+            let new = TextRunSegment::new(Arc::new(info), start_byte_index, start_character_index);
             if let Some(mut finished) = current.replace(new) {
                 // The end of the previous segment is the start of the next one.
                 finished.range.end = current_byte_index;
@@ -570,9 +540,11 @@ impl TextRun {
         if current.is_none() {
             current = font_group.first(&layout_context.font_context).map(|font| {
                 TextRunSegment::new(
-                    font,
-                    Script::Common,
-                    Level::ltr(),
+                    Arc::new(FontAndScriptInfo {
+                        font,
+                        script: Script::Common,
+                        bidi_level: Level::ltr(),
+                    }),
                     self.text_range.start,
                     self.character_range.start,
                 )
