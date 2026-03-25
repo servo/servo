@@ -41,6 +41,7 @@ pub(crate) mod htmllegendelement;
 pub(crate) mod htmllielement;
 pub(crate) mod htmllinkelement;
 pub(crate) mod htmlmapelement;
+pub(crate) mod htmlmarqueeelement;
 pub(crate) mod htmlmediaelement;
 pub(crate) mod htmlmenuelement;
 pub(crate) mod htmlmetaelement;

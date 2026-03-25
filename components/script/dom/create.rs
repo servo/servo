@@ -85,6 +85,7 @@ use crate::dom::html::htmltrackelement::HTMLTrackElement;
 use crate::dom::html::htmlulistelement::HTMLUListElement;
 use crate::dom::html::htmlunknownelement::HTMLUnknownElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::htmlmarqueeelement::HTMLMarqueeElement;
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
@@ -376,7 +377,7 @@ pub(crate) fn create_native_html_element(
         local_name!("main") => make!(HTMLElement),
         local_name!("map") => make!(HTMLMapElement),
         local_name!("mark") => make!(HTMLElement),
-        local_name!("marquee") => make!(HTMLElement),
+        local_name!("marquee") => make!(HTMLMarqueeElement),
         local_name!("menu") => make!(HTMLMenuElement),
         local_name!("meta") => make!(HTMLMetaElement),
         local_name!("meter") => make!(HTMLMeterElement),
