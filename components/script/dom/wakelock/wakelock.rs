@@ -1,6 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::rc::Rc;
 
+use base::generic_channel;
 use dom_struct::dom_struct;
+use embedder_traits::{AllowOrDeny, EmbedderMsg};
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentVisibilityState,
@@ -59,8 +65,23 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
             return promise;
         }
 
-        // Step 4. Create a WakeLockSentinel and resolve the promise with it.
-        // TODO: Notify the embedder to actually acquire the platform wake lock.
+        // Step 4. Ask the embedder whether the wake lock can be acquired.
+        // <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+        let window = global.as_window();
+        let (sender, receiver) =
+            generic_channel::channel().expect("Failed to create wake lock channel");
+        window.send_to_embedder(EmbedderMsg::AcquireWakeLock(window.webview_id(), sender));
+
+        // Step 5. If the embedder denied the request, reject with NotAllowedError.
+        match receiver.recv() {
+            Ok(AllowOrDeny::Allow) => {},
+            _ => {
+                promise.reject_error(Error::NotAllowed(None), can_gc);
+                return promise;
+            },
+        }
+
+        // Step 6. Create a WakeLockSentinel and resolve the promise with it.
         let sentinel = WakeLockSentinel::new(&global, type_, can_gc);
         promise.resolve_native(&sentinel, can_gc);
 
