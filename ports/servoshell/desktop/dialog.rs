@@ -10,11 +10,11 @@ use egui::{
 };
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use euclid::Length;
-use log::warn;
+use log::{error, warn};
 use servo::{
-    AlertDialog, AuthenticationRequest, BluetoothPickDeviceRequest, ColorPicker, ConfirmDialog,
-    ContextMenu, ContextMenuItem, DeviceIndependentPixel, EmbedderControlId, FilePicker,
-    PermissionRequest, PromptDialog, RgbColor, SelectElement, SelectElementOption,
+    AlertDialog, AuthenticationRequest, BluetoothDeviceSelectionRequest, ColorPicker,
+    ConfirmDialog, ContextMenu, ContextMenuItem, DeviceIndependentPixel, EmbedderControlId,
+    FilePicker, PermissionRequest, PromptDialog, RgbColor, SelectElement, SelectElementOption,
     SelectElementOptionOrOptgroup, SimpleDialog,
 };
 
@@ -41,7 +41,7 @@ pub enum Dialog {
         request: Option<PermissionRequest>,
     },
     SelectDevice {
-        request: BluetoothPickDeviceRequest,
+        request: Option<BluetoothDeviceSelectionRequest>,
         selected_device_index: usize,
     },
     SelectElement {
@@ -112,9 +112,9 @@ impl Dialog {
         }
     }
 
-    pub fn new_device_selection_dialog(request: BluetoothPickDeviceRequest) -> Self {
+    pub fn new_device_selection_dialog(request: BluetoothDeviceSelectionRequest) -> Self {
         Dialog::SelectDevice {
-            request,
+            request: Some(request),
             selected_device_index: 0,
         }
     }
@@ -407,25 +407,30 @@ impl Dialog {
                 let mut is_open = true;
                 let modal = Modal::new("device_picker".into());
                 modal.show(ctx, |ui| {
-                    let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
-                    frame.content_ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
+                    if let Some(request) = request {
+                        let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
+                        frame.content_ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
 
-                    frame.content_ui.heading("Choose a Device");
-                    frame.content_ui.add_space(10.0);
+                        frame.content_ui.heading("Choose a Device");
+                        frame.content_ui.add_space(10.0);
 
-                    egui::ComboBox::from_label("")
-                        .selected_text(request.devices[*selected_device_index].name.clone())
-                        .show_ui(&mut frame.content_ui, |ui| {
-                            for i in 0..request.devices.len() - 1 {
-                                ui.selectable_value(
-                                    selected_device_index,
-                                    i,
-                                    request.devices[i].name.clone(),
-                                );
-                            }
-                        });
+                        let devices = request.devices();
+                        egui::ComboBox::from_label("")
+                            .selected_text(devices[*selected_device_index].name.clone())
+                            .show_ui(&mut frame.content_ui, |ui| {
+                                for (i, device) in devices.into_iter().enumerate() {
+                                    ui.selectable_value(
+                                        selected_device_index,
+                                        i,
+                                        device.name.clone(),
+                                    );
+                                }
+                            });
 
-                    frame.end(ui);
+                        frame.end(ui);
+                    } else {
+                        error!("Unexpected: None SelectDevice while the dialog is open");
+                    }
 
                     egui::Sides::new().show(
                         ui,
@@ -434,9 +439,10 @@ impl Dialog {
                             if ui.button("Ok").clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Enter))
                             {
-                                let choice =
-                                    request.devices[*selected_device_index].address.clone();
-                                if let Err(error) = request.pick_device(&choice) {
+                                let request =
+                                    request.take().expect("non-None until dialog is closed");
+                                let choice = &request.devices()[*selected_device_index].clone();
+                                if let Err(error) = request.pick_device(choice) {
                                     warn!("Failed to send device selection: {error}");
                                 }
                                 is_open = false;
@@ -444,6 +450,8 @@ impl Dialog {
                             if ui.button("Cancel").clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
+                                let request =
+                                    request.take().expect("non-None until dialog is closed");
                                 if let Err(error) = request.cancel() {
                                     warn!("Failed to send cancellation: {error}");
                                 }

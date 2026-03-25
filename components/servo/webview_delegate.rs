@@ -127,32 +127,35 @@ pub struct ProtocolHandlerRegistration {
 }
 
 /// A request to let the user chose a Bluetooth device.
-pub struct BluetoothPickDeviceRequest {
-    pub devices: Vec<BluetoothDeviceDescription>,
+pub struct BluetoothDeviceSelectionRequest {
+    devices: Vec<BluetoothDeviceDescription>,
     responder: IpcResponder<Option<String>>,
-    response_sent: bool,
 }
 
-impl BluetoothPickDeviceRequest {
-    pub fn new(
+impl BluetoothDeviceSelectionRequest {
+    pub(crate) fn new(
         devices: Vec<BluetoothDeviceDescription>,
         responder: GenericSender<Option<String>>,
     ) -> Self {
         Self {
             devices,
             responder: IpcResponder::new(responder, None),
-            response_sent: false,
         }
     }
 
-    pub fn pick_device(&mut self, device: &str) -> Result<(), SendError> {
-        self.response_sent = true;
-        self.responder.send(Some(device.to_owned()))
+    /// Set the device chosen by the user.
+    pub fn pick_device(mut self, device: &BluetoothDeviceDescription) -> Result<(), SendError> {
+        self.responder.send(Some(device.address.clone()))
     }
 
-    pub fn cancel(&mut self) -> Result<(), SendError> {
-        self.response_sent = true;
+    /// Cancel this request.
+    pub fn cancel(mut self) -> Result<(), SendError> {
         self.responder.send(None)
+    }
+
+    /// The set of devices that the user can chose from.
+    pub fn devices(&self) -> &Vec<BluetoothDeviceDescription> {
+        &self.devices
     }
 }
 
@@ -973,7 +976,7 @@ pub trait WebViewDelegate {
     }
 
     /// Open dialog to select bluetooth device.
-    fn show_bluetooth_device_dialog(&self, _webview: WebView, _: BluetoothPickDeviceRequest) {}
+    fn show_bluetooth_device_dialog(&self, _webview: WebView, _: BluetoothDeviceSelectionRequest) {}
 
     /// Request that the embedder show UI elements for form controls that are not integrated
     /// into page content, such as dropdowns for `<select>` elements.

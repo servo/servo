@@ -19,7 +19,7 @@ use image::{DynamicImage, ImageFormat, RgbaImage};
 use libc::c_char;
 use log::{error, info, warn};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, BluetoothPickDeviceRequest, CSSPixel,
+    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CSSPixel,
     ConsoleLogLevel, CreateNewWebViewRequest, DeviceIntPoint, DeviceIntSize, EmbedderControl,
     EmbedderControlId, EventLoopWaker, GenericSender, InputEvent, InputEventId, InputEventResult,
     JSValue, LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
@@ -776,7 +776,11 @@ impl WebViewDelegate for RunningAppState {
             .set_fullscreen(fullscreen_state);
     }
 
-    fn show_bluetooth_device_dialog(&self, webview: WebView, request: BluetoothPickDeviceRequest) {
+    fn show_bluetooth_device_dialog(
+        &self,
+        webview: WebView,
+        request: BluetoothDeviceSelectionRequest,
+    ) {
         self.platform_window_for_webview_id(webview.id())
             .show_bluetooth_device_dialog(webview.id(), request);
     }

@@ -8,7 +8,7 @@ use std::rc::Rc;
 use euclid::Scale;
 use log::warn;
 use servo::{
-    AuthenticationRequest, BluetoothPickDeviceRequest, ConsoleLogLevel, Cursor,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, Cursor,
     DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel,
     EmbedderControl, EmbedderControlId, InputEventId, InputEventResult, MediaSessionEvent,
     PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
@@ -409,7 +409,12 @@ pub(crate) trait PlatformWindow {
     fn show_embedder_control(&self, _: WebViewId, _: EmbedderControl) {}
     fn hide_embedder_control(&self, _: WebViewId, _: EmbedderControlId) {}
     fn dismiss_embedder_controls_for_webview(&self, _: WebViewId) {}
-    fn show_bluetooth_device_dialog(&self, _: WebViewId, _request: BluetoothPickDeviceRequest) {}
+    fn show_bluetooth_device_dialog(
+        &self,
+        _: WebViewId,
+        _request: BluetoothDeviceSelectionRequest,
+    ) {
+    }
     fn show_permission_dialog(&self, _: WebViewId, _: PermissionRequest) {}
     fn show_http_authentication_dialog(&self, _: WebViewId, _: AuthenticationRequest) {}
 

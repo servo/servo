@@ -424,7 +424,7 @@ impl From<ConsoleLogLevel> for log::Level {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BluetoothDeviceDescription {
     pub address: String,
     pub name: String,

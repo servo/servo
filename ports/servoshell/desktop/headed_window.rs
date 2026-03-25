@@ -18,7 +18,7 @@ use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
-    AuthenticationRequest, BluetoothPickDeviceRequest, Cursor, DeviceIndependentIntRect,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect,
     DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
     EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
     InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
@@ -1106,7 +1106,7 @@ impl PlatformWindow for HeadedWindow {
     fn show_bluetooth_device_dialog(
         &self,
         webview_id: WebViewId,
-        request: BluetoothPickDeviceRequest,
+        request: BluetoothDeviceSelectionRequest,
     ) {
         self.add_dialog(webview_id, Dialog::new_device_selection_dialog(request));
     }
