@@ -104,7 +104,7 @@ pub(crate) struct BrowsingContextActorMsg {
     traits: BrowsingContextTraits,
     // Implemented actors
     accessibility_actor: String,
-    console_actor: String,
+    console_name: String,
     css_properties_actor: String,
     inspector_actor: String,
     reflow_actor: String,
@@ -142,7 +142,7 @@ pub(crate) struct BrowsingContextActor {
     active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
     pub browsing_context_id: DevtoolsBrowsingContextId,
     accessibility: String,
-    pub console: String,
+    pub console_name: String,
     css_properties: String,
     pub(crate) inspector: String,
     reflow_name: String,
@@ -200,7 +200,7 @@ impl Actor for BrowsingContextActor {
 impl BrowsingContextActor {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
-        console: String,
+        console_name: String,
         browser_id: DevtoolsBrowserId,
         browsing_context_id: DevtoolsBrowsingContextId,
         page_info: DevtoolsPageInfo,
@@ -260,7 +260,7 @@ impl BrowsingContextActor {
             browser_id,
             browsing_context_id,
             accessibility: accessibility.name(),
-            console,
+            console_name,
             css_properties: css_properties.name(),
             inspector,
             reflow_name: reflow_actor.name(),
@@ -404,7 +404,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             outer_window_id: self.outer_window_id().value(),
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
-            console_actor: self.console.clone(),
+            console_name: self.console_name.clone(),
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
             reflow_actor: self.reflow_name.clone(),
