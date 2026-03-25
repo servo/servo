@@ -31,7 +31,7 @@ pub enum WorkerType {
 #[derive(MallocSizeOf)]
 pub(crate) struct WorkerActor {
     pub name: String,
-    pub console: String,
+    pub console_name: String,
     pub thread: String,
     pub worker_id: WorkerId,
     pub url: ServoUrl,
@@ -81,7 +81,7 @@ impl Actor for WorkerActor {
                     from: self.name(),
                     type_: "connected".to_owned(),
                     thread_actor: self.thread.clone(),
-                    console_actor: self.console.clone(),
+                    console_actor: self.console_name.clone(),
                 };
                 // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
                 request.write_json_packet(&msg)?;
@@ -163,7 +163,7 @@ impl ActorEncode<WorkerActorMsg> for WorkerActor {
     fn encode(&self, _: &ActorRegistry) -> WorkerActorMsg {
         WorkerActorMsg {
             actor: self.name(),
-            console_actor: self.console.clone(),
+            console_actor: self.console_name.clone(),
             thread_actor: self.thread.clone(),
             id: self.worker_id.0.to_string(),
             url: self.url.to_string(),
