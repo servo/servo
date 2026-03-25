@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::ptr;
 
-use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
@@ -14,6 +13,7 @@ use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::match_domstring_ascii;
 use script_bindings::weakref::WeakRef;
+use servo_constellation_traits::BlobImpl;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };

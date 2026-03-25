@@ -10,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "canvas_traits"
+name = "servo_canvas_traits"
 path = "lib.rs"
 
 [features]

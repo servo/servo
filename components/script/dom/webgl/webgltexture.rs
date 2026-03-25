@@ -7,12 +7,12 @@
 use std::cell::Cell;
 use std::cmp;
 
-use canvas_traits::webgl::{
+use dom_struct::dom_struct;
+use script_bindings::reflector::DomObject as _;
+use servo_canvas_traits::webgl::{
     TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
     WebGLError, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };
-use dom_struct::dom_struct;
-use script_bindings::reflector::DomObject as _;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;

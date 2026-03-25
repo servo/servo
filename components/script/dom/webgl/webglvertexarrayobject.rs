@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 use dom_struct::dom_struct;
+use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
 use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};

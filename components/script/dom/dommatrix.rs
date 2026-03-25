@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use constellation_traits::DomMatrix;
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
@@ -10,6 +9,7 @@ use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
 use script_bindings::str::DOMString;
 use servo_base::id::{DomMatrixId, DomMatrixIndex};
+use servo_constellation_traits::DomMatrix;
 
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;

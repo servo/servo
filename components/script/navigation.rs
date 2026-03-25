@@ -8,7 +8,6 @@
 
 use std::cell::Cell;
 
-use constellation_traits::LoadData;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
 use embedder_traits::user_contents::UserContentManagerId;
@@ -27,6 +26,7 @@ use net_traits::{
 use script_traits::{DocumentActivity, NewPipelineInfo};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_constellation_traits::LoadData;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::fetch::FetchCanceller;

@@ -4,13 +4,13 @@
 
 use std::rc::Rc;
 
-use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use embedder_traits::{
     MediaMetadata as EmbedderMediaMetadata, MediaPositionState as EmbedderMediaPositionState,
     MediaSessionActionType, MediaSessionEvent,
 };
 use rustc_hash::FxBuildHasher;
+use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;

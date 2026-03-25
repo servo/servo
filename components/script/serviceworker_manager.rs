@@ -12,10 +12,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
-use constellation_traits::{
-    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
-    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-};
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use fonts::FontContext;
 use ipc_channel::ipc;
@@ -24,6 +20,10 @@ use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use servo_base::generic_channel::{self, GenericSender, ReceiveError, RoutedReceiver};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use servo_config::pref;
+use servo_constellation_traits::{
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
+    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::abstractworker::{MessageData, WorkerScriptMsg};

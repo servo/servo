@@ -5,7 +5,6 @@
 use std::ptr;
 use std::rc::Rc;
 
-use constellation_traits::{BlobData, BlobImpl};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
@@ -15,6 +14,7 @@ use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
 use rustc_hash::FxHashMap;
 use servo_base::id::{BlobId, BlobIndex};
+use servo_constellation_traits::{BlobData, BlobImpl};
 use uuid::Uuid;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;

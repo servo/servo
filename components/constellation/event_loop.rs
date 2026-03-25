@@ -11,7 +11,6 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
-use constellation_traits::ServiceWorkerManagerFactory;
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::IpcError;
 use layout_api::ScriptThreadFactory;
@@ -23,6 +22,7 @@ use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendErro
 use servo_base::id::ScriptEventLoopId;
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
+use servo_constellation_traits::ServiceWorkerManagerFactory;
 
 use crate::sandboxing::spawn_multiprocess;
 use crate::{Constellation, UnprivilegedContent};

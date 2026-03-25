@@ -4,7 +4,6 @@
 
 use std::cell::RefCell;
 
-use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{
     DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue, ScriptToDevtoolsControlMsg,
     SourceInfo, WorkerId,
@@ -25,6 +24,7 @@ use script_bindings::reflector::DomObject;
 use script_bindings::str::DOMString;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
+use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 

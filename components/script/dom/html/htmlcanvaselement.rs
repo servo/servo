@@ -5,10 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
-use constellation_traits::BlobImpl;
-#[cfg(feature = "webgpu")]
-use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -19,6 +15,10 @@ use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::weakref::WeakRef;
 use servo_base::Epoch;
+use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
+use servo_constellation_traits::BlobImpl;
+#[cfg(feature = "webgpu")]
+use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
