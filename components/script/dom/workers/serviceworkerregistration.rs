@@ -16,11 +16,11 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
 };
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;

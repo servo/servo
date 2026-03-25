@@ -13,6 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use fonts::FontContext;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -24,7 +25,6 @@ use servo_constellation_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
     ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
 };
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::abstractworker::{MessageData, WorkerScriptMsg};
