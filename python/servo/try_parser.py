@@ -241,6 +241,8 @@ class Config(object):
 
         if len(invalid_words) > 0:
             raise ValueError(f"Invalid `try` argument: {', '.join(invalid_words)}")
+        # Skip ohos for now.
+        self.matrix = [job for job in self.matrix if job.workflow != Workflow.OHOS]
 
     def add_or_merge_job_to_matrix(self, job: JobConfig) -> None:
         for existing_job in self.matrix:
