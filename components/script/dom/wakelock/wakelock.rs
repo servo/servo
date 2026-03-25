@@ -8,11 +8,11 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{WakeLockMethods, WakeLockType};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::wakelocksentinel::WakeLockSentinel;
+use crate::dom::wakelock::wakelocksentinel::WakeLockSentinel;
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/screen-wake-lock/#the-wakelock-interface>
@@ -28,14 +28,18 @@ impl WakeLock {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        _can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
     }
 }
 
 impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
-    fn Request(&self, type_: WakeLockType) -> Rc<Promise> {
+    fn Request(&self, _cx: &mut js::context::JSContext, type_: WakeLockType) -> Rc<Promise> {
         let global = self.global();
         let can_gc = CanGc::note();
         let promise = Promise::new(&global, can_gc);
