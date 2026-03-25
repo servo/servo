@@ -8,9 +8,9 @@ use std::rc::Rc;
 use euclid::Scale;
 use log::warn;
 use servo::{
-    AuthenticationRequest, ConsoleLogLevel, Cursor, DeviceIndependentIntRect,
-    DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl,
-    EmbedderControlId, GenericSender, InputEventId, InputEventResult, MediaSessionEvent,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, Cursor,
+    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel,
+    EmbedderControl, EmbedderControlId, InputEventId, InputEventResult, MediaSessionEvent,
     PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
@@ -412,8 +412,7 @@ pub(crate) trait PlatformWindow {
     fn show_bluetooth_device_dialog(
         &self,
         _: WebViewId,
-        _devices: Vec<String>,
-        _: GenericSender<Option<String>>,
+        _request: BluetoothDeviceSelectionRequest,
     ) {
     }
     fn show_permission_dialog(&self, _: WebViewId, _: PermissionRequest) {}

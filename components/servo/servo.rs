@@ -84,8 +84,8 @@ use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
 use crate::site_data_manager::SiteDataManager;
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, FilePicker, NavigationRequest,
-    PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
+    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
+    FilePicker, NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -564,8 +564,7 @@ impl ServoInner {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().show_bluetooth_device_dialog(
                         webview,
-                        items,
-                        response_sender,
+                        BluetoothDeviceSelectionRequest::new(items, response_sender),
                     );
                 }
             },
