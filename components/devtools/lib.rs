@@ -529,7 +529,6 @@ impl DevtoolsInstance {
 
         let console_actor = ConsoleActor::new(console_name, parent_actor);
 
-        // actors.register(console_actor);
         self.registry.register(console_actor);
     }
 
