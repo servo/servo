@@ -59,7 +59,8 @@ input:not(:placeholder-shown)::placeholder {
   visibility: hidden !important;
 }
 
-input::-servo-text-control-inner-editor, input::placeholder {
+input::-servo-text-control-inner-editor,
+input::placeholder {
   block-size: fit-content !important;
   inset-block: 0 !important;
   margin-block: auto !important;
@@ -275,15 +276,31 @@ input[type="radio"]:checked:disabled::before {
   background: grey;
 }
 
-td[align="left"]    { text-align: left; }
-td[align="center"]  { text-align: center; }
-td[align="right"]   { text-align: right; }
+td[align="left"] {
+  text-align: left;
+}
 
-center { text-align: -moz-center; }
+td[align="center"] {
+  text-align: center;
+}
 
-label { cursor: default; }
+td[align="right"] {
+  text-align: right;
+}
 
-canvas, embed, iframe, img, video {
+center {
+  text-align: -moz-center;
+}
+
+label {
+  cursor: default;
+}
+
+canvas,
+embed,
+iframe,
+img,
+video {
   overflow: clip !important;
   overflow-clip-margin: 0 !important;
 }
@@ -333,7 +350,7 @@ details[open]::details-content {
  * children from being layed out and rendered like usual html.
  * https://github.com/servo/servo/issues/10646
  */
-svg > * {
+svg>* {
   display: none;
 }
 
@@ -344,15 +361,15 @@ svg > * {
 }
 
 *|*::-servo-anonymous-table {
-    display: table;
+  display: table;
 }
 
 *|*::-servo-anonymous-table-row {
-    display: table-row;
+  display: table-row;
 }
 
 *|*::-servo-anonymous-table-cell {
-    display: table-cell;
+  display: table-cell;
 }
 
 *|*::-servo-table-grid {
@@ -410,23 +427,28 @@ meter div {
 meter:-moz-meter-optimum div {
   background: linear-gradient(#ad7, #ad7, #cea 20%, #7a3 45%, #7a3 55%);
 }
+
 meter:-moz-meter-sub-optimum div {
   background: linear-gradient(#fe7, #fe7, #ffc 20%, #db3 45%, #db3 55%);
 }
+
 meter:-moz-meter-sub-sub-optimum div {
   background: linear-gradient(#f77, #f77, #fcc 20%, #d44 45%, #d44 55%);
 }
 
 /* https://html.spec.whatwg.org/#the-details-and-summary-elements */
-details, summary {
+details,
+summary {
   display: block;
 }
-details > summary:first-of-type {
+
+details>summary:first-of-type {
   display: list-item;
   counter-increment: list-item 0;
   list-style: disclosure-closed inside;
 }
-details[open] > summary:first-of-type {
+
+details[open]>summary:first-of-type {
   list-style-type: disclosure-open;
 }
 
@@ -438,11 +460,63 @@ progress {
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
+
 /* FIXME: This should use ::-moz-progress-bar */
 progress #-servo-progress-bar {
   display: block;
   height: 100%;
   background-color: #7a3;
+}
+
+/* Mostly matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#217-243 */
+select {
+  background-color: lightgrey;
+  border-radius: 5px;
+  border: 1px solid gray;
+  padding: 0 0.25em;
+  cursor: default;
+  /* Don't change cursor when hovering */
+  margin: 0;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: clip;
+  /* No text-decoration reaching inside, by default */
+  display: inline-block;
+  page-break-inside: avoid;
+  overflow-clip-box: padding-box !important;
+  padding-block: 1px;
+  font-family: sans-serif;
+
+  /* These styles are specific to single-select elements */
+  padding-inline: 4px;
+  color: black;
+  vertical-align: baseline;
+  appearance: auto;
+}
+
+/* Matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#120-132 */
+input,
+textarea,
+select,
+button {
+  text-align: initial;
+  text-indent: initial;
+  text-shadow: initial;
+  text-transform: initial;
+  word-spacing: initial;
+  letter-spacing: initial;
+  /* Note that line-height is also reset for all these, via the font shorthand */
+}
+
+input[type="reset" i],
+input[type="button" i],
+input[type="submit" i],
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 slot {

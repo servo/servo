@@ -267,7 +267,8 @@ impl Contents {
             Some(LayoutNodeType::Element(
                 LayoutElementType::HTMLInputElement |
                     LayoutElementType::HTMLSelectElement |
-                    LayoutElementType::HTMLTextAreaElement
+                    LayoutElementType::HTMLTextAreaElement |
+                    LayoutElementType::HTMLButtonElement
             ))
         );
         if is_widget {

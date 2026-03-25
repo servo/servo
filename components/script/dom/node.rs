@@ -5140,6 +5140,9 @@ impl From<ElementTypeIdWrapper> for LayoutElementType {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement) => {
                 LayoutElementType::HTMLBRElement
             },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement) => {
+                LayoutElementType::HTMLButtonElement
+            },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) => {
                 LayoutElementType::HTMLCanvasElement
             },
