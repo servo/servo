@@ -8,7 +8,6 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
-use constellation::embedder::ConstellationToEmbedderMsg;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -61,8 +60,8 @@ use servo_config::{opts, pref, prefs};
 ))]
 use servo_constellation::content_process_sandbox_profile;
 use servo_constellation::{
-    Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
-    NewScriptEventLoopProcessInfo, UnprivilegedContent,
+    Constellation, ConstellationToEmbedderMsg, FromEmbedderLogger, FromScriptLogger,
+    InitialConstellationState, NewScriptEventLoopProcessInfo, UnprivilegedContent,
 };
 use servo_constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use servo_geometry::{
@@ -130,6 +129,7 @@ mod media_platform {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 enum Message {
     FromNet(NetToEmbedderMsg),
     FromConstellation(ConstellationToEmbedderMsg),
@@ -964,7 +964,6 @@ impl Servo {
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
                 net_embedder_proxy,
-                constellation_embedder_proxy,
                 opts.config_dir.clone(),
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
@@ -977,6 +976,7 @@ impl Servo {
         create_constellation(
             embedder_to_constellation_receiver,
             &paint.borrow(),
+            embedder_proxy,
             constellation_embedder_proxy,
             paint_proxy,
             time_profiler_chan,
@@ -1175,7 +1175,8 @@ fn create_paint_channel(
 fn create_constellation(
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
     paint: &Paint,
-    embedder_proxy: GenericEmbedderProxy<ConstellationToEmbedderMsg>,
+    embedder_proxy: EmbedderProxy,
+    constellation_to_embedder_proxy: GenericEmbedderProxy<ConstellationToEmbedderMsg>,
     paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
@@ -1207,6 +1208,7 @@ fn create_constellation(
     let initial_state = InitialConstellationState {
         paint_proxy,
         embedder_proxy,
+        constellation_to_embedder_proxy,
         devtools_sender,
         #[cfg(feature = "bluetooth")]
         bluetooth_thread,
