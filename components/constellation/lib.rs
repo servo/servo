@@ -11,6 +11,7 @@ mod broadcastchannel;
 mod browsingcontext;
 mod constellation;
 mod constellation_webview;
+mod embedder;
 mod event_loop;
 mod logging;
 mod pipeline;
