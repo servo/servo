@@ -218,7 +218,8 @@ impl Actor for ThreadActor {
                 let Some(ref browsing_context_name) = self.browsing_context_name else {
                     return Err(ActorError::Internal);
                 };
-                let browsing_context_actor = registry.find::<BrowsingContextActor>(browsing_context_name);
+                let browsing_context_actor =
+                    registry.find::<BrowsingContextActor>(browsing_context_name);
 
                 let frames: FramesRequest =
                     serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;

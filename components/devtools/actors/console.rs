@@ -490,12 +490,14 @@ impl ConsoleActor {
         let resource_type = resource.resource_type();
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(browsing_context_name) = &self.root {
-                registry.find::<BrowsingContextActor>(browsing_context_name).resource_array(
-                    resource,
-                    resource_type,
-                    ResourceArrayType::Available,
-                    stream,
-                )
+                registry
+                    .find::<BrowsingContextActor>(browsing_context_name)
+                    .resource_array(
+                        resource,
+                        resource_type,
+                        ResourceArrayType::Available,
+                        stream,
+                    )
             };
         }
     }
@@ -508,14 +510,16 @@ impl ConsoleActor {
     ) {
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(browsing_context_name) = &self.root {
-                registry.find::<BrowsingContextActor>(browsing_context_name).resource_array(
-                    ConsoleClearMessage {
-                        level: "clear".to_owned(),
-                    },
-                    "console-message".into(),
-                    ResourceArrayType::Available,
-                    stream,
-                )
+                registry
+                    .find::<BrowsingContextActor>(browsing_context_name)
+                    .resource_array(
+                        ConsoleClearMessage {
+                            level: "clear".to_owned(),
+                        },
+                        "console-message".into(),
+                        ResourceArrayType::Available,
+                        stream,
+                    )
             };
         }
     }
