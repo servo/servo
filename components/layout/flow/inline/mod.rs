@@ -220,6 +220,7 @@ impl BlockLevelBox {
             &mut layout.placement_state,
             // Under discussion in <https://github.com/w3c/csswg-drafts/issues/13260>.
             LogicalSides1D::new(false, false),
+            true, /* has_inline_parent */
         );
 
         let Fragment::Box(fragment) = fragment else {

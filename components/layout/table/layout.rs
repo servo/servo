@@ -1540,6 +1540,7 @@ impl<'a> TableLayout<'a> {
             containing_block,
             None, /* sequential_layout_state */
             ignore_block_margins_for_stretch,
+            false, /* has_inline_parent */
         );
 
         if let Some(mut positioning_context) = positioning_context.take() {
