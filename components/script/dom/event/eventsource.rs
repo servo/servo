@@ -571,11 +571,11 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         url: DOMString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
-        // TODO: Step 2 relevant settings object
-        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url,
-        // relative to settings.
-        let base_url = global.api_base_url();
-        let url_record = match base_url.join(&url.str()) {
+        // Step 2. Let settings be the relevant settings object for the `EventSource` constructor.
+        // Bindings pass that environment as `global`.
+        // Step 3. Let urlRecord be the result of encoding-parsing a URL given url, relative to settings.
+        // <https://html.spec.whatwg.org/multipage/#encoding-parsing-a-url>
+        let url_record = match global.encoding_parse_a_url(&url.str()) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax(None)),
@@ -601,7 +601,8 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         };
         // Step 8 Let request be the result of creating a potential-CORS request
         // given urlRecord, the empty string, and corsAttributeState.
-        // TODO: Step 9 set request's client settings
+        // Step 9. Set request's client to the environment settings object and other state;
+        // `with_global_scope` supplies client, origin, policy container, etc.
         let mut request = create_a_potential_cors_request(
             global.webview_id(),
             url_record,
