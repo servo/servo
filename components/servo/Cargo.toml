@@ -22,8 +22,8 @@ background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 bluetooth = [
     "servo-bluetooth-traits",
     "dep:servo-bluetooth",
-    "constellation/bluetooth",
-    "constellation_traits/bluetooth",
+    "servo-constellation/bluetooth",
+    "servo-constellation-traits/bluetooth",
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
@@ -33,7 +33,7 @@ debugmozjs = ["script/debugmozjs"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 gamepad = [
     "script/gamepad",
-    "constellation/gamepad",
+    "servo-constellation/gamepad",
     "embedder_traits/gamepad",
 ]
 jitspew = ["script/jitspew"]
@@ -48,23 +48,23 @@ testbinding = ["script/testbinding"]
 tracing = [
     "dep:tracing",
     "paint/tracing",
-    "constellation/tracing",
+    "servo-constellation/tracing",
     "fonts/tracing",
     "layout/tracing",
     "profile_traits/tracing",
     "script/tracing",
 ]
-vello = ["constellation/vello"]
+vello = ["servo-constellation/vello"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",
-    "canvas_traits/webgl_backtrace",
+    "servo-canvas-traits/webgl_backtrace",
 ]
 webgpu = [
     "script/webgpu",
     "paint/webgpu",
-    "constellation/webgpu",
-    "constellation_traits/webgpu",
+    "servo-constellation/webgpu",
+    "servo-constellation-traits/webgpu",
 ]
 webxr = [
     "dep:webxr",
@@ -77,9 +77,6 @@ webxr = [
 [dependencies]
 accesskit = { workspace = true }
 bitflags = { workspace = true }
-canvas_traits = { workspace = true }
-constellation = { workspace = true }
-constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools = { workspace = true }
 devtools_traits = { workspace = true }
@@ -112,7 +109,10 @@ servo-background-hang-monitor = { workspace = true }
 servo-base = { workspace = true }
 servo-bluetooth = { workspace = true, optional = true }
 servo-bluetooth-traits = { workspace = true, optional = true }
+servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
+servo-constellation = { workspace = true }
+servo-constellation-traits = { workspace = true }
 servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }

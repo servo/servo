@@ -9,7 +9,6 @@ use icu_segmenter::WordSegmenter;
 use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
 
@@ -22,11 +21,9 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::LayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
+use crate::flow::BlockLevelBox;
 use crate::flow::float::FloatBox;
-use crate::flow::inline::AnonymousBlockBox;
-use crate::flow::{BlockContainer, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::ComputedValuesExt;
 
@@ -207,33 +204,10 @@ impl InlineFormattingContextBuilder {
         inline_level_box
     }
 
-    pub(crate) fn push_block_level_box(
-        &mut self,
-        block_level_box: ArcRefCell<BlockLevelBox>,
-        block_builder_info: &NodeAndStyleInfo,
-        layout_context: &LayoutContext,
-    ) {
+    pub(crate) fn push_block_level_box(&mut self, block_level: ArcRefCell<BlockLevelBox>) {
         assert!(self.currently_processing_inline_box());
-        self.contains_floats = self.contains_floats || block_level_box.borrow().contains_floats();
-
-        if let Some(InlineItem::AnonymousBlock(anonymous_block)) = self.inline_items.last() {
-            if let BlockContainer::BlockLevelBoxes(ref mut block_level_boxes) =
-                anonymous_block.borrow_mut().contents
-            {
-                block_level_boxes.push(block_level_box);
-                return;
-            }
-        }
-        let info = &block_builder_info
-            .with_pseudo_element(layout_context, PseudoElement::ServoAnonymousBox)
-            .expect("Should never fail to create anonymous box");
-        self.inline_items
-            .push(InlineItem::AnonymousBlock(ArcRefCell::new(
-                AnonymousBlockBox {
-                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    contents: BlockContainer::BlockLevelBoxes(vec![block_level_box]),
-                },
-            )));
+        self.contains_floats = self.contains_floats || block_level.borrow().contains_floats();
+        self.inline_items.push(InlineItem::BlockLevel(block_level));
     }
 
     pub(crate) fn start_inline_box(
