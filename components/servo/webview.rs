@@ -34,9 +34,9 @@ use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
-use crate::wake_lock_delegate::{DefaultWakeLockDelegate, WakeLockDelegate};
 use crate::responders::IpcResponder;
 use crate::servo::PendingHandledInputEvent;
+use crate::wake_lock_delegate::{DefaultWakeLockDelegate, WakeLockDelegate};
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
