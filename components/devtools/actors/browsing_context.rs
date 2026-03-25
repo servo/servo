@@ -104,7 +104,7 @@ pub(crate) struct BrowsingContextActorMsg {
     traits: BrowsingContextTraits,
     // Implemented actors
     accessibility_actor: String,
-    console_name: String,
+    console_actor: String,
     css_properties_actor: String,
     inspector_actor: String,
     reflow_actor: String,
@@ -404,7 +404,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             outer_window_id: self.outer_window_id().value(),
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
-            console_name: self.console_name.clone(),
+            console_actor: self.console_name.clone(),
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
             reflow_actor: self.reflow_name.clone(),
