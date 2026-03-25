@@ -145,7 +145,7 @@ pub(crate) struct BrowsingContextActor {
     pub console: String,
     css_properties: String,
     pub(crate) inspector: String,
-    reflow: String,
+    reflow_name: String,
     style_sheets: String,
     pub thread: String,
     _tab: String,
@@ -229,7 +229,7 @@ impl BrowsingContextActor {
 
         let inspector = InspectorActor::register(registry, name.clone());
 
-        let reflow = ReflowActor::new(registry.new_name::<ReflowActor>());
+        let reflow_actor = ReflowActor::new(registry.new_name::<ReflowActor>());
 
         let style_sheets = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
 
@@ -263,7 +263,7 @@ impl BrowsingContextActor {
             console,
             css_properties: css_properties.name(),
             inspector,
-            reflow: reflow.name(),
+            reflow_name: reflow_actor.name(),
             style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
             thread: thread.name(),
@@ -272,7 +272,7 @@ impl BrowsingContextActor {
 
         registry.register(accessibility);
         registry.register(css_properties);
-        registry.register(reflow);
+        registry.register(reflow_actor);
         registry.register(style_sheets);
         registry.register(tabdesc);
         registry.register(thread);
@@ -407,7 +407,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             console_actor: self.console.clone(),
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
-            reflow_actor: self.reflow.clone(),
+            reflow_actor: self.reflow_name.clone(),
             style_sheets_actor: self.style_sheets.clone(),
             thread_actor: self.thread.clone(),
             target_type: TargetType::Frame,
