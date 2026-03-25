@@ -112,21 +112,21 @@ pub(crate) struct ThreadActor {
     pub source_manager: SourceManager,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     pub frames: AtomicRefCell<HashSet<String>>,
-    browsing_context: Option<String>,
+    browsing_context_name: Option<String>,
 }
 
 impl ThreadActor {
     pub fn new(
         name: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-        browsing_context: Option<String>,
+        browsing_context_name: Option<String>,
     ) -> ThreadActor {
         ThreadActor {
             name,
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
-            browsing_context,
+            browsing_context_name,
         }
     }
 }
@@ -215,10 +215,11 @@ impl Actor for ThreadActor {
             },
 
             "frames" => {
-                let Some(ref browsing_context) = self.browsing_context else {
+                let Some(ref browsing_context_name) = self.browsing_context_name else {
                     return Err(ActorError::Internal);
                 };
-                let browsing_context = registry.find::<BrowsingContextActor>(browsing_context);
+                let browsing_context_actor =
+                    registry.find::<BrowsingContextActor>(browsing_context_name);
 
                 let frames: FramesRequest =
                     serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
@@ -228,7 +229,7 @@ impl Actor for ThreadActor {
                 };
                 self.script_sender
                     .send(DevtoolScriptControlMsg::ListFrames(
-                        browsing_context.pipeline_id(),
+                        browsing_context_actor.pipeline_id(),
                         frames.start,
                         frames.count,
                         tx,
