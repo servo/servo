@@ -339,10 +339,10 @@ impl Actor for WatcherActor {
                             }
                         },
                         "console-message" | "error-message" => {
-                            let console = registry.find::<ConsoleActor>(&target.console);
-                            console.received_first_message_from_client();
+                            let console_actor = registry.find::<ConsoleActor>(&target.console_name);
+                            console_actor.received_first_message_from_client();
                             target.resources_array(
-                                console.get_cached_messages(registry, resource),
+                                console_actor.get_cached_messages(registry, resource),
                                 resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,
@@ -350,10 +350,10 @@ impl Actor for WatcherActor {
 
                             for worker_name in &*root.workers.borrow() {
                                 let worker = registry.find::<WorkerActor>(worker_name);
-                                let console = registry.find::<ConsoleActor>(&worker.console);
+                                let console_actor = registry.find::<ConsoleActor>(&worker.console_name);
 
                                 worker.resources_array(
-                                    console.get_cached_messages(registry, resource),
+                                    console_actor.get_cached_messages(registry, resource),
                                     resource.into(),
                                     ResourceArrayType::Available,
                                     &mut request,

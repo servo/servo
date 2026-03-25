@@ -487,7 +487,7 @@ impl DevtoolsInstance {
             let worker_name = self.registry.new_name::<WorkerActor>();
             let worker = WorkerActor {
                 name: worker_name.clone(),
-                console: console_name.clone(),
+                console_name: console_name.clone(),
                 thread: thread_name,
                 worker_id: id,
                 url: page_info.url,
@@ -527,9 +527,9 @@ impl DevtoolsInstance {
             Root::BrowsingContext(name.clone())
         };
 
-        let console = ConsoleActor::new(console_name, parent_actor);
+        let console_actor = ConsoleActor::new(console_name, parent_actor);
 
-        self.registry.register(console);
+        actors.register(console_actor);
     }
 
     fn handle_title_changed(&self, pipeline_id: PipelineId, title: String) {
@@ -616,19 +616,14 @@ impl DevtoolsInstance {
     ) -> Option<String> {
         if let Some(worker_id) = worker_id {
             let actor_name = self.actor_workers.get(&worker_id)?;
-            Some(
-                self.registry
-                    .find::<WorkerActor>(actor_name)
-                    .console
-                    .clone(),
-            )
+            Some(actors.find::<WorkerActor>(actor_name).console_name.clone())
         } else {
             let id = self.pipelines.get(&pipeline_id)?;
             let actor_name = self.browsing_contexts.get(id)?;
             Some(
                 self.registry
                     .find::<BrowsingContextActor>(actor_name)
-                    .console
+                    .console_name
                     .clone(),
             )
         }
