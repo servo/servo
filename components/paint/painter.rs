@@ -238,6 +238,7 @@ impl Painter {
                 enable_aa: pref!(gfx_text_antialiasing_enabled),
                 enable_subpixel_aa: pref!(gfx_subpixel_text_antialiasing_enabled),
                 allow_texture_swizzling: pref!(gfx_texture_swizzling_enabled),
+                enable_dithering: true,
                 clear_color,
                 upload_method,
                 workers,
