@@ -49,4 +49,7 @@ interface HTMLSelectElement : HTMLElement {
   undefined setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
+
+  [Throws]
+  undefined showPicker();
 };

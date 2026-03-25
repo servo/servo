@@ -108,6 +108,9 @@ interface HTMLInputElement : HTMLElement {
   [Throws]
            undefined setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
+  [Throws]
+  undefined showPicker();
+
   // also has obsolete members
 
   // Select with file-system paths for testing purpose
