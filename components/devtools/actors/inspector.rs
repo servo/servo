@@ -111,10 +111,10 @@ impl Actor for InspectorActor {
 }
 
 impl InspectorActor {
-    pub fn register(registry: &ActorRegistry, browsing_context: String) -> String {
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
         let highlighter = HighlighterActor {
             name: registry.new_name::<HighlighterActor>(),
-            browsing_context: browsing_context.clone(),
+            browsing_context_name: browsing_context_name.clone(),
         };
 
         let page_style = PageStyleActor {
@@ -124,7 +124,7 @@ impl InspectorActor {
         let walker = WalkerActor {
             name: registry.new_name::<WalkerActor>(),
             mutations: AtomicRefCell::new(vec![]),
-            browsing_context,
+            browsing_context_name,
         };
 
         let actor = Self {
