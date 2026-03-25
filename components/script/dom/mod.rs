@@ -328,9 +328,7 @@ pub(crate) mod navigator;
 pub(crate) mod navigatorinfo;
 #[expect(dead_code)]
 pub(crate) mod node;
-pub(crate) mod nodeiterator;
-#[expect(dead_code)]
-pub(crate) mod nodelist;
+pub(crate) use self::node::*;
 pub(crate) mod notification;
 pub(crate) mod origin;
 pub(crate) mod pagetransitionevent;
