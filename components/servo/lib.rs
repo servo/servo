@@ -16,6 +16,7 @@ mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
 #[cfg(feature = "media-gstreamer")]
+mod wake_lock_delegate;
 mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;
@@ -70,6 +71,7 @@ pub use crate::clipboard_delegate::{ClipboardDelegate, StringRequest};
 pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
+pub use crate::wake_lock_delegate::WakeLockDelegate;
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};

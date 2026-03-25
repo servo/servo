@@ -676,6 +676,18 @@ impl ServoInner {
                         .notify_accessibility_tree_update(webview, tree_update);
                 }
             },
+            EmbedderMsg::AcquireWakeLock(webview_id, response) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.wake_lock_delegate().acquire(webview, response);
+                } else {
+                    let _ = response.send(AllowOrDeny::Deny);
+                }
+            },
+            EmbedderMsg::ReleaseWakeLock(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.wake_lock_delegate().release(webview);
+                }
+            },
         }
     }
 

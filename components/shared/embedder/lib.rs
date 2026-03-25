@@ -509,6 +509,13 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate),
+    /// Request the embedder to acquire a screen wake lock, preventing the screen from sleeping.
+    /// The embedder should respond with [`AllowOrDeny`] to grant or reject the request.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+    AcquireWakeLock(WebViewId, GenericSender<AllowOrDeny>),
+    /// Request the embedder to release a previously acquired screen wake lock.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
+    ReleaseWakeLock(WebViewId),
 }
 
 impl Debug for EmbedderMsg {
