@@ -529,7 +529,8 @@ impl DevtoolsInstance {
 
         let console_actor = ConsoleActor::new(console_name, parent_actor);
 
-        actors.register(console_actor);
+        // actors.register(console_actor);
+        self.registry.register(console_actor);
     }
 
     fn handle_title_changed(&self, pipeline_id: PipelineId, title: String) {
@@ -616,7 +617,7 @@ impl DevtoolsInstance {
     ) -> Option<String> {
         if let Some(worker_id) = worker_id {
             let actor_name = self.actor_workers.get(&worker_id)?;
-            Some(actors.find::<WorkerActor>(actor_name).console_name.clone())
+            Some(self.registry.find::<WorkerActor>(actor_name).console_name.clone())
         } else {
             let id = self.pipelines.get(&pipeline_id)?;
             let actor_name = self.browsing_contexts.get(id)?;
