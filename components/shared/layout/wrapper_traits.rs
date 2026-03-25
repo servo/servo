@@ -227,6 +227,9 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     fn media_data(&self) -> Option<HTMLMediaData>;
 
+    /// If this is an video element, returns its poster URL.
+    fn poster_url(&self) -> Option<ServoUrl>;
+
     /// If this node is an iframe element, returns its browsing context ID. If this node is
     /// not an iframe element, fails. Returns None if there is no nested browsing context.
     fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;

@@ -468,6 +468,11 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         this.media_data()
     }
 
+    fn poster_url(&self) -> Option<ServoUrl> {
+        let this = unsafe { self.get_jsmanaged() };
+        this.poster_url()
+    }
+
     fn svg_data(&self) -> Option<SVGElementData<'dom>> {
         let this = unsafe { self.get_jsmanaged() };
         this.svg_data()

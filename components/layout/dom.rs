@@ -386,6 +386,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         Some((
             VideoInfo {
                 image_key: data.current_frame.map(|frame| frame.image_key),
+                poster_url: self.poster_url(),
             },
             natural_size,
         ))

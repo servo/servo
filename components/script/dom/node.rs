@@ -2147,6 +2147,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     fn showing_broken_image_icon(self) -> bool;
     fn canvas_data(self) -> Option<HTMLCanvasData>;
     fn media_data(self) -> Option<HTMLMediaData>;
+    fn poster_url(self) -> Option<ServoUrl>;
     fn svg_data(self) -> Option<SVGElementData<'dom>>;
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
     fn iframe_pipeline_id(self) -> Option<PipelineId>;
@@ -2406,6 +2407,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     fn media_data(self) -> Option<HTMLMediaData> {
         self.downcast::<HTMLVideoElement>()
             .map(|media| media.data())
+    }
+
+    fn poster_url(self) -> Option<ServoUrl> {
+        self.downcast::<HTMLVideoElement>()
+            .expect("not a video!")
+            .poster_url()
     }
 
     fn svg_data(self) -> Option<SVGElementData<'dom>> {
