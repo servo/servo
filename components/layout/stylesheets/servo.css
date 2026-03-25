@@ -214,27 +214,6 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-input[type="checkbox"]::before {
-  content: "";
-  font-size: 12px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-input[type="checkbox"]:disabled::before {
-  color: grey;
-}
-
-input[type="checkbox"]:checked::before {
-  content: "✔";
-}
-
-input[type="checkbox"]:indeterminate::before {
-  content: "—";
-}
-
 input[type="radio"] {
   display: inline-block;
   border-radius: 50%;
