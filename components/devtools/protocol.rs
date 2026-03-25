@@ -124,8 +124,7 @@ impl JsonPacketStream for DevtoolsConnection {
         let s = serde_json::to_string(message).map_err(|_| ActorError::Internal)?;
         log::debug!("<- {}", s);
         let mut stream = self.sender.lock().unwrap();
-        write!(*stream, "{}:{}", s.len(), s).map_err(|_| ActorError::Internal)?;
-        Ok(())
+        write!(*stream, "{}:{}", s.len(), s).map_err(|_| ActorError::Internal)
     }
 
     fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
