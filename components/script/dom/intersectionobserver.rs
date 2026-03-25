@@ -245,19 +245,6 @@ impl IntersectionObserver {
         Ok(())
     }
 
-    /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-implicit-root>
-    fn root_is_implicit_root(&self) -> bool {
-        self.root.is_none()
-    }
-
-    /// Return unwrapped root if it was an element, None if otherwise.
-    fn maybe_element_root(&self) -> Option<&Element> {
-        match &self.root {
-            Some(ElementOrDocument::Element(element)) => Some(element),
-            _ => None,
-        }
-    }
-
     /// <https://w3c.github.io/IntersectionObserver/#observe-target-element>
     fn observe_target_element(&self, target: &Element) {
         // Step 1
@@ -481,9 +468,9 @@ impl IntersectionObserver {
         })
     }
 
-    /// Return root or try to get the top-level browsing context document incase if this is a implicit root.
+    /// Return root or try to get the top-level browsing context document in case if this is a implicit root.
     /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
-    // TODO: note in which case getting the top level browsing context could fail.
+    // TODO: Currently we are unable to get the cross `ScriptThread` document.
     fn concrete_root(&self) -> Option<ElementOrDocument> {
         match &self.root {
             Some(root) => Some(root.clone()),
@@ -505,23 +492,31 @@ impl IntersectionObserver {
     /// <https://www.w3.org/TR/intersection-observer/>
     fn maybe_compute_intersection_output(
         &self,
-        document: &Document,
         target: &Element,
         maybe_root_bounds: Option<Rect<Au, CSSPixel>>,
     ) -> IntersectionObservationOutput {
         // Step 5
         // > If the intersection root is not the implicit root, and target is not in
         // > the same document as the intersection root, skip to step 11.
-        if !self.root_is_implicit_root() && *target.owner_document() != *document {
-            return IntersectionObservationOutput::default_skipped();
-        }
-
         // Step 6
         // > If the intersection root is an Element, and target is not a descendant of
         // > the intersection root in the containing block chain, skip to step 11.
-        // TODO(stevennovaryo): implement LayoutThread query that support this.
-        if let Some(_element) = self.maybe_element_root() {
-            debug!("descendant of containing block chain is not implemented");
+        match &self.root {
+            Some(ElementOrDocument::Document(document)) => {
+                if document != &target.owner_document() {
+                    return IntersectionObservationOutput::default_skipped();
+                }
+            }
+            Some(ElementOrDocument::Element(element)) => {
+                // To ensure consistency, we also checks for element's right now, but we could depends on the
+                // layout query later.
+                if element.owner_document() != target.owner_document() {
+                    return IntersectionObservationOutput::default_skipped();
+                }
+                // TODO(stevennovaryo): implement LayoutThread query for descendant of containing block chain.
+                debug!("descendant of containing block chain is not implemented");
+            },
+            _ => {},
         }
 
         // Step 7
@@ -533,6 +528,7 @@ impl IntersectionObserver {
         let (Some(root_bounds), Some(target_rect), Some(root_intersection)) =
             (maybe_root_bounds, maybe_target_rect, self.concrete_root())
         else {
+            log::error!("[ztp] (maybe_root_bounds, maybe_target_rect, self.concrete_root())");
             return IntersectionObservationOutput::default_skipped();
         };
 
@@ -633,7 +629,7 @@ impl IntersectionObserver {
 
             // step 4-14
             let intersection_output =
-                self.maybe_compute_intersection_output(document, target, root_bounds);
+                self.maybe_compute_intersection_output(target, root_bounds);
 
             // Step 15-17
             // > 15. Let previousThresholdIndex be the registration’s previousThresholdIndex property.
@@ -854,6 +850,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
         .map_err(|_| ())
 }
 
+/// In terms of intersection observer, we wants account for zero area rectangle as long as it is not negative.
 fn intersect_rectangle(
     lhs: &Rect<Au, CSSPixel>,
     rhs: &Rect<Au, CSSPixel>,
@@ -866,6 +863,8 @@ fn intersect_rectangle(
     }
 }
 
+/// Compute the intersection rectangle of the target [`Element`] returning the results of intersection in the coordinate
+/// space of the target's owning [`Document`]. Additionally, we assume that both the target and the root is connected.
 /// <https://w3c.github.io/IntersectionObserver/#compute-the-intersection>
 fn compute_the_intersection(
     target: &Element,
@@ -874,6 +873,7 @@ fn compute_the_intersection(
     mut intersection_rect: Rect<Au, CSSPixel>,
     scroll_margin: &IntersectionObserverMargin,
 ) -> Option<Rect<Au, CSSPixel>> {
+    log::error!("[ztp] compute_the_intersection");
     // > 1. Let intersectionRect be the result of getting the bounding box for target.
     // We had delegated the computation of this to the caller of the function.
 
@@ -901,6 +901,7 @@ fn compute_the_intersection(
                     let viewport_rect = f32_rect_to_au_rect(Rect::from_size(
                         containing_document.window().viewport_details().size,
                     ));
+                    log::error!("[ztp] iteration viewport clip {:?}: {:?}", viewport_rect, intersection_rect);
 
                     if let Some(rect) = intersect_rectangle(&intersection_rect, &viewport_rect) {
                         intersection_rect = rect;
@@ -920,8 +921,8 @@ fn compute_the_intersection(
                     frame_container
                 } else {
                     // TODO: Theoritically, this shouldn't be reachable as we have ensured that the root is reachable
-                    // But we are still unable to iterate through cross-origin ancestor iframes, and we will need to
-                    // stop the iteration for that case.
+                    // in the previous steps. But we are still unable to iterate through cross-origin ancestor iframes,
+                    // and we will need to stop the iteration for that case.
                     break;
                 }
             },
@@ -937,7 +938,8 @@ fn compute_the_intersection(
         // >      to the container’s clip rect as described in apply scroll margin to a scrollport.
         // > 3.4. If container has a content clip or a css clip-path property, update intersectionRect
         // >      by applying container’s clip.
-        // TODO: handle css clip-path clipping and resolve clipping for x-axis and y-axis in a different way.
+        // TODO: handle `overflow: clip` and` resolve clipping for x-axis and y-axis independently. Additionally,
+        //       handle css clip-path as well.
         if IntersectionObserver::has_content_clip(&containing_element) {
             if let Some(container_padding_box) = containing_element
                 .upcast::<Node>()
@@ -946,12 +948,13 @@ fn compute_the_intersection(
                 let container_padding_box = if containing_element.establishes_scroll_container() {
                     let margin = IntersectionObserver::resolve_percentages_with_basis(
                         scroll_margin,
-                        intersection_rect,
+                        container_padding_box,
                     );
                     container_padding_box.outer_rect(margin)
                 } else {
                     container_padding_box
                 };
+                log::error!("[ztp] iteration {:?} -> clip {:?}: {:?}", containing_element, container_padding_box, intersection_rect);
 
                 if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box)
                 {
@@ -965,8 +968,10 @@ fn compute_the_intersection(
         // > 3.5. If container is the root element of a browsing context, update container to be the
         // >      browsing context’s document; otherwise, update container to be the containing block
         // >      of container.
-        container = match containing_element.upcast::<Node>().containing_block_node() {
-            Some(node) => ElementOrDocument::Element(DomRoot::downcast(node).unwrap()),
+        // Additionally, for a node that doesn't have an element that establish it's containing block, it should be contained
+        // by the browsing context's document.
+        container = match containing_element.upcast::<Node>().containing_block_node().and_then(DomRoot::downcast::<Element>) {
+            Some(element) => ElementOrDocument::Element(element),
             None => ElementOrDocument::Document(containing_element.owner_document()),
         };
     }
@@ -975,6 +980,7 @@ fn compute_the_intersection(
     // > Map intersectionRect to the coordinate space of root.
     // TODO: we doesn't map the coordinate space per each iteration yet, instead all the rectangle are in
     // the viewport coordinate space.
+    log::error!("[ztp] iteration roots {:?}: {:?}", root_bounds, intersection_rect);
 
     // Step 5
     // > Update intersectionRect by intersecting it with the root intersection rectangle.
