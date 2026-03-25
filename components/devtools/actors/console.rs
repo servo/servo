@@ -284,8 +284,8 @@ impl ConsoleActor {
 
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
-            Root::BrowsingContext(browsing_context) => registry
-                .find::<BrowsingContextActor>(browsing_context)
+            Root::BrowsingContext(browsing_context_name) => registry
+                .find::<BrowsingContextActor>(browsing_context_name)
                 .script_chan(),
             Root::DedicatedWorker(worker) => {
                 registry.find::<WorkerActor>(worker).script_chan.clone()
@@ -295,9 +295,9 @@ impl ConsoleActor {
 
     fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
         match &self.root {
-            Root::BrowsingContext(browsing_context) => UniqueId::Pipeline(
+            Root::BrowsingContext(browsing_context_name) => UniqueId::Pipeline(
                 registry
-                    .find::<BrowsingContextActor>(browsing_context)
+                    .find::<BrowsingContextActor>(browsing_context_name)
                     .pipeline_id(),
             ),
             Root::DedicatedWorker(worker) => {
@@ -489,13 +489,15 @@ impl ConsoleActor {
         }
         let resource_type = resource.resource_type();
         if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
-                    resource,
-                    resource_type,
-                    ResourceArrayType::Available,
-                    stream,
-                )
+            if let Root::BrowsingContext(browsing_context_name) = &self.root {
+                registry
+                    .find::<BrowsingContextActor>(browsing_context_name)
+                    .resource_array(
+                        resource,
+                        resource_type,
+                        ResourceArrayType::Available,
+                        stream,
+                    )
             };
         }
     }
@@ -507,15 +509,17 @@ impl ConsoleActor {
         stream: &mut TcpStream,
     ) {
         if id == self.current_unique_id(registry) {
-            if let Root::BrowsingContext(bc) = &self.root {
-                registry.find::<BrowsingContextActor>(bc).resource_array(
-                    ConsoleClearMessage {
-                        level: "clear".to_owned(),
-                    },
-                    "console-message".into(),
-                    ResourceArrayType::Available,
-                    stream,
-                )
+            if let Root::BrowsingContext(browsing_context_name) = &self.root {
+                registry
+                    .find::<BrowsingContextActor>(browsing_context_name)
+                    .resource_array(
+                        ConsoleClearMessage {
+                            level: "clear".to_owned(),
+                        },
+                        "console-message".into(),
+                        ResourceArrayType::Available,
+                        stream,
+                    )
             };
         }
     }
