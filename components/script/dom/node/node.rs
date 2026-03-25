@@ -56,7 +56,6 @@ use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
-use super::types::CDATASection;
 use crate::conversions::Convert;
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
@@ -120,7 +119,7 @@ use crate::dom::html::htmltextareaelement::{
 };
 use crate::dom::html::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
-use crate::dom::nodelist::NodeList;
+use crate::dom::node::nodelist::NodeList;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
@@ -130,7 +129,7 @@ use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
 use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
-use crate::dom::types::KeyboardEvent;
+use crate::dom::types::{CDATASection, KeyboardEvent};
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::layout_dom::ServoLayoutNode;
