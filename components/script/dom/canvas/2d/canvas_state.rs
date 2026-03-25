@@ -2371,7 +2371,7 @@ impl CanvasState {
                 x_language.clone(),
             );
 
-            if (!is_variation_selector(character) || current_text_run.string.is_empty()) &&
+            if !is_variation_selector(character) &&
                 !current_text_run.script_and_font_compatible(script, &font)
             {
                 let previous_text_run = std::mem::replace(
