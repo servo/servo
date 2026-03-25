@@ -260,7 +260,7 @@ impl Actor for NodeActor {
 pub trait NodeInfoToProtocol {
     fn encode(
         self,
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
         script_chan: GenericSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
         walker: String,
@@ -270,15 +270,15 @@ pub trait NodeInfoToProtocol {
 impl NodeInfoToProtocol for NodeInfo {
     fn encode(
         self,
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
         script_chan: GenericSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
         walker: String,
     ) -> NodeActorMsg {
         let get_or_register_node_actor = |id: &str| {
-            if !actors.script_actor_registered(id.to_string()) {
-                let name = actors.new_name::<NodeActor>();
-                actors.register_script_actor(id.to_string(), name.clone());
+            if !registry.script_actor_registered(id.to_string()) {
+                let name = registry.new_name::<NodeActor>();
+                registry.register_script_actor(id.to_string(), name.clone());
 
                 let node_actor = NodeActor {
                     name: name.clone(),
@@ -287,10 +287,10 @@ impl NodeInfoToProtocol for NodeInfo {
                     walker: walker.clone(),
                     style_rules: AtomicRefCell::new(HashMap::new()),
                 };
-                actors.register(node_actor);
+                registry.register(node_actor);
                 name
             } else {
-                actors.script_to_actor(id.to_string())
+                registry.script_to_actor(id.to_string())
             }
         };
 
@@ -300,7 +300,7 @@ impl NodeInfoToProtocol for NodeInfo {
             .as_ref()
             .map(|host_id| get_or_register_node_actor(host_id));
 
-        let name = actors.actor_to_script(actor.clone());
+        let name = registry.actor_to_script(actor.clone());
 
         // If a node only has a single text node as a child whith a small enough text,
         // return it with this node as an `inlineTextChild`.
@@ -321,7 +321,7 @@ impl NodeInfoToProtocol for NodeInfo {
             let mut children = rx.recv().ok()??;
 
             let child = children.pop()?;
-            let msg = child.encode(actors, script_chan.clone(), pipeline, walker);
+            let msg = child.encode(registry, script_chan.clone(), pipeline, walker);
 
             // If the node child is not a text node, do not represent it inline.
             if msg.node_type != TEXT_NODE {
@@ -361,7 +361,7 @@ impl NodeInfoToProtocol for NodeInfo {
             node_type: self.node_type,
             node_value: self.node_value,
             num_children: self.num_children,
-            parent: actors.script_to_actor(self.parent.clone()),
+            parent: registry.script_to_actor(self.parent.clone()),
             shadow_root_mode: self
                 .shadow_root_mode
                 .as_ref()
