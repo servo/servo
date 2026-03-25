@@ -21,6 +21,7 @@ use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
+use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::text_decoration_style::{
     T as ComputedTextDecorationStyle, T as TextDecorationStyle,
@@ -45,7 +46,7 @@ use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    PropertyBindingKey, SpatialId, SpatialTreeItemKey, units,
+    PropertyBindingKey, RasterSpace, SpatialId, SpatialTreeItemKey, StackingContextFlags, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -1403,6 +1404,43 @@ impl<'a> BuilderForBoxFragment<'a> {
     ) {
         let style = painter.style;
         let b = style.get_background();
+        let need_blend_container = b
+            .background_blend_mode
+            .0
+            .iter()
+            .take(b.background_image.0.len())
+            .any(|background_blend_mode| background_blend_mode != &BackgroundBlendMode::Normal);
+
+        let push_stacking_context = |builder: &mut DisplayListBuilder,
+                                     blend_mode: BackgroundBlendMode,
+                                     flags: StackingContextFlags|
+         -> bool {
+            let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
+            builder.wr().push_stacking_context(
+                LayoutPoint::zero(), // origin
+                spatial_id,
+                PrimitiveFlags::empty(),
+                None,
+                webrender_api::TransformStyle::Flat,
+                blend_mode.to_webrender(),
+                &[],
+                &[],
+                &[],
+                RasterSpace::Screen,
+                flags,
+                None,
+            );
+            true
+        };
+
+        if need_blend_container {
+            push_stacking_context(
+                builder,
+                BackgroundBlendMode::Normal,
+                StackingContextFlags::IS_BLEND_CONTAINER,
+            );
+        }
+
         let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
@@ -1415,6 +1453,11 @@ impl<'a> BuilderForBoxFragment<'a> {
                     else {
                         continue;
                     };
+
+                    let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
+                    if needs_blending {
+                        push_stacking_context(builder, layer.blend_mode, Default::default());
+                    }
 
                     match gradient::build(style, gradient, layer.tile_size, builder) {
                         WebRenderGradient::Linear(linear_gradient) => builder.wr().push_gradient(
@@ -1444,6 +1487,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                         },
                     }
 
+                    if needs_blending {
+                        builder.wr().pop_stacking_context();
+                    }
+
                     builder.check_if_paintable(
                         layer.bounds,
                         layer.common.clip_rect,
@@ -1456,6 +1503,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let intrinsic =
                         NaturalSizes::from_width_and_height(size.width / dppx, size.height / dppx);
                     let layer = background::layout_layer(self, painter, builder, index, intrinsic);
+
                     let image_wr_key = match image {
                         CachedImage::Raster(raster_image) => raster_image.id,
                         CachedImage::Vector(vector_image) => {
@@ -1488,6 +1536,11 @@ impl<'a> BuilderForBoxFragment<'a> {
                     };
 
                     if let Some(layer) = layer {
+                        let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
+                        if needs_blending {
+                            push_stacking_context(builder, layer.blend_mode, Default::default());
+                        }
+
                         if layer.repeat {
                             builder.wr().push_repeating_image(
                                 &layer.common,
@@ -1508,6 +1561,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 image_key,
                                 wr::ColorF::WHITE,
                             )
+                        }
+
+                        if needs_blending {
+                            builder.wr().pop_stacking_context();
                         }
 
                         builder.check_if_paintable(
@@ -1531,6 +1588,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                     }
                 },
             }
+        }
+
+        if need_blend_container {
+            builder.wr().pop_stacking_context();
         }
     }
 
