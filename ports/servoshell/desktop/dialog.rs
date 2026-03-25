@@ -418,7 +418,7 @@ impl Dialog {
                         egui::ComboBox::from_label("")
                             .selected_text(devices[*selected_device_index].name.clone())
                             .show_ui(&mut frame.content_ui, |ui| {
-                                for (i, device) in devices.into_iter().enumerate() {
+                                for (i, device) in devices.iter().enumerate() {
                                     ui.selectable_value(
                                         selected_device_index,
                                         i,
