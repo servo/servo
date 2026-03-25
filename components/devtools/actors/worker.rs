@@ -81,7 +81,7 @@ impl Actor for WorkerActor {
                     from: self.name(),
                     type_: "connected".to_owned(),
                     thread_actor: self.thread.clone(),
-                    console_name: self.console_name.clone(),
+                    console_actor: self.console_name.clone(),
                 };
                 // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
                 request.write_json_packet(&msg)?;
@@ -134,7 +134,7 @@ struct ConnectReply {
     #[serde(rename = "type")]
     type_: String,
     thread_actor: String,
-    console_name: String,
+    console_actor: String,
 }
 
 #[derive(Serialize)]
@@ -148,7 +148,7 @@ struct WorkerTraits {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WorkerActorMsg {
     actor: String,
-    console_name: String,
+    console_actor: String,
     thread_actor: String,
     id: String,
     url: String,
@@ -163,7 +163,7 @@ impl ActorEncode<WorkerActorMsg> for WorkerActor {
     fn encode(&self, _: &ActorRegistry) -> WorkerActorMsg {
         WorkerActorMsg {
             actor: self.name(),
-            console_name: self.console_name.clone(),
+            console_actor: self.console_name.clone(),
             thread_actor: self.thread.clone(),
             id: self.worker_id.0.to_string(),
             url: self.url.to_string(),
