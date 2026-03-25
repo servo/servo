@@ -20,12 +20,15 @@ use core::fmt;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::net::TcpStream;
+use std::path::Path;
 use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{fs, io};
 
 pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
+use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
@@ -37,6 +40,50 @@ use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::ServoUrl;
 use uuid::Uuid;
+
+/// With `path` pointing to an entrypoint JS file, this returns the combined
+/// code from JS files in the same directory. The entrypoint file content will
+/// always appear last, but the rest of the files are in an undetermined order.
+///
+/// Keep this in sync with build.rs
+fn combine_js_code<P: AsRef<Path>>(path: P) -> io::Result<String> {
+    let path = path.as_ref();
+
+    // Read the entrypoint JS file
+    let is_javascript = |file: &Path| file.extension().is_some_and(|ext| ext == "js");
+    if !(path.is_file() && is_javascript(path)) {
+        return Err(io::Error::other("Path must be a JS entrypoint file"));
+    }
+    let mod_file = fs::read_to_string(path)?;
+
+    // If there are other files in the parent directory, prepend their contents
+    let Some(dir) = path.parent() else {
+        return Ok(mod_file);
+    };
+    let mut entries = fs::read_dir(dir)?
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|entry| entry.path())
+        .filter(|entry| entry != path && is_javascript(entry))
+        .map(fs::read_to_string)
+        .collect::<Result<Vec<_>, _>>()?;
+    entries.push(mod_file);
+    Ok(entries.join("\n"))
+}
+
+/// Load the DevTools JS glue code.
+/// If DEVTOOLS_JS is defined, it will try to load the file it is pointing to
+/// and other JS files in the same folder. Otherwise this will return the
+/// generated glued file from the build script.
+pub fn devtools_js_code() -> String {
+    if let Ok(path) = std::env::var("DEVTOOLS_JS") {
+        match combine_js_code(&path) {
+            Ok(code) => return code,
+            Err(e) => warn!("DEVTOOLS_JS is set but invalid: {}", e),
+        }
+    }
+    include_str!(concat!(env!("OUT_DIR"), "/devtools.js")).into()
+}
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.

@@ -7751,6 +7751,7 @@ name = "servo-devtools-traits"
 version = "0.0.6"
 dependencies = [
  "http 1.4.0",
+ "log",
  "malloc_size_of_derive",
  "serde",
  "servo-base",

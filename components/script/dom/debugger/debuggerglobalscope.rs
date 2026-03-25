@@ -6,11 +6,10 @@ use std::cell::RefCell;
 
 use devtools_traits::{
     DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue, ScriptToDevtoolsControlMsg,
-    SourceInfo, WorkerId,
+    SourceInfo, WorkerId, devtools_js_code,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
-use embedder_traits::resources::{self, Resource};
 use js::context::JSContext;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
@@ -140,13 +139,9 @@ impl DebuggerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
 
-        let _ = self.global_scope.evaluate_js_on_global(
-            cx,
-            resources::read_string(Resource::DebuggerJS).into(),
-            "",
-            None,
-            None,
-        );
+        let _ =
+            self.global_scope
+                .evaluate_js_on_global(cx, devtools_js_code().into(), "", None, None);
     }
 
     pub(crate) fn fire_add_debuggee(
