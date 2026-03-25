@@ -110,12 +110,12 @@ impl From<TcpStream> for DevtoolsConnection {
 impl DevtoolsConnection {
     /// Calls [`TcpStream::peer_addr`] on the underlying stream.
     pub(crate) fn peer_addr(&self) -> io::Result<SocketAddr> {
-        self.receiver.lock().expect("Mutex poisoned.").peer_addr()
+        self.receiver.lock().unwrap().peer_addr()
     }
 
     /// Calls [`TcpStream::shutdown`] on the underlying stream.
     pub(crate) fn shutdown(&self, how: Shutdown) -> io::Result<()> {
-        self.receiver.lock().expect("Mutex poisoned.").shutdown(how)
+        self.receiver.lock().unwrap().shutdown(how)
     }
 }
 
@@ -123,7 +123,7 @@ impl JsonPacketStream for DevtoolsConnection {
     fn write_json_packet<T: serde::Serialize>(&mut self, message: &T) -> Result<(), ActorError> {
         let s = serde_json::to_string(message).map_err(|_| ActorError::Internal)?;
         log::debug!("<- {}", s);
-        let mut stream = self.sender.lock().expect("Mutex poisoned.");
+        let mut stream = self.sender.lock().unwrap();
         write!(*stream, "{}:{}", s.len(), s).map_err(|_| ActorError::Internal)?;
         Ok(())
     }
@@ -133,7 +133,7 @@ impl JsonPacketStream for DevtoolsConnection {
         // In short, each JSON packet is [ascii length]:[JSON data of given length]
         let mut buffer = vec![];
         // Guard should be held until exactly one complete message has been read.
-        let mut stream = self.receiver.lock().expect("Mutex poisoned.");
+        let mut stream = self.receiver.lock().unwrap();
         loop {
             let mut buf = [0];
             let byte = match (*stream).read(&mut buf) {

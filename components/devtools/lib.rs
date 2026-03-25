@@ -259,7 +259,7 @@ impl DevtoolsInstance {
                     next_id = StreamId(id.0 + 1);
 
                     {
-                        let connections = self.connections.lock().expect("Mutex poisoned.");
+                        let connections = self.connections.lock().unwrap();
                         if connections.is_empty() {
                             // We used to have no connection, now we have one.
                             // Therefore, we need updates from script threads.
@@ -441,7 +441,7 @@ impl DevtoolsInstance {
     fn handle_navigate(&self, browsing_context_id: BrowsingContextId, state: NavigationState) {
         let actor_name = self.browsing_contexts.get(&browsing_context_id).unwrap();
         let actor = self.registry.find::<BrowsingContextActor>(actor_name);
-        let mut id_map = self.id_map.lock().expect("Mutex poisoned");
+        let mut id_map = self.id_map.lock().unwrap();
         let mut connections = self.connections.lock().unwrap();
         if let NavigationState::Start(url) = &state {
             let watcher_actor = self.registry.find::<WatcherActor>(&actor.watcher);
@@ -466,7 +466,7 @@ impl DevtoolsInstance {
         page_info: DevtoolsPageInfo,
     ) {
         let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
-        let id_map = &mut self.id_map.lock().expect("Mutex poisoned");
+        let id_map = &mut self.id_map.lock().unwrap();
         let devtools_browser_id = id_map.browser_id(webview_id);
         let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
         let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
@@ -898,7 +898,7 @@ fn handle_client(
 ) {
     connections
         .lock()
-        .expect("Mutex poisoned.")
+        .unwrap()
         .insert(stream_id, stream.clone());
 
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
