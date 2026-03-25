@@ -528,7 +528,6 @@ impl IntersectionObserver {
         let (Some(root_bounds), Some(target_rect), Some(root_intersection)) =
             (maybe_root_bounds, maybe_target_rect, self.concrete_root())
         else {
-            log::error!("[ztp] (maybe_root_bounds, maybe_target_rect, self.concrete_root())");
             return IntersectionObservationOutput::default_skipped();
         };
 
@@ -873,7 +872,6 @@ fn compute_the_intersection(
     mut intersection_rect: Rect<Au, CSSPixel>,
     scroll_margin: &IntersectionObserverMargin,
 ) -> Option<Rect<Au, CSSPixel>> {
-    log::error!("[ztp] compute_the_intersection");
     // > 1. Let intersectionRect be the result of getting the bounding box for target.
     // We had delegated the computation of this to the caller of the function.
 
@@ -901,7 +899,6 @@ fn compute_the_intersection(
                     let viewport_rect = f32_rect_to_au_rect(Rect::from_size(
                         containing_document.window().viewport_details().size,
                     ));
-                    log::error!("[ztp] iteration viewport clip {:?}: {:?}", viewport_rect, intersection_rect);
 
                     if let Some(rect) = intersect_rectangle(&intersection_rect, &viewport_rect) {
                         intersection_rect = rect;
@@ -954,7 +951,6 @@ fn compute_the_intersection(
                 } else {
                     container_padding_box
                 };
-                log::error!("[ztp] iteration {:?} -> clip {:?}: {:?}", containing_element, container_padding_box, intersection_rect);
 
                 if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box)
                 {
@@ -980,7 +976,6 @@ fn compute_the_intersection(
     // > Map intersectionRect to the coordinate space of root.
     // TODO: we doesn't map the coordinate space per each iteration yet, instead all the rectangle are in
     // the viewport coordinate space.
-    log::error!("[ztp] iteration roots {:?}: {:?}", root_bounds, intersection_rect);
 
     // Step 5
     // > Update intersectionRect by intersecting it with the root intersection rectangle.
