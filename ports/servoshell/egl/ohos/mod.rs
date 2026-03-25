@@ -738,10 +738,10 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
         "script::dom::bindings::error",
         "script::dom::console",
         // Show GL errors by default.
-        "canvas::webgl_thread",
+        "servo_canvas::webgl_thread",
         "paint::paint",
         "paint::touch",
-        "constellation::constellation",
+        "servo_constellation::constellation",
         "ohos_ime",
     ];
     for &module in &filters {

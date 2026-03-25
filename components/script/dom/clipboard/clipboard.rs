@@ -5,12 +5,12 @@
 use std::rc::Rc;
 use std::str::FromStr;
 
-use constellation_traits::BlobImpl;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
+use servo_constellation_traits::BlobImpl;
 
 use super::clipboarditem::Representation;
 use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{

@@ -4,10 +4,10 @@
 
 use std::convert::TryInto;
 
-use canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLTextureId};
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
 use crate::canvas_context::CanvasContext;

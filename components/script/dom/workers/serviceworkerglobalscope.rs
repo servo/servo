@@ -7,9 +7,6 @@ use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use constellation_traits::{
-    ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
-};
 use crossbeam_channel::{Receiver, Sender, after};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue};
 use dom_struct::dom_struct;
@@ -24,6 +21,9 @@ use rand::random;
 use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::PipelineId;
 use servo_config::pref;
+use servo_constellation_traits::{
+    ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+};
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
 

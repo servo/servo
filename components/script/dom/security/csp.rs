@@ -4,7 +4,6 @@
 
 use std::borrow::Cow;
 
-use constellation_traits::{LoadData, LoadOrigin};
 /// Used to determine which inline check to run
 pub use content_security_policy::InlineCheckType;
 /// Used to report CSP violations in Fetch handlers
@@ -17,6 +16,7 @@ use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
 use log::warn;
+use servo_constellation_traits::{LoadData, LoadOrigin};
 
 use super::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;

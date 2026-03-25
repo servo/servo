@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 use dom_struct::dom_struct;
 use script_bindings::weakref::WeakRef;
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::refcounted::Trusted;
@@ -93,7 +93,7 @@ impl WebGLQuery {
         &self,
         context: &WebGLRenderingContext,
         target: u32,
-    ) -> Result<(), canvas_traits::webgl::WebGLError> {
+    ) -> Result<(), servo_canvas_traits::webgl::WebGLError> {
         if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
@@ -118,7 +118,7 @@ impl WebGLQuery {
         &self,
         context: &WebGLRenderingContext,
         target: u32,
-    ) -> Result<(), canvas_traits::webgl::WebGLError> {
+    ) -> Result<(), servo_canvas_traits::webgl::WebGLError> {
         if self.droppable.marked_for_deletion.get() {
             return Err(InvalidOperation);
         }
@@ -178,7 +178,7 @@ impl WebGLQuery {
         &self,
         context: &WebGLRenderingContext,
         pname: u32,
-    ) -> Result<u32, canvas_traits::webgl::WebGLError> {
+    ) -> Result<u32, servo_canvas_traits::webgl::WebGLError> {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }

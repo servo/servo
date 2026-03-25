@@ -5,7 +5,6 @@
 use std::borrow::ToOwned;
 use std::cell::Cell;
 
-use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -20,6 +19,7 @@ use net_traits::request::Referrer;
 use rand::random;
 use rustc_hash::FxBuildHasher;
 use script_bindings::match_domstring_ascii;
+use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use stylo_atoms::Atom;

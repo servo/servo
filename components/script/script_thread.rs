@@ -32,13 +32,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
     HangAnnotation, MonitoredComponentId, MonitoredComponentType,
 };
-use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use constellation_traits::{
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TraversalDirection, WindowSizeType,
-};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
 use devtools_traits::{
@@ -91,7 +85,13 @@ use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
 };
+use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::{opts, pref, prefs};
+use servo_constellation_traits::{
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
+    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
+    StructuredSerializedData, TraversalDirection, WindowSizeType,
+};
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;

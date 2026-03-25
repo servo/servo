@@ -5,14 +5,14 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
-use canvas_traits::webgl::{
-    WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
-    WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
-};
 use dom_struct::dom_struct;
 #[cfg(feature = "webxr")]
 use euclid::Size2D;
 use script_bindings::weakref::WeakRef;
+use servo_canvas_traits::webgl::{
+    WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
+    WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
+};
 #[cfg(feature = "webxr")]
 use webxr_api::Viewport;
 

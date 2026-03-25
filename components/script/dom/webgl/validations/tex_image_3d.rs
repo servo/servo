@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{TexDataType, TexFormat};
 use js::jsapi::Type;
 use js::typedarray::ArrayBufferView;
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{TexDataType, TexFormat};
 
 use super::WebGLValidator;
 use super::tex_image_2d::TexImageValidationError;

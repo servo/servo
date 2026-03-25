@@ -5,12 +5,12 @@
 use std::default::Default;
 use std::rc::Rc;
 
-use constellation_traits::{
-    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
-};
 use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use servo_base::generic_channel::GenericCallback;
+use servo_constellation_traits::{
+    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
+};
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,

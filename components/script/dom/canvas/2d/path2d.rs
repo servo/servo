@@ -4,12 +4,12 @@
 
 use std::cell::RefCell;
 
-use canvas_traits::canvas::Path;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;
 use script_bindings::error::ErrorResult;
 use script_bindings::str::DOMString;
+use servo_canvas_traits::canvas::Path;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Path2DMethods;
 use crate::dom::bindings::error::{Error, Fallible};

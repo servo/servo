@@ -6,11 +6,11 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
 
-use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::str::DOMString;
+use servo_canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 type GLenum = u32;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};

@@ -10,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "constellation_traits"
+name = "servo_constellation_traits"
 path = "lib.rs"
 
 [features]

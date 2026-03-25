@@ -6,7 +6,6 @@ use std::io::Cursor;
 use std::rc::Rc;
 use std::{fs, ptr, slice, str};
 
-use constellation_traits::BlobImpl;
 use encoding_rs::{Encoding, UTF_8};
 use http::HeaderMap;
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
@@ -24,6 +23,7 @@ use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
 use servo_base::generic_channel::GenericSharedMemory;
+use servo_constellation_traits::BlobImpl;
 use url::form_urlencoded;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
