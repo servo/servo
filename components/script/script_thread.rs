@@ -3816,6 +3816,7 @@ impl ScriptThread {
             incomplete.pipeline_id,
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
+            incomplete.parent_info,
         );
         self.incomplete_parser_contexts
             .0
@@ -3937,9 +3938,22 @@ impl ScriptThread {
         }
     }
 
-    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<Violation>) {
-        if let Some(global) = self.documents.borrow().find_global(id) {
-            // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
+    fn handle_csp_violations(
+        &self,
+        pipeline_id: PipelineId,
+        _request_id: RequestId,
+        violations: Vec<Violation>,
+    ) {
+        let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
+        let parser = incomplete_parser_contexts
+            .iter_mut()
+            .find(|&&mut (parser_pipeline_id, _)| parser_pipeline_id == pipeline_id);
+        let Some(&mut (_, ref mut ctxt)) = parser else {
+            return;
+        };
+        // We need to report violations for navigations in iframes in the parent page
+        let pipeline_id = ctxt.parent_info().unwrap_or(pipeline_id);
+        if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
             global.report_csp_violations(violations, None, None);
         }
     }
@@ -4010,6 +4024,7 @@ impl ScriptThread {
             incomplete.pipeline_id,
             url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
+            incomplete.parent_info,
         );
 
         let mut meta = Metadata::default(url);
@@ -4063,11 +4078,17 @@ impl ScriptThread {
 
         let webview_id = incomplete.webview_id;
         let pipeline_id = incomplete.pipeline_id;
+        let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
-        let mut context =
-            ParserContext::new(webview_id, pipeline_id, url, creation_sandboxing_flag_set);
+        let mut context = ParserContext::new(
+            webview_id,
+            pipeline_id,
+            url,
+            creation_sandboxing_flag_set,
+            parent_info,
+        );
         let dummy_request_id = RequestId::default();
 
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
