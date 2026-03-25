@@ -350,7 +350,8 @@ impl Actor for WatcherActor {
 
                             for worker_name in &*root.workers.borrow() {
                                 let worker = registry.find::<WorkerActor>(worker_name);
-                                let console_actor = registry.find::<ConsoleActor>(&worker.console_name);
+                                let console_actor =
+                                    registry.find::<ConsoleActor>(&worker.console_name);
 
                                 worker.resources_array(
                                     console_actor.get_cached_messages(registry, resource),
