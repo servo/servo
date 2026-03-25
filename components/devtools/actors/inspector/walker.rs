@@ -33,7 +33,7 @@ pub(crate) struct WalkerActor {
     pub name: String,
     pub mutations: AtomicRefCell<Vec<DomMutation>>,
     /// Name of the [`BrowsingContextActor`] that owns this walker.
-    pub browsing_context: String,
+    pub browsing_context_name: String,
 }
 
 #[derive(Serialize)]
@@ -142,7 +142,7 @@ impl Actor for WalkerActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let browsing_context = self.browsing_context(registry);
+        let browsing_context_actor = self.browsing_context_actor(registry);
         match msg_type {
             "children" => {
                 let target = msg
@@ -153,10 +153,10 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                browsing_context
+                browsing_context_actor
                     .script_chan()
                     .send(GetChildren(
-                        browsing_context.pipeline_id(),
+                        browsing_context_actor.pipeline_id(),
                         registry.actor_to_script(target.into()),
                         tx,
                     ))
@@ -174,8 +174,8 @@ impl Actor for WalkerActor {
                         .map(|child| {
                             child.encode(
                                 registry,
-                                browsing_context.script_chan(),
-                                browsing_context.pipeline_id(),
+                                browsing_context_actor.script_chan(),
+                                browsing_context_actor.pipeline_id(),
                                 self.name(),
                             )
                         })
@@ -192,9 +192,9 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                browsing_context
+                browsing_context_actor
                     .script_chan()
-                    .send(GetDocumentElement(browsing_context.pipeline_id(), tx))
+                    .send(GetDocumentElement(browsing_context_actor.pipeline_id(), tx))
                     .map_err(|_| ActorError::Internal)?;
                 let doc_elem_info = rx
                     .recv()
@@ -202,8 +202,8 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    browsing_context.script_chan(),
-                    browsing_context.pipeline_id(),
+                    browsing_context_actor.script_chan(),
+                    browsing_context_actor.pipeline_id(),
                     self.name(),
                 );
 
@@ -245,8 +245,8 @@ impl Actor for WalkerActor {
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
                 let mut hierarchy = find_child(
-                    &browsing_context.script_chan(),
-                    browsing_context.pipeline_id(),
+                    &browsing_context_actor.script_chan(),
+                    browsing_context_actor.pipeline_id(),
                     &self.name,
                     registry,
                     node,
@@ -282,18 +282,18 @@ impl Actor for WalkerActor {
 }
 
 impl WalkerActor {
-    pub(crate) fn browsing_context(
+    pub(crate) fn browsing_context_actor(
         &self,
         registry: &ActorRegistry,
     ) -> DowncastableActorArc<BrowsingContextActor> {
-        registry.find::<BrowsingContextActor>(&self.browsing_context)
+        registry.find::<BrowsingContextActor>(&self.browsing_context_name)
     }
 
     pub(crate) fn root(&self, registry: &ActorRegistry) -> Result<NodeActorMsg, ActorError> {
-        let browsing_context = self.browsing_context(registry);
-        let pipeline = browsing_context.pipeline_id();
+        let browsing_context_actor = self.browsing_context_actor(registry);
+        let pipeline = browsing_context_actor.pipeline_id();
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
-        browsing_context
+        browsing_context_actor
             .script_chan()
             .send(GetRootNode(pipeline, tx))
             .map_err(|_| ActorError::Internal)?;
@@ -303,7 +303,7 @@ impl WalkerActor {
             .ok_or(ActorError::Internal)?;
         Ok(root_node.encode(
             registry,
-            browsing_context.script_chan(),
+            browsing_context_actor.script_chan(),
             pipeline,
             self.name(),
         ))

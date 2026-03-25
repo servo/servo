@@ -143,7 +143,7 @@ impl PageStyleActor {
             .ok_or(ActorError::BadParameterType)?;
         let node = registry.find::<NodeActor>(target);
         let walker = registry.find::<WalkerActor>(&node.walker);
-        let browsing_context = walker.browsing_context(registry);
+        let browsing_context_actor = walker.browsing_context_actor(registry);
         let entries: Vec<_> = find_child(
             &node.script_chan,
             node.pipeline,
@@ -162,10 +162,10 @@ impl PageStyleActor {
             // Get the css selectors that match this node present in the currently active stylesheets.
             let selectors = (|| {
                 let (selectors_sender, selector_receiver) = generic_channel::channel()?;
-                browsing_context
+                browsing_context_actor
                     .script_chan()
                     .send(GetSelectors(
-                        browsing_context.pipeline_id(),
+                        browsing_context_actor.pipeline_id(),
                         registry.actor_to_script(node.actor.clone()),
                         selectors_sender,
                     ))
@@ -271,12 +271,12 @@ impl PageStyleActor {
             .ok_or(ActorError::BadParameterType)?;
         let node = registry.find::<NodeActor>(target);
         let walker = registry.find::<WalkerActor>(&node.walker);
-        let browsing_context = walker.browsing_context(registry);
+        let browsing_context_actor = walker.browsing_context_actor(registry);
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
-        browsing_context
+        browsing_context_actor
             .script_chan()
             .send(GetLayout(
-                browsing_context.pipeline_id(),
+                browsing_context_actor.pipeline_id(),
                 registry.actor_to_script(target.to_owned()),
                 tx,
             ))
