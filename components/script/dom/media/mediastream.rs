@@ -51,6 +51,14 @@ impl MediaStream {
         )
     }
 
+    fn clone_with_proto(&self, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<MediaStream> {
+        let new = MediaStream::new_with_proto(&self.global(), proto, can_gc);
+        for track in &*self.tracks.borrow() {
+            new.add_track(track)
+        }
+        new
+    }
+
     pub(crate) fn new_single(
         global: &GlobalScope,
         id: MediaStreamId,
@@ -164,15 +172,5 @@ impl MediaStreamMethods<crate::DomTypeHolder> for MediaStream {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-clone>
     fn Clone(&self, cx: &mut JSContext) -> DomRoot<MediaStream> {
         self.clone_with_proto(None, CanGc::from_cx(cx))
-    }
-}
-
-impl MediaStream {
-    fn clone_with_proto(&self, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<MediaStream> {
-        let new = MediaStream::new_with_proto(&self.global(), proto, can_gc);
-        for track in &*self.tracks.borrow() {
-            new.add_track(track)
-        }
-        new
     }
 }
