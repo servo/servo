@@ -96,7 +96,6 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
-use url::Position;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
@@ -3090,7 +3089,7 @@ impl Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-fragid>
-    fn navigate_to_fragment(&self, url: &ServoUrl, history_handling: NavigationHistoryBehavior) {
+    pub(crate) fn navigate_to_fragment(&self, url: &ServoUrl, history_handling: NavigationHistoryBehavior) {
         let doc = self.Document();
         // Step 1. Let navigation be navigable's active window's navigation API.
         // TODO
@@ -3158,112 +3157,6 @@ impl Window {
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         )
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#navigate>
-    pub(crate) fn load_url(
-        &self,
-        history_handling: NavigationHistoryBehavior,
-        force_reload: bool,
-        load_data: LoadData,
-        can_gc: CanGc,
-    ) {
-        let doc = self.Document();
-
-        // Step 3. Let initiatorOriginSnapshot be sourceDocument's origin.
-        let initiator_origin_snapshot = &load_data.load_origin;
-
-        // TODO: Important re security. See https://github.com/servo/servo/issues/23373
-        // Step 5. check that the source browsing-context is "allowed to navigate" this window.
-
-        // Step 4 and 5
-        let pipeline_id = self.pipeline_id();
-        let window_proxy = self.window_proxy();
-        if let Some(active) = window_proxy.currently_active() {
-            if pipeline_id == active && doc.is_prompting_or_unloading() {
-                return;
-            }
-        }
-
-        // Step 23. Let unloadPromptCanceled be the result of checking if unloading
-        // is canceled for navigable's active document's inclusive descendant navigables.
-        if doc.check_if_unloading_is_cancelled(false, can_gc) {
-            // Step 12. If historyHandling is "auto", then:
-            let history_handling = if history_handling == NavigationHistoryBehavior::Auto {
-                // Step 12.1. If url equals navigable's active document's URL, and
-                // initiatorOriginSnapshot is same origin with targetNavigable's active document's
-                // origin, then set historyHandling to "replace".
-                //
-                // Note: `targetNavigable` is not actually defined in the spec, "active document" is
-                // assumed to be the correct reference based on WPT results
-                if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
-                    if load_data.url == doc.url() && initiator_origin.same_origin(&*doc.origin()) {
-                        NavigationHistoryBehavior::Replace
-                    } else {
-                        // Step 12.2. Otherwise, set historyHandling to "push".
-                        NavigationHistoryBehavior::Push
-                    }
-                } else {
-                    // Step 12.2. Otherwise, set historyHandling to "push".
-                    NavigationHistoryBehavior::Push
-                }
-            } else {
-                history_handling
-            };
-            // Step 13. If the navigation must be a replace given url and navigable's active
-            // document, then set historyHandling to "replace".
-            //
-            // Inlines implementation of https://html.spec.whatwg.org/multipage/#the-navigation-must-be-a-replace
-            let history_handling =
-                if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
-                    NavigationHistoryBehavior::Replace
-                } else {
-                    history_handling
-                };
-
-            // Step 14. If all of the following are true:
-            // > documentResource is null;
-            // > response is null;
-            if !force_reload
-                // > url equals navigable's active session history entry's URL with exclude fragments set to true; and
-                && load_data.url.as_url()[..Position::AfterQuery] ==
-                    doc.url().as_url()[..Position::AfterQuery]
-                // > url's fragment is non-null,
-                && load_data.url.fragment().is_some()
-            {
-                // Step 14.1. Navigate to a fragment given navigable, url, historyHandling,
-                // userInvolvement, sourceElement, navigationAPIState, and navigationId.
-                let webdriver_sender = self.webdriver_load_status_sender.borrow().clone();
-                if let Some(ref sender) = webdriver_sender {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStart);
-                }
-                self.navigate_to_fragment(&load_data.url, history_handling);
-                // Step 14.2. Return.
-                if let Some(sender) = webdriver_sender {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                }
-                return;
-            }
-
-            // Step 15. If navigable's parent is non-null, then set navigable's is delaying load events to true.
-            let window_proxy = self.window_proxy();
-            if window_proxy.parent().is_some() {
-                window_proxy.start_delaying_load_events_mode();
-            }
-
-            if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
-                let _ = sender.send(WebDriverLoadStatus::NavigationStart);
-            }
-
-            // Step 13
-            ScriptThread::navigate(
-                self.webview_id,
-                pipeline_id,
-                load_data,
-                history_handling,
-                None,
-            );
-        };
     }
 
     /// Handle a potential change to the [`ViewportDetails`] of this [`Window`],
@@ -3417,6 +3310,10 @@ impl Window {
         sender: Option<GenericSender<WebDriverLoadStatus>>,
     ) {
         *self.webdriver_load_status_sender.borrow_mut() = sender;
+    }
+
+    pub(crate) fn webdriver_load_status_sender(&self) -> Option<GenericSender<WebDriverLoadStatus>> {
+        self.webdriver_load_status_sender.borrow().clone()
     }
 
     pub(crate) fn is_alive(&self) -> bool {

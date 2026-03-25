@@ -86,6 +86,7 @@ use crate::dom::types::HTMLIFrameElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
+use crate::navigation::navigate;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -1109,14 +1110,13 @@ impl HTMLFormElement {
             }
 
             // 4.2 Navigate targetNavigable to url
-            window
-                .root()
-                .load_url(
-                    NavigationHistoryBehavior::Push,
-                    false,
-                    load_data,
-                    CanGc::note(),
-                );
+            navigate(
+                &window.root(),
+                NavigationHistoryBehavior::Push,
+                false,
+                load_data,
+                CanGc::note(),
+            );
         });
 
         // 5. Set the form's planned navigation to the just-queued task.

@@ -200,6 +200,7 @@ use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::mime::{APPLICATION, CHARSET};
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::navigation::navigate;
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -251,8 +252,7 @@ impl RefreshRedirectDue {
         let load_data = self
             .window
             .load_data_for_document(self.url.clone(), self.window.pipeline_id());
-        self.window
-            .load_url(NavigationHistoryBehavior::Replace, false, load_data, can_gc);
+        navigate(&self.window, NavigationHistoryBehavior::Replace, false, load_data, can_gc);
     }
 }
 
