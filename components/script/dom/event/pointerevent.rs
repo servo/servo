@@ -12,8 +12,8 @@ use script_bindings::inheritance::Castable;
 use style::Atom;
 use style_traits::CSSPixel;
 
-use super::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::PointerEventBinding::{
     PointerEventInit, PointerEventMethods,
 };
