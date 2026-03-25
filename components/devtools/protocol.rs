@@ -135,23 +135,14 @@ impl JsonPacketStream for DevtoolsConnection {
         let mut stream = self.receiver.lock().unwrap();
         loop {
             let mut buf = [0];
-            let byte = match (*stream).read(&mut buf) {
-                Ok(0) => return Ok(None),                                            // EOF
-                Err(e) if e.kind() == ErrorKind::ConnectionReset => return Ok(None), // EOF
-                Ok(1) => buf[0],
-                Ok(_) => unreachable!(),
-                Err(e) => return Err(e.to_string()),
-            };
-            match byte {
-                b':' => {
-                    let packet_len_str = match String::from_utf8(buffer) {
-                        Ok(packet_len) => packet_len,
-                        Err(_) => return Err("nonvalid UTF8 in packet length".to_owned()),
-                    };
-                    let packet_len = match packet_len_str.parse::<u64>() {
-                        Ok(packet_len) => packet_len,
-                        Err(_) => return Err("packet length missing / not parsable".to_owned()),
-                    };
+            match (*stream).read(&mut buf) {
+                Ok(0) => return Ok(None), // EOF
+                Ok(1) if buf[0] == b':' => {
+                    let packet_len_str = String::from_utf8(buffer)
+                        .map_err(|_| "nonvalid UTF8 in packet length".to_owned())?;
+                    let packet_len = packet_len_str
+                        .parse::<u64>()
+                        .map_err(|_| "packet length missing / not parsable".to_owned())?;
                     let mut packet = String::new();
                     stream
                         // Temporarily clone stream to allow the object to be
@@ -163,12 +154,14 @@ impl JsonPacketStream for DevtoolsConnection {
                         .read_to_string(&mut packet)
                         .map_err(|e| e.to_string())?;
                     log::debug!("{}", packet);
-                    return match serde_json::from_str(&packet) {
-                        Ok(json) => Ok(Some(json)),
-                        Err(err) => Err(err.to_string()),
-                    };
+                    return serde_json::from_str(&packet)
+                        .map(Some)
+                        .map_err(|e| e.to_string());
                 },
-                c => buffer.push(c),
+                Ok(1) => buffer.push(buf[0]),
+                Ok(_) => unreachable!(),
+                Err(e) if e.kind() == ErrorKind::ConnectionReset => return Ok(None), // EOF
+                Err(e) => return Err(e.to_string()),
             }
         }
     }
