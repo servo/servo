@@ -18,13 +18,13 @@ use http::header::{self, HeaderValue};
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use mime::{self, Mime};
-use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
+use net_traits::blob_url_store::{BlobBuf, BlobTokenCommunicator, BlobURLStoreError};
 use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck,
-    ReadFileProgress, RelativePos,
+    GetTokenForFileReply, ReadFileProgress, RelativePos,
 };
-use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
+use net_traits::{CoreResourceMsg, http_percent_encode};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
@@ -84,13 +84,22 @@ enum FileImpl {
 pub struct FileManager {
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     store: Arc<FileManagerStore>,
+    blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
 }
 
 impl FileManager {
-    pub fn new(embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>) -> FileManager {
+    pub fn new(
+        embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
+        revoke_sender: GenericSender<CoreResourceMsg>,
+        refresh_token_sender: GenericSender<CoreResourceMsg>,
+    ) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
+            blob_token_communicator: Arc::new(Mutex::new(BlobTokenCommunicator {
+                revoke_sender,
+                refresh_token_sender,
+            })),
         }
     }
 
@@ -108,8 +117,8 @@ impl FileManager {
         });
     }
 
-    pub(crate) fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
-        self.store.get_token_for_file(file_id)
+    pub(crate) fn get_token_for_file(&self, file_id: &Uuid, allow_revoked: bool) -> FileTokenCheck {
+        self.store.get_token_for_file(file_id, allow_revoked)
     }
 
     pub(crate) fn invalidate_token(&self, token: &FileTokenCheck, file_id: &Uuid) {
@@ -181,6 +190,22 @@ impl FileManager {
             },
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
                 let _ = sender.send(self.store.set_blob_url_validity(true, &id, &origin));
+            },
+            FileManagerThreadMsg::GetTokenForFile(id, _origin, sender) => {
+                let token = match self.get_token_for_file(&id, false) {
+                    FileTokenCheck::Required(token) => Some(token),
+                    _ => None,
+                };
+
+                let communicator = self.blob_token_communicator.lock();
+                let _ = sender.send(GetTokenForFileReply {
+                    token,
+                    revoke_sender: communicator.revoke_sender.clone(),
+                    refresh_sender: communicator.refresh_token_sender.clone(),
+                });
+            },
+            FileManagerThreadMsg::RevokeTokenForFile(token, id) => {
+                self.invalidate_token(&FileTokenCheck::Required(token), &id);
             },
         }
     }
@@ -459,7 +484,7 @@ impl FileManagerStore {
         }
     }
 
-    pub(crate) fn get_token_for_file(&self, file_id: &Uuid) -> FileTokenCheck {
+    pub(crate) fn get_token_for_file(&self, file_id: &Uuid, allow_revoked: bool) -> FileTokenCheck {
         let mut entries = self.entries.write();
         let parent_id = match entries.get(file_id) {
             Some(entry) => {
@@ -471,12 +496,11 @@ impl FileManagerStore {
             },
             None => return FileTokenCheck::ShouldFail,
         };
-        let file_id = match parent_id.as_ref() {
-            Some(id) => id,
-            None => file_id,
-        };
+        let file_id = parent_id.as_ref().unwrap_or(file_id);
+
         if let Some(entry) = entries.get_mut(file_id) {
-            if !entry.is_valid_url.load(Ordering::Acquire) {
+            if !allow_revoked && !entry.is_valid_url.load(Ordering::Acquire) {
+                log::warn!("Refusing to grant token for revoked blob url: {file_id:?}");
                 return FileTokenCheck::ShouldFail;
             }
             let token = Uuid::new_v4();

@@ -40,6 +40,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::blob_url_store::ServoUrlWithBlobLock;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
@@ -2444,7 +2445,7 @@ async fn cors_preflight_fetch(
     // referrer policy, mode is "cors", and response tainting is "cors".
     let mut preflight = RequestBuilder::new(
         request.target_webview_id,
-        request.current_url(),
+        ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(request.current_url()),
         request.referrer.clone(),
     )
     .method(Method::OPTIONS)

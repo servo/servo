@@ -22,6 +22,7 @@ use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;
 use uuid::Uuid;
 
+use crate::blob_url_store::ServoUrlWithBlobLock;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
 use crate::response::{HttpsState, RedirectTaint, Response};
@@ -149,7 +150,7 @@ pub struct PreloadKey {
 impl PreloadKey {
     pub fn new(request: &RequestBuilder) -> Self {
         Self {
-            url: request.url.clone(),
+            url: request.url.url(),
             destination: request.destination,
             mode: request.mode.clone(),
             credentials_mode: request.credentials_mode,
@@ -429,7 +430,7 @@ pub struct RequestBuilder {
     pub method: Method,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
-    pub url: ServoUrl,
+    pub url: ServoUrlWithBlobLock,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[serde(
@@ -505,7 +506,11 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
+    pub fn new(
+        webview_id: Option<WebViewId>,
+        url: ServoUrlWithBlobLock,
+        referrer: Referrer,
+    ) -> RequestBuilder {
         RequestBuilder {
             id: RequestId::default(),
             preload_id: None,
@@ -720,7 +725,7 @@ impl RequestBuilder {
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
-            self.url.clone(),
+            self.url.url().clone(),
             Some(self.origin),
             self.referrer,
             self.pipeline_id,
@@ -746,7 +751,7 @@ impl RequestBuilder {
         request.redirect_mode = self.redirect_mode;
         let mut url_list = self.url_list;
         if url_list.is_empty() {
-            url_list.push(self.url);
+            url_list.push(self.url.url());
         }
         request.redirect_count = url_list.len() as u32 - 1;
         request.url_list = url_list;

@@ -15,6 +15,7 @@ use servo_base::generic_channel::GenericSender;
 use servo_url::ImmutableOrigin;
 use uuid::Uuid;
 
+use crate::CoreResourceMsg;
 use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 
 /// A token modulating access to a file for a blob URL.
@@ -166,6 +167,16 @@ pub enum FileManagerThreadMsg {
         ImmutableOrigin,
         GenericSender<Result<(), BlobURLStoreError>>,
     ),
+
+    GetTokenForFile(Uuid, ImmutableOrigin, GenericSender<GetTokenForFileReply>),
+    RevokeTokenForFile(Uuid, Uuid),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetTokenForFileReply {
+    pub token: Option<Uuid>,
+    pub revoke_sender: GenericSender<CoreResourceMsg>,
+    pub refresh_sender: GenericSender<CoreResourceMsg>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

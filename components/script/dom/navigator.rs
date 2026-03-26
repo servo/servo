@@ -13,6 +13,7 @@ use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOr
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::rust::MutableHandleValue;
+use net_traits::blob_url_store::ServoUrlWithBlobLock;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
@@ -532,15 +533,19 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             request_body = Some(extracted_body.into_net_request_body().0);
         }
         // Step 7.1. Let req be a new request, initialized as follows:
-        let request = RequestBuilder::new(None, url.clone(), global.get_referrer())
-            .mode(cors_mode)
-            .destination(Destination::None)
-            .with_global_scope(&global)
-            .method(http::Method::POST)
-            .body(request_body)
-            .keep_alive(true)
-            .credentials_mode(CredentialsMode::Include)
-            .headers(headers);
+        let request = RequestBuilder::new(
+            None,
+            ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url.clone()),
+            global.get_referrer(),
+        )
+        .mode(cors_mode)
+        .destination(Destination::None)
+        .with_global_scope(&global)
+        .method(http::Method::POST)
+        .body(request_body)
+        .keep_alive(true)
+        .credentials_mode(CredentialsMode::Include)
+        .headers(headers);
         // Step 7.2. Fetch req.
         global.fetch(
             request,

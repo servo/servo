@@ -14,6 +14,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSContext as RawJSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::blob_url_store::ServoUrlWithBlobLock;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
@@ -359,7 +360,7 @@ impl DedicatedWorkerGlobalScope {
     pub(crate) fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
-        worker_url: ServoUrl,
+        worker_url: ServoUrlWithBlobLock,
         from_devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
@@ -474,7 +475,7 @@ impl DedicatedWorkerGlobalScope {
                     webview_id,
                     worker_name.into(),
                     worker_type,
-                    worker_url.clone(),
+                    worker_url.url(),
                     devtools_mpsc_port,
                     runtime,
                     parent_event_loop_sender,
@@ -526,7 +527,7 @@ impl DedicatedWorkerGlobalScope {
                         WorkerType::Module => {
                             fetch_a_module_worker_script_graph(
                                 cx,
-                                worker_url,
+                                worker_url.url(),
                                 fetch_client,
                                 ModuleOwner::Worker(Trusted::new(scope)),
                                 referrer,
@@ -804,14 +805,14 @@ pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> boo
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>
 fn fetch_a_classic_worker_script(
     workerscope: &WorkerGlobalScope,
-    url: ServoUrl,
+    url_with_blob_lock: ServoUrlWithBlobLock,
     fetch_client: ModuleFetchClient,
     destination: Destination,
     webview_id: WebViewId,
     referrer: Referrer,
 ) {
     // Step 1. Let request be a new request whose URL is url,
-    let request = RequestBuilder::new(Some(webview_id), url.clone(), referrer)
+    let request = RequestBuilder::new(Some(webview_id), url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
         .insecure_requests_policy(fetch_client.insecure_requests_policy)
         .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
@@ -834,7 +835,7 @@ fn fetch_a_classic_worker_script(
 
     let context = ScriptFetchContext::new(
         Trusted::new(workerscope),
-        url,
+        url_with_blob_lock.url(),
         fetch_client.policy_container,
     );
     let global = workerscope.upcast::<GlobalScope>();

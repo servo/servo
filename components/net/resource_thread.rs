@@ -44,7 +44,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericReceiver, GenericReceiverSet,
-    GenericSelectionResult,
+    GenericSelectionResult, GenericSender,
 };
 use servo_base::id::CookieStoreId;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -140,6 +140,8 @@ pub fn new_core_resource_thread(
     let (public_setup_chan, public_setup_port) = generic_channel::channel().unwrap();
     let (private_setup_chan, private_setup_port) = generic_channel::channel().unwrap();
     let (report_chan, report_port) = generic_channel::channel().unwrap();
+    let (revoke_sender, revoke_receiver) = generic_channel::channel().unwrap();
+    let (refresh_sender, refresh_receiver) = generic_channel::channel().unwrap();
 
     thread::Builder::new()
         .name("ResourceManager".to_owned())
@@ -150,6 +152,8 @@ pub fn new_core_resource_thread(
                 embedder_proxy.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
+                revoke_sender,
+                refresh_sender,
             );
 
             let mut channel_manager = ResourceChannelManager {
@@ -167,6 +171,8 @@ pub fn new_core_resource_thread(
                         public_setup_port,
                         private_setup_port,
                         report_port,
+                        revoke_receiver,
+                        refresh_receiver,
                         protocols,
                         embedder_proxy,
                     )
@@ -246,6 +252,8 @@ impl ResourceChannelManager {
         public_receiver: GenericReceiver<CoreResourceMsg>,
         private_receiver: GenericReceiver<CoreResourceMsg>,
         memory_reporter: GenericReceiver<CoreResourceMsg>,
+        revoke_receiver: GenericReceiver<CoreResourceMsg>,
+        refresh_receiver: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     ) {
@@ -260,6 +268,8 @@ impl ResourceChannelManager {
         let private_id = rx_set.add(private_receiver);
         let public_id = rx_set.add(public_receiver);
         let reporter_id = rx_set.add(memory_reporter);
+        let revoker_id = rx_set.add(revoke_receiver);
+        let refresh_id = rx_set.add(refresh_receiver);
 
         loop {
             for received in rx_set.select().into_iter() {
@@ -270,7 +280,48 @@ impl ResourceChannelManager {
                         log::error!("Found selection error: {error}")
                     },
                     GenericSelectionResult::MessageReceived(id, msg) => {
-                        if id == reporter_id {
+                        if id == revoker_id {
+                            let CoreResourceMsg::RevokeTokenForFile(revocation_request) = msg
+                            else {
+                                log::error!("Blob revocation channel received unexpected message");
+                                continue;
+                            };
+                            self.resource_manager.filemanager.invalidate_token(
+                                &FileTokenCheck::Required(revocation_request.token),
+                                &revocation_request.blob_id,
+                            )
+                        } else if id == refresh_id {
+                            let CoreResourceMsg::RefreshTokenForFile(refresh_request) = msg else {
+                                log::error!("Blob revocation channel received unexpected message");
+                                continue;
+                            };
+                            let refreshed_token = match self
+                                .resource_manager
+                                .filemanager
+                                .get_token_for_file(&refresh_request.blob_id, true)
+                            {
+                                FileTokenCheck::Required(token) => token,
+                                FileTokenCheck::NotRequired => {
+                                    println!(
+                                        "attempted refresh for file {:?}, but not required",
+                                        refresh_request.blob_id
+                                    );
+                                    continue;
+                                },
+                                FileTokenCheck::ShouldFail => {
+                                    println!(
+                                        "attempted refresh for file {:?}, but already revoked",
+                                        refresh_request.blob_id
+                                    );
+                                    continue;
+                                },
+                            };
+                            println!(
+                                "refreshing with {refreshed_token:?} for file {:?}",
+                                refresh_request.blob_id
+                            );
+                            let _ = refresh_request.new_token_sender.send(refreshed_token);
+                        } else if id == reporter_id {
                             if let CoreResourceMsg::CollectMemoryReport(report_chan) = msg {
                                 self.process_report(
                                     report_chan,
@@ -607,8 +658,10 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
                 return false;
             },
-            // Ignore this message as we handle it only in the reporter chan
-            CoreResourceMsg::CollectMemoryReport(_) => {},
+            // Ignore these messages as they are only sent on very specific channels.
+            CoreResourceMsg::CollectMemoryReport(_) |
+            CoreResourceMsg::RevokeTokenForFile(..) |
+            CoreResourceMsg::RefreshTokenForFile(..) => {},
         }
         true
     }
@@ -654,11 +707,13 @@ impl CoreResourceManager {
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
+        revoke_sender: GenericSender<CoreResourceMsg>,
+        refresh_sender: GenericSender<CoreResourceMsg>,
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy.clone()),
+            filemanager: FileManager::new(embedder_proxy.clone(), revoke_sender, refresh_sender),
             request_interceptor: RequestInterceptor::new(embedder_proxy),
             ca_certificates,
             ignore_certificate_errors,
@@ -727,7 +782,7 @@ impl CoreResourceManager {
         let (file_token, blob_url_file_id) = match url.scheme() {
             "blob" => {
                 if let Ok((id, _)) = parse_blob_url(&url) {
-                    (self.filemanager.get_token_for_file(&id), Some(id))
+                    (self.filemanager.get_token_for_file(&id, true), Some(id))
                 } else {
                     (FileTokenCheck::ShouldFail, None)
                 }
@@ -808,7 +863,7 @@ impl CoreResourceManager {
     /// <https://websockets.spec.whatwg.org/#concept-websocket-establish>
     fn websocket_connect(
         &self,
-        mut request: RequestBuilder,
+        request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: CallbackSetter<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
@@ -836,7 +891,6 @@ impl CoreResourceManager {
             };
             request
                 .url
-                .as_mut_url()
                 .set_scheme(scheme)
                 .unwrap_or_else(|_| panic!("Can't set scheme to {scheme}"));
 

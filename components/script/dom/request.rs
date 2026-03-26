@@ -12,6 +12,7 @@ use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
+use net_traits::blob_url_store::ServoUrlWithBlobLock;
 use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
@@ -573,9 +574,13 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
-    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
-        .with_global_scope(global)
-        .build()
+    RequestBuilder::new(
+        global.webview_id(),
+        ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url),
+        global.get_referrer(),
+    )
+    .with_global_scope(global)
+    .build()
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-method-normalize>
