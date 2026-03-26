@@ -33,12 +33,16 @@ fn test_workflow() {
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Obtain a first storage proxy map.
-    let storage_proxy_map = handle.obtain_a_storage_bottle_map(
-        StorageType::Local,
-        WebViewId::new(servo_base::id::TEST_PAINTER_ID),
-        StorageIdentifier::IndexedDB,
-        url.origin(),
-    ).recv().unwrap().unwrap();
+    let storage_proxy_map = handle
+        .obtain_a_storage_bottle_map(
+            StorageType::Local,
+            WebViewId::new(servo_base::id::TEST_PAINTER_ID),
+            StorageIdentifier::IndexedDB,
+            url.origin(),
+        )
+        .recv()
+        .unwrap()
+        .unwrap();
 
     // Create a db.
     let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1".to_string());
@@ -46,8 +50,19 @@ fn test_workflow() {
 
     assert!(std::fs::read_dir(path.clone()).is_ok());
 
-    // Delete the db.
+    // Create another db with the same name.
+    let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1".to_string());
+    assert!(receiver.recv().unwrap().is_err());
+
+    // Create another db with a different same.
+    let receiver = handle.create_database(storage_proxy_map.bottle_id, "test2".to_string());
+    let yet_another_path = receiver.recv().unwrap().expect("Path should be created");
+    assert_ne!(path, yet_another_path);
+
+    // Delete the dbs.
     let receiver = handle.delete_database(storage_proxy_map.bottle_id, "test1".to_string());
+    receiver.recv().unwrap().expect("Db should be deleted");
+    let receiver = handle.delete_database(storage_proxy_map.bottle_id, "test2".to_string());
     receiver.recv().unwrap().expect("Db should be deleted");
 
     assert!(std::fs::read_dir(path).is_err());
