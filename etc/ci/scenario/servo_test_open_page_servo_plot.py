@@ -18,6 +18,7 @@ from selenium.webdriver.common.by import By
 from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions, HostOptions
 from selenium import webdriver
 
+
 def operator(driver: webdriver = None):
     memory_logging_options = MemoryLoggingOptions(
         log_to_file=True, plot=True, pre_time=0.2, post_time=1, verbose=True, reset_tab=True, host=HostOptions.MACOS

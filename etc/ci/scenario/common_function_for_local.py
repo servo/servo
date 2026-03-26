@@ -22,11 +22,12 @@ from common_function_for_servo_test import MitmProxyRunType
 WEBDRIVER_PORT = random.randrange(9000, 9999)
 SERVO_BIN_PATH = "./target/release/servoshell"
 
+
 def run_test(
-        test_fn,
-        test_name: str,
-        use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
-        session_history_max_length: int | None = None,
+    test_fn,
+    test_name: str,
+    use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
+    session_history_max_length: int | None = None,
 ):
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
@@ -46,8 +47,10 @@ def run_test(
 
     kill_servo()
 
+
 def create_driver(timeout: int = 2) -> webdriver.Remote:
     return common_function_for_servo_test.create_driver(timeout=timeout, servo_url=f"http://127.0.0.1:{WEBDRIVER_PORT}")
+
 
 def start_servo(webdriver_port: int, servo_path: str, delay: int = 0) -> webdriver.Remote | None:
     """Start servo and create webdriver"""
@@ -64,6 +67,7 @@ def start_servo(webdriver_port: int, servo_path: str, delay: int = 0) -> webdriv
     if delay > 0:
         time.sleep(delay)
     return create_driver(webdriver_port)
+
 
 def kill_servo():
     subprocess.Popen(["killall", "servoshell"])
