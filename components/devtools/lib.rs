@@ -667,14 +667,14 @@ impl DevtoolsInstance {
             .watcher
             .clone();
 
-        let netevent_actor_name = match self.actor_requests.get(&request_id) {
+        let network_event_name = match self.actor_requests.get(&request_id) {
             Some(name) => name.clone(),
             None => self.create_network_event_actor(request_id, watcher_name),
         };
 
         handle_network_event(
             Arc::clone(&self.registry),
-            netevent_actor_name,
+            network_event_name,
             connections,
             network_event,
         )
@@ -685,13 +685,15 @@ impl DevtoolsInstance {
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
-        let actor_name = self.registry.new_name::<NetworkEventActor>();
-        let actor = NetworkEventActor::new(actor_name.clone(), resource_id, watcher_name);
+        let network_event_name = self.registry.new_name::<NetworkEventActor>();
+        let network_event_actor =
+            NetworkEventActor::new(network_event_name.clone(), resource_id, watcher_name);
 
-        self.actor_requests.insert(request_id, actor_name.clone());
-        self.registry.register(actor);
+        self.actor_requests
+            .insert(request_id, network_event_name.clone());
+        self.registry.register(network_event_actor);
 
-        actor_name
+        network_event_name
     }
 
     fn handle_create_source_actor(

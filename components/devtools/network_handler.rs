@@ -23,18 +23,18 @@ pub(crate) struct Cause {
 
 pub(crate) fn handle_network_event(
     registry: Arc<ActorRegistry>,
-    netevent_actor_name: String,
+    network_event_name: String,
     mut connections: Vec<DevtoolsConnection>,
     network_event: NetworkEvent,
 ) {
-    let actor = registry.find::<NetworkEventActor>(&netevent_actor_name);
-    let watcher = registry.find::<WatcherActor>(&actor.watcher);
+    let network_event_actor = registry.find::<NetworkEventActor>(&network_event_name);
+    let watcher = registry.find::<WatcherActor>(&network_event_actor.watcher);
 
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
-            actor.add_request(httprequest);
-            let msg = actor.encode(&registry);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_request(httprequest);
+            let msg = network_event_actor.encode(&registry);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
@@ -55,8 +55,8 @@ pub(crate) fn handle_network_event(
         },
 
         NetworkEvent::HttpRequestUpdate(httprequest) => {
-            actor.add_request(httprequest);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_request(httprequest);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
@@ -68,8 +68,8 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            actor.add_response(httpresponse);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_response(httpresponse);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
@@ -81,8 +81,8 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::SecurityInfo(update) => {
-            actor.add_security_info(update.security_info);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_security_info(update.security_info);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
                 watcher.resource_array(
