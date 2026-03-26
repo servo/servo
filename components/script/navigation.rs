@@ -401,7 +401,7 @@ pub(crate) fn navigate(
                 // Important re security. See https://github.com/servo/servo/issues/23373
                 let window = trusted_window.root();
                 let global = window.as_global_scope();
-                if ScriptThread::navigate_to_javascript_url(cx, global, global, &mut load_data, None) {
+                if ScriptThread::navigate_to_javascript_url(cx, global, global, &mut load_data, None, None) {
                     sender
                         .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling))
                         .unwrap();
