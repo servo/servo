@@ -1486,8 +1486,8 @@ pub(crate) fn handle_add_cookie(
                 Ok(())
             },
             // If cookie domain is not equal to session's current browsing context's
-            // active document's domain, return error with error code invalid argument.
-            (false, Some(_)) => Err(ErrorStatus::InvalidArgument),
+            // active document's domain, return error with error code invalid cookie domain.
+            (false, Some(_)) => Err(ErrorStatus::InvalidCookieDomain),
             (false, None) => {
                 let _ = document
                     .window()
