@@ -54,7 +54,7 @@ struct SupportsHighlightersReply {
 pub(crate) struct InspectorActor {
     name: String,
     highlighter: String,
-    page_style: String,
+    page_style_name: String,
     pub(crate) walker: String,
 }
 
@@ -75,7 +75,7 @@ impl Actor for InspectorActor {
             "getPageStyle" => {
                 let msg = GetPageStyleReply {
                     from: self.name(),
-                    page_style: registry.encode::<PageStyleActor, _>(&self.page_style),
+                    page_style: registry.encode::<PageStyleActor, _>(&self.page_style_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -117,7 +117,7 @@ impl InspectorActor {
             browsing_context_name: browsing_context_name.clone(),
         };
 
-        let page_style = PageStyleActor {
+        let page_style_actor = PageStyleActor {
             name: registry.new_name::<PageStyleActor>(),
         };
 
@@ -130,13 +130,13 @@ impl InspectorActor {
         let actor = Self {
             name: registry.new_name::<InspectorActor>(),
             highlighter: highlighter.name(),
-            page_style: page_style.name(),
+            page_style_name: page_style_actor.name(),
             walker: walker.name(),
         };
         let name = actor.name();
 
         registry.register(highlighter);
-        registry.register(page_style);
+        registry.register(page_style_actor);
         registry.register(walker);
         registry.register(actor);
 
