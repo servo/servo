@@ -92,7 +92,12 @@ impl HTMLDialogElement {
             )));
         }
 
-        // TODO: Step 5. If subject is in the popover showing state, then throw an "InvalidStateError" DOMException.
+        // Step 5. If subject is in the popover showing state, then throw an "InvalidStateError" DOMException.
+        if self.upcast::<Element>().popover_open_state() {
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on a dialog this is showing as a popover.".into(),
+            )));
+        }
 
         // Step 6. If the result of firing an event named beforetoggle, using ToggleEvent, with the cancelable attribute initialized to true, the oldState attribute initialized to "closed", the newState attribute initialized to "open", and the source attribute initialized to source at subject is false, then return.
         let event = ToggleEvent::new(
@@ -120,7 +125,10 @@ impl HTMLDialogElement {
             return Ok(());
         }
 
-        // TODO: Step 9. If subject is in the popover showing state, then return.
+        // Step 9. If subject is in the popover showing state, then return.
+        if self.upcast::<Element>().popover_open_state() {
+            return Ok(());
+        }
 
         // Step 10. Queue a dialog toggle event task given subject, "closed", "open", and source.
         self.queue_dialog_toggle_event_task("closed", "open", source);
@@ -397,8 +405,11 @@ impl VirtualMethods for HTMLDialogElement {
             return true;
         }
 
-        // TODO Step 1. If element is in the popover showing state, then return.
+        // Step 1. If element is in the popover showing state, then return.
         let element = self.upcast::<Element>();
+        if element.popover_open_state() {
+            return false;
+        }
 
         // Step 2. If command is in the Close state and element has an open attribute, then
         // close the dialog element with source's optional value and source.

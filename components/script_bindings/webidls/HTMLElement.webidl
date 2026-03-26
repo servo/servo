@@ -52,6 +52,13 @@ interface HTMLElement : Element {
 
   [Throws] ElementInternals attachInternals();
 
+  // The popover API
+  [Throws] undefined showPopover(optional ShowPopoverOptions options = {});
+  [Throws] undefined hidePopover();
+  [Throws] boolean togglePopover(optional TogglePopoverOptions options = {});
+  //[Throws] boolean togglePopover(optional (TogglePopoverOptions or boolean) options = {});
+  [CEReactions] attribute DOMString? popover;
+
   // command API
   // readonly attribute DOMString? commandType;
   // readonly attribute DOMString? commandLabel;
@@ -70,6 +77,14 @@ partial interface HTMLElement {
   readonly attribute long offsetLeft;
   readonly attribute long offsetWidth;
   readonly attribute long offsetHeight;
+};
+
+dictionary ShowPopoverOptions {
+  HTMLElement source;
+};
+
+dictionary TogglePopoverOptions : ShowPopoverOptions {
+  boolean force;
 };
 
 HTMLElement includes GlobalEventHandlers;

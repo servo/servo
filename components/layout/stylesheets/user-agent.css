@@ -65,6 +65,35 @@ dialog::backdrop {
   background: rgba(0,0,0,0.1);
 }
 
+[popover]:not(:popover-open):not(dialog[open]) {
+  display: none;
+}
+
+dialog:popover-open {
+  display: block;
+}
+
+[popover] {
+  position: fixed;
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  border: solid;
+  padding: 0.25em;
+  overflow: auto;
+  color: black; /* FIXME: should be CanvasText */
+  background-color: white; /* FIXME: should be Canvas */
+}
+
+/* FIXME: support ::backdrop */
+:popover-open::backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none !important;
+  background-color: transparent;
+}
+
 cite, dfn, em, i, var { font-style: italic; }
 b, strong { font-weight: bolder; }
 code, kbd, samp, tt { font-family: monospace; }
