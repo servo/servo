@@ -4,8 +4,6 @@
 
 //! The walker actor is responsible for traversing the DOM tree in various ways to create new nodes
 
-use std::net::TcpStream;
-
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::{DevtoolScriptControlMsg, DomMutation};
@@ -19,7 +17,7 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, DowncastableAc
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -312,7 +310,7 @@ impl WalkerActor {
     pub(crate) fn handle_dom_mutation(
         &self,
         dom_mutation: DomMutation,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) -> Result<(), ActorError> {
         let mut pending_mutations = self.mutations.borrow_mut();
 

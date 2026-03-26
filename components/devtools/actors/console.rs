@@ -7,7 +7,6 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
@@ -29,7 +28,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor};
 use crate::actors::worker::WorkerActor;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId};
 
@@ -474,7 +473,7 @@ impl ConsoleActor {
         resource: ConsoleResource,
         id: UniqueId,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) {
         self.cached_events
             .borrow_mut()
@@ -506,7 +505,7 @@ impl ConsoleActor {
         &self,
         id: UniqueId,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) {
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(browsing_context_name) = &self.root {
@@ -593,7 +592,7 @@ impl Actor for ConsoleActor {
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
-                let stream = request.reply(&early_reply)?;
+                let mut stream = request.reply(&early_reply)?;
 
                 if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
                     // We don't support the side-effect free evaluation that eager evaluation

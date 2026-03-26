@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-use std::net::TcpStream;
-
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_base::generic_channel::GenericSender;
@@ -37,7 +35,7 @@ pub(crate) struct WorkerActor {
     pub url: ServoUrl,
     pub type_: WorkerType,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
+    pub streams: AtomicRefCell<FxHashSet<StreamId>>,
 }
 
 impl ResourceAvailable for WorkerActor {
@@ -67,9 +65,7 @@ impl Actor for WorkerActor {
                 };
                 // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
                 request.write_json_packet(&msg)?;
-                self.streams
-                    .borrow_mut()
-                    .insert(stream_id, request.try_clone_stream().unwrap());
+                self.streams.borrow_mut().insert(stream_id);
                 // FIXME: fix messages to not require forging a pipeline for worker messages
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
