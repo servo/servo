@@ -105,6 +105,24 @@ impl StorageType {
     }
 }
 
+/// <https://storage.spec.whatwg.org/#bucket-mode>
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub enum Mode {
+    /// It is initially "best-effort".
+    #[default]
+    BestEffort,
+    Persistent,
+}
+
+impl Mode {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Mode::BestEffort => "best-effort",
+            Mode::Persistent => "persistent",
+        }
+    }
+}
+
 /// <https://storage.spec.whatwg.org/#storage-identifier>
 #[derive(Debug, Deserialize, Serialize)]
 pub enum StorageIdentifier {

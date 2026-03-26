@@ -10,8 +10,8 @@ use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_url::ImmutableOrigin;
 use storage_traits::client_storage::{
-    ClientStorageErrorr, ClientStorageThreadHandle, ClientStorageThreadMessage, StorageIdentifier,
-    StorageProxyMap, StorageType,
+    ClientStorageErrorr, ClientStorageThreadHandle, ClientStorageThreadMessage, Mode,
+    StorageIdentifier, StorageProxyMap, StorageType,
 };
 use uuid::Uuid;
 
@@ -57,33 +57,50 @@ impl SqliteEngine {
         connection.execute(r#"PRAGMA foreign_keys = ON;"#, [])?;
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS sheds (
-                    id INTEGER PRIMARY KEY,
-                    storage_type TEXT NOT NULL,
-                    browsing_context TEXT
-                );"#,
+            id INTEGER PRIMARY KEY,
+            storage_type TEXT NOT NULL,
+            browsing_context TEXT
+        );"#,
             [],
         )?;
+
+        // Note: indices required for ON CONFLICT to work.
+        connection.execute(
+            r#"CREATE UNIQUE INDEX IF NOT EXISTS idx_sheds_local
+        ON sheds(storage_type) WHERE browsing_context IS NULL;"#,
+            [],
+        )?;
+        connection.execute(
+            r#"CREATE UNIQUE INDEX IF NOT EXISTS idx_sheds_session
+        ON sheds(browsing_context) WHERE browsing_context IS NOT NULL;"#,
+            [],
+        )?;
+
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS shelves (
-                    id INTEGER PRIMARY KEY,
-                    origin TEXT NOT NULL,
-                    shed_id INTEGER NOT NULL
-                );"#,
+            id INTEGER PRIMARY KEY,
+            shed_id INTEGER NOT NULL,
+            origin TEXT NOT NULL,
+            UNIQUE (shed_id, origin),
+            FOREIGN KEY (shed_id) REFERENCES sheds(id) ON DELETE CASCADE
+        );"#,
             [],
         )?;
+
+        // Note: name is to support https://wicg.github.io/storage-buckets/
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS buckets (
-                    id INTEGER PRIMARY KEY,
-                    shelf_id INTEGER NOT NULL,
-                    storage_type TEXT NOT NULL,
-                    persisted BOOLEAN DEFAULT 0,
-                    quota INTEGER,
-                    expires DATETIME,
-                    UNIQUE (shelf_id, storage_type),
-                    FOREIGN KEY (shelf_id) REFERENCES shelves(id) ON DELETE CASCADE
-                );"#,
+            id INTEGER PRIMARY KEY,
+            shelf_id INTEGER NOT NULL UNIQUE,
+            persisted BOOLEAN DEFAULT 0,
+            name TEXT,
+            mode TEXT,
+            expires DATETIME,
+            FOREIGN KEY (shelf_id) REFERENCES shelves(id) ON DELETE CASCADE
+        );"#,
             [],
         )?;
+
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS bottles (
                     id INTEGER PRIMARY KEY,
@@ -95,6 +112,7 @@ impl SqliteEngine {
                 );"#,
             [],
         )?;
+
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS databases (
                     id INTEGER PRIMARY KEY,
@@ -106,6 +124,7 @@ impl SqliteEngine {
                 "#,
             [],
         )?;
+        
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS directories (
                 id INTEGER PRIMARY KEY,
@@ -128,20 +147,26 @@ fn create_a_storage_bucket(
 ) -> rusqlite::Result<i64> {
     // Step 1: Let bucket be null.
     // Step 2: If type is "local", then set bucket to a new local storage bucket.
-    // Step 3: Otherwise:
-    // Step 3.1: Assert: type is "session".
-    // Step 3.2: Set bucket to a new session storage bucket.
-    // Note: done with `StorageType`.
-    tx.execute(
-        "INSERT OR IGNORE INTO buckets (storage_type, shelf_id) VALUES (?1, ?2);",
-        [storage_type.as_str(), &shelf_id.to_string()],
-    )?;
-
-    let bucket_id: i64 = tx.query_row(
-        "SELECT id FROM buckets WHERE storage_type = ?1 AND shelf_id = ?2;",
-        [storage_type.as_str(), &shelf_id.to_string()],
-        |row| row.get(0),
-    )?;
+    let bucket_id: i64 = if let StorageType::Local = storage_type {
+        tx.query_row(
+            "INSERT INTO buckets (mode, shelf_id) VALUES (?1, ?2)
+             ON CONFLICT(shelf_id) DO UPDATE SET shelf_id = excluded.shelf_id
+             RETURNING id;",
+            [Mode::default().as_str(), &shelf_id.to_string()],
+            |row| row.get(0),
+        )?
+    } else {
+        // Step 3: Otherwise:
+        // Step 3.1: Assert: type is "session".
+        // Step 3.2: Set bucket to a new session storage bucket.
+        tx.query_row(
+            "INSERT INTO buckets (shelf_id) VALUES (?1)
+             ON CONFLICT(shelf_id) DO UPDATE SET shelf_id = excluded.shelf_id
+             RETURNING id;",
+            [&shelf_id.to_string()],
+            |row| row.get(0),
+        )?
+    };
 
     // Step 4: For each endpoint of registered storage endpoints whose types contain type,
     // set bucket’s bottle map[endpoint’s identifier] to
@@ -159,18 +184,11 @@ fn create_a_storage_bucket(
     };
 
     for identifier in registered_endpoints {
-        let exists: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM bottles WHERE bucket_id = ?1 AND identifier = ?2);",
+        tx.execute(
+            "INSERT INTO bottles (bucket_id, identifier) VALUES (?1, ?2)
+             ON CONFLICT(bucket_id, identifier) DO NOTHING;",
             (bucket_id, identifier.as_str()),
-            |row| row.get(0),
         )?;
-
-        if !exists {
-            tx.execute(
-                "INSERT INTO bottles (bucket_id, identifier) VALUES (?1, ?2);",
-                (bucket_id, identifier.as_str()),
-            )?;
-        }
     }
 
     // Step 5: Return bucket.
@@ -185,13 +203,11 @@ fn create_a_storage_shelf(
     tx: &Transaction,
 ) -> rusqlite::Result<i64> {
     // Step 1: Let shelf be a new storage shelf.
-    tx.execute(
-        "INSERT OR IGNORE INTO shelves (origin, shed_id) VALUES (?1, ?2);",
-        [origin.ascii_serialization(), shed.to_string()],
-    )?;
     let shelf_id: i64 = tx.query_row(
-        "SELECT id FROM shelves WHERE origin = ?1 AND shed_id = ?2;",
-        [&origin.ascii_serialization(), &shed.to_string()],
+        "INSERT INTO shelves (shed_id, origin) VALUES (?1, ?2)
+         ON CONFLICT(shed_id, origin) DO UPDATE SET origin = excluded.origin
+         RETURNING id;",
+        [&shed.to_string(), &origin.ascii_serialization()],
         |row| row.get(0),
     )?;
 
@@ -291,17 +307,6 @@ impl RegistryEngine for SqliteEngine {
     ) -> Result<(), ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
 
-        // Ensure no duplicate database
-        let exists: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM databases WHERE bottle_id = ?1 AND name = ?2);",
-            (bottle_id, name.clone()),
-            |row| row.get(0),
-        )?;
-
-        if !exists {
-            return Err(ClientStorageErrorr::DatabaseDoesNotExist);
-        }
-
         let database_id: i64 = tx.query_row(
             "SELECT id FROM databases WHERE bottle_id = ?1 AND name = ?2;",
             (bottle_id, name.clone()),
@@ -318,10 +323,11 @@ impl RegistryEngine for SqliteEngine {
             "DELETE FROM databases WHERE bottle_id = ?1 AND name = ?2;",
             (bottle_id, name),
         )?;
-        tx.execute(
-            "DELETE FROM directories WHERE database_id = ?1;",
-            [database_id],
-        )?;
+
+        if tx.changes() == 0 {
+            return Err(ClientStorageErrorr::DatabaseDoesNotExist);
+        }
+        // Note: directory deleted through SQL cascade.
 
         // Delete the directory on disk
         std::fs::remove_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryDeletionFailed)?;

@@ -56,6 +56,19 @@ fn test_workflow() {
 
     assert!(std::fs::read_dir(path).is_err());
 
+    let second_proxy_map = handle
+        .obtain_a_storage_bottle_map(
+            StorageType::Local,
+            WebViewId::new(servo_base::id::TEST_PAINTER_ID),
+            StorageIdentifier::IndexedDB,
+            url.origin(),
+        )
+        .recv()
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(second_proxy_map.bottle_id, storage_proxy_map.bottle_id);
+
     // Workaround for https://github.com/servo/servo/issues/32912
     #[cfg(windows)]
     std::thread::sleep(std::time::Duration::from_millis(1000));
