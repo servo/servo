@@ -428,13 +428,13 @@ impl Callback for ReportErrorRejectionHandler {
     #[expect(unsafe_code)]
     fn callback(&self, realm: &mut CurrentRealm, v: HandleValue) {
         let cx = GlobalScope::get_cx();
-        unsafe {
+        /*unsafe {
             JS_SetPendingException(
                 *cx,
                 v,
                 ExceptionStackBehavior::Capture,
             );
-        }
+        }*/
         let in_realm = AlreadyInRealm::from(&mut *realm);
         report_pending_exception(cx, (&in_realm).into(), CanGc::from_cx(&mut *realm));
     }
