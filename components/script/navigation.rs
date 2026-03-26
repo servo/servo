@@ -32,6 +32,7 @@ use servo_constellation_traits::{
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use url::Position;
 
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::window::Window;
 use crate::fetch::FetchCanceller;
@@ -392,19 +393,18 @@ pub(crate) fn navigate(
         let is_javascript = load_data.url.scheme() == "javascript";
         if is_javascript {
             let global = window.as_global_scope();
-            let trusted_global = Trusted::new(global);
+            let trusted_window = Trusted::new(window);
             let sender = global.script_to_constellation_chan().clone();
             let mut load_data = load_data;
             load_data.about_base_url = window.Document().about_base_url();
             let task = task!(navigate_javascript: move |cx| {
                 // Important re security. See https://github.com/servo/servo/issues/23373
-                if trusted_global.root().is::<Window>() {
-                    let global = &trusted_global.root();
-                    if ScriptThread::navigate_to_javascript_url(cx, global, global, &mut load_data, None) {
-                        sender
-                            .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling))
-                            .unwrap();
-                    }
+                let window = trusted_window.root();
+                let global = window.as_global_scope();
+                if ScriptThread::navigate_to_javascript_url(cx, global, global, &mut load_data, None) {
+                    sender
+                        .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling))
+                        .unwrap();
                 }
             });
             // Step 20 of <https://html.spec.whatwg.org/multipage/#navigate>
