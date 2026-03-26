@@ -249,20 +249,7 @@ impl RegistryEngine for SqliteEngine {
     ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
 
-        // Ensure no duplicate database
-        let exists: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM databases WHERE bottle_id = ?1 AND name = ?2);",
-            (bottle_id, name.clone()),
-            |row| row.get(0),
-        )?;
-
-        if exists {
-            return Err(ClientStorageErrorr::DatabaseAlreadyExists);
-        }
-
-        // Cluster directory path by last character of UUID
         let dir = Uuid::new_v4().to_string();
-        // UUID will always have at least one character
         let cluster = dir.chars().last().unwrap();
         let path = self
             .base_dir
@@ -270,28 +257,30 @@ impl RegistryEngine for SqliteEngine {
             .join(cluster.to_string())
             .join(dir);
 
-        tx.execute(
-            "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2);",
-            (bottle_id, name.clone()),
-        )?;
-
-        let database_id: i64 = tx.query_row(
-            "SELECT id FROM databases WHERE bottle_id = ?1 AND name = ?2;",
-            (bottle_id, name),
-            |row| row.get(0),
-        )?;
-
         let path_str = path.to_str().ok_or_else(|| {
             ClientStorageErrorr::Internal(rusqlite::Error::InvalidParameterName(String::from(
                 "path",
             )))
         })?;
+
+        let database_id: i64 = tx
+            .query_row(
+                "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
+             ON CONFLICT(bottle_id, name) DO NOTHING
+             RETURNING id;",
+                (bottle_id, name),
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => ClientStorageErrorr::DatabaseAlreadyExists,
+                e => ClientStorageErrorr::Internal(e),
+            })?;
+
         tx.execute(
             "INSERT INTO directories (database_id, path) VALUES (?1, ?2);",
             (database_id, path_str),
         )?;
 
-        // Create the directory on disk
         std::fs::create_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryCreationFailed)?;
 
         tx.commit()?;
