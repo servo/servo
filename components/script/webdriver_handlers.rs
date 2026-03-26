@@ -1460,7 +1460,7 @@ pub(crate) fn handle_add_cookie(
     let document = match documents.find_document(pipeline) {
         Some(document) => document,
         None => {
-            return reply.send(Err(ErrorStatus::UnableToSetCookie)).unwrap();
+            return reply.send(Err(ErrorStatus::NoSuchWindow)).unwrap();
         },
     };
     let url = document.url();
@@ -1471,8 +1471,11 @@ pub(crate) fn handle_add_cookie(
     };
 
     let domain = cookie.domain().map(ToOwned::to_owned);
+    // Step 6.
     reply
         .send(match (document.is_cookie_averse(), domain) {
+            // If session's current browsing context's document element is a
+            // cookie-averse Document object, return error with error code invalid cookie domain.
             (true, _) => Err(ErrorStatus::InvalidCookieDomain),
             (false, Some(ref domain)) if url.host_str().is_some_and(|host| host == domain) => {
                 let _ = document
@@ -1482,6 +1485,9 @@ pub(crate) fn handle_add_cookie(
                     .send(SetCookieForUrl(url, Serde(cookie), method));
                 Ok(())
             },
+            // If cookie domain is not equal to session's current browsing context's
+            // active document's domain, return error with error code invalid argument.
+            (false, Some(_)) => Err(ErrorStatus::InvalidArgument),
             (false, None) => {
                 let _ = document
                     .window()
@@ -1490,7 +1496,6 @@ pub(crate) fn handle_add_cookie(
                     .send(SetCookieForUrl(url, Serde(cookie), method));
                 Ok(())
             },
-            (_, _) => Err(ErrorStatus::UnableToSetCookie),
         })
         .unwrap();
 }
