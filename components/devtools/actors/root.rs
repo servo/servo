@@ -250,7 +250,7 @@ impl Actor for RootActor {
                     .map(|worker_name| {
                         let worker = registry.find::<WorkerActor>(worker_name);
                         let url = worker.url.to_string();
-                        // TODO: Find correct scope url in the service worker
+                        // Find correct scope url in the service worker
                         let scope = url.clone();
                         ServiceWorkerRegistrationMsg {
                             actor: worker.name(),
