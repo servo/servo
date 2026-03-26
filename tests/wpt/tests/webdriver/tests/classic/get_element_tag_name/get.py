@@ -92,4 +92,4 @@ def test_get_element_tag_name(session, inline):
     element = session.find.css("input", all=False)
 
     result = get_element_tag_name(session, element.id)
-    assert_success(result, "input")
+    assert_success(result, "INPUT")
