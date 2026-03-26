@@ -163,7 +163,7 @@ struct GetProcessResponse {
 pub(crate) struct RootActor {
     active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,
-    process: String,
+    process_name: String,
     pub tabs: AtomicRefCell<Vec<String>>,
     pub workers: AtomicRefCell<Vec<String>>,
     pub service_workers: AtomicRefCell<Vec<String>>,
@@ -192,7 +192,7 @@ impl Actor for RootActor {
 
             // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
-                let process = registry.encode::<ProcessActor, _>(&self.process);
+                let process = registry.encode::<ProcessActor, _>(&self.process_name);
                 let reply = GetProcessResponse {
                     from: self.name(),
                     process_descriptor: process,
@@ -234,7 +234,7 @@ impl Actor for RootActor {
             },
 
             "listProcesses" => {
-                let process = registry.encode::<ProcessActor, _>(&self.process);
+                let process = registry.encode::<ProcessActor, _>(&self.process_name);
                 let reply = ListProcessesResponse {
                     from: self.name(),
                     processes: vec![process],
@@ -348,28 +348,28 @@ impl RootActor {
     pub fn register(registry: &mut ActorRegistry) {
         // Global actors
         let device_actor = DeviceActor::new(registry.new_name::<DeviceActor>());
-        let perf = PerformanceActor::new(registry.new_name::<PerformanceActor>());
-        let preference = PreferenceActor::new(registry.new_name::<PreferenceActor>());
+        let perf_actor = PerformanceActor::new(registry.new_name::<PerformanceActor>());
+        let preference_actor = PreferenceActor::new(registry.new_name::<PreferenceActor>());
 
         // Process descriptor
-        let process = ProcessActor::new(registry.new_name::<ProcessActor>());
+        let process_actor = ProcessActor::new(registry.new_name::<ProcessActor>());
 
         // Root actor
-        let root = Self {
+        let root_actor = Self {
             global_actors: GlobalActors {
                 device_actor: device_actor.name(),
-                perf_actor: perf.name(),
-                preference_actor: preference.name(),
+                perf_actor: perf_actor.name(),
+                preference_actor: preference_actor.name(),
             },
-            process: process.name(),
+            process_name: process_actor.name(),
             ..Default::default()
         };
 
-        registry.register(perf);
+        registry.register(perf_actor);
         registry.register(device_actor);
-        registry.register(preference);
-        registry.register(process);
-        registry.register(root);
+        registry.register(preference_actor);
+        registry.register(process_actor);
+        registry.register(root_actor);
     }
 
     fn get_tab_msg_by_browser_id(

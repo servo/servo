@@ -182,7 +182,7 @@ pub(crate) struct WatcherActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct WatcherActor {
     name: String,
-    pub browsing_context_name: String,
+    pub browsing_context_actor: String,
     network_parent_name: String,
     target_configuration: String,
     thread_configuration: String,
@@ -238,9 +238,8 @@ impl Actor for WatcherActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let browsing_context_actor =
-            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
-        let root = registry.find::<RootActor>("root");
+        let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        let root_actor = registry.find::<RootActor>("root");
         match msg_type {
             "watchTargets" => {
                 // As per logs we either get targetType as "frame" or "worker"
@@ -253,15 +252,13 @@ impl Actor for WatcherActor {
                     let msg = WatchTargetsReply {
                         from: self.name(),
                         type_: "target-available-form".into(),
-                        target: TargetActorMsg::BrowsingContext(
-                            browsing_context_actor.encode(registry),
-                        ),
+                        target: TargetActorMsg::BrowsingContext(target.encode(registry)),
                     };
                     let _ = request.write_json_packet(&msg);
 
-                    browsing_context_actor.frame_update(&mut request);
+                    target.frame_update(&mut request);
                 } else if target_type == "worker" {
-                    for worker_name in &*root.workers.borrow() {
+                    for worker_name in &*root_actor.workers.borrow() {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
@@ -319,10 +316,10 @@ impl Actor for WatcherActor {
                                     name: name.into(),
                                     new_uri: None,
                                     time: get_time_stamp(),
-                                    title: Some(browsing_context_actor.title.borrow().clone()),
-                                    url: Some(browsing_context_actor.url.borrow().clone()),
+                                    title: Some(target.title.borrow().clone()),
+                                    url: Some(target.url.borrow().clone()),
                                 };
-                                browsing_context_actor.resource_array(
+                                target.resource_array(
                                     event,
                                     resource.into(),
                                     ResourceArrayType::Available,
@@ -331,20 +328,19 @@ impl Actor for WatcherActor {
                             }
                         },
                         "source" => {
-                            let thread_actor =
-                                registry.find::<ThreadActor>(&browsing_context_actor.thread);
-                            browsing_context_actor.resources_array(
+                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            target.resources_array(
                                 thread_actor.source_manager.source_forms(registry),
                                 resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,
                             );
 
-                            for worker_name in &*root.workers.borrow() {
-                                let worker_actor = registry.find::<WorkerActor>(worker_name);
-                                let thread = registry.find::<ThreadActor>(&worker_actor.thread);
+                            for worker_name in &*root_actor.workers.borrow() {
+                                let worker = registry.find::<WorkerActor>(worker_name);
+                                let thread = registry.find::<ThreadActor>(&worker.thread);
 
-                                worker_actor.resources_array(
+                                worker.resources_array(
                                     thread.source_manager.source_forms(registry),
                                     resource.into(),
                                     ResourceArrayType::Available,
@@ -353,22 +349,21 @@ impl Actor for WatcherActor {
                             }
                         },
                         "console-message" | "error-message" => {
-                            let console_actor =
-                                registry.find::<ConsoleActor>(&browsing_context_actor.console_name);
+                            let console_actor = registry.find::<ConsoleActor>(&target.console_name);
                             console_actor.received_first_message_from_client();
-                            browsing_context_actor.resources_array(
+                            target.resources_array(
                                 console_actor.get_cached_messages(registry, resource),
                                 resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,
                             );
 
-                            for worker_name in &*root.workers.borrow() {
-                                let worker_actor = registry.find::<WorkerActor>(worker_name);
+                            for worker_name in &*root_actor.workers.borrow() {
+                                let worker = registry.find::<WorkerActor>(worker_name);
                                 let console_actor =
-                                    registry.find::<ConsoleActor>(&worker_actor.console_name);
+                                    registry.find::<ConsoleActor>(&worker.console_name);
 
-                                worker_actor.resources_array(
+                                worker.resources_array(
                                     console_actor.get_cached_messages(registry, resource),
                                     resource.into(),
                                     ResourceArrayType::Available,
@@ -390,7 +385,7 @@ impl Actor for WatcherActor {
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {
                     from: self.name(),
-                    browsing_context_id: browsing_context_actor.browsing_context_id.value(),
+                    browsing_context_id: target.browsing_context_id.value(),
                 };
                 request.reply_final(&msg)?
             },
@@ -440,7 +435,7 @@ impl ResourceAvailable for WatcherActor {
 impl WatcherActor {
     pub fn new(
         registry: &ActorRegistry,
-        browsing_context_name: String,
+        browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {
         let network_parent_actor =
@@ -451,12 +446,12 @@ impl WatcherActor {
             ThreadConfigurationActor::new(registry.new_name::<ThreadConfigurationActor>());
         let breakpoint_list = BreakpointListActor::new(
             registry.new_name::<BreakpointListActor>(),
-            browsing_context_name.clone(),
+            browsing_context_actor.clone(),
         );
 
         let watcher = Self {
             name: registry.new_name::<WatcherActor>(),
-            browsing_context_name,
+            browsing_context_actor,
             network_parent_name: network_parent_actor.name(),
             target_configuration: target_configuration.name(),
             thread_configuration: thread_configuration.name(),
