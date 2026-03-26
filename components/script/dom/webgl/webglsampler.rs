@@ -5,23 +5,57 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLSamplerId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::script_runtime::CanGc;
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLSampler {
+    context: WeakRef<WebGLRenderingContext>,
+    #[no_trace]
+    gl_id: WebGLSamplerId,
+    marked_for_deletion: Cell<bool>,
+}
+
+impl DroppableWebGLSampler {
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn delete(&self, operation_fallibility: Operation) {
+        if !self.marked_for_deletion.get() {
+            self.marked_for_deletion.set(true);
+            self.send_with_fallibility(
+                WebGLCommand::DeleteSampler(self.gl_id),
+                operation_fallibility,
+            );
+        }
+    }
+}
+
+impl Drop for DroppableWebGLSampler {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
 
 #[dom_struct(associated_memory)]
 pub(crate) struct WebGLSampler {
     webgl_object: WebGLObject,
-    #[no_trace]
-    gl_id: WebGLSamplerId,
-    marked_for_deletion: Cell<bool>,
+    droppable: DroppableWebGLSampler,
 }
 
 #[derive(Clone, Copy)]
@@ -78,8 +112,11 @@ impl WebGLSampler {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLSamplerId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            gl_id: id,
-            marked_for_deletion: Cell::new(false),
+            droppable: DroppableWebGLSampler {
+                context: WeakRef::new(context),
+                gl_id: id,
+                marked_for_deletion: Cell::new(false),
+            },
         }
     }
 
@@ -95,18 +132,16 @@ impl WebGLSampler {
         )
     }
 
+    fn id(&self) -> WebGLSamplerId {
+        self.droppable.gl_id
+    }
+
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if !self.marked_for_deletion.get() {
-            self.marked_for_deletion.set(true);
-            self.upcast().send_with_fallibility(
-                WebGLCommand::DeleteSampler(self.gl_id),
-                operation_fallibility,
-            );
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get()
+        !self.droppable.marked_for_deletion.get()
     }
 
     pub(crate) fn bind(
@@ -117,7 +152,7 @@ impl WebGLSampler {
         if !self.is_valid() {
             return Err(InvalidOperation);
         }
-        context.send_command(WebGLCommand::BindSampler(unit, self.gl_id));
+        context.send_command(WebGLCommand::BindSampler(unit, self.id()));
         Ok(())
     }
 
@@ -135,10 +170,10 @@ impl WebGLSampler {
         }
         let command = match value {
             WebGLSamplerValue::GLenum(value) => {
-                WebGLCommand::SetSamplerParameterInt(self.gl_id, pname, value as i32)
+                WebGLCommand::SetSamplerParameterInt(self.id(), pname, value as i32)
             },
             WebGLSamplerValue::Float(value) => {
-                WebGLCommand::SetSamplerParameterFloat(self.gl_id, pname, value)
+                WebGLCommand::SetSamplerParameterFloat(self.id(), pname, value)
             },
         };
         context.send_command(command);
@@ -163,24 +198,22 @@ impl WebGLSampler {
             constants::TEXTURE_COMPARE_MODE => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 context.send_command(WebGLCommand::GetSamplerParameterInt(
-                    self.gl_id, pname, sender,
+                    self.id(),
+                    pname,
+                    sender,
                 ));
                 Ok(WebGLSamplerValue::GLenum(receiver.recv().unwrap() as u32))
             },
             constants::TEXTURE_MIN_LOD | constants::TEXTURE_MAX_LOD => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 context.send_command(WebGLCommand::GetSamplerParameterFloat(
-                    self.gl_id, pname, sender,
+                    self.id(),
+                    pname,
+                    sender,
                 ));
                 Ok(WebGLSamplerValue::Float(receiver.recv().unwrap()))
             },
             _ => Err(InvalidEnum),
         }
-    }
-}
-
-impl Drop for WebGLSampler {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
     }
 }

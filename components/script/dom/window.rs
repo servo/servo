@@ -3256,7 +3256,13 @@ impl Window {
             }
 
             // Step 13
-            ScriptThread::navigate(self.webview_id, pipeline_id, load_data, history_handling);
+            ScriptThread::navigate(
+                self.webview_id,
+                pipeline_id,
+                load_data,
+                history_handling,
+                None,
+            );
         };
     }
 

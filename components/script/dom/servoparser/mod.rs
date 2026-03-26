@@ -61,7 +61,7 @@ use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
-use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::customelementregistry::CustomElementReactionStack;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
@@ -922,6 +922,8 @@ pub(crate) struct ParserContext {
     pushed_entry_index: Option<usize>,
     /// params required in document load algorithms
     navigation_params: NavigationParams,
+    /// To report CSP violations to the global that initiated the navigation
+    parent_info: Option<PipelineId>,
 }
 
 impl ParserContext {
@@ -930,6 +932,7 @@ impl ParserContext {
         pipeline_id: PipelineId,
         url: ServoUrl,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        parent_info: Option<PipelineId>,
     ) -> ParserContext {
         ParserContext {
             parser: None,
@@ -938,6 +941,7 @@ impl ParserContext {
             webview_id,
             pipeline_id,
             url,
+            parent_info,
             pushed_entry_index: None,
             navigation_params: NavigationParams {
                 policy_container: Default::default(),
@@ -965,6 +969,10 @@ impl ParserContext {
         self.parser
             .as_ref()
             .map(|parser| parser.root().document.as_rooted())
+    }
+
+    pub(crate) fn parent_info(&self) -> Option<PipelineId> {
+        self.parent_info
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
@@ -1130,6 +1138,7 @@ impl ParserContext {
         self.initialize_document_object(&parser.document);
         // Step 8. Act as if the user agent had stopped parsing document.
         self.is_synthesized_document = true;
+        parser.last_chunk_received.set(true);
         // Step 3. Populate with html/head/body given document.
         let page = "<html><body></body></html>".into();
         parser.push_string_input_chunk(page);
@@ -1188,7 +1197,7 @@ impl ParserContext {
         process_link_headers(&link_headers, doc, LinkProcessingPhase::Media);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#read-ua-inline>
+    /// <https://html.spec.whatwg.org/multipage/#navigate-ua-inline>
     fn load_inline_unknown_content(
         &mut self,
         parser: &ServoParser,
@@ -1198,6 +1207,8 @@ impl ParserContext {
         self.is_synthesized_document = true;
         parser.document.mark_as_internal();
         parser.push_string_input_chunk(page);
+        // Step 7. Act as if the user agent had stopped parsing document.
+        parser.last_chunk_received.set(true);
         parser.parse_sync(cx);
     }
 
@@ -1467,7 +1478,7 @@ impl FetchResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
-        if parser.aborted.get() {
+        if parser.aborted.get() || self.is_synthesized_document {
             return;
         }
 
@@ -1512,15 +1523,8 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let parser = match self.parser.as_ref() {
-            Some(parser) => parser.root(),
-            None => return,
-        };
-        let document = &parser.document;
-        let global = &document.global();
-        // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
-        global.report_csp_violations(violations, None, None);
+    fn process_csp_violations(&mut self, _: RequestId, _: Vec<Violation>) {
+        unreachable!("Script_thread should handle reporting violations for parser contexts");
     }
 }
 
