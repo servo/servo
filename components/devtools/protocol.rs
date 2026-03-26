@@ -86,11 +86,12 @@ impl JsonPacketStream for TcpStream {
 /// Wraps a Remote Debugging Protocol TCP stream, guaranteeing that network
 /// operations are synchronized when cloning across threads.
 #[derive(Clone, MallocSizeOf)]
-// `TcpStream::read` is a mutating I/O operation that doesn't fit with `RwLock`.
-// We clone a single stream handle into two mutexes so we can still lock
-// reads and writes independently.
 pub(crate) struct DevtoolsConnection {
     /// Copy of [`TcpStream`] handle to use for receiving from the client.
+    ///
+    /// `TcpStream::read` is a mutating I/O operation that doesn't fit with `RwLock`.
+    /// We clone a single stream handle into two mutexes so we can still lock
+    /// reads and writes independently.
     #[conditional_malloc_size_of]
     receiver: Arc<Mutex<TcpStream>>,
     /// Copy of [`TcpStream`] handle to use for sending bytes to the client.
