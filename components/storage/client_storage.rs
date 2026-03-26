@@ -134,8 +134,56 @@ impl SqliteEngine {
             );"#,
             [],
         )?;
+
+        connection.execute_batch(
+            r#"
+                CREATE UNIQUE INDEX IF NOT EXISTS sheds_local_identity_idx
+                ON sheds(storage_type)
+                WHERE storage_type = 'local' AND browsing_context IS NULL;
+
+                CREATE UNIQUE INDEX IF NOT EXISTS sheds_session_identity_idx
+                ON sheds(storage_type, browsing_context)
+                WHERE storage_type = 'session' AND browsing_context IS NOT NULL;
+
+                CREATE UNIQUE INDEX IF NOT EXISTS shelves_origin_shed_identity_idx
+                ON shelves(origin, shed_id);
+            "#,
+        )?;
         // TODO: Delete expired and non-persistent buckets on startup
         Ok(())
+    }
+}
+
+fn ensure_storage_shed(
+    storage_type: &StorageType,
+    browsing_context: Option<String>,
+    tx: &Transaction,
+) -> rusqlite::Result<i64> {
+    match browsing_context {
+        Some(browsing_context) => {
+            tx.execute(
+                "INSERT INTO sheds (storage_type, browsing_context) VALUES (?1, ?2) ON CONFLICT DO NOTHING;",
+                (storage_type.as_str(), browsing_context.as_str()),
+            )?;
+
+            tx.query_row(
+                "SELECT id FROM sheds WHERE storage_type = ?1 AND browsing_context = ?2;",
+                (storage_type.as_str(), browsing_context.as_str()),
+                |row| row.get(0),
+            )
+        },
+        None => {
+            tx.execute(
+                "INSERT INTO sheds (storage_type, browsing_context) VALUES (?1, NULL) ON CONFLICT DO NOTHING;",
+                [storage_type.as_str()],
+            )?;
+
+            tx.query_row(
+                "SELECT id FROM sheds WHERE storage_type = ?1 AND browsing_context IS NULL;",
+                [storage_type.as_str()],
+                |row| row.get(0),
+            )
+        },
     }
 }
 
@@ -341,15 +389,7 @@ impl RegistryEngine for SqliteEngine {
         let shed_id: i64 = match storage_type {
             StorageType::Local => {
                 // Step 2: If type is "local", then set shed to the user agent’s storage shed.
-                tx.execute(
-                    "INSERT OR IGNORE INTO sheds (storage_type) VALUES (?1);",
-                    [storage_type.as_str()],
-                )?;
-                tx.query_row(
-                    "SELECT id FROM sheds WHERE storage_type = ?1;",
-                    ["local"],
-                    |row| row.get(0),
-                )?
+                ensure_storage_shed(&storage_type, None, &tx)?
             },
             StorageType::Session => {
                 // Step 3: Otherwise:
@@ -357,17 +397,10 @@ impl RegistryEngine for SqliteEngine {
                 // Step 3.2: Set shed to environment’s global object’s associated Document’s
                 // node navigable’s traversable navigable’s storage shed.
                 // Note: using the browsing context of the webview as the traversable navigable.
-                tx.execute(
-                    "INSERT OR IGNORE INTO sheds (storage_type, browsing_context) VALUES (?1, ?2);",
-                    [
-                        storage_type.as_str(),
-                        &Into::<BrowsingContextId>::into(webview).to_string(),
-                    ],
-                )?;
-                tx.query_row(
-                    "SELECT id FROM sheds WHERE browsing_context = ?1;",
-                    [&Into::<BrowsingContextId>::into(webview).to_string()],
-                    |row| row.get(0),
+                ensure_storage_shed(
+                    &storage_type,
+                    Some(Into::<BrowsingContextId>::into(webview).to_string()),
+                    &tx,
                 )?
             },
         };
