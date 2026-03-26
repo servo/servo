@@ -12,9 +12,7 @@ use storage_traits::client_storage::{
 
 #[test]
 fn test_exit() {
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(None);
 
     let (sender, receiver) = generic_channel::channel().unwrap();
     handle
@@ -30,9 +28,7 @@ fn test_exit() {
 #[test]
 fn test_workflow() {
     PipelineNamespace::install(PipelineNamespaceId(1));
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(None);
 
     // Create some storage
     let url = ServoUrl::parse("https://example.com").unwrap();
