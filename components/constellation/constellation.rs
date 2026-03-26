@@ -4183,6 +4183,7 @@ where
                     title: new_pipeline.title.clone(),
                     url: new_pipeline.url.clone(),
                     is_top_level_global: webview_id == browsing_context_id,
+                    is_service_worker: false,
                 };
                 let state = NavigationState::Stop(new_pipeline.id, page_info);
                 let _ = chan.send(DevtoolsControlMsg::FromScript(

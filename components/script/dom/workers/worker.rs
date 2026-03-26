@@ -227,6 +227,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     title,
                     url: worker_url.clone(),
                     is_top_level_global: false,
+                    is_service_worker: false,
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                     (browsing_context, pipeline_id, Some(worker_id), webview_id),

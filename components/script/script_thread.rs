@@ -3713,6 +3713,7 @@ impl ScriptThread {
                 title: String::from(title),
                 url,
                 is_top_level_global,
+                is_service_worker: false,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                 (browsing_context_id, pipeline_id, worker_id, webview_id),

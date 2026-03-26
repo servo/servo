@@ -219,6 +219,10 @@ pub struct ScopeThings {
     pub devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// service worker id
     pub worker_id: WorkerId,
+    /// the browsing context id of the page that registered the service worker
+    pub browsing_context_id: BrowsingContextId,
+    /// the webview id of the page that registered the service worker
+    pub webview_id: WebViewId,
 }
 
 /// Message that gets passed to service worker scope on postMessage
