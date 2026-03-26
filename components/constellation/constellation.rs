@@ -317,7 +317,9 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the embedder (renderer and libservo) to send messages to the [`Constellation`].
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
 
-    /// A channel through which messages can be sent to the script embedder.
+    /// A channel through which messages can be sent to the embedder. This is not used by the `Constellation` 
+    /// itself but only needed to create an `EventLoop`. 
+    /// Messages from the `Constellation` to the embedder are sent using the `constellation_to_embedder_proxy`
     pub(crate) embedder_proxy: EmbedderProxy,
 
     /// A channel through which messages can be sent to the embedder.
@@ -515,7 +517,9 @@ pub struct Constellation<STF, SWF> {
 
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
-    /// A channel through which messages can be sent to the script embedder.
+    /// A channel through which messages can be sent to the embedder. This is not used by the `Constellation` 
+    /// itself but only needed to create an `EventLoop`. 
+    /// Messages from the `Constellation` to the embedder are sent using the `constellation_to_embedder_proxy`
     pub embedder_proxy: EmbedderProxy,
 
     /// A channel through which messages can be sent to the embedder.
