@@ -58,7 +58,7 @@ pub(crate) struct EnvironmentActorMsg {
 pub(crate) struct EnvironmentActor {
     name: String,
     environment: EnvironmentInfo,
-    parent: Option<String>,
+    parent_name: Option<String>,
 }
 
 impl Actor for EnvironmentActor {
@@ -71,23 +71,23 @@ impl EnvironmentActor {
     pub fn register(
         registry: &ActorRegistry,
         environment: EnvironmentInfo,
-        parent: Option<String>,
+        parent_name: Option<String>,
     ) -> String {
-        let name = registry.new_name::<Self>();
-        let actor = Self {
-            name: name.clone(),
-            parent,
+        let environment_name = registry.new_name::<Self>();
+        let environment_actor = Self {
+            name: environment_name.clone(),
+            parent_name,
             environment,
         };
-        registry.register(actor);
-        name
+        registry.register(environment_actor);
+        environment_name
     }
 }
 
 impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
     fn encode(&self, registry: &ActorRegistry) -> EnvironmentActorMsg {
         let parent = self
-            .parent
+            .parent_name
             .as_ref()
             .map(|p| registry.find::<EnvironmentActor>(p))
             .map(|p| Box::new(p.encode(registry)));
