@@ -286,9 +286,10 @@ impl ConsoleActor {
             Root::BrowsingContext(browsing_context_name) => registry
                 .find::<BrowsingContextActor>(browsing_context_name)
                 .script_chan(),
-            Root::DedicatedWorker(worker) => {
-                registry.find::<WorkerActor>(worker).script_chan.clone()
-            },
+            Root::DedicatedWorker(worker_name) => registry
+                .find::<WorkerActor>(worker_name)
+                .script_chan
+                .clone(),
         }
     }
 
@@ -299,8 +300,8 @@ impl ConsoleActor {
                     .find::<BrowsingContextActor>(browsing_context_name)
                     .pipeline_id(),
             ),
-            Root::DedicatedWorker(worker) => {
-                UniqueId::Worker(registry.find::<WorkerActor>(worker).worker_id)
+            Root::DedicatedWorker(worker_name) => {
+                UniqueId::Worker(registry.find::<WorkerActor>(worker_name).worker_id)
             },
         }
     }
