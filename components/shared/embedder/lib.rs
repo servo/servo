@@ -446,23 +446,12 @@ pub enum EmbedderMsg {
     /// or `prompt()`). Since their messages are controlled by web content, they should be presented to the user in a
     /// way that makes them impossible to mistake for browser UI.
     ShowSimpleDialog(WebViewId, SimpleDialogRequest),
-    /// Whether or not to allow a pipeline to load a url.
-    AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Request to (un)register protocol handler by page content.
     AllowProtocolHandlerRequest(
         WebViewId,
         ProtocolHandlerUpdateRegistration,
         GenericSender<AllowOrDeny>,
     ),
-    /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(WebViewId, GenericSender<Option<NewWebViewDetails>>),
-    /// A webview was destroyed.
-    WebViewClosed(WebViewId),
-    /// A webview potentially gained focus for keyboard events.
-    /// If the boolean value is false, the webiew could not be focused.
-    WebViewFocused(WebViewId, bool),
-    /// All webviews lost focus for keyboard events.
-    WebViewBlurred,
     /// Wether or not to unload a document
     AllowUnload(WebViewId, GenericSender<AllowOrDeny>),
     /// Inform embedder to clear the clipboard
@@ -475,10 +464,6 @@ pub enum EmbedderMsg {
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
-    /// The history state has changed.
-    HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
-    /// A history traversal operation completed.
-    HistoryTraversalComplete(WebViewId, TraversalId),
     /// Get the device independent window rectangle.
     GetWindowRect(WebViewId, GenericSender<DeviceIndependentIntRect>),
     /// Get the device independent screen size and available size.
@@ -487,8 +472,6 @@ pub enum EmbedderMsg {
     NotifyFullscreenStateChanged(WebViewId, bool),
     /// The [`LoadStatus`] of the Given `WebView` has changed.
     NotifyLoadStatusChanged(WebViewId, LoadStatus),
-    /// A pipeline panicked. First string is the reason, second one is the backtrace.
-    Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(
         WebViewId,
@@ -497,11 +480,6 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
-    /// Report a complete sampled profile
-    ReportProfile(Vec<u8>),
-    /// Notifies the embedder about media session events
-    /// (i.e. when there is metadata for the active media session, playback state changes...).
-    MediaSessionEvent(WebViewId, MediaSessionEvent),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
@@ -517,10 +495,6 @@ pub enum EmbedderMsg {
     /// Request to stop a haptic effect on a connected gamepad.
     #[cfg(feature = "gamepad")]
     StopGamepadHapticEffect(WebViewId, usize, GenericCallback<bool>),
-    /// Informs the embedder that the constellation has completed shutdown.
-    /// Required because the constellation can have pending calls to make
-    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
-    ShutdownComplete,
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
     /// Let the embedder process a DOM Console API message.
@@ -530,12 +504,6 @@ pub enum EmbedderMsg {
     ShowEmbedderControl(EmbedderControlId, DeviceIntRect, EmbedderControlRequest),
     /// Request to the embedder to hide a user interface control.
     HideEmbedderControl(EmbedderControlId),
-    /// Inform the embedding layer that a JavaScript evaluation has
-    /// finished with the given result.
-    FinishJavaScriptEvaluation(
-        JavaScriptEvaluationId,
-        Result<JSValue, JavaScriptEvaluationError>,
-    ),
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),

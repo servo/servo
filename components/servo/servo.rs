@@ -382,7 +382,6 @@ impl ServoInner {
 
     fn handle_embedder_message(&self, message: EmbedderMsg) {
         match message {
-            EmbedderMsg::ShutdownComplete => self.finish_shutting_down(),
             EmbedderMsg::Status(webview_id, status_text) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_status_text(status_text);
@@ -413,17 +412,6 @@ impl ServoInner {
                     );
                 }
             },
-            EmbedderMsg::AllowNavigationRequest(webview_id, pipeline_id, servo_url) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = NavigationRequest {
-                        url: servo_url.into_url(),
-                        pipeline_id,
-                        constellation_proxy: self.constellation_proxy.clone(),
-                        response_sent: false,
-                    };
-                    webview.delegate().request_navigation(webview, request);
-                }
-            },
             EmbedderMsg::AllowProtocolHandlerRequest(
                 webview_id,
                 registration_update,
@@ -452,33 +440,6 @@ impl ServoInner {
                     );
                 }
             },
-            EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.request_create_new(response_sender);
-                }
-            },
-            EmbedderMsg::WebViewClosed(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().notify_closed(webview);
-                }
-            },
-            EmbedderMsg::WebViewFocused(webview_id, focus_result) => {
-                if focus_result {
-                    for id in self.webviews.borrow().keys() {
-                        if let Some(webview) = self.get_webview_handle(*id) {
-                            let focused = webview.id() == webview_id;
-                            webview.set_focused(focused);
-                        }
-                    }
-                }
-            },
-            EmbedderMsg::WebViewBlurred => {
-                for id in self.webviews.borrow().keys() {
-                    if let Some(webview) = self.get_webview_handle(*id) {
-                        webview.set_focused(false);
-                    }
-                }
-            },
             EmbedderMsg::AllowUnload(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     let request = AllowOrDenyRequest::new(
@@ -488,11 +449,6 @@ impl ServoInner {
                     );
                     webview.delegate().request_unload(webview, request);
                 }
-            },
-            EmbedderMsg::FinishJavaScriptEvaluation(evaluation_id, result) => {
-                self.javascript_evaluator
-                    .borrow_mut()
-                    .finish_evaluation(evaluation_id, result);
             },
             EmbedderMsg::InputEventsHandled(webview_id, event_outcomes) => {
                 let webview = self.get_webview_handle(webview_id);
@@ -547,30 +503,11 @@ impl ServoInner {
                     webview.set_load_status(load_status);
                 }
             },
-            EmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_traversal_complete(webview.clone(), traversal_id);
-                }
-            },
-            EmbedderMsg::HistoryChanged(webview_id, new_back_forward_list, current_list_index) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_history(new_back_forward_list, current_list_index);
-                }
-            },
             EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
                         .delegate()
                         .notify_fullscreen_state_changed(webview, fullscreen);
-                }
-            },
-            EmbedderMsg::Panic(webview_id, reason, backtrace) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_crashed(webview, reason, backtrace);
                 }
             },
             EmbedderMsg::GetSelectedBluetoothDevice(webview_id, items, response_sender) => {
@@ -594,14 +531,6 @@ impl ServoInner {
                     webview
                         .delegate()
                         .request_permission(webview, permission_request);
-                }
-            },
-            EmbedderMsg::ReportProfile(_items) => {},
-            EmbedderMsg::MediaSessionEvent(webview_id, media_session_event) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_media_session_event(webview, media_session_event);
                 }
             },
             EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
