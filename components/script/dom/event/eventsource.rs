@@ -574,7 +574,6 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 2. Let settings be the relevant settings object for the `EventSource` constructor.
         // Bindings pass that environment as `global`.
         // Step 3. Let urlRecord be the result of encoding-parsing a URL given url, relative to settings.
-        // <https://html.spec.whatwg.org/multipage/#encoding-parsing-a-url>
         let url_record = match global.encoding_parse_a_url(&url.str()) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
