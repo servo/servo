@@ -114,7 +114,7 @@ pub(crate) struct WebViewRenderer {
     animating: bool,
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
-    viewport_description: Option<ViewportDescription>,
+    viewport_description: ViewportDescription,
 
     //
     // Data that is shared with the parent renderer.
@@ -153,7 +153,7 @@ impl WebViewRenderer {
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             hidden: false,
             animating: false,
-            viewport_description: None,
+            viewport_description: Default::default(),
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
@@ -1043,13 +1043,16 @@ impl WebViewRenderer {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
         let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_pinch_zoom();
-        let initial_viewport = self.rect.size().to_f32() / device_pixel_ratio;
+        // From <https://www.w3.org/TR/css-viewport-1/#actual-viewport>:
+        // This is the viewport you get after processing the viewport <meta> tag.
+        let layout_viewport = self.rect.size().to_f32() /
+            (device_pixel_ratio * Scale::new(self.viewport_description.initial_scale.get()));
         let _ = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 self.id,
                 ViewportDetails {
                     hidpi_scale_factor: device_pixel_ratio,
-                    size: initial_viewport,
+                    size: layout_viewport,
                 },
                 WindowSizeType::Resize,
             ),
@@ -1082,8 +1085,12 @@ impl WebViewRenderer {
     }
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
-        self.set_page_zoom(viewport_description.initial_scale);
-        self.viewport_description = Some(viewport_description);
+        self.viewport_description = viewport_description;
+        self.send_window_size_message();
+        self.adjust_pinch_zoom(
+            self.viewport_description.initial_scale.get(),
+            DevicePoint::origin(),
+        );
     }
 
     pub(crate) fn scroll_trees_memory_usage(
