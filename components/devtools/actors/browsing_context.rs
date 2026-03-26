@@ -233,7 +233,8 @@ impl BrowsingContextActor {
 
         let style_sheets = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
 
-        let tabdesc = TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
+        let tab_descriptor_actor =
+            TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
 
         let thread = ThreadActor::new(
             registry.new_name::<ThreadActor>(),
@@ -265,7 +266,7 @@ impl BrowsingContextActor {
             inspector,
             reflow_name: reflow_actor.name(),
             style_sheets: style_sheets.name(),
-            _tab: tabdesc.name(),
+            _tab: tab_descriptor_actor.name(),
             thread: thread.name(),
             watcher: watcher.name(),
         };
@@ -274,7 +275,7 @@ impl BrowsingContextActor {
         registry.register(css_properties);
         registry.register(reflow_actor);
         registry.register(style_sheets);
-        registry.register(tabdesc);
+        registry.register(tab_descriptor_actor);
         registry.register(thread);
         registry.register(watcher);
 

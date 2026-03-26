@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::device::DeviceActor;
@@ -154,9 +154,9 @@ impl Actor for RootActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "connect" => {
-                let message = json!({
-                    "from": "root",
-                });
+                let message = EmptyReplyMsg {
+                    from: "root".into(),
+                };
                 request.reply_final(&message)?
             },
 
@@ -171,11 +171,11 @@ impl Actor for RootActor {
             },
 
             "getRoot" => {
-                let actor = GetRootReply {
+                let reply = GetRootReply {
                     from: "root".to_owned(),
                     global_actors: self.global_actors.clone(),
                 };
-                request.reply_final(&actor)?
+                request.reply_final(&reply)?
             },
 
             "getTab" => {
@@ -196,11 +196,11 @@ impl Actor for RootActor {
             },
 
             "listAddons" => {
-                let actor = ListAddonsReply {
+                let reply = ListAddonsReply {
                     from: "root".to_owned(),
                     addons: vec![],
                 };
-                request.reply_final(&actor)?
+                request.reply_final(&reply)?
             },
 
             "listProcesses" => {
@@ -221,24 +221,25 @@ impl Actor for RootActor {
             },
 
             "listTabs" => {
-                let actor = ListTabsReply {
+                let reply = ListTabsReply {
                     from: "root".to_owned(),
                     tabs: self
                         .tabs
                         .borrow()
                         .iter()
-                        .filter_map(|target| {
-                            let tab_actor = registry.find::<TabDescriptorActor>(target);
+                        .filter_map(|tab_descriptor_name| {
+                            let tab_descriptor_actor =
+                                registry.find::<TabDescriptorActor>(tab_descriptor_name);
                             // Filter out iframes and workers
-                            if tab_actor.is_top_level_global() {
-                                Some(tab_actor.encode(registry))
+                            if tab_descriptor_actor.is_top_level_global() {
+                                Some(tab_descriptor_actor.encode(registry))
                             } else {
                                 None
                             }
                         })
                         .collect(),
                 };
-                request.reply_final(&actor)?
+                request.reply_final(&reply)?
             },
 
             "listWorkers" => {
@@ -319,8 +320,10 @@ impl RootActor {
             .tabs
             .borrow()
             .iter()
-            .map(|target| registry.encode::<TabDescriptorActor, _>(target))
-            .find(|tab| tab.browser_id() == browser_id);
+            .map(|tab_descriptor_name| {
+                registry.encode::<TabDescriptorActor, _>(tab_descriptor_name)
+            })
+            .find(|tab_descriptor_actor| tab_descriptor_actor.browser_id() == browser_id);
 
         if let Some(ref mut msg) = tab_msg {
             msg.selected = true;
