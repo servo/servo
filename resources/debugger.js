@@ -85,7 +85,7 @@ const previewers = {
 };
 
 // Convert debuggee value to property descriptor value
-// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#116>
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#116>
 function createValueGrip(value) {
     switch (typeof value) {
         case "undefined":

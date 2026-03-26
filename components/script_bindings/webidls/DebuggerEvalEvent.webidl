@@ -16,17 +16,6 @@ partial interface DebuggerGlobalScope {
     undefined evalResult(DebuggerEvalEvent event, EvalResult result);
 };
 
-// Result from Debugger.Object.executeInGlobal() completion value.
-// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#executeinglobal-code-options>
-//
-// Completion values are described at:
-// <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
-// - { return: value } for normal completion
-// - { throw: value, stack } for thrown exception
-// - null for termination
-//
-// The `value` inside is a debuggee value:
-// <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#debuggee-values>
 dictionary EvalResult {
     required DebuggerValue value;
     ObjectPreview preview;

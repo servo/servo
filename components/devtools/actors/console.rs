@@ -434,8 +434,7 @@ impl ConsoleActor {
             .and_then(|v| v.as_str())
             .map(String::from);
         let (chan, port) = generic_channel::channel().unwrap();
-        // FIXME: Redesign messages so we don't have to fake pipeline ids when
-        //        communicating with workers.
+        // FIXME: Redesign messages so we don't have to fake pipeline ids when communicating with workers.
         let pipeline = match self.current_unique_id(registry) {
             UniqueId::Pipeline(p) => p,
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
