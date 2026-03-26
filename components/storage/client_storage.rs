@@ -101,12 +101,12 @@ impl SqliteEngine {
             [],
         )?;
 
+        // Note: quota not in db, hardcoded at https://storage.spec.whatwg.org/#storage-endpoint-quota
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS bottles (
                     id INTEGER PRIMARY KEY,
                     bucket_id INTEGER NOT NULL,
                     identifier TEXT NOT NULL,  -- "idb", "ls", "opfs", "cache"
-                    quota INTEGER,
                     UNIQUE (bucket_id, identifier),
                     FOREIGN KEY (bucket_id) REFERENCES buckets(id) ON DELETE CASCADE
                 );"#,
@@ -124,7 +124,7 @@ impl SqliteEngine {
                 "#,
             [],
         )?;
-        
+
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS directories (
                 id INTEGER PRIMARY KEY,
