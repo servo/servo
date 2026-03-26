@@ -327,10 +327,10 @@ impl Actor for WatcherActor {
                             );
 
                             for worker_name in &*root.workers.borrow() {
-                                let worker = registry.find::<WorkerActor>(worker_name);
-                                let thread = registry.find::<ThreadActor>(&worker.thread);
+                                let worker_actor = registry.find::<WorkerActor>(worker_name);
+                                let thread = registry.find::<ThreadActor>(&worker_actor.thread);
 
-                                worker.resources_array(
+                                worker_actor.resources_array(
                                     thread.source_manager.source_forms(registry),
                                     resource.into(),
                                     ResourceArrayType::Available,
@@ -349,11 +349,11 @@ impl Actor for WatcherActor {
                             );
 
                             for worker_name in &*root.workers.borrow() {
-                                let worker = registry.find::<WorkerActor>(worker_name);
+                                let worker_actor = registry.find::<WorkerActor>(worker_name);
                                 let console_actor =
-                                    registry.find::<ConsoleActor>(&worker.console_name);
+                                    registry.find::<ConsoleActor>(&worker_actor.console_name);
 
-                                worker.resources_array(
+                                worker_actor.resources_array(
                                     console_actor.get_cached_messages(registry, resource),
                                     resource.into(),
                                     ResourceArrayType::Available,

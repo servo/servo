@@ -248,7 +248,7 @@ impl Actor for RootActor {
                         .workers
                         .borrow()
                         .iter()
-                        .map(|name| registry.encode::<WorkerActor, _>(name))
+                        .map(|worker_name| registry.encode::<WorkerActor, _>(worker_name))
                         .collect(),
                 };
                 request.reply_final(&reply)?

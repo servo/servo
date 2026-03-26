@@ -615,10 +615,10 @@ impl DevtoolsInstance {
         worker_id: Option<WorkerId>,
     ) -> Option<String> {
         if let Some(worker_id) = worker_id {
-            let actor_name = self.actor_workers.get(&worker_id)?;
+            let worker_name = self.actor_workers.get(&worker_id)?;
             Some(
                 self.registry
-                    .find::<WorkerActor>(actor_name)
+                    .find::<WorkerActor>(worker_name)
                     .console_name
                     .clone(),
             )
@@ -709,20 +709,20 @@ impl DevtoolsInstance {
             .source_form();
 
         if let Some(worker_id) = source_info.worker_id {
-            let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
+            let Some(worker_name) = self.actor_workers.get(&worker_id) else {
                 return;
             };
 
             let thread_actor_name = self
                 .registry
-                .find::<WorkerActor>(worker_actor_name)
+                .find::<WorkerActor>(worker_name)
                 .thread
                 .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
             thread_actor.source_manager.add_source(&source_actor);
 
-            let worker_actor = self.registry.find::<WorkerActor>(worker_actor_name);
+            let worker_actor = self.registry.find::<WorkerActor>(worker_name);
 
             for stream in self.connections.lock().unwrap().values_mut() {
                 worker_actor.resource_array(
