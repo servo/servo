@@ -205,32 +205,30 @@ impl SiteDataManager {
         self.private_resource_threads.clear_cookies();
     }
 
-    pub fn get_cookies_for_url(
-        &self,
-        url: ServoUrl,
-        private: bool,
-        source: CookieSource,
-    ) -> Option<String> {
-        let resource_threads = if private {
-            &self.private_resource_threads
-        } else {
-            &self.public_resource_threads
-        };
-        resource_threads.get_cookies_for_url(url, source)
+    /// Returns the cookies associated with the given URL as a header string, or `None` if there
+    /// are no cookies for that URL.
+    /// Only public cookies are returned.
+    pub fn get_cookies_for_url(&self, url: &str, source: CookieSource) -> Option<String> {
+        let url = ServoUrl::parse(url).ok()?;
+        self.public_resource_threads.cookies_for_url(url, source)
     }
 
-    pub fn set_cookie_for_url(
-        &self,
-        url: ServoUrl,
-        cookie: Cookie<'static>,
-        private: bool,
-        source: CookieSource,
-    ) {
-        let resource_threads = if private {
-            &self.private_resource_threads
-        } else {
-            &self.public_resource_threads
+    /// Stores a cookie for the given URL.
+    /// Returns `true` if the request to set the cookie is successfully sent.
+    /// If `sync` is `true`, the call blocks until the cookie has been stored.
+    /// Only public cookies are set.
+    pub fn set_cookie_for_url(&self, url: &str, cookie: Cookie<'static>, sync: bool) -> bool {
+        let url = match ServoUrl::parse(url) {
+            Ok(url) => url,
+            Err(_) => return false,
         };
-        resource_threads.set_cookie_for_url(url, cookie, source)
+        if sync {
+            self.public_resource_threads
+                .set_cookie_for_url_sync(url, cookie, CookieSource::HTTP);
+        } else {
+            self.public_resource_threads
+                .set_cookie_for_url(url, cookie, CookieSource::HTTP);
+        }
+        true
     }
 }

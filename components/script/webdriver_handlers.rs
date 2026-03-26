@@ -1479,7 +1479,7 @@ pub(crate) fn handle_add_cookie(
                     .window()
                     .as_global_scope()
                     .resource_threads()
-                    .send(SetCookieForUrl(url, Serde(cookie), method));
+                    .send(SetCookieForUrl(url, Serde(cookie), method, None));
                 Ok(())
             },
             (false, None) => {
@@ -1487,7 +1487,7 @@ pub(crate) fn handle_add_cookie(
                     .window()
                     .as_global_scope()
                     .resource_threads()
-                    .send(SetCookieForUrl(url, Serde(cookie), method));
+                    .send(SetCookieForUrl(url, Serde(cookie), method, None));
                 Ok(())
             },
             (_, _) => Err(ErrorStatus::UnableToSetCookie),

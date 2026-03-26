@@ -6,6 +6,7 @@ mod common;
 
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use cookie::Cookie;
 use http::HeaderValue;
@@ -628,23 +629,21 @@ fn test_get_cookie() {
             *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
         };
     let (server, url) = make_server(handler);
-    let page_url = url.clone().into_url();
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(page_url.clone())
+        .url(url.clone().into_url())
         .build();
 
     // Wait for LoadStatus::Complete to ensure the HTTP response and Set-Cookie header are processed.
     servo_test.spin(move || !delegate.load_status_changed.get());
     let _ = server.close();
 
-    let cookies = servo_test.servo().site_data_manager().get_cookies_for_url(
-        ServoUrl::from_url(page_url),
-        false,
-        CookieSource::NonHTTP,
-    );
+    let cookies = servo_test
+        .servo()
+        .site_data_manager()
+        .get_cookies_for_url(url.as_str(), CookieSource::NonHTTP);
     assert_eq!(cookies, Some("foo=bar".to_string()));
 }
 
@@ -652,38 +651,56 @@ fn test_get_cookie() {
 fn test_set_cookie() {
     let servo_test = ServoTest::new();
 
-    // Serve a minimal page with no server-set cookies.
+    let received_cookie: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let received_cookie_clone = received_cookie.clone();
+
+    // Serve a minimal page; on the second load, capture the Cookie request header.
     let handler =
-        move |_: HyperRequest<Incoming>,
+        move |req: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if let Some(cookie) = req.headers().get(http::header::COOKIE) {
+                *received_cookie_clone.lock().unwrap() = Some(cookie.to_str().unwrap().to_string());
+            }
             *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
         };
     let (server, url) = make_server(handler);
     let page_url = url.clone().into_url();
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
-    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+    let delegate_clone = delegate.clone();
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
         .url(page_url.clone())
         .build();
 
     servo_test.spin(move || !delegate.load_status_changed.get());
-    let _ = server.close();
 
     // Set a cookie via the site data manager.
     let cookie = Cookie::build(("foo", "bar")).path("/").build();
-    servo_test.servo().site_data_manager().set_cookie_for_url(
-        ServoUrl::from_url(page_url.clone()),
-        cookie,
-        false,
-        CookieSource::NonHTTP,
-    );
+    servo_test
+        .servo()
+        .site_data_manager()
+        .set_cookie_for_url(page_url.as_str(), cookie, false);
 
     // Verify it is returned by get_cookies_for_url.
-    let cookies = servo_test.servo().site_data_manager().get_cookies_for_url(
-        ServoUrl::from_url(page_url),
-        false,
-        CookieSource::NonHTTP,
-    );
+    // Don't need sync call because set and get messages are processed in order.
+    let cookies = servo_test
+        .servo()
+        .site_data_manager()
+        .get_cookies_for_url(page_url.as_str(), CookieSource::HTTP);
     assert_eq!(cookies, Some("foo=bar".to_string()));
+
+    // Load the page again and verify the cookie is sent in the request.
+    delegate_clone.reset();
+    delegate_clone.load_status_changed.set(false);
+    webview.load(page_url.into());
+    let delegate_clone2 = delegate_clone.clone();
+    servo_test.spin(move || !delegate_clone2.load_status_changed.get());
+
+    let _ = server.close();
+
+    assert_eq!(
+        *received_cookie.lock().unwrap(),
+        Some("foo=bar".to_string())
+    );
 }

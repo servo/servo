@@ -542,7 +542,7 @@ impl ResourceThreads {
         let _ = receiver.recv();
     }
 
-    pub fn get_cookies_for_url(&self, url: ServoUrl, source: CookieSource) -> Option<String> {
+    pub fn cookies_for_url(&self, url: ServoUrl, source: CookieSource) -> Option<String> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let _ = self
             .core_thread
@@ -551,9 +551,28 @@ impl ResourceThreads {
     }
 
     pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
-        let _ = self
-            .core_thread
-            .send(CoreResourceMsg::SetCookieForUrl(url, Serde(cookie), source));
+        let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
+            url,
+            Serde(cookie),
+            source,
+            None,
+        ));
+    }
+
+    pub fn set_cookie_for_url_sync(
+        &self,
+        url: ServoUrl,
+        cookie: Cookie<'static>,
+        source: CookieSource,
+    ) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
+            url,
+            Serde(cookie),
+            source,
+            Some(sender),
+        ));
+        let _ = receiver.recv();
     }
 }
 
@@ -616,8 +635,14 @@ pub enum CoreResourceMsg {
     Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
-    /// Store a cookie for a given originating URL
-    SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
+    /// Store a cookie for a given originating URL.
+    /// If a sender is provided, the caller will block until the cookie is stored.
+    SetCookieForUrl(
+        ServoUrl,
+        Serde<Cookie<'static>>,
+        CookieSource,
+        Option<GenericSender<()>>,
+    ),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
     SetCookieForUrlAsync(

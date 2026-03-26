@@ -458,9 +458,17 @@ impl ResourceChannelManager {
                     protocols,
                 )
             },
-            CoreResourceMsg::SetCookieForUrl(request, cookie, source) => self
-                .resource_manager
-                .set_cookie_for_url(&request, cookie.into_inner().to_owned(), source, http_state),
+            CoreResourceMsg::SetCookieForUrl(request, cookie, source, sender) => {
+                self.resource_manager.set_cookie_for_url(
+                    &request,
+                    cookie.into_inner().to_owned(),
+                    source,
+                    http_state,
+                );
+                if let Some(sender) = sender {
+                    let _ = sender.send(());
+                }
+            },
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
                     self.resource_manager.set_cookie_for_url(
