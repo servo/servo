@@ -10,7 +10,7 @@ use servo_base::generic_channel::GenericSender;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::ServoUrl;
 
-/// Messages sent from the `Constellation` to the `Embedder`.
+/// Messages sent from the `Constellation` to the embedder.
 pub enum ConstellationToEmbedderMsg {
     /// Informs the embedder that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
