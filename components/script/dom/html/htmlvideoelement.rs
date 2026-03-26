@@ -441,7 +441,12 @@ impl FetchResponseListener for PosterFrameFetchContext {
         }
     }
 
-    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        request_id: RequestId,
+        payload: Vec<u8>,
+    ) {
         if self.cancelled {
             // An error was received previously, skip processing the payload.
             return;

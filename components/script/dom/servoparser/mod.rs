@@ -1436,11 +1436,12 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    #[expect(unsafe_code)]
-    fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
-        // TODO: https://github.com/servo/servo/issues/42841
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        payload: Vec<u8>,
+    ) {
         if self.is_synthesized_document {
             return;
         }

@@ -473,7 +473,12 @@ impl FetchResponseListener for LinkFetchContext {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        mut chunk: Vec<u8>,
+    ) {
         if matches!(self.type_, LinkFetchContextType::Preload(..)) {
             self.response_body.append(&mut chunk);
         }

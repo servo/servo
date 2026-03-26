@@ -192,7 +192,12 @@ impl FetchResponseListener for CSPReportUriFetchListener {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         _ = chunk;
     }
 

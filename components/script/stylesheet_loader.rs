@@ -355,7 +355,12 @@ impl FetchResponseListener for StylesheetContext {
         });
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, mut payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        mut payload: Vec<u8>,
+    ) {
         self.data.append(&mut payload);
     }
 

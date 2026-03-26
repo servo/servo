@@ -615,9 +615,14 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         let response = self.response_object.root();
-        response.stream_chunk(chunk, CanGc::note());
+        response.stream_chunk(chunk, CanGc::from_cx(cx));
     }
 
     fn process_response_eof(
@@ -680,7 +685,12 @@ impl FetchResponseListener for FetchLaterListener {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         _ = chunk;
     }
 

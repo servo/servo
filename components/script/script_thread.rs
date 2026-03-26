@@ -3898,7 +3898,7 @@ impl ScriptThread {
                 self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
             },
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(pipeline_id, request_id, chunk.0)
+                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk.0)
             },
             FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
                 self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
@@ -3934,13 +3934,19 @@ impl ScriptThread {
         }
     }
 
-    fn handle_fetch_chunk(&self, pipeline_id: PipelineId, request_id: RequestId, chunk: Vec<u8>) {
+    fn handle_fetch_chunk(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+        request_id: RequestId,
+        chunk: Vec<u8>,
+    ) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
             .iter_mut()
             .find(|&&mut (parser_pipeline_id, _)| parser_pipeline_id == pipeline_id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response_chunk(request_id, chunk);
+            ctxt.process_response_chunk(cx, request_id, chunk);
         }
     }
 
@@ -4093,7 +4099,7 @@ impl ScriptThread {
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(dummy_request_id, chunk.into());
+        context.process_response_chunk(cx, dummy_request_id, chunk.into());
         context.process_response_eof(
             cx,
             dummy_request_id,
@@ -4137,7 +4143,7 @@ impl ScriptThread {
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(dummy_request_id, chunk);
+        context.process_response_chunk(cx, dummy_request_id, chunk);
         context.process_response_eof(
             cx,
             dummy_request_id,
