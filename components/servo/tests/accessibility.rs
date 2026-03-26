@@ -8,6 +8,8 @@ mod common;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
+use accesskit::{NodeId, Role, TreeId, TreeUpdate};
+use accesskit_consumer::TreeChangeHandler;
 use servo::{LoadStatus, Preferences, WebViewBuilder};
 use url::Url;
 
@@ -15,7 +17,7 @@ use crate::common::{ServoTest, WebViewDelegateImpl};
 
 struct NoOpChangeHandler;
 
-impl accesskit_consumer::TreeChangeHandler for NoOpChangeHandler {
+impl TreeChangeHandler for NoOpChangeHandler {
     fn node_added(&mut self, _: &accesskit_consumer::Node) {}
     fn node_updated(&mut self, _: &accesskit_consumer::Node, _: &accesskit_consumer::Node) {}
     fn focus_moved(
@@ -46,18 +48,23 @@ fn test_basic_accessibility_update() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     let tree = build_tree(updates);
+
     let root_node = tree.state().root();
-    find_first_matching_node(root_node, |node| node.role() == accesskit::Role::ScrollView)
+    let scroll_view = find_first_matching_node(root_node, |node| node.role() == Role::ScrollView)
         .expect("Tree should include a scroll view corresponding to the WebView.");
+    let scroll_view_children = scroll_view.children().collect::<Vec<_>>();
+    assert_eq!(scroll_view_children.len(), 1);
+    let graft_node = scroll_view_children[0];
+    assert!(graft_node.is_graft());
 }
 
 fn wait_for_min_updates(
     servo_test: &ServoTest,
     delegate: Rc<WebViewDelegateImpl>,
     min_num_updates: usize,
-) -> Vec<accesskit::TreeUpdate> {
+) -> Vec<TreeUpdate> {
     let captured_delegate = delegate.clone();
     servo_test.spin(move || {
         captured_delegate.last_accesskit_tree_updates.borrow().len() < min_num_updates
@@ -70,18 +77,18 @@ fn wait_for_min_updates(
         .collect()
 }
 
-fn build_tree(tree_updates: Vec<accesskit::TreeUpdate>) -> accesskit_consumer::Tree {
+fn build_tree(tree_updates: Vec<TreeUpdate>) -> accesskit_consumer::Tree {
     let first_update = tree_updates[0].clone();
     let tree_id = first_update.tree_id;
 
     // We need to make a TreeUpdate with a TreeId of ROOT, which can have the subtrees grafted in
-    let root_node_id = accesskit::NodeId(0x0);
-    let mut root_node = accesskit::Node::new(accesskit::Role::GenericContainer);
+    let root_node_id = NodeId(0x0);
+    let mut root_node = accesskit::Node::new(Role::GenericContainer);
 
     // We need to make a graft node so that we have a non-graft node to set as the initial focused
     // node for the tree.
-    let graft_node_id = accesskit::NodeId(0x1);
-    let mut graft_node = accesskit::Node::new(accesskit::Role::GenericContainer);
+    let graft_node_id = NodeId(0x1);
+    let mut graft_node = accesskit::Node::new(Role::GenericContainer);
     graft_node.set_tree_id(tree_id);
 
     root_node.set_children(vec![graft_node_id]);
@@ -92,10 +99,10 @@ fn build_tree(tree_updates: Vec<accesskit::TreeUpdate>) -> accesskit_consumer::T
         toolkit_version: None,
     };
 
-    let root_update = accesskit::TreeUpdate {
+    let root_update = TreeUpdate {
         nodes: vec![(root_node_id, root_node), (graft_node_id, graft_node)],
         tree: Some(root_tree),
-        tree_id: accesskit::TreeId::ROOT,
+        tree_id: TreeId::ROOT,
         focus: root_node_id,
     };
 
