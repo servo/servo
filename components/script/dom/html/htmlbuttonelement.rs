@@ -13,6 +13,7 @@ use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
@@ -36,6 +37,7 @@ use crate::dom::html::htmlformelement::{
 };
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
+use crate::dom::types::HTMLInputElement;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -477,7 +479,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
-    fn activation_behavior(&self, _event: &Event, target: &EventTarget, can_gc: CanGc) {
+    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc) {
         // Step 2. If element's node document is not fully active, then return.
         if !target
             .downcast::<Node>()
@@ -515,6 +517,22 @@ impl Activatable for HTMLButtonElement {
                 return;
             }
         }
+        // Adhoc, this step is needed so that file inputs button activates the input.
+        if let Some(pseudo_element) = self.upcast::<Node>().implemented_pseudo_element() {
+            if pseudo_element == PseudoElement::FileSelectorButton {
+                let Some(parent) = self.upcast::<Node>().parent_in_flat_tree() else {
+                    return;
+                };
+
+                parent
+                    .downcast::<HTMLInputElement>()
+                    .expect("File select button should always be a child of an input element")
+                    .activation_behavior(event, target, can_gc);
+            }
+
+            return;
+        }
+
         // Step 4. Let target be the result of running element's get the commandfor-associated
         // element.
         // Step 5. If target is not null:

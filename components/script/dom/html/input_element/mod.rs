@@ -889,8 +889,7 @@ impl HTMLInputElement {
             InputType::Radio(_) |
             InputType::Image(_) |
             InputType::Hidden(_) |
-            InputType::Range(_) |
-            InputType::File(_) => input_type.as_specific().value_for_shadow_dom(self),
+            InputType::Range(_) => input_type.as_specific().value_for_shadow_dom(self),
             _ => {
                 if let Some(attribute_value) = self
                     .upcast::<Element>()
