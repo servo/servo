@@ -4,9 +4,9 @@
 
 use std::rc::Rc;
 
-use base::generic_channel;
 use dom_struct::dom_struct;
 use embedder_traits::{AllowOrDeny, EmbedderMsg};
+use servo_base::generic_channel;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentVisibilityState,
