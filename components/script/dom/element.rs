@@ -5538,6 +5538,16 @@ impl Element {
         self.set_state(ElementState::MODAL, value);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
+    pub(crate) fn popover_open_state(&self) -> bool {
+        self.state.get().contains(ElementState::POPOVER_OPEN)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-visibility-state>
+    pub(crate) fn set_popover_open_state(&self, value: bool) {
+        self.set_state(ElementState::POPOVER_OPEN, value);
+    }
+
     pub(crate) fn set_target_state(&self, value: bool) {
         self.set_state(ElementState::URLTARGET, value)
     }

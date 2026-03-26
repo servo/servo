@@ -12,7 +12,9 @@ use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
+use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::script_runtime::temp_cx;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
@@ -114,11 +116,26 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
             // Step 4. Return the keyword corresponding to the value of command.
             CommandState::Close => DOMString::from("close"),
             CommandState::ShowModal => DOMString::from("show-modal"),
+            CommandState::TogglePopover => DOMString::from("toggle-popover"),
+            CommandState::HidePopover => DOMString::from("hide-popover"),
+            CommandState::ShowPopover => DOMString::from("show-popover"),
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-command
     make_setter!(SetCommand, "command");
+
+    // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
+    make_enumerated_getter!(
+        PopoverTargetAction,
+        "popovertargetaction",
+        "toggle" | "show" | "hide",
+        missing => "toggle",
+        invalid => "toggle"
+    );
+
+    // https://html.spec.whatwg.org/multipage/#dom-popovertargetaction
+    make_setter!(SetPopoverTargetAction, "popovertargetaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled, "disabled");
@@ -300,6 +317,51 @@ impl HTMLButtonElement {
         unreachable!("Button element must be in a document or document fragment");
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#popover-target-element>
+    pub(crate) fn popover_target_element(&self) -> Option<DomRoot<Element>> {
+        // 1. If node is not a button, then return null.
+        // 2. If node is disabled, then return null.
+        if self.Disabled() {
+            return None;
+        }
+
+        // 3. If node has a form owner and node is a submit button, then return null.
+        if self.form_owner().is_some() && self.button_type.get() == ButtonType::Submit {
+            return None;
+        }
+
+        // 4. Let popoverElement be the result of running node's get the popovertarget-associated element.
+        let popover_target_value = self
+            .upcast::<Element>()
+            .get_attribute(&local_name!("popovertarget"))?
+            .Value();
+
+        let root_node = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
+
+        let popover_element = if let Some(document) = root_node.downcast::<Document>() {
+            document.GetElementById(popover_target_value)
+        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
+            document_fragment.GetElementById(popover_target_value)
+        } else {
+            unreachable!("Button element must be in a document or document fragment")
+        };
+
+        // 5. If popoverElement is null, then return null.
+        // 6. If popoverElement's popover attribute is in the No Popover state, then return null.
+        // 7. Return popoverElement.
+        if let Some(popover_element) = popover_element {
+            if let Some(popover_element) = popover_element.downcast::<HTMLElement>() {
+                if popover_element.GetPopover().is_some() {
+                    return Some(DomRoot::from_ref(popover_element.upcast()));
+                }
+            }
+        }
+
+        None
+    }
+
     fn command_state(&self) -> CommandState {
         let command = self
             .upcast::<Element>()
@@ -313,6 +375,15 @@ impl HTMLButtonElement {
         }
         if value == "show-modal" {
             return CommandState::ShowModal;
+        }
+        if value == "toggle-popover" {
+            return CommandState::TogglePopover;
+        }
+        if value == "show-popover" {
+            return CommandState::ShowPopover;
+        }
+        if value == "hide-popover" {
+            return CommandState::HidePopover;
         }
 
         CommandState::Unknown
@@ -335,11 +406,17 @@ impl HTMLButtonElement {
         if !target.is_html_element() {
             return false;
         }
-        // TODO Step 4. If command is in any of the following states:
+        // Step 4. If command is in any of the following states:
         // - Toggle Popover
         // - Show Popover
         // - Hide Popover
         // then return true.
+        if matches!(
+            command,
+            CommandState::TogglePopover | CommandState::ShowPopover | CommandState::HidePopover
+        ) {
+            return true;
+        }
         // Step 5. If this standard does not define is valid command steps for target's local name, then return false.
         // Step 6. Otherwise, return the result of running target's corresponding is valid command steps given command.
         vtable_for(target.upcast::<Node>()).is_valid_command_steps(command)
@@ -352,6 +429,67 @@ impl HTMLButtonElement {
         self.upcast::<Element>()
             .get_attribute(&local_name!("value"))
             .map(|attribute| attribute.Value())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#popover-target-attribute-activation-behavior>
+    pub(crate) fn popover_target_attribute_activation_behavior(
+        &self,
+        cx: &mut JSContext,
+        _event_target: &EventTarget,
+    ) {
+        // 1. Let popover be node's popover target element.
+        let popover = self.popover_target_element();
+
+        // 2. If popover is null, then return.
+        if popover.is_none() {
+            return;
+        }
+        let popover = popover.unwrap();
+
+        // TODO: 3. If eventTarget is a shadow-including inclusive descendant of popover and popover
+        // is a shadow-including descendant of node, then return.
+
+        // 4. If node's popovertargetaction attribute is in the show state and popover's popover
+        // visibility state is showing, then return.
+        if self.PopoverTargetAction() == DOMString::from("show") && popover.popover_open_state() {
+            return;
+        }
+
+        // 5. If node's popovertargetaction attribute is in the hide state and popover's popover
+        // visibility state is hidden, then return.
+        if self.PopoverTargetAction() == DOMString::from("hide") && !popover.popover_open_state() {
+            return;
+        }
+
+        let popover_element = popover.downcast::<HTMLElement>().unwrap();
+        // 6. If popover's popover visibility state is showing, then
+        if popover.popover_open_state() {
+            // run the hide popover algorithm given popover, true, true, false, and node.
+            popover_element
+                .hide_popover(
+                    cx,
+                    true,
+                    true,
+                    false,
+                    Some(DomRoot::from_ref(self.upcast::<HTMLElement>())),
+                )
+                .expect("This shouldn't fail in this codepath");
+        }
+        // 7. Otherwise, if popover's popover visibility state is hidden and the result of running
+        // check popover validity given popover, false, false, and null is true,
+        else if popover_element
+            .check_popover_validity(false, false, None)
+            .expect("This shouldn't fail in this codepath")
+        {
+            // then run show popover given popover, false, and node.
+            popover_element
+                .show_popover(
+                    cx,
+                    false,
+                    Some(DomRoot::from_ref(self.upcast::<HTMLElement>())),
+                )
+                .expect("This shouldn't fail in this codepath");
+        }
     }
 }
 
@@ -477,7 +615,11 @@ impl Activatable for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
+    #[expect(unsafe_code)]
     fn activation_behavior(&self, _event: &Event, target: &EventTarget, can_gc: CanGc) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         // Step 2. If element's node document is not fully active, then return.
         if !target
             .downcast::<Node>()
@@ -528,7 +670,7 @@ impl Activatable for HTMLButtonElement {
             // Step 5.3 Let continue be the result of firing an event named command at target, using
             // CommandEvent, with its command attribute initialized to command, its source attribute
             // initialized to element, and its cancelable attribute initialized to true.
-            // TODO source attribute
+            // source attribute
             // Step 5.4 If continue is false, then return.
             let event = CommandEvent::new(
                 &self.owner_window(),
@@ -553,20 +695,101 @@ impl Activatable for HTMLButtonElement {
             if command == CommandState::Custom {
                 return;
             }
-            // TODO Steps 5.7, 5.8, 5.9
-            // Step 5.10 Otherwise, if this standard defines command steps for target's local name,
-            // then run the corresponding command steps given target, element, and command.
-            let _ = vtable_for(target_node).command_steps(DomRoot::from_ref(self), command, can_gc);
+
+            let element_target = target.downcast::<HTMLElement>().unwrap();
+            // Step 5.7. If command is in the Hide Popover state:
+            if command == CommandState::HidePopover {
+                // Step 5.7.1. If the result of running check popover validity given target, true,
+                // false, and null is true, then run the hide popover algorithm given target, true,
+                // true, false, and element.
+                if element_target
+                    .check_popover_validity(true, false, None)
+                    .expect("This should never fail in this codepath")
+                {
+                    element_target
+                        .hide_popover(
+                            cx,
+                            true,
+                            true,
+                            false,
+                            Some(DomRoot::from_ref(self.upcast::<HTMLElement>())),
+                        )
+                        .expect("This should never fail in this codepath");
+                }
+            }
+            // Step 5.8. Otherwise, if command is in the Toggle Popover state:
+            else if command == CommandState::TogglePopover {
+                // Step 5.8.1. If the result of running check popover validity given target, false,
+                // false, and null is true, then run the show popover algorithm given target, false,
+                // and element.
+                if element_target
+                    .check_popover_validity(false, false, None)
+                    .expect("This should never fail in this codepath")
+                {
+                    element_target
+                        .show_popover(
+                            cx,
+                            false,
+                            Some(DomRoot::from_ref(self.upcast::<HTMLElement>())),
+                        )
+                        .expect("This should never fail in this codepath");
+                }
+                // Step 5.8.2. Otherwise, if the result of running check popover validity given
+                // target, true, false, and null is true, then run the hide popover algorithm given
+                // target, true, true, false, and element.
+                else if element_target
+                    .check_popover_validity(true, false, None)
+                    .expect("This should never fail in this codepath")
+                {
+                    element_target
+                        .hide_popover(
+                            cx,
+                            true,
+                            true,
+                            false,
+                            Some(DomRoot::from_ref(self.upcast::<HTMLElement>())),
+                        )
+                        .expect("This should never fail in this codepath");
+                }
+            // Step 5.9. Otherwise, if command is in the Show Popover state:
+            } else if command == CommandState::ShowPopover {
+                // Step 5.9.1. If the result of running check popover validity given target, false,
+                // false, and null is true, then run the show popover algorithm given target, false,
+                // and element.
+                if element_target
+                    .check_popover_validity(false, false, None)
+                    .expect("This should never fail in this codepath")
+                {
+                    element_target
+                        .show_popover(
+                            cx,
+                            false,
+                            Some(DomRoot::from_ref(self.upcast::<HTMLElement>())),
+                        )
+                        .expect("This should never fail in this codepath");
+                }
+            } else {
+                // Step 5.10 Otherwise, if this standard defines command steps for target's local name,
+                // then run the corresponding command steps given target, element, and command.
+                let _ =
+                    vtable_for(target_node).command_steps(DomRoot::from_ref(self), command, can_gc);
+            }
+        } else {
+            // Step 6 Otherwise, run the popover target attribute activation behavior given element
+            // and event's target.
+            self.popover_target_attribute_activation_behavior(cx, target)
         }
-        // TODO Step 6 Otherwise, run the popover target attribute activation behavior given element
-        // and event's target.
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#attr-button-command>
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum CommandState {
     Unknown,
     Custom,
+    TogglePopover,
+    ShowPopover,
+    HidePopover,
     ShowModal,
     Close,
 }
