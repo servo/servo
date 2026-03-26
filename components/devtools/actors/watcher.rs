@@ -269,7 +269,7 @@ impl Actor for WatcherActor {
                         let _ = request.write_json_packet(&worker_msg);
                     }
                 } else if target_type == "service_worker" {
-                    for worker_name in &*root.service_workers.borrow() {
+                    for worker_name in &*root_actor.service_workers.borrow() {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
