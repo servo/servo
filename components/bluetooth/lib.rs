@@ -14,7 +14,7 @@ use std::thread;
 use std::time::Duration;
 
 use bitflags::bitflags;
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{BluetoothDeviceDescription, EmbedderMsg, EmbedderProxy};
 use log::warn;
 use rand::{self, Rng};
 #[cfg(not(feature = "native-bluetooth"))]
@@ -485,7 +485,7 @@ impl BluetoothManager {
             return None;
         }
 
-        let mut dialog_rows: Vec<String> = vec![];
+        let mut device_descriptions = Vec::with_capacity(devices.len());
         for device in devices {
             let address = device.get_address().unwrap_or_default();
             let name = device.get_name().await.unwrap_or_else(|_| {
@@ -496,7 +496,7 @@ impl BluetoothManager {
                 };
                 format!("Unknown ({}...)", short)
             });
-            dialog_rows.extend_from_slice(&[address, name]);
+            device_descriptions.push(BluetoothDeviceDescription { address, name });
         }
 
         let (ipc_sender, ipc_receiver) =
@@ -504,7 +504,7 @@ impl BluetoothManager {
         self.embedder_proxy
             .send(EmbedderMsg::GetSelectedBluetoothDevice(
                 webview_id,
-                dialog_rows,
+                device_descriptions,
                 ipc_sender,
             ));
 

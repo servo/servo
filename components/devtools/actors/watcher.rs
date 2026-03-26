@@ -339,10 +339,10 @@ impl Actor for WatcherActor {
                             }
                         },
                         "console-message" | "error-message" => {
-                            let console = registry.find::<ConsoleActor>(&target.console);
-                            console.received_first_message_from_client();
+                            let console_actor = registry.find::<ConsoleActor>(&target.console_name);
+                            console_actor.received_first_message_from_client();
                             target.resources_array(
-                                console.get_cached_messages(registry, resource),
+                                console_actor.get_cached_messages(registry, resource),
                                 resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,
@@ -350,10 +350,11 @@ impl Actor for WatcherActor {
 
                             for worker_name in &*root.workers.borrow() {
                                 let worker = registry.find::<WorkerActor>(worker_name);
-                                let console = registry.find::<ConsoleActor>(&worker.console);
+                                let console_actor =
+                                    registry.find::<ConsoleActor>(&worker.console_name);
 
                                 worker.resources_array(
-                                    console.get_cached_messages(registry, resource),
+                                    console_actor.get_cached_messages(registry, resource),
                                     resource.into(),
                                     ResourceArrayType::Available,
                                     &mut request,
@@ -423,22 +424,22 @@ impl ResourceAvailable for WatcherActor {
 
 impl WatcherActor {
     pub fn new(
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
         browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {
-        let network_parent = NetworkParentActor::new(actors.new_name::<NetworkParentActor>());
+        let network_parent = NetworkParentActor::new(registry.new_name::<NetworkParentActor>());
         let target_configuration =
-            TargetConfigurationActor::new(actors.new_name::<TargetConfigurationActor>());
+            TargetConfigurationActor::new(registry.new_name::<TargetConfigurationActor>());
         let thread_configuration =
-            ThreadConfigurationActor::new(actors.new_name::<ThreadConfigurationActor>());
+            ThreadConfigurationActor::new(registry.new_name::<ThreadConfigurationActor>());
         let breakpoint_list = BreakpointListActor::new(
-            actors.new_name::<BreakpointListActor>(),
+            registry.new_name::<BreakpointListActor>(),
             browsing_context_actor.clone(),
         );
 
         let watcher = Self {
-            name: actors.new_name::<WatcherActor>(),
+            name: registry.new_name::<WatcherActor>(),
             browsing_context_actor,
             network_parent: network_parent.name(),
             target_configuration: target_configuration.name(),
@@ -447,10 +448,10 @@ impl WatcherActor {
             session_context,
         };
 
-        actors.register(network_parent);
-        actors.register(target_configuration);
-        actors.register(thread_configuration);
-        actors.register(breakpoint_list);
+        registry.register(network_parent);
+        registry.register(target_configuration);
+        registry.register(thread_configuration);
+        registry.register(breakpoint_list);
 
         watcher
     }

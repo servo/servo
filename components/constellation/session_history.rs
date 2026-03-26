@@ -5,10 +5,10 @@
 use std::cmp::PartialEq;
 use std::fmt;
 
-use constellation_traits::LoadData;
 use embedder_traits::ViewportDetails;
 use log::debug;
 use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
+use servo_constellation_traits::LoadData;
 use servo_url::ServoUrl;
 
 use crate::browsingcontext::NewBrowsingContextInfo;

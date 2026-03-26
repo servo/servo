@@ -6,16 +6,16 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use canvas_traits::canvas::{
-    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
-    LineOptions, Path, ShadowOptions, TextRun,
-};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::FontIdentifier;
 use kurbo::Shape;
 use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_base::generic_channel::GenericSharedMemory;
+use servo_canvas_traits::canvas::{
+    CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
+    LineOptions, Path, ShadowOptions, TextRun,
+};
 use vello_cpu::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 
@@ -511,7 +511,7 @@ fn snapshot_as_pixmap(mut snapshot: Snapshot) -> Arc<vello_cpu::Pixmap> {
 
 impl Convert<vello_cpu::PaintType> for FillOrStrokeStyle {
     fn convert(self) -> vello_cpu::PaintType {
-        use canvas_traits::canvas::FillOrStrokeStyle::*;
+        use servo_canvas_traits::canvas::FillOrStrokeStyle::*;
         match self {
             Color(absolute_color) => vello_cpu::PaintType::Solid(absolute_color.convert()),
             LinearGradient(style) => {

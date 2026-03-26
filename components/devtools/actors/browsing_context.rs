@@ -142,10 +142,10 @@ pub(crate) struct BrowsingContextActor {
     active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
     pub browsing_context_id: DevtoolsBrowsingContextId,
     accessibility: String,
-    pub console: String,
+    pub console_name: String,
     css_properties: String,
     pub(crate) inspector: String,
-    reflow: String,
+    reflow_name: String,
     style_sheets: String,
     pub thread: String,
     _tab: String,
@@ -200,23 +200,23 @@ impl Actor for BrowsingContextActor {
 impl BrowsingContextActor {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
-        console: String,
+        console_name: String,
         browser_id: DevtoolsBrowserId,
         browsing_context_id: DevtoolsBrowsingContextId,
         page_info: DevtoolsPageInfo,
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
     ) -> BrowsingContextActor {
-        let name = actors.new_name::<BrowsingContextActor>();
+        let name = registry.new_name::<BrowsingContextActor>();
         let DevtoolsPageInfo {
             title,
             url,
             is_top_level_global,
         } = page_info;
 
-        let accessibility = AccessibilityActor::new(actors.new_name::<AccessibilityActor>());
+        let accessibility = AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -225,24 +225,24 @@ impl BrowsingContextActor {
         })()
         .unwrap_or_default();
         let css_properties =
-            CssPropertiesActor::new(actors.new_name::<CssPropertiesActor>(), properties);
+            CssPropertiesActor::new(registry.new_name::<CssPropertiesActor>(), properties);
 
-        let inspector = InspectorActor::register(actors, name.clone());
+        let inspector = InspectorActor::register(registry, name.clone());
 
-        let reflow = ReflowActor::new(actors.new_name::<ReflowActor>());
+        let reflow_actor = ReflowActor::new(registry.new_name::<ReflowActor>());
 
-        let style_sheets = StyleSheetsActor::new(actors.new_name::<StyleSheetsActor>());
+        let style_sheets = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
 
-        let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
+        let tabdesc = TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
 
         let thread = ThreadActor::new(
-            actors.new_name::<ThreadActor>(),
+            registry.new_name::<ThreadActor>(),
             script_sender.clone(),
             Some(name.clone()),
         );
 
         let watcher = WatcherActor::new(
-            actors,
+            registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
         );
@@ -260,23 +260,23 @@ impl BrowsingContextActor {
             browser_id,
             browsing_context_id,
             accessibility: accessibility.name(),
-            console,
+            console_name,
             css_properties: css_properties.name(),
             inspector,
-            reflow: reflow.name(),
+            reflow_name: reflow_actor.name(),
             style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
             thread: thread.name(),
             watcher: watcher.name(),
         };
 
-        actors.register(accessibility);
-        actors.register(css_properties);
-        actors.register(reflow);
-        actors.register(style_sheets);
-        actors.register(tabdesc);
-        actors.register(thread);
-        actors.register(watcher);
+        registry.register(accessibility);
+        registry.register(css_properties);
+        registry.register(reflow_actor);
+        registry.register(style_sheets);
+        registry.register(tabdesc);
+        registry.register(thread);
+        registry.register(watcher);
 
         target
     }
@@ -404,10 +404,10 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             outer_window_id: self.outer_window_id().value(),
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
-            console_actor: self.console.clone(),
+            console_actor: self.console_name.clone(),
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
-            reflow_actor: self.reflow.clone(),
+            reflow_actor: self.reflow_name.clone(),
             style_sheets_actor: self.style_sheets.clone(),
             thread_actor: self.thread.clone(),
             target_type: TargetType::Frame,

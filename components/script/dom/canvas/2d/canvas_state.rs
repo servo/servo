@@ -8,12 +8,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use app_units::Au;
-use canvas_traits::canvas::{
-    Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
-    FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
-    LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
-};
-use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -30,6 +24,12 @@ use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSender;
 use servo_base::{Epoch, generic_channel};
+use servo_canvas_traits::canvas::{
+    Canvas2dMsg, CanvasFont, CanvasId, CanvasMsg, CompositionOptions, CompositionOrBlending,
+    FillOrStrokeStyle, FillRule, GlyphAndPosition, LineCapStyle, LineJoinStyle, LineOptions,
+    LinearGradientStyle, Path, RadialGradientStyle, RepetitionStyle, ShadowOptions, TextRun,
+};
+use servo_constellation_traits::ScriptToConstellationMessage;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -2350,14 +2350,30 @@ impl CanvasState {
         let mut current_text_run = UnshapedTextRun::new(language);
         let mut current_text_run_start_index = 0;
 
-        for (index, character) in text.char_indices() {
-            // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
-            // have support for color glyphs.
-            let script = Script::from(character);
-            let font =
-                font_group.find_by_codepoint(font_context, character, None, x_language.clone());
+        // Variation Selectors (U+FE00–U+FE0F) and Variation Selectors Supplement (U+E0100–U+E01EF)
+        // are used to select specific glyph variants (e.g., text vs. emoji presentation).
+        // They must be attached to the preceding base character and do not start new runs.
+        // - VS1–VS16 (U+FE00..U+FE0F) in the Variation Selectors block.
+        // - VS17–VS256 (U+E0100..U+E01EF) in the Variation Selectors Supplement block.
+        fn is_variation_selector(c: char) -> bool {
+            matches!(c as u32, 0xFE00..=0xFE0F | 0xE0100..=0xE01EF)
+        }
 
-            if !current_text_run.script_and_font_compatible(script, &font) {
+        for (index, character) in text.char_indices() {
+            let next_char = text[index + character.len_utf8()..].chars().next();
+
+            let script = Script::from(character);
+
+            let font = font_group.find_by_codepoint(
+                font_context,
+                character,
+                next_char,
+                x_language.clone(),
+            );
+
+            if !is_variation_selector(character) &&
+                !current_text_run.script_and_font_compatible(script, &font)
+            {
                 let previous_text_run = std::mem::replace(
                     &mut current_text_run,
                     UnshapedTextRun {
@@ -2368,7 +2384,7 @@ impl CanvasState {
                     },
                 );
                 current_text_run_start_index = index;
-                runs.push(previous_text_run)
+                runs.push(previous_text_run);
             }
 
             current_text_run.string =

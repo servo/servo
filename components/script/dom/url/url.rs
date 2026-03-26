@@ -24,8 +24,8 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::urlhelper::UrlHelper;
-use crate::dom::urlsearchparams::URLSearchParams;
+use crate::dom::url::urlhelper::UrlHelper;
+use crate::dom::url::urlsearchparams::URLSearchParams;
 use crate::script_runtime::CanGc;
 
 /// <https://url.spec.whatwg.org/#url>

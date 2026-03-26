@@ -4,11 +4,11 @@
 
 use std::cell::Cell;
 
-use constellation_traits::DomRect;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomRectId, DomRectIndex};
+use servo_constellation_traits::DomRect;
 
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
     DOMRectInit, DOMRectReadOnlyMethods,

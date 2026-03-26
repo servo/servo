@@ -6,7 +6,7 @@
 //! defining types that cross the process boundary from the embedding/rendering layer all the way
 //! to script, thus it should have very minimal dependencies on other parts of Servo. If a type
 //! is not exposed in the API or doesn't involve messages sent to the embedding/libservo layer, it
-//! is probably a better fit for the `constellation_traits` crate.
+//! is probably a better fit for the `servo_constellation_traits` crate.
 
 pub mod embedder_controls;
 pub mod input_events;
@@ -424,6 +424,12 @@ impl From<ConsoleLogLevel> for log::Level {
     }
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct BluetoothDeviceDescription {
+    pub address: String,
+    pub name: String,
+}
+
 /// Messages towards the embedder.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
@@ -483,7 +489,11 @@ pub enum EmbedderMsg {
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
+    GetSelectedBluetoothDevice(
+        WebViewId,
+        Vec<BluetoothDeviceDescription>,
+        GenericSender<Option<String>>,
+    ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
     /// Report a complete sampled profile

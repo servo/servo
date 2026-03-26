@@ -10,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "constellation_traits"
+name = "servo_constellation_traits"
 path = "lib.rs"
 
 [features]
@@ -18,7 +18,6 @@ bluetooth = []
 webgpu = ["wgpu-core"]
 
 [dependencies]
-canvas_traits = { workspace = true }
 content-security-policy = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -38,6 +37,7 @@ profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-base = { workspace = true }
+servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
 storage_traits = { workspace = true }

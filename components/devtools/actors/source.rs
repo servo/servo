@@ -60,11 +60,11 @@ impl SourceManager {
             .insert(actor_name.to_owned());
     }
 
-    pub fn source_forms(&self, actors: &ActorRegistry) -> Vec<SourceForm> {
+    pub fn source_forms(&self, registry: &ActorRegistry) -> Vec<SourceForm> {
         self.source_actor_names
             .borrow()
             .iter()
-            .map(|actor_name| actors.find::<SourceActor>(actor_name).source_form())
+            .map(|actor_name| registry.find::<SourceActor>(actor_name).source_form())
             .collect()
     }
 
@@ -166,7 +166,7 @@ impl SourceActor {
 
     #[expect(clippy::too_many_arguments)]
     pub fn new_registered(
-        actors: &ActorRegistry,
+        registry: &ActorRegistry,
         pipeline_id: PipelineId,
         url: ServoUrl,
         content: Option<String>,
@@ -175,7 +175,7 @@ impl SourceActor {
         introduction_type: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let source_actor_name = actors.new_name::<Self>();
+        let source_actor_name = registry.new_name::<Self>();
 
         let source_actor = SourceActor::new(
             source_actor_name.clone(),
@@ -186,8 +186,8 @@ impl SourceActor {
             introduction_type,
             script_sender,
         );
-        actors.register(source_actor);
-        actors.register_source_actor(pipeline_id, &source_actor_name);
+        registry.register(source_actor);
+        registry.register_source_actor(pipeline_id, &source_actor_name);
 
         source_actor_name
     }

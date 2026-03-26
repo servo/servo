@@ -19,7 +19,7 @@ use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 #[derive(MallocSizeOf)]
 pub(crate) struct HighlighterActor {
     pub name: String,
-    pub browsing_context: String,
+    pub browsing_context_name: String,
 }
 
 #[derive(Serialize)]
@@ -103,11 +103,12 @@ impl HighlighterActor {
         registry: &ActorRegistry,
     ) {
         let node_id = node_actor.map(|node_actor| registry.actor_to_script(node_actor));
-        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
-        browsing_context
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
+        browsing_context_actor
             .script_chan()
             .send(DevtoolScriptControlMsg::HighlightDomNode(
-                browsing_context.pipeline_id(),
+                browsing_context_actor.pipeline_id(),
                 node_id,
             ))
             .unwrap();

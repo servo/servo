@@ -5,9 +5,6 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
 
-use constellation_traits::{
-    ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
-};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::Heap;
@@ -17,6 +14,9 @@ use net_traits::CoreResourceMsg;
 use profile_traits::generic_channel;
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::HistoryStateId;
+use servo_constellation_traits::{
+    ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
+};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;

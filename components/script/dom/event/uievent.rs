@@ -10,7 +10,6 @@ use js::rust::HandleObject;
 use servo_config::pref;
 use stylo_atoms::Atom;
 
-use super::node::NodeTraits;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
@@ -23,6 +22,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

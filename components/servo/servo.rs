@@ -8,20 +8,6 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
-#[cfg(all(
-    not(target_os = "windows"),
-    not(target_os = "ios"),
-    not(target_os = "android"),
-    not(target_arch = "arm"),
-    not(target_arch = "aarch64"),
-    not(target_env = "ohos"),
-))]
-use constellation::content_process_sandbox_profile;
-use constellation::{
-    Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
-    NewScriptEventLoopProcessInfo, UnprivilegedContent,
-};
-use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -64,6 +50,20 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_config::opts::Opts;
 use servo_config::prefs::{PrefValue, Preferences};
 use servo_config::{opts, pref, prefs};
+#[cfg(all(
+    not(target_os = "windows"),
+    not(target_os = "ios"),
+    not(target_os = "android"),
+    not(target_arch = "arm"),
+    not(target_arch = "aarch64"),
+    not(target_env = "ohos"),
+))]
+use servo_constellation::content_process_sandbox_profile;
+use servo_constellation::{
+    Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
+    NewScriptEventLoopProcessInfo, UnprivilegedContent,
+};
+use servo_constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use servo_geometry::{
     DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
 };
@@ -84,8 +84,8 @@ use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
 use crate::site_data_manager::SiteDataManager;
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, EmbedderControl, FilePicker, NavigationRequest,
-    PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
+    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
+    FilePicker, NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -564,8 +564,7 @@ impl ServoInner {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().show_bluetooth_device_dialog(
                         webview,
-                        items,
-                        response_sender,
+                        BluetoothDeviceSelectionRequest::new(items, response_sender),
                     );
                 }
             },

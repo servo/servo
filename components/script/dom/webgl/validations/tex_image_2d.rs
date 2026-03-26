@@ -4,8 +4,8 @@
 
 use std::{self, cmp, fmt};
 
-use canvas_traits::webgl::WebGLError::*;
-use canvas_traits::webgl::{TexDataType, TexFormat};
+use servo_canvas_traits::webgl::WebGLError::*;
+use servo_canvas_traits::webgl::{TexDataType, TexFormat};
 
 use super::WebGLValidator;
 use super::types::TexImageTarget;
