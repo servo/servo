@@ -79,11 +79,12 @@ use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::FormControl;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
-use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::input_element::HTMLInputElement;
+use crate::dom::input_element::input_type::InputType;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::types::ShadowRoot;
@@ -1265,7 +1266,8 @@ pub(crate) fn handle_will_send_keys(
 
     // Step 6: Let file be true if element is input element
     // in the file upload state, or false otherwise
-    let is_file_input = input_element.is_some_and(|e| e.input_type() == InputType::File);
+    let is_file_input =
+        input_element.is_some_and(|e| matches!(*e.input_type(), InputType::File(_)));
 
     // Step 7. If file is false or the session's strict file interactability
     if !is_file_input || strict_file_interactability {
@@ -1784,22 +1786,22 @@ fn element_is_mutable_form_control(element: &Element) -> bool {
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
         input_element.is_mutable() &&
             matches!(
-                input_element.input_type(),
-                InputType::Text |
-                    InputType::Search |
-                    InputType::Url |
-                    InputType::Tel |
-                    InputType::Email |
-                    InputType::Password |
-                    InputType::Date |
-                    InputType::Month |
-                    InputType::Week |
-                    InputType::Time |
-                    InputType::DatetimeLocal |
-                    InputType::Number |
-                    InputType::Range |
-                    InputType::Color |
-                    InputType::File
+                *input_element.input_type(),
+                InputType::Text(_) |
+                    InputType::Search(_) |
+                    InputType::Url(_) |
+                    InputType::Tel(_) |
+                    InputType::Email(_) |
+                    InputType::Password(_) |
+                    InputType::Date(_) |
+                    InputType::Month(_) |
+                    InputType::Week(_) |
+                    InputType::Time(_) |
+                    InputType::DatetimeLocal(_) |
+                    InputType::Number(_) |
+                    InputType::Range(_) |
+                    InputType::Color(_) |
+                    InputType::File(_)
             )
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.is_mutable()
@@ -1952,7 +1954,7 @@ pub(crate) fn handle_element_click(
                 // Step 4. If the element is an input element in the file upload state
                 // return error with error code invalid argument.
                 if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-                    if input_element.input_type() == InputType::File {
+                    if matches!(*input_element.input_type(), InputType::File(_)) {
                         return Err(ErrorStatus::InvalidArgument);
                     }
                 }
