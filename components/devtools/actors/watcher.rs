@@ -428,7 +428,8 @@ impl WatcherActor {
         browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {
-        let network_parent_actor = NetworkParentActor::new(registry.new_name::<NetworkParentActor>());
+        let network_parent_actor =
+            NetworkParentActor::new(registry.new_name::<NetworkParentActor>());
         let target_configuration =
             TargetConfigurationActor::new(registry.new_name::<TargetConfigurationActor>());
         let thread_configuration =
