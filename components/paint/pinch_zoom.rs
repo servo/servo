@@ -63,25 +63,25 @@ impl PinchZoom {
             .inverse()
             .expect("Should always be able to invert provided transform")
             .outer_transformed_rect(&rect);
-        rect.origin = rect.origin.clamp(
-            Point2D::origin(),
-            (self.unscaled_viewport_size - rect.size)
-                .to_vector()
-                .to_point(),
-        );
+
         let scale = self.unscaled_viewport_size.width / rect.width();
+
+        // Only clamp when visual viewport is larger than layout viewport.
+        if scale > 1.0 {
+            rect.origin = rect.origin.clamp(
+                Point2D::origin(),
+                (self.unscaled_viewport_size - rect.size)
+                    .to_vector()
+                    .to_point(),
+            );
+        }
+
         self.transform = Transform2D::identity()
             .then_translate(Vector2D::new(-rect.origin.x, -rect.origin.y))
             .then_scale(scale, scale);
     }
 
     pub(crate) fn set_zoom(&mut self, new_factor: f32, new_center: DevicePoint) {
-        if new_factor <= 1.0 {
-            self.zoom_factor = 1.0; // Update the zoom factor to 1.0 to avoid precision issues when zooming back in after zooming out fully.
-            self.transform = Transform2D::identity();
-            return;
-        }
-
         let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
 
         let magnification = self.zoom_factor / old_factor;
