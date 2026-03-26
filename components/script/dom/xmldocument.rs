@@ -50,6 +50,7 @@ impl XMLDocument {
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
+        can_gc: CanGc,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -73,6 +74,7 @@ impl XMLDocument {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 window.Document().creation_sandboxing_flag_set(),
+                can_gc,
             ),
         }
     }
@@ -109,6 +111,7 @@ impl XMLDocument {
                 inherited_insecure_requests_policy,
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
+                can_gc,
             )),
             window,
             can_gc,

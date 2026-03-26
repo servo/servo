@@ -70,11 +70,12 @@ use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use stylo_atoms::Atom;
+use time::Duration as TimeDuration;
 use url::{Host, Position};
 
-use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
+use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -131,6 +132,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
 };
+use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::{
@@ -548,7 +550,7 @@ pub(crate) struct Document {
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
     /// <https://drafts.csswg.org/web-animations/#timeline>
-    animation_timeline: DomRefCell<AnimationTimeline>,
+    timeline: Dom<DocumentTimeline>,
     /// Animations for this Document
     animations: Animations,
     /// Image Animation Manager for this Document
@@ -3888,6 +3890,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        can_gc: CanGc,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -4036,11 +4039,7 @@ impl Document {
             dirty_canvases: DomRefCell::new(Default::default()),
             has_pending_animated_image_update: Cell::new(false),
             selection: MutNullableDom::new(None),
-            animation_timeline: if pref!(layout_animations_test_enabled) {
-                DomRefCell::new(AnimationTimeline::new_for_testing())
-            } else {
-                DomRefCell::new(AnimationTimeline::new())
-            },
+            timeline: DocumentTimeline::new(window, can_gc).as_traced(),
             animations: Animations::new(),
             image_animation_manager: DomRefCell::new(ImageAnimationManager::default()),
             dirty_root: Default::default(),
@@ -4262,6 +4261,7 @@ impl Document {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 creation_sandboxing_flag_set,
+                can_gc,
             )),
             window,
             proto,
@@ -4901,8 +4901,8 @@ impl Document {
             .collect()
     }
 
-    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
-        self.animation_timeline.borrow_mut().advance_specific(delta);
+    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: TimeDuration) {
+        self.timeline.advance_specific(delta);
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
             .update_for_new_timeline_value(&self.window, current_timeline_value);
@@ -4915,7 +4915,9 @@ impl Document {
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
-        self.animation_timeline.borrow().current_value()
+        self.timeline
+            .upcast::<AnimationTimeline>()
+            .current_time_in_seconds()
     }
 
     pub(crate) fn animations(&self) -> &Animations {
@@ -4944,7 +4946,7 @@ impl Document {
     pub(crate) fn update_animations_and_send_events(&self, cx: &mut js::context::JSContext) {
         // Only update the time if it isn't being managed by a test.
         if !self.layout_animations_test_enabled {
-            self.animation_timeline.borrow_mut().update();
+            self.timeline.update(self.window());
         }
 
         // > 1. Update the current time of all timelines associated with doc passing now
@@ -6891,6 +6893,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         result
+    }
+
+    fn Timeline(&self) -> DomRoot<DocumentTimeline> {
+        self.timeline.as_rooted()
     }
 }
 

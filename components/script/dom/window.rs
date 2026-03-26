@@ -96,6 +96,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
+use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
@@ -2534,9 +2535,9 @@ impl Window {
 
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
-    pub(crate) fn advance_animation_clock(&self, delta_ms: i32) {
+    pub(crate) fn advance_animation_clock(&self, delta: TimeDuration) {
         self.Document()
-            .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
+            .advance_animation_timeline_for_testing(delta);
         ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
     }
 
@@ -3465,6 +3466,10 @@ impl Window {
 
     pub(crate) fn set_navigation_start(&self) {
         self.navigation_start.set(CrossProcessInstant::now());
+    }
+
+    pub(crate) fn navigation_start(&self) -> CrossProcessInstant {
+        self.navigation_start.get()
     }
 
     pub(crate) fn set_last_activation_timestamp(&self, time: UserActivationTimestamp) {

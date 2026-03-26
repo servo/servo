@@ -20,7 +20,6 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate stylo_atoms;
 
-mod animation_timeline;
 mod animations;
 mod css;
 mod script_window_proxies;

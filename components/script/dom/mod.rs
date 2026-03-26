@@ -214,6 +214,8 @@ pub(crate) mod abortsignal;
 #[expect(dead_code)]
 pub(crate) mod abstractrange;
 pub(crate) mod activation;
+pub(crate) mod animations;
+pub(crate) use self::animations::*;
 pub(crate) mod attr;
 pub(crate) mod audio;
 pub(crate) use self::audio::*;
