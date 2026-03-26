@@ -84,7 +84,7 @@ impl Location {
             history_handling
         };
         // Step 4. Navigate navigable to url using sourceDocument, with exceptionsEnabled set to true and historyHandling set to historyHandling.
-        navigate(&navigable, history_handling, false, load_data, CanGc::from_cx(cx));
+        navigate(navigable, history_handling, false, load_data, CanGc::from_cx(cx));
     }
 
     /// Navigate the relevant `Document`'s browsing context.

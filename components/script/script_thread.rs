@@ -120,7 +120,6 @@ use crate::dom::bindings::conversions::{
     ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
