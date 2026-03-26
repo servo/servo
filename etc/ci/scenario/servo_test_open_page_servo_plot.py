@@ -12,44 +12,55 @@
 from selenium.common import NoSuchElementException
 
 import common_function_for_servo_test
+import common_function_for_local
+import argparse
 from selenium.webdriver.common.by import By
-from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
+from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions, HostOptions
+from selenium import webdriver
 
-
-def operator():
+def operator(driver: webdriver = None):
     memory_logging_options = MemoryLoggingOptions(
-        log_to_file=True, plot=True, pre_time=0.2, post_time=1, verbose=True, reset_tab=True
+        log_to_file=True, plot=True, pre_time=0.2, post_time=1, verbose=True, reset_tab=True, host=HostOptions.MACOS
     )
-    memory_logging = NonBlockingMemoryLogging(memory_logging_options)
-    memory_logging.start()
+    with NonBlockingMemoryLogging(memory_logging_options) as memory_logging:
+        IMPLICIT_WAIT_TIME = 6
+        PAGE_URL = "https://servo.org"
+        if driver is None:
+            driver = common_function_for_servo_test.create_driver()
+        memory_logging.set_webdriver(driver)
+        memory_logging.event("Get servo.org")
+        driver.get(PAGE_URL)
 
-    IMPLICIT_WAIT_TIME = 6
-    PAGE_URL = "https://servo.org"
-    driver = common_function_for_servo_test.create_driver()
-    memory_logging.set_webdriver(driver)
-    memory_logging.event("Get servo.org")
-    driver.get(PAGE_URL)
+        print("Page loaded.")
+        memory_logging.event("Page loaded.")
+        # This is used to wait for element retrieval if not found
+        # and certain element click, element send key exceptions.
+        driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
-    print("Page loaded.")
-    memory_logging.event("Page loaded.")
-    # This is used to wait for element retrieval if not found
-    # and certain element click, element send key exceptions.
-    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
+        print("Finding components ...")
+        goal_css_selector1 = "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
 
-    print("Finding components ...")
-    goal_css_selector1 = "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
+        goal_css_selector2 = "#homeHero > div.hero-body > div.container > h1"
 
-    goal_css_selector2 = "#homeHero > div.hero-body > div.container > h1"
+        try:
+            driver.find_element(By.CSS_SELECTOR, goal_css_selector1)
+            driver.find_element(By.CSS_SELECTOR, goal_css_selector2)
+        except NoSuchElementException:
+            raise NoSuchElementException("Components not found. Test failed.")
 
-    try:
-        driver.find_element(By.CSS_SELECTOR, goal_css_selector1)
-        driver.find_element(By.CSS_SELECTOR, goal_css_selector2)
-    except NoSuchElementException:
-        raise NoSuchElementException("Components not found. Test failed.")
-
-    print("Find components successful!")
-    memory_logging.stop()
+        print("Find components successful!")
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "open_servo_org", session_history_max_length=0)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-l",
+        "--local",
+        action="store_true",
+        help="run the scenario locally",
+    )
+    args = parser.parse_args()
+    if args.local:
+        common_function_for_local.run_test(operator, "open_servo_org", session_history_max_length=0)
+    else:
+        common_function_for_servo_test.run_test(operator, "open_servo_org", session_history_max_length=0)

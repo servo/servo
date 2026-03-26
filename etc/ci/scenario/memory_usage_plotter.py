@@ -23,8 +23,16 @@ from selenium import webdriver
 import sys
 from hdc_py.hdc import HarmonyDeviceConnector
 from common_function_for_servo_test import create_driver
+from enum import Enum
 
 PACKAGE_NAME = "org.servo.servo"
+SERVO_PROCESS_NAME = "servoshell"
+
+
+class HostOptions(Enum):
+    LINUX = 1
+    OHOS = 2
+    MACOS = 3
 
 
 ### Use this MemoryLoggingOptions dataclass definition to setup default values
@@ -43,6 +51,7 @@ class MemoryLoggingOptions:
     mode: str = "collect"
     reset_tab: str = None
     create_own_webdriver: bool = False
+    host: HostOptions = HostOptions.LINUX
 
 
 @dataclass
@@ -76,8 +85,16 @@ class MemoryInfo:
     __repr__ = __str__
 
 
-def get_memory_info(pid: int) -> Optional[MemoryInfo]:
-    cmd = ["hdc", "shell", "cat", f"/proc/{pid}/status"]
+def get_memory_info(pid: int, host: HostOptions) -> Optional[MemoryInfo]:
+    result = None
+    cmd = "echo error"
+    if host == HostOptions.OHOS:
+        cmd = ["hdc", "shell", "cat", f"/proc/{pid}/status"]
+    if host == HostOptions.MACOS:
+        # Beware that the macos does not expose the swap usage per PID be default
+        cmd = ["ps", "-p", str(pid), "-o", "rss="]
+    if host == HostOptions.LINUX:
+        cmd = ["cat", f"/proc/{pid}/status"]
 
     try:
         result = subprocess.run(
@@ -86,7 +103,9 @@ def get_memory_info(pid: int) -> Optional[MemoryInfo]:
             text=True,
             check=True,
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        print(f"Error running '{' '.join(cmd)}': {e}")
+        sys.exit(1)
         return None
 
     fields = {
@@ -99,12 +118,21 @@ def get_memory_info(pid: int) -> Optional[MemoryInfo]:
         "RssShmem": 0,
     }
 
-    for line in result.stdout.splitlines():
-        for key in fields:
-            if line.startswith(key + ":"):
-                parts = line.split()
-                if len(parts) >= 2:
-                    fields[key] = int(parts[1])
+    if host == HostOptions.MACOS:
+        parts = result.stdout.split()
+        if len(parts) >= 1:
+            fields["VmRSS"] = int(parts[0])
+            fields["VmSwap"] = 0
+        else:
+            return None
+
+    if host == HostOptions.OHOS:
+        for line in result.stdout.splitlines():
+            for key in fields:
+                if line.startswith(key + ":"):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        fields[key] = int(parts[1])
 
     return MemoryInfo(
         vm_rss_kb=fields["VmRSS"],
@@ -133,13 +161,23 @@ def raise_if_input_invalid(file_path: str) -> None:
         raise InvalidInputFile("Invalid CSV header")
 
 
-def pidof(package_name: str, hdc: HarmonyDeviceConnector) -> List[int]:
-    completed_process = hdc.cmd("pidof " + package_name, capture_output=True, encoding="utf-8")
-    output = str(completed_process.stdout)
-    if not output:
-        return []
+def pidof(process_name: str, hdc: Optional[HarmonyDeviceConnector] = None) -> List[int]:
+    if hdc is not None:
+        completed_process = hdc.cmd("pidof " + process_name, capture_output=True, encoding="utf-8")
+        output = str(completed_process.stdout)
+        if not output:
+            return []
 
-    return [int(pid) for pid in output.split() if pid.isdigit()]
+        return [int(pid) for pid in output.split() if pid.isdigit()]
+    else:
+        result = subprocess.run(
+            ["pgrep", process_name],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            return []
+        return [int(pid) for pid in result.stdout.strip().split()]
 
 
 @dataclass(slots=True)
@@ -194,11 +232,13 @@ class NonBlockingMemoryLogging:
         self.log = load_memory_log(self.options.from_dump)
         self.plot_memory_log()
 
-    def __init__(self, options: MemoryLoggingOptions = None):
+    def __init__(self, options: MemoryLoggingOptions = None, host: HostOptions = None):
         # Defaults:
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
+        if host is not None:
+            self.options = host
         self.driver = None
         if self.options.create_own_webdriver:
             self.driver = create_driver(timeout=1)
@@ -244,10 +284,14 @@ class NonBlockingMemoryLogging:
     def start(self):
         if self.options.pid is None:
             try:
-                self.hdc = HarmonyDeviceConnector()
-                self.options.pid = get_servo_pid(PACKAGE_NAME, self.hdc)
+                if self.options == HostOptions.OHOS:
+                    self.hdc = HarmonyDeviceConnector()
+                    self.options.pid = get_servo_pid(PACKAGE_NAME, self.hdc)
+                else:
+                    self.options.pid = get_servo_pid(SERVO_PROCESS_NAME)
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
                 print(f"Failed to get servo PID: {e}")
+                sys.exit(1)
             else:
                 self._thread.start()
                 if self.options.pre_time is not None:
@@ -274,7 +318,8 @@ class NonBlockingMemoryLogging:
             if self.options.verbose:
                 print(self.log)
             if self.options.log_to_file:
-                self.csv_file.close()
+                if self.csv_file:
+                    self.csv_file.close()
             if self.options.plot:
                 self.plot_memory_log()
 
@@ -284,9 +329,9 @@ class NonBlockingMemoryLogging:
             time.sleep(1 / self.options.frequency)
 
     def event(self, event_name: str = None):
-        memory_point = get_memory_info(self.options.pid)
+        memory_point = get_memory_info(self.options.pid, self.options.host)
         if self.options.verbose:
-            print(memory_point)
+            print(f"memory_point: {memory_point}")
         sample = MemorySample(
             timestamp=time.time(),
             RSS_MB=memory_point.vm_rss_kb / 1024,
@@ -295,7 +340,8 @@ class NonBlockingMemoryLogging:
         )
         if self.options.log_to_file:
             self.writer.writerow([sample.timestamp, sample.RSS_MB, sample.Swap_MB, event_name])
-            self.csv_file.flush()
+            if self.csv_file:
+                self.csv_file.flush()
         self.log.add(sample)
 
     def verbose_print(self, to_print: str) -> None:
@@ -360,12 +406,12 @@ class MoreThanOneInstanceOfServo(Exception):
     pass
 
 
-def get_servo_pid(package_name: str, hdc: HarmonyDeviceConnector) -> int | None:
-    pids = pidof(package_name, hdc)
+def get_servo_pid(process_name: str, hdc: Optional[HarmonyDeviceConnector] = None) -> int | None:
+    pids = pidof(process_name, hdc)
     if not pids:
-        raise ProcessLookupError(f"No running instances of {package_name}")
+        raise ProcessLookupError(f"No running instances of {process_name}")
     if len(pids) > 1:
-        raise MoreThanOneInstanceOfServo(f"Expected only 1 instance of {package_name}, found {len(pids)}")
+        raise MoreThanOneInstanceOfServo(f"Expected only 1 instance of {process_name}, found {len(pids)}")
     return pids[0]
 
 

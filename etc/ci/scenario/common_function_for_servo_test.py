@@ -149,7 +149,9 @@ def calculate_frame_rate():
     return min(framerate, 120.00)
 
 
-def create_driver(timeout: int = 10) -> webdriver.Remote:
+def create_driver(timeout: int = 10, servo_url: str = None) -> webdriver.Remote:
+    if servo_url is None:
+        servo_url = SERVO_URL
     print("Trying to create driver")
     options = ArgOptions()
     options.set_capability("browserName", "servo")
@@ -157,7 +159,7 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
     start_time = time.time()
     while driver is None and time.time() - start_time < timeout:
         try:
-            driver = webdriver.Remote(command_executor=SERVO_URL, options=options)
+            driver = webdriver.Remote(command_executor=servo_url, options=options)
         except (ConnectionError, ProtocolError):
             time.sleep(0.2)
         except Exception as e:
