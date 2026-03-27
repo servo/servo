@@ -564,7 +564,7 @@ class CGMethodCall(CGThing):
                     type = sig[1][distinguishingIndex].type
                     conditions = []
                     if type.isObject() or type.isNonCallbackInterface():
-                        conditions.append(f"{distinguishingArg}.get().is_object()")
+                        conditions.append("is_object()")
                     if type.isUnion():
                         if type.nullable():
                             innerType = type.inner
@@ -572,13 +572,14 @@ class CGMethodCall(CGThing):
                             innerType = type
                         for memberType in innerType.flatMemberTypes:
                             if memberType.isObject() or memberType.isNonCallbackInterface():
-                                conditions.append(f"{distinguishingArg}.get().is_object()")
-                            if memberType.isString():
-                                conditions.append(f"{distinguishingArg}.get().is_string()")
-                            if memberType.isNumeric():
-                                conditions.append(f"{distinguishingArg}.get().is_number()")
-                            if memberType.isBoolean():
-                                conditions.append(f"{distinguishingArg}.get().is_boolean()")
+                                conditions.append("is_object()")
+                            elif memberType.isString():
+                                conditions.append("is_string()")
+                            elif memberType.isNumeric():
+                                conditions.append("is_number()")
+                            elif memberType.isBoolean():
+                                conditions.append("is_boolean()")
+                    conditions = [f"{distinguishingArg}.get().{condition}" for condition in conditions]
                     conditions = " || ".join(conditions)
                     if conditions != "":
                         conditions = "if " + conditions
