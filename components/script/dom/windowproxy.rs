@@ -59,6 +59,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::navigation::navigate;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -583,7 +584,13 @@ impl WindowProxy {
             } else {
                 NavigationHistoryBehavior::Push
             };
-            target_window.load_url(history_handling, false, load_data, CanGc::from_cx(cx));
+            navigate(
+                target_window,
+                history_handling,
+                false,
+                load_data,
+                CanGc::from_cx(cx),
+            );
         }
         // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
         if noopener {

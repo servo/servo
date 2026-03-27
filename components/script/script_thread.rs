@@ -120,7 +120,6 @@ use crate::dom::bindings::conversions::{
     ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -602,65 +601,6 @@ impl ScriptThread {
     /// update timer has fired or the renderer has asked us for a new rendering update.
     pub(crate) fn set_needs_rendering_update(&self) {
         self.needs_rendering_update.store(true, Ordering::Relaxed);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#navigate>
-    pub(crate) fn navigate(
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        mut load_data: LoadData,
-        history_handling: NavigationHistoryBehavior,
-        initial_insertion: Option<bool>,
-    ) {
-        with_script_thread(|script_thread| {
-            let is_javascript = load_data.url.scheme() == "javascript";
-            // Step 20. If url's scheme is "javascript", then:
-            if is_javascript {
-                let Some(window) = script_thread.documents.borrow().find_window(pipeline_id) else {
-                    return;
-                };
-                let global = window.as_global_scope();
-                let trusted_global = Trusted::new(global);
-                let sender = script_thread
-                    .senders
-                    .pipeline_to_constellation_sender
-                    .clone();
-                load_data.about_base_url = window.Document().about_base_url();
-                // Step 20.1 Queue a global task on the navigation and traversal
-                //   task source given navigable's active window to navigate to a
-                //   javascript: URL given navigable, url, historyHandling,
-                //   sourceSnapshotParams, initiatorOriginSnapshot, userInvolvement,
-                //   cspNavigationType, initialInsertion, and navigationId.
-                let task = task!(navigate_javascript: move |cx| {
-                    // Important re security. See https://github.com/servo/servo/issues/23373
-                    if trusted_global.root().is::<Window>() {
-                        let global = &trusted_global.root();
-                        // If this method returns true we are creating a new document
-                        if Self::navigate_to_javascript_url(cx, global, global, &mut load_data, None, initial_insertion) {
-                            sender
-                                .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
-                                .unwrap();
-                        }
-                    }
-                });
-                global
-                    .task_manager()
-                    .navigation_and_traversal_task_source()
-                    .queue(task);
-                // Step 20.2. Return.
-                return;
-            }
-
-            script_thread
-                .senders
-                .pipeline_to_constellation_sender
-                .send((
-                    webview_id,
-                    pipeline_id,
-                    ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
-                ))
-                .expect("Sending a LoadUrl message to the constellation failed");
-        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>

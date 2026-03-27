@@ -39,6 +39,7 @@ use crate::dom::types::{
     HTMLTextAreaElement, Window,
 };
 use crate::messaging::MainThreadScriptMsg;
+use crate::navigation::navigate;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum ControlElement {
@@ -439,7 +440,7 @@ impl ContextMenuNodes {
             let target = Trusted::new(target_window);
             let load_data = LoadData::new_for_new_unrelated_webview(url);
             let task = task!(open_link_in_new_webview: move || {
-                target.root().load_url(NavigationHistoryBehavior::Replace, false, load_data, CanGc::note());
+                navigate(&target.root(), NavigationHistoryBehavior::Replace, false, load_data, CanGc::note());
             });
             target_document
                 .owner_global()
