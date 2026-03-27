@@ -3123,11 +3123,12 @@ where
         };
 
         webview.accessibility_active = active;
-        self.embedder_proxy
-            .send(EmbedderMsg::AccessibilityTreeIdChanged(
+        self.constellation_to_embedder_proxy.send(
+            ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
                 webview_id,
                 webview.active_top_level_pipeline_id.into(),
-            ));
+            ),
+        );
 
         // Forward the activation to the webview’s active pipelines (of those that represent
         // documents). For inactive pipelines (documents in bfcache), we only need to forward the
@@ -3216,7 +3217,7 @@ where
         self.webviews.insert(
             webview_id,
             ConstellationWebView::new(
-                &self.embedder_proxy,
+                &self.constellation_to_embedder_proxy,
                 webview_id,
                 pipeline_id,
                 browsing_context_id,
@@ -3608,7 +3609,7 @@ where
         self.webviews.insert(
             new_webview_id,
             ConstellationWebView::new(
-                &self.embedder_proxy,
+                &self.constellation_to_embedder_proxy,
                 new_webview_id,
                 new_pipeline_id,
                 new_browsing_context_id,
@@ -5755,11 +5756,12 @@ where
             if let Some(webview) = self.webviews.get_mut(&webview_id) {
                 if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
                     webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
-                    self.embedder_proxy
-                        .send(EmbedderMsg::AccessibilityTreeIdChanged(
+                    self.constellation_to_embedder_proxy.send(
+                        ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
                             webview_id,
                             webview.active_top_level_pipeline_id.into(),
-                        ));
+                        ),
+                    );
                 }
             }
 
