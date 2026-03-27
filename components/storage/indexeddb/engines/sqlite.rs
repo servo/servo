@@ -1095,7 +1095,10 @@ mod tests {
         let err = put_dup.1.recv().unwrap().unwrap();
         assert_eq!(err, PutItemResult::CannotOverwrite);
         let overwritten = put_overwrite.1.recv().unwrap().unwrap();
-        assert_eq!(overwritten, PutItemResult::Key(IndexedDBKeyType::Number(1.0)));
+        assert_eq!(
+            overwritten,
+            PutItemResult::Key(IndexedDBKeyType::Number(1.0))
+        );
         let get_result = get_item_some.1.recv().unwrap();
         let value = get_result.unwrap();
         assert_eq!(value, Some(vec![13, 14, 15]));
