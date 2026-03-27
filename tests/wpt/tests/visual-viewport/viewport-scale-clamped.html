@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Viewport Scale Clamped: Not Pinch Zoomable</title>
+  <link rel=help href="https://github.com/w3c/csswg-drafts/issues/9004">
+  <link rel=help href="https://github.com/servo/servo/issues/40390">
+  <link rel="author" title="Shubham Gupta" href="mailto:shubham13297@gmail.com">
+  <meta name="assert" content="The page can not be pinch-zoom.">
+  <meta name="viewport" content="minimum-scale=1, maximum-scale=1">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body>
+  <div style="font-size: 50px;">This page can not be pinch zoomed, it is clamped using meta viewport scale.</div>
+  <script> promise_test(async () => {
+      const x = 200, y = 200;
+      const initialScale = window.visualViewport.scale;
+      // Perform pinch zoom
+      await new test_driver.Actions()
+        .addPointer("f1", "touch")
+        .addPointer("f2", "touch")
+        .pointerMove(x, y, { origin: "viewport", sourceName: "f1" })
+        .pointerMove(x + 100, y + 100, { origin: "viewport", sourceName: "f2" })
+        .pointerDown({ sourceName: "f1" })
+        .pointerDown({ sourceName: "f2" })
+        .pointerMove(x - 100, y - 100, { origin: "viewport", sourceName: "f1", duration: 0 })
+        .pointerMove(x + 100, y + 100, { origin: "viewport", sourceName: "f2", duration: 0 })
+        .pointerUp({ sourceName: "f1" })
+        .pointerUp({ sourceName: "f2" }).send();
+      assert_equals(window.visualViewport.scale, initialScale, "Scale should be same");
+    }) </script>
+</body>
+
+</html>
