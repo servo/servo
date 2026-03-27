@@ -563,6 +563,8 @@ class CGMethodCall(CGThing):
 
                     type = sig[1][distinguishingIndex].type
                     conditions = []
+                    if type.isObject() or type.isNonCallbackInterface():
+                        conditions.append(f"{distinguishingArg}.get().is_object()")
                     if type.isUnion():
                         if type.nullable():
                             innerType = type.inner
