@@ -22,7 +22,6 @@ use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::Element;
 use crate::navigation::navigate;
-use crate::script_runtime::CanGc;
 
 bitflags::bitflags! {
     /// Describes the different relations that can be specified on elements using the `rel`
@@ -499,7 +498,7 @@ pub(crate) fn follow_hyperlink(
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move |cx| {
             debug!("following hyperlink to {}", load_data.url);
-            navigate(&target.root(), history_handling, false, load_data, CanGc::from_cx(cx));
+            navigate(cx, &target.root(), history_handling, false, load_data);
         });
         target_document
             .owner_global()

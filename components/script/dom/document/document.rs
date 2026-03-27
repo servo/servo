@@ -239,7 +239,7 @@ pub(crate) struct RefreshRedirectDue {
 }
 impl RefreshRedirectDue {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
-    pub(crate) fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, cx: &mut js::context::JSContext) {
         // After the refresh has come due (as defined below),
         // if the user has not canceled the redirect and, if meta is given,
         // document's active sandboxing flag set does not have the sandboxed
@@ -253,11 +253,11 @@ impl RefreshRedirectDue {
             .window
             .load_data_for_document(self.url.clone(), self.window.pipeline_id());
         navigate(
+            cx,
             &self.window,
             NavigationHistoryBehavior::Replace,
             false,
             load_data,
-            can_gc,
         );
     }
 }
