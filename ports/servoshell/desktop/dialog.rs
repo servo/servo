@@ -515,7 +515,10 @@ impl Dialog {
                                 selected_options.iter().position(|id| *id == option.id)
                             {
                                 selected_options.remove(pos);
-                            } else {
+                            if let Some(position) =
+                                selected_options.iter().position(|id| *id == option.id)
+                            {
+                                selected_options.remove(position);
                                 selected_options.push(option.id);
                             }
                         } else {
