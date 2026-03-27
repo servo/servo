@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::user_contents::UserContentManagerId;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, InputEvent, MouseLeftViewportEvent, Theme};
+use embedder_traits::{GenericEmbedderProxy, InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
 use rustc_hash::FxHashMap;
@@ -11,6 +11,7 @@ use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use style_traits::CSSPixel;
 
+use super::embedder::ConstellationToEmbedderMsg;
 use crate::browsingcontext::BrowsingContext;
 use crate::pipeline::Pipeline;
 use crate::session_history::JointSessionHistory;
@@ -60,13 +61,13 @@ pub(crate) struct ConstellationWebView {
 
 impl ConstellationWebView {
     pub(crate) fn new(
-        embedder_proxy: &EmbedderProxy,
+        embedder_proxy: &GenericEmbedderProxy<ConstellationToEmbedderMsg>,
         webview_id: WebViewId,
         active_top_level_pipeline_id: PipelineId,
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
-        embedder_proxy.send(EmbedderMsg::AccessibilityTreeIdChanged(
+        embedder_proxy.send(ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
             webview_id,
             active_top_level_pipeline_id.into(),
         ));

@@ -7635,6 +7635,7 @@ dependencies = [
 name = "servo-constellation"
 version = "0.0.6"
 dependencies = [
+ "accesskit",
  "backtrace",
  "content-security-policy",
  "crossbeam-channel",

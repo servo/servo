@@ -26,6 +26,7 @@ unwrap_used = "deny"
 panic = "deny"
 
 [dependencies]
+accesskit = { workspace = true }
 backtrace = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
