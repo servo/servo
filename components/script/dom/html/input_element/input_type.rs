@@ -185,7 +185,6 @@ impl InputType {
                 Self::Hidden(_) |
                 Self::Month(_) |
                 Self::Number(_) |
-                Self::Range(_) |
                 Self::Search(_) |
                 Self::Tel(_) |
                 Self::Text(_) |

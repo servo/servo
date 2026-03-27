@@ -1,0 +1,51 @@
+/* Minimal stylesheet to mimic the appearence of the input range specific to Servo.
+ * This stylesheet is expected to be modified following the development of the
+ * Shadow DOM input range in Servo.
+ */
+
+#input {
+    height: 16px;
+    display: inline-block;
+    position: relative;
+    background: none;
+    border: none;
+}
+
+#slider-track {
+    position: absolute;
+    width: 100%;
+    height: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#slider-fill {
+    height: 8px;
+    background-color: #7a3;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#slider-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: gray;
+    border: 2px solid white;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* We are using definite width for most of the test to reduce the effect if calculating inline
+ * size of the input element. Which, will depends on the average character width of a font.
+ *
+ * <https://html.spec.whatwg.org/#converting-a-character-width-to-pixels>
+ */
+.definite-width {
+    width: 100px;
+}

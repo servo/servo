@@ -178,6 +178,7 @@ input::color-swatch {
 input[type="range"] {
   width: 100px;
   min-height: 16px;
+  padding: 0px;
   position: relative;
   cursor: pointer;
   background: none;
@@ -193,17 +194,15 @@ input[type="range"]::slider-track {
   border-radius: 5px;
   position: absolute;
   cursor: pointer;
-  z-index: 1;
+  overflow: hidden;
 }
 
 input[type="range"]::slider-fill {
   height: 8px;
   background-color: #7a3;
-  border-radius: 5px;
   position: absolute;
   cursor: pointer;
   top: 50%;
-  z-index: 2;
   transform: translateY(-50%);
 }
 
@@ -217,7 +216,6 @@ input[type="range"]::slider-thumb {
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  z-index: 3;
 }
 
 /* Checkbox and radio button inputs */

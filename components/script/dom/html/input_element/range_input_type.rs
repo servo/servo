@@ -124,6 +124,8 @@ impl SpecificInputType for RangeInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        // When updating input range's shadow tree (specifically its' thumb position),
+        // need to access layout to get thumb's width. Make sure there is no layout blocker
         if input.owner_document().has_script_or_layout_blocker() {
             let range_input_element = DomRoot::from_ref(input);
             input.owner_document().add_delayed_task(task!(
@@ -234,9 +236,15 @@ impl RangeInputShadowTree {
 
     pub(crate) fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
         let value = input_element.Value();
-        let min = input_element.minimum().unwrap_or(0.0);
-        let max = input_element.maximum().unwrap_or(100.0);
-        let value_num = input_element.convert_string_to_number(&value.str()).unwrap_or(0.0);
+        let min = input_element
+            .minimum()
+            .expect("This value should be available for range input.");
+        let max = input_element
+            .maximum()
+            .expect("This value should be available for range input.");
+        let value_num = input_element
+            .convert_string_to_number(&value.str())
+            .unwrap_or(input_element.default_range_value());
         let percent = if (max - min) < f64::EPSILON {
             0.0
         } else {
@@ -253,11 +261,11 @@ impl RangeInputShadowTree {
             .to_f64_px();
 
         let thumb_style = format!(
-            "inset-inline-start: calc({}% - {}px)",
+            "inset-inline-start: calc({}% - {}px) !important",
             percent,
             thumb_rect_width * percent / 100.0
         );
-        let progress_style = format!("width: {percent}%;");
+        let progress_style = format!("width: {percent}% !important;");
 
         self.slider_thumb.set_string_attribute(
             &local_name!("style"),
