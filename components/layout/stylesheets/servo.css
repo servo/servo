@@ -42,11 +42,6 @@ textarea:disabled {
   border-color: lightgrey;
 }
 
-input::-servo-text-control-inner-editor {
-  overflow-wrap: normal;
-  pointer-events: auto;
-}
-
 /* FIXME(#36982): Use `display: block; align-content: center` instead of flex. */
 input::-servo-text-control-inner-container {
   display: flex;
@@ -55,23 +50,46 @@ input::-servo-text-control-inner-container {
   position: relative;
 }
 
-input:not(:placeholder-shown)::placeholder {
-  visibility: hidden !important;
-}
-
-input::-servo-text-control-inner-editor, input::placeholder {
+input::-servo-text-control-inner-editor,
+input::placeholder {
+  /* This limits the block size of the inner div to that of the text size so that
+     it can be centered in the container. This is only necessary for <input>. */
   block-size: fit-content !important;
   inset-block: 0 !important;
   margin-block: auto !important;
-  min-width: stretch;
   white-space: pre;
 }
 
-input::placeholder {
+input::-servo-text-control-inner-editor,
+input::placeholder,
+textarea::-servo-text-control-inner-editor,
+textarea::placeholder {
+  min-width: stretch;
+  overflow-wrap: normal;
+}
+
+input:not(:placeholder-shown)::placeholder,
+textarea:not(:placeholder-shown)::placeholder {
+  display: none !important;
+}
+
+input:placeholder-shown::-servo-text-control-inner-editor,
+textarea:placeholder-shown::-servo-text-control-inner-editor {
+  display: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
   color: grey;
   overflow: hidden;
+}
+
+input::-servo-text-control-inner-editor {
+  pointer-events: auto !important;
+}
+
+input::placeholder {
   pointer-events: none !important;
-  position: absolute !important;
 }
 
 input::selection,

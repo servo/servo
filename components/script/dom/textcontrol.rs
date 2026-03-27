@@ -7,6 +7,8 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
+use std::cell::Ref;
+
 use servo_base::text::Utf16CodeUnitLength;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
@@ -18,15 +20,23 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::types::Element;
 use crate::textinput::{SelectionDirection, SelectionState, TextInput};
 
-pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
+pub(crate) trait TextControlElement:
+    DerivedFrom<EventTarget> + DerivedFrom<Node> + DerivedFrom<Element>
+{
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn has_uncollapsed_selection(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
     fn select_all(&self);
     fn maybe_update_shared_selection(&self);
+    fn is_password_field(&self) -> bool {
+        false
+    }
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString>;
+    fn value_text(&self) -> DOMString;
 }
 
 pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
