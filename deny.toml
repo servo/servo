@@ -110,6 +110,9 @@ skip = [
     # btleplug requires 0.19
     "jni",
 
+    # ICU crates are on 0.7.6 while unic-langid-impl (a fluent dep) is on 0.8.2
+    "tinystr",
+
     # Duplicated by egui
     "foldhash",
     "windows-collections",

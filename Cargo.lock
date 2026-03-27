@@ -2507,6 +2507,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 
 [[package]]
+name = "fluent-bundle"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01203cb8918f5711e73891b347816d932046f95f54207710bda99beaeb423bf4"
+dependencies = [
+ "fluent-langneg",
+ "fluent-syntax",
+ "intl-memoizer",
+ "intl_pluralrules",
+ "rustc-hash 2.1.2",
+ "self_cell",
+ "smallvec",
+ "unic-langid",
+]
+
+[[package]]
+name = "fluent-langneg"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7eebbe59450baee8282d71676f3bfed5689aeab00b27545e83e5f14b1195e8b0"
+dependencies = [
+ "unic-langid",
+]
+
+[[package]]
+name = "fluent-syntax"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54f0d287c53ffd184d04d8677f590f4ac5379785529e5e08b1c8083acdd5c198"
+dependencies = [
+ "memchr",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3890,9 +3925,9 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform",
  "icu_provider",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -3926,7 +3961,7 @@ dependencies = [
  "icu_provider_adapters",
  "icu_segmenter",
  "icu_timezone",
- "tinystr",
+ "tinystr 0.7.6",
  "unicode-bidi",
  "writeable",
 ]
@@ -3944,7 +3979,7 @@ dependencies = [
  "icu_properties",
  "icu_provider",
  "writeable",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -3969,7 +4004,7 @@ dependencies = [
  "smallvec",
  "utf16_iter",
  "utf8_iter",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -3987,7 +4022,7 @@ dependencies = [
  "displaydoc",
  "yoke",
  "zerofrom",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4008,9 +4043,9 @@ dependencies = [
  "icu_provider",
  "icu_timezone",
  "smallvec",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4062,11 +4097,11 @@ dependencies = [
  "num-rational",
  "num-traits",
  "smallvec",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
  "zerofrom",
  "zerotrie",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4103,9 +4138,9 @@ checksum = "13acbb8371917fc971be86fc8057c41a64b521c184808a698c02acc242dbf637"
 dependencies = [
  "displaydoc",
  "litemap",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4118,8 +4153,8 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform_data",
  "icu_provider",
- "tinystr",
- "zerovec",
+ "tinystr 0.7.6",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4143,7 +4178,7 @@ dependencies = [
  "utf16_iter",
  "utf8_iter",
  "write16",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4176,7 +4211,7 @@ dependencies = [
  "icu_locid_transform",
  "icu_plurals_data",
  "icu_provider",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4196,9 +4231,9 @@ dependencies = [
  "icu_locid_transform",
  "icu_properties_data",
  "icu_provider",
- "tinystr",
+ "tinystr 0.7.6",
  "unicode-bidi",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4217,11 +4252,11 @@ dependencies = [
  "icu_locid",
  "icu_provider_macros",
  "stable_deref_trait",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
  "yoke",
  "zerofrom",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4233,8 +4268,8 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform",
  "icu_provider",
- "tinystr",
- "zerovec",
+ "tinystr 0.7.6",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4261,7 +4296,7 @@ dependencies = [
  "icu_provider",
  "icu_segmenter_data",
  "utf8_iter",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4280,9 +4315,9 @@ dependencies = [
  "icu_calendar",
  "icu_provider",
  "icu_timezone_data",
- "tinystr",
+ "tinystr 0.7.6",
  "zerotrie",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -4435,6 +4470,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "intl-memoizer"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "310da2e345f5eb861e7a07ee182262e94975051db9e4223e909ba90f392f163f"
+dependencies = [
+ "type-map",
+ "unic-langid",
+]
+
+[[package]]
+name = "intl_pluralrules"
+version = "7.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078ea7b7c29a2b4df841a7f6ac8775ff6074020c6776d48491ce2268e068f972"
+dependencies = [
+ "unic-langid",
 ]
 
 [[package]]
@@ -7290,6 +7344,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "self_cell"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b12e76d157a900eb52e81bc6e9f3069344290341720e9178cde2407113ac8d89"
+
+[[package]]
 name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7445,6 +7505,7 @@ dependencies = [
  "servo-embedder-traits",
  "servo-fonts",
  "servo-geometry",
+ "servo-l10n",
  "servo-layout",
  "servo-layout-api",
  "servo-media",
@@ -7930,6 +7991,18 @@ dependencies = [
  "proc-macro2",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "servo-l10n"
+version = "0.1.0"
+dependencies = [
+ "fluent-bundle",
+ "log",
+ "parking_lot",
+ "servo-embedder-traits",
+ "servo-net-traits",
+ "unic-langid",
 ]
 
 [[package]]
@@ -8602,6 +8675,7 @@ dependencies = [
  "servo-geometry",
  "servo-hyper-serde",
  "servo-jstraceable-derive",
+ "servo-l10n",
  "servo-layout-api",
  "servo-malloc-size-of",
  "servo-media",
@@ -8977,6 +9051,7 @@ dependencies = [
  "servo",
  "servo-allocator",
  "servo-base",
+ "servo-l10n",
  "servo-webdriver-server",
  "signal-hook-registry",
  "surfman",
@@ -9833,7 +9908,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9117f5d4db391c1cf6927e7bea3db74b9a1c1add8f7eda9ffd5364f40f57b82f"
 dependencies = [
  "displaydoc",
- "zerovec",
+ "zerovec 0.10.4",
+]
+
+[[package]]
+name = "tinystr"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42d3e9c45c09de15d06dd8acf5f4e0e399e85927b7f00711024eb7ae10fa4869"
+dependencies = [
+ "displaydoc",
+ "serde_core",
+ "zerovec 0.11.5",
 ]
 
 [[package]]
@@ -10168,6 +10254,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "type-map"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb30dbbd9036155e74adad6812e9898d03ec374946234fbcebd5dfc7b9187b90"
+dependencies = [
+ "rustc-hash 2.1.2",
+]
+
+[[package]]
 name = "typenum"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10213,6 +10308,24 @@ name = "unic-common"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80d7ff825a6a654ee85a63e80f92f054f904f21e7d12da4e22f9834a4aaa35bc"
+
+[[package]]
+name = "unic-langid"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a28ba52c9b05311f4f6e62d5d9d46f094bd6e84cb8df7b3ef952748d752a7d05"
+dependencies = [
+ "unic-langid-impl",
+]
+
+[[package]]
+name = "unic-langid-impl"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dce1bf08044d4b7a94028c93786f8566047edc11110595914de93362559bc658"
+dependencies = [
+ "tinystr 0.8.2",
+]
 
 [[package]]
 name = "unic-ucd-ident"
@@ -12122,6 +12235,16 @@ dependencies = [
  "yoke",
  "zerofrom",
  "zerovec-derive",
+]
+
+[[package]]
+name = "zerovec"
+version = "0.11.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c28719294829477f525be0186d13efa9a3c602f7ec202ca9e353d310fb9a002"
+dependencies = [
+ "serde",
+ "zerofrom",
 ]
 
 [[package]]

@@ -14,8 +14,6 @@ use crate::dom::input_element::HTMLInputElement;
 use crate::dom::input_element::input_type::SpecificInputType;
 use crate::dom::node::NodeTraits;
 
-const DEFAULT_SUBMIT_VALUE: &str = "Submit";
-
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct SubmitInputType {
@@ -24,7 +22,7 @@ pub(crate) struct SubmitInputType {
 
 impl SpecificInputType for SubmitInputType {
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
-        DEFAULT_SUBMIT_VALUE.into()
+        servo_l10n::get("servo", "input-submit-default").into()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):input-activation-behavior>
