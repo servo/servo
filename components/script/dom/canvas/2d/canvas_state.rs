@@ -2483,10 +2483,8 @@ impl UnshapedTextRun<'_> {
     }
 
     fn into_shaped_text_run(self, previous_advance: f32) -> Option<TextRun> {
+        debug_assert!(!self.string.is_empty() && self.font.is_some());
         let font = self.font?;
-        if self.string.is_empty() {
-            return None;
-        }
 
         let word_spacing = Au::from_f64_px(
             font.glyph_index(' ')
