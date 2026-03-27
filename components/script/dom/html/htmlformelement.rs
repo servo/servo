@@ -980,6 +980,7 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#submit-body>
+    #[allow(clippy::too_many_arguments)]
     fn submit_entity_body(
         &self,
         form_data: &mut [FormDatum],
