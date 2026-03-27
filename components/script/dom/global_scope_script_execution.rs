@@ -259,7 +259,7 @@ impl GlobalScope {
 
         // Step 4. Prepare to run script given settings.
         run_a_script::<DomTypeHolder, _>(self, || {
-            let cx = GlobalScope::get_cx();
+            let safe_cx = GlobalScope::get_cx();
 
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
@@ -269,21 +269,21 @@ impl GlobalScope {
                     //module_tree.report_error(self, CanGc::from_cx(cx));
                     let evaluation_promise = Promise::new_rejected(
                         self,
-                        cx,
+                        safe_cx,
                         error.handle(),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     let handler = PromiseNativeHandler::new(
                         self,
                         None,
                         Some(Box::new(ReportErrorRejectionHandler)),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
-                    let realm = AlreadyInRealm::assert_for_cx(cx);
+                    let realm = AlreadyInRealm::assert_for_cx(safe_cx);
                     evaluation_promise.append_native_handler(
                         &handler,
                         (&realm).into(),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     return;
                 }
@@ -303,19 +303,19 @@ impl GlobalScope {
                 // global object.
                 //if evaluated.is_err() {
                     assert!(rval.is_object());
-                    rooted!(in(*cx) let evaluation_promise_obj = rval.to_object());
-                    let evaluation_promise = Promise::new_with_js_promise(evaluation_promise_obj.handle(), cx);
+                    rooted!(&in(cx) let evaluation_promise_obj = rval.to_object());
+                    let evaluation_promise = Promise::new_with_js_promise(evaluation_promise_obj.handle(), safe_cx);
                     let handler = PromiseNativeHandler::new(
                         self,
                         None,
                         Some(Box::new(ReportErrorRejectionHandler)),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
-                    let realm = AlreadyInRealm::assert_for_cx(cx);
+                    let realm = AlreadyInRealm::assert_for_cx(safe_cx);
                     evaluation_promise.append_native_handler(
                         &handler,
                         (&realm).into(),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
 
                     //module_tree.set_rethrow_error(exception);

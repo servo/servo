@@ -604,7 +604,7 @@ impl WorkerGlobalScope {
                         .run_a_classic_script(cx, script, RethrowErrors::No);
                 },
                 Script::Module(module_tree) => {
-                    self.globalscope.run_a_module_script(cx, module_tree, false);
+                    self.globalscope.run_a_module_script(cx, module_tree);
                 },
                 _ => unreachable!(),
             }
