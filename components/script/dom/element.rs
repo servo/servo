@@ -2479,6 +2479,17 @@ impl Element {
             .unwrap_or_default()
     }
 
+    pub(crate) fn get_string_attribute_with_namespace(
+        &self,
+        namespace: &Namespace,
+        local_name: &LocalName,
+    ) -> DOMString {
+        match self.get_attribute(namespace, local_name) {
+            Some(x) => x.Value(),
+            None => DOMString::new(),
+        }
+    }
+
     pub(crate) fn set_string_attribute(
         &self,
         local_name: &LocalName,
