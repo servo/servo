@@ -182,7 +182,7 @@ pub(crate) struct WatcherActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct WatcherActor {
     name: String,
-    pub browsing_context_actor: String,
+    pub browsing_context_name: String,
     network_parent_name: String,
     target_configuration: String,
     thread_configuration: String,
@@ -238,7 +238,8 @@ impl Actor for WatcherActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
         let root = registry.find::<RootActor>("root");
         match msg_type {
             "watchTargets" => {
@@ -252,11 +253,13 @@ impl Actor for WatcherActor {
                     let msg = WatchTargetsReply {
                         from: self.name(),
                         type_: "target-available-form".into(),
-                        target: TargetActorMsg::BrowsingContext(target.encode(registry)),
+                        target: TargetActorMsg::BrowsingContext(
+                            browsing_context_actor.encode(registry),
+                        ),
                     };
                     let _ = request.write_json_packet(&msg);
 
-                    target.frame_update(&mut request);
+                    browsing_context_actor.frame_update(&mut request);
                 } else if target_type == "worker" {
                     for worker_name in &*root.workers.borrow() {
                         let worker_msg = WatchTargetsReply {
@@ -316,10 +319,10 @@ impl Actor for WatcherActor {
                                     name: name.into(),
                                     new_uri: None,
                                     time: get_time_stamp(),
-                                    title: Some(target.title.borrow().clone()),
-                                    url: Some(target.url.borrow().clone()),
+                                    title: Some(browsing_context_actor.title.borrow().clone()),
+                                    url: Some(browsing_context_actor.url.borrow().clone()),
                                 };
-                                target.resource_array(
+                                browsing_context_actor.resource_array(
                                     event,
                                     resource.into(),
                                     ResourceArrayType::Available,
@@ -328,8 +331,9 @@ impl Actor for WatcherActor {
                             }
                         },
                         "source" => {
-                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
-                            target.resources_array(
+                            let thread_actor =
+                                registry.find::<ThreadActor>(&browsing_context_actor.thread);
+                            browsing_context_actor.resources_array(
                                 thread_actor.source_manager.source_forms(registry),
                                 resource.into(),
                                 ResourceArrayType::Available,
@@ -349,9 +353,10 @@ impl Actor for WatcherActor {
                             }
                         },
                         "console-message" | "error-message" => {
-                            let console_actor = registry.find::<ConsoleActor>(&target.console_name);
+                            let console_actor =
+                                registry.find::<ConsoleActor>(&browsing_context_actor.console_name);
                             console_actor.received_first_message_from_client();
-                            target.resources_array(
+                            browsing_context_actor.resources_array(
                                 console_actor.get_cached_messages(registry, resource),
                                 resource.into(),
                                 ResourceArrayType::Available,
@@ -385,7 +390,7 @@ impl Actor for WatcherActor {
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {
                     from: self.name(),
-                    browsing_context_id: target.browsing_context_id.value(),
+                    browsing_context_id: browsing_context_actor.browsing_context_id.value(),
                 };
                 request.reply_final(&msg)?
             },
@@ -435,7 +440,7 @@ impl ResourceAvailable for WatcherActor {
 impl WatcherActor {
     pub fn new(
         registry: &ActorRegistry,
-        browsing_context_actor: String,
+        browsing_context_name: String,
         session_context: SessionContext,
     ) -> Self {
         let network_parent_actor =
@@ -446,12 +451,12 @@ impl WatcherActor {
             ThreadConfigurationActor::new(registry.new_name::<ThreadConfigurationActor>());
         let breakpoint_list = BreakpointListActor::new(
             registry.new_name::<BreakpointListActor>(),
-            browsing_context_actor.clone(),
+            browsing_context_name.clone(),
         );
 
         let watcher = Self {
             name: registry.new_name::<WatcherActor>(),
-            browsing_context_actor,
+            browsing_context_name,
             network_parent_name: network_parent_actor.name(),
             target_configuration: target_configuration.name(),
             thread_configuration: thread_configuration.name(),

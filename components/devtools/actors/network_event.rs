@@ -625,8 +625,8 @@ impl NetworkEventActor {
 
     pub fn resource_updates(&self, registry: &ActorRegistry) -> NetworkEventResource {
         let watcher = registry.find::<WatcherActor>(&self.watcher);
-        let browsing_context =
-            registry.find::<BrowsingContextActor>(&watcher.browsing_context_actor);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&watcher.browsing_context_name);
 
         NetworkEventResource {
             resource_id: self.resource_id,
@@ -637,7 +637,7 @@ impl NetworkEventActor {
                 response: self.response_fields(),
                 security: self.security_fields(),
             },
-            browsing_context_id: browsing_context.browsing_context_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             inner_window_id: 0,
         }
     }
@@ -703,12 +703,12 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
         };
 
         let watcher = registry.find::<WatcherActor>(&self.watcher);
-        let browsing_context =
-            registry.find::<BrowsingContextActor>(&watcher.browsing_context_actor);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&watcher.browsing_context_name);
 
         NetworkEventMsg {
             actor: self.name(),
-            browsing_context_id: browsing_context.browsing_context_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             cause: Cause {
                 type_: request.destination.as_str().to_string(),
                 loading_document_uri: None, // Set if available
