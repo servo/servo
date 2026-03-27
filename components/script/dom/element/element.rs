@@ -1080,12 +1080,6 @@ pub(crate) trait LayoutElementHelpers<'dom> {
     fn each_custom_state_for_layout(self, allback: impl FnMut(&AtomIdent));
 }
 
-impl LayoutDom<'_, Element> {
-    pub(super) fn focus_state(self) -> bool {
-        self.unsafe_get().state.get().contains(ElementState::FOCUS)
-    }
-}
-
 impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[expect(unsafe_code)]
     #[inline]
@@ -2542,16 +2536,6 @@ impl Element {
         can_gc: CanGc,
     ) {
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens), can_gc);
-    }
-
-    pub(crate) fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
-        match self.get_attribute(local_name) {
-            Some(ref attribute) => match *attribute.value() {
-                AttrValue::Int(_, value) => value,
-                _ => unreachable!("Expected an AttrValue::Int: implement parse_plain_attribute"),
-            },
-            None => default,
-        }
     }
 
     pub(crate) fn set_int_attribute(&self, local_name: &LocalName, value: i32, can_gc: CanGc) {
@@ -5416,24 +5400,6 @@ impl Element {
             .set_flag(NodeFlags::CLICK_IN_PROGRESS, click)
     }
 
-    // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
-    pub(crate) fn nearest_activable_element(&self) -> Option<DomRoot<Element>> {
-        match self.as_maybe_activatable() {
-            Some(el) => Some(DomRoot::from_ref(el.as_element())),
-            None => {
-                let node = self.upcast::<Node>();
-                for node in node.ancestors() {
-                    if let Some(node) = node.downcast::<Element>() {
-                        if node.as_maybe_activatable().is_some() {
-                            return Some(DomRoot::from_ref(node));
-                        }
-                    }
-                }
-                None
-            },
-        }
-    }
-
     pub fn state(&self) -> ElementState {
         self.state.get()
     }
@@ -5486,10 +5452,6 @@ impl Element {
         self.set_state(ElementState::FOCUS, value);
     }
 
-    pub(crate) fn hover_state(&self) -> bool {
-        self.state.get().contains(ElementState::HOVER)
-    }
-
     pub(crate) fn set_hover_state(&self, value: bool) {
         self.set_state(ElementState::HOVER, value);
     }
@@ -5518,16 +5480,8 @@ impl Element {
         self.set_state(ElementState::READWRITE, value)
     }
 
-    pub(crate) fn open_state(&self) -> bool {
-        self.state.get().contains(ElementState::OPEN)
-    }
-
     pub(crate) fn set_open_state(&self, value: bool) {
         self.set_state(ElementState::OPEN, value);
-    }
-
-    pub(crate) fn placeholder_shown_state(&self) -> bool {
-        self.state.get().contains(ElementState::PLACEHOLDER_SHOWN)
     }
 
     pub(crate) fn set_placeholder_shown_state(&self, value: bool) {

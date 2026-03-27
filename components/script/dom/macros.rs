@@ -69,7 +69,7 @@ macro_rules! make_int_getter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self) -> i32 {
             use $crate::dom::bindings::inheritance::Castable;
-            use $crate::dom::element::Element;
+            use $crate::dom::element::element::Element;
             let element = self.upcast::<Element>();
             element.get_int_attribute(&html5ever::local_name!($htmlname), $default)
         }
