@@ -145,7 +145,7 @@ pub(crate) struct BrowsingContextActor {
     pub(crate) inspector: String,
     reflow_name: String,
     style_sheets_name: String,
-    pub thread: String,
+    pub thread_name: String,
     _tab: String,
     // Different pipelines may run on different script threads.
     // These should be kept around even when the active pipeline is updated,
@@ -236,7 +236,7 @@ impl BrowsingContextActor {
         let tab_descriptor_actor =
             TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
 
-        let thread = ThreadActor::new(
+        let thread_actor = ThreadActor::new(
             registry.new_name::<ThreadActor>(),
             script_sender.clone(),
             Some(name.clone()),
@@ -267,7 +267,7 @@ impl BrowsingContextActor {
             reflow_name: reflow_actor.name(),
             style_sheets_name: style_sheets_actor.name(),
             _tab: tab_descriptor_actor.name(),
-            thread: thread.name(),
+            thread_name: thread_actor.name(),
             watcher_name: watcher_actor.name(),
         };
 
@@ -276,7 +276,7 @@ impl BrowsingContextActor {
         registry.register(reflow_actor);
         registry.register(style_sheets_actor);
         registry.register(tab_descriptor_actor);
-        registry.register(thread);
+        registry.register(thread_actor);
         registry.register(watcher_actor);
 
         target
@@ -410,7 +410,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             inspector_actor: self.inspector.clone(),
             reflow_actor: self.reflow_name.clone(),
             style_sheets_actor: self.style_sheets_name.clone(),
-            thread_actor: self.thread.clone(),
+            thread_actor: self.thread_name.clone(),
             target_type: TargetType::Frame,
         }
     }

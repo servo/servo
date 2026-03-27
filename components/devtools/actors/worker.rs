@@ -30,7 +30,7 @@ pub enum WorkerType {
 pub(crate) struct WorkerActor {
     pub name: String,
     pub console_name: String,
-    pub thread: String,
+    pub thread_name: String,
     pub worker_id: WorkerId,
     pub url: ServoUrl,
     pub type_: WorkerType,
@@ -76,7 +76,7 @@ impl Actor for WorkerActor {
                 let msg = ConnectReply {
                     from: self.name(),
                     type_: "connected".to_owned(),
-                    thread_actor: self.thread.clone(),
+                    thread_actor: self.thread_name.clone(),
                     console_actor: self.console_name.clone(),
                 };
                 // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
@@ -174,7 +174,7 @@ impl ActorEncode<WorkerActorMsg> for WorkerActor {
         WorkerActorMsg {
             actor: self.name(),
             console_actor: self.console_name.clone(),
-            thread_actor: self.thread.clone(),
+            thread_actor: self.thread_name.clone(),
             id: self.worker_id.0.to_string(),
             url: self.url.to_string(),
             traits: WorkerTraits {
