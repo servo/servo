@@ -486,9 +486,9 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         self.setter_common(cx, |mut copy_url| {
             // Step 4: If copyURL cannot have a username/password/port, then return.
             // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
-            if copy_url.host().is_none()
-                || copy_url.cannot_be_a_base()
-                || copy_url.scheme() == "file"
+            if copy_url.host().is_none() ||
+                copy_url.cannot_be_a_base() ||
+                copy_url.scheme() == "file"
             {
                 return Ok(None);
             }
@@ -525,8 +525,8 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             }
 
             // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
-            if !copy_url.scheme().eq_ignore_ascii_case("http")
-                && !copy_url.scheme().eq_ignore_ascii_case("https")
+            if !copy_url.scheme().eq_ignore_ascii_case("http") &&
+                !copy_url.scheme().eq_ignore_ascii_case("https")
             {
                 return Ok(None);
             }

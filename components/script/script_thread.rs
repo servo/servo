@@ -1286,10 +1286,10 @@ impl ScriptThread {
             .iter()
             .any(|(_, document)| document.needs_rendering_update());
         let running_animations = self.documents.borrow().iter().any(|(_, document)| {
-            document.is_fully_active()
-                && !document.window().throttled()
-                && (document.animations().running_animation_count() != 0
-                    || document.has_active_request_animation_frame_callbacks())
+            document.is_fully_active() &&
+                !document.window().throttled() &&
+                (document.animations().running_animation_count() != 0 ||
+                    document.has_active_request_animation_frame_callbacks())
         });
 
         // If we are not running animations and no rendering update is
@@ -1885,9 +1885,9 @@ impl ScriptThread {
                     document.handle_no_longer_waiting_on_asynchronous_image_updates();
                 }
             },
-            msg @ ScriptThreadMessage::SpawnPipeline(..)
-            | msg @ ScriptThreadMessage::ExitFullScreen(..)
-            | msg @ ScriptThreadMessage::ExitScriptThread => {
+            msg @ ScriptThreadMessage::SpawnPipeline(..) |
+            msg @ ScriptThreadMessage::ExitFullScreen(..) |
+            msg @ ScriptThreadMessage::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
