@@ -2384,14 +2384,18 @@ impl CanvasState {
                     },
                 );
                 current_text_run_start_index = index;
-                runs.push(previous_text_run);
+                if !previous_text_run.string.is_empty() && previous_text_run.font.is_some() {
+                    runs.push(previous_text_run);
+                }
             }
 
             current_text_run.string =
                 &text[current_text_run_start_index..index + character.len_utf8()];
         }
 
-        runs.push(current_text_run);
+        if !current_text_run.string.is_empty() && current_text_run.font.is_some() {
+            runs.push(current_text_run);
+        }
         runs
     }
 
@@ -2479,10 +2483,8 @@ impl UnshapedTextRun<'_> {
     }
 
     fn into_shaped_text_run(self, previous_advance: f32) -> Option<TextRun> {
+        debug_assert!(!self.string.is_empty() && self.font.is_some());
         let font = self.font?;
-        if self.string.is_empty() {
-            return None;
-        }
 
         let word_spacing = Au::from_f64_px(
             font.glyph_index(' ')
