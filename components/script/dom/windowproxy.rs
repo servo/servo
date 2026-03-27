@@ -584,13 +584,7 @@ impl WindowProxy {
             } else {
                 NavigationHistoryBehavior::Push
             };
-            navigate(
-                target_window,
-                history_handling,
-                false,
-                load_data,
-                CanGc::from_cx(cx),
-            );
+            navigate(cx, target_window, history_handling, false, load_data);
         }
         // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
         if noopener {

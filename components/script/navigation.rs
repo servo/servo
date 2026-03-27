@@ -13,6 +13,7 @@ use crossbeam_channel::Sender;
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus};
 use http::header;
+use js::context::JSContext;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
@@ -293,13 +294,63 @@ pub(crate) fn determine_the_origin(
     MutableOrigin::new(url.origin())
 }
 
+/// <https://html.spec.whatwg.org/multipage/#navigate-fragid>
+fn navigate_to_fragment(
+    window: &Window,
+    url: &ServoUrl,
+    history_handling: NavigationHistoryBehavior,
+) {
+    let doc = window.Document();
+    // Step 1. Let navigation be navigable's active window's navigation API.
+    // TODO
+    // Step 2. Let destinationNavigationAPIState be navigable's active session history entry's navigation API state.
+    // TODO
+    // Step 3. If navigationAPIState is not null, then set destinationNavigationAPIState to navigationAPIState.
+    // TODO
+
+    // Step 4. Let continue be the result of firing a push/replace/reload navigate event
+    // at navigation with navigationType set to historyHandling, isSameDocument set to true,
+    // userInvolvement set to userInvolvement, sourceElement set to sourceElement,
+    // destinationURL set to url, and navigationAPIState set to destinationNavigationAPIState.
+    // TODO
+    // Step 5. If continue is false, then return.
+    // TODO
+
+    // Step 6. Let historyEntry be a new session history entry, with
+    // Step 7. Let entryToReplace be navigable's active session history entry if historyHandling is "replace", otherwise null.
+    // Step 8. Let history be navigable's active document's history object.
+    // Step 9. Let scriptHistoryIndex be history's index.
+    // Step 10. Let scriptHistoryLength be history's length.
+    // Step 11. If historyHandling is "push", then:
+    // Step 13. Set navigable's active session history entry to historyEntry.
+    window.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
+        url.clone(),
+        history_handling,
+    ));
+    // Step 12. Set navigable's active document's URL to url.
+    let old_url = doc.url();
+    doc.set_url(url.clone());
+    // Step 14. Update document for history step application given navigable's active document,
+    // historyEntry, true, scriptHistoryIndex, scriptHistoryLength, and historyHandling.
+    doc.update_document_for_history_step_application(&old_url, url);
+    // Step 15. Scroll to the fragment given navigable's active document.
+    let Some(fragment) = url.fragment() else {
+        unreachable!("Must always have a fragment");
+    };
+    doc.scroll_to_the_fragment(fragment);
+    // Step 16. Let traversable be navigable's traversable navigable.
+    // TODO
+    // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:
+    // TODO
+}
+
 /// <https://html.spec.whatwg.org/multipage/#navigate>
 pub(crate) fn navigate(
+    cx: &mut JSContext,
     window: &Window,
     history_handling: NavigationHistoryBehavior,
     force_reload: bool,
     load_data: LoadData,
-    can_gc: CanGc,
 ) {
     let doc = window.Document();
 
@@ -320,7 +371,7 @@ pub(crate) fn navigate(
 
     // Step 23. Let unloadPromptCanceled be the result of checking if unloading
     // is canceled for navigable's active document's inclusive descendant navigables.
-    if doc.check_if_unloading_is_cancelled(false, can_gc) {
+    if doc.check_if_unloading_is_cancelled(false, CanGc::from_cx(cx)) {
         // Step 12. If historyHandling is "auto", then:
         let history_handling = if history_handling == NavigationHistoryBehavior::Auto {
             // Step 12.1. If url equals navigable's active document's URL, and
@@ -371,7 +422,7 @@ pub(crate) fn navigate(
             if let Some(ref sender) = webdriver_sender {
                 let _ = sender.send(WebDriverLoadStatus::NavigationStart);
             }
-            window.navigate_to_fragment(&load_data.url, history_handling);
+            navigate_to_fragment(window, &load_data.url, history_handling);
             // Step 14.2. Return.
             if let Some(sender) = webdriver_sender {
                 let _ = sender.send(WebDriverLoadStatus::NavigationStop);

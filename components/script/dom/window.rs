@@ -80,9 +80,8 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_config::pref;
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
-    WindowSizeType,
+    LoadData, LoadOrigin, ScreenshotReadinessResponse, ScriptToConstellationChan,
+    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -3087,56 +3086,6 @@ impl Window {
         if self.unminify_css {
             *self.unminified_css_dir.borrow_mut() = Some(unminified_path("unminified-css"));
         }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#navigate-fragid>
-    pub(crate) fn navigate_to_fragment(
-        &self,
-        url: &ServoUrl,
-        history_handling: NavigationHistoryBehavior,
-    ) {
-        let doc = self.Document();
-        // Step 1. Let navigation be navigable's active window's navigation API.
-        // TODO
-        // Step 2. Let destinationNavigationAPIState be navigable's active session history entry's navigation API state.
-        // TODO
-        // Step 3. If navigationAPIState is not null, then set destinationNavigationAPIState to navigationAPIState.
-        // TODO
-
-        // Step 4. Let continue be the result of firing a push/replace/reload navigate event
-        // at navigation with navigationType set to historyHandling, isSameDocument set to true,
-        // userInvolvement set to userInvolvement, sourceElement set to sourceElement,
-        // destinationURL set to url, and navigationAPIState set to destinationNavigationAPIState.
-        // TODO
-        // Step 5. If continue is false, then return.
-        // TODO
-
-        // Step 6. Let historyEntry be a new session history entry, with
-        // Step 7. Let entryToReplace be navigable's active session history entry if historyHandling is "replace", otherwise null.
-        // Step 8. Let history be navigable's active document's history object.
-        // Step 9. Let scriptHistoryIndex be history's index.
-        // Step 10. Let scriptHistoryLength be history's length.
-        // Step 11. If historyHandling is "push", then:
-        // Step 13. Set navigable's active session history entry to historyEntry.
-        self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
-            url.clone(),
-            history_handling,
-        ));
-        // Step 12. Set navigable's active document's URL to url.
-        let old_url = doc.url();
-        doc.set_url(url.clone());
-        // Step 14. Update document for history step application given navigable's active document,
-        // historyEntry, true, scriptHistoryIndex, scriptHistoryLength, and historyHandling.
-        doc.update_document_for_history_step_application(&old_url, url);
-        // Step 15. Scroll to the fragment given navigable's active document.
-        let Some(fragment) = url.fragment() else {
-            unreachable!("Must always have a fragment");
-        };
-        doc.scroll_to_the_fragment(fragment);
-        // Step 16. Let traversable be navigable's traversable navigable.
-        // TODO
-        // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:
-        // TODO
     }
 
     pub(crate) fn load_data_for_document(

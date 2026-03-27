@@ -439,8 +439,8 @@ impl ContextMenuNodes {
             let target_window = target_document.window();
             let target = Trusted::new(target_window);
             let load_data = LoadData::new_for_new_unrelated_webview(url);
-            let task = task!(open_link_in_new_webview: move || {
-                navigate(&target.root(), NavigationHistoryBehavior::Replace, false, load_data, CanGc::note());
+            let task = task!(open_link_in_new_webview: move |cx| {
+                navigate(cx, &target.root(), NavigationHistoryBehavior::Replace, false, load_data);
             });
             target_document
                 .owner_global()

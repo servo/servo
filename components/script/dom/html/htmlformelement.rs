@@ -1095,7 +1095,7 @@ impl HTMLFormElement {
         // given the form element and the following steps:
         let form = Trusted::new(self);
         let window = Trusted::new(target);
-        let task = task!(navigate_to_form_planned_navigation: move || {
+        let task = task!(navigate_to_form_planned_navigation: move |cx| {
             // 4.1 Set the form's planned navigation to null.
             // Note: we implement the equivalent by incrementing the counter above,
             // and checking it here.
@@ -1111,11 +1111,11 @@ impl HTMLFormElement {
 
             // 4.2 Navigate targetNavigable to url
             navigate(
+                cx,
                 &window.root(),
                 NavigationHistoryBehavior::Push,
                 false,
                 load_data,
-                CanGc::note(),
             );
         });
 
