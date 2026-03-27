@@ -24,6 +24,13 @@
      ]
     ],
     "canvas": {
+     "canvas-edge-cases-crash.html": [
+      "9259aff8d30a319da2632bacb5a912050e9e510e",
+      [
+       null,
+       {}
+      ]
+     ],
      "toblob-then-change-size-crash.html": [
       "355474b4832dde985a73baad925702bbb0cbc73f",
       [
