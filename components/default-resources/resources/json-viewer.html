@@ -1,0 +1,277 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: monospace;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        color: #333;
+      }
+
+      #json-raw {
+        display: none;
+      }
+
+      #viewer {
+        padding: 0.5em 1em;
+        line-height: 1.5;
+      }
+
+      #toolbar {
+        display: flex;
+        gap: 1em;
+        padding: 0.5em;
+        align-items: center;
+        background: #f5f5f5;
+        border-bottom: 1px solid #ddd;
+      }
+
+      #toolbar button {
+        min-width: 5em;
+      }
+
+      #toolbar button.active {
+        background: #ddd;
+        font-weight: bold;
+      }
+
+      #raw-view {
+        display: none;
+        padding: 0.5em 1em;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .json-error {
+        padding: 0.5em 1em;
+        color: #c00;
+        font-weight: bold;
+      }
+
+      /* Syntax highlighting for Json data types */
+      .json-key {
+        color: #881391;
+      }
+
+      .json-string {
+        color: #1a1aa6;
+      }
+
+      .json-number {
+        color: #1c00cf;
+      }
+
+      .json-boolean {
+        color: #0d22aa;
+      }
+
+      .json-null {
+        color: #808080;
+      }
+
+      /* Collapsible tree */
+      .toggle {
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .toggle::before {
+        content: "\25BC";
+        display: inline-block;
+        width: 1em;
+        transition: transform 0.1s;
+      }
+
+      .toggle.collapsed::before {
+        transform: rotate(-90deg);
+      }
+
+      .collapsible {
+        margin-left: 1.5em;
+      }
+
+      .collapsible.hidden {
+        display: none;
+      }
+
+      .bracket {
+        color: #333;
+      }
+
+      .comma {
+        color: #333;
+      }
+
+      .line {
+        padding-left: 0;
+      }
+    </style>
+    <script>
+      // Shortcut to create an element with an optional class and text content.
+      function createElement(name, classes = null, textContent = null) {
+        let node = document.createElement(name);
+        if (classes) {
+          node.className = classes;
+        }
+        if (textContent) {
+          node.textContent = textContent;
+        }
+        return node;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        let rawEl = document.getElementById("json-raw");
+        if (!rawEl) {
+          return;
+        }
+        let rawText = rawEl.textContent;
+
+        let data;
+        let parseError = null;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          parseError = e;
+        }
+
+        // Build the page structure
+        document.body.innerHTML = "";
+
+        // Toolbar
+        let toolbar = createElement("div");
+        toolbar.id = "toolbar";
+        let prettyBtn = createElement("button", "active", "Pretty");
+        let rawBtn = createElement("button", null, "Raw");
+        toolbar.append(prettyBtn);
+        toolbar.append(rawBtn);
+        document.body.append(toolbar);
+
+        // Pretty view
+        let viewer = createElement("div");
+        viewer.id = "viewer";
+        document.body.append(viewer);
+
+        // Raw view
+        let rawView = createElement("pre");
+        rawView.id = "raw-view";
+        document.body.append(rawView);
+
+        if (parseError) {
+          let errDiv = createElement(
+            "div",
+            "json-error",
+            "Invalid JSON: " + parseError.message,
+          );
+          viewer.append(errDiv);
+          let pre = createElement("pre", null, rawText);
+          viewer.append(pre);
+          rawView.textContent = rawText;
+        } else {
+          renderNode(data, viewer);
+          rawView.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Toggle buttons
+        prettyBtn.onclick = function () {
+          viewer.style.display = "";
+          rawView.style.display = "none";
+          prettyBtn.className = "active";
+          rawBtn.className = "";
+        };
+        rawBtn.onclick = function () {
+          viewer.style.display = "none";
+          rawView.style.display = "block";
+          rawBtn.className = "active";
+          prettyBtn.className = "";
+        };
+
+        function renderNode(value, container) {
+          if (value === null) {
+            let s = createElement("span", "json-null", "null");
+            container.append(s);
+          } else if (typeof value === "boolean") {
+            let s = createElement("span", "json-boolean", String(value));
+            container.append(s);
+          } else if (typeof value === "number") {
+            let s = createElement("span", "json-number", String(value));
+            container.append(s);
+          } else if (typeof value === "string") {
+            let s = createElement("span", "json-string", JSON.stringify(value));
+            container.append(s);
+          } else if (Array.isArray(value)) {
+            renderArray(value, container);
+          } else if (typeof value === "object") {
+            renderObject(value, container);
+          }
+        }
+
+        function renderObject(obj, container) {
+          let keys = Object.keys(obj);
+          if (keys.length === 0) {
+            container.append(createElement("span", "bracket", "{}"));
+            return;
+          }
+
+          let toggle = createElement("span", "toggle");
+          container.append(toggle);
+
+          container.append(createElement("span", "bracket", "{"));
+
+          let inner = createElement("div", "collapsible");
+          container.append(inner);
+
+          keys.forEach((key, i) => {
+            let line = createElement("div", "line");
+            line.append(createElement("span", "json-key", JSON.stringify(key)));
+            line.append(document.createTextNode(": "));
+            renderNode(obj[key], line);
+            if (i < keys.length - 1) {
+              line.append(createElement("span", "comma", ","));
+            }
+            inner.append(line);
+          });
+
+          container.append(createElement("span", "bracket", "}"));
+
+          toggle.onclick = function () {
+            toggle.classList.toggle("collapsed");
+            inner.classList.toggle("hidden");
+          };
+        }
+
+        function renderArray(arr, container) {
+          if (arr.length === 0) {
+            container.append(createElement("span", "bracket", "[]"));
+            return;
+          }
+
+          let toggle = createElement("span", "toggle");
+          container.append(toggle);
+
+          container.append(createElement("span", "bracket", "["));
+
+          let inner = createElement("div", "collapsible");
+          container.append(inner);
+
+          arr.forEach((item, i) => {
+            let line = createElement("div", "line");
+            renderNode(item, line);
+            if (i < arr.length - 1) {
+              line.append(createElement("span", "comma", ","));
+            }
+            inner.append(line);
+          });
+
+          container.append(createElement("span", "bracket", "]"));
+
+          toggle.onclick = function () {
+            toggle.classList.toggle("collapsed");
+            inner.classList.toggle("hidden");
+          };
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <pre id="json-raw">

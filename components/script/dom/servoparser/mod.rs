@@ -1064,9 +1064,11 @@ impl ParserContext {
             // Return the result of loading an XML document given navigationParams and type.
             MediaType::Xml => self.load_xml_document(parser),
             // Return the result of loading a text document given navigationParams and type.
-            MediaType::JavaScript | MediaType::Json | MediaType::Text | MediaType::Css => {
+            MediaType::JavaScript | MediaType::Text | MediaType::Css => {
                 self.load_text_document(parser, cx)
             },
+            // Return the result of loading a json document given navigationParams and type.
+            MediaType::Json => self.load_json_document(parser, cx),
             // Return the result of loading a media document given navigationParams and type.
             MediaType::Image | MediaType::AudioVideo => {
                 self.load_media_document(parser, media_type, &mime_type, cx);
@@ -1204,6 +1206,15 @@ impl ParserContext {
         // Step 7. Process link headers given document, navigationParams's response, and "media".
         let link_headers = std::mem::take(&mut self.navigation_params.link_headers);
         process_link_headers(&link_headers, doc, LinkProcessingPhase::Media);
+    }
+
+    /// Load a JSON document with a pretty-printing, interactive viewer.
+    fn load_json_document(&mut self, parser: &ServoParser, cx: &mut js::context::JSContext) {
+        self.initialize_document_object(&parser.document);
+        parser.push_string_input_chunk(resources::read_string(Resource::JsonViewerHTML));
+        parser.parse_sync(cx);
+        parser.tokenizer.set_plaintext_state();
+        self.process_link_headers_in_media_phase_with_task(&parser.document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-ua-inline>
