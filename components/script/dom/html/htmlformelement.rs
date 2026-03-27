@@ -877,15 +877,18 @@ impl HTMLFormElement {
             // Step 23. If targetNavigable is null, then return.
             return;
         };
-        // Step 24. Let historyHandling be "auto".
-        // TODO
-        // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
-        // then set historyHandling to "replace".
-        // TODO
-
         let target_document = match chosen.document() {
             Some(doc) => doc,
             None => return,
+        };
+
+        // Step 24. Let historyHandling be "auto".
+        // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
+        // then set historyHandling to "replace".
+        let history_handling = if doc == target_document && !doc.completely_loaded() {
+            NavigationHistoryBehavior::Replace
+        } else {
+            NavigationHistoryBehavior::Auto
         };
         let target_window = target_document.window();
         let mut load_data = LoadData::new(
@@ -914,7 +917,13 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
-                self.mutate_action_url(&mut form_data, load_data, encoding, target_window);
+                self.mutate_action_url(
+                    &mut form_data,
+                    load_data,
+                    encoding,
+                    target_window,
+                    history_handling,
+                );
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
@@ -925,6 +934,7 @@ impl HTMLFormElement {
                     enctype,
                     encoding,
                     target_window,
+                    history_handling,
                     can_gc,
                 );
             },
@@ -934,7 +944,7 @@ impl HTMLFormElement {
             ("data", FormMethod::Post) |
             ("ftp", _) |
             ("javascript", _) => {
-                self.plan_to_navigate(load_data, target_window);
+                self.plan_to_navigate(load_data, target_window, history_handling);
             },
             ("mailto", FormMethod::Post) => {
                 // TODO: Mail as body
@@ -955,6 +965,7 @@ impl HTMLFormElement {
         mut load_data: LoadData,
         encoding: &'static Encoding,
         target: &Window,
+        history_handling: NavigationHistoryBehavior,
     ) {
         let charset = encoding.name();
 
@@ -965,7 +976,7 @@ impl HTMLFormElement {
                 .map(|field| (field.name.str(), field.replace_value(charset))),
         );
 
-        self.plan_to_navigate(load_data, target);
+        self.plan_to_navigate(load_data, target, history_handling);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#submit-body>
@@ -976,6 +987,7 @@ impl HTMLFormElement {
         enctype: FormEncType,
         encoding: &'static Encoding,
         target: &Window,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
         let boundary = generate_boundary();
@@ -1020,7 +1032,7 @@ impl HTMLFormElement {
             .0;
         load_data.data = Some(request_body);
 
-        self.plan_to_navigate(load_data, target);
+        self.plan_to_navigate(load_data, target, history_handling);
     }
 
     fn set_url_query_pairs<T>(
@@ -1039,7 +1051,12 @@ impl HTMLFormElement {
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, mut load_data: LoadData, target: &Window) {
+    fn plan_to_navigate(
+        &self,
+        mut load_data: LoadData,
+        target: &Window,
+        history_handling: NavigationHistoryBehavior,
+    ) {
         // 1. Let referrerPolicy be the empty string.
         // 2. If the form element's link types include the noreferrer keyword,
         //    then set referrerPolicy to "no-referrer".
@@ -1113,11 +1130,10 @@ impl HTMLFormElement {
             navigate(
                 cx,
                 &window.root(),
-                NavigationHistoryBehavior::Push,
+                history_handling,
                 false,
                 load_data,
             );
-        });
 
         // 5. Set the form's planned navigation to the just-queued task.
         // Done above as part of incrementing the planned navigation counter.
