@@ -75,11 +75,7 @@ impl PinchZoom {
             .then_scale(scale, scale);
     }
 
-    pub(crate) fn zoom(&mut self, magnification: f32, new_center: DevicePoint) {
-        const MINIMUM_PINCH_ZOOM: f32 = 1.0;
-        const MAXIMUM_PINCH_ZOOM: f32 = 10.0;
-        let new_factor =
-            (self.zoom_factor * magnification).clamp(MINIMUM_PINCH_ZOOM, MAXIMUM_PINCH_ZOOM);
+    pub(crate) fn set_zoom(&mut self, new_factor: f32, new_center: DevicePoint) {
         let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
 
         if self.zoom_factor <= 1.0 {
