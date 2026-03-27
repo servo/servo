@@ -267,7 +267,6 @@ pub(crate) mod domrectreadonly;
 pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
-#[expect(dead_code)]
 pub(crate) mod element;
 pub(crate) mod elementinternals;
 pub(crate) mod encoding;
