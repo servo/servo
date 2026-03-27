@@ -32,6 +32,7 @@ use crate::dom::bindings::root::{AsHandleValue, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
+use crate::dom::document_event_handler::LongPressContextMenuCallback;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
@@ -141,6 +142,7 @@ pub(crate) enum OneshotTimerCallback {
         #[ignore_malloc_size_of = "Closure"]
         completion: CompletionStep,
     },
+    LongPressContextMenu(LongPressContextMenuCallback),
 }
 
 impl OneshotTimerCallback {
@@ -157,6 +159,7 @@ impl OneshotTimerCallback {
                 // Step 4.4 Perform completionSteps.
                 completion(cx, &this.global());
             },
+            OneshotTimerCallback::LongPressContextMenu(callback) => callback.invoke(cx),
         }
     }
 }
