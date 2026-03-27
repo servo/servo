@@ -12,6 +12,7 @@ use script_bindings::domstring::DOMString;
 use script_bindings::reflector::Reflector;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
+use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::ServoTestUtilsBinding::ServoTestUtilsMethods;
 use crate::dom::globalscope::GlobalScope;
@@ -24,7 +25,9 @@ pub(crate) struct ServoTestUtils {
 
 impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
     fn AdvanceClock(global: &GlobalScope, ms: i32) {
-        global.as_window().advance_animation_clock(ms);
+        global
+            .as_window()
+            .advance_animation_clock(Duration::milliseconds(ms as i64));
     }
 
     #[expect(unsafe_code)]
