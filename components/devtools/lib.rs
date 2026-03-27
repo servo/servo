@@ -600,7 +600,7 @@ impl DevtoolsInstance {
             .find::<BrowsingContextActor>(browsing_context_name);
         let inspector_actor = self
             .registry
-            .find::<InspectorActor>(&browsing_context_actor.inspector);
+            .find::<InspectorActor>(&browsing_context_actor.inspector_name);
         let walker_actor = self.registry.find::<WalkerActor>(&inspector_actor.walker);
 
         for connection in self.connections.lock().unwrap().values_mut() {
