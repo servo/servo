@@ -34,6 +34,7 @@ use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabe
 use script_bindings::codegen::GenericBindings::KeyboardEventBinding::KeyboardEventMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
@@ -758,8 +759,15 @@ impl DocumentEventHandler {
     }
 
     fn element_for_activation(&self, element: DomRoot<Element>) -> DomRoot<Element> {
+        let node: &Node = element.upcast();
+        if node.is_in_ua_widget() {
+            if let Some(containing_shadow_root) = node.containing_shadow_root() {
+                return containing_shadow_root.Host();
+            }
+        }
+
         // If the element is a label, the activable element is the control element.
-        if element.upcast::<Node>().type_id() ==
+        if node.type_id() ==
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
             ))
@@ -769,6 +777,7 @@ impl DocumentEventHandler {
                 return DomRoot::from_ref(control.upcast::<Element>());
             }
         }
+
         element
     }
 
