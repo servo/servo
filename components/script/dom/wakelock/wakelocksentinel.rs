@@ -9,11 +9,10 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{
     WakeLockSentinelMethods, WakeLockType,
 };
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/screen-wake-lock/#the-wakelocksentinel-interface>
 #[dom_struct]
@@ -32,8 +31,12 @@ impl WakeLockSentinel {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, type_: WakeLockType, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(type_)), global, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        type_: WakeLockType,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(type_)), global, cx)
     }
 }
 

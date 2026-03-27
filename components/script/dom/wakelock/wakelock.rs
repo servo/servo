@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use embedder_traits::{AllowOrDeny, EmbedderMsg};
+use js::realm::CurrentRealm;
 use servo_base::generic_channel;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -14,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{WakeLockMethods, WakeLockType};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -34,34 +35,29 @@ impl WakeLock {
         }
     }
 
-    pub(crate) fn new(
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        _can_gc: CanGc,
-    ) -> DomRoot<Self> {
+    pub(crate) fn new(cx: &mut js::context::JSContext, global: &GlobalScope) -> DomRoot<Self> {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
     }
 }
 
 impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
-    fn Request(&self, _cx: &mut js::context::JSContext, type_: WakeLockType) -> Rc<Promise> {
-        let global = self.global();
-        let can_gc = CanGc::note();
-        let promise = Promise::new(&global, can_gc);
+    fn Request(&self, cx: &mut CurrentRealm, type_: WakeLockType) -> Rc<Promise> {
+        let global = GlobalScope::from_current_realm(cx);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 1. Let document be this's relevant global object's associated Document.
         let document = global.as_window().Document();
 
         // Step 2. If document is not fully active, reject with NotAllowedError.
         if !document.is_fully_active() {
-            promise.reject_error(Error::NotAllowed(None), can_gc);
+            promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
             return promise;
         }
 
         // Step 3. If document's visibility state is "hidden", reject with NotAllowedError.
         if document.VisibilityState() == DocumentVisibilityState::Hidden {
-            promise.reject_error(Error::NotAllowed(None), can_gc);
+            promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
             return promise;
         }
 
@@ -76,14 +72,14 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
         match receiver.recv() {
             Ok(AllowOrDeny::Allow) => {},
             _ => {
-                promise.reject_error(Error::NotAllowed(None), can_gc);
+                promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
                 return promise;
             },
         }
 
         // Step 6. Create a WakeLockSentinel and resolve the promise with it.
-        let sentinel = WakeLockSentinel::new(&global, type_, can_gc);
-        promise.resolve_native(&sentinel, can_gc);
+        let sentinel = WakeLockSentinel::new(cx, &global, type_);
+        promise.resolve_native(&sentinel, CanGc::from_cx(cx));
 
         promise
     }

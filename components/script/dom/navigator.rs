@@ -616,8 +616,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     /// <https://w3c.github.io/screen-wake-lock/#dom-navigator-wakelock>
     fn WakeLock(&self, cx: &mut js::context::JSContext) -> DomRoot<WakeLock> {
-        self.wake_lock
-            .or_init(|| WakeLock::new(cx, &self.global(), CanGc::note()))
+        self.wake_lock.or_init(|| WakeLock::new(cx, &self.global()))
     }
 }
 
