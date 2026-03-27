@@ -15,12 +15,12 @@ import subprocess
 
 import common_function_for_servo_test
 import common_function_for_mossel
-from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
+from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions, HostOptions
 
 
 def operator():
     memory_logging_options = MemoryLoggingOptions(
-        log_to_file=True, plot=True, pre_time=2, post_time=5, verbose=True, reset_tab=True
+        log_to_file=True, plot=True, pre_time=2, post_time=5, verbose=True, reset_tab=True, host=HostOptions.OHOS
     )
     memory_logging = NonBlockingMemoryLogging(memory_logging_options)
     memory_logging.start()

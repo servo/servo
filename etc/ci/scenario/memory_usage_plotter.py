@@ -284,7 +284,7 @@ class NonBlockingMemoryLogging:
     def start(self):
         if self.options.pid is None:
             try:
-                if self.options == HostOptions.OHOS:
+                if self.options.host == HostOptions.OHOS:
                     self.hdc = HarmonyDeviceConnector()
                     self.options.pid = get_servo_pid(PACKAGE_NAME, self.hdc)
                 else:
@@ -292,12 +292,11 @@ class NonBlockingMemoryLogging:
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
                 print(f"Failed to get servo PID: {e}")
                 sys.exit(1)
-            else:
-                self._thread.start()
-                if self.options.pre_time is not None:
-                    self.verbose_print(f"started sampling, with {self.options.pre_time}s delay")
-                    time.sleep(abs(self.options.pre_time))
-                self.event("start")
+        self._thread.start()
+        if self.options.pre_time is not None:
+            self.verbose_print(f"started sampling, with {self.options.pre_time}s delay")
+            time.sleep(abs(self.options.pre_time))
+        self.event("start")
 
     def stop(self):
         self.event("stop")
@@ -409,7 +408,7 @@ class MoreThanOneInstanceOfServo(Exception):
 def get_servo_pid(process_name: str, hdc: Optional[HarmonyDeviceConnector] = None) -> int | None:
     pids = pidof(process_name, hdc)
     if not pids:
-        raise ProcessLookupError(f"No running instances of {process_name}")
+        raise ProcessLookupError(f"No running instances of {process_name}\n!!! Or host=HostOption.XXX is not set")
     if len(pids) > 1:
         raise MoreThanOneInstanceOfServo(f"Expected only 1 instance of {process_name}, found {len(pids)}")
     return pids[0]

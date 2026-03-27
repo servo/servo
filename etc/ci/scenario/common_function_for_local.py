@@ -39,10 +39,9 @@ def run_test(
         print(f"Dump file {dump_file} did not exist. We will abort")
         return
 
-    webdriver = start_servo(WEBDRIVER_PORT, SERVO_BIN_PATH, delay=2)
+    webdriver = start_servo(WEBDRIVER_PORT, SERVO_BIN_PATH, delay=2, session_history_max_length=session_history_max_length)
     if webdriver:
         webdriver.implicitly_wait(30)
-        # print(">>> HERE")
         test_fn(webdriver)
 
     kill_servo()
@@ -52,13 +51,14 @@ def create_driver(timeout: int = 2) -> webdriver.Remote:
     return common_function_for_servo_test.create_driver(timeout=timeout, servo_url=f"http://127.0.0.1:{WEBDRIVER_PORT}")
 
 
-def start_servo(webdriver_port: int, servo_path: str, delay: int = 0) -> webdriver.Remote | None:
+def start_servo(webdriver_port: int, servo_path: str, delay: int = 0, session_history_max_length: int = 20) -> webdriver.Remote | None:
     """Start servo and create webdriver"""
     try:
         subprocess.Popen(
             [
                 servo_path,
                 f"--webdriver={webdriver_port}",
+                f"--pref=session_history_max_length={session_history_max_length}"
             ]
         )
     except FileNotFoundError:
