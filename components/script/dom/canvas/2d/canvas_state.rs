@@ -2384,14 +2384,18 @@ impl CanvasState {
                     },
                 );
                 current_text_run_start_index = index;
-                runs.push(previous_text_run);
+                if !previous_text_run.string.is_empty() && previous_text_run.font.is_some() {
+                    runs.push(previous_text_run);
+                }
             }
 
             current_text_run.string =
                 &text[current_text_run_start_index..index + character.len_utf8()];
         }
 
-        runs.push(current_text_run);
+        if !current_text_run.string.is_empty() && current_text_run.font.is_some() {
+            runs.push(current_text_run);
+        }
         runs
     }
 
