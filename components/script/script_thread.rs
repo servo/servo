@@ -2715,23 +2715,11 @@ impl ScriptThread {
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
             || {
-                let source_origin = match new_pipeline_info.load_data.load_origin {
-                    LoadOrigin::Script(ref snapshot) => {
-                        Some(MutableOrigin::from_snapshot(snapshot.clone()))
-                    },
-                    _ => None,
-                };
-                let origin = determine_the_origin(
-                    Some(&new_pipeline_info.load_data.url),
-                    new_pipeline_info.load_data.creation_sandboxing_flag_set,
-                    source_origin,
-                );
-
                 self.devtools_state
                     .notify_pipeline_created(new_pipeline_info.new_pipeline_id);
 
                 // Kick off the fetch for the new resource.
-                self.pre_page_load(cx, InProgressLoad::new(new_pipeline_info, origin));
+                self.pre_page_load(cx, InProgressLoad::new(new_pipeline_info));
             },
         );
     }
@@ -3342,12 +3330,17 @@ impl ScriptThread {
             incomplete.load_data.url, incomplete.pipeline_id
         );
 
-        let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
-        {
-            incomplete.origin.clone()
-        } else {
-            MutableOrigin::new(final_url.origin())
+        let source_origin = match incomplete.load_data.load_origin {
+            LoadOrigin::Script(ref snapshot) => {
+                Some(MutableOrigin::from_snapshot(snapshot.clone()))
+            },
+            _ => None,
         };
+        let origin = determine_the_origin(
+            Some(&final_url),
+            incomplete.load_data.creation_sandboxing_flag_set,
+            source_origin,
+        );
 
         let font_context = Arc::new(FontContext::new(
             self.system_font_service.clone(),
@@ -3977,6 +3970,12 @@ impl ScriptThread {
             .map(Referrer::ReferrerUrl)
             .unwrap_or(Referrer::NoReferrer);
         request_builder.referrer_policy = metadata.referrer_policy;
+        request_builder.origin = request_builder
+            .client
+            .as_ref()
+            .expect("Must have a client during redirect")
+            .origin
+            .clone();
 
         let headers = metadata
             .headers

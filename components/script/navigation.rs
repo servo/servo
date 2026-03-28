@@ -157,9 +157,6 @@ pub(crate) struct InProgressLoad {
     pub(crate) activity: DocumentActivity,
     /// Window is throttled, running timers at a heavily limited rate.
     pub(crate) throttled: bool,
-    /// The origin for the document
-    #[no_trace]
-    pub(crate) origin: MutableOrigin,
     /// Timestamp reporting the time when the browser started this load.
     #[no_trace]
     pub(crate) navigation_start: CrossProcessInstant,
@@ -182,7 +179,7 @@ pub(crate) struct InProgressLoad {
 
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
-    pub(crate) fn new(new_pipeline_info: NewPipelineInfo, origin: MutableOrigin) -> InProgressLoad {
+    pub(crate) fn new(new_pipeline_info: NewPipelineInfo) -> InProgressLoad {
         let url = new_pipeline_info.load_data.url.clone();
         InProgressLoad {
             pipeline_id: new_pipeline_info.new_pipeline_id,
@@ -193,7 +190,6 @@ impl InProgressLoad {
             viewport_details: new_pipeline_info.viewport_details,
             activity: DocumentActivity::FullyActive,
             throttled: false,
-            origin,
             navigation_start: CrossProcessInstant::now(),
             canceller: Default::default(),
             load_data: new_pipeline_info.load_data,
@@ -204,6 +200,11 @@ impl InProgressLoad {
     }
 
     pub(crate) fn request_builder(&mut self) -> RequestBuilder {
+        let client_origin = match self.load_data.load_origin {
+            LoadOrigin::Script(ref initiator_origin) => initiator_origin.immutable().clone(),
+            _ => ImmutableOrigin::new_opaque(),
+        };
+
         let id = self.pipeline_id;
         let webview_id = self.webview_id;
 
@@ -217,7 +218,7 @@ impl InProgressLoad {
             policy_container: RequestPolicyContainer::PolicyContainer(
                 self.load_data.policy_container.clone().unwrap_or_default(),
             ),
-            origin: Origin::Origin(self.origin.immutable().clone()),
+            origin: Origin::Origin(client_origin),
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
         };
@@ -240,7 +241,6 @@ impl InProgressLoad {
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)
-        .origin(self.origin.immutable().clone())
         .crash(self.load_data.crash.clone())
         .client(request_client);
         request_builder.url_list = self.url_list.clone();
