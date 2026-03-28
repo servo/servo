@@ -28,7 +28,9 @@ use servo_constellation_traits::{
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
 use webrender::RenderApi;
-use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutVector2D};
+use webrender_api::units::{
+    DevicePixel, DevicePoint, DeviceRect, DeviceVector2D, LayoutTransform, LayoutVector2D,
+};
 use webrender_api::{DocumentId, ExternalScrollId, ScrollLocation};
 
 use crate::paint::RepaintReason;
@@ -1122,6 +1124,25 @@ impl WebViewRenderer {
                 self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
             }
         }
+    }
+
+    /// Get the device to layout transformation of a webview, currently containing the HiDPI,
+    /// page zoom and pinch zoom. Returning [`LayoutTransform`] to support its inclusion in
+    /// webrender.
+    pub(crate) fn get_webview_transform(&self) -> LayoutTransform {
+        let pinch_zoom_transform = self.pinch_zoom.transform().to_untyped();
+        let device_pixels_per_page_pixel_not_including_pinch_zoom = self
+            .device_pixels_per_page_pixel_not_including_pinch_zoom()
+            .get();
+
+        LayoutTransform::scale(
+            device_pixels_per_page_pixel_not_including_pinch_zoom,
+            device_pixels_per_page_pixel_not_including_pinch_zoom,
+            1.0,
+        )
+        .then(&LayoutTransform::from_untyped(
+            &pinch_zoom_transform.to_3d(),
+        ))
     }
 }
 
