@@ -454,7 +454,7 @@ impl WatcherActor {
             browsing_context_name.clone(),
         );
 
-        let watcher = Self {
+        let watcher_actor = Self {
             name: registry.new_name::<WatcherActor>(),
             browsing_context_name,
             network_parent_name: network_parent_actor.name(),
@@ -469,7 +469,7 @@ impl WatcherActor {
         registry.register(thread_configuration);
         registry.register(breakpoint_list);
 
-        watcher
+        watcher_actor
     }
 
     pub fn emit_will_navigate<'a>(
