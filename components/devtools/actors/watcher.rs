@@ -182,7 +182,7 @@ pub(crate) struct WatcherActorMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct WatcherActor {
     name: String,
-    pub browsing_context_actor: String,
+    pub browsing_context_name: String,
     network_parent_name: String,
     target_configuration: String,
     thread_configuration: String,
@@ -238,7 +238,7 @@ impl Actor for WatcherActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        let target = registry.find::<BrowsingContextActor>(&self.browsing_context_name);
         let root_actor = registry.find::<RootActor>("root");
         match msg_type {
             "watchTargets" => {
@@ -435,7 +435,7 @@ impl ResourceAvailable for WatcherActor {
 impl WatcherActor {
     pub fn new(
         registry: &ActorRegistry,
-        browsing_context_actor: String,
+        browsing_context_name: String,
         session_context: SessionContext,
     ) -> Self {
         let network_parent_actor =
@@ -446,12 +446,12 @@ impl WatcherActor {
             ThreadConfigurationActor::new(registry.new_name::<ThreadConfigurationActor>());
         let breakpoint_list = BreakpointListActor::new(
             registry.new_name::<BreakpointListActor>(),
-            browsing_context_actor.clone(),
+            browsing_context_name.clone(),
         );
 
         let watcher = Self {
             name: registry.new_name::<WatcherActor>(),
-            browsing_context_actor,
+            browsing_context_name,
             network_parent_name: network_parent_actor.name(),
             target_configuration: target_configuration.name(),
             thread_configuration: thread_configuration.name(),
