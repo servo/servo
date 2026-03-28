@@ -355,7 +355,7 @@ impl RootActor {
         let process = ProcessActor::new(registry.new_name::<ProcessActor>());
 
         // Root actor
-        let root = Self {
+        let root_actor = Self {
             global_actors: GlobalActors {
                 device_actor: device_actor.name(),
                 perf_actor: perf.name(),
@@ -369,7 +369,7 @@ impl RootActor {
         registry.register(device_actor);
         registry.register(preference);
         registry.register(process);
-        registry.register(root);
+        registry.register(root_actor);
     }
 
     fn get_tab_msg_by_browser_id(

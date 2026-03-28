@@ -240,7 +240,7 @@ impl Actor for WatcherActor {
     ) -> Result<(), ActorError> {
         let browsing_context_actor =
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);
-        let root = registry.find::<RootActor>("root");
+        let root_actor = registry.find::<RootActor>("root");
         match msg_type {
             "watchTargets" => {
                 // As per logs we either get targetType as "frame" or "worker"
@@ -261,7 +261,7 @@ impl Actor for WatcherActor {
 
                     browsing_context_actor.frame_update(&mut request);
                 } else if target_type == "worker" {
-                    for worker_name in &*root.workers.borrow() {
+                    for worker_name in &*root_actor.workers.borrow() {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
@@ -272,7 +272,7 @@ impl Actor for WatcherActor {
                         let _ = request.write_json_packet(&worker_msg);
                     }
                 } else if target_type == "service_worker" {
-                    for worker_name in &*root.service_workers.borrow() {
+                    for worker_name in &*root_actor.service_workers.borrow() {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
@@ -340,7 +340,7 @@ impl Actor for WatcherActor {
                                 &mut request,
                             );
 
-                            for worker_name in &*root.workers.borrow() {
+                            for worker_name in &*root_actor.workers.borrow() {
                                 let worker_actor = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker_actor.thread);
 
@@ -363,7 +363,7 @@ impl Actor for WatcherActor {
                                 &mut request,
                             );
 
-                            for worker_name in &*root.workers.borrow() {
+                            for worker_name in &*root_actor.workers.borrow() {
                                 let worker_actor = registry.find::<WorkerActor>(worker_name);
                                 let console_actor =
                                     registry.find::<ConsoleActor>(&worker_actor.console_name);

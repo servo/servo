@@ -173,8 +173,8 @@ impl TabDescriptorActor {
         is_top_level_global: bool,
     ) -> TabDescriptorActor {
         let name = registry.new_name::<Self>();
-        let root = registry.find::<RootActor>("root");
-        root.tabs.borrow_mut().push(name.clone());
+        let root_actor = registry.find::<RootActor>("root");
+        root_actor.tabs.borrow_mut().push(name.clone());
         TabDescriptorActor {
             name,
             browsing_context_name,
