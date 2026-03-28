@@ -1320,7 +1320,7 @@ impl FetchResponseListener for ParserContext {
         // navigationParams's request, navigationParams's response, navigationParams's policy container's CSP list,
         // cspNavigationType, and navigable is "Blocked";
         policy_container.csp_list.should_navigation_response_to_navigation_request_be_blocked(
-            &window,
+            window,
             self.url.clone().into_url(),
             &document.origin().immutable().clone().into_url_origin(),
         )
