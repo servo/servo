@@ -1958,6 +1958,13 @@ where
                     );
                 }
             },
+            ScriptToConstellationMessage::GetDocumentOrigin(pipeline_id, response_sender) => {
+                self.send_message_to_pipeline(
+                    pipeline_id,
+                    ScriptThreadMessage::GetDocumentOrigin(pipeline_id, response_sender),
+                    "Document origin retrieval after closure",
+                );
+            },
             ScriptToConstellationMessage::ScheduleJob(job) => {
                 self.handle_schedule_serviceworker_job(source_pipeline_id, job);
             },

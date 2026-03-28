@@ -81,6 +81,7 @@ use script_traits::{
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel;
+use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
@@ -1752,6 +1753,9 @@ impl ScriptThread {
             ScriptThreadMessage::ThemeChange(_, theme) => {
                 self.handle_theme_change_msg(theme);
             },
+            ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
+                self.handle_get_document_origin(pipeline_id, result_sender);
+            },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(cx, pipeline_id, activity)
@@ -2696,6 +2700,19 @@ impl ScriptThread {
         for load in loads.iter_mut() {
             load.theme = theme;
         }
+    }
+
+    fn handle_get_document_origin(
+        &self,
+        id: PipelineId,
+        result_sender: GenericSender<Option<String>>,
+    ) {
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .map(|document| document.origin().immutable().ascii_serialization()),
+        );
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm

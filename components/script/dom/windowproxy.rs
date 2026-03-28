@@ -692,6 +692,19 @@ impl WindowProxy {
             .unwrap();
     }
 
+    pub fn document_origin(&self) -> Option<String> {
+        let pipeline_id = self.currently_active()?;
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        self.global()
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::GetDocumentOrigin(
+                pipeline_id,
+                result_sender,
+            ))
+            .ok()?;
+        result_receiver.recv().ok()?
+    }
+
     #[expect(unsafe_code)]
     /// Change the Window that this WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,

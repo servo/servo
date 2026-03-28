@@ -80,6 +80,7 @@ use crate::dom::processingoptions::{
     LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
 };
 use crate::dom::reporting::reportingendpoint::ReportingEndpoint;
+use crate::dom::security::csp::CspReporting;
 use crate::dom::security::xframeoptions::check_a_navigation_response_adherence_to_x_frame_options;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
@@ -1311,13 +1312,18 @@ impl FetchResponseListener for ParserContext {
 
         // https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry%27s-document
         // Step 4. Otherwise, if any of the following are true:
+        if
         // navigationParams is null;
         // TODO
         // the result of should navigation response to navigation request of
         // type in target be blocked by Content Security Policy? given
         // navigationParams's request, navigationParams's response, navigationParams's policy container's CSP list,
         // cspNavigationType, and navigable is "Blocked";
-        // TODO
+        policy_container.csp_list.should_navigation_response_to_navigation_request_be_blocked(
+            window,
+            self.url.clone().into_url(),
+            &document.origin().immutable().clone().into_url_origin(),
+        )
         // navigationParams's reserved environment is non-null and the result of
         // checking a navigation response's adherence to its embedder policy given navigationParams's response,
         // navigable, and navigationParams's policy container's embedder policy is false; or
@@ -1325,7 +1331,7 @@ impl FetchResponseListener for ParserContext {
         // the result of checking a navigation response's adherence to `X-Frame-Options`
         // given navigationParams's response, navigable, navigationParams's policy container's CSP list,
         // and navigationParams's origin is false,
-        if !check_a_navigation_response_adherence_to_x_frame_options(
+        || !check_a_navigation_response_adherence_to_x_frame_options(
             window,
             policy_container.csp_list.as_ref(),
             &document.origin(),

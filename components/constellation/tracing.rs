@@ -148,6 +148,7 @@ mod from_script {
                 Self::FocusRemoteDocument(..) => target!("FocusRemoteDocument"),
                 Self::GetTopForBrowsingContext(..) => target!("GetTopForBrowsingContext"),
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
+                Self::GetDocumentOrigin(..) => target!("GetDocumentOrigin"),
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
                 Self::LoadComplete => target!("LoadComplete"),
                 Self::LoadUrl(..) => target!("LoadUrl"),

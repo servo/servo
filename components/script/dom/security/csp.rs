@@ -10,19 +10,22 @@ pub use content_security_policy::InlineCheckType;
 pub use content_security_policy::Violation;
 use content_security_policy::{
     CheckResult, CspList, Destination, Element as CspElement, Initiator, NavigationCheckType,
-    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, ViolationResource,
+    Origin, ParserMetadata, PolicyDisposition, PolicySource, Request, Response as CspResponse,
+    ViolationResource,
 };
 use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::rust::describe_scripted_caller;
 use log::warn;
 use servo_constellation_traits::{LoadData, LoadOrigin};
+use url::Url;
 
 use super::csppolicyviolationreport::CSPViolationReportBuilder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
@@ -40,6 +43,12 @@ pub(crate) trait CspReporting {
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
+    ) -> bool;
+    fn should_navigation_response_to_navigation_request_be_blocked(
+        &self,
+        window: &Window,
+        url: Url,
+        self_origin: &url::Origin,
     ) -> bool;
     fn should_elements_inline_type_behavior_be_blocked(
         &self,
@@ -154,6 +163,66 @@ impl CspReporting for Option<CspList> {
         global.report_csp_violations(violations, element, None);
 
         result == CheckResult::Blocked
+    }
+
+    /// <https://w3c.github.io/webappsec-csp/#should-block-navigation-response>
+    fn should_navigation_response_to_navigation_request_be_blocked(
+        &self,
+        window: &Window,
+        url: Url,
+        self_origin: &url::Origin,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return false;
+        };
+
+        let mut window_proxy = window.window_proxy();
+        let mut parent_navigable_origins = vec![];
+        loop {
+            // Same-origin parents can go via their own script-thread (fast-path)
+            if let Some(container_element) = window_proxy.frame_element() {
+                let container_document = container_element.owner_document();
+                let parent_origin = Url::parse(
+                    &container_document
+                        .origin()
+                        .immutable()
+                        .ascii_serialization(),
+                )
+                .expect("Must always be able to parse document origin");
+                parent_navigable_origins.push(parent_origin);
+                window_proxy = container_document.window().window_proxy();
+                continue;
+            }
+            // Cross-origin parents go via the constellation (slower)
+            if let Some(parent_proxy) = window_proxy.parent() {
+                let Some(parent_origin) = parent_proxy.document_origin() else {
+                    break;
+                };
+                let parent_origin = Url::parse(&parent_origin)
+                    .expect("Must always be able to parse document origin");
+                parent_navigable_origins.push(parent_origin);
+                window_proxy = DomRoot::from_ref(parent_proxy);
+                continue;
+            }
+            // We don't have a parent, hence we stop traversing
+            break;
+        }
+
+        let (is_navigation_response_blocked, violations) = csp_list
+            .should_navigation_response_to_navigation_request_be_blocked(
+                &CspResponse {
+                    url,
+                    redirect_count: 0,
+                },
+                self_origin,
+                &parent_navigable_origins,
+            );
+
+        window
+            .as_global_scope()
+            .report_csp_violations(violations, None, None);
+
+        is_navigation_response_blocked == CheckResult::Blocked
     }
 
     /// <https://www.w3.org/TR/CSP/#should-block-inline>
