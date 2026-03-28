@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg(not(target_os = "windows"))]
-
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::Arc;
@@ -431,7 +429,6 @@ fn test_request_and_response_data_with_network_messages() {
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -874,7 +871,6 @@ fn test_load_sends_cookie_if_nonhttp() {
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
     let handler =
         move |_: HyperRequest<Incoming>,
@@ -928,7 +924,6 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let handler =
         move |_: HyperRequest<Incoming>,
