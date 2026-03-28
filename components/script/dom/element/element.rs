@@ -4209,10 +4209,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.custom_element_registry()
     }
 
+    /// <https://w3c.github.io/aria/#ref-for-dom-ariamixin-role-1>
     fn GetRole(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("role"))
     }
 
+    /// <https://w3c.github.io/aria/#ref-for-dom-ariamixin-role-1>
     fn SetRole(&self, cx: &mut JSContext, value: Option<DOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("role"), value);
     }

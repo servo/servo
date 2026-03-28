@@ -1361,6 +1361,9 @@ pub(crate) fn handle_get_computed_role(
     reply
         .send(
             get_known_element(documents, pipeline, node_id)
+                // FIXME: Actually compute the role instead of using WAI-ARIA role.
+                // <https://github.com/servo/servo/issues/43734>
+                // The logic can then be shared with devtools accessibility inspector.
                 .map(|element| element.GetRole().map(String::from)),
         )
         .unwrap();
