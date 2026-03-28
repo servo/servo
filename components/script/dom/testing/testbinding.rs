@@ -713,25 +713,15 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOverloadedUnionOfObjectAndString(
         &self,
         _: SafeJSContext,
-        union: ObjectOrString,
+        _: ObjectOrString,
     ) -> DOMString {
-        match union {
-            ObjectOrString::Object(_) => "object".into(),
-            ObjectOrString::String(_) => "string".into(),
-        }
+        "union".into()
     }
     fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> DOMString {
         "boolean".into()
     }
-    fn PassOverloadedUnionOfObjectAndNumber(
-        &self,
-        _: SafeJSContext,
-        union: ObjectOrLong,
-    ) -> DOMString {
-        match union {
-            ObjectOrLong::Object(_) => "object".into(),
-            ObjectOrLong::Long(_) => "number".into(),
-        }
+    fn PassOverloadedUnionOfObjectAndNumber(&self, _: SafeJSContext, _: ObjectOrLong) -> DOMString {
+        "union".into()
     }
     fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> DOMString {
         "boolean".into()
@@ -739,39 +729,27 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassOverloadedUnionOfObjectAndBoolean(
         &self,
         _: SafeJSContext,
-        union: ObjectOrBoolean,
+        _: ObjectOrBoolean,
     ) -> DOMString {
-        match union {
-            ObjectOrBoolean::Object(_) => "object".into(),
-            ObjectOrBoolean::Boolean(_) => "boolean".into(),
-        }
+        "union".into()
     }
     fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> DOMString {
         "number".into()
     }
-    fn PassOverloadedUnionOfStringAndNumber(&self, union: StringOrLong) -> DOMString {
-        match union {
-            StringOrLong::String(_) => "string".into(),
-            StringOrLong::Long(_) => "number".into(),
-        }
+    fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> DOMString {
+        "union".into()
     }
     fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> DOMString {
         "boolean".into()
     }
-    fn PassOverloadedUnionOfStringAndBoolean(&self, union: StringOrBoolean) -> DOMString {
-        match union {
-            StringOrBoolean::String(_) => "string".into(),
-            StringOrBoolean::Boolean(_) => "boolean".into(),
-        }
+    fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> DOMString {
+        "union".into()
     }
     fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> DOMString {
         "number".into()
     }
-    fn PassOverloadedUnionOfNumberAndBoolean(&self, union: LongOrBoolean) -> DOMString {
-        match union {
-            LongOrBoolean::Long(_) => "number".into(),
-            LongOrBoolean::Boolean(_) => "boolean".into(),
-        }
+    fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> DOMString {
+        "union".into()
     }
     fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: DOMString) -> DOMString {
         "string".into()
