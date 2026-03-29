@@ -885,7 +885,9 @@ impl HTMLFormElement {
         // Step 24. Let historyHandling be "auto".
         // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
         // then set historyHandling to "replace".
-        let history_handling = if doc == target_document && !doc.completely_loaded() {
+        let history_handling = if std::ptr::eq(&*doc as *const _, &*target_document as *const _) &&
+            !doc.completely_loaded()
+        {
             NavigationHistoryBehavior::Replace
         } else {
             NavigationHistoryBehavior::Auto
