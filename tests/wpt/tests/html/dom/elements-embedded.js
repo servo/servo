@@ -92,9 +92,8 @@ var embeddedElements = {
     loop: "boolean",
     controls: "boolean",
     controlsList: {type: "tokenlist", domAttrName: "controlsList"},
-    defaultMuted: {type: "boolean", domAttrName: "muted"},/*
-    // Note: once media loading attr is not tentative, uncomment and delete html reflection tests it replaces.
-    loading: {type: "enum", keywords: ["lazy", "eager"], defaultVal: "eager", invalidVal: "eager"},*/
+    defaultMuted: {type: "boolean", domAttrName: "muted"},
+    loading: {type: "enum", keywords: ["lazy", "eager"], defaultVal: "eager", invalidVal: "eager"},
 
     width: "unsigned long",
     height: "unsigned long",
@@ -110,9 +109,8 @@ var embeddedElements = {
     autoplay: "boolean",
     loop: "boolean",
     controls: "boolean",
-    defaultMuted: {type: "boolean", domAttrName: "muted"},/*
-    // Note: once media loading attr is not tentative, uncomment and delete html reflection tests it replaces.
-    loading: {type: "enum", keywords: ["lazy", "eager"], defaultVal: "eager", invalidVal: "eager"},*/
+    defaultMuted: {type: "boolean", domAttrName: "muted"},
+    loading: {type: "enum", keywords: ["lazy", "eager"], defaultVal: "eager", invalidVal: "eager"},
   },
   source: {
     src: "url",

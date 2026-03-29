@@ -5,40 +5,45 @@
 <script src="../resources/utils.js"></script>
 
 <script>
-var entriesExpectToReceive = [
+  setup({"hide_test_state": true});
+
+  const entriesExpectToReceive = [
     {
-        'entryType': 'paint',
-        'name': 'first-paint'
+      'entryType': 'paint',
+      'name': 'first-paint'
     },
     {
-        'entryType': 'paint',
-        'name': 'first-contentful-paint'
+      'entryType': 'paint',
+      'name': 'first-contentful-paint'
     }
-];
+  ];
 
-setup({"hide_test_state": true});
-async_test(function (t) {
+  promise_test(async t => {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
-    window.addEventListener('message', t.step_func(e => {
-        // When only child frame paints, expect only first-paint.
+    const childDone = new Promise(resolve => {
+      window.addEventListener('message', e => {
         for (let i = 0; i < entriesExpectToReceive.length; i++) {
-            if (entriesExpectToReceive[i].entryType == e.data.entryType &&
-                entriesExpectToReceive[i].name == e.data.name) {
-                entriesExpectToReceive.splice(i, 1);
-                break;
-            }
+          if (entriesExpectToReceive[i].entryType == e.data.entryType &&
+            entriesExpectToReceive[i].name == e.data.name) {
+            entriesExpectToReceive.splice(i, 1);
+            break;
+          }
         }
-
         if (entriesExpectToReceive.length == 0) {
-            assertFirstPaint(t, 30);
-            t.done();
+          resolve();
         }
-    }));
+      });
+    });
+
     const iframe = document.createElement('iframe');
     iframe.id = 'child-iframe';
     iframe.src = '../resources/subframe-painting.html';
     document.body.appendChild(iframe);
-}, 'Parent frame ignores paint-timing events fired from child image rendering.');
+
+    // When only child frame paints, expect only first-paint.
+    await childDone;
+    await assertFirstPaint();
+    await assertNoFirstContentfulPaint(t);
+  }, 'Parent frame ignores paint-timing events fired from child image rendering.');
 </script>
 </body>
-</html>

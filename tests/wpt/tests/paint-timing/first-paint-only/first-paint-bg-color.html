@@ -11,16 +11,17 @@
 
 <footer>
 <script>
-setup({"hide_test_state": true});
-async_test(function (t) {
+  setup({"hide_test_state": true});
+  promise_test(async t => {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     assert_equals(performance.getEntriesByType('paint').length, 0, "There should be no Paint Entry");
 
     // Changing background color should fire FP.
     document.body.style.backgroundColor = "#AA0000";
 
-    assertFirstPaint(t, 20);
-}, "First paint fires due to background color. No FCP");
+    await assertFirstPaint();
+    await assertNoFirstContentfulPaint(t);
+  }, "First paint fires due to background color. No FCP");
 </script>
 <footer>
 </html>

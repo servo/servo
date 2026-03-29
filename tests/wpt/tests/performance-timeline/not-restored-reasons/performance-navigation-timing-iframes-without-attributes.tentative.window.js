@@ -5,7 +5,6 @@
 // META: script=/common/utils.js
 // META: script=/html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
 // META: script=/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
-// META: script=/websockets/constants.sub.js
 // META: timeout=long
 
 'use strict';
@@ -45,8 +44,8 @@ promise_test(async t => {
     /*extraConfig=*/ {},
     /*attributes=*/ {id: '', name: ''},
   );
-  // Use WebSocket to block BFCache.
-  await useWebSocket(rc1);
+  // Use BFCache blocking feature.
+  await useBFCacheBlockingFeature(rc1);
   const rc1_child_url = await rc1_child.executeScript(() => {
     return location.href;
   });
@@ -67,7 +66,7 @@ promise_test(async t => {
       /*src=*/ null,
       /*id=*/ null,
       /*name=*/ null,
-      /*reasons=*/[{'reason': 'websocket'}],
+      /*reasons=*/[{'reason': BFCACHE_BLOCKING_REASON}],
       /*children=*/[{
         'url': null,
         'src': rc1_child_url,

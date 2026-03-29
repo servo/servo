@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse justify-self aligns individual items within their tracks</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-self-001-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: repeat(2, 80px);
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+      height: 180px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: 28px;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-self</p>
+  <div class="grid-lanes">
+    <item style="justify-self: start;">start</item>
+    <item style="justify-self: end;">end</item>
+    <item style="justify-self: center;">center</item>
+    <item style="justify-self: last baseline; grid-column: 2; writing-mode: vertical-rl;">baseline</item>
+    <item style="height: min-content; justify-self: last baseline; grid-column: 2; writing-mode: vertical-rl;">item with some extra</item>
+  </div>
+</body>
+</html>

@@ -82,6 +82,33 @@
                     ruleInteriorInsetEnd: '40px',
                 }
             },
+            {
+                input: 'overlap-join',
+                expected: {
+                    ruleEdgeInsetStart: 'overlap-join',
+                    ruleEdgeInsetEnd: 'overlap-join',
+                    ruleInteriorInsetStart: 'overlap-join',
+                    ruleInteriorInsetEnd: 'overlap-join',
+                }
+            },
+            {
+                input: 'overlap-join 10px / overlap-join 10px',
+                expected: {
+                    ruleEdgeInsetStart: 'overlap-join',
+                    ruleEdgeInsetEnd: '10px',
+                    ruleInteriorInsetStart: 'overlap-join',
+                    ruleInteriorInsetEnd: '10px',
+                }
+            },
+            {
+                input: '10px overlap-join / 10px overlap-join',
+                expected: {
+                    ruleEdgeInsetStart: '10px',
+                    ruleEdgeInsetEnd: 'overlap-join',
+                    ruleInteriorInsetStart: '10px',
+                    ruleInteriorInsetEnd: 'overlap-join',
+                }
+            },
         ];
 
 

@@ -23,14 +23,26 @@
         },
       });
 
+      const methods = [
+        "streamHTMLUnsafe",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
       promise_test(async (t) => {
         let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
         assert_throws_js(
           Error,
-          () => d.streamHTMLUnsafe().getWriter(),
+          () => d[method]().getWriter(),
           "error in createParserOptions is rethrown",
         );
-      }, "error in createParserOptions is rethrown from default policy");
+      }, `error in createParserOptions is rethrown from default policy for ${method}`);
+      }
 
       promise_test(async (t) => {
         assert_throws_js(

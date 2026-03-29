@@ -243,6 +243,7 @@ promise_test(async t => {
 
   for (const badValue of throwingValues) {
     const options = makeGetOptions({ data: badValue });
+    await test_driver.bless("user activation");
     await promise_rejects_js(
       t,
       TypeError,
@@ -258,4 +259,89 @@ promise_test(async (t) => {
       TypeError,
       navigator.credentials.get({digital: {}}));
   }, "`requests` field is required in the options object.");
+
+  promise_test(async (t) => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    // makeGetOptions() with a manual request in `requests` will create a mix
+    // of that request plus the default canonical ones (openid4vp, org-iso-mdoc).
+    const options = makeGetOptions({
+      requests: [
+        {
+          protocol: "unknown-protocol",
+          data: BigInt(1), // malformed/non-serializable
+        },
+      ],
+      signal,
+    });
+
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.get(options);
+    controller.abort();
+    await promise_rejects_dom(t, "AbortError", promise);
+  }, "navigator.credentials.get() with one unknown protocol with malformed data and one known protocol with proper data should skip the unknown one and not fail.");
+
+  promise_test(async (t) => {
+    const options = {
+      digital: {
+        requests: [
+          { protocol: "bogus-1", data: BigInt(1) },
+          { protocol: "bogus-2", data: BigInt(2) },
+          { protocol: "bogus-3", data: BigInt(3) },
+        ],
+      },
+    };
+
+    await test_driver.bless("user activation");
+    await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+  }, "navigator.credentials.get() with only bogus requests should reject with TypeError.");
+
+  promise_test(async (t) => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const [openidReq] = makeGetOptions({ protocol: "openid4vp-v1-unsigned" }).digital.requests;
+    const [mdocReq] = makeGetOptions({ protocol: "org-iso-mdoc" }).digital.requests;
+
+    const options = makeGetOptions({
+      protocol: [], // disable defaults
+      requests: [
+        openidReq,
+        { protocol: "bogus-1", data: BigInt(1) },
+        { protocol: "bogus-2", data: BigInt(2) },
+        mdocReq,
+      ],
+      signal,
+    });
+
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.get(options);
+    controller.abort();
+    await promise_rejects_dom(t, "AbortError", promise);
+  }, "navigator.credentials.get() with good requests at the start and end should skip the bogus ones and not fail.");
+
+  promise_test(async (t) => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const [openidReq] = makeGetOptions({ protocol: "openid4vp-v1-unsigned" }).digital.requests;
+    const [mdocReq] = makeGetOptions({ protocol: "org-iso-mdoc" }).digital.requests;
+
+    const options = makeGetOptions({
+      protocol: [], // disable automatic protocol requests
+      requests: [
+        { protocol: "bogus-1", data: BigInt(1) },
+        openidReq,
+        mdocReq,
+        { protocol: "bogus-2", data: BigInt(2) },
+      ],
+      signal,
+    });
+
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.get(options);
+    controller.abort();
+    await promise_rejects_dom(t, "AbortError", promise);
+  }, "navigator.credentials.get() with bogus requests at both ends should skip them and not fail.");
 </script>

@@ -5,7 +5,6 @@
 // META: script=/common/utils.js
 // META: script=/html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
 // META: script=/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
-// META: script=/websockets/constants.sub.js
 // META: timeout=long
 
 'use strict';
@@ -17,8 +16,8 @@ promise_test(async t => {
   // Open a window with noopener so that BFCache will work.
   const rc1 = await rcHelper.addWindow(
       /*config=*/ null, /*options=*/ {features: 'noopener'});
-  // Use WebSocket to block BFCache.
-  await useWebSocket(rc1);
+  // Use BFCache blocking feature.
+  await useBFCacheBlockingFeature(rc1);
 
   // Create a remote context with the redirected URL.
   let rc1_redirected =

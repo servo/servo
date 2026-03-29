@@ -32,8 +32,9 @@
       promise_test(async () => {
         let result = window[scroll_method]({ behavior: behavior });
         assert_true(result instanceof Promise);
+        const result_value = await result;
+        assert_equals(typeof result_value, "object");
       }, `${test_label}: return type`);
-
       promise_test(async () => {
         reset();
         const offset = 5000;
@@ -47,8 +48,9 @@
                 "Position before await");
         }
 
-        await promise;
+        const result_value = await promise;
         assert_equals(window.scrollY, offset, "Position after await");
+        assert_equals(typeof result_value, "object");
       }, `${test_label}: promise behavior`);
     }
   }

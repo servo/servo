@@ -40,10 +40,6 @@ class SDPAttributeHelper {
     const {type, sdp} = desc;
     return {type, sdp: this.sdpWithValue(sdp, value)};
   }
-
-  descWithoutAttribute(desc) {
-    return this.descWithValue(desc);
-  }
 }
 
 promise_test(async (t) => {
@@ -116,8 +112,10 @@ promise_test(async (t) => {
     'SDP should have max-message-size attribute');
 
   // Remove the max-message-size SDP attribute
-  await answerer.setRemoteDescription(
-    mmsAttributeHelper.descWithoutAttribute(offerer.localDescription));
+  await answerer.setRemoteDescription({
+    type: offerer.localDescription.type,
+    sdp: offerer.localDescription.sdp.replaceAll('a=max-message-size:', 'a=something-else:'),
+  });
   await answerer.setLocalDescription();
 
   assert_not_equals(answerer.sctp, null, 'RTCSctpTransport must be available');

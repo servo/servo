@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 260px;
+      height: 170px;
+      border: 1px solid;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row-reverse;
+      height: 70px;
+      flex-shrink: 0;
+      gap: 4px;
+      align-items: start;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container alignment -->
+  <p>align-content: start</p>
+  <div class="container" style="justify-content: start;">
+    <div class="row">
+      <item>item 1</item>
+      <item>item 3</item>
+    </div>
+    <div class="row">
+      <item>item 2</item>
+    </div>
+  </div>
+
+  <!-- Container alignment -->
+  <p>align-content: center</p>
+  <div class="container" style="justify-content: center;">
+    <div class="row">
+      <item>item 1</item>
+      <item>item 3</item>
+    </div>
+    <div class="row">
+      <item>item 2</item>
+    </div>
+  </div>
+
+  <!-- Container alignment -->
+  <p>align-content: end</p>
+  <div class="container" style="justify-content: end;">
+    <div class="row">
+      <item>item 1</item>
+      <item>item 3</item>
+    </div>
+    <div class="row">
+      <item>item 2</item>
+    </div>
+  </div>
+</body>
+</html>

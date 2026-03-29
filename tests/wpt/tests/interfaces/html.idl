@@ -531,6 +531,7 @@ interface HTMLVideoElement : HTMLMediaElement {
   readonly attribute unsigned long videoHeight;
   [CEReactions, ReflectURL] attribute USVString poster;
   [CEReactions, Reflect] attribute boolean playsInline;
+
 };
 
 [Exposed=Window,
@@ -613,6 +614,7 @@ interface HTMLMediaElement : HTMLElement {
   attribute double volume;
   attribute boolean muted;
   [CEReactions, Reflect="muted"] attribute boolean defaultMuted;
+  [CEReactions] attribute DOMString loading;
 
   // tracks
   [SameObject] readonly attribute AudioTrackList audioTracks;

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: grid gap decorations extend to meet cross-direction
+  decoration width at far edge with rule-inset: overlap-join. Tests scenario
+  where some gap decorations segments need to flush due to the absence of
+  a cross decoration.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-073-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .container {
+    display: grid;
+    grid-template: repeat(3, 100px) / repeat(3, 100px);
+    gap: 20px;
+    rule: 6px solid;
+    column-rule-color: rgba(128 0 0 / 0.5);
+    row-rule-color: rgba(0 0 128 / 0.5);
+    rule-visibility-items: between;
+    rule-inset: overlap-join;
+  }
+  .item {
+    background: rgba(192 192 192 / 0.75);
+  }
+</style>
+<div class="container">
+  <div class="item" style="grid-area: 1/1/4/1"></div>
+  <div class="item" style="grid-area: 1/2/1/4"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

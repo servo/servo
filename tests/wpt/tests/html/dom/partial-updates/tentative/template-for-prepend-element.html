@@ -5,8 +5,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div id="placeholder" marker="placeholder"><?marker><span>content</span></div>
-<template for="placeholder"><span>Some </span></template>
+<div id="placeholder"><?marker name="p"><span>content</span></div>
+<template for="p"><span>Some </span></template>
 <script>
   test(() => {
     assert_equals(

@@ -6,26 +6,23 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <div id="container">
-  <template shadowrootmode="open" marker="x"
-    ><?marker name=a>b<?start name=c><?end><template for="x#a">a</template
-    ><template for="x#c">c</template></template
+  <template shadowrootmode="open"
+    ><?marker name=a>b<?start name=c><?end><template for="a">a</template
+    ><template for="c">c</template></template
   >
 </div>
 <script>
   test(() => {
-    const { shadowRoot } = document.querySelector("#container");
-    assert_equals(shadowRoot.marker, "x");
-    assert_equals(shadowRoot.textContent, "abc");
+    assert_equals(document.querySelector("#container").shadowRoot.textContent, "abc");
   }, "markers are respected in declarative shadow root");
 
   promise_test(async (t) => {
     const element = document.createElement("div");
     const shadow = element.attachShadow({ mode: "open", marker: "x" });
-    assert_equals(shadow.marker, "x");
     shadow.innerHTML = "<?marker name=a>X<?marker name=b>";
     const writer = shadow.streamAppendHTMLUnsafe().getWriter();
-    await writer.write("<template for=x#a>a</template>");
-    await writer.write("<template for=x#b>b</template>");
+    await writer.write("<template for=a>a</template>");
+    await writer.write("<template for=b>b</template>");
     await writer.close();
     assert_equals(shadow.textContent, "aXb");
   }, "markers are respected in imperative shadow root with streaming");

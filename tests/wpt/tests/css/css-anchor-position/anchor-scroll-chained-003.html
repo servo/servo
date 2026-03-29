@@ -20,7 +20,11 @@ div {
 }
 
 #scroller1,#scroller2 {
-  overflow: scroll;
+  /* Using visible scrollbars here tests scrollbar painting order as well, which
+     isn't related to anchor positioning. See:
+     https://github.com/web-platform-tests/wpt/pull/55022#issuecomment-3499478504 */
+overflow: scroll;
+scrollbar-width: none;
 }
 
 #anchor {

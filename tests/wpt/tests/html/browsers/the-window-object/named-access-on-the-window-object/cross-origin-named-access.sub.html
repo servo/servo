@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Named access on the Window object across origins</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+
+async function setup_and_load_iframe(t) {
+  const host_info = get_host_info();
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+
+  iframe.name = "frame1";
+  iframe.src = host_info.HTTP_REMOTE_ORIGIN + "/html/browsers/the-window-object/named-access-on-the-window-object/resources/cross-origin-named-access-child.html";
+
+  // Wait for child to load.
+  let p = new Promise(resolve => {
+    window.addEventListener("message", e => {
+      if (e.data === "child_loaded") {
+        resolve();
+      }
+    }, {once: true});
+  });
+  document.body.append(iframe);
+  await p;
+  return iframe;
+}
+
+promise_test(async t => {
+  const iframe = await setup_and_load_iframe(t);
+
+  // Access of the cross-origin Window by name `window.frame1` should return
+  // undefined, per `[[GetOwnProperty]] (P)` [1]. The access enters [1], where
+  // `IsPlatformObjectSameOrigin()` is true, so we never consult [2] the
+  // document-tree child navigable target name property set [3].
+  //
+  // (But even if we did consult that set directly, no frame by the name
+  // `frame1` would be there, since that set excludes cross-origin globals).
+  //
+  // [1]: https://html.spec.whatwg.org/#windowproxy-getownproperty
+  // [2]: https://html.spec.whatwg.org/#named-access-on-the-window-object:document-tree-child-navigable-target-name-property-set
+  // [3]: https://html.spec.whatwg.org/#document-tree-child-navigable-target-name-property-set
+  assert_equals(window.frame1, undefined, "window.frame1 should be undefined for cross-origin iframes");
+}, "Accessing a cross-origin child global by name returns undefined");
+
+promise_test(async t => {
+  const iframe = await setup_and_load_iframe(t);
+
+  // Ask the child to check `window.parent.frame1` (as well as arbitrary name
+  // access), from its script. This enters `[[GetOwnProperty]] (P)` [1], where
+  // `IsPlatformObjectSameOrigin()` is false since `W` is a WindowProxy object
+  // representing the cross-origin parent. This results in us consulting [2]
+  // the document-tree child navigable target name property set [3], which does
+  // not contain `frame1` (the child's `window.name`), because the frame with
+  // that name is cross-origin to the parent `W`.
+  //
+  // This drops us into `CrossOriginPropertyFallback()` [4] which throws an
+  // exception in the child, which the child will report to us here.
+  //
+  // [1]: https://html.spec.whatwg.org/#windowproxy-getownproperty
+  // [2]: https://html.spec.whatwg.org/#named-access-on-the-window-object:document-tree-child-navigable-target-name-property-set
+  // [3]: https://html.spec.whatwg.org/#document-tree-child-navigable-target-name-property-set
+  // [4]: https://html.spec.whatwg.org/#crossoriginpropertyfallback-(-p-)
+  p = new Promise(resolve => {
+    window.addEventListener("message", e => {
+      if (e.data && e.data.type === "parent_frame1_result") {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
+  iframe.contentWindow.postMessage("check_parent_frame1", "*");
+  let result = await p;
+
+  assert_equals(result.frame1_result, "SecurityError", "Accessing `window.parent.frame1` from the child throws a SecurityError");
+  // This just indicates that the exception is not specific to the accessing of
+  // frame names that the initiating process "knows about" in its frame tree;
+  // rather, exceptions are thrown for all generic cross-origin property access.
+  assert_equals(result.anythingHere_result, "SecurityError", "Accessing `window.parent.anythingHere` from the child throws a SecurityError");
+}, "Child accessing its own global through a cross-origin parent's WindowProxy throws an exception");
+
+promise_test(async t => {
+  const iframe = await setup_and_load_iframe(t);
+
+  // Ask the child to change its name and check again. The result should be the same.
+  p = new Promise(resolve => {
+    window.addEventListener("message", function handler(e) {
+      if (e.data && e.data.type === "parent_new_name_result") {
+        resolve(e.data);
+      }
+    }, {once: true});
+  });
+  iframe.contentWindow.postMessage("change_name_and_check", "*");
+  let result = await p;
+
+  assert_equals(window.new_name, undefined, "window.new_name should be undefined for cross-origin iframes");
+  assert_equals(result.new_name_result, "SecurityError", "Accessing window.parent.new_name should throw SecurityError");
+}, "Child accessing its own global (through a changed name) on the cross-origin parent's WindowProxy throws an exception");
+</script>
+</body>

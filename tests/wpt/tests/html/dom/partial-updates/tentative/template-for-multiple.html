@@ -5,21 +5,21 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div marker="p1"><?start>Old P1<?end></div>
-<div marker="p2"><?marker name="prepend"><?start>Old P2<?end><?marker name="append"></div>
-<div marker="p3"><?marker name="prepend"><?start>Old P3<?end></div>
+<div id="p1"><?start name="p1">Old P1<?end></div>
+<div id="p2"><?marker name="prepend"><?start name="p2">Old P2<?end><?marker name="append"></div>
+<div id="p3"><?marker name="prepend-3"><?start name="p3">Old P3<?end></div>
 
 <template for="p1"><span>New P1</span></template>
 <template for="p2"><span>New P2</span></template>
 
 <template for="p3"><span>New P3</span></template>
-<template for="p2#append"><span>...</span><span></span>more P2</template>
-<template for="p2#prepend"><span>And</span><span>...</span></template>
-<template for="p3#prepend"><span>Pre P3 </span></template>
+<template for="append"><span>...</span><span></span>more P2</template>
+<template for="prepend"><span>And</span><span>...</span></template>
+<template for="prepend-3"><span>Pre P3 </span></template>
 <script>
 test(() => {
-    assert_equals(document.querySelector("div[marker*='p1']").textContent, 'New P1');
-    assert_equals(document.querySelector("div[marker*='p2']").textContent, 'And...New P2...more P2');
-    assert_equals(document.querySelector("div[marker*='p3']").textContent, 'Pre P3 New P3');
+    assert_equals(document.getElementById("p1").textContent, 'New P1');
+    assert_equals(document.getElementById("p2").textContent, 'And...New P2...more P2');
+    assert_equals(document.getElementById("p3").textContent, 'Pre P3 New P3');
 }, "Multiple <template for>");
 </script>

@@ -13,12 +13,25 @@
   <body>
     <div id="container"></div>
     <script>
-      test((t) => {
-        var container = document.querySelector("#container");
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        assert_throws_js(TypeError, () => d.streamHTMLUnsafe());
-      }, "Streaming with trusted types and no default policy throws.");
+      const methods = [
+        "streamHTML", "streamHTMLUnsafe",
+        "streamAppendHTML", "streamAppendHTMLUnsafe",
+        "streamPrependHTML", "streamPrependHTMLUnsafe",
+        "streamBeforeHTML", "streamBeforeHTMLUnsafe",
+        "streamAfterHTML", "streamAfterHTMLUnsafe"
+      ];
+      for (const method of methods) {
+        const safe = !method.endsWith("Unsafe");
+        test((t) => {
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          if (safe) {
+            assert_true(d[method]() instanceof WritableStream);
+          } else {
+            assert_throws_js(TypeError, () => d[method]());
+          }
+        }, `Streaming with trusted types and no default policy ${safe ? "does not throw" : "throws"} for ${method}.`);
+      }
     </script>
   </body>
 </html>

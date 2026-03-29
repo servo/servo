@@ -147,6 +147,10 @@ const gTestSyntaxExamples = {
         description: "a calc time",
         input: new CSSMathSum(new CSSUnitValue(0, 's'), new CSSUnitValue(0, 'ms')),
         specifiedExpected: new CSSMathSum(new CSSUnitValue(0, 's'), new CSSUnitValue(0, 's')),
+        // TODO: Consider merging specifiedAlternateExpected with
+        // specifiedExpected once all engines do simplification during
+        // association.
+        specifiedAlternateExpected: new CSSMathSum(new CSSUnitValue(0, 's')),
         defaultSpecified: (_, result) => assert_is_calc_sum(result),
         defaultComputed: (_, result) => assert_is_unit('s', result)
       }

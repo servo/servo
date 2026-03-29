@@ -1045,6 +1045,21 @@
     "hash": ""
   },
   {
+    "input": "http:/",
+    "base": "http://example.com/",
+    "href": "http://example.com/",
+    "origin": "http://example.com",
+    "protocol": "http:",
+    "username": "",
+    "password": "",
+    "host": "example.com",
+    "hostname": "example.com",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": ""
+  },
+  {
     "input": "ftp:/example.com/",
     "base": "http://example.org/foo/bar",
     "href": "ftp://example.com/",
@@ -4267,6 +4282,36 @@
     "pathname": "/bar",
     "search": "",
     "hash": ""
+  },
+  {
+    "input": "https://localhost?q=🔥",
+    "base": null,
+    "href": "https://localhost/?q=%F0%9F%94%A5",
+    "origin": "https://localhost",
+    "protocol": "https:",
+    "username": "",
+    "password": "",
+    "host": "localhost",
+    "hostname": "localhost",
+    "port": "",
+    "pathname": "/",
+    "search": "?q=%F0%9F%94%A5",
+    "hash": ""
+  },
+  {
+    "input": "https://localhost#🔥",
+    "base": null,
+    "href": "https://localhost/#%F0%9F%94%A5",
+    "origin": "https://localhost",
+    "protocol": "https:",
+    "username": "",
+    "password": "",
+    "host": "localhost",
+    "hostname": "localhost",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": "#%F0%9F%94%A5"
   },
   "# resolving a fragment against any scheme succeeds",
   {

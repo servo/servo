@@ -9,7 +9,7 @@
 test(() => {
     const container = document.getElementById("container");
     container.innerHTML = `
-        <div id="placeholder" marker="p"><?start>Old content in innerHTML<?end></div>
+        <div id="placeholder"><?start name="p">Old content in innerHTML<?end></div>
         <template for="p">New content</template>`;
     const placeholder = container.querySelector("div");
     assert_equals(placeholder.id, "placeholder");

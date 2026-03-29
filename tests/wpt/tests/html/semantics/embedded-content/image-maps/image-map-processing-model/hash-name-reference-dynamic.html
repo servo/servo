@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <style>
  body { margin: 0 }
@@ -20,6 +21,18 @@
 const img = document.getElementById("img");
 const map = document.querySelector("map");
 
+// test_driver.click(element) checks that the element itself receives the click.
+// In an image map, the <area> element receives the click, causing WebDriver
+// to throw an "element click intercepted" error. Using the Actions API
+// bypasses this check.
+async function clickImageMap(element) {
+    await new test_driver.Actions()
+        .pointerMove(0, 0, {origin: element})
+        .pointerDown()
+        .pointerUp()
+        .send();
+}
+
 async function clickTargetsArea() {
     let target = null;
     function handler(e) {
@@ -27,7 +40,7 @@ async function clickTargetsArea() {
         target = e.target;
     }
     document.addEventListener("click", handler, { once: true, capture: true });
-    await test_driver.click(img);
+    await clickImageMap(img);
     return target && target.tagName === "AREA";
 }
 

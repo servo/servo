@@ -1,0 +1,15 @@
+<!doctype html>
+<title>import.defer with cyclic TLA dependency</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+promise_test(async t => {
+  delete window.__moduleBEvaluated;
+  delete window.__moduleAEvaluated;
+  await promise_rejects_js(t, TypeError,
+      import.defer("./resources/cyclic-tla-dep-a.js"),
+      "import.defer() should reject when cyclic TLA dependency prevents deferred execution");
+}, "import.defer() rejects with TypeError on cyclic TLA dependency");
+</script>

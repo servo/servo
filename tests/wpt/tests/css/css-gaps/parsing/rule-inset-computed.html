@@ -20,18 +20,21 @@
   <script>
     const properties = ["column-rule-inset", "row-rule-inset", "rule-inset"];
     for (const property of properties) {
-      test_computed_value(property, "10px", "10px 10px / 10px 10px");
-      test_computed_value(property, "-20px", "-20px -20px / -20px -20px");
-      test_computed_value(property, "0.5em", "20px 20px / 20px 20px");
-      test_computed_value(property, "calc(10px + 0.5em)", "30px 30px / 30px 30px");
-      test_computed_value(property, "calc(10px - 0.5em)", "-10px -10px / -10px -10px");
-      test_computed_value(property, "30%", "30% 30% / 30% 30%");
-      test_computed_value(property, "calc(25% + 10px)", "calc(25% + 10px) calc(25% + 10px) / calc(25% + 10px) calc(25% + 10px)");
+      test_computed_value(property, "10px");
+      test_computed_value(property, "-20px");
+      test_computed_value(property, "0.5em", "20px");
+      test_computed_value(property, "calc(10px + 0.5em)", "30px");
+      test_computed_value(property, "calc(10px - 0.5em)", "-10px");
+      test_computed_value(property, "30%");
+      test_computed_value(property, "calc(25% + 10px)");
       test_computed_value(property, "10px 20px", "10px 20px / 10px 20px");
       test_computed_value(property, "10px 20px / 30px -10px");
       test_computed_value(property, "-10px -20px / 25% 24%");
       test_computed_value(property, "5% 10% / 15%", "5% 10% / 15% 15%");
       test_computed_value(property, "5% / 15% 20%", "5% 5% / 15% 20%");
+      test_computed_value(property, "overlap-join");
+      test_computed_value(property, "overlap-join 10px / overlap-join 10px");
+      test_computed_value(property, "10px overlap-join / 10px overlap-join");
     }
   </script>
 </body>

@@ -128,7 +128,7 @@
         parseHTML(
           targetElement,
           method,
-          `<div marker=p><?start>DIV content</div><template for="p">New content</template>`,
+          `<div id=placeholder><?start name="p">DIV content</div><template for="p">New content</template>`,
         );
 
         assert_equals(
@@ -137,7 +137,7 @@
           "Head should not be patched",
         );
         assert_equals(
-          iframeDoc.body.querySelector("div[marker=p]").textContent,
+          iframeDoc.body.querySelector("div#placeholder").textContent,
           "New content",
           "Inner target should be patched",
         );
@@ -146,8 +146,7 @@
       if (method !== "innerHTML" && method !== "setHTMLUnsafe") {
         test((t) => {
           const target = document.createElement("div");
-          target.innerHTML = `<?start>Old content<?end>`;
-          target.setAttribute("marker", `p-body-${method}`);
+          target.innerHTML = `<?start name="p-body-${method}">Old content<?end>`;
           document.body.appendChild(target);
 
           const container = document.createElement("div");

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Selector: pseudo-classes (:in-range, :out-of-range) with reversed time ranges</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#selector-in-range">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#selector-out-of-range">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#has-a-reversed-range">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="utils.js"></script>
+<div id="log"></div>
+
+<!-- Reversed range: min="21:00" max="03:00" wraps around midnight.
+     Valid values: >= 21:00:00 OR <= 03:00:00
+     Out-of-range values: > 03:00:00 AND < 21:00:00 (the gap) -->
+
+<!-- In range: value is after min, before midnight -->
+<input type="time" min="21:00:00" max="03:00:00" value="22:00:00" id="time-after-min">
+<!-- In range: value is after midnight, before max -->
+<input type="time" min="21:00:00" max="03:00:00" value="02:00:00" id="time-before-max">
+<!-- In range: value is exactly at min -->
+<input type="time" min="21:00:00" max="03:00:00" value="21:00:00" id="time-at-min">
+<!-- In range: value is exactly at max -->
+<input type="time" min="21:00:00" max="03:00:00" value="03:00:00" id="time-at-max">
+<!-- Out of range: value is in the gap -->
+<input type="time" min="21:00:00" max="03:00:00" value="12:00:00" id="time-in-gap">
+<!-- Out of range: value is just past max -->
+<input type="time" min="21:00:00" max="03:00:00" value="04:00:00" id="time-past-max">
+<!-- Out of range: value is just before min -->
+<input type="time" min="21:00:00" max="03:00:00" value="20:00:00" id="time-before-min">
+
+<script>
+  testSelectorIdsMatch(":in-range",
+    ["time-after-min", "time-before-max", "time-at-min", "time-at-max"],
+    "':in-range' matches time inputs whose value is within a reversed range (>= min OR <= max)");
+
+  testSelectorIdsMatch(":out-of-range",
+    ["time-in-gap", "time-past-max", "time-before-min"],
+    "':out-of-range' matches time inputs whose value is in the gap of a reversed range (> max AND < min)");
+
+  // Dynamic update: move an in-range value into the gap.
+  document.getElementById("time-after-min").value = "12:00:00";
+  test(function() {
+    assert_false(document.getElementById("time-after-min").matches(":in-range"));
+    assert_true(document.getElementById("time-after-min").matches(":out-of-range"));
+  }, "Dynamic update from in-range to out-of-range in a reversed time range");
+
+  // Dynamic update: move an out-of-range value into the valid range.
+  document.getElementById("time-in-gap").value = "23:00:00";
+  test(function() {
+    assert_true(document.getElementById("time-in-gap").matches(":in-range"));
+    assert_false(document.getElementById("time-in-gap").matches(":out-of-range"));
+  }, "Dynamic update from out-of-range to in-range in a reversed time range");
+</script>

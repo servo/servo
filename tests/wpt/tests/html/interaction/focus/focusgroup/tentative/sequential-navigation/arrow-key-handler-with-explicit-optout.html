@@ -3,7 +3,6 @@
 <title>HTML Test: focusgroup - Native arrow key handler with explicit focusgroup=none</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
-<meta name="assert" content="An element with focusgroup=none is always opted-out, regardless of whether it's a native arrow key handler.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -49,7 +48,8 @@
     const after = document.getElementById("after");
 
     // Explicit opt-out means element is in normal Tab order regardless of focus state.
-    // This is different from native arrow key handler behavior which only opts-out when focused.
+    // Native arrow key handlers (without explicit opt-out) remain focusgroup items
+    // and use Tab escape to navigate to adjacent items when focused.
     await assert_focusgroup_tab_navigation([before, btn1, search, btn2, after]);
   }, "Explicit focusgroup=none includes element in Tab order even when not focused");
 

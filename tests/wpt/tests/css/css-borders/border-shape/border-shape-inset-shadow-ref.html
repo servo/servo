@@ -1,36 +1,27 @@
 <!DOCTYPE html>
 <style>
-    body {
-        margin: 0;
-    }
-    svg {
-        width: 200px;
-        height: 200px;
-        overflow: visible;
-        border: 5px solid transparent;
-    }
-    .background {
-        fill: green;
-    }
-    .inset-shadow {
-        fill: none;
-        stroke: purple;
-        stroke-width: 20px;
-    }
-    .border {
-        fill: none;
-        stroke: black;
-        stroke-width: 10px;
-    }
+body {
+    margin: 0;
+}
+svg {
+    display: block;
+    width: 210px;
+    height: 210px;
+    overflow: visible;
+}
 </style>
-
-<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 210 210" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <clipPath id="inner-clip">
-            <polygon points="100,0 200,100, 100,200, 0,100" />
+            <polygon points="105,0 210,105 105,210 0,105" />
         </clipPath>
     </defs>
-    <polygon points="100,0 200,100, 100,200, 0,100" class="background" />
-    <polygon points="100,0 200,100, 100,200, 0,100" class="inset-shadow" clip-path="url(#inner-clip)" />
-    <polygon points="100,0 200,100, 100,200, 0,100" class="border" />
+    <!-- Background: clipped to the inner edge -->
+    <polygon points="105,10 200,105 105,200 10,105" fill="green" />
+
+    <!-- Inset shadow -->
+    <polygon points="105,5 205,105 105,205 5,105" fill="none" stroke="purple" stroke-width="30" clip-path="url(#inner-clip)" />
+
+    <!-- Border -->
+    <polygon points="105,5 205,105 105,205 5,105" fill="none" stroke="black" stroke-width="10" />
 </svg>

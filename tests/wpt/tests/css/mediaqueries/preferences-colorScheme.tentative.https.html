@@ -32,7 +32,7 @@
         assert_true('requestOverride' in navigator.preferences.colorScheme, 'navigator.preferences.colorScheme.requestOverride() defined');
         return navigator.preferences.colorScheme.requestOverride('this-is-an-invalid-value')
           .then(() => {
-            assert_not_reached('requestOverride with invalid value should not resolve');
+            assert_unreached('requestOverride with invalid value should not resolve');
           })
           .catch((e) => {
             assert_true(e instanceof DOMException);

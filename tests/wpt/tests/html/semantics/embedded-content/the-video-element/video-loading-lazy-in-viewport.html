@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<script>
+  let windowLoadFired = false;
+
+  async_test(t => {
+    const video = document.createElement("video");
+    video.id = "target";
+    video.loading = "lazy";
+    video.src = "/media/A4.webm?pipe=trickle(d2)";
+
+    window.addEventListener("load", () => {
+      windowLoadFired = true;
+    });
+
+    video.addEventListener("loadeddata", t.step_func_done(() => {
+      assert_true(windowLoadFired, "Window load event should fire before lazy video in viewport finishes loading");
+    }));
+
+    document.body.appendChild(video);
+  }, "In-viewport video with loading='lazy' does not block window load");
+</script>
+</body>

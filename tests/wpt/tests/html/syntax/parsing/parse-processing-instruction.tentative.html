@@ -81,7 +81,7 @@
       for (const data of [null, "data"]) {
         processing_instruction_test(`<?${target}${data ? " " + data : ""}>`, [
           {
-            target,
+            target: target.toLowerCase(),
             data,
           },
         ]);

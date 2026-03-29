@@ -580,22 +580,19 @@ class FirefoxOutputHandler(OutputHandler):
         self.lsan_handler = None
         self.mozleak_allowed = None
         self.mozleak_thresholds = None
-        self.group_metadata = {}
+        self.group_metadata = None
 
-    def start(self, group_metadata=None, lsan_disabled=False, lsan_allowed=None,
+    def start(self, group_metadata, lsan_disabled=False, lsan_allowed=None,
               lsan_max_stack_depth=None, mozleak_allowed=None, mozleak_thresholds=None,
               **kwargs):
         """Configure the output handler"""
-        if group_metadata is None:
-            group_metadata = {}
         self.group_metadata = group_metadata
-
         self.mozleak_allowed = mozleak_allowed
         self.mozleak_thresholds = mozleak_thresholds
 
         if self.asan:
             self.lsan_handler = mozleak.LSANLeaks(self.logger,
-                                                  scope=group_metadata.get("scope", "/"),
+                                                  scope=group_metadata.scope,
                                                   allowed=lsan_allowed,
                                                   maxNumRecordedFrames=lsan_max_stack_depth,
                                                   allowAll=lsan_disabled)
@@ -623,7 +620,7 @@ class FirefoxOutputHandler(OutputHandler):
                     ignore_missing_leaks=["tab", "gmplugin"],
                     log=self.logger,
                     stack_fixer=self.stack_fixer,
-                    scope=self.group_metadata.get("scope"),
+                    scope=self.group_metadata.scope,
                     allowed=self.mozleak_allowed)
             if processed_files:
                 for path in processed_files:
@@ -915,7 +912,7 @@ class FirefoxBrowser(Browser):
                           "testdriver": True if test.test_type == "testharness" else getattr(test, "testdriver", False)}
         return self._settings
 
-    def start(self, group_metadata=None, **kwargs):
+    def start(self, group_metadata, **kwargs):
         self.instance = self.instance_manager.get()
         self.instance.output_handler.start(group_metadata,
                                            **kwargs)

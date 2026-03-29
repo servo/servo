@@ -2,9 +2,9 @@
 <title>SVGGraphicsElement.prototype.getBBox for elements with negative sizes</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#Sizing">
-<link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGraphicsElement__getBBox">
-<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#BoundingBoxes">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#Sizing">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGGraphicsElement__getBBox">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#BoundingBoxes">
 <svg>
   <rect id="rect1" x="1" y="2" width="-10" height="20"/>
   <rect id="rect2" x="1" y="2" width="10" height="-20"/>
@@ -31,15 +31,17 @@ function testBBox(id, x, y, width, height) {
   test(() => { assertBBox(id, x, y, width, height) }, id);
 }
 
-testBBox('rect1', 1, 2, 0, 20);
-testBBox('rect2', 1, 2, 10, 0);
-testBBox('circle', 1, 2, 0, 0);
-testBBox('ellipse1', -9, 2, 20, 20);
-testBBox('ellipse2', 1, -3, 10, 10);
-testBBox('image3', 1, 2, 0, 20);
-testBBox('image4', 1, 2, 10, 0);
-testBBox('foreign1', 1, 2, 0, 20);
-testBBox('foreign2', 1, 2, 10, 0);
+// Per resolution (issue #1018): if a shape is not rendered (negative or
+// zero dimension), getBBox returns (0, 0, 0, 0).
+testBBox('rect1', 0, 0, 0, 0);
+testBBox('rect2', 0, 0, 0, 0);
+testBBox('circle', 0, 0, 0, 0);
+testBBox('ellipse1', 0, 0, 0, 0);
+testBBox('ellipse2', 0, 0, 0, 0);
+testBBox('image3', 0, 0, 0, 0);
+testBBox('image4', 0, 0, 0, 0);
+testBBox('foreign1', 0, 0, 0, 0);
+testBBox('foreign2', 0, 0, 0, 0);
 
 async_test(t => {
   onload = t.step_func_done(() => {

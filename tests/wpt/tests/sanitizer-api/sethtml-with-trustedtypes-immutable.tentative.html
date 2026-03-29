@@ -32,45 +32,43 @@
         },
       });
 
-      for (const method of ["setHTML", "setHTMLUnsafe"]) {
-        test((t) => {
-          let d = document.createElement("div");
-          document.querySelector("#container").appendChild(d);
-          t.add_cleanup(() => d.remove());
-          const options = { sanitizer: {}, modified: false };
-          d[method](
-            "<div id='allowed'><span id=forbidden></span></div>",
-            options,
-          );
-          assert_false(
-            options.modified,
-            "trusted types policy should not modify given options",
-          );
-          assert_false(
-            "removeElements" in options.sanitizer,
-            "trusted types policy should not modify sanitizer",
-          );
-          assert_equals(d.querySelector("#forbidden"), null);
-          assert_not_equals(d.querySelector("#allowed"), null);
-        }, `${method}: createParserOptions doesn't mutate original object`);
+      test((t) => {
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        const options = { sanitizer: {}, modified: false };
+        d.setHTMLUnsafe(
+          "<div id='allowed'><span id=forbidden></span></div>",
+          options,
+        );
+        assert_false(
+          options.modified,
+          "trusted types policy should not modify given options",
+        );
+        assert_false(
+          "removeElements" in options.sanitizer,
+          "trusted types policy should not modify sanitizer",
+        );
+        assert_equals(d.querySelector("#forbidden"), null);
+        assert_not_equals(d.querySelector("#allowed"), null);
+      }, `createParserOptions doesn't mutate original object`);
 
-        test((t) => {
-          let d = document.createElement("div");
-          document.querySelector("#container").appendChild(d);
-          t.add_cleanup(() => d.remove());
-          const options = { sanitizer: new Sanitizer() };
-          d[method](
-            "<div id=allowed><span id=forbidden></span></div>",
-            options,
-          );
-          assert_false(
-            "removeElements" in options.sanitizer.get(),
-            "trusted types policy should not modify sanitizer",
-          );
-          assert_equals(d.querySelector("#forbidden"), null);
-          assert_not_equals(d.querySelector("#allowed"), null);
-        }, `${method}: createParserOptions doesn't mutate sanitizer object`);
-      }
+      test((t) => {
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        const options = { sanitizer: new Sanitizer() };
+        d.setHTMLUnsafe(
+          "<div id=allowed><span id=forbidden></span></div>",
+          options,
+        );
+        assert_false(
+          "removeElements" in options.sanitizer.get(),
+          "trusted types policy should not modify sanitizer",
+        );
+        assert_equals(d.querySelector("#forbidden"), null);
+        assert_not_equals(d.querySelector("#allowed"), null);
+      }, `createParserOptions doesn't mutate sanitizer object`);
     </script>
   </body>
 </html>
