@@ -499,11 +499,14 @@ impl DevtoolsInstance {
                 script_chan: script_sender,
                 streams: Default::default(),
             };
-            let root = self.registry.find::<RootActor>("root");
+            let root_actor = self.registry.find::<RootActor>("root");
             if page_info.is_service_worker {
-                root.service_workers.borrow_mut().push(worker.name.clone());
+                root_actor
+                    .service_workers
+                    .borrow_mut()
+                    .push(worker.name.clone());
             } else {
-                root.workers.borrow_mut().push(worker.name.clone());
+                root_actor.workers.borrow_mut().push(worker.name.clone());
             }
 
             self.actor_workers.insert(id, worker_name.clone());
