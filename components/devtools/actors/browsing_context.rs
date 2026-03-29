@@ -144,7 +144,7 @@ pub(crate) struct BrowsingContextActor {
     css_properties: String,
     pub(crate) inspector: String,
     reflow_name: String,
-    style_sheets: String,
+    style_sheets_name: String,
     pub thread: String,
     _tab: String,
     // Different pipelines may run on different script threads.
@@ -264,7 +264,7 @@ impl BrowsingContextActor {
             css_properties: css_properties.name(),
             inspector,
             reflow_name: reflow_actor.name(),
-            style_sheets_actor: style_sheets_actor.name(),
+            style_sheets_name: style_sheets_actor.name(),
             _tab: tab_descriptor_actor.name(),
             thread: thread.name(),
             watcher: watcher.name(),
@@ -408,7 +408,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
             reflow_actor: self.reflow_name.clone(),
-            style_sheets_actor: self.style_sheets.clone(),
+            style_sheets_actor: self.style_sheets_name.clone(),
             thread_actor: self.thread.clone(),
             target_type: TargetType::Frame,
         }
