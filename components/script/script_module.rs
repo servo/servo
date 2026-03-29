@@ -62,9 +62,7 @@ use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::DomTypeHolder;
-use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
@@ -777,14 +775,7 @@ impl FetchResponseListener for ModuleContext {
         timing: ResourceFetchTiming,
     ) {
         let global = self.owner.global();
-        let (url, module_type) = &self.module_request;
-
-        if let ModuleOwner::Window(_) = self.owner {
-            let window = global.downcast::<Window>().unwrap();
-            window
-                .Document()
-                .finish_load(LoadType::Script(url.clone()), cx);
-        }
+        let (_url, module_type) = &self.module_request;
 
         network_listener::submit_timing(cx, &self, &response, &timing);
 
