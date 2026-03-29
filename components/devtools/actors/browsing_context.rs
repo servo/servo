@@ -264,7 +264,7 @@ impl BrowsingContextActor {
             css_properties: css_properties.name(),
             inspector,
             reflow_name: reflow_actor.name(),
-            style_sheets: style_sheets_actor.name(),
+            style_sheets_actor: style_sheets_actor.name(),
             _tab: tab_descriptor_actor.name(),
             thread: thread.name(),
             watcher: watcher.name(),
