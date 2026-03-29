@@ -367,9 +367,9 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 
 /// Computes the range of the first letter.
 ///
-/// The range includes any preceding punctuation, and any spaces interleaved
-/// within the preceding punctuation or between the preceding punctuation
-/// and the first letter/number/symbol.
+/// The range includes any leading typographic spaces, any preceding punctuation,
+/// and any spaces interleaved within the preceding punctuation or between the
+/// preceding punctuation and the first letter/number/symbol.
 /// Succeeding punctuation are included in the range, but any space
 /// following the letter/number/symbol ends the range. Intervening
 /// succeeding spaces are not supported yet.
@@ -399,8 +399,9 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                 } else if c.is_letter() || c.is_number() || c.is_symbol() {
                     start = i;
                     state = State::Lns;
-                } else if c.is_separator_space() {
-                    continue;
+                } else if c.is_separator_space() && c != '\u{3000}' {
+                    start = i;
+                    state = State::PrecedingPunc;
                 } else {
                     // Found invalid character
                     return 0..0;
@@ -947,23 +948,23 @@ mod tests {
 
         // First letter only
         assert_first_letter_eq("A", "A");
-        assert_first_letter_eq(" A", "A");
+        assert_first_letter_eq(" A", " A");
         assert_first_letter_eq("A ", "A");
-        assert_first_letter_eq(" A ", "A");
+        assert_first_letter_eq(" A ", " A");
 
         // Word
         assert_first_letter_eq("App", "A");
-        assert_first_letter_eq(" App", "A");
+        assert_first_letter_eq(" App", " A");
         assert_first_letter_eq("App ", "A");
 
         // Preceding punctuation(s), intervening spaces and first letter
         assert_first_letter_eq(r#""A"#, r#""A"#);
-        assert_first_letter_eq(r#" "A"#, r#""A"#);
+        assert_first_letter_eq(r#" "A"#, r#" "A"#);
         assert_first_letter_eq(r#""A "#, r#""A"#);
         assert_first_letter_eq(r#"" A"#, r#"" A"#);
-        assert_first_letter_eq(r#" "A "#, r#""A"#);
+        assert_first_letter_eq(r#" "A "#, r#" "A"#);
         assert_first_letter_eq(r#"("A"#, r#"("A"#);
-        assert_first_letter_eq(r#" ("A"#, r#"("A"#);
+        assert_first_letter_eq(r#" ("A"#, r#" ("A"#);
         assert_first_letter_eq(r#"( "A"#, r#"( "A"#);
         assert_first_letter_eq(r#"[ ( "A"#, r#"[ ( "A"#);
 
@@ -976,18 +977,18 @@ mod tests {
         assert_first_letter_eq(r#"A)] >"#, r#"A)]"#);
 
         // All
-        assert_first_letter_eq(r#" ("A" )]"#, r#"("A""#);
-        assert_first_letter_eq(r#" ("A")] >"#, r#"("A")]"#);
+        assert_first_letter_eq(r#" ("A" )]"#, r#" ("A""#);
+        assert_first_letter_eq(r#" ("A")] >"#, r#" ("A")]"#);
 
         // Non ASCII chars
         assert_first_letter_eq("一", "一");
-        assert_first_letter_eq(" 一 ", "一");
+        assert_first_letter_eq(" 一 ", " 一");
         assert_first_letter_eq("一二三", "一");
-        assert_first_letter_eq(" 一二三 ", "一");
+        assert_first_letter_eq(" 一二三 ", " 一");
         assert_first_letter_eq("（一二三）", "（一");
-        assert_first_letter_eq(" （一二三） ", "（一");
+        assert_first_letter_eq(" （一二三） ", " （一");
         assert_first_letter_eq("（（一", "（（一");
-        assert_first_letter_eq(" （ （一", "（ （一");
+        assert_first_letter_eq(" （ （一", " （ （一");
         assert_first_letter_eq("一）", "一）");
         assert_first_letter_eq("一））", "一））");
         assert_first_letter_eq("一） ）", "一）");
