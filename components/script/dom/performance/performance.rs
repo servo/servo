@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
+use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -20,6 +21,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };
+use crate::dom::bindings::codegen::UnionTypes::StringOrDouble;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -69,12 +71,13 @@ impl PerformanceEntryList {
         PerformanceEntryList { entries }
     }
 
+    /// <https://www.w3.org/TR/performance-timeline/#dfn-filter-buffer-map-by-name-and-type>
     pub(crate) fn get_entries_by_name_and_type(
         &self,
         name: Option<DOMString>,
         entry_type: Option<EntryType>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
-        let mut res = self
+        let mut result = self
             .entries
             .iter()
             .filter(|e| {
@@ -85,12 +88,16 @@ impl PerformanceEntryList {
             })
             .cloned()
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
-        res.sort_by(|a, b| {
+
+        // Step 6. Sort results's entries in chronological order with respect to startTime
+        result.sort_by(|a, b| {
             a.start_time()
                 .partial_cmp(&b.start_time())
                 .unwrap_or(Ordering::Equal)
         });
-        res
+
+        // Step 7. Return result.
+        result
     }
 
     pub(crate) fn clear_entries_by_name_and_type(
@@ -141,12 +148,15 @@ pub(crate) struct Performance {
     /// The `timeOrigin` as described in
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-time-origin>.
     time_origin: CrossProcessInstant,
-    /// <https://w3c.github.io/performance-timeline/#dfn-maxbuffersize>
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-size-limit>
     /// The max-size of the buffer, set to 0 once the pipeline exits.
     /// TODO: have one max-size per entry type.
     resource_timing_buffer_size_limit: Cell<usize>,
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-current-size>
     resource_timing_buffer_current_size: Cell<usize>,
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-buffer-full-event-pending-flag>
     resource_timing_buffer_pending_full_event: Cell<bool>,
+    /// <https://w3c.github.io/resource-timing/#performance-resource-timing-secondary-buffer>
     resource_timing_secondary_entries: DomRefCell<VecDeque<DomRoot<PerformanceEntry>>>,
 }
 
@@ -295,13 +305,13 @@ impl Performance {
         // Add the performance entry to the list of performance entries that have not
         // been notified to each performance observer owner, filtering the ones it's
         // interested in.
-        for o in self
+        for observer in self
             .observers
             .borrow()
             .iter()
             .filter(|o| o.entry_types.contains(&entry.entry_type()))
         {
-            o.observer.queue_entry(entry);
+            observer.observer.queue_entry(entry);
         }
 
         // Step 4.
@@ -361,7 +371,11 @@ impl Performance {
         }
     }
 
+    /// <https://w3c.github.io/resource-timing/#performance-can-add-resource-timing-entry>
     fn can_add_resource_timing_entry(&self) -> bool {
+        // Step 1. If resource timing buffer current size is smaller than resource timing buffer size limit, return true.
+        // Step 2. Return false.
+        // TODO: Changing this to "<" (as per spec) does not result in passing tests, needs investigation
         self.resource_timing_buffer_current_size.get() <=
             self.resource_timing_buffer_size_limit.get()
     }
@@ -425,6 +439,7 @@ impl Performance {
                 // Step 1.c. Return.
                 return true;
             }
+
             // Step 2.a. Set resource timing buffer full event pending flag to true.
             self.resource_timing_buffer_pending_full_event.set(true);
             // Step 2.b. Queue a task on the performance timeline task source to run fire a buffer full event.
@@ -436,10 +451,12 @@ impl Performance {
                     performance.root().fire_buffer_full_event(CanGc::note());
                 }));
         }
+
         // Step 3. Add new entry to the resource timing secondary buffer.
         self.resource_timing_secondary_entries
             .borrow_mut()
             .push_back(DomRoot::from_ref(entry));
+
         // Step 4. Increase resource timing secondary buffer current size by 1.
         //   This is tracked automatically via `.len()`.
         false
@@ -448,6 +465,39 @@ impl Performance {
     pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
         if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
             *e = DomRoot::from_ref(entry);
+        }
+    }
+
+    /// <https://w3c.github.io/user-timing/#convert-a-mark-to-a-timestamp>
+    fn convert_a_mark_to_a_timestamp(
+        &self,
+        mark: &StringOrDouble,
+    ) -> Fallible<CrossProcessInstant> {
+        match mark {
+            StringOrDouble::String(name) => {
+                // TODO: Step 1. If mark is a DOMString and it has the same name as a read only attribute in the
+                // PerformanceTiming interface, let end time be the value returned by running the convert
+                // a name to a timestamp algorithm with name set to the value of mark.
+
+                // Step 2. Otherwise, if mark is a DOMString, let end time be the value of the startTime
+                // attribute from the most recent occurrence of a PerformanceMark object in the performance entry
+                // buffer whose name is mark. If no matching entry is found, throw a SyntaxError.
+                self.buffer
+                    .borrow()
+                    .get_last_entry_start_time_with_name_and_type(name.clone(), EntryType::Mark)
+                    .ok_or(Error::Syntax(None))
+            },
+            // Step 3. Otherwise, if mark is a DOMHighResTimeStamp:
+            StringOrDouble::Double(timestamp) => {
+                // Step 3.1 If mark is negative, throw a TypeError.
+                if timestamp.is_sign_negative() {
+                    return Err(Error::Type(c"Time stamps must not be negative".to_owned()));
+                }
+
+                // Step 3.2 Otherwise, let end time be mark.
+                // NOTE: I think the spec wants us to return the value.
+                Ok(self.time_origin + Duration::milliseconds(timestamp.round() as i64))
+            },
         }
     }
 }
@@ -484,6 +534,8 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries>
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
+        // > Returns a PerformanceEntryList object returned by the filter buffer map by name and type
+        // > algorithm with name and type set to null.
         self.buffer
             .borrow()
             .get_entries_by_name_and_type(None, None)
@@ -519,25 +571,28 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             .get_entries_by_name_and_type(Some(name), entry_type)
     }
 
-    /// <https://w3c.github.io/user-timing/#dom-performance-mark>
+    /// <https://w3c.github.io/user -timing/#dom-performance-mark>
     fn Mark(&self, mark_name: DOMString) -> Fallible<()> {
         let global = self.global();
-        // Step 1.
+        // NOTE: This should happen within the performancemark constructor
         if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
             return Err(Error::Syntax(None));
         }
 
-        // Steps 2 to 6.
+        // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
         let entry = PerformanceMark::new(
             &global,
             mark_name,
             CrossProcessInstant::now(),
             Duration::ZERO,
         );
-        // Steps 7 and 8.
+
+        // Step 2. Queue a PerformanceEntry entry.
         self.queue_entry(entry.upcast::<PerformanceEntry>());
 
-        // Step 9.
+        // TODO Step 3. Add entry to the performance entry buffer.
+
+        // Step 4. Return entry.
         Ok(())
     }
 
@@ -552,29 +607,124 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn Measure(
         &self,
         measure_name: DOMString,
-        start_mark: Option<DOMString>,
+        start_or_measure_options: StringOrPerformanceMeasureOptions,
         end_mark: Option<DOMString>,
-    ) -> Fallible<()> {
-        // Steps 1 and 2.
-        let end_time = end_mark
-            .map(|name| {
-                self.buffer
-                    .borrow()
-                    .get_last_entry_start_time_with_name_and_type(name, EntryType::Mark)
-                    .unwrap_or(self.time_origin)
-            })
-            .unwrap_or_else(CrossProcessInstant::now);
+    ) -> Fallible<DomRoot<PerformanceMeasure>> {
+        // Step 1. If startOrMeasureOptions is a PerformanceMeasureOptions object and at least one of start,
+        // end, duration, and detail exist, run the following checks:
+        if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
+            &start_or_measure_options
+        {
+            if options.start.is_some() || options.duration.is_some() || options.end.is_some() {
+                // Step 1.1 If endMark is given, throw a TypeError.
+                if end_mark.is_some() {
+                    return Err(Error::Type(
+                        c"Must not provide endMark if PerformanceMeasureOptions is also provided"
+                            .to_owned(),
+                    ));
+                }
 
-        // Step 3.
-        let start_time = start_mark
-            .and_then(|name| {
-                self.buffer
-                    .borrow()
-                    .get_last_entry_start_time_with_name_and_type(name, EntryType::Mark)
-            })
-            .unwrap_or(self.time_origin);
+                // Step 1.2 If startOrMeasureOptions’s start and end members are both omitted, throw a TypeError.
+                if options.start.is_none() && options.end.is_none() {
+                    return Err(Error::Type(c"Either 'start' or 'end' member of PerformanceMeasureOptions must be provided".to_owned()));
+                }
 
-        // Steps 4 to 8.
+                // Step 1.3 If startOrMeasureOptions’s start, duration, and end members all exist, throw a TypeError.
+                if options.start.is_some() && options.duration.is_some() && options.end.is_some() {
+                    return Err(Error::Type(c"Either 'start' or 'end' or 'duration' member of PerformanceMeasureOptions must be omitted".to_owned()));
+                }
+            }
+        }
+
+        // Step 2. Compute end time as follows:
+        // Step 2.1 If endMark is given, let end time be the value returned
+        // by running the convert a mark to a timestamp algorithm passing in endMark.
+        let end_time = if let Some(end_mark) = end_mark {
+            self.convert_a_mark_to_a_timestamp(&StringOrDouble::String(end_mark))?
+        } else {
+            match &start_or_measure_options {
+                StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) => {
+                    // Step 2.2 Otherwise, if startOrMeasureOptions is a PerformanceMeasureOptions object,
+                    // and if its end member exists, let end time be the value returned by running the
+                    // convert a mark to a timestamp algorithm passing in startOrMeasureOptions’s end.
+                    if let Some(end) = &options.end {
+                        self.convert_a_mark_to_a_timestamp(end)?
+                    }
+                    // Step 2.3 Otherwise, if startOrMeasureOptions is a PerformanceMeasureOptions object,
+                    // and if its start and duration members both exist:
+                    else if let Some((start, duration)) =
+                        options.start.as_ref().zip(options.duration)
+                    {
+                        // Step 2.3.1 Let start be the value returned by running the convert a mark to a timestamp
+                        // algorithm passing in start.
+                        let start = self.convert_a_mark_to_a_timestamp(start)?;
+
+                        // Step 2.3.2 Let duration be the value returned by running the convert a mark to a timestamp
+                        // algorithm passing in duration.
+                        let duration = self
+                            .convert_a_mark_to_a_timestamp(&StringOrDouble::Double(duration))? -
+                            self.time_origin;
+
+                        // Step 2.3.3 Let end time be start plus duration.
+                        start + duration
+                    } else {
+                        // Step 2.4 Otherwise, let end time be the value that would be returned by the
+                        // Performance object’s now() method.
+                        CrossProcessInstant::now()
+                    }
+                },
+                _ => {
+                    // Step 2.4 Otherwise, let end time be the value that would be returned by the
+                    // Performance object’s now() method.
+                    CrossProcessInstant::now()
+                },
+            }
+        };
+
+        // Step 3. Compute start time as follows:
+        let start_time = match start_or_measure_options {
+            StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) => {
+                // Step 3.1 If startOrMeasureOptions is a PerformanceMeasureOptions object, and if its start member exists,
+                // let start time be the value returned by running the convert a mark to a timestamp algorithm passing in
+                // startOrMeasureOptions’s start.
+                if let Some(start) = &options.start {
+                    self.convert_a_mark_to_a_timestamp(start)?
+                }
+                // Step 3.2 Otherwise, if startOrMeasureOptions is a PerformanceMeasureOptions object,
+                // and if its duration and end members both exist:
+                else if let Some((duration, end)) = options.duration.zip(options.end.as_ref()) {
+                    // Step 3.2.1 Let duration be the value returned by running the convert a mark to a timestamp
+                    // algorithm passing in duration.
+                    let duration = self
+                        .convert_a_mark_to_a_timestamp(&StringOrDouble::Double(duration))? -
+                        self.time_origin;
+
+                    // Step 3.2.2 Let end be the value returned by running the convert a mark to a timestamp algorithm
+                    // passing in end.
+                    let end = self.convert_a_mark_to_a_timestamp(end)?;
+
+                    // Step 3.3.3 Let start time be end minus duration.
+                    end - duration
+                }
+                // Step 3.4 Otherwise, let start time be 0.
+                else {
+                    CrossProcessInstant::epoch()
+                }
+            },
+            StringOrPerformanceMeasureOptions::String(string) => {
+                // Step 3.3 Otherwise, if startOrMeasureOptions is a DOMString, let start time be the value returned
+                // by running the convert a mark to a timestamp algorithm passing in startOrMeasureOptions.
+                self.convert_a_mark_to_a_timestamp(&StringOrDouble::String(string))?
+            },
+        };
+
+        // Step 4. Create a new PerformanceMeasure object (entry) with this’s relevant realm.
+        // Step 5. Set entry’s name attribute to measureName.
+        // Step 6. Set entry’s entryType attribute to DOMString "measure".
+        // Step 7. Set entry’s startTime attribute to start time.
+        // Step 8. Set entry’s duration attribute to the duration from start time to end time.
+        // The resulting duration value MAY be negative.
+        // TODO: Step 9. Set entry’s detail attribute as follows:
         let entry = PerformanceMeasure::new(
             &self.global(),
             measure_name,
@@ -582,11 +732,12 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             end_time - start_time,
         );
 
-        // Step 9 and 10.
+        // Step 10. Queue a PerformanceEntry entry.
+        // Step 11. Add entry to the performance entry buffer.
         self.queue_entry(entry.upcast::<PerformanceEntry>());
 
-        // Step 11.
-        Ok(())
+        // Step 12. Return entry.
+        Ok(entry)
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-clearmeasures>
@@ -603,7 +754,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         self.resource_timing_buffer_current_size.set(0);
     }
 
-    /// <https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize>
+    /// <https://w3c.github.io/resource-timing/#performance-setresourcetimingbuffersize>
     fn SetResourceTimingBufferSize(&self, max_size: u32) {
         self.resource_timing_buffer_size_limit
             .set(max_size as usize);
