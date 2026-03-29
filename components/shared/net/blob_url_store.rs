@@ -135,13 +135,6 @@ impl UrlWithBlobClaim {
     pub fn url(&self) -> ServoUrl {
         self.url.clone()
     }
-
-    #[expect(clippy::result_unit_err)] // This mirrors the API from `url`
-    pub fn set_scheme(&self, scheme: &str) -> Result<(), ()> {
-        debug_assert_ne!(scheme, "blob");
-
-        self.url().as_mut_url().set_scheme(scheme)
-    }
 }
 
 impl Deref for UrlWithBlobClaim {

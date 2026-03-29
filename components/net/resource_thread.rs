@@ -866,7 +866,7 @@ impl CoreResourceManager {
     /// <https://websockets.spec.whatwg.org/#concept-websocket-establish>
     fn websocket_connect(
         &self,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: CallbackSetter<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
@@ -894,6 +894,7 @@ impl CoreResourceManager {
             };
             request
                 .url
+                .as_mut_url()
                 .set_scheme(scheme)
                 .unwrap_or_else(|_| panic!("Can't set scheme to {scheme}"));
 
