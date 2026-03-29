@@ -113,6 +113,7 @@ use text_run::{
     get_font_for_first_font_for_style,
 };
 use unicode_bidi::{BidiInfo, Level};
+use unicode_script::{Script, UnicodeScript};
 use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
@@ -1844,7 +1845,14 @@ impl InlineFormattingContext {
             WordBreak::BreakAll => LineBreakWordOption::BreakAll,
             WordBreak::KeepAll => LineBreakWordOption::KeepAll,
         };
-        options.ja_zh = false; // TODO: This should be true if the writing system is Chinese or Japanese.
+        // Enable Chinese/Japanese line breaking behavior when this inline formatting context
+        // contains CJK scripts that use those rules.
+        options.ja_zh = text_content.chars().any(|character| {
+            matches!(
+                character.script(),
+                Script::Han | Script::Hiragana | Script::Katakana | Script::Bopomofo
+            )
+        });
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
         for item in &mut builder.inline_items {
