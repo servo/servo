@@ -265,6 +265,7 @@ impl SqliteEngine {
         should_overwrite: bool,
         key_generator_current_number: Option<i32>,
     ) -> Result<PutItemResult, Error> {
+        let no_overwrite = !should_overwrite;
         let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
@@ -274,21 +275,29 @@ impl SqliteEngine {
                 })
                 .optional()
             })?;
-        if should_overwrite || existing_item.is_none() {
+        if existing_item.is_some() {
+            if no_overwrite {
+                return Ok(PutItemResult::CannotOverwrite);
+            }
+            // Preserve `put()` semantics by replacing the stored value when the primary
+            // key already exists.
+            connection.execute(
+                "UPDATE object_data SET data = ? WHERE object_store_id = ? AND key = ?",
+                params![value, store.id, serialized_key],
+            )?;
+        } else {
             connection.execute(
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
-            if let Some(next_key_generator_current_number) = key_generator_current_number {
-                connection.execute(
-                    "UPDATE object_store SET auto_increment = ? WHERE id = ?",
-                    params![next_key_generator_current_number, store.id],
-                )?;
-            }
-            Ok(PutItemResult::Key(key))
-        } else {
-            Ok(PutItemResult::CannotOverwrite)
         }
+        if let Some(next_key_generator_current_number) = key_generator_current_number {
+            connection.execute(
+                "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+                params![next_key_generator_current_number, store.id],
+            )?;
+        }
+        Ok(PutItemResult::Key(key))
     }
 
     fn delete_item(
@@ -962,6 +971,7 @@ mod tests {
         let put2 = get_channel();
         let put3 = get_channel();
         let put_dup = get_channel();
+        let put_overwrite = get_channel();
         let get_item_some = get_channel();
         let get_item_none = get_channel();
         let get_all_items = get_channel();
@@ -1014,6 +1024,16 @@ mod tests {
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![10, 11, 12],
                             should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put_overwrite.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![13, 14, 15],
+                            should_overwrite: true,
                             key_generator_current_number: None,
                         }),
                     },
@@ -1074,16 +1094,21 @@ mod tests {
         put3.1.recv().unwrap().unwrap();
         let err = put_dup.1.recv().unwrap().unwrap();
         assert_eq!(err, PutItemResult::CannotOverwrite);
+        let overwritten = put_overwrite.1.recv().unwrap().unwrap();
+        assert_eq!(
+            overwritten,
+            PutItemResult::Key(IndexedDBKeyType::Number(1.0))
+        );
         let get_result = get_item_some.1.recv().unwrap();
         let value = get_result.unwrap();
-        assert_eq!(value, Some(vec![1, 2, 3]));
+        assert_eq!(value, Some(vec![13, 14, 15]));
         let get_result = get_item_none.1.recv().unwrap();
         let value = get_result.unwrap();
         assert_eq!(value, None);
         let all_items = get_all_items.1.recv().unwrap().unwrap();
         assert_eq!(all_items.len(), 3);
         // Check that all three items are present
-        assert!(all_items.contains(&vec![1, 2, 3]));
+        assert!(all_items.contains(&vec![13, 14, 15]));
         assert!(all_items.contains(&vec![4, 5, 6]));
         assert!(all_items.contains(&vec![7, 8, 9]));
         let amount = count.1.recv().unwrap().unwrap();

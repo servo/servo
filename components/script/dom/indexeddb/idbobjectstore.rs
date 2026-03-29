@@ -267,138 +267,123 @@ impl IDBObjectStore {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-put>
+    /// <https://www.w3.org/TR/IndexedDB-3/#add-or-put>
     fn put(
         &self,
         cx: &mut JSContext,
         value: HandleValue,
         key: HandleValue,
-        overwrite: bool,
+        no_overwrite: bool,
     ) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be handle’s transaction.
-        // Step 2: Let store be this object store handle's object store.
-        // This is resolved in the `execute_async` function.
-        // Step 3: If store has been deleted, throw an "InvalidStateError" DOMException.
+        // Step 2. Let store be handle’s object store.
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
         self.verify_not_deleted()?;
 
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         // Step 5. If transaction is a read-only transaction, throw a "ReadOnlyError" DOMException.
         self.check_readwrite_transaction_active()?;
 
-        // Step 6: If store uses in-line keys and key was given, throw a "DataError" DOMException.
+        // Step 6. If store uses in-line keys and key was given, throw a "DataError"
+        // DOMException.
         if !key.is_undefined() && self.uses_inline_keys() {
             return Err(Error::Data(None));
         }
 
-        // Step 7: If store uses out-of-line keys and has no key generator
-        // and key was not given, throw a "DataError" DOMException.
+        // Step 7. If store uses out-of-line keys and has no key generator and key
+        // was not given, throw a "DataError" DOMException.
         if !self.uses_inline_keys() && !self.has_key_generator() && key.is_undefined() {
             return Err(Error::Data(None));
         }
 
-        // Step 8. If key was given, then: convert a value to a key with key.
-        let serialized_key: Option<IndexedDBKeyType>;
-        let maybe_modified_cloned_value;
-        let key_generator_current_number_for_put: Option<i32>;
+        // Step 8. If key was given, then:
+        let mut serialized_key = None;
+        let mut key_generator_current_number_for_put = None;
 
         if !key.is_undefined() {
+            // Step 8.1. Let r be the result of converting a value to a key with key.
+            // Rethrow any exceptions.
             let key = convert_value_to_key(cx, key, None)?.into_result()?;
+            // Step 8.2. If r is "invalid value" or "invalid type", throw a
+            // "DataError" DOMException.
+            // Handled by `into_result()` above.
+            // Step 8.3. Let key be r.
             key_generator_current_number_for_put = self.possibly_update_the_key_generator(&key);
             serialized_key = Some(key);
-            maybe_modified_cloned_value = None;
-        } else {
-            match self.key_path.as_ref() {
-                Some(key_path) => {
-                    // Step 10. Let clone be a clone of value in targetRealm during transaction.
-                    // Rethrow any exceptions.
-                    let cloned_value = structuredclone::write(cx.into(), value, None)?;
-
-                    rooted!(&in(cx) let mut cloned_js_value = NullValue());
-                    let _ = structuredclone::read(
-                        &self.global(),
-                        cloned_value,
-                        cloned_js_value.handle_mut(),
-                        CanGc::from_cx(cx),
-                    )?;
-
-                    // TODO: Avoid this deserialize/re-serialize round-trip once extract/inject can
-                    // operate directly on the structured clone payload.
-
-                    // Step 11: We should use in-line keys instead
-                    // Step 11.1: Let kpk be the result of running the steps to extract a
-                    // key from a value using a key path with clone and store’s key path.
-                    match extract_key(cx, cloned_js_value.handle(), key_path, None)? {
-                        // Step 11.2. If kpk is invalid, throw a "DataError" DOMException.
-                        ExtractionResult::Invalid => return Err(Error::Data(None)),
-                        // Step 11.3. If kpk is not failure, let key be kpk.
-                        ExtractionResult::Key(kpk) => {
-                            key_generator_current_number_for_put =
-                                self.possibly_update_the_key_generator(&kpk);
-                            serialized_key = Some(kpk);
-                        },
-                        ExtractionResult::Failure => {
-                            // Step 11.4. Otherwise:
-                            // Step 11.4.1. If store does not have a key generator, throw
-                            // a "DataError" DOMException.
-                            if !self.has_key_generator() {
-                                return Err(Error::Data(None));
-                            }
-                            let KeyPath::String(key_path) = key_path else {
-                                return Err(Error::Data(None));
-                            };
-                            // Step 11.4.2. If the steps to check that a key could be injected
-                            // into a value with clone and store’s key path return false, throw a
-                            // "DataError" DOMException.
-                            if !can_inject_key_into_value(cx, cloned_js_value.handle(), key_path)? {
-                                return Err(Error::Data(None));
-                            }
-                            // Step 11.4.3. Let key be the result of generating a key for store.
-                            let (generated_key, next_current_number) =
-                                self.generate_key_for_put()?;
-                            // Step 11.4.4. Inject key into value.
-                            if !inject_key_into_value(
-                                cx,
-                                cloned_js_value.handle(),
-                                &generated_key,
-                                key_path,
-                            )? {
-                                return Err(Error::Data(None));
-                            }
-                            serialized_key = Some(generated_key);
-                            key_generator_current_number_for_put = Some(next_current_number);
-                        },
-                    }
-
-                    // Store the clone (possibly with an injected key path), without mutating
-                    // the original JS value that was passed to add()/put().
-                    maybe_modified_cloned_value = Some(structuredclone::write(
-                        cx.into(),
-                        cloned_js_value.handle(),
-                        None,
-                    )?);
-                },
-                None => {
-                    if !self.has_key_generator() {
-                        return Err(Error::Data(None));
-                    }
-                    // Out-of-line key generation happens in the backend as part of executing
-                    // the put request, so script does not reserve a key here.
-                    serialized_key = None;
-                    maybe_modified_cloned_value = None;
-                    key_generator_current_number_for_put = None;
-                },
-            }
         }
-        // For paths that did not need key-path extraction/injection above, clone `value` here.
-        let cloned_value = match maybe_modified_cloned_value {
-            Some(cloned_value) => cloned_value,
-            None => structuredclone::write(cx.into(), value, None)?,
+
+        // Step 9. Let targetRealm be a user-agent defined Realm.
+        // Step 10. Let clone be a clone of value in targetRealm during transaction.
+        // Rethrow any exceptions.
+        let cloned_value = structuredclone::write(cx.into(), value, None)?;
+
+        // Step 11. If store uses in-line keys, then:
+        let cloned_value = match self.key_path.as_ref() {
+            Some(key_path) => {
+                rooted!(&in(cx) let mut cloned_js_value = NullValue());
+                let _ = structuredclone::read(
+                    &self.global(),
+                    cloned_value,
+                    cloned_js_value.handle_mut(),
+                    CanGc::from_cx(cx),
+                )?;
+
+                // TODO: Avoid this deserialize/re-serialize round-trip once extract/inject can
+                // operate directly on the structured clone payload.
+
+                // Step 11.1. Let kpk be the result of extracting a key from a value using a key
+                // path with clone and store’s key path. Rethrow any exceptions.
+                match extract_key(cx, cloned_js_value.handle(), key_path, None)? {
+                    // Step 11.2. If kpk is invalid, throw a "DataError" DOMException.
+                    ExtractionResult::Invalid => return Err(Error::Data(None)),
+                    // Step 11.3. If kpk is not failure, let key be kpk.
+                    ExtractionResult::Key(kpk) => {
+                        key_generator_current_number_for_put =
+                            self.possibly_update_the_key_generator(&kpk);
+                        serialized_key = Some(kpk);
+                    },
+                    // Step 11.4. Otherwise (kpk is failure):
+                    ExtractionResult::Failure => {
+                        // Step 11.4.1. If store does not have a key generator, throw a
+                        // "DataError" DOMException.
+                        if !self.has_key_generator() {
+                            return Err(Error::Data(None));
+                        }
+                        let KeyPath::String(key_path) = key_path else {
+                            return Err(Error::Data(None));
+                        };
+                        // Step 11.4.2. If check that a key could be injected into a value with
+                        // clone and store’s key path return false, throw a "DataError"
+                        // DOMException.
+                        if !can_inject_key_into_value(cx, cloned_js_value.handle(), key_path)? {
+                            return Err(Error::Data(None));
+                        }
+
+                        // Prepares the generated key and injected clone here so Step 12 can
+                        // pass the final key/value pair to the storage backend.
+                        let (generated_key, next_current_number) = self.generate_key_for_put()?;
+                        if !inject_key_into_value(
+                            cx,
+                            cloned_js_value.handle(),
+                            &generated_key,
+                            key_path,
+                        )? {
+                            return Err(Error::Data(None));
+                        }
+                        serialized_key = Some(generated_key);
+                        key_generator_current_number_for_put = Some(next_current_number);
+                    },
+                }
+
+                structuredclone::write(cx.into(), cloned_js_value.handle(), None)?
+            },
+            None => cloned_value,
         };
         let Ok(serialized_value) = postcard::to_stdvec(&cloned_value) else {
             return Err(Error::InvalidState(None));
         };
-        // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
-        // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
+        // Step 12. Let operation be an algorithm to run store a record into an object store with
+        // store, clone, key, and no-overwrite flag.
         let request = IDBRequest::execute_async(
             self,
             |callback| {
@@ -406,7 +391,7 @@ impl IDBObjectStore {
                     callback,
                     key: serialized_key,
                     value: serialized_value,
-                    should_overwrite: overwrite,
+                    should_overwrite: !no_overwrite,
                     key_generator_current_number: key_generator_current_number_for_put,
                 })
             },
@@ -414,10 +399,13 @@ impl IDBObjectStore {
             None,
             CanGc::from_cx(cx),
         )?;
+        // Keep the in-memory key generator in sync with the queued put request.
         if let Some(next_key_generator_current_number) = key_generator_current_number_for_put {
             self.key_generator_current_number
                 .set(Some(next_key_generator_current_number));
         }
+        // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request
+        // with handle and operation.
         Ok(request)
     }
 
@@ -533,7 +521,9 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         value: HandleValue,
         key: HandleValue,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.put(cx, value, key, true)
+        // Step 1. Return the result of running add or put with this, value, key and the
+        // no-overwrite flag false.
+        self.put(cx, value, key, false)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-add>
@@ -543,7 +533,9 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         value: HandleValue,
         key: HandleValue,
     ) -> Fallible<DomRoot<IDBRequest>> {
-        self.put(cx, value, key, false)
+        // Step 1. Return the result of running add or put with this, value, key and the
+        // no-overwrite flag true.
+        self.put(cx, value, key, true)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-delete>
