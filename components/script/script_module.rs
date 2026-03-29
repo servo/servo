@@ -980,7 +980,7 @@ pub(crate) struct ScriptFetchOptions {
     pub(crate) parser_metadata: ParserMetadata,
     #[no_trace]
     pub(crate) referrer_policy: ReferrerPolicy,
-    /// https://html.spec.whatwg.org/multipage/webappapis.html#concept-script-fetch-options-render-blocking
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-fetch-options-render-blocking>
     /// The boolean value of render-blocking used for the initial fetch and for fetching any imported modules.
     /// Unless otherwise stated, its value is false.
     pub(crate) render_blocking: bool,

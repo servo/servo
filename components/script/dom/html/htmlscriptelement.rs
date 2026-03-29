@@ -76,7 +76,7 @@ pub(crate) struct ScriptId(#[no_trace] Uuid);
 pub(crate) struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#concept-script-delay-load>
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-delay-load>
     delaying_the_load_event: DomRefCell<Option<LoadBlocker>>,
 
     /// <https://html.spec.whatwg.org/multipage/#already-started>
@@ -176,7 +176,7 @@ impl HTMLScriptElement {
     /// Nothing happens if the element was already delaying the load event and
     /// we pass true to that method again.
     ///
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#concept-script-delay-load>
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-delay-load>
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut js::context::JSContext) {
         let document = self
@@ -203,6 +203,7 @@ impl HTMLScriptElement {
         let asynch = element.has_attribute(&local_name!("async"));
         let was_parser_inserted = self.parser_inserted.get();
 
+        #[allow(clippy::question_mark)]
         let script_type = if let Some(ty) = self.get_script_type() {
             // Step 9-11.
             ty
@@ -250,23 +251,13 @@ impl HTMLScriptElement {
 
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
     pub(crate) fn get_script_active_document(&self) -> Option<DomRoot<Document>> {
-        let document: DomRoot<Document>;
         let script_kind = self.get_script_kind().unwrap_or(ExternalScriptKind::Asap);
-
-        match script_kind {
-            ExternalScriptKind::Asap => {
-                document = self.preparation_time_document.get().unwrap();
-            },
-            ExternalScriptKind::AsapInOrder => {
-                document = self.preparation_time_document.get().unwrap();
-            },
-            ExternalScriptKind::Deferred => {
-                document = self.parser_document.as_rooted();
-            },
-            ExternalScriptKind::ParsingBlocking => {
-                document = self.parser_document.as_rooted();
-            },
-        }
+        let document: DomRoot<Document> = match script_kind {
+            ExternalScriptKind::Asap => self.preparation_time_document.get().unwrap(),
+            ExternalScriptKind::AsapInOrder => self.preparation_time_document.get().unwrap(),
+            ExternalScriptKind::Deferred => self.parser_document.as_rooted(),
+            ExternalScriptKind::ParsingBlocking => self.parser_document.as_rooted(),
+        };
 
         Some(document)
     }
@@ -281,6 +272,7 @@ impl HTMLScriptElement {
         let base_url = document.base_url();
         let url;
 
+        #[allow(clippy::question_mark)]
         let script_type = if let Some(ty) = self.get_script_type() {
             // Step 9-11.
             ty
@@ -316,7 +308,7 @@ impl HTMLScriptElement {
                 },
             };
         } else {
-            url = document.base_url().clone();
+            url = document.base_url();
         }
 
         Some(url)
@@ -721,7 +713,7 @@ fn fetch_a_classic_script(
         character_encoding,
         data: vec![],
         metadata: None,
-        url: url.clone(),
+        url,
         status: Ok(()),
         fetch_options: options,
         response_was_cors_cross_origin: false,
@@ -1267,7 +1259,7 @@ impl HTMLScriptElement {
             .queue_simple_event(self.upcast(), atom!("error"));
     }
 
-    // https://html.spec.whatwg.org/multipage/#prepare-a-script Step 7.
+    // <https://html.spec.whatwg.org/multipage/#prepare-a-script> Step 7.
     pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
