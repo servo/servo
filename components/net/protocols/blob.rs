@@ -8,7 +8,7 @@ use std::pin::Pin;
 use headers::{HeaderMapExt, Range};
 use http::Method;
 use log::debug;
-use net_traits::blob_url_store::BlobURLStoreError;
+use net_traits::blob_url_store::{BlobURLStoreError, parse_blob_url};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -39,12 +39,17 @@ impl ProtocolHandler for BlobProtocolHander {
         let range_header = request.headers.typed_get::<Range>();
         let is_range_request = range_header.is_some();
 
-        let Some(id) = url_and_blob_claim.blob_id() else {
-            return Box::pin(ready(Response::network_error(
-                NetworkError::ResourceLoadError("Invalid blob URL".into()),
-            )));
+        let (file_id, origin) = if let Some(token) = url_and_blob_claim.token() {
+            (token.file_id, token.origin.clone())
+        } else {
+            // FIXME: This should never happen, we should have acquired a token beforehand
+            let Ok((id, _)) = parse_blob_url(&url_and_blob_claim.url()) else {
+                return Box::pin(ready(Response::network_error(
+                    NetworkError::ResourceLoadError("Invalid blob URL".into()),
+                )));
+            };
+            (id, url_and_blob_claim.url().origin())
         };
-        let origin = url_and_blob_claim.origin();
 
         let mut response = Response::new(
             url_and_blob_claim.url(),
@@ -64,7 +69,7 @@ impl ProtocolHandler for BlobProtocolHander {
         if let Err(err) = context.filemanager.fetch_file(
             &mut done_sender,
             context.cancellation_listener.clone(),
-            id,
+            file_id,
             &context.file_token,
             origin,
             &mut response,
