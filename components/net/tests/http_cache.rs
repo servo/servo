@@ -5,6 +5,7 @@
 use http::header::{CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
 use net::http_cache::{CacheKey, HttpCache, refresh};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -20,10 +21,14 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         ResponseBody::Done(vec![]),
     ];
     let url = ServoUrl::parse("https://servo.org").unwrap();
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .origin(url.origin())
-        .build();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .origin(url.origin())
+    .build();
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
     let mut response = Response::new(url.clone(), timing);
     // Expires header makes the response cacheable.
@@ -71,11 +76,15 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
         RANGE,
         HeaderValue::from_str(&format!("bytes={}-", 0)).unwrap(),
     );
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .origin(url.origin())
-        .headers(headers)
-        .build();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .origin(url.origin())
+    .headers(headers)
+    .build();
 
     // Store incomplete response to http_cache
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);

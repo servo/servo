@@ -5,9 +5,10 @@
 use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use malloc_size_of_derive::MallocSizeOf;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericSend, GenericSender};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -231,6 +232,15 @@ pub struct BlobTokenCommunicator {
     pub refresh_token_sender: GenericSender<CoreResourceMsg>,
 }
 
+impl BlobTokenCommunicator {
+    pub fn stub_for_testing() -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(Self {
+            revoke_sender: generic_channel::channel().unwrap().0,
+            refresh_token_sender: generic_channel::channel().unwrap().0,
+        }))
+    }
+}
+
 impl BlobToken {
     fn refresh(&self) -> Self {
         let (new_token_sender, new_token_receiver) = generic_channel::channel().unwrap();
@@ -240,7 +250,6 @@ impl BlobToken {
         };
         self.communicator
             .lock()
-            .unwrap()
             .refresh_token_sender
             .send(CoreResourceMsg::RefreshTokenForFile(refresh_request))
             .unwrap();
@@ -307,7 +316,6 @@ impl Drop for BlobToken {
         let _ = self
             .communicator
             .lock()
-            .unwrap()
             .revoke_sender
             .send(CoreResourceMsg::RevokeTokenForFile(revocation_request));
     }

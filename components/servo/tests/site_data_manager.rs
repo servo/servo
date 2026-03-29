@@ -15,6 +15,7 @@ use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{Server, make_body, make_server, replace_host_table};
 use net_traits::CookieSource;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use servo::{JSValue, Servo, ServoUrl, SiteData, StorageType, WebView, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
@@ -79,7 +80,7 @@ fn run_test_site_data_steps(webview_test: &WebViewTest, steps: &[TestSiteDataSte
             *response.body_mut() = make_body(MESSAGE.to_vec());
         };
 
-    let mut servers: Vec<(Server, ServoUrl)> =
+    let mut servers: Vec<(Server, UrlWithBlobClaim)> =
         (0..steps.len()).map(|_| make_server(handler)).collect();
     servers.sort_by(|(_, a), (_, b)| a.cmp(b));
 
@@ -588,7 +589,7 @@ fn test_clear_cookies() {
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.into_url())
+        .url(url.as_url().clone())
         .build();
 
     servo_test.spin(move || !delegate.url_changed.get());

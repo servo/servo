@@ -19,7 +19,7 @@ use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
-use net_traits::blob_url_store::parse_blob_url;
+use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
@@ -44,7 +44,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::{
     self, CallbackSetter, GenericCallback, GenericReceiver, GenericReceiverSet,
-    GenericSelectionResult, GenericSender,
+    GenericSelectionResult,
 };
 use servo_base::id::CookieStoreId;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -143,6 +143,10 @@ pub fn new_core_resource_thread(
     let (revoke_sender, revoke_receiver) = generic_channel::channel().unwrap();
     let (refresh_sender, refresh_receiver) = generic_channel::channel().unwrap();
 
+    let blob_token_communicator = Arc::new(Mutex::new(BlobTokenCommunicator {
+        revoke_sender,
+        refresh_token_sender: refresh_sender,
+    }));
     thread::Builder::new()
         .name("ResourceManager".to_owned())
         .spawn(move || {
@@ -152,8 +156,7 @@ pub fn new_core_resource_thread(
                 embedder_proxy.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
-                revoke_sender,
-                refresh_sender,
+                blob_token_communicator,
             );
 
             let mut channel_manager = ResourceChannelManager {
@@ -691,13 +694,12 @@ impl CoreResourceManager {
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
-        revoke_sender: GenericSender<CoreResourceMsg>,
-        refresh_sender: GenericSender<CoreResourceMsg>,
+        blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy.clone(), revoke_sender, refresh_sender),
+            filemanager: FileManager::new(embedder_proxy.clone(), blob_token_communicator),
             request_interceptor: RequestInterceptor::new(embedder_proxy),
             ca_certificates,
             ignore_certificate_errors,

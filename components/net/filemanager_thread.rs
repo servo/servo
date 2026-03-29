@@ -23,8 +23,8 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadError, FileManagerThreadMsg, FileTokenCheck,
     GetTokenForFileReply, ReadFileProgress, RelativePos,
 };
+use net_traits::http_percent_encode;
 use net_traits::response::{Response, ResponseBody};
-use net_traits::{CoreResourceMsg, http_percent_encode};
 use parking_lot::{Mutex, RwLock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
@@ -90,16 +90,12 @@ pub struct FileManager {
 impl FileManager {
     pub fn new(
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
-        revoke_sender: GenericSender<CoreResourceMsg>,
-        refresh_token_sender: GenericSender<CoreResourceMsg>,
+        blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
     ) -> FileManager {
         FileManager {
             embedder_proxy,
             store: Arc::new(FileManagerStore::new()),
-            blob_token_communicator: Arc::new(Mutex::new(BlobTokenCommunicator {
-                revoke_sender,
-                refresh_token_sender,
-            })),
+            blob_token_communicator,
         }
     }
 
