@@ -154,7 +154,7 @@ pub(crate) struct BrowsingContextActor {
     //       detect when `ScriptThread`s are destroyed and remove the associated
     //       entries.
     script_chans: AtomicRefCell<FxHashMap<PipelineId, GenericSender<DevtoolScriptControlMsg>>>,
-    pub watcher: String,
+    pub watcher_name: String,
 }
 
 impl ResourceAvailable for BrowsingContextActor {
@@ -241,7 +241,7 @@ impl BrowsingContextActor {
             Some(name.clone()),
         );
 
-        let watcher = WatcherActor::new(
+        let watcher_actor = WatcherActor::new(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -267,7 +267,7 @@ impl BrowsingContextActor {
             style_sheets_name: style_sheets_actor.name(),
             _tab: tab_descriptor_actor.name(),
             thread: thread.name(),
-            watcher: watcher.name(),
+            watcher_name: watcher_actor.name(),
         };
 
         registry.register(accessibility);
@@ -276,7 +276,7 @@ impl BrowsingContextActor {
         registry.register(style_sheets_actor);
         registry.register(tab_descriptor_actor);
         registry.register(thread);
-        registry.register(watcher);
+        registry.register(watcher_actor);
 
         target
     }
