@@ -19,7 +19,7 @@ use crate::CoreResourceMsg;
 use crate::blob_url_store::{BlobBuf, BlobURLStoreError};
 
 /// A token modulating access to a file for a blob URL.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum FileTokenCheck {
     /// Checking against a token not required,
     /// used for accessing a file

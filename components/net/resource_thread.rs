@@ -296,31 +296,14 @@ impl ResourceChannelManager {
                                 log::error!("Blob revocation channel received unexpected message");
                                 continue;
                             };
-                            let refreshed_token = match self
+
+                            let FileTokenCheck::Required(refreshed_token) = self
                                 .resource_manager
                                 .filemanager
                                 .get_token_for_file(&refresh_request.blob_id, true)
-                            {
-                                FileTokenCheck::Required(token) => token,
-                                FileTokenCheck::NotRequired => {
-                                    println!(
-                                        "attempted refresh for file {:?}, but not required",
-                                        refresh_request.blob_id
-                                    );
-                                    continue;
-                                },
-                                FileTokenCheck::ShouldFail => {
-                                    println!(
-                                        "attempted refresh for file {:?}, but already revoked",
-                                        refresh_request.blob_id
-                                    );
-                                    continue;
-                                },
+                            else {
+                                unreachable!();
                             };
-                            println!(
-                                "refreshing with {refreshed_token:?} for file {:?}",
-                                refresh_request.blob_id
-                            );
                             let _ = refresh_request.new_token_sender.send(refreshed_token);
                         } else if id == reporter_id {
                             if let CoreResourceMsg::CollectMemoryReport(report_chan) = msg {
@@ -785,7 +768,7 @@ impl CoreResourceManager {
                     log::warn!(
                         "Failed to claim blob URL entry of valid blob URL before passing it to `net`. This causes race conditions."
                     );
-                    (self.filemanager.get_token_for_file(&id, true), Some(id))
+                    (self.filemanager.get_token_for_file(&id, false), Some(id))
                 } else {
                     (FileTokenCheck::ShouldFail, None)
                 }
