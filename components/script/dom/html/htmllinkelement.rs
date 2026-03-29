@@ -1032,6 +1032,7 @@ impl HTMLLinkElement {
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode,
             referrer_policy,
+            render_blocking: false,
         };
 
         let link = DomRoot::from_ref(self);

@@ -989,6 +989,10 @@ pub(crate) struct ScriptFetchOptions {
     pub(crate) parser_metadata: ParserMetadata,
     #[no_trace]
     pub(crate) referrer_policy: ReferrerPolicy,
+    /// https://html.spec.whatwg.org/multipage/webappapis.html#concept-script-fetch-options-render-blocking
+    /// The boolean value of render-blocking used for the initial fetch and for fetching any imported modules.
+    /// Unless otherwise stated, its value is false.
+    pub(crate) render_blocking: bool,
 }
 
 impl ScriptFetchOptions {
@@ -1000,6 +1004,7 @@ impl ScriptFetchOptions {
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             referrer_policy: ReferrerPolicy::EmptyString,
+            render_blocking: false,
         }
     }
 
@@ -1021,6 +1026,7 @@ impl ScriptFetchOptions {
             credentials_mode: self.credentials_mode,
             parser_metadata: self.parser_metadata,
             referrer_policy: self.referrer_policy,
+            render_blocking: self.render_blocking,
         }
     }
 }
@@ -1232,6 +1238,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         cryptographic_nonce: "".into(),
         parser_metadata: ParserMetadata::NotParserInserted,
         referrer_policy: ReferrerPolicy::EmptyString,
+        render_blocking: false,
     };
 
     // Step 2. Fetch a single module script given url, fetchClient, destination, options,
@@ -1639,11 +1646,9 @@ pub(crate) fn fetch_a_single_module_script(
         );
         match document {
             Some(document) => {
-                document.loader_mut().fetch_async_with_callback(
-                    LoadType::Script(url),
-                    request,
-                    network_listener.into_callback(),
-                );
+                document
+                    .loader_mut()
+                    .fetch_async_background(request, network_listener.into_callback());
             },
             None => global.fetch_with_network_listener(request, network_listener),
         };

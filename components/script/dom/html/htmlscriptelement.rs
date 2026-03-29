@@ -19,6 +19,7 @@ use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use script_bindings::codegen::GenericBindings::DOMTokenListBinding::DOMTokenListMethods;
 use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -26,10 +27,9 @@ use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
-use crate::document_loader::LoadType;
+use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -75,6 +75,9 @@ pub(crate) struct ScriptId(#[no_trace] Uuid);
 #[dom_struct]
 pub(crate) struct HTMLScriptElement {
     htmlelement: HTMLElement,
+
+    /// <https://html.spec.whatwg.org/multipage/scripting.html#concept-script-delay-load>
+    delaying_the_load_event: DomRefCell<Option<LoadBlocker>>,
 
     /// <https://html.spec.whatwg.org/multipage/#already-started>
     already_started: Cell<bool>,
@@ -132,6 +135,7 @@ impl HTMLScriptElement {
             id: ScriptId(Uuid::new_v4()),
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
+            delaying_the_load_event: Default::default(),
             parser_inserted: Cell::new(creator.is_parser_created()),
             non_blocking: Cell::new(!creator.is_parser_created()),
             parser_document: Dom::from_ref(document),
@@ -165,6 +169,30 @@ impl HTMLScriptElement {
 
     pub(crate) fn get_script_id(&self) -> ScriptId {
         self.id
+    }
+
+    /// Marks that element as delaying the load event or not.
+    ///
+    /// Nothing happens if the element was already delaying the load event and
+    /// we pass true to that method again.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/scripting.html#concept-script-delay-load>
+    /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
+    pub(crate) fn delay_load_event(
+        &self,
+        delay: bool,
+        url: ServoUrl,
+        cx: &mut js::context::JSContext,
+    ) {
+        let blocker = &self.delaying_the_load_event;
+        if delay && blocker.borrow().is_none() {
+            *blocker.borrow_mut() = Some(LoadBlocker::new(
+                &self.owner_document(),
+                LoadType::Script(url),
+            ));
+        } else if !delay && blocker.borrow().is_some() {
+            LoadBlocker::terminate(blocker, cx);
+        }
     }
 }
 
@@ -276,6 +304,8 @@ fn finish_fetching_a_classic_script(
     load: ScriptResult,
     cx: &mut js::context::JSContext,
 ) {
+    elem.delay_load_event(false, url.clone(), cx);
+
     // Step 33. The "steps to run when the result is ready" for each type of script in 33.2-33.5.
     // of https://html.spec.whatwg.org/multipage/#prepare-the-script-element
     let document;
@@ -573,7 +603,7 @@ fn fetch_a_classic_script(
         fetch_options: options,
         response_was_cors_cross_origin: false,
     };
-    doc.fetch(LoadType::Script(url), request, context);
+    doc.fetch_background(request, context);
 }
 
 impl HTMLScriptElement {
@@ -805,6 +835,7 @@ impl HTMLScriptElement {
             parser_metadata,
             referrer_policy,
             credentials_mode: module_credentials_mode,
+            render_blocking: false,
         };
 
         // Step 30. Let settings object be el's node document's relevant settings object.
@@ -851,9 +882,13 @@ impl HTMLScriptElement {
                 doc.increment_render_blocking_element_count();
             }
 
-            // TODO:
             // Step 31.8. Set el's delaying the load event to true.
+            self.delay_load_event(true, url.clone(), cx);
+
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
+            if self.marked_as_render_blocking.get() {
+                options.render_blocking = true;
+            }
 
             // Step 31.11. Switch on el's type:
             match script_type {
