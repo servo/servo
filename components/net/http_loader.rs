@@ -1354,7 +1354,9 @@ pub async fn http_redirect_fetch(
     // Steps 15-17 relate to timing, which is not implemented 1:1 with the spec.
 
     // Step 18: Append locationURL to request’s URL list.
-    request.url_list.push(location_url);
+    request
+        .url_list
+        .push(ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(location_url));
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
     set_requests_referrer_policy_on_redirect(request, response.actual_response());
@@ -2445,7 +2447,7 @@ async fn cors_preflight_fetch(
     // referrer policy, mode is "cors", and response tainting is "cors".
     let mut preflight = RequestBuilder::new(
         request.target_webview_id,
-        ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(request.current_url()),
+        request.current_url_with_blob_claim(),
         request.referrer.clone(),
     )
     .method(Method::OPTIONS)

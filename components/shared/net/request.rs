@@ -725,7 +725,7 @@ impl RequestBuilder {
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.id,
-            self.url.url().clone(),
+            self.url.clone(),
             Some(self.origin),
             self.referrer,
             self.pipeline_id,
@@ -749,9 +749,13 @@ impl RequestBuilder {
         request.cache_mode = self.cache_mode;
         request.referrer_policy = self.referrer_policy;
         request.redirect_mode = self.redirect_mode;
-        let mut url_list = self.url_list;
+        let mut url_list: Vec<_> = self
+            .url_list
+            .into_iter()
+            .map(|url| ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url))
+            .collect();
         if url_list.is_empty() {
-            url_list.push(self.url.url());
+            url_list.push(self.url);
         }
         request.redirect_count = url_list.len() as u32 - 1;
         request.url_list = url_list;
@@ -835,7 +839,7 @@ pub struct Request {
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
-    pub url_list: Vec<ServoUrl>,
+    pub url_list: Vec<ServoUrlWithBlobLock>,
     /// <https://fetch.spec.whatwg.org/#concept-request-redirect-count>
     pub redirect_count: u32,
     /// <https://fetch.spec.whatwg.org/#concept-request-response-tainting>
@@ -855,7 +859,7 @@ pub struct Request {
 impl Request {
     pub fn new(
         id: RequestId,
-        url: ServoUrl,
+        url: ServoUrlWithBlobLock,
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
@@ -904,7 +908,7 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
     pub fn url(&self) -> ServoUrl {
-        self.url_list.first().unwrap().clone()
+        self.url_list.first().unwrap().url()
     }
 
     pub fn original_url(&self) -> ServoUrl {
@@ -919,6 +923,11 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
     pub fn current_url(&self) -> ServoUrl {
+        self.current_url_with_blob_claim().url()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
+    pub fn current_url_with_blob_claim(&self) -> ServoUrlWithBlobLock {
         self.url_list.last().unwrap().clone()
     }
 

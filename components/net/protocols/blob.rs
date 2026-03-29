@@ -8,7 +8,7 @@ use std::pin::Pin;
 use headers::{HeaderMapExt, Range};
 use http::Method;
 use log::debug;
-use net_traits::blob_url_store::{BlobURLStoreError, parse_blob_url};
+use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -28,8 +28,8 @@ impl ProtocolHandler for BlobProtocolHander {
         done_chan: &mut DoneChannel,
         context: &FetchContext,
     ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
-        let url = request.current_url();
-        debug!("Loading blob {}", url.as_str());
+        let url_and_blob_claim = request.current_url_with_blob_claim();
+        debug!("Loading blob {}", url_and_blob_claim.as_str());
 
         // Step 2.
         if request.method != Method::GET {
@@ -39,16 +39,17 @@ impl ProtocolHandler for BlobProtocolHander {
         let range_header = request.headers.typed_get::<Range>();
         let is_range_request = range_header.is_some();
 
-        let (id, origin) = match parse_blob_url(&url) {
-            Ok((id, origin)) => (id, origin),
-            Err(error) => {
-                return Box::pin(ready(Response::network_error(
-                    NetworkError::ResourceLoadError(format!("Invalid blob URL ({error})")),
-                )));
-            },
+        let Some(id) = url_and_blob_claim.blob_id() else {
+            return Box::pin(ready(Response::network_error(
+                NetworkError::ResourceLoadError("Invalid blob URL".into()),
+            )));
         };
+        let origin = url_and_blob_claim.origin();
 
-        let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+        let mut response = Response::new(
+            url_and_blob_claim.url(),
+            ResourceFetchTiming::new(request.timing_type()),
+        );
         response.status = HttpStatus::default();
 
         if is_range_request {

@@ -247,6 +247,7 @@ fn create_http_states(
 }
 
 impl ResourceChannelManager {
+    #[allow(clippy::too_many_arguments)]
     fn start(
         &mut self,
         public_receiver: GenericReceiver<CoreResourceMsg>,

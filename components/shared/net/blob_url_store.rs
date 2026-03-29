@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
@@ -83,6 +83,18 @@ impl ServoUrlWithBlobLock {
         Self { url, token }
     }
 
+    pub fn blob_id(&self) -> Option<Uuid> {
+        self.token.as_ref().map(|guard| guard.token.file_id.clone())
+    }
+
+    pub fn origin(&self) -> ImmutableOrigin {
+        if let Some(guard) = self.token.as_ref() {
+            return guard.token.origin.clone();
+        }
+
+        self.url.origin()
+    }
+
     /// Returns an `Err` containing the original URL if it's a `blob:` URL,
     /// so it can be reused without cloning.
     pub fn for_url(url: ServoUrl) -> Result<Self, ServoUrl> {
@@ -112,6 +124,12 @@ impl Deref for ServoUrlWithBlobLock {
 
     fn deref(&self) -> &Self::Target {
         &self.url
+    }
+}
+
+impl DerefMut for ServoUrlWithBlobLock {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.url
     }
 }
 
@@ -180,6 +198,7 @@ pub struct BlobToken {
     pub token: Uuid,
     pub file_id: Uuid,
     pub neutered: bool,
+    pub origin: ImmutableOrigin,
     // We need a mutex here because BlobTokens are shared among threads, and accessing
     // `GenericSender<CoreResourceMsg>` from different threads is not safe.
     //
@@ -214,6 +233,7 @@ impl BlobToken {
             file_id: self.file_id.clone(),
             communicator: self.communicator.clone(),
             neutered: false,
+            origin: self.origin.clone(),
         }
     }
 
@@ -246,6 +266,7 @@ impl<'a> BlobResolver<'a> {
                     refresh_token_sender: reply.refresh_sender,
                 })),
                 neutered: false,
+                origin: self.origin.clone(),
             };
 
             TokenSerializationGuard {
@@ -281,6 +302,7 @@ impl fmt::Debug for BlobToken {
             .field("token", &self.token)
             .field("file_id", &self.file_id)
             .field("neutered", &self.neutered)
+            .field("origin", &self.origin)
             .finish()
     }
 }
