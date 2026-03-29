@@ -154,7 +154,7 @@ pub(crate) struct BrowsingContextActor {
     //       detect when `ScriptThread`s are destroyed and remove the associated
     //       entries.
     script_chans: AtomicRefCell<FxHashMap<PipelineId, GenericSender<DevtoolScriptControlMsg>>>,
-    pub watcher: String,
+    pub watcher_name: String,
 }
 
 impl ResourceAvailable for BrowsingContextActor {
@@ -215,7 +215,8 @@ impl BrowsingContextActor {
             ..
         } = page_info;
 
-        let accessibility = AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
+        let accessibility_actor =
+            AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -241,7 +242,7 @@ impl BrowsingContextActor {
             Some(name.clone()),
         );
 
-        let watcher = WatcherActor::new(
+        let watcher_actor = WatcherActor::new(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -259,7 +260,7 @@ impl BrowsingContextActor {
             active_outer_window_id: AtomicRefCell::new(outer_window_id),
             browser_id,
             browsing_context_id,
-            accessibility: accessibility.name(),
+            accessibility: accessibility_actor.name(),
             console_name,
             css_properties: css_properties.name(),
             inspector,
@@ -267,16 +268,16 @@ impl BrowsingContextActor {
             style_sheets_name: style_sheets_actor.name(),
             _tab: tab_descriptor_actor.name(),
             thread: thread.name(),
-            watcher: watcher.name(),
+            watcher_name: watcher_actor.name(),
         };
 
-        registry.register(accessibility);
+        registry.register(accessibility_actor);
         registry.register(css_properties);
         registry.register(reflow_actor);
         registry.register(style_sheets_actor);
         registry.register(tab_descriptor_actor);
         registry.register(thread);
-        registry.register(watcher);
+        registry.register(watcher_actor);
 
         target
     }

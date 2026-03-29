@@ -28,7 +28,7 @@ pub(crate) fn handle_network_event(
     network_event: NetworkEvent,
 ) {
     let network_event_actor = registry.find::<NetworkEventActor>(&network_event_name);
-    let watcher = registry.find::<WatcherActor>(&network_event_actor.watcher);
+    let watcher_actor = registry.find::<WatcherActor>(&network_event_actor.watcher_name);
 
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
@@ -37,7 +37,7 @@ pub(crate) fn handle_network_event(
             let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     msg.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
@@ -45,7 +45,7 @@ pub(crate) fn handle_network_event(
                 );
 
                 // Also push initial resource update (request headers, cookies)
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -59,7 +59,7 @@ pub(crate) fn handle_network_event(
             let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -72,7 +72,7 @@ pub(crate) fn handle_network_event(
             let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -85,7 +85,7 @@ pub(crate) fn handle_network_event(
             let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,

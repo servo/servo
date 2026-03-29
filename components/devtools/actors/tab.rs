@@ -117,7 +117,7 @@ impl Actor for TabDescriptorActor {
             },
             "getWatcher" => request.reply_final(&GetWatcherReply {
                 from: self.name(),
-                watcher: registry.encode::<WatcherActor, _>(&browsing_context_actor.watcher),
+                watcher: registry.encode::<WatcherActor, _>(&browsing_context_actor.watcher_name),
             })?,
             "goBack" => {
                 browsing_context_actor

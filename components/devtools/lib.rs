@@ -445,7 +445,7 @@ impl DevtoolsInstance {
         if let NavigationState::Start(url) = &state {
             let watcher_actor = self
                 .registry
-                .find::<WatcherActor>(&browsing_context_actor.watcher);
+                .find::<WatcherActor>(&browsing_context_actor.watcher_name);
             watcher_actor.emit_will_navigate(
                 browsing_context_id,
                 url.clone(),
@@ -667,7 +667,7 @@ impl DevtoolsInstance {
         let watcher_name = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name)
-            .watcher
+            .watcher_name
             .clone();
 
         let network_event_name = match self.actor_requests.get(&request_id) {
