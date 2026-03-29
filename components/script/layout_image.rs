@@ -8,7 +8,7 @@
 
 use std::sync::Arc;
 
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
@@ -105,7 +105,7 @@ pub(crate) fn fetch_image_for_layout(
     let global = node.owner_global();
     let request = RequestBuilder::new(
         Some(document.webview_id()),
-        ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
         global.get_referrer(),
     )
     .destination(Destination::Image)

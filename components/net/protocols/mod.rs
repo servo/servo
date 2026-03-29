@@ -11,7 +11,7 @@ use std::pin::Pin;
 use headers::Range;
 use http::StatusCode;
 use log::error;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
@@ -222,7 +222,7 @@ impl ProtocolHandler for WebPageContentProtocolHandler {
         // Step 9. Navigate an appropriate navigable to resultURL.
         request
             .url_list
-            .push(ServoUrlWithBlobLock::new(result_url, None));
+            .push(UrlWithBlobClaim::new(result_url, None));
         let request2 = request.clone();
         let context2 = context.clone();
         Box::pin(async move { fetch(request2, &mut DiscardFetch, &context2).await })

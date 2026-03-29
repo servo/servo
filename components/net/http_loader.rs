@@ -40,7 +40,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
@@ -1356,7 +1356,9 @@ pub async fn http_redirect_fetch(
     // Step 18: Append locationURL to request’s URL list.
     request
         .url_list
-        .push(ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(location_url));
+        .push(UrlWithBlobClaim::from_url_without_having_claimed_blob(
+            location_url,
+        ));
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
     set_requests_referrer_policy_on_redirect(request, response.actual_response());

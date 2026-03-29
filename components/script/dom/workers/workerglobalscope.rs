@@ -18,7 +18,7 @@ use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
@@ -697,7 +697,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             let global_scope = self.upcast::<GlobalScope>();
             let request = RequestBuilder::new(
                 global_scope.webview_id(),
-                ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url.clone()),
+                UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
                 global_scope.get_referrer(),
             )
             .destination(Destination::Script)

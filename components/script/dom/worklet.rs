@@ -23,7 +23,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
 use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use rustc_hash::FxHashMap;
@@ -691,7 +691,7 @@ impl WorkletThread {
         let resource_fetcher = self.global_init.resource_threads.sender();
         let request = RequestBuilder::new(
             None,
-            ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(script_url),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(script_url),
             global.get_referrer(),
         )
         .destination(Destination::Script)

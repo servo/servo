@@ -247,7 +247,7 @@ fn create_http_states(
 }
 
 impl ResourceChannelManager {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn start(
         &mut self,
         public_receiver: GenericReceiver<CoreResourceMsg>,
@@ -748,6 +748,7 @@ impl CoreResourceManager {
         }
     }
 
+    #[expect(clippy::collapsible_else_if)] // Not with our MSRV of 1.86!
     fn fetch<Target: 'static + FetchTaskTarget + Send>(
         &self,
         request_builder: RequestBuilder,
@@ -773,16 +774,17 @@ impl CoreResourceManager {
         // In the case of a valid blob URL, acquiring a token granting access to a file,
         // regardless if the URL is revoked after token acquisition.
         //
-        // TODO: to make more tests pass, acquire this token earlier,
-        // probably in a separate message flow.
-        //
-        // In such a setup, the token would not be acquired here,
-        // but could instead be contained in the actual CoreResourceMsg::Fetch message.
-        //
-        // See https://github.com/servo/servo/issues/25226
+        // Ideally all callers should have claimed the blob entry themselves, but we're not there
+        // yet.
         let (file_token, blob_url_file_id) = match url.scheme() {
             "blob" => {
-                if let Ok((id, _)) = parse_blob_url(&url) {
+                if let Some(token) = request.current_url_with_blob_claim().token() {
+                    (FileTokenCheck::Required(token.token), Some(token.file_id))
+                } else if let Ok((id, _)) = parse_blob_url(&url) {
+                    // See https://github.com/servo/servo/issues/25226
+                    log::warn!(
+                        "Failed to claim blob URL entry of valid blob URL before passing it to `net`. This causes race conditions."
+                    );
                     (self.filemanager.get_token_for_file(&id, true), Some(id))
                 } else {
                     (FileTokenCheck::ShouldFail, None)

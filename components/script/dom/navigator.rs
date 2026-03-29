@@ -13,7 +13,7 @@ use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOr
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::rust::MutableHandleValue;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
@@ -535,7 +535,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // Step 7.1. Let req be a new request, initialized as follows:
         let request = RequestBuilder::new(
             None,
-            ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url.clone()),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
             global.get_referrer(),
         )
         .mode(cors_mode)

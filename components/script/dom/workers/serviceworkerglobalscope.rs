@@ -14,7 +14,7 @@ use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
 use net_traits::CustomResponseMediator;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
@@ -412,7 +412,7 @@ impl ServiceWorkerGlobalScope {
 
                 let request = RequestBuilder::new(
                     None,
-                    ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(script_url),
+                    UrlWithBlobClaim::from_url_without_having_claimed_blob(script_url),
                     referrer,
                 )
                 .destination(Destination::ServiceWorker)

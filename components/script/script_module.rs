@@ -41,7 +41,7 @@ use js::rust::{
     transform_str_to_source_text,
 };
 use mime::Mime;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -1595,7 +1595,7 @@ pub(crate) fn fetch_a_single_module_script(
         // Step 12. Set up the module script request given request and options.
         let request = RequestBuilder::new(
             webview_id,
-            ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url.clone()),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
             referrer,
         )
         .destination(destination)

@@ -12,7 +12,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -146,7 +146,7 @@ pub(crate) struct FetchGroup {
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
     let mut builder = RequestBuilder::new(
         request.target_webview_id,
-        ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(request.url()),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(request.url()),
         request.referrer,
     )
     .method(request.method)
@@ -811,7 +811,7 @@ pub(crate) fn create_a_potential_cors_request(
 ) -> RequestBuilder {
     RequestBuilder::new(
         webview_id,
-        ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
         referrer,
     )
     // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.

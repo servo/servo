@@ -14,7 +14,7 @@ use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus};
 use http::header;
 use js::context::JSContext;
-use net_traits::blob_url_store::ServoUrlWithBlobLock;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
@@ -237,9 +237,7 @@ impl InProgressLoad {
 
         let mut request_builder = RequestBuilder::new(
             Some(webview_id),
-            ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(
-                self.load_data.url.clone(),
-            ),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(self.load_data.url.clone()),
             self.load_data.referrer.clone(),
         )
         .method(self.load_data.method.clone())

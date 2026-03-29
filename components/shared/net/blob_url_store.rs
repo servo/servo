@@ -76,20 +76,27 @@ pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'stati
     Ok((id, origin))
 }
 
-/// This type upholds the variant that the URL is
+/// This type upholds the variant that if the URL is a valid `blob` URL, then it has
+/// a token. Violating this invariant does not cause logic errors, just unsafety.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct ServoUrlWithBlobLock {
+pub struct UrlWithBlobClaim {
     url: ServoUrl,
     token: Option<TokenSerializationGuard>,
 }
 
-impl ServoUrlWithBlobLock {
+impl UrlWithBlobClaim {
     pub fn new(url: ServoUrl, token: Option<TokenSerializationGuard>) -> Self {
+        debug_assert_eq!(parse_blob_url(&url).is_ok(), token.is_some());
+
         Self { url, token }
     }
 
+    pub fn token(&self) -> Option<&BlobToken> {
+        self.token.as_ref().map(|guard| guard.token.as_ref())
+    }
+
     pub fn blob_id(&self) -> Option<Uuid> {
-        self.token.as_ref().map(|guard| guard.token.file_id.clone())
+        self.token.as_ref().map(|guard| guard.token.file_id)
     }
 
     pub fn origin(&self) -> ImmutableOrigin {
@@ -100,7 +107,10 @@ impl ServoUrlWithBlobLock {
         self.url.origin()
     }
 
-    /// Returns an `Err` containing the original URL if it's a `blob:` URL,
+    /// Constructs a [UrlWithBlobClaim] for URLs that are not `blob` URLs
+    /// (Such URLs don't need to claim anything).
+    ///
+    /// Returns an `Err` containing the original URL if it's a `blob` URL,
     /// so it can be reused without cloning.
     pub fn for_url(url: ServoUrl) -> Result<Self, ServoUrl> {
         if url.scheme() == "blob" {
@@ -112,7 +122,7 @@ impl ServoUrlWithBlobLock {
 
     /// This method should only exist temporarily, and all callers should either
     /// claim the blob or guarantee that the URL is not a `blob` URL.
-    pub fn from_url_without_having_acquired_blob_lock(url: ServoUrl) -> Self {
+    pub fn from_url_without_having_claimed_blob(url: ServoUrl) -> Self {
         if url.scheme() == "blob" {
             // See https://github.com/servo/servo/issues/25226 for more details
             log::warn!(
@@ -126,12 +136,15 @@ impl ServoUrlWithBlobLock {
         self.url.clone()
     }
 
+    #[expect(clippy::result_unit_err)] // This mirrors the API from `url`
     pub fn set_scheme(&self, scheme: &str) -> Result<(), ()> {
+        debug_assert_ne!(scheme, "blob");
+
         self.url().as_mut_url().set_scheme(scheme)
     }
 }
 
-impl Deref for ServoUrlWithBlobLock {
+impl Deref for UrlWithBlobClaim {
     type Target = ServoUrl;
 
     fn deref(&self) -> &Self::Target {
@@ -139,7 +152,7 @@ impl Deref for ServoUrlWithBlobLock {
     }
 }
 
-impl DerefMut for ServoUrlWithBlobLock {
+impl DerefMut for UrlWithBlobClaim {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.url
     }
@@ -229,7 +242,7 @@ impl BlobToken {
     fn refresh(&self) -> Self {
         let (new_token_sender, new_token_receiver) = generic_channel::channel().unwrap();
         let refresh_request = BlobTokenRefreshRequest {
-            blob_id: self.file_id.clone(),
+            blob_id: self.file_id,
             new_token_sender,
         };
         self.communicator
@@ -242,7 +255,7 @@ impl BlobToken {
 
         BlobToken {
             token: new_token,
-            file_id: self.file_id.clone(),
+            file_id: self.file_id,
             communicator: self.communicator.clone(),
             neutered: false,
             origin: self.origin.clone(),
@@ -269,7 +282,7 @@ impl<'a> BlobResolver<'a> {
             ))
             .ok()?;
         let reply = receiver.recv().ok()?;
-        let serializable_token = reply.token.map(|token_id| {
+        reply.token.map(|token_id| {
             let token = BlobToken {
                 token: token_id,
                 file_id,
@@ -284,8 +297,7 @@ impl<'a> BlobResolver<'a> {
             TokenSerializationGuard {
                 token: Arc::new(token),
             }
-        });
-        serializable_token
+        })
     }
 }
 
@@ -296,8 +308,8 @@ impl Drop for BlobToken {
         }
 
         let revocation_request = BlobTokenRevocationRequest {
-            token: self.token.clone(),
-            blob_id: self.file_id.clone(),
+            token: self.token,
+            blob_id: self.file_id,
         };
         let _ = self
             .communicator

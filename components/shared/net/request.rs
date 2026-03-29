@@ -22,7 +22,7 @@ use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;
 use uuid::Uuid;
 
-use crate::blob_url_store::ServoUrlWithBlobLock;
+use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
 use crate::response::{HttpsState, RedirectTaint, Response};
@@ -430,7 +430,7 @@ pub struct RequestBuilder {
     pub method: Method,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
-    pub url: ServoUrlWithBlobLock,
+    pub url: UrlWithBlobClaim,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[serde(
@@ -508,7 +508,7 @@ pub struct RequestBuilder {
 impl RequestBuilder {
     pub fn new(
         webview_id: Option<WebViewId>,
-        url: ServoUrlWithBlobLock,
+        url: UrlWithBlobClaim,
         referrer: Referrer,
     ) -> RequestBuilder {
         RequestBuilder {
@@ -752,7 +752,7 @@ impl RequestBuilder {
         let mut url_list: Vec<_> = self
             .url_list
             .into_iter()
-            .map(|url| ServoUrlWithBlobLock::from_url_without_having_acquired_blob_lock(url))
+            .map(UrlWithBlobClaim::from_url_without_having_claimed_blob)
             .collect();
         if url_list.is_empty() {
             url_list.push(self.url);
@@ -839,7 +839,7 @@ pub struct Request {
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
-    pub url_list: Vec<ServoUrlWithBlobLock>,
+    pub url_list: Vec<UrlWithBlobClaim>,
     /// <https://fetch.spec.whatwg.org/#concept-request-redirect-count>
     pub redirect_count: u32,
     /// <https://fetch.spec.whatwg.org/#concept-request-response-tainting>
@@ -859,7 +859,7 @@ pub struct Request {
 impl Request {
     pub fn new(
         id: RequestId,
-        url: ServoUrlWithBlobLock,
+        url: UrlWithBlobClaim,
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
@@ -927,7 +927,7 @@ impl Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
-    pub fn current_url_with_blob_claim(&self) -> ServoUrlWithBlobLock {
+    pub fn current_url_with_blob_claim(&self) -> UrlWithBlobClaim {
         self.url_list.last().unwrap().clone()
     }
 
