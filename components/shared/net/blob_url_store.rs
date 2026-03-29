@@ -49,6 +49,11 @@ pub struct BlobBuf {
 /// Parse URL as Blob URL scheme's definition
 ///
 /// <https://w3c.github.io/FileAPI/#url-intro>
+///
+/// FIXME: This function should never be used to obtain the origin of a blob url, because
+/// it doesn't consider [blob URL entries].
+///
+/// [blob URL entries]: https://url.spec.whatwg.org/#concept-url-blob-entry
 pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'static str> {
     if url.query().is_some() {
         return Err("URL should not contain a query");
@@ -105,8 +110,15 @@ impl ServoUrlWithBlobLock {
         Ok(Self { url, token: None })
     }
 
-    /// This method should only exist temporarily
+    /// This method should only exist temporarily, and all callers should either
+    /// claim the blob or guarantee that the URL is not a `blob` URL.
     pub fn from_url_without_having_acquired_blob_lock(url: ServoUrl) -> Self {
+        if url.scheme() == "blob" {
+            // See https://github.com/servo/servo/issues/25226 for more details
+            log::warn!(
+                "Creating blob URL without claiming its associated blob entry. This might cause race conditions if the URL is revoked."
+            );
+        }
         Self { url, token: None }
     }
 
