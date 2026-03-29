@@ -53,7 +53,7 @@ struct SupportsHighlightersReply {
 #[derive(MallocSizeOf)]
 pub(crate) struct InspectorActor {
     name: String,
-    highlighter: String,
+    highlighter_name: String,
     page_style_name: String,
     pub(crate) walker: String,
 }
@@ -83,7 +83,7 @@ impl Actor for InspectorActor {
             "getHighlighterByType" => {
                 let msg = GetHighlighterReply {
                     from: self.name(),
-                    highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter),
+                    highlighter: registry.encode::<HighlighterActor, _>(&self.highlighter_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -112,7 +112,7 @@ impl Actor for InspectorActor {
 
 impl InspectorActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let highlighter = HighlighterActor {
+        let highlighter_actor = HighlighterActor {
             name: registry.new_name::<HighlighterActor>(),
             browsing_context_name: browsing_context_name.clone(),
         };
@@ -129,13 +129,13 @@ impl InspectorActor {
 
         let actor = Self {
             name: registry.new_name::<InspectorActor>(),
-            highlighter: highlighter.name(),
+            highlighter_name: highlighter_actor.name(),
             page_style_name: page_style_actor.name(),
             walker: walker.name(),
         };
         let name = actor.name();
 
-        registry.register(highlighter);
+        registry.register(highlighter_actor);
         registry.register(page_style_actor);
         registry.register(walker);
         registry.register(actor);
