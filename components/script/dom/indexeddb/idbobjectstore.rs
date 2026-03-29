@@ -794,12 +794,15 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.name.borrow().clone()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-setname>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-name>
     fn SetName(&self, value: DOMString) -> ErrorResult {
+        // Step 1. Let name be the given value.
+        let name = value;
+
         // Step 2. Let transaction be this’s transaction.
         let transaction = &self.transaction;
 
-        // Step 3. Let store be this's object store.
+        // Step 3. Let store be this’s object store.
         // Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
         self.verify_not_deleted()?;
 
@@ -810,7 +813,20 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 6. If transaction’s state is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        *self.name.borrow_mut() = value;
+        // Step 7. If store’s name is equal to name, terminate these steps.
+        if *self.name.borrow() == name {
+            return Ok(());
+        }
+
+        // Step 8. If an object store named name already exists in store’s database,
+        // throw a "ConstraintError" DOMException.
+        if transaction.Db().object_store_exists(&name) {
+            return Err(Error::Constraint(None));
+        }
+
+        // Step 9. Set store’s name to name.
+        // Step 10. Set this’s name to name.
+        *self.name.borrow_mut() = name;
         Ok(())
     }
 

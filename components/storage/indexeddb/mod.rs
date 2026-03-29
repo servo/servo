@@ -576,8 +576,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn delete_object_store(&mut self, store_name: &str) -> DbResult<()> {
-        // IndexedDB §5.5: "For upgrade transactions this includes changes to the set of object stores and indexes".
-        // Delete index metadata first, then remove the store metadata row.
+        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
+        // Step 7. Destroy store.
         let indexes = self
             .engine
             .indexes(store_name)
