@@ -731,7 +731,6 @@ impl CoreResourceManager {
         }
     }
 
-    #[expect(clippy::collapsible_else_if)] // Not with our MSRV of 1.86!
     fn fetch<Target: 'static + FetchTaskTarget + Send>(
         &self,
         request_builder: RequestBuilder,
