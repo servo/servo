@@ -213,14 +213,14 @@ impl Actor for WalkerActor {
             },
             "getLayoutInspector" => {
                 // TODO: Create actual layout inspector actor
-                let layout = LayoutInspectorActor::new(registry.new_name::<LayoutInspectorActor>());
-                let actor = layout.encode(registry);
-                registry.register(layout);
+                let layout_inspector_actor =
+                    LayoutInspectorActor::new(registry.new_name::<LayoutInspectorActor>());
 
                 let msg = GetLayoutInspectorReply {
                     from: self.name(),
-                    actor,
+                    actor: layout_inspector_actor.encode(registry),
                 };
+                registry.register(layout_inspector_actor);
                 request.reply_final(&msg)?
             },
             "getMutations" => self.handle_get_mutations(request, registry)?,
