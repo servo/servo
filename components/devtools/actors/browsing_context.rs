@@ -141,7 +141,7 @@ pub(crate) struct BrowsingContextActor {
     pub browsing_context_id: DevtoolsBrowsingContextId,
     accessibility: String,
     pub console_name: String,
-    css_properties: String,
+    css_properties_name: String,
     pub(crate) inspector: String,
     reflow_name: String,
     style_sheets_name: String,
@@ -224,7 +224,7 @@ impl BrowsingContextActor {
             properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
-        let css_properties =
+        let css_properties_actor =
             CssPropertiesActor::new(registry.new_name::<CssPropertiesActor>(), properties);
 
         let inspector = InspectorActor::register(registry, name.clone());
@@ -262,7 +262,7 @@ impl BrowsingContextActor {
             browsing_context_id,
             accessibility: accessibility_actor.name(),
             console_name,
-            css_properties: css_properties.name(),
+            css_properties_name: css_properties_actor.name(),
             inspector,
             reflow_name: reflow_actor.name(),
             style_sheets_name: style_sheets_actor.name(),
@@ -272,7 +272,7 @@ impl BrowsingContextActor {
         };
 
         registry.register(accessibility_actor);
-        registry.register(css_properties);
+        registry.register(css_properties_actor);
         registry.register(reflow_actor);
         registry.register(style_sheets_actor);
         registry.register(tab_descriptor_actor);
@@ -406,7 +406,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
             console_actor: self.console_name.clone(),
-            css_properties_actor: self.css_properties.clone(),
+            css_properties_actor: self.css_properties_name.clone(),
             inspector_actor: self.inspector.clone(),
             reflow_actor: self.reflow_name.clone(),
             style_sheets_actor: self.style_sheets_name.clone(),
