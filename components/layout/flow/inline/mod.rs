@@ -1847,12 +1847,7 @@ impl InlineFormattingContext {
         };
         // Enable Chinese/Japanese line breaking behavior when this inline formatting context
         // contains CJK scripts that use those rules.
-        options.ja_zh = text_content.chars().any(|character| {
-            matches!(
-                character.script(),
-                Script::Han | Script::Hiragana | Script::Katakana | Script::Bopomofo
-            )
-        });
+        options.ja_zh = contains_cjk_script_for_ja_zh_line_breaking(&text_content);
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
         for item in &mut builder.inline_items {
@@ -2933,4 +2928,32 @@ fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: ch
     class == XI_LINE_BREAKING_CLASS_GL ||
         class == XI_LINE_BREAKING_CLASS_WJ ||
         class == XI_LINE_BREAKING_CLASS_ZWJ
+}
+
+fn contains_cjk_script_for_ja_zh_line_breaking(text: &str) -> bool {
+    text.chars().any(|character| {
+        matches!(
+            character.script(),
+            Script::Han | Script::Hiragana | Script::Katakana | Script::Bopomofo
+        )
+    })
+}
+
+#[cfg(test)]
+mod test {
+    use super::contains_cjk_script_for_ja_zh_line_breaking;
+
+    #[test]
+    fn cjk_detection_for_ja_zh_line_breaking() {
+        assert!(contains_cjk_script_for_ja_zh_line_breaking(
+            "日本語テキスト"
+        ));
+        assert!(contains_cjk_script_for_ja_zh_line_breaking("漢字"));
+        assert!(contains_cjk_script_for_ja_zh_line_breaking("ㄅㄆㄇ"));
+        assert!(contains_cjk_script_for_ja_zh_line_breaking("abc日本語xyz"));
+        assert!(!contains_cjk_script_for_ja_zh_line_breaking(
+            "plain latin text"
+        ));
+        assert!(!contains_cjk_script_for_ja_zh_line_breaking(""));
+    }
 }
