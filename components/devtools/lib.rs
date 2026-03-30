@@ -823,14 +823,14 @@ impl DevtoolsInstance {
             name: pause.clone(),
         });
 
-        let frame = self.registry.find::<FrameActor>(&frame_offset.actor);
-        frame.set_offset(frame_offset.column, frame_offset.line);
+        let frame_actor = self.registry.find::<FrameActor>(&frame_offset.actor);
+        frame_actor.set_offset(frame_offset.column, frame_offset.line);
 
         let msg = ThreadInterruptedReply {
             from: thread.name(),
             type_: "paused".to_owned(),
             actor: pause,
-            frame: frame.encode(&self.registry),
+            frame: frame_actor.encode(&self.registry),
             why: pause_reason,
         };
 
@@ -871,9 +871,9 @@ impl DevtoolsInstance {
             },
         };
 
-        let frame = FrameActor::register(&self.registry, source, frame);
+        let frame_name = FrameActor::register(&self.registry, source, frame);
 
-        let _ = result_sender.send(frame);
+        let _ = result_sender.send(frame_name);
     }
 
     fn handle_create_environment_actor(

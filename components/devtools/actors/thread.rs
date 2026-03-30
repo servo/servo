@@ -243,7 +243,7 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     frames: result
                         .iter()
-                        .map(|frame| registry.encode::<FrameActor, _>(frame))
+                        .map(|frame_name| registry.encode::<FrameActor, _>(frame_name))
                         .collect(),
                 };
                 request.reply_final(&msg)?
