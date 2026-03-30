@@ -25,7 +25,7 @@ jobs:
         with:
           path: book
           repository: 'servo/book'
-          token: ${{ secrets.BOOK_SYNC_TOKEN }}
+          token: ${{ secrets.ENV_BOOK_SYNC_TOKEN }}
       - name: Check for changes
         working-directory: python/servo/platform/linux_packages
         id: changes
