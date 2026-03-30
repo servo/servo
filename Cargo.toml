@@ -200,7 +200,7 @@ unicode-bidi = "0.3.18"
 unicode_categories = "0.1.1"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
-unicode-segmentation = "1.12.0"
+unicode-segmentation = "1.13.2"
 url = "2.5"
 urlpattern = "0.3"
 utf-8 = "0.7"
