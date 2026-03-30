@@ -127,19 +127,19 @@ impl InspectorActor {
             browsing_context_name,
         };
 
-        let actor = Self {
+        let inspector_actor = Self {
             name: registry.new_name::<InspectorActor>(),
             highlighter_name: highlighter_actor.name(),
             page_style_name: page_style_actor.name(),
             walker: walker.name(),
         };
-        let name = actor.name();
+        let inspector_name = inspector_actor.name();
 
         registry.register(highlighter_actor);
         registry.register(page_style_actor);
         registry.register(walker);
-        registry.register(actor);
+        registry.register(inspector_actor);
 
-        name
+        inspector_name
     }
 }

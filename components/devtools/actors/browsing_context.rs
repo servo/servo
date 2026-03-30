@@ -142,7 +142,7 @@ pub(crate) struct BrowsingContextActor {
     accessibility: String,
     pub console_name: String,
     css_properties_name: String,
-    pub(crate) inspector: String,
+    pub(crate) inspector_name: String,
     reflow_name: String,
     style_sheets_name: String,
     pub thread: String,
@@ -227,7 +227,7 @@ impl BrowsingContextActor {
         let css_properties_actor =
             CssPropertiesActor::new(registry.new_name::<CssPropertiesActor>(), properties);
 
-        let inspector = InspectorActor::register(registry, name.clone());
+        let inspector_name = InspectorActor::register(registry, name.clone());
 
         let reflow_actor = ReflowActor::new(registry.new_name::<ReflowActor>());
 
@@ -263,7 +263,7 @@ impl BrowsingContextActor {
             accessibility: accessibility_actor.name(),
             console_name,
             css_properties_name: css_properties_actor.name(),
-            inspector,
+            inspector_name,
             reflow_name: reflow_actor.name(),
             style_sheets_name: style_sheets_actor.name(),
             _tab: tab_descriptor_actor.name(),
@@ -407,7 +407,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             accessibility_actor: self.accessibility.clone(),
             console_actor: self.console_name.clone(),
             css_properties_actor: self.css_properties_name.clone(),
-            inspector_actor: self.inspector.clone(),
+            inspector_actor: self.inspector_name.clone(),
             reflow_actor: self.reflow_name.clone(),
             style_sheets_actor: self.style_sheets_name.clone(),
             thread_actor: self.thread.clone(),
