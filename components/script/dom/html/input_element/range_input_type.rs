@@ -229,28 +229,22 @@ impl RangeInputShadowTree {
         let value_num = input_element
             .convert_string_to_number(&value.str())
             .unwrap_or(input_element.default_range_value());
-        let percent = if (max - min) < f64::EPSILON {
+
+        let percent = if min > max || (max - min).abs() < f64::EPSILON {
             0.0
         } else {
             let clamped_value = value_num.clamp(min, max);
             (clamped_value - min) / (max - min) * 100.0
         };
 
-        let thumb_style = format!(
-            "inset-inline-start: {}% !important; transform: translate(-{}%, -50%) !important;",
-            percent,
-            percent,
-        );
-        let progress_style = format!("width: {percent}% !important;");
-
         self.slider_thumb.set_string_attribute(
             &local_name!("style"),
-            thumb_style.into(),
+            format!("inset-inline-start: {percent}% !important;").into(),
             CanGc::from_cx(cx),
         );
         self.slider_fill.set_string_attribute(
             &local_name!("style"),
-            progress_style.into(),
+            format!("width: {percent}% !important;").into(),
             CanGc::from_cx(cx),
         );
     }

@@ -8374,7 +8374,7 @@
    ],
    "appearance": {
     "input-range-ref.html": [
-     "6a69e007d42a1274033035e4985d26b970ba5661",
+     "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
      []
     ],
     "input-text-caret-mixed-language-ref.html": [
@@ -8418,10 +8418,6 @@
      []
     ],
     "supports": {
-     "input-range-ref.css": [
-      "3cd39227d29010b89fd65b8f0488ea800241d29d",
-      []
-     ],
      "input-textual-ref.css": [
       "e16996804cc90ab9d95ba7a2feb6869f6213215c",
       []

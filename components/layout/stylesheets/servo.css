@@ -128,9 +128,10 @@ input[type="file"]:active::file-selector-button {
 button:focus,
 select:focus,
 input[type="button"]:focus,
-input[type="submit"]:focus,
-input[type="reset"]:focus,
 input[type="color"]:focus,
+input[type="range"]:focus,
+input[type="reset"]:focus,
+input[type="submit"]:focus,
 input[type="file"]:focus::file-selector-button {
   outline: none;
 }
@@ -175,47 +176,71 @@ input::color-swatch {
   width: 100%;
 }
 
+/* Range inputs */
 input[type="range"] {
+  margin-inline: 8px;
   width: 100px;
   min-height: 16px;
   padding: 0px;
   position: relative;
-  cursor: pointer;
-  background: none;
-  border: none;
+  background: initial;
+  border: initial;
+}
+
+input[type="range"]::slider-track,
+input[type="range"]::slider-fill,
+input[type="range"]::slider-thumb {
+  /* All slider elements are centered vertically and use the default cursor. */
+  top: 50%;
+  transform: translateY(-50%);
+  position: absolute;
+  cursor: default;
+}
+
+input[type="range"]::slider-track,
+input[type="range"]::slider-fill {
+   border-radius: 5px;
+   border-width: 1px;
+   border-style: solid;
 }
 
 input[type="range"]::slider-track {
   width: 100%;
-  height: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #ddd;
-  border-radius: 5px;
-  position: absolute;
-  cursor: pointer;
-  overflow: hidden;
+  height: 4px;
+  background-color: ButtonFace;
+  border-color: ButtonBorder;
+}
+
+input[type="range"]:hover::slider-track {
+  background: lightgrey;
+}
+
+input[type="range"]:active::slider-track {
+  border-color: grey;
+  background: gainsboro;
 }
 
 input[type="range"]::slider-fill {
-  height: 8px;
-  background-color: #7a3;
-  position: absolute;
-  cursor: pointer;
-  top: 50%;
-  transform: translateY(-50%);
+  height: 4px;
+  background-color: #007aff;
+  border-color: #007aff;
 }
 
 input[type="range"]::slider-thumb {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background-color: gray;
-  border: 2px solid white;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
+  background: #007aff;
+
+  /* Vertically centered, adjust inline direction by width so thumb
+     is centered on range value. */
+  transform: translate(-8px, -50%);
+}
+
+input[type="range"]:disabled::slider-fill,
+input[type="range"]:disabled::slider-thumb {
+  background-color: rgba(180, 180, 180);
+  border-color: rgba(180, 180, 180);
 }
 
 /* Checkbox and radio button inputs */
