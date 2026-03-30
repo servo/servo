@@ -485,7 +485,9 @@ impl Performance {
                 self.buffer
                     .borrow()
                     .get_last_entry_start_time_with_name_and_type(name.clone(), EntryType::Mark)
-                    .ok_or(Error::Syntax(None))
+                    .ok_or(Error::Syntax(Some(format!(
+                        "No PerformanceMark named {name} exists"
+                    ))))
             },
             // Step 3. Otherwise, if mark is a DOMHighResTimeStamp:
             StringOrDouble::Double(timestamp) => {
@@ -708,7 +710,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
                 }
                 // Step 3.4 Otherwise, let start time be 0.
                 else {
-                    CrossProcessInstant::epoch()
+                    self.time_origin
                 }
             },
             StringOrPerformanceMeasureOptions::String(string) => {
