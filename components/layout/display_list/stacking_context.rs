@@ -48,7 +48,9 @@ use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree,
     PositioningFragment, SpecificLayoutInfo,
 };
-use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides};
+use crate::geom::{
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+};
 use crate::style_ext::{ComputedValuesExt, TransformExt};
 
 #[derive(Clone)]
@@ -1669,17 +1671,48 @@ impl BoxFragment {
         // The logic below is a simplified (but equivalent) version of the description above.
         let border_rect = self.border_rect();
         let computed_margin = style.physical_margin();
-
+        let parent_scroll_node = stacking_context_tree
+            .paint_info
+            .scroll_tree
+            .get_node(parent_scroll_node_id);
+        let sticky_offset_boundary = match parent_scroll_node.info {
+            SpatialTreeNodeInfo::Scroll(ref scrollable_node_info) => {
+                let cb_rect_wr = containing_block_rect.to_webrender();
+                let clip_rect = scrollable_node_info.clip_rect;
+                // When the scroll container IS the containing block, the containing
+                // block rect (content box) is inset within the clip_rect (padding box)
+                // by exactly the scroll container's padding.
+                let scroll_container_is_cb = clip_rect.min.x <= cb_rect_wr.min.x &&
+                    clip_rect.min.y <= cb_rect_wr.min.y &&
+                    clip_rect.max.x >= cb_rect_wr.max.x &&
+                    clip_rect.max.y >= cb_rect_wr.max.y;
+                if scroll_container_is_cb {
+                    let content_rect = &scrollable_node_info.content_rect;
+                    &PhysicalRect::new(
+                        PhysicalPoint::new(
+                            Au::from_f32_px(content_rect.min.x),
+                            Au::from_f32_px(content_rect.min.y),
+                        ),
+                        PhysicalSize::new(
+                            Au::from_f32_px(content_rect.max.x - content_rect.min.x),
+                            Au::from_f32_px(content_rect.max.y - content_rect.min.y),
+                        ),
+                    )
+                } else {
+                    containing_block_rect
+                }
+            },
+            _ => containing_block_rect,
+        };
         // Signed distance between each side of the border box to the corresponding side of the
         // containing block. Note that |border_rect| is already in the coordinate system of the
         // containing block.
         let distance_from_border_box_to_cb = PhysicalSides::new(
             border_rect.min_y(),
-            containing_block_rect.width() - border_rect.max_x(),
-            containing_block_rect.height() - border_rect.max_y(),
+            sticky_offset_boundary.width() - border_rect.max_x(),
+            sticky_offset_boundary.height() - border_rect.max_y(),
             border_rect.min_x(),
         );
-
         // Shrinks the signed distance by the margin, producing a limit on how much we can shift
         // the sticky positioned box without forcing the margin to move outside of the containing
         // block.
