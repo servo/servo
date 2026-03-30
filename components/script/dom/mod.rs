@@ -280,6 +280,7 @@ pub(crate) mod fetchlaterresult;
 pub(crate) mod file;
 pub(crate) use self::file::*;
 pub(crate) mod formdata;
+pub(crate) mod fullscreen;
 #[cfg(feature = "gamepad")]
 pub(crate) mod gamepad;
 #[cfg(feature = "gamepad")]
