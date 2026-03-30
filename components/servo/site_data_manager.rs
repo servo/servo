@@ -11,6 +11,7 @@ use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
+use url::Url;
 
 bitflags! {
     /// Identifies categories of site data associated with a site.
@@ -205,30 +206,22 @@ impl SiteDataManager {
         self.private_resource_threads.clear_cookies();
     }
 
-    /// Returns the cookies associated with the given URL as a header string, or `None` if there
-    /// are no cookies for that URL.
-    /// Only public cookies are returned.
-    pub fn get_cookies_for_url(&self, url: &str, source: CookieSource) -> Option<String> {
-        let url = ServoUrl::parse(url).ok()?;
-        self.public_resource_threads.cookies_for_url(url, source)
+    /// Returns the cookies for the domain associated with the given [`Url`].
+    pub fn cookies_for_url(&self, url: Url, source: CookieSource) -> Vec<Cookie<'static>> {
+        self.public_resource_threads
+            .cookies_for_url(url.into(), source)
     }
 
-    /// Stores a cookie for the given URL.
+    /// Sets a cookie for the domain associated with the given [`Url`].
+    ///
     /// Returns `true` if the request to set the cookie is successfully sent.
-    /// If `sync` is `true`, the call blocks until the cookie has been stored.
-    /// Only public cookies are set.
-    pub fn set_cookie_for_url(&self, url: &str, cookie: Cookie<'static>, sync: bool) -> bool {
-        let url = match ServoUrl::parse(url) {
-            Ok(url) => url,
-            Err(_) => return false,
-        };
-        if sync {
-            self.public_resource_threads
-                .set_cookie_for_url_sync(url, cookie, CookieSource::HTTP);
-        } else {
-            self.public_resource_threads
-                .set_cookie_for_url(url, cookie, CookieSource::HTTP);
-        }
-        true
+    /// This call will block, such that any operations triggered after the
+    /// call will use the provided cookie.
+    pub fn set_cookie_for_url(&self, url: Url, cookie: Cookie<'static>) {
+        self.public_resource_threads.set_cookie_for_url_sync(
+            url.into(),
+            cookie,
+            CookieSource::HTTP,
+        );
     }
 }

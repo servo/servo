@@ -488,12 +488,21 @@ impl ResourceChannelManager {
                 );
                 self.send_cookie_response(cookie_store_id, CookieData::Set(Ok(())));
             },
-            CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
+            CoreResourceMsg::GetCookieStringForUrl(url, consumer, source) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_expired_cookies_for_url(&url);
                 consumer
                     .send(cookie_jar.cookies_for_url(&url, source))
                     .unwrap();
+            },
+            CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let cookies = cookie_jar
+                    .cookies_data_for_url(&url, source)
+                    .map(Serde)
+                    .collect();
+                consumer.send(cookies).unwrap();
             },
             CoreResourceMsg::GetCookieDataForUrlAsync(cookie_store_id, url, name) => {
                 let mut cookie_jar = http_state.cookie_jar.write();

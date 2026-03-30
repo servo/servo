@@ -643,8 +643,10 @@ fn test_get_cookie() {
     let cookies = servo_test
         .servo()
         .site_data_manager()
-        .get_cookies_for_url(url.as_str(), CookieSource::NonHTTP);
-    assert_eq!(cookies, Some("foo=bar".to_string()));
+        .cookies_for_url(url.into_url(), CookieSource::NonHTTP);
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo");
+    assert_eq!(cookies[0].value(), "bar");
 }
 
 #[test]
@@ -680,15 +682,17 @@ fn test_set_cookie() {
     servo_test
         .servo()
         .site_data_manager()
-        .set_cookie_for_url(page_url.as_str(), cookie, false);
+        .set_cookie_for_url(page_url.clone(), cookie);
 
     // Verify it is returned by get_cookies_for_url.
     // Don't need sync call because set and get messages are processed in order.
     let cookies = servo_test
         .servo()
         .site_data_manager()
-        .get_cookies_for_url(page_url.as_str(), CookieSource::HTTP);
-    assert_eq!(cookies, Some("foo=bar".to_string()));
+        .cookies_for_url(page_url.clone(), CookieSource::HTTP);
+    assert_eq!(cookies.len(), 1);
+    assert_eq!(cookies[0].name(), "foo");
+    assert_eq!(cookies[0].value(), "bar");
 
     // Load the page again and verify the cookie is sent in the request.
     delegate_clone.reset();
