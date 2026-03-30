@@ -332,7 +332,7 @@ impl Actor for WatcherActor {
                         },
                         "source" => {
                             let thread_actor =
-                                registry.find::<ThreadActor>(&browsing_context_actor.thread);
+                                registry.find::<ThreadActor>(&browsing_context_actor.thread_name);
                             browsing_context_actor.resources_array(
                                 thread_actor.source_manager.source_forms(registry),
                                 resource.into(),
@@ -342,10 +342,11 @@ impl Actor for WatcherActor {
 
                             for worker_name in &*root_actor.workers.borrow() {
                                 let worker_actor = registry.find::<WorkerActor>(worker_name);
-                                let thread = registry.find::<ThreadActor>(&worker_actor.thread);
+                                let thread_actor =
+                                    registry.find::<ThreadActor>(&worker_actor.thread_name);
 
                                 worker_actor.resources_array(
-                                    thread.source_manager.source_forms(registry),
+                                    thread_actor.source_manager.source_forms(registry),
                                     resource.into(),
                                     ResourceArrayType::Available,
                                     &mut request,

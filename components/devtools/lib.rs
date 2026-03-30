@@ -492,7 +492,7 @@ impl DevtoolsInstance {
             let worker = WorkerActor {
                 name: worker_name.clone(),
                 console_name: console_name.clone(),
-                thread: thread_name,
+                thread_name,
                 worker_id: id,
                 url: page_info.url,
                 type_: worker_type,
@@ -731,7 +731,7 @@ impl DevtoolsInstance {
             let thread_actor_name = self
                 .registry
                 .find::<WorkerActor>(worker_name)
-                .thread
+                .thread_name
                 .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
@@ -760,7 +760,7 @@ impl DevtoolsInstance {
                 let browsing_context_actor = self
                     .registry
                     .find::<BrowsingContextActor>(browsing_context_name);
-                browsing_context_actor.thread.clone()
+                browsing_context_actor.thread_name.clone()
             };
 
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
@@ -816,7 +816,7 @@ impl DevtoolsInstance {
             .find::<BrowsingContextActor>(browsing_context_name);
         let thread = self
             .registry
-            .find::<ThreadActor>(&browsing_context_actor.thread);
+            .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
         let pause = self.registry.new_name::<PauseActor>();
         self.registry.register(PauseActor {
@@ -858,7 +858,7 @@ impl DevtoolsInstance {
             .find::<BrowsingContextActor>(browsing_context_name);
         let thread = self
             .registry
-            .find::<ThreadActor>(&browsing_context_actor.thread);
+            .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
         let source = match thread
             .source_manager
