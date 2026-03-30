@@ -38,7 +38,7 @@ use servo_base::generic_channel::GenericSend;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptToConstellationMessage,
+    ScriptToConstellationMessage, TargetSnapshotParams,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
@@ -352,6 +352,7 @@ impl WindowProxy {
             // Use the current `WebView`'s theme initially, but the embedder may
             // change this later.
             theme: window.theme(),
+            target_snapshot_params: TargetSnapshotParams::default(),
         };
 
         with_script_thread(|script_thread| {

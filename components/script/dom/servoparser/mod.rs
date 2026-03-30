@@ -36,6 +36,7 @@ use script_traits::DocumentActivity;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
+use servo_constellation_traits::TargetSnapshotParams;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
@@ -925,6 +926,7 @@ pub(crate) struct ParserContext {
     navigation_params: NavigationParams,
     /// To report CSP violations to the global that initiated the navigation
     parent_info: Option<PipelineId>,
+    target_snapshot_params: TargetSnapshotParams,
 }
 
 impl ParserContext {
@@ -934,6 +936,7 @@ impl ParserContext {
         url: ServoUrl,
         creation_sandboxing_flag_set: SandboxingFlagSet,
         parent_info: Option<PipelineId>,
+        target_snapshot_params: TargetSnapshotParams,
     ) -> ParserContext {
         ParserContext {
             parser: None,
@@ -952,6 +955,7 @@ impl ParserContext {
                 resource_header: vec![],
                 about_base_url: Default::default(),
             },
+            target_snapshot_params,
         }
     }
 

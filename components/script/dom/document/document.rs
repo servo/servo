@@ -5151,6 +5151,10 @@ impl Document {
         self.custom_element_reaction_stack.clone()
     }
 
+    pub(crate) fn active_sandboxing_flag_set(&self) -> SandboxingFlagSet {
+        self.active_sandboxing_flag_set.get()
+    }
+
     pub(crate) fn has_active_sandboxing_flag(&self, flag: SandboxingFlagSet) -> bool {
         self.active_sandboxing_flag_set.get().contains(flag)
     }

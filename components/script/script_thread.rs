@@ -91,7 +91,7 @@ use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TraversalDirection, WindowSizeType,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -1737,11 +1737,13 @@ impl ScriptThread {
                 browsing_context_id,
                 load_data,
                 history_handling,
+                target_snapshot_params,
             ) => self.handle_navigate_iframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
                 history_handling,
+                target_snapshot_params,
                 cx,
             ),
             ScriptThreadMessage::UnloadDocument(pipeline_id) => {
@@ -3725,6 +3727,7 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
+        target_snapshot_params: TargetSnapshotParams,
         cx: &mut js::context::JSContext,
     ) {
         let iframe = self
@@ -3736,6 +3739,7 @@ impl ScriptThread {
                 load_data,
                 history_handling,
                 ProcessingMode::NotFirstTime,
+                target_snapshot_params,
                 cx,
             );
         }
@@ -3815,6 +3819,7 @@ impl ScriptThread {
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
+            incomplete.target_snapshot_params,
         );
         self.incomplete_parser_contexts
             .0
@@ -4034,6 +4039,7 @@ impl ScriptThread {
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
+            incomplete.target_snapshot_params,
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4085,6 +4091,7 @@ impl ScriptThread {
         let pipeline_id = incomplete.pipeline_id;
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
+        let target_snapshot_params = incomplete.target_snapshot_params;
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4093,6 +4100,7 @@ impl ScriptThread {
             url,
             creation_sandboxing_flag_set,
             parent_info,
+            target_snapshot_params,
         );
         let dummy_request_id = RequestId::default();
 
@@ -4146,6 +4154,7 @@ impl ScriptThread {
                     ScriptToConstellationMessage::LoadUrl(
                         LoadData::new_for_new_unrelated_webview(url),
                         NavigationHistoryBehavior::Push,
+                        TargetSnapshotParams::default(),
                     ),
                 ))
                 .unwrap();
