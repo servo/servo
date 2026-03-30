@@ -185,7 +185,7 @@ pub(crate) struct WatcherActor {
     pub browsing_context_name: String,
     network_parent_name: String,
     target_configuration: String,
-    thread_configuration: String,
+    thread_configuration_name: String,
     breakpoint_list: String,
     session_context: SessionContext,
 }
@@ -413,7 +413,7 @@ impl Actor for WatcherActor {
                 let msg = GetThreadConfigurationActorReply {
                     from: self.name(),
                     configuration: registry
-                        .encode::<ThreadConfigurationActor, _>(&self.thread_configuration),
+                        .encode::<ThreadConfigurationActor, _>(&self.thread_configuration_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -447,7 +447,7 @@ impl WatcherActor {
             NetworkParentActor::new(registry.new_name::<NetworkParentActor>());
         let target_configuration =
             TargetConfigurationActor::new(registry.new_name::<TargetConfigurationActor>());
-        let thread_configuration =
+        let thread_configuration_actor =
             ThreadConfigurationActor::new(registry.new_name::<ThreadConfigurationActor>());
         let breakpoint_list = BreakpointListActor::new(
             registry.new_name::<BreakpointListActor>(),
@@ -459,14 +459,14 @@ impl WatcherActor {
             browsing_context_name,
             network_parent_name: network_parent_actor.name(),
             target_configuration: target_configuration.name(),
-            thread_configuration: thread_configuration.name(),
+            thread_configuration_name: thread_configuration_actor.name(),
             breakpoint_list: breakpoint_list.name(),
             session_context,
         };
 
         registry.register(network_parent_actor);
         registry.register(target_configuration);
-        registry.register(thread_configuration);
+        registry.register(thread_configuration_actor);
         registry.register(breakpoint_list);
 
         watcher_actor
