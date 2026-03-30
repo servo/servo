@@ -596,9 +596,15 @@ fn test_simple_context_menu() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
     open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
 
-    // The form control should be shown.
+    // Wait for a context menu to appear.
     let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+    servo_test.spin(move || {
+        let controls = captured_delegate.controls_shown.borrow();
+        !controls
+            .iter()
+            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+    });
+    assert!(delegate.number_of_controls_shown.get() > 0);
 
     let context_menu = {
         let mut controls = delegate.controls_shown.borrow_mut();
@@ -658,8 +664,15 @@ fn test_open_context_menu_closes_existing() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
     open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
 
+    // Wait for a context menu to appear.
     let captured_delegate = delegate.clone();
-    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+    servo_test.spin(move || {
+        let controls = captured_delegate.controls_shown.borrow();
+        !controls
+            .iter()
+            .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+    });
+    assert!(delegate.number_of_controls_shown.get() > 0);
 
     assert_eq!(delegate.number_of_controls_hidden.get(), 0);
 
@@ -699,9 +712,15 @@ fn test_contextual_context_menu_items() {
          expected_info: ContextMenuElementInformation| {
             assert!(delegate.controls_shown.borrow().is_empty());
 
-            // The form control should be shown.
+            // Wait for a context menu to appear.
             let captured_delegate = delegate.clone();
-            servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+            servo_test.spin(move || {
+                let controls = captured_delegate.controls_shown.borrow();
+                !controls
+                    .iter()
+                    .any(|control| matches!(control, EmbedderControl::ContextMenu(_)))
+            });
+            assert!(delegate.number_of_controls_shown.get() > 0);
 
             {
                 let mut controls = delegate.controls_shown.borrow_mut();
