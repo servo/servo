@@ -667,22 +667,6 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
-impl TryFrom<usize> for FragmentType {
-    type Error = ();
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        if value == FragmentType::FragmentBody as usize {
-            Ok(FragmentType::FragmentBody)
-        } else if value == FragmentType::BeforePseudoContent as usize {
-            Ok(FragmentType::BeforePseudoContent)
-        } else if value == FragmentType::AfterPseudoContent as usize {
-            Ok(FragmentType::AfterPseudoContent)
-        } else {
-            Err(())
-        }
-    }
-}
-
 impl From<Option<PseudoElement>> for FragmentType {
     fn from(value: Option<PseudoElement>) -> Self {
         match value {
@@ -698,10 +682,8 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
     (id as u64) | (fragment_type as u64)
 }
 
-pub fn node_id_from_scroll_id(id: usize) -> Option<(usize, FragmentType)> {
-    let node_id = id & !3;
-    let pseudo = FragmentType::try_from(id & 3).ok()?;
-    Some((node_id, pseudo))
+pub fn node_id_from_scroll_id(id: usize) -> usize {
+    id & !3
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]

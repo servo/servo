@@ -4,7 +4,7 @@
     <title>Scrolls of `::before` and `::after` pseudo element should persist after a reflow.</title>
     <link rel="help" href="https://github.com/servo/servo/pull/42005">
     <link rel="author" title="Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
-    <link rel="match" href="/css/reference/ref-green-image-100px-square.html">
+    <link rel="match" href="reference/before-after-pseudo-element-scrolling-ref.html">
     <script src="/resources/testdriver.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
     <script src="/resources/testdriver-actions.js"></script>
@@ -49,7 +49,7 @@
           .send();
         await promise_scroll_after;
 
-        // This should force a reflow.
+        // This should force a relayout.
         dummy.style.display = "none";
         await waitForNextFrame();
         document.documentElement.classList.remove("reftest-wait");

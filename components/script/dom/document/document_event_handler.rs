@@ -1863,11 +1863,9 @@ impl DocumentEventHandler {
             document.handle_viewport_scroll_event();
         } else {
             // Otherwise, check whether it is for a relevant element within the document. For a `::before` or `::after`
-            // pseudo element we follow Gecko or Chromium's behavior to ensure that the event reach the originating
-            // element.
-            let Some((node_id, _)) = node_id_from_scroll_id(scrolled_node.0 as usize) else {
-                return;
-            };
+            // pseudo element we follow Gecko or Chromium's behavior to ensure that the event reaches the originating
+            // node.
+            let node_id = node_id_from_scroll_id(scrolled_node.0 as usize);
             let node = unsafe {
                 node::from_untrusted_node_address(UntrustedNodeAddress::from_id(node_id))
             };
