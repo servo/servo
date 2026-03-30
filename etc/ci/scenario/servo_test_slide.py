@@ -15,21 +15,13 @@ import subprocess
 
 import common_function_for_servo_test
 import common_function_for_mossel
-from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions, HostOptions
+from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
+from selenium import webdriver
 
 
-def operator():
-    memory_logging_options = MemoryLoggingOptions(
-        log_to_file=True, plot=True, pre_time=2, post_time=5, verbose=True, reset_tab=True, host=HostOptions.OHOS
-    )
-    memory_logging = NonBlockingMemoryLogging(memory_logging_options)
-    memory_logging.start()
-    IMPLICIT_WAIT_TIME = 6
-    driver = common_function_for_servo_test.create_driver()
-    memory_logging.set_webdriver(driver)
+def operator(driver: webdriver, memory_logging: NonBlockingMemoryLogging):
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
-    driver.implicitly_wait(IMPLICIT_WAIT_TIME)
     memory_logging.event("load mossel")
     common_function_for_mossel.load_mossel(driver)
 
@@ -61,8 +53,11 @@ def operator():
 
     if before == after:
         raise RuntimeError("The screenshots before and after sliding are the same; the slide failed.")
-    memory_logging.stop()
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_slide", session_history_max_length=0)
+    common_function_for_servo_test.run_test(
+        operator,
+        "mossel_slide",
+        use_memory_logging=MemoryLoggingOptions(log_to_file=True, pre_time=0.2, post_time=2, reset_tab=True, plot=True),
+    )

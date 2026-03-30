@@ -232,7 +232,7 @@ class NonBlockingMemoryLogging:
         self.log = load_memory_log(self.options.from_dump)
         self.plot_memory_log()
 
-    def __init__(self, options: MemoryLoggingOptions = None, host: HostOptions = None):
+    def __init__(self, options: MemoryLoggingOptions = None, host: HostOptions = None, webdriver: webdriver = None):
         # Defaults:
         self.driver = None
         self.hdc = None
@@ -241,8 +241,9 @@ class NonBlockingMemoryLogging:
         if options is not None:
             self.options = options
         if host is not None:
-            self.options = host
-
+            self.options.host = host
+        if webdriver is not None:
+            self.driver = webdriver
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
 
