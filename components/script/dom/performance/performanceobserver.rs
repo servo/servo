@@ -20,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
@@ -193,7 +192,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             if entry_types.is_empty() {
                 Console::internal_warn(
                     &self.global(),
-                    DOMString::from("No valid entry type provided to observe()."),
+                    "No valid entry type provided to observe().".to_string(),
                 );
                 return Ok(());
             }
@@ -210,7 +209,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
             let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
                 Console::internal_warn(
                     &self.global(),
-                    DOMString::from("No valid entry type provided to observe()."),
+                    "No valid entry type provided to observe().".to_string(),
                 );
                 return Ok(());
             };

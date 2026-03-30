@@ -119,8 +119,8 @@ impl Console {
     }
 
     // Directly logs a DOMString, without processing the message
-    pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
-        Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message));
+    pub(crate) fn internal_warn(global: &GlobalScope, message: String) {
+        Console::send_string_message(global, ConsoleLogLevel::Warn, message);
     }
 }
 
@@ -600,10 +600,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     /// <https://console.spec.whatwg.org/#countreset>
     fn CountReset(global: &GlobalScope, label: DOMString) {
         if global.reset_console_count(&label).is_err() {
-            Self::internal_warn(
-                global,
-                DOMString::from(format!("Counter “{label}” doesn’t exist.")),
-            )
+            Self::internal_warn(global, format!("Counter “{label}” doesn’t exist."))
         }
     }
 }
