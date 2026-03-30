@@ -3,6 +3,7 @@
 
 # Please keep these in sync with the packages in the book, using the instructions in the README.md
 # in this folder.
+I_AM_A_TEST_PACKAGE
 build-essential
 ca-certificates
 ccache
