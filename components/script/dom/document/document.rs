@@ -136,8 +136,7 @@ use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
 use crate::dom::element::{
-    CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenEnter,
-    ElementPerformFullscreenExit,
+    CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenExit,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -187,7 +186,7 @@ use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
-use crate::dom::types::{HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry};
+use crate::dom::types::{HTMLCanvasElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::websocket::WebSocket;
@@ -4525,123 +4524,6 @@ impl Document {
     fn decr_ignore_opens_during_unload_counter(&self) {
         self.ignore_opens_during_unload_counter
             .set(self.ignore_opens_during_unload_counter.get() - 1);
-    }
-
-    /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(&self, pending: &Element, can_gc: CanGc) -> Rc<Promise> {
-        // Step 1
-        // > Let pendingDoc be this’s node document.
-        // `Self` is the pending document.
-
-        // Step 2
-        // > Let promise be a new promise.
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
-
-        // Step 3
-        // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
-        if !self.is_fully_active() {
-            promise.reject_error(
-                Error::Type(c"Document is not fully active".to_owned()),
-                can_gc,
-            );
-            return promise;
-        }
-
-        // Step 4
-        // > Let error be false.
-        let mut error = false;
-
-        // Step 5
-        // > If any of the following conditions are false, then set error to true:
-        {
-            // > - This’s namespace is the HTML namespace or this is an SVG svg or MathML math element. [SVG] [MATHML]
-            match *pending.namespace() {
-                ns!(mathml) => {
-                    if pending.local_name().as_ref() != "math" {
-                        error = true;
-                    }
-                },
-                ns!(svg) => {
-                    if pending.local_name().as_ref() != "svg" {
-                        error = true;
-                    }
-                },
-                ns!(html) => (),
-                _ => error = true,
-            }
-
-            // > - This is not a dialog element.
-            if pending.is::<HTMLDialogElement>() {
-                error = true;
-            }
-
-            // > - The fullscreen element ready check for this returns true.
-            if !pending.fullscreen_element_ready_check() {
-                error = true;
-            }
-
-            // > - Fullscreen is supported.
-            // <https://fullscreen.spec.whatwg.org/#fullscreen-is-supported>
-            // > Fullscreen is supported if there is no previously-established user preference, security risk, or platform limitation.
-            // TODO: Add checks for whether fullscreen is supported as definition.
-
-            // > - This’s relevant global object has transient activation or the algorithm is triggered by a user generated orientation change.
-            // TODO: implement screen orientation API
-            if !pending.owner_window().has_transient_activation() {
-                error = true;
-            }
-        }
-
-        if pref!(dom_fullscreen_test) {
-            // For reftests we just take over the current window,
-            // and don't try to really enter fullscreen.
-            info!("Tests don't really enter fullscreen.");
-        } else {
-            // TODO fullscreen is supported
-            // TODO This algorithm is allowed to request fullscreen.
-            warn!("Fullscreen not supported yet");
-        }
-
-        // Step 6
-        // > If error is false, then consume user activation given pendingDoc’s relevant global object.
-        if !error {
-            pending.owner_window().consume_user_activation();
-        }
-
-        // Step 8.
-        // > If error is false, then resize pendingDoc’s node navigable’s top-level traversable’s active document’s viewport’s dimensions,
-        // > optionally taking into account options["navigationUI"]:
-        // TODO(#21600): Improve spec compliance of steps 7-13 paralelism.
-        // TODO(#42064): Implement fullscreen options, and ensure that this is spec compliant for all embedder.
-        if !error {
-            let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), true);
-            self.send_to_embedder(event);
-        }
-
-        // Step 7
-        // > Return promise, and run the remaining steps in parallel.
-        let pipeline_id = self.window().pipeline_id();
-
-        let trusted_pending = Trusted::new(pending);
-        let trusted_pending_doc = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
-        let handler = ElementPerformFullscreenEnter::new(
-            trusted_pending,
-            trusted_pending_doc,
-            trusted_promise,
-            error,
-        );
-        let script_msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::EnterFullscreen,
-            handler,
-            Some(pipeline_id),
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(script_msg);
-        self.window().main_thread_script_chan().send(msg).unwrap();
-
-        promise
     }
 
     /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
