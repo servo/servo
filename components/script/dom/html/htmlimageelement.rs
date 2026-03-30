@@ -104,6 +104,7 @@ const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
     "image/vnd.microsoft.icon",
     "image/x-icon",
     "image/webp",
+    "image/avif",
 ];
 
 #[derive(Clone, Copy, Debug)]
