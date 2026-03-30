@@ -3,12 +3,16 @@ on:
   push:
     branches:
       - main
+      - environments
 
 jobs:
-  upstream:
+  upstream_with_environment:
     # Run job only on servo/servo
     if: github.repository == 'servo/servo'
     runs-on: ubuntu-latest
+    environment:
+      name: publish
+      deployment: false
     steps:
       - name: Check out Servo
         uses: actions/checkout@v6
