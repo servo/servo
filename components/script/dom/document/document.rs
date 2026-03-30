@@ -109,7 +109,7 @@ use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -135,9 +135,7 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
-use crate::dom::element::{
-    CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenExit,
-};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
@@ -197,12 +195,11 @@ use crate::dom::xpathexpression::XPathExpression;
 use crate::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
-use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
+use crate::realms::enter_realm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
@@ -4524,56 +4521,6 @@ impl Document {
     fn decr_ignore_opens_during_unload_counter(&self) {
         self.ignore_opens_during_unload_counter
             .set(self.ignore_opens_during_unload_counter.get() - 1);
-    }
-
-    /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    pub(crate) fn exit_fullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
-        let global = self.global();
-
-        // Step 1
-        // > Let promise be a new promise
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
-
-        // Step 2
-        // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
-        if !self.is_fully_active() || self.fullscreen_element.get().is_none() {
-            promise.reject_error(
-                Error::Type(
-                    c"No fullscreen element to exit or document is not fully active".to_owned(),
-                ),
-                can_gc,
-            );
-            return promise;
-        }
-
-        // TODO(#42067): Implement step 3-7, handling fullscreen's propagation across navigables.
-
-        let element = self.fullscreen_element.get().unwrap();
-        let window = self.window();
-
-        // Step 10
-        // > If resize is true, resize doc’s viewport to its "normal" dimensions.
-        // TODO(#21600): Improve spec compliance of steps 8-15 paralelism.
-        let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), false);
-        self.send_to_embedder(event);
-
-        // Step 8
-        // > Return promise, and run the remaining steps in parallel.
-        let trusted_element = Trusted::new(&*element);
-        let trusted_promise = TrustedPromise::new(promise.clone());
-        let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let pipeline_id = Some(global.pipeline_id());
-        let script_msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::ExitFullscreen,
-            handler,
-            pipeline_id,
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(script_msg);
-        window.main_thread_script_chan().send(msg).unwrap();
-
-        promise
     }
 
     pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
