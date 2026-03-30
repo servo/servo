@@ -8,7 +8,7 @@ use js::context::JSContext;
 use markup5ever::QualName;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::parse_floating_point_number;
-use script_bindings::root::{Dom, DomRoot};
+use script_bindings::root::Dom;
 use script_bindings::script_runtime::CanGc;
 use style::selector_parser::PseudoElement;
 
@@ -18,7 +18,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{InputType, SpecificInputType};
+use crate::dom::input_element::input_type::SpecificInputType;
 use crate::dom::node::{Node, NodeTraits};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -124,22 +124,6 @@ impl SpecificInputType for RangeInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        // When updating input range's shadow tree (specifically its' thumb position),
-        // need to access layout to get thumb's width. Make sure there is no layout blocker
-        if input.owner_document().has_script_or_layout_blocker() {
-            let range_input_element = DomRoot::from_ref(input);
-            input.owner_document().add_delayed_task(task!(
-                ThumbPositionUpdate: |cx, range_input_element: DomRoot<HTMLInputElement>| {
-                    match &*range_input_element.input_type() {
-                        InputType::Range(range_input_type) => {
-                            range_input_type.get_or_create_shadow_tree(cx, &range_input_element).update(cx, &range_input_element);
-                        },
-                        _ => {},
-                    }
-                }
-            ));
-            return;
-        }
         self.get_or_create_shadow_tree(cx, input).update(cx, input)
     }
 }
@@ -252,18 +236,10 @@ impl RangeInputShadowTree {
             (clamped_value - min) / (max - min) * 100.0
         };
 
-        let thumb_rect_width: f64 = self
-            .slider_thumb
-            .upcast::<Node>()
-            .border_box()
-            .unwrap_or_default()
-            .width()
-            .to_f64_px();
-
         let thumb_style = format!(
-            "inset-inline-start: calc({}% - {}px) !important",
+            "inset-inline-start: {}% !important; transform: translate(-{}%, -50%) !important;",
             percent,
-            thumb_rect_width * percent / 100.0
+            percent,
         );
         let progress_style = format!("width: {percent}% !important;");
 
