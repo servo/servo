@@ -2786,14 +2786,6 @@ impl Element {
         }
     }
 
-    // https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check
-    pub(crate) fn fullscreen_element_ready_check(&self) -> bool {
-        if !self.is_connected() {
-            return false;
-        }
-        self.owner_document().get_allow_fullscreen()
-    }
-
     // https://html.spec.whatwg.org/multipage/#home-subtree
     pub(crate) fn is_in_same_home_subtree<T>(&self, other: &T) -> bool
     where
