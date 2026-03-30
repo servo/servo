@@ -178,14 +178,15 @@ impl HTMLScriptElement {
     ///
     /// <https://html.spec.whatwg.org/multipage/#concept-script-delay-load>
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut js::context::JSContext) {
+    pub(crate) fn delay_load_event(
+        &self,
+        delay: bool,
+        url: ServoUrl,
+        cx: &mut js::context::JSContext,
+    ) {
         let document = self
             .get_script_active_document()
             .expect("Script should have an active document when delaying load event");
-
-        let url = self
-            .get_script_url()
-            .expect("Script should have a URL when delaying load event");
 
         let blocker = &self.delaying_the_load_event;
         if delay && blocker.borrow().is_none() {
@@ -195,51 +196,45 @@ impl HTMLScriptElement {
         }
     }
 
+    /// Helper method to determine the script kind based on attributes and insertion context.
+    ///
+    /// This duplicates the script preparation logic from the HTML spec to determine the
+    /// script's active document without full preparation.
+    ///
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
     fn get_script_kind(&self) -> Option<ExternalScriptKind> {
+        let element = self.upcast::<Element>();
+        let was_parser_inserted = self.parser_inserted.get();
+        let mut asynch = element.has_attribute(&local_name!("async"));
+
         // Step 4.
         // If parser document is non-null and el does not have an async attribute, then set el's force async to true.
-        let element = self.upcast::<Element>();
-        let asynch = element.has_attribute(&local_name!("async"));
-        let was_parser_inserted = self.parser_inserted.get();
+        if was_parser_inserted && !asynch {
+            asynch = true;
+        }
 
-        #[allow(clippy::question_mark)]
-        let script_type = if let Some(ty) = self.get_script_type() {
-            // Step 9-11.
-            ty
-        } else {
-            // Step 12. Otherwise, return. (No script is executed, and el's type is left as null.)
-            return None;
-        };
+        let script_type = self.get_script_type()?;
 
         let mut script_kind = ExternalScriptKind::Asap;
 
-        // Step 31.11. Switch on el's type:
         match script_type {
             ScriptType::Classic => {
                 if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !asynch {
-                    // Step 33.4: classic, has src, has defer, was parser-inserted, is not async.
                     script_kind = ExternalScriptKind::Deferred
                 } else if was_parser_inserted && !asynch {
-                    // Step 33.5: classic, has src, was parser-inserted, is not async.
                     script_kind = ExternalScriptKind::ParsingBlocking
                 } else if !asynch && !self.non_blocking.get() {
-                    // Step 33.3: classic, has src, is not async, is not non-blocking.
                     script_kind = ExternalScriptKind::AsapInOrder
                 } else {
-                    // Step 33.2: classic, has src.
                     script_kind = ExternalScriptKind::Asap
                 };
             },
             ScriptType::Module => {
                 if !asynch && was_parser_inserted {
-                    // 33.4: module, not async, parser-inserted
                     script_kind = ExternalScriptKind::Deferred
                 } else if !asynch && !self.non_blocking.get() {
-                    // 33.3: module, not parser-inserted
                     script_kind = ExternalScriptKind::AsapInOrder
                 } else {
-                    // 33.2: module, async
                     script_kind = ExternalScriptKind::Asap
                 };
             },
@@ -260,58 +255,6 @@ impl HTMLScriptElement {
         };
 
         Some(document)
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
-    pub(crate) fn get_script_url(&self) -> Option<ServoUrl> {
-        // Step 4.
-        // If parser document is non-null and el does not have an async attribute, then set el's force async to true.
-        let element = self.upcast::<Element>();
-
-        let document = self.get_script_active_document()?;
-        let base_url = document.base_url();
-        let url;
-
-        #[allow(clippy::question_mark)]
-        let script_type = if let Some(ty) = self.get_script_type() {
-            // Step 9-11.
-            ty
-        } else {
-            // Step 12. Otherwise, return. (No script is executed, and el's type is left as null.)
-            return None;
-        };
-
-        if let Some(src) = element.get_attribute(&local_name!("src")) {
-            // Step 31. If el has a src content attribute, then:
-
-            // Step 31.1. If el's type is "importmap".
-            if script_type == ScriptType::ImportMap {
-                // then queue an element task on the DOM manipulation task source
-                // given el to fire an event named error at el, and return.
-                return None;
-            }
-
-            // Step 31.2. Let src be the value of el's src attribute.
-            let src = src.value();
-
-            // Step 31.3. If src is the empty string.
-            if src.is_empty() {
-                return None;
-            }
-
-            // Step 31.5-31.6. Parse URL.
-            url = match base_url.join(&src) {
-                Ok(url) => url,
-                Err(_) => {
-                    warn!("error parsing URL for script {}", &**src);
-                    return None;
-                },
-            };
-        } else {
-            url = document.base_url();
-        }
-
-        Some(url)
     }
 }
 
@@ -998,7 +941,7 @@ impl HTMLScriptElement {
             }
 
             // Step 31.8. Set el's delaying the load event to true.
-            self.delay_load_event(true, cx);
+            self.delay_load_event(true, url.clone(), cx);
 
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
             if self.marked_as_render_blocking.get() {
@@ -1106,7 +1049,7 @@ impl HTMLScriptElement {
                 },
                 ScriptType::Module => {
                     // Step 32.2.2.1 Set el's delaying the load event to true.
-                    self.delay_load_event(true, cx);
+                    self.delay_load_event(true, base_url.clone(), cx);
 
                     // Step 32.2.2.2 If el is potentially render-blocking, then:
                     if self.potentially_render_blocking() {
@@ -1174,6 +1117,7 @@ impl HTMLScriptElement {
 
         // Step 3. Unblock rendering on el.
         if self.marked_as_render_blocking.replace(false) {
+            self.marked_as_render_blocking.set(false);
             doc.decrement_render_blocking_element_count();
         }
 
@@ -1201,8 +1145,12 @@ impl HTMLScriptElement {
 
         let document = self.owner_document();
 
+        let url: ServoUrl;
+
         match script {
             Script::Classic(script) => {
+                url = script.url.clone();
+
                 // Step 6."classic".1. Let oldCurrentScript be the value to which document's currentScript object was most recently set.
                 let old_script = document.GetCurrentScript();
 
@@ -1225,6 +1173,8 @@ impl HTMLScriptElement {
                 document.set_current_script(old_script.as_deref());
             },
             Script::Module(module_tree) => {
+                url = module_tree.url.clone();
+
                 // TODO Step 6."module".1. Assert: document's currentScript attribute is null.
                 document.set_current_script(None);
 
@@ -1234,6 +1184,8 @@ impl HTMLScriptElement {
                     .run_a_module_script(cx, module_tree, false);
             },
             Script::ImportMap(script) => {
+                url = script.url.clone();
+
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
                 register_import_map(&self.owner_global(), script.import_map, CanGc::from_cx(cx));
             },
@@ -1249,7 +1201,7 @@ impl HTMLScriptElement {
         if self.from_an_external_file.get() {
             self.dispatch_event(cx, atom!("load"));
         }
-        self.delay_load_event(false, cx)
+        self.delay_load_event(false, url, cx)
     }
 
     pub(crate) fn queue_error_event(&self) {

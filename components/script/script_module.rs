@@ -181,7 +181,7 @@ pub(crate) enum ModuleStatus {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ModuleTree {
     #[no_trace]
-    url: ServoUrl,
+    pub url: ServoUrl,
     #[ignore_malloc_size_of = "mozjs"]
     record: OnceCell<ModuleObject>,
     #[ignore_malloc_size_of = "mozjs"]
