@@ -771,9 +771,9 @@ impl ServoInner {
                         .notify_media_session_event(webview, media_session_event);
                 }
             },
-            ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(webview_id, tree_id) => {
+            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(webview_id, tree_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.notify_accessibility_tree_id(tree_id);
+                    webview.notify_document_accessibility_tree_id(tree_id);
                 }
             },
         }

@@ -50,5 +50,5 @@ pub enum ConstellationToEmbedderMsg {
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
     /// Notifies the embedder that the AccessKit [`TreeId`] for the top-level document in this
     /// WebView has been changed (or initially set).
-    AccessibilityTreeIdChanged(WebViewId, TreeId),
+    DocumentAccessibilityTreeIdChanged(WebViewId, TreeId),
 }

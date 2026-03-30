@@ -3131,7 +3131,7 @@ where
 
         webview.accessibility_active = active;
         self.constellation_to_embedder_proxy.send(
-            ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
+            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
                 webview_id,
                 webview.active_top_level_pipeline_id.into(),
             ),
@@ -5764,7 +5764,7 @@ where
                 if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
                     webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
                     self.constellation_to_embedder_proxy.send(
-                        ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
+                        ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
                             webview_id,
                             webview.active_top_level_pipeline_id.into(),
                         ),
