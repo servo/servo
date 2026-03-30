@@ -166,7 +166,7 @@ serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
 servo_arc = { git = "https://github.com/servo/stylo", rev = "938e58caf26b6d0437291ce875dd5b0dd8a52d4f" }
-sha1 = "0.10"
+sha1 = "0.11"
 sha2 = "0.10"
 sha3 = "0.10"
 skrifa = "0.37.0"
