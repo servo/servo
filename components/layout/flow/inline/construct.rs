@@ -4,13 +4,16 @@
 
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
+use std::ops::Range;
 
 use icu_segmenter::WordSegmenter;
 use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
+use unicode_categories::UnicodeCategories;
 
 use super::text_run::TextRun;
 use super::{
@@ -19,7 +22,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::LayoutBox;
+use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::BlockLevelBox;
 use crate::flow::float::FloatBox;
@@ -90,6 +93,10 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// during box tree construction. An IFC is empty if it only contains TextRuns with
     /// completely collapsible whitespace. When that happens it can be ignored completely.
     pub is_empty: bool,
+
+    /// Whether or not the `::first-letter` pseudo-element of this inline formatting context
+    /// has been processed yet.
+    has_processed_first_letter: bool,
 }
 
 impl InlineFormattingContextBuilder {
@@ -151,6 +158,9 @@ impl InlineFormattingContextBuilder {
 
         self.last_inline_box_ended_with_collapsible_white_space = false;
         self.on_word_boundary = true;
+
+        // Atomics such as images should prevent any following text as being interpreted as the first letter.
+        self.has_processed_first_letter = true;
 
         inline_level_box
     }
@@ -214,7 +224,7 @@ impl InlineFormattingContextBuilder {
         &mut self,
         inline_box_creator: impl FnOnce() -> ArcRefCell<InlineBox>,
         old_layout_box: Option<LayoutBox>,
-    ) {
+    ) -> InlineItem {
         // If there is an existing undamaged layout box that's compatible, use the `InlineBox` within it.
         let inline_box = old_layout_box
             .and_then(|layout_box| match layout_box {
@@ -231,10 +241,11 @@ impl InlineFormattingContextBuilder {
         std::mem::drop(borrowed_inline_box);
 
         let identifier = self.inline_boxes.start_inline_box(inline_box.clone());
-        self.inline_items
-            .push(InlineItem::StartInlineBox(inline_box));
+        let inline_item = InlineItem::StartInlineBox(inline_box);
+        self.inline_items.push(inline_item.clone());
         self.inline_box_stack.push(identifier);
         self.is_empty = false;
+        inline_item
     }
 
     /// End the ongoing inline box in this [`InlineFormattingContextBuilder`], returning
@@ -252,6 +263,61 @@ impl InlineFormattingContextBuilder {
         let inline_level_box = self.inline_boxes.get(&identifier);
         let bidi_control_chars = inline_level_box.borrow().base.style.bidi_control_chars();
         self.push_control_character_string(bidi_control_chars.1);
+    }
+
+    /// This is like [`Self::push_text`], except that it might possibly add an anonymous box if
+    ///
+    ///  - This inline formatting context has a `::first-letter` style.
+    ///  - No anonymous box for `::first-letter` has been added yet.
+    ///  - First letter content is detected in this text.
+    ///
+    /// Note that this should only be used when processing text in block containers.
+    pub(crate) fn push_text_with_possible_first_letter<'dom>(
+        &mut self,
+        text: Cow<'dom, str>,
+        info: &NodeAndStyleInfo<'dom>,
+        container_info: &NodeAndStyleInfo<'dom>,
+        layout_context: &LayoutContext,
+    ) -> bool {
+        if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
+            self.push_text(text, info);
+            return false;
+        }
+
+        let Some(first_letter_info) =
+            container_info.with_pseudo_element(layout_context, PseudoElement::FirstLetter)
+        else {
+            self.push_text(text, info);
+            return false;
+        };
+
+        let first_letter_range = first_letter_range(&text[..]);
+        if first_letter_range.is_empty() {
+            return false;
+        }
+
+        // Push any leading white space first.
+        if first_letter_range.start != 0 {
+            self.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+        }
+
+        // Push the first-letter text into an anonymous box with the `::first-letter` style.
+        let box_slot = first_letter_info.node.box_slot();
+        let inline_item = self.start_inline_box(
+            || ArcRefCell::new(InlineBox::new(&first_letter_info, layout_context)),
+            None,
+        );
+        box_slot.set(LayoutBox::InlineLevel(inline_item));
+
+        let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
+        self.push_text(first_letter_text, &first_letter_info);
+        self.end_inline_box();
+        self.has_processed_first_letter = true;
+
+        // Now push the non-first-letter text.
+        self.push_text(Cow::Borrowed(&text[first_letter_range.end..]), info);
+
+        true
     }
 
     pub(crate) fn push_text<'dom>(&mut self, text: Cow<'dom, str>, info: &NodeAndStyleInfo<'dom>) {
@@ -714,4 +780,152 @@ pub(crate) fn capitalize_string(string: &str, allow_word_at_start: bool) -> Stri
     }
 
     output_string
+}
+
+/// Computes the range of the first letter.
+///
+/// The range includes any preceding punctuation and white space, and any trailing punctuation. Any
+/// non-punctuation following the letter/number/symbol of first-letter ends the range. Intervening
+/// spaces within trailing punctuation are not supported yet.
+///
+/// If the resulting range is empty, no compatible first-letter text was found.
+///
+/// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+fn first_letter_range(text: &str) -> Range<usize> {
+    enum State {
+        /// All characters that precede the `PrecedingWhitespaceAndPunctuation` state.
+        Start,
+        /// All preceding punctuation and intervening whitepace that precedes the `Lns` state.
+        PrecedingPunctuation,
+        /// Unicode general category L: letter, N: number and S: symbol
+        Lns,
+        /// All punctuation (but no whitespace or other characters), that
+        /// come after the `Lns` state.
+        TrailingPunctuation,
+    }
+
+    let mut start = 0;
+    let mut state = State::Start;
+    for (index, character) in text.char_indices() {
+        match &mut state {
+            State::Start => {
+                if character.is_letter() || character.is_number() || character.is_symbol() {
+                    start = index;
+                    state = State::Lns;
+                } else if character.is_punctuation() {
+                    start = index;
+                    state = State::PrecedingPunctuation
+                }
+            },
+            State::PrecedingPunctuation => {
+                if character.is_letter() || character.is_number() || character.is_symbol() {
+                    state = State::Lns;
+                } else if !character.is_separator_space() && !character.is_punctuation() {
+                    return 0..0;
+                }
+            },
+            State::Lns => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if character.is_punctuation() &&
+                    !character.is_punctuation_open() &&
+                    !character.is_punctuation_dash()
+                {
+                    state = State::TrailingPunctuation;
+                } else {
+                    return start..index;
+                }
+            },
+            State::TrailingPunctuation => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if character.is_punctuation() &&
+                    !character.is_punctuation_open() &&
+                    !character.is_punctuation_dash()
+                {
+                    continue;
+                } else {
+                    return start..index;
+                }
+            },
+        }
+    }
+
+    match state {
+        State::Start | State::PrecedingPunctuation => 0..0,
+        State::Lns | State::TrailingPunctuation => start..text.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_first_letter_eq(text: &str, expected: &str) {
+        let range = first_letter_range(text);
+        assert_eq!(&text[range], expected);
+    }
+
+    #[test]
+    fn test_first_letter_range() {
+        // All spaces
+        assert_first_letter_eq("", "");
+        assert_first_letter_eq("  ", "");
+
+        // Spaces and punctuation only
+        assert_first_letter_eq("(", "");
+        assert_first_letter_eq(" (", "");
+        assert_first_letter_eq("( ", "");
+        assert_first_letter_eq("()", "");
+
+        // Invalid chars
+        assert_first_letter_eq("\u{0903}", "");
+
+        // First letter only
+        assert_first_letter_eq("A", "A");
+        assert_first_letter_eq(" A", "A");
+        assert_first_letter_eq("A ", "A");
+        assert_first_letter_eq(" A ", "A");
+
+        // Word
+        assert_first_letter_eq("App", "A");
+        assert_first_letter_eq(" App", "A");
+        assert_first_letter_eq("App ", "A");
+
+        // Preceding punctuation(s), intervening spaces and first letter
+        assert_first_letter_eq(r#""A"#, r#""A"#);
+        assert_first_letter_eq(r#" "A"#, r#""A"#);
+        assert_first_letter_eq(r#""A "#, r#""A"#);
+        assert_first_letter_eq(r#"" A"#, r#"" A"#);
+        assert_first_letter_eq(r#" "A "#, r#""A"#);
+        assert_first_letter_eq(r#"("A"#, r#"("A"#);
+        assert_first_letter_eq(r#" ("A"#, r#"("A"#);
+        assert_first_letter_eq(r#"( "A"#, r#"( "A"#);
+        assert_first_letter_eq(r#"[ ( "A"#, r#"[ ( "A"#);
+
+        // First letter and succeeding punctuation(s)
+        // TODO: modify test cases when intervening spaces in succeeding puntuations is supported
+        assert_first_letter_eq(r#"A""#, r#"A""#);
+        assert_first_letter_eq(r#"A" "#, r#"A""#);
+        assert_first_letter_eq(r#"A)]"#, r#"A)]"#);
+        assert_first_letter_eq(r#"A" )]"#, r#"A""#);
+        assert_first_letter_eq(r#"A)] >"#, r#"A)]"#);
+
+        // All
+        assert_first_letter_eq(r#" ("A" )]"#, r#"("A""#);
+        assert_first_letter_eq(r#" ("A")] >"#, r#"("A")]"#);
+
+        // Non ASCII chars
+        assert_first_letter_eq("一", "一");
+        assert_first_letter_eq(" 一 ", "一");
+        assert_first_letter_eq("一二三", "一");
+        assert_first_letter_eq(" 一二三 ", "一");
+        assert_first_letter_eq("（一二三）", "（一");
+        assert_first_letter_eq(" （一二三） ", "（一");
+        assert_first_letter_eq("（（一", "（（一");
+        assert_first_letter_eq(" （ （一", "（ （一");
+        assert_first_letter_eq("一）", "一）");
+        assert_first_letter_eq("一））", "一））");
+        assert_first_letter_eq("一） ）", "一）");
+    }
 }
