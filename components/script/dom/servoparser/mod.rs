@@ -1284,6 +1284,10 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
+        // <https://html.spec.whatwg.org/multipage/#create-navigation-params-by-fetching>
+        // Step 21.9. Set responsePolicyContainer to the result of creating a
+        // policy container from a fetch response given response and request's
+        // reserved client.
         let (policy_container, endpoints_list, link_headers) = match metadata.as_ref() {
             None => (PolicyContainer::default(), None, vec![]),
             Some(metadata) => (
@@ -1295,6 +1299,21 @@ impl FetchResponseListener for ParserContext {
                 extract_links_from_headers(&metadata.headers),
             ),
         };
+
+        // Step 21.10. Set finalSandboxFlags to the union of targetSnapshotParams's
+        // sandboxing flags and responsePolicyContainer's CSP list's CSP-derived
+        // sandboxing flags.
+        let final_sandboxing_flag_set = policy_container
+            .csp_list
+            .as_ref()
+            .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
+            .unwrap_or(SandboxingFlagSet::empty())
+            .union(self.target_snapshot_params.sandboxing_flags);
+
+        // Step 21.11. Set responseOrigin to the result of determining the origin
+        // given response's URL, finalSandboxFlags, and entry's document state's
+        // initiator origin.
+        // TODO
 
         let parser = match ScriptThread::page_headers_available(
             self.webview_id,
@@ -1354,19 +1373,6 @@ impl FetchResponseListener for ParserContext {
             // Step 4.4. If navigationParams is not null, then:
             // TODO
         }
-
-        // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
-        // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
-        // policyContainer's CSP list's CSP-derived sandboxing flags.
-        //
-        // TODO: This deviates a bit from the specification, because there isn't a `targetSnapshotParam`
-        // concept yet.
-        let final_sandboxing_flag_set = policy_container
-            .csp_list
-            .as_ref()
-            .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
-            .unwrap_or(SandboxingFlagSet::empty())
-            .union(document.creation_sandboxing_flag_set());
 
         if let Some(endpoints) = endpoints_list {
             window.set_endpoints_list(endpoints);
