@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use servo_base::generic_channel::GenericSender;
 use storage_traits::StorageThreads;
-use storage_traits::client_storage::ClientStorageThreadMessage;
+use storage_traits::client_storage::ClientStorageThreadHandle;
 use storage_traits::indexeddb::IndexedDBThreadMsg;
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
@@ -18,7 +18,7 @@ fn new_storage_thread_group(
     config_dir: Option<PathBuf>,
     label: &str,
 ) -> StorageThreads {
-    let client_storage: GenericSender<ClientStorageThreadMessage> =
+    let client_storage: ClientStorageThreadHandle =
         ClientStorageThreadFactory::new(config_dir.clone());
     let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(
         config_dir.clone(),
@@ -31,7 +31,7 @@ fn new_storage_thread_group(
         format!("storage-reporter-{label}"),
     );
 
-    StorageThreads::new(client_storage, idb, web_storage)
+    StorageThreads::new(client_storage.into(), idb, web_storage)
 }
 
 pub fn new_storage_threads(
