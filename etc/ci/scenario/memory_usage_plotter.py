@@ -22,17 +22,16 @@ from pathlib import Path
 from selenium import webdriver
 import sys
 from hdc_py.hdc import HarmonyDeviceConnector
-from common_function_for_servo_test import create_driver
 from enum import Enum
 
 PACKAGE_NAME = "org.servo.servo"
 SERVO_PROCESS_NAME = "servoshell"
 
 
-class HostOptions(Enum):
-    LINUX = 1
-    OHOS = 2
-    MACOS = 3
+class HostOptions(str, Enum):
+    LINUX = "linux"
+    OHOS = "ohos"
+    MACOS = "macos"
 
 
 ### Use this MemoryLoggingOptions dataclass definition to setup default values
@@ -52,6 +51,7 @@ class MemoryLoggingOptions:
     reset_tab: str = None
     create_own_webdriver: bool = False
     host: HostOptions = HostOptions.LINUX
+    url: str = None
 
 
 @dataclass
@@ -234,17 +234,14 @@ class NonBlockingMemoryLogging:
 
     def __init__(self, options: MemoryLoggingOptions = None, host: HostOptions = None):
         # Defaults:
+        self.driver = None
+        self.hdc = None
+        self.csv_file = None
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
         if host is not None:
             self.options = host
-        self.driver = None
-        if self.options.create_own_webdriver:
-            self.driver = create_driver(timeout=1)
-            if self.driver is None:
-                print("Doublecheck that servo is running and has `--psn=--webdriver`")
-                sys.exit(0)
 
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
@@ -306,7 +303,7 @@ class NonBlockingMemoryLogging:
                 if self.driver is None:
                     raise WebDriverIsNotSet("The `-r` argument or Tab Reset was passed, but the webdriver is not set")
                 self.verbose_print(f"Setting the url to reset_tab: {self.options.reset_tab}")
-                if self.options.reset_tab is not str:
+                if not isinstance(self.options.reset_tab, str):
                     self.options.reset_tab = "about:blank"
                 self.driver.get(self.options.reset_tab)
             time.sleep(self.options.post_time)
@@ -476,6 +473,14 @@ if __name__ == "__main__":
         default=default_options.frequency,
     )
     collect.add_argument("--pid", type=int)
+    collect.add_argument("--url", type=str, help="custom url if servo is remote or non 7000 port")
+    collect.add_argument(
+        "--host",
+        type=HostOptions,
+        choices=list(HostOptions),
+        default=HostOptions.LINUX,
+        help="target host to collect data from",
+    )
 
     plot = subparsers.add_parser("plot", help="plot from csv dump")
     plot.add_argument(

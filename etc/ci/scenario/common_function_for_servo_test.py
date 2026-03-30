@@ -26,12 +26,14 @@ from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
 from selenium.webdriver.remote.webelement import WebElement
 from urllib3.exceptions import ProtocolError
+from memory_usage_plotter import MemoryLoggingOptions, NonBlockingMemoryLogging, HostOptions
 
-WEBDRIVER_PORT = 7000
+WEBDRIVER_PORT = random.randrange(9001, 9999)
 MITMPROXY_PORT = random.randrange(7150, 9000)
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 MITMPROXY_VERSION = "12.2.1"
+SERVO_BIN_PATH = "./target/release/servoshell"
 
 
 class MitmProxyRunType(enum.Enum):
@@ -340,8 +342,10 @@ def run_test(
     test_fn,
     test_name: str,
     use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
-    session_history_max_length: int | None = None,
+    use_memory_logging: MemoryLoggingOptions = None,
+    host: HostOptions = None,
 ):
+    webdriver = None
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
         print("Setting mitmproxy replay")
@@ -350,32 +354,87 @@ def run_test(
     dump_file = pathlib.Path("/tmp/mitmproxy-dump")
     if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
         print(f"Dump file {dump_file} did not exist. We will abort")
-        return
-    hdc = HarmonyDeviceConnector()
-    try:
-        print("Stopping potential old servo instance ...")
-        stop_servo()
 
-        setup_hdc_forward()
-        with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
-            print("Starting new servo instance...")
-            time.sleep(5)
-            cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
-            if use_mitmproxy.should_servo_proxy():
-                cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
-                if session_history_max_length is not None:
-                    cmd_str += f" --psn=--pref=session_history_max_length={str(session_history_max_length)} "
-            hdc.cmd(
-                cmd_str,
-                timeout=10,
-            )
-            with HarmonyDevicePerfMode():
-                close_usb_popup(hdc)
-                test_fn()
-    except Exception as e:
-        print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
-        hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
+    if host is None and use_memory_logging is not None and use_memory_logging.host is not None:
+        host = use_memory_logging.host
+    if host is None or host == "ohos":
+        hdc = HarmonyDeviceConnector()
+        try:
+            print("Stopping potential old servo instance ...")
+            stop_servo()
+
+            setup_hdc_forward()
+            with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
+                print("Starting new servo instance...")
+                time.sleep(5)
+                cmd_str = (
+                    f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver={WEBDRIVER_PORT}"
+                )
+                if use_mitmproxy.should_servo_proxy():
+                    cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
+                    if (
+                        use_memory_logging is not None and use_memory_logging.reset_tab
+                    ):  # session_history_max_length is not None:
+                        cmd_str += " --psn=--pref=session_history_max_length=0"
+                hdc.cmd(
+                    cmd_str,
+                    timeout=10,
+                )
+                with HarmonyDevicePerfMode():
+                    close_usb_popup(hdc)
+                    with NonBlockingMemoryLogging(options=use_memory_logging) as logger:
+                        if use_memory_logging.reset_tab:
+                            webdriver = create_driver(timeout=1, servo_url=SERVO_URL)
+                            if webdriver is None:
+                                raise RuntimeError("Failed to create webdriver for reset_tab memory logging")
+                            logger.set_webdriver(webdriver)
+                        test_fn(driver=webdriver, memory_logging=logger)
+        except Exception as e:
+            print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
+            hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
+            stop_servo()
+            sys.exit(1)
+        print("\033[32mTest Succeeded.\033[0m")
         stop_servo()
-        sys.exit(1)
-    print("\033[32mTest Succeeded.\033[0m")
-    stop_servo()
+    elif host == "macos":
+        print(f"use_memory_logging {use_memory_logging}")
+        session_history_max_length = 0
+        if use_memory_logging is None:
+            session_history_max_length = 20
+        webdriver = start_servo(
+            WEBDRIVER_PORT, SERVO_BIN_PATH, delay=2, session_history_max_length=session_history_max_length
+        )
+        if webdriver:
+            webdriver.implicitly_wait(30)
+            if use_memory_logging is None:
+                test_fn(webdriver)
+            else:
+                with NonBlockingMemoryLogging(options=use_memory_logging) as logger:
+                    logger.set_webdriver(webdriver)
+                    test_fn(webdriver, logger)
+        print("\033[32mTest Succeeded.\033[0m")
+        kill_servo()
+
+
+def start_servo(
+    webdriver_port: int, servo_path: str, delay: int = 0, session_history_max_length: int = 20
+) -> webdriver.Remote | None:
+    """Start servo and create webdriver"""
+    try:
+        subprocess.Popen(
+            [
+                servo_path,
+                f"--webdriver={webdriver_port}",
+                f"--pref=session_history_max_length={session_history_max_length}",
+            ]
+        )
+    except FileNotFoundError:
+        print("The servo binary does not exist")
+        return sys.exit(1)
+    if delay > 0:
+        time.sleep(delay)
+    return create_driver(servo_url=f"http://127.0.0.1:{webdriver_port}")
+
+
+def kill_servo():
+    subprocess.Popen(["killall", "servoshell"])
