@@ -133,7 +133,7 @@ impl Resource {
 pub trait ResourceReaderMethods {
     /// Read a named [`Resource`].
     ///
-    /// The implementation must be functional in all servo processes.
+    /// The implementation must be functional in all Servo processes.
     fn read(&self, res: Resource) -> Vec<u8>;
     /// Files that should remain accessible after sandboxing the content process.
     ///
@@ -143,7 +143,7 @@ pub trait ResourceReaderMethods {
     /// Directories that should remain accessible after sandboxing the content process.
     ///
     /// If resources are shipped as files, then the directory containing them be listed
-    /// here tp ensure the content process can access the files.
+    /// here to ensure the content process can access the files.
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
 }
 
