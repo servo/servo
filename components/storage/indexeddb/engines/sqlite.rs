@@ -69,6 +69,17 @@ pub struct SqliteEngine {
 }
 
 impl SqliteEngine {
+    fn object_store_by_name(
+        connection: &Connection,
+        store_name: &str,
+    ) -> Result<object_store_model::Model, Error> {
+        connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )
+    }
+
     // TODO: intake dual pools
     pub fn new(
         base_dir: &Path,
@@ -369,9 +380,29 @@ impl KvsEngine for SqliteEngine {
     }
 
     fn delete_store(&self, store_name: &str) -> Result<(), Self::Error> {
+        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
+        // Step 7. Destroy store.
+        let object_store = Self::object_store_by_name(&self.connection, store_name)?;
+
+        self.connection.execute(
+            "DELETE FROM index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        self.connection.execute(
+            "DELETE FROM unique_index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        self.connection.execute(
+            "DELETE FROM object_store_index WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        self.connection.execute(
+            "DELETE FROM object_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
         let result = self.connection.execute(
-            "DELETE FROM object_store WHERE name = ?",
-            params![store_name.to_string()],
+            "DELETE FROM object_store WHERE id = ?",
+            params![object_store.id],
         )?;
         if result == 0 {
             Err(Error::QueryReturnedNoRows)
@@ -932,6 +963,58 @@ mod tests {
         let result = db.delete_store("test_store");
         // Should work as per spec
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_delete_store_removes_store_records() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+
+        db.create_store("test_store", None, false)
+            .expect("Failed to create store");
+        let object_store = SqliteEngine::object_store_by_name(&db.connection, "test_store")
+            .expect("Failed to fetch store metadata");
+        SqliteEngine::put_item(
+            &db.connection,
+            object_store.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![1, 2, 3],
+            true,
+            None,
+        )
+        .expect("Failed to insert item");
+
+        let row_count_before: i64 = db
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM object_data WHERE object_store_id = ?",
+                rusqlite::params![object_store.id],
+                |row| row.get(0),
+            )
+            .expect("Failed to count rows before delete");
+        assert_eq!(row_count_before, 1);
+
+        db.delete_store("test_store")
+            .expect("Failed to delete store");
+
+        let row_count_after: i64 = db
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM object_data WHERE object_store_id = ?",
+                rusqlite::params![object_store.id],
+                |row| row.get(0),
+            )
+            .expect("Failed to count rows after delete");
+        assert_eq!(row_count_after, 0);
     }
 
     #[test]
