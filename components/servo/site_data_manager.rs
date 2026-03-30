@@ -3,13 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use cookie::Cookie;
 use log::warn;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{ResourceThreads, SiteDescriptor};
+use net_traits::{CookieSource, ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
+use url::Url;
 
 bitflags! {
     /// Identifies categories of site data associated with a site.
@@ -202,5 +204,24 @@ impl SiteDataManager {
     pub fn clear_cookies(&self) {
         self.public_resource_threads.clear_cookies();
         self.private_resource_threads.clear_cookies();
+    }
+
+    /// Returns the cookies for the domain associated with the given [`Url`].
+    pub fn cookies_for_url(&self, url: Url, source: CookieSource) -> Vec<Cookie<'static>> {
+        self.public_resource_threads
+            .cookies_for_url(url.into(), source)
+    }
+
+    /// Sets a cookie for the domain associated with the given [`Url`].
+    ///
+    /// Returns `true` if the request to set the cookie is successfully sent.
+    /// This call will block, such that any operations triggered after the
+    /// call will use the provided cookie.
+    pub fn set_cookie_for_url(&self, url: Url, cookie: Cookie<'static>) {
+        self.public_resource_threads.set_cookie_for_url_sync(
+            url.into(),
+            cookie,
+            CookieSource::HTTP,
+        );
     }
 }

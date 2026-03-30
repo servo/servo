@@ -1487,7 +1487,7 @@ pub(crate) fn handle_add_cookie(
                     .window()
                     .as_global_scope()
                     .resource_threads()
-                    .send(SetCookieForUrl(url, Serde(cookie), method));
+                    .send(SetCookieForUrl(url, Serde(cookie), method, None));
                 Ok(())
             },
             // If cookie domain is not equal to session's current browsing context's
@@ -1498,7 +1498,7 @@ pub(crate) fn handle_add_cookie(
                     .window()
                     .as_global_scope()
                     .resource_threads()
-                    .send(SetCookieForUrl(url, Serde(cookie), method));
+                    .send(SetCookieForUrl(url, Serde(cookie), method, None));
                 Ok(())
             },
         })

@@ -36,7 +36,7 @@ use layout_api::{
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
 use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
@@ -6250,7 +6250,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .window
             .as_global_scope()
             .resource_threads()
-            .send(GetCookiesForUrl(url, tx, NonHTTP));
+            .send(GetCookieStringForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
