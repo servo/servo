@@ -4,3 +4,4 @@
 
 pub(crate) mod document;
 pub(crate) mod element;
+pub(crate) use self::element::*;

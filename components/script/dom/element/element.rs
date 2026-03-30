@@ -5562,47 +5562,6 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     }
 }
 
-pub(crate) struct ElementPerformFullscreenExit {
-    element: Trusted<Element>,
-    promise: TrustedPromise,
-}
-
-impl ElementPerformFullscreenExit {
-    pub(crate) fn new(
-        element: Trusted<Element>,
-        promise: TrustedPromise,
-    ) -> Box<ElementPerformFullscreenExit> {
-        Box::new(ElementPerformFullscreenExit { element, promise })
-    }
-}
-
-impl TaskOnce for ElementPerformFullscreenExit {
-    /// Step 9-16 of <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    fn run_once(self, cx: &mut js::context::JSContext) {
-        let element = self.element.root();
-        let document = element.owner_document();
-        // Step 9.
-        // > Run the fully unlock the screen orientation steps with doc.
-        // TODO: Need to implement ScreenOrientation API first
-
-        // TODO(#42067): Implement step 10-15
-        // The following operations is based on the old version of the specs.
-        element.set_fullscreen_state(false);
-        document.set_fullscreen_element(None);
-        document.upcast::<EventTarget>().fire_event_with_params(
-            atom!("fullscreenchange"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-            CanGc::from_cx(cx),
-        );
-
-        // Step 16
-        // > Resolve promise with undefined.
-        self.promise.root().resolve_native(&(), CanGc::from_cx(cx));
-    }
-}
-
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     element
