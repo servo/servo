@@ -181,6 +181,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         }
 
         // The entryTypes and type paths diverge here
+        const NO_VALID_ENTRY_TYPE: &str = "No valid entry type provided to observe().";
         if let Some(entry_types) = &options.entryTypes {
             // Steps 6.1 - 6.2
             let entry_types = entry_types
@@ -190,10 +191,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
 
             // Step 6.3
             if entry_types.is_empty() {
-                Console::internal_warn(
-                    &self.global(),
-                    "No valid entry type provided to observe().".to_string(),
-                );
+                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             }
 
@@ -207,10 +205,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
             let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
-                Console::internal_warn(
-                    &self.global(),
-                    "No valid entry type provided to observe().".to_string(),
-                );
+                Console::internal_warn(&self.global(), NO_VALID_ENTRY_TYPE.to_string());
                 return Ok(());
             };
 

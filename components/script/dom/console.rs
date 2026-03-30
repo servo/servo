@@ -118,7 +118,7 @@ impl Console {
         ));
     }
 
-    // Directly logs a DOMString, without processing the message
+    // Directly logs a string message, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: String) {
         Console::send_string_message(global, ConsoleLogLevel::Warn, message);
     }
