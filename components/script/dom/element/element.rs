@@ -91,7 +91,6 @@ use crate::dom::bindings::codegen::UnionTypes::{
     BooleanOrScrollIntoViewOptions, NodeOrString, TrustedHTMLOrNullIsEmptyString,
     TrustedHTMLOrString,
     TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString,
-    TrustedScriptURLOrUSVString,
 };
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::domname::{
@@ -103,7 +102,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
@@ -2396,15 +2395,6 @@ impl Element {
             })
     }
 
-    pub(crate) fn set_atomic_attribute(
-        &self,
-        local_name: &LocalName,
-        value: DOMString,
-        can_gc: CanGc,
-    ) {
-        self.set_attribute(local_name, AttrValue::from_atomic(value.into()), can_gc);
-    }
-
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
         debug_assert_eq!(
             *local_name,
@@ -2416,147 +2406,6 @@ impl Element {
             .borrow()
             .iter()
             .any(|attr| attr.local_name() == local_name && attr.namespace() == &ns!())
-    }
-
-    pub(crate) fn set_bool_attribute(&self, local_name: &LocalName, value: bool, can_gc: CanGc) {
-        if self.has_attribute(local_name) == value {
-            return;
-        }
-        if value {
-            self.set_string_attribute(local_name, DOMString::new(), can_gc);
-        } else {
-            self.remove_attribute(&ns!(), local_name, can_gc);
-        }
-    }
-
-    pub(crate) fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
-        let Some(attribute) = self.get_attribute(local_name) else {
-            return Default::default();
-        };
-        let value = &**attribute.value();
-        self.owner_document()
-            .encoding_parse_a_url(value)
-            .map(|parsed| USVString(parsed.into_string()))
-            .unwrap_or_else(|_| USVString(value.to_owned()))
-    }
-
-    pub(crate) fn set_url_attribute(
-        &self,
-        local_name: &LocalName,
-        value: USVString,
-        can_gc: CanGc,
-    ) {
-        self.set_attribute(local_name, AttrValue::String(value.to_string()), can_gc);
-    }
-
-    pub(crate) fn get_trusted_type_url_attribute(
-        &self,
-        local_name: &LocalName,
-    ) -> TrustedScriptURLOrUSVString {
-        let Some(attribute) = self.get_attribute(local_name) else {
-            return TrustedScriptURLOrUSVString::USVString(USVString::default());
-        };
-        let value = &**attribute.value();
-        self.owner_document()
-            .encoding_parse_a_url(value)
-            .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
-            .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
-    }
-
-    pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {
-        TrustedHTMLOrString::String(self.get_string_attribute(local_name))
-    }
-
-    pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
-        self.get_attribute(local_name)
-            .map(|attribute| attribute.Value())
-            .unwrap_or_default()
-    }
-
-    pub(crate) fn set_string_attribute(
-        &self,
-        local_name: &LocalName,
-        value: DOMString,
-        can_gc: CanGc,
-    ) {
-        self.set_attribute(local_name, AttrValue::String(value.into()), can_gc);
-    }
-
-    /// Used for string attribute reflections where absence of the attribute returns `null`,
-    /// e.g. `element.ariaLabel` returning `null` when the `aria-label` attribute is absent.
-    fn get_nullable_string_attribute(&self, local_name: &LocalName) -> Option<DOMString> {
-        if self.has_attribute(local_name) {
-            Some(self.get_string_attribute(local_name))
-        } else {
-            None
-        }
-    }
-
-    /// Used for string attribute reflections where setting `null`/`undefined` removes the
-    /// attribute, e.g. `element.ariaLabel = null` removing the `aria-label` attribute.
-    fn set_nullable_string_attribute(
-        &self,
-        cx: &mut JSContext,
-        local_name: &LocalName,
-        value: Option<DOMString>,
-    ) {
-        match value {
-            Some(val) => {
-                self.set_string_attribute(local_name, val, CanGc::from_cx(cx));
-            },
-            None => {
-                self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));
-            },
-        }
-    }
-
-    pub(crate) fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
-        self.get_attribute(local_name)
-            .map(|attribute| attribute.value().as_tokens().to_vec())
-            .unwrap_or_default()
-    }
-
-    pub(crate) fn set_tokenlist_attribute(
-        &self,
-        local_name: &LocalName,
-        value: DOMString,
-        can_gc: CanGc,
-    ) {
-        self.set_attribute(
-            local_name,
-            AttrValue::from_serialized_tokenlist(value.into()),
-            can_gc,
-        );
-    }
-
-    pub(crate) fn set_atomic_tokenlist_attribute(
-        &self,
-        local_name: &LocalName,
-        tokens: Vec<Atom>,
-        can_gc: CanGc,
-    ) {
-        self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens), can_gc);
-    }
-
-    pub(crate) fn set_int_attribute(&self, local_name: &LocalName, value: i32, can_gc: CanGc) {
-        self.set_attribute(local_name, AttrValue::Int(value.to_string(), value), can_gc);
-    }
-
-    pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
-        match self.get_attribute(local_name) {
-            Some(ref attribute) => match *attribute.value() {
-                AttrValue::UInt(_, value) => value,
-                _ => unreachable!("Expected an AttrValue::UInt: implement parse_plain_attribute"),
-            },
-            None => default,
-        }
-    }
-    pub(crate) fn set_uint_attribute(&self, local_name: &LocalName, value: u32, can_gc: CanGc) {
-        self.set_attribute(
-            local_name,
-            AttrValue::UInt(value.to_string(), value),
-            can_gc,
-        );
     }
 
     pub(crate) fn will_mutate_attr(&self, attr: &Attr) {
