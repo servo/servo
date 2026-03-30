@@ -429,9 +429,6 @@ pub(crate) struct Window {
     /// It is used to avoid sending idle message more than once, which is unnecessary.
     has_sent_idle_message: Cell<bool>,
 
-    /// Unminify Css.
-    unminify_css: bool,
-
     /// The [`UserScript`]s added via `UserContentManager`. These are potentially shared with other
     /// `WebView`s in this `ScriptThread`.
     #[no_trace]
@@ -3082,10 +3079,6 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
-
-        if self.unminify_css {
-            *self.unminified_css_dir.borrow_mut() = Some(unminified_path("unminified-css"));
-        }
     }
 
     pub(crate) fn load_data_for_document(
@@ -3682,14 +3675,17 @@ impl Window {
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
             pending_images_for_rasterization: Default::default(),
-            unminified_css_dir: Default::default(),
+            unminified_css_dir: DomRefCell::new(if unminify_css {
+                Some(unminified_path("unminified-css"))
+            } else {
+                None
+            }),
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
             exists_mut_observer: Cell::new(false),
             paint_api,
             has_sent_idle_message: Cell::new(false),
-            unminify_css,
             user_scripts,
             player_context,
             throttled: Cell::new(false),
