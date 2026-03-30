@@ -710,10 +710,13 @@ impl Fragment {
                             // From <https://www.w3.org/TR/paint-timing/#contentful>:
                             // An element target is contentful when one or more of the following apply:
                             // > target is a replaced element representing an available image.
-                            builder.mark_is_contentful();
-
-                            // Skip Broken Images for LCP
+                            // From: <https://html.spec.whatwg.org/multipage/#img-available>
+                            // When an image request's state is either partially available or completely available,
+                            // the image request is said to be available.
+                            // Hence, Skip Broken Images.
                             if !image.showing_broken_image_icon {
+                                builder.mark_is_contentful();
+
                                 builder.check_for_lcp_candidate(
                                     common.clip_rect,
                                     rect,
