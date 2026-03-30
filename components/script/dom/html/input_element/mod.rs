@@ -838,7 +838,6 @@ impl HTMLInputElement {
                 InputType::Month(_) |
                 InputType::Number(_) |
                 InputType::Password(_) |
-                InputType::Range(_) |
                 InputType::Search(_) |
                 InputType::Tel(_) |
                 InputType::Text(_) |

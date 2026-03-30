@@ -159,6 +159,35 @@
   },
   "reftest": {
    "appearance": {
+    "input-range.html": [
+     "ed42641aa50cb89647ac3671da73d40b30f55f0d",
+     [
+      "appearance/input-range.html",
+      [
+       [
+        "/_mozilla/appearance/input-range-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
+    ],
     "input-text-caret-mixed-language.html": [
      "d1f45de7548cca878fa90c6a0c67993f75ee5720",
      [
@@ -8344,6 +8373,10 @@
     []
    ],
    "appearance": {
+    "input-range-ref.html": [
+     "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
+     []
+    ],
     "input-text-caret-mixed-language-ref.html": [
      "ff0b91f2a8857fdefa4a8a3d7d75e06e53e699cf",
      []
