@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use aws_lc_rs::constant_time::verify_slices_are_equal;
 use aws_lc_rs::hmac;
 use js::context::JSContext;
 use rand::TryRngCore;
@@ -79,8 +80,9 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
     let sign_key = hmac::Key::new(hash_function, key.handle().as_bytes());
     let mac = hmac::sign(&sign_key, message);
 
-    // Step 2. Return true if mac is equal to signature and false otherwise.
-    Ok(mac.as_ref() == signature)
+    // Step 2. Return true if mac is equal to signature and false otherwise. This comparison must
+    // be performed in constant-time.
+    Ok(verify_slices_are_equal(mac.as_ref(), signature).is_ok())
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-generate-key>
