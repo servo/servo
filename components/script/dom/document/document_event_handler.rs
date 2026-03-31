@@ -885,18 +885,22 @@ impl DocumentEventHandler {
 
                 self.down_button_count.set(down_button_count + 1);
 
-                // For a node within a text input UA shadow DOM,
-                // delegate the focus target into its shadow host.
-                // TODO: This focus delegation should be done
-                // with shadow DOM delegateFocus attribute.
-                let target_el = element.find_click_focusable_area();
-
                 let document = self.window.Document();
                 document.begin_focus_transaction();
 
                 // Try to focus `el`. If it's not focusable, focus the document instead.
+                //
+                // The specification says to run the focusing steps on `el` here, but we want a
+                // special behavior implemented by `Element::find_click_focusable_area` which climbs
+                // the tree finding the first ancestor with an associated focusable area.
                 document.request_focus(None, FocusInitiator::Click, can_gc);
-                document.request_focus(target_el.as_deref(), FocusInitiator::Click, can_gc);
+                if let Some(click_focusable_area) = element.find_click_focusable_area() {
+                    document.request_focus(
+                        Some(&*click_focusable_area),
+                        FocusInitiator::Click,
+                        can_gc,
+                    );
+                }
 
                 // Step 7. Let result = dispatch event at target
                 let result = dom_event.dispatch(node.upcast(), false, can_gc);

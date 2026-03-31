@@ -69,6 +69,7 @@ use xml5ever::serialize::TraversalScope::{
 };
 
 use crate::conversions::Convert;
+use crate::dom::FocusInitiator;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout, is_relevant_attribute};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
@@ -79,6 +80,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -177,6 +179,7 @@ use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::types::HTMLDialogElement;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -1849,10 +1852,18 @@ impl Element {
             return Default::default();
         }
 
+        // An element with a shadow root that delegates focus should never itself be a focusable area.
+        if self
+            .shadow_root()
+            .is_some_and(|shadow_root| shadow_root.DelegatesFocus())
+        {
+            return Default::default();
+        }
+
         // > Elements that meet all the following criteria:
         // > the element's tabindex value is non-null, or the element is determined by the user agent to be focusable;
         // > the element is either not a shadow host, or has a shadow root whose delegates focus is false;
-        // TODO: Handle this.
+        // Note: Checked above
         // > the element is not actually disabled;
         // Note: Checked above
         // > the element is not inert;
@@ -1957,19 +1968,211 @@ impl Element {
     }
 
     /// Returns the focusable appropriate DOM anchor for the focuable area when this element is
-    /// clicked on.
+    /// clicked on according to <https://www.w3.org/TR/pointerevents4/#handle-native-mouse-down>.
     ///
-    /// TODO: This should eventually handle `delegatesFocus` in shadow DOM.
+    /// Note that this is doing more than the specification which says to only take into account
+    /// the node from the hit test. This isn't exactly how browsers work though, as they seem
+    /// to look for the first inclusive ancestor node that has a focusable area associated with it.
     pub(crate) fn find_click_focusable_area(&self) -> Option<DomRoot<Element>> {
-        if self.is_click_focusable() {
-            return Some(DomRoot::from_ref(self));
+        Some(
+            self.node
+                .inclusive_ancestors(ShadowIncluding::Yes)
+                .find_map(|node| {
+                    DomRoot::downcast::<Element>(node)
+                        .iter()
+                        .filter_map(|element| element.get_the_focusable_area())
+                        .find(|(_, focusable_area_kind)| {
+                            focusable_area_kind.contains(FocusableAreaKind::Click)
+                        })
+                })?
+                .0,
+        )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#get-the-focusable-area>
+    ///
+    /// There seems to be hole in the specification here. It describes how to get the focusable area
+    /// for a focus target that isn't a focuable area, but is ambiguous about how to do this for a
+    /// focus target that *is* a focusable area. The obvious thing is to just return the focus
+    /// target, but it's still odd that this isn't mentioned in the specification.
+    fn get_the_focusable_area(&self) -> Option<(DomRoot<Element>, FocusableAreaKind)> {
+        let focusable_area_kind = self.focusable_area_kind();
+        if !focusable_area_kind.is_empty() {
+            return Some((DomRoot::from_ref(self), focusable_area_kind));
+        }
+        self.get_the_focusable_area_if_not_a_focusable_area()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#get-the-focusable-area>
+    ///
+    /// In addition to returning the DOM anchor of the focusable area for this [`Element`], this
+    /// method also returns the [`FocusableAreaKind`] for efficiency reasons. Note that `None`
+    /// is returned if this [`Element`] does not have a focusable area or if its focusable area
+    /// is the `Document`'s viewport.
+    ///
+    /// TODO: It might be better to distinguish these two cases in the future.
+    fn get_the_focusable_area_if_not_a_focusable_area(
+        &self,
+    ) -> Option<(DomRoot<Element>, FocusableAreaKind)> {
+        // > To get the focusable area for a focus target that is either an element that is not a
+        // > focusable area, or is a navigable, given an optional string focus trigger (default
+        // > "other"), run the first matching set of steps from the following list:
+        //
+        // > ↪ If focus target is an area element with one or more shapes that are focusable areas
+        // >     Return the shape corresponding to the first img element in tree order that uses the image
+        // >     map to which the area element belongs.
+        // TODO: Implement this.
+
+        // > ↪ If focus target is an element with one or more scrollable regions that are focusable areas
+        // >     Return the element's first scrollable region, according to a pre-order, depth-first
+        // >     traversal of the flat tree. [CSSSCOPING]
+        // TODO: Implement this.
+
+        // > ↪ If focus target is the document element of its Document
+        // >     Return the Document's viewport.
+        // TODO: Implement this.
+
+        // > ↪ If focus target is a navigable
+        // >     Return the navigable's active document.
+        // TODO: Implement this.
+
+        // > ↪ If focus target is a navigable container with a non-null content navigable
+        // >     Return the navigable container's content navigable's active document.
+        // TODO: Implement this.
+
+        // > ↪ If focus target is a shadow host whose shadow root's delegates focus is true
+        // >     1. Let focusedElement be the currently focused area of a top-level traversable's DOM
+        // >        anchor.
+        // >     2. If focus target is a shadow-including inclusive ancestor of focusedElement, then
+        // >        return focusedElement.
+        // >     3. Return the focus delegate for focus target given focus trigger.
+        if self
+            .shadow_root()
+            .is_some_and(|shadow_root| shadow_root.DelegatesFocus())
+        {
+            if let Some(focused_element) = self.owner_document().get_focused_element() {
+                if self
+                    .upcast::<Node>()
+                    .is_shadow_including_inclusive_ancestor_of(focused_element.upcast())
+                {
+                    let focusable_area_kind = focused_element.focusable_area_kind();
+                    return Some((focused_element, focusable_area_kind));
+                }
+            }
+            return self.focus_delegate();
         }
 
-        self.node
-            .inclusive_ancestors(ShadowIncluding::Yes)
-            .find_map(|node| {
-                DomRoot::downcast::<Element>(node).filter(|element| element.is_click_focusable())
-            })
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#focus-delegate>
+    ///
+    /// In addition to returning the focus delegate for this [`Element`], this method also returns
+    /// the [`FocusableAreaKind`] for efficiency reasons.
+    fn focus_delegate(&self) -> Option<(DomRoot<Element>, FocusableAreaKind)> {
+        // > 1. If focusTarget is a shadow host and its shadow root's delegates focus is false, then
+        // >    return null.
+        let shadow_root = self.shadow_root();
+        if shadow_root
+            .as_ref()
+            .is_some_and(|shadow_root| !shadow_root.DelegatesFocus())
+        {
+            return None;
+        }
+
+        // > 2. Let whereToLook be focusTarget.
+        let mut where_to_look = self.upcast::<Node>();
+
+        // > 3. If whereToLook is a shadow host, then set whereToLook to whereToLook's shadow root.
+        if let Some(shadow_root) = shadow_root.as_ref() {
+            where_to_look = shadow_root.upcast();
+        }
+
+        // > 4. Let autofocusDelegate be the autofocus delegate for whereToLook given focusTrigger.
+        // TODO: Implement this.
+
+        // > 5. If autofocusDelegate is not null, then return autofocusDelegate.
+        // TODO: Implement this.
+
+        // > 6. For each descendant of whereToLook's descendants, in tree order:
+        let is_dialog_element = self.is::<HTMLDialogElement>();
+        for descendant in where_to_look.traverse_preorder(ShadowIncluding::No).skip(1) {
+            // > 6.1. Let focusableArea be null.
+            // Handled via early return.
+
+            let Some(descendant) = descendant.downcast::<Element>() else {
+                continue;
+            };
+
+            // > 6.2. If focusTarget is a dialog element and descendant is sequentially focusable, then
+            // >      set focusableArea to descendant.
+            let focusable_area_kind = descendant.focusable_area_kind();
+            if is_dialog_element && focusable_area_kind.contains(FocusableAreaKind::Sequential) {
+                return Some((DomRoot::from_ref(descendant), focusable_area_kind));
+            }
+
+            // > 6.3. Otherwise, if focusTarget is not a dialog and descendant is a focusable area, set
+            // >      focusableArea to descendant.
+            if !focusable_area_kind.is_empty() {
+                return Some((DomRoot::from_ref(descendant), focusable_area_kind));
+            }
+
+            // > 6.4. Otherwise, set focusableArea to the result of getting the focusable area for
+            //        descendant given focusTrigger.
+            if let Some(focusable_area) =
+                descendant.get_the_focusable_area_if_not_a_focusable_area()
+            {
+                // > 6.5. If focusableArea is not null, then return focusableArea.
+                return Some(focusable_area);
+            }
+        }
+
+        // > 7. Return null.
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#focusing-steps>
+    ///
+    /// This is an initial implementation of the "focusing steps" from the HTML specification. Note
+    /// that this is currently in a state of transition from Servo's old internal focus APIs to ones
+    /// that match the specification. That is why the arguments to this method do not match the
+    /// specification yet.
+    pub(crate) fn run_the_focusing_steps(
+        &self,
+        focus_initiator: FocusInitiator,
+        focus_options: FocusOptions,
+        can_gc: CanGc,
+    ) {
+        // > 1. If new focus target is not a focusable area, then set new focus target to the result
+        // >    of getting the focusable area for new focus target, given focus trigger if it was
+        // >    passed.
+        let element = self.get_the_focusable_area().map(|(element, _)| element);
+
+        // > 2. If new focus target is null, then:
+        // > 2.1 If no fallback target was specified, then return.
+        // > 2.2 Otherwise, set new focus target to the fallback target.
+        // TODO: Handle the fallback.
+
+        // > 3. If new focus target is a navigable container with non-null content navigable, then
+        // >    set new focus target to the content navigable's active document.
+        // > 4. If new focus target is a focusable area and its DOM anchor is inert, then return.
+        // > 5. If new focus target is the currently focused area of a top-level traversable, then
+        // >    return.
+        // > 6. Let old chain be the current focus chain of the top-level traversable in which new
+        // >    focus target finds itself.
+        // > 6.1. Let new chain be the focus chain of new focus target.
+        // > 6.2. Run the focus update steps with old chain, new chain, and new focus target
+        // >      respectively.
+        //
+        // TODO: Handle all of these steps by converting the focus transaction code to follow
+        // the HTML focus specification.
+        let document = self.owner_document();
+        document.request_focus_with_options(
+            element.as_deref(),
+            focus_initiator,
+            focus_options,
+            can_gc,
+        );
     }
 
     pub(crate) fn is_actually_disabled(&self) -> bool {

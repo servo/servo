@@ -139,16 +139,23 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-focus>
-    fn Focus(&self, options: &FocusOptions) {
-        let document = self.element.owner_document();
-        document.request_focus_with_options(
-            Some(&self.element),
-            FocusInitiator::Script,
-            FocusOptions {
-                preventScroll: options.preventScroll,
-            },
-            CanGc::note(),
-        );
+    fn Focus(&self, options: &FocusOptions, can_gc: CanGc) {
+        // 1. If the allow focus steps given this's node document return false, then return.
+        // TODO: Implement this.
+
+        // 2. Run the focusing steps for this.
+        self.upcast::<Element>()
+            .run_the_focusing_steps(FocusInitiator::Script, *options, can_gc);
+
+        // > 3. If options["focusVisible"] is true, or does not exist but in an
+        // >    implementation-defined  way the user agent determines it would be best to do so,
+        // >    then indicate focus. TODO: Implement this.
+        // TODO: Implement this.
+
+        // > 4. If options["preventScroll"] is false, then scroll a target into view given this,
+        // >    "auto", "center", and "center".
+        // TODO: This is currently handled as part of the focusing steps, but should eventually be
+        // handled here.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
