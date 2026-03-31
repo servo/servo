@@ -311,7 +311,7 @@ impl HTMLIFrameElement {
                     viewport_details,
                     user_content_manager_id: None,
                     theme: window.theme(),
-                    target_snapshot_params: snapshot_self(self),
+                    target_snapshot_params,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -1299,8 +1299,9 @@ impl<'a> ResourceTimingListener for IframeContext<'a> {
 }
 
 fn snapshot_self(iframe: &HTMLIFrameElement) -> TargetSnapshotParams {
+    let child_navigable = iframe.GetContentWindow();
     TargetSnapshotParams {
-        sandboxing_flags: determine_creation_sandboxing_flags(Some(iframe.upcast())),
+        sandboxing_flags: determine_creation_sandboxing_flags(child_navigable.as_deref(), Some(iframe.upcast())),
         iframe_element_referrer_policy: determine_iframe_element_referrer_policy(Some(
             iframe.upcast(),
         )),

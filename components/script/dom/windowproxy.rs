@@ -29,6 +29,7 @@ use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::reflector::MutDomObject;
 use script_traits::NewPipelineInfo;
@@ -313,6 +314,23 @@ impl WindowProxy {
             .get()
             .and_then(ScriptThread::find_document)
             .expect("A WindowProxy creating an auxiliary to have an active document");
+
+        // <https://html.spec.whatwg.org/multipage/#navigable-target-names>
+        // > If the user agent has been configured such that in this instance it
+        // > will create a new top-level traversable
+        // >
+        // Step 9. If sandboxingFlagSet's sandbox propagates to auxiliary browsing
+        //   contexts flag is set, then all the flags that are set in sandboxingFlagSet
+        // must be set in chosen's active browsing context's popup sandboxing flag set.
+        let sandboxing_flag_set = document.active_sandboxing_flag_set();
+        let propagate_sandbox = sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOX_PROPOGATES_TO_AUXILIARY_BROWSING_CONTEXTS_FLAG);
+        let sandboxing_flag_set = if propagate_sandbox {
+            sandboxing_flag_set
+        } else {
+            SandboxingFlagSet::empty()
+        };
+
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
@@ -326,8 +344,7 @@ impl WindowProxy {
             None, // Doesn't inherit secure context
             None,
             false,
-            // There are no sandboxing restrictions when creating auxiliary browsing contexts.
-            SandboxingFlagSet::empty(),
+            sandboxing_flag_set,
         );
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
@@ -352,7 +369,10 @@ impl WindowProxy {
             // Use the current `WebView`'s theme initially, but the embedder may
             // change this later.
             theme: window.theme(),
-            target_snapshot_params: TargetSnapshotParams::default(),
+            target_snapshot_params: TargetSnapshotParams {
+                sandboxing_flags: sandboxing_flag_set,
+                iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
+            },
         };
 
         with_script_thread(|script_thread| {

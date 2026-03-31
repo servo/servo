@@ -4062,7 +4062,7 @@ impl Document {
             waiting_on_canvas_image_updates: Cell::new(false),
             current_rendering_epoch: Default::default(),
             custom_element_reaction_stack,
-            active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
+            active_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
