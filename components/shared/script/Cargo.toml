@@ -15,7 +15,7 @@ path = "lib.rs"
 
 [features]
 bluetooth = ["servo-bluetooth-traits"]
-webgpu = ["webgpu_traits"]
+webgpu = ["dep:webgpu_traits"]
 
 [dependencies]
 accesskit = { workspace = true }

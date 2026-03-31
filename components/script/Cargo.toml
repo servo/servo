@@ -27,7 +27,13 @@ refcell_backtrace = ["accountable-refcell"]
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
-webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
+webgpu = [
+    "dep:webgpu_traits",
+    "dep:wgpu-core",
+    "dep:wgpu-types",
+    "script_bindings/webgpu",
+    "script_traits/webgpu",
+]
 webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
@@ -158,11 +164,11 @@ url = { workspace = true }
 urlpattern = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
-webgpu_traits = { workspace = true }
+webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
-wgpu-core = { workspace = true }
-wgpu-types = { workspace = true }
+wgpu-core = { workspace = true, optional = true }
+wgpu-types = { workspace = true, optional = true }
 x25519-dalek = { workspace = true }
 xml5ever = { workspace = true }
 xpath = { workspace = true }
