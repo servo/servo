@@ -139,6 +139,10 @@ pub struct Response {
 
     /// <https://fetch.spec.whatwg.org/#concept-response-range-requested-flag>
     pub range_requested: bool,
+
+    /// <https://fetch.spec.whatwg.org/#response-request-includes-credentials>
+    /// A response has an associated request-includes-credentials, which is initially true.
+    pub request_includes_credentials: bool,
 }
 
 impl Response {
@@ -163,6 +167,7 @@ impl Response {
             aborted: Arc::new(AtomicBool::new(false)),
             resource_timing: Arc::new(Mutex::new(resource_timing)),
             range_requested: false,
+            request_includes_credentials: true,
             redirect_taint: Default::default(),
         }
     }
@@ -199,6 +204,7 @@ impl Response {
                 ResourceTimingType::Error,
             ))),
             range_requested: false,
+            request_includes_credentials: true,
             redirect_taint: Default::default(),
         }
     }
