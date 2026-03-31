@@ -35,8 +35,8 @@ tempfile = "3"
 uuid = { workspace = true }
 
 [dev-dependencies]
-servo-default-resources = { workspace = true }
 profile = { workspace = true }
+servo-default-resources = { workspace = true }
 url = { workspace = true }
 
 [[test]]
