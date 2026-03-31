@@ -51,7 +51,7 @@ impl Actor for PropertyIteratorActor {
     fn handle_message(
         &self,
         request: ClientRequest,
-        _registry: &ActorRegistry,
+        registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
         _id: StreamId,
@@ -66,7 +66,10 @@ impl Actor for PropertyIteratorActor {
 
                 let mut own_properties = HashMap::new();
                 for prop in self.properties.iter().skip(start).take(count) {
-                    own_properties.insert(prop.name.clone(), ObjectPropertyDescriptor::from(prop));
+                    own_properties.insert(
+                        prop.name.clone(),
+                        ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
+                    );
                 }
 
                 let reply = SliceReply {
