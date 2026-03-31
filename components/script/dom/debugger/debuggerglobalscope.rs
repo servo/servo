@@ -22,7 +22,9 @@ use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerValue;
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBindings::ObjectPreview;
-use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
+use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::{
+    EnvironmentInfo, EnvironmentVariable,
+};
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
@@ -573,7 +575,9 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                 .as_deref()
                 .into_iter()
                 .flatten()
-                .map(|(key, value)| (key.clone().into(), value.clone().into()))
+                .map(|EnvironmentVariable { property, preview }| {
+                    parse_property_descriptor(property, preview.as_ref())
+                })
                 .collect(),
         };
 
@@ -597,10 +601,13 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
     }
 }
 
-fn parse_property_descriptor(property: &PropertyDescriptor) -> devtools_traits::PropertyDescriptor {
+fn parse_property_descriptor(
+    property: &PropertyDescriptor,
+    preview: Option<&ObjectPreview>,
+) -> devtools_traits::PropertyDescriptor {
     devtools_traits::PropertyDescriptor {
         name: property.name.to_string(),
-        value: parse_debugger_value(&property.value, None),
+        value: parse_debugger_value(&property.value, preview),
         configurable: property.configurable,
         enumerable: property.enumerable,
         writable: property.writable,
@@ -611,10 +618,12 @@ fn parse_property_descriptor(property: &PropertyDescriptor) -> devtools_traits::
 fn parse_object_preview(preview: &ObjectPreview) -> devtools_traits::ObjectPreview {
     devtools_traits::ObjectPreview {
         kind: preview.kind.clone().into(),
-        own_properties: preview
-            .ownProperties
-            .as_ref()
-            .map(|properties| properties.iter().map(parse_property_descriptor).collect()),
+        own_properties: preview.ownProperties.as_ref().map(|properties| {
+            properties
+                .iter()
+                .map(|property| parse_property_descriptor(property, None))
+                .collect()
+        }),
         own_properties_length: preview.ownPropertiesLength,
         function: preview
             .function

@@ -879,11 +879,11 @@ impl DevtoolsInstance {
     fn handle_create_environment_actor(
         &mut self,
         result_sender: GenericSender<String>,
-        environment: EnvironmentInfo,
+        environment_info: EnvironmentInfo,
         parent: Option<String>,
     ) {
-        let frame = EnvironmentActor::register(&self.registry, environment, parent);
-        let _ = result_sender.send(frame);
+        let environment_name = EnvironmentActor::register(&self.registry, environment_info, parent);
+        let _ = result_sender.send(environment_name);
     }
 }
 

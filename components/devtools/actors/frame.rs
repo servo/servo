@@ -89,11 +89,11 @@ impl Actor for FrameActor {
                     .script_sender
                     .send(DevtoolScriptControlMsg::GetEnvironment(self.name(), tx))
                     .map_err(|_| ActorError::Internal)?;
-                let environment = rx.recv().map_err(|_| ActorError::Internal)?;
+                let environment_name = rx.recv().map_err(|_| ActorError::Internal)?;
 
                 let msg = FrameEnvironmentReply {
                     from: self.name(),
-                    environment: registry.encode::<EnvironmentActor, _>(&environment),
+                    environment: registry.encode::<EnvironmentActor, _>(&environment_name),
                 };
                 // This reply has a `type` field but it doesn't need a followup,
                 // unlike most messages. We need to skip the validity check.
