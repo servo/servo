@@ -342,10 +342,15 @@ impl MouseEvent {
             -1
         };
 
+        // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions
+        // For pointerenter and pointerleave events, the composed [DOM] attribute SHOULD be false;
+        // for all other pointer events in the table above, the attribute SHOULD be true.
+        let composed = !matches!(&*event_type, "pointerenter" | "pointerleave");
+
         let window = self.global();
         let window = window.as_window();
 
-        PointerEvent::new(
+        let pointer_event = PointerEvent::new(
             window,
             event_type,
             EventBubbles::from(self.upcast::<Event>().Bubbles()),
@@ -375,7 +380,11 @@ impl MouseEvent {
             vec![], // coalesced_events
             vec![], // predicted_events
             can_gc,
-        )
+        );
+
+        pointer_event.upcast::<Event>().set_composed(composed);
+
+        pointer_event
     }
 
     /// Create a PointerEvent for hover events (pointerover, pointerenter, pointerout, pointerleave).
@@ -431,6 +440,12 @@ impl MouseEvent {
             vec![], // predicted_events
             can_gc,
         );
+
+        // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions
+        // For pointerenter and pointerleave events, the composed [DOM] attribute SHOULD be false;
+        // for all other pointer events in the table above, the attribute SHOULD be true.
+        let composed = !matches!(event_type, "pointerenter" | "pointerleave");
+        pointer_event.upcast::<Event>().set_composed(composed);
 
         // Set trusted to match the source mouse event
         pointer_event

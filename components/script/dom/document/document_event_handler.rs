@@ -689,6 +689,7 @@ impl DocumentEventHandler {
 
         // Send pointermove event before mousemove.
         let pointer_event = mouse_event.to_pointer_event(Atom::from("pointermove"), can_gc);
+        pointer_event.upcast::<Event>().set_composed(true);
         pointer_event
             .upcast::<Event>()
             .fire(new_target.upcast(), can_gc);
@@ -1373,6 +1374,7 @@ impl DocumentEventHandler {
         );
 
         let event = keyevent.upcast::<Event>();
+        event.set_composed(true);
         event.fire(target, can_gc);
 
         let mut flags = event.flags();
