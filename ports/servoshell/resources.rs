@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(target_os = "linux")]
+use std::os::unix::ffi::OsStrExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{env, fs};
@@ -26,9 +28,27 @@ pub(crate) fn resources_dir_path() -> PathBuf {
         return PathBuf::from(path);
     }
 
+    let mut path = env::current_exe().unwrap().canonicalize().unwrap();
+    // On Linux, if servoshell is located in a `<path>/bin` directory, try finding resources in
+    // `<path>/share/servoshell/resources`.
+    #[cfg(target_os = "linux")]
+    if let Some(parent_dir_name) = path.parent().and_then(|path| path.file_name()) {
+        if parent_dir_name.as_bytes() == b"bin" {
+            if let Some(resource_path) = path
+                .parent()
+                // We already checked above.
+                .expect("Infallible")
+                .parent()
+                .map(|path| path.join("shared/servoshell/resources"))
+            {
+                *dir = Some(resource_path);
+                return dir.clone().unwrap();
+            }
+        }
+    }
+
     // Try ./resources and ./Resources relative to the directory containing the
     // canonicalised executable path, then each of its ancestors.
-    let mut path = env::current_exe().unwrap().canonicalize().unwrap();
     while path.pop() {
         path.push("resources");
         if path.is_dir() {
