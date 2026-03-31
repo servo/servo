@@ -25,6 +25,10 @@ mod running_app_state;
 mod webdriver;
 mod window;
 
+// We need to reference this crate, in order for the linker not to remove it.
+#[cfg(all(feature = "baked-in-resources", not(target_env = "ohos")))]
+use servo_default_resources as _;
+
 pub mod platform {
     #[cfg(target_os = "macos")]
     pub use crate::platform::macos::deinit;

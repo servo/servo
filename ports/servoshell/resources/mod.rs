@@ -7,9 +7,6 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use cfg_if::cfg_if;
-// We need to reference this crate, in order for the linker not to eliminate it.
-#[cfg(feature = "baked-in-resources")]
-use servo_default_resources as _;
 
 static CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
 
