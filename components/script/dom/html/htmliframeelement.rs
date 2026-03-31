@@ -1301,7 +1301,10 @@ impl<'a> ResourceTimingListener for IframeContext<'a> {
 fn snapshot_self(iframe: &HTMLIFrameElement) -> TargetSnapshotParams {
     let child_navigable = iframe.GetContentWindow();
     TargetSnapshotParams {
-        sandboxing_flags: determine_creation_sandboxing_flags(child_navigable.as_deref(), Some(iframe.upcast())),
+        sandboxing_flags: determine_creation_sandboxing_flags(
+            child_navigable.as_deref(),
+            Some(iframe.upcast()),
+        ),
         iframe_element_referrer_policy: determine_iframe_element_referrer_policy(Some(
             iframe.upcast(),
         )),

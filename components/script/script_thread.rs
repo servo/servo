@@ -541,7 +541,13 @@ impl ScriptThread {
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, origin, cx)
+            script_thread.handle_page_headers_available(
+                webview_id,
+                pipeline_id,
+                metadata,
+                origin,
+                cx,
+            )
         })
     }
 
