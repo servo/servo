@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>keydown and keypress and keyup events must be composed</title>
+<link rel="author" title="Simon Wülker" href="simon.wuelker@arcor.de">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id="target" tabindex="0">Target</div>
+
+<script>
+  target.focus();
+
+  promise_test(() => {
+    return new Promise(resolve => {
+      target.addEventListener("keydown", (event) => {
+        resolve(event);
+      });
+
+      new test_driver.Actions()
+        .keyDown("a")
+        .keyUp("a")
+        .send();
+    }).then((event) => {
+      assert_true(event.composed);
+    });
+  }, `keydown event must be composed`);
+
+  promise_test(() => {
+    return new Promise(resolve => {
+      target.addEventListener("keypress", (event) => {
+        resolve(event);
+      });
+
+      new test_driver.Actions()
+        .keyDown("a")
+        .keyUp("a")
+        .send();
+    }).then((event) => {
+      assert_true(event.composed);
+    });
+  }, `keypress event must be composed`);
+
+  promise_test(() => {
+    return new Promise(resolve => {
+      target.addEventListener("keyup", (event) => {
+        resolve(event);
+      });
+
+      new test_driver.Actions()
+        .keyDown("a")
+        .keyUp("a")
+        .send();
+    }).then((event) => {
+      assert_true(event.composed);
+    });
+  }, `keyup event must be composed`);
+</script>
