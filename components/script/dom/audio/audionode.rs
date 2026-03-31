@@ -25,7 +25,6 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
 use crate::dom::eventtarget::EventTarget;
 
@@ -76,7 +75,7 @@ impl AudioNode {
             const MESSAGE: &str =
                 "Failed to create an AudioNode backend. The constructed AudioNode will be inert.";
             warn!("{MESSAGE}");
-            Console::internal_warn(&context.global(), DOMString::from(MESSAGE));
+            Console::internal_warn(&context.global(), MESSAGE.to_string());
         }
 
         Ok(AudioNode::new_inherited_for_id(

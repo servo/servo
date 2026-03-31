@@ -1786,10 +1786,7 @@ fn merge_existing_and_new_import_maps(
                     {
                         // The user agent may report a warning to the console indicating the ignored rule.
                         // They may choose to avoid reporting if the rule is identical to an existing one.
-                        Console::internal_warn(
-                            global,
-                            DOMString::from(format!("Ignored rule: {key} -> {val:?}.")),
-                        );
+                        Console::internal_warn(global, format!("Ignored rule: {key} -> {val:?}."));
                         // Remove scopeImports[specifierKey].
                         false
                     } else {
@@ -1824,10 +1821,7 @@ fn merge_existing_and_new_import_maps(
         if old_import_map.integrity.contains_key(url) {
             // Step 5.1.1 The user agent may report a warning to the console indicating the ignored rule.
             // They may choose to avoid reporting if the rule is identical to an existing one.
-            Console::internal_warn(
-                global,
-                DOMString::from(format!("Ignored rule: {url} -> {integrity}.")),
-            );
+            Console::internal_warn(global, format!("Ignored rule: {url} -> {integrity}."));
             // Step 5.1.2 Continue.
             continue;
         }
@@ -1849,10 +1843,7 @@ fn merge_existing_and_new_import_maps(
             if record.specifier.starts_with(specifier) {
                 // The user agent may report a warning to the console indicating the ignored rule.
                 // They may choose to avoid reporting if the rule is identical to an existing one.
-                Console::internal_warn(
-                    global,
-                    DOMString::from(format!("Ignored rule: {specifier} -> {val:?}.")),
-                );
+                Console::internal_warn(global, format!("Ignored rule: {specifier} -> {val:?}."));
                 // Remove newImportMapImports[specifier].
                 false
             } else {
@@ -1894,10 +1885,7 @@ fn merge_module_specifier_maps(
         if old_map.contains_key(&specifier) {
             // Step 2.1.1 The user agent may report a warning to the console indicating the ignored rule.
             // They may choose to avoid reporting if the rule is identical to an existing one.
-            Console::internal_warn(
-                global,
-                DOMString::from(format!("Ignored rule: {specifier} -> {url:?}.")),
-            );
+            Console::internal_warn(global, format!("Ignored rule: {specifier} -> {url:?}."));
 
             // Step 2.1.2 Continue.
             continue;
@@ -1985,10 +1973,9 @@ pub(crate) fn parse_an_import_map_string(
     if !parsed.is_empty() {
         Console::internal_warn(
             &module_owner.global(),
-            DOMString::from(
-                "Invalid top-level key was present in the import map.
-                Only \"imports\", \"scopes\", and \"integrity\" are allowed.",
-            ),
+            "Invalid top-level key was present in the import map.
+                Only \"imports\", \"scopes\", and \"integrity\" are allowed."
+                .to_string(),
         );
     }
 
@@ -2024,7 +2011,7 @@ fn sort_and_normalize_module_specifier_map(
         let JsonValue::String(value) = value else {
             // Step 2.3.1 The user agent may report a warning to the console
             // indicating that addresses need to be strings.
-            Console::internal_warn(global, DOMString::from("Addresses need to be strings."));
+            Console::internal_warn(global, "Addresses need to be strings.".to_string());
 
             // Step 2.3.2 Set normalized[normalized_specifier_key] to null.
             normalized.insert(normalized_specifier_key, None);
@@ -2041,9 +2028,7 @@ fn sort_and_normalize_module_specifier_map(
             // indicating that the address was invalid.
             Console::internal_warn(
                 global,
-                DOMString::from(format!(
-                    "Value failed to resolve to module specifier: {value}"
-                )),
+                format!("Value failed to resolve to module specifier: {value}"),
             );
 
             // Step 2.5.2 Set normalized[normalized_specifier_key] to null.
@@ -2060,10 +2045,10 @@ fn sort_and_normalize_module_specifier_map(
             // since specifierKey ends with a slash, the address needs to as well.
             Console::internal_warn(
                 global,
-                DOMString::from(format!(
+                format!(
                     "Invalid address for specifier key '{specifier_key}': {address_url}.
                     Since specifierKey ends with a slash, the address needs to as well."
-                )),
+                ),
             );
 
             // Step 2.6.2 Set normalized[normalized_specifier_key] to null.
@@ -2109,9 +2094,7 @@ fn sort_and_normalize_scopes(
             // to the console that the scope prefix URL was not parseable.
             Console::internal_warn(
                 global,
-                DOMString::from(format!(
-                    "Scope prefix URL was not parseable: {scope_prefix}"
-                )),
+                format!("Scope prefix URL was not parseable: {scope_prefix}"),
             );
             // Step 2.3.2 Continue.
             continue;
@@ -2154,7 +2137,7 @@ fn normalize_module_integrity_map(
             // to the console indicating that the key failed to resolve.
             Console::internal_warn(
                 global,
-                DOMString::from(format!("Key failed to resolve to module specifier: {key}")),
+                format!("Key failed to resolve to module specifier: {key}"),
             );
             // Step 2.2.2 Continue.
             continue;
@@ -2166,7 +2149,7 @@ fn normalize_module_integrity_map(
             // to the console indicating that integrity metadata values need to be strings.
             Console::internal_warn(
                 global,
-                DOMString::from("Integrity metadata values need to be strings."),
+                "Integrity metadata values need to be strings.".to_string(),
             );
             // Step 2.3.2 Continue.
             continue;
@@ -2192,7 +2175,7 @@ fn normalize_specifier_key(
         // indicating that specifier keys may not be the empty string.
         Console::internal_warn(
             global,
-            DOMString::from("Specifier keys may not be the empty string."),
+            "Specifier keys may not be the empty string.".to_string(),
         );
         // step 1.2 Return null.
         return None;
