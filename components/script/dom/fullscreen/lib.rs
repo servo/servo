@@ -266,7 +266,7 @@ impl Element {
     }
 }
 
-pub(crate) struct ElementPerformFullscreenEnter {
+struct ElementPerformFullscreenEnter {
     element: Trusted<Element>,
     document: Trusted<Document>,
     promise: TrustedPromise,
@@ -274,7 +274,7 @@ pub(crate) struct ElementPerformFullscreenEnter {
 }
 
 impl ElementPerformFullscreenEnter {
-    pub(crate) fn new(
+    fn new(
         element: Trusted<Element>,
         document: Trusted<Document>,
         promise: TrustedPromise,
@@ -337,13 +337,13 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     }
 }
 
-pub(crate) struct ElementPerformFullscreenExit {
+struct ElementPerformFullscreenExit {
     element: Trusted<Element>,
     promise: TrustedPromise,
 }
 
 impl ElementPerformFullscreenExit {
-    pub(crate) fn new(
+    fn new(
         element: Trusted<Element>,
         promise: TrustedPromise,
     ) -> Box<ElementPerformFullscreenExit> {
