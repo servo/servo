@@ -5,7 +5,7 @@ skip-check-licenses = false
 # Files that are ignored for all tidy and lint checks.
 files = [
     "./components/shared/net/tests/parsable_mime/text",
-    "./components/shared/default-resources/resources/hsts_preload.fstmap",
+    "./components/default-resources/resources/hsts_preload.fstmap",
     "./tests/wpt/meta/MANIFEST.json",
     "./tests/wpt/mozilla/meta/MANIFEST.json",
     # Long encoded string

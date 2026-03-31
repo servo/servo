@@ -12,7 +12,6 @@ rust-version.workspace = true
 [lib]
 path = "lib.rs"
 
-
 [dependencies]
 inventory = { workspace = true }
 embedder_traits = { workspace = true }
