@@ -22,7 +22,7 @@ malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 postcard = { workspace = true }
 profile_traits = { workspace = true }
-rusqlite = { version = "0.37", features = ["bundled"] }
+rusqlite = { workspace = true }
 rustc-hash = { workspace = true }
 sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }

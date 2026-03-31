@@ -24,20 +24,28 @@ use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
-use quick_cache::sync::{Cache, DefaultLifecycle, PlaceholderGuard};
+use quick_cache::sync::{Cache, PlaceholderGuard};
 use quick_cache::{DefaultHashBuilder, UnitWeighter};
+use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
 use tokio::sync::{OwnedRwLockWriteGuard, RwLock as TokioRwLock};
 
+use crate::disk_cache::{DiskCache, DiskLifecycle};
 use crate::fetch::methods::{Data, DoneChannel};
 
 /// The key used to differentiate requests in the cache.
-#[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct CacheKey {
     url: ServoUrl,
+}
+
+impl AsRef<str> for CacheKey {
+    fn as_ref(&self) -> &str {
+        self.url.as_str()
+    }
 }
 
 impl CacheKey {
@@ -54,16 +62,42 @@ impl CacheKey {
     }
 }
 
+/// Used for serializing instant into duration
+mod instant {
+    use std::time::{Duration, Instant};
+
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(instant: &Instant, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let duration = instant.elapsed();
+        duration.serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Instant, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let duration = Duration::deserialize(deserializer)?;
+        let now = Instant::now();
+        let instant = now.checked_sub(duration).unwrap();
+        Ok(instant)
+    }
+}
+
 /// A complete cached resource.
-#[derive(Clone, MallocSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CachedResource {
     #[conditional_malloc_size_of]
-    request_headers: Arc<ParkingLotMutex<HeaderMap>>,
+    request_headers: Arc<ParkingLotMutex<SerializeableHeaderMap>>,
     #[conditional_malloc_size_of]
     body: Arc<ParkingLotMutex<ResponseBody>>,
     #[conditional_malloc_size_of]
     aborted: Arc<AtomicBool>,
     #[conditional_malloc_size_of]
+    #[serde(skip)]
     awaiting_body: Arc<ParkingLotMutex<Vec<TokioSender<Data>>>>,
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
@@ -71,15 +105,47 @@ pub struct CachedResource {
     status: HttpStatus,
     url_list: Vec<ServoUrl>,
     expires: Duration,
+    /// This is technically a bit incorrect as we deserialize it via seconds and that might break things.
+    #[serde(with = "instant")]
     last_validated: Instant,
 }
 
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+/// Wrapper type for HeaderMap
+struct SerializeableHeaderMap(
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
+    HeaderMap,
+);
+
+impl std::ops::Deref for SerializeableHeaderMap {
+    type Target = HeaderMap;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for SerializeableHeaderMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl From<HeaderMap> for SerializeableHeaderMap {
+    fn from(value: HeaderMap) -> Self {
+        SerializeableHeaderMap(value)
+    }
+}
+
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[derive(Clone, MallocSizeOf)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 struct CachedMetadata {
     /// Headers
     #[conditional_malloc_size_of]
-    pub headers: Arc<ParkingLotMutex<HeaderMap>>,
+    pub headers: Arc<ParkingLotMutex<SerializeableHeaderMap>>,
     /// Final URL after redirects.
     pub final_url: ServoUrl,
     /// MIME type / subtype.
@@ -97,11 +163,10 @@ pub(crate) struct CachedResponse {
     pub needs_validation: bool,
 }
 
-type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
-type QuickCache = Cache<CacheKey, CacheEntry, UnitWeighter>;
-type OurLifecycle = DefaultLifecycle<CacheKey, CacheEntry>;
+pub(crate) type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
+type QuickCache = Cache<CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, DiskLifecycle>;
 type QuickCachePlaceeholderGuard<'a> =
-    PlaceholderGuard<'a, CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, OurLifecycle>;
+    PlaceholderGuard<'a, CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, DiskLifecycle>;
 
 /// A simple memory cache.
 /// Elements will be evicted based on the cache heuristic. We weight elements
@@ -111,6 +176,7 @@ type QuickCachePlaceeholderGuard<'a> =
 pub struct HttpCache {
     /// cached responses.
     entries: QuickCache,
+    disk_cache: Option<std::sync::Arc<DiskCache>>,
 }
 
 impl MallocSizeOf for HttpCache {
@@ -118,7 +184,11 @@ impl MallocSizeOf for HttpCache {
         self.entries
             .iter()
             .map(|(_key, entry)| entry.blocking_read().size_of(ops))
-            .sum()
+            .sum::<usize>() +
+            self.disk_cache
+                .as_ref()
+                .map(|data| data.size_of(ops))
+                .unwrap_or(0)
     }
 }
 
@@ -127,8 +197,22 @@ impl Default for HttpCache {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
+        let (disk_cache, lifecycle, cached_responses) = DiskCache::maybe_from_disk(size);
+        let memory_cache = Cache::with(
+            size,
+            size as u64,
+            UnitWeighter,
+            DefaultHashBuilder::new(),
+            lifecycle,
+        );
+
+        for (key, value) in cached_responses {
+            memory_cache.insert(key, std::sync::Arc::new(TokioRwLock::new(value)));
+        }
+
         Self {
-            entries: Cache::new(size),
+            entries: memory_cache,
+            disk_cache,
         }
     }
 }
@@ -806,6 +890,9 @@ impl HttpCache {
     /// Clear the contents of this cache.
     pub(crate) fn clear(&self) {
         self.entries.clear();
+        if let Some(disk_cache) = &self.disk_cache {
+            disk_cache.clear();
+        }
     }
 
     /// Insert a response for `request` into the cache (used by tests that need direct access).
@@ -854,9 +941,34 @@ impl HttpCache {
     /// If the value exist in the cache, return it. If the value does not exist, return a guard you can use to insert values in the cache.
     /// If the guard is alive, all other accesses to this function will block.
     pub async fn get_or_guard(&self, entry_key: CacheKey) -> CachedResourcesOrGuard<'_> {
-        match self.entries.get_value_or_guard_async(&entry_key).await {
-            Ok(val) => CachedResourcesOrGuard::Value(val.write_owned().await),
-            Err(guard) => CachedResourcesOrGuard::Guard(guard),
+        let guard_or_value = self.entries.get_value_or_guard_async(&entry_key).await;
+        if let Ok(value) = guard_or_value {
+            return CachedResourcesOrGuard::Value(value.write_owned().await);
+        }
+        let guard = guard_or_value.unwrap_err();
+
+        if let Some(disk_cache) = &self.disk_cache {
+            if let Some(response) = disk_cache.get(entry_key).await {
+                if guard.insert(response.clone()).is_err() {
+                    error!(
+                        "Cache guard is invalid. This should not happen. Cache will be in inconsistent state."
+                    );
+                }
+                let response = response.write_owned().await;
+                CachedResourcesOrGuard::Value(response)
+            } else {
+                CachedResourcesOrGuard::Guard(guard)
+            }
+        } else {
+            CachedResourcesOrGuard::Guard(guard)
+        }
+    }
+
+    /// Stores the http cache to disk if enabled.
+    /// This will consume the in memory cache.
+    pub fn store_to_disk(&self) {
+        if let Some(disk_cache) = &self.disk_cache {
+            disk_cache.store_cache_to_disk(self.entries.drain())
         }
     }
 }
@@ -903,14 +1015,14 @@ impl<'a> CachedResourcesOrGuard<'a> {
         }
         let expiry = get_response_expiry(response);
         let cacheable_metadata = CachedMetadata {
-            headers: Arc::new(ParkingLotMutex::new(response.headers.clone())),
+            headers: Arc::new(ParkingLotMutex::new(response.headers.clone().into())),
             final_url: metadata.final_url,
             content_type: metadata.content_type.map(|v| v.0.to_string()),
             charset: metadata.charset,
             status: metadata.status,
         };
         let entry_resource = CachedResource {
-            request_headers: Arc::new(ParkingLotMutex::new(request.headers.clone())),
+            request_headers: Arc::new(ParkingLotMutex::new(request.headers.clone().into())),
             body: response.body.clone(),
             aborted: response.aborted.clone(),
             awaiting_body: Arc::new(ParkingLotMutex::new(vec![])),

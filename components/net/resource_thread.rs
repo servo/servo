@@ -214,12 +214,13 @@ fn create_http_states(
     }
 
     let override_manager = CertificateErrorOverrideManager::new();
+    let http_cache = HttpCache::default();
     let http_state = HttpState {
         hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: HttpCache::default(),
+        http_cache,
         client: create_http_client(create_tls_config(
             ca_certificates.clone(),
             ignore_certificate_errors,
@@ -657,6 +658,8 @@ impl ResourceChannelManager {
                     servo_base::write_json_to_file(&*hsts, config_dir, "hsts_list.json");
                 }
                 self.resource_manager.exit();
+                http_state.http_cache.store_to_disk();
+
                 let _ = sender.send(());
                 return false;
             },
