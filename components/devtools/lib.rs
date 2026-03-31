@@ -708,7 +708,7 @@ impl DevtoolsInstance {
         let source_content = source_info
             .content
             .or_else(|| self.registry.inline_source_content(pipeline_id));
-        let source_actor = SourceActor::new_registered(
+        let source_actor = SourceActor::register(
             &self.registry,
             pipeline_id,
             source_info.url,
@@ -783,8 +783,8 @@ impl DevtoolsInstance {
     }
 
     fn handle_update_source_content(&mut self, pipeline_id: PipelineId, source_content: String) {
-        for actor_name in self.registry.source_actor_names_for_pipeline(pipeline_id) {
-            let source_actor = self.registry.find::<SourceActor>(&actor_name);
+        for source_name in self.registry.source_actor_names_for_pipeline(pipeline_id) {
+            let source_actor = self.registry.find::<SourceActor>(&source_name);
             let mut content = source_actor.content.borrow_mut();
             if content.is_none() {
                 *content = Some(source_content.clone());
