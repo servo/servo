@@ -5,7 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div id="placeholder" marker="m">
+<div id="placeholder">
   <script>
     function stringify(node_list) {
       return Array.from(node_list || []).map(n => `${n.nodeType}:${n.nodeName}:'${n.textContent.trim()}'`).join(" ");
@@ -19,7 +19,7 @@
   </script>
   Some<?start name=n>text <span id="remove">remove</span><?end>
 </div>
-<template for="m#n"><span>content</span></template>
+<template for="n"><span>content</span></template>
 <script>
   promise_test(async (t) => {
     await new Promise((resolve) => t.step_timeout(resolve, 0));

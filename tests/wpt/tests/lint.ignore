@@ -163,6 +163,7 @@ SET TIMEOUT: content-security-policy/*
 SET TIMEOUT: css/css-image-animation/image-animation-img-running.tentative.html
 SET TIMEOUT: css/css-image-animation/image-animation-img-running-to-normal.tentative.html
 SET TIMEOUT: css/css-image-animation/image-animation-paused-exact-frame.tentative.html
+SET TIMEOUT: css/css-image-animation/image-animation-stopped-reset-frame.tentative.html
 SET TIMEOUT: css/compositing/opacity-and-transform-animation-crash.html
 SET TIMEOUT: css/css-contain/contain-body-overflow-002.html
 SET TIMEOUT: css/css-display/display-contents-shadow-dom-1.html

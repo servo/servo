@@ -28,17 +28,27 @@
         container.innerHTML = cleanupPolicy.createHTML("");
       }
 
+      const methods = [
+        "streamHTML", "streamHTMLUnsafe",
+        "streamAppendHTML", "streamAppendHTMLUnsafe",
+        "streamPrependHTML", "streamPrependHTMLUnsafe",
+        "streamBeforeHTML", "streamBeforeHTMLUnsafe",
+        "streamAfterHTML", "streamAfterHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
       promise_test(async (t) => {
         t.add_cleanup(cleanup);
         let d = document.createElement("div");
         document.querySelector("#container").appendChild(d);
         t.add_cleanup(() => d.remove());
-        const writer = d.streamHTMLUnsafe({ runScripts: false }).getWriter();
+        const writer = d[method]({ runScripts: false }).getWriter();
         window.did_run = false;
         await writer.write("<script>window.did_run = true;<" + "/script>");
         await writer.close();
         assert_false(window.did_run);
-      }, "The default TT policy cannot turn runScripts on if they are off in the options");
+      }, `The default TT policy cannot turn runScripts on if they are off in the options for ${method}`);
+      }
     </script>
   </body>
 </html>

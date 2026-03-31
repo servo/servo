@@ -214,7 +214,25 @@
           placeholder,
           "<p></p><p>Content</p><table><tbody><td></td></tbody></table>",
         );
-      }, `element.${method}: sanitizer with foster parenting: <table><p><p>`);
+      }, `element.${method}: sanitizer with foster parenting: replaceWithChildrenElements`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeElements: ["img"],
+          },
+        }).getWriter();
+        await writer.write("<table><img id=forbidden>");
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<table></table>",
+        );
+      }, `element.${method}: sanitizer with foster parenting: removeElements`);
 
       promise_test(async (t) => {
         const parent = document.createElement("div");
@@ -228,7 +246,21 @@
         await writer.write("<p>1<b>2<i>3</b>4</i>5</p>");
         await writer.close();
         assert_html_equals(parent, placeholder, "<p>1<b>2</b>5</p>");
-      }, `element.${method}: sanitizer takes effect after adoption agency`);
+      }, `element.${method}: sanitizer takes effect after adoption agency (1)`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeElements: ["b"],
+          },
+        }).getWriter();
+        await writer.write("<p>1<b>2<i>3</b>4</i>5</p>");
+        await writer.close();
+        assert_html_equals(parent, placeholder, "<p>1<i>4</i>5</p>");
+      }, `element.${method}: sanitizer takes effect after adoption agency (2)`);
 
       promise_test(async (t) => {
         const parent = document.createElement("div");

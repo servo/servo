@@ -5,10 +5,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div marker="placeholder">
-  <?start>
+<div>
+  <?start name="placeholder"?>
   <div id="placeholder-old">Old content</div>
-  <?end>
+  <?end?>
 </div>
 <template for="placeholder"><div id="placeholder">New content</div></template>
 <script>
@@ -21,7 +21,7 @@
 
 test(() => {
     const doc = document.implementation.createHTMLDocument();
-    doc.write('<div id="placeholder" marker=p><?start>Old content</div>');
+    doc.write('<div id="placeholder"><?start name="p">Old content</div>');
     assert_equals(doc.querySelector("#placeholder").innerText, "Old content");
     doc.write('<template for="p">');
     assert_equals(doc.querySelector("template"), null);
@@ -35,7 +35,7 @@ test(() => {
 
 test(() => {
     const doc = document.implementation.createHTMLDocument();
-    doc.write('<div id="placeholder" marker=p><?start>Old content</div>');
+    doc.write('<div id="placeholder"><?start name="p">Old content</div>');
     assert_equals(doc.querySelector("#placeholder").textContent, "Old content");
     doc.write('<template for="p">');
     doc.write('<div id=main>Hello ');

@@ -7,7 +7,7 @@ import webdriver
 
 from urllib.parse import urlunsplit
 
-from tests.support.helpers import deep_update
+from tests.support.helpers import deep_update, is_wayland
 from tests.support.web_extension import EXTENSION_DATA
 from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
@@ -119,6 +119,11 @@ async def reset_current_session_if_necessary(caps):
 @pytest.fixture(scope="function")
 def current_session():
     return get_current_session()
+
+
+@pytest.fixture
+def is_wayland_headful(configuration):
+    return is_wayland() and not configuration.get("headless", False)
 
 
 @pytest.fixture

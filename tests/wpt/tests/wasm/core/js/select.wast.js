@@ -166,7 +166,7 @@ run(() => call(instance(module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x96\x80\x80
 assert_return(() => call($1, "join-funcnull", [1]), "select.wast:279", "ref.func");
 
 // select.wast:280
-assert_return(() => call($1, "join-funcnull", [0]), "select.wast:280", "ref.null");
+assert_return(() => call($1, "join-funcnull", [0]), "select.wast:280", null);
 
 // select.wast:282
 assert_trap(() => call($1, "select-trap-left", [1]), "select.wast:282");

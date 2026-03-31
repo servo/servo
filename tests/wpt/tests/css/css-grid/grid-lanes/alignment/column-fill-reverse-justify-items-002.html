@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse using last baseline for justify-items</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-items-002-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: repeat(2, 80px);
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+      height: 180px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-items: last baseline</p>
+  <div class="grid-lanes" style="justify-items: last baseline;">
+    <item style="writing-mode: vertical-rl;">item 1 with some extra text</item>
+    <item style="writing-mode: vertical-rl;">item 2</item>
+    <item style="writing-mode: vertical-rl;">item 3</item>
+    <item style="writing-mode: vertical-rl;">item 4</item>
+    <item style="writing-mode: vertical-rl;">item 5</item>
+    <item style="writing-mode: vertical-rl;">item 6</item>
+  </div>
+</body>
+</html>

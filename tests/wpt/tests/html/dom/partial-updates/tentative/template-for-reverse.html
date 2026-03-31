@@ -5,11 +5,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<template for="placeholder">New content</template>
-<div id="placeholder" marker="placeholder"><?start>Old content<?end></div>
+<template for="p">New content</template>
+<div id="placeholder"><?start name="p">Old content<?end></div>
 <script>
 test(() => {
     assert_equals(document.querySelector("#placeholder").innerText, "Old content");
-    assert_not_equals(document.querySelector("template[for=placeholder]"), null, "Template should attach");
+    assert_not_equals(document.querySelector("template[for=p]"), null, "Template should attach");
 });
 </script>

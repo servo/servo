@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>SMIL clock values with out-of-range minutes or seconds should be treated as invalid</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/SMIL/smil-timing.html#q22">
+<svg height="0">
+  <rect id="valid" fill="green" width="20" height="20">
+    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:30:01" fill="freeze"/>
+  </rect>
+  <rect id="invalidMinHHMMSS" fill="green" width="20" height="20">
+    <animate attributeName="x" from="0" to="200" begin="0s" dur="01:99:01" fill="freeze"/>
+  </rect>
+  <rect id="invalidMinMMSS" fill="green" width="20" height="20">
+    <animate attributeName="x" from="0" to="200" begin="0s" dur="99:01" fill="freeze"/>
+  </rect>
+  <rect id="invalidSecHHMMSS" fill="green" width="20" height="20">
+    <animate attributeName="x" from="0" to="200" begin="0s" dur="01:30:99" fill="freeze"/>
+  </rect>
+  <rect id="invalidSecMMSS" fill="green" width="20" height="20">
+    <animate attributeName="x" from="0" to="200" begin="0s" dur="30:99" fill="freeze"/>
+  </rect>
+  <rect id="boundaryValid" fill="green" width="20" height="20">
+    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:59:59" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+async_test(t => {
+  window.onload = t.step_func(() => {
+    let svg = document.querySelector("svg");
+    svg.pauseAnimations();
+    svg.setCurrentTime(60);
+
+    requestAnimationFrame(t.step_func_done(() => {
+      // Valid dur="00:30:01" (30 min 1 sec). At t=60s the animation should be running.
+      assert_not_equals(document.getElementById("valid").x.animVal.value, 0,
+        'dur="00:30:01" should be valid and animate');
+
+      // Invalid minutes in HH:MM:SS form.
+      assert_equals(document.getElementById("invalidMinHHMMSS").x.animVal.value, 0,
+        'dur="01:99:01" should be invalid (minutes > 59 in HH:MM:SS)');
+
+      // Invalid minutes in MM:SS form.
+      assert_equals(document.getElementById("invalidMinMMSS").x.animVal.value, 0,
+        'dur="99:01" should be invalid (minutes > 59 in MM:SS)');
+
+      // Invalid seconds in HH:MM:SS form.
+      assert_equals(document.getElementById("invalidSecHHMMSS").x.animVal.value, 0,
+        'dur="01:30:99" should be invalid (seconds > 59 in HH:MM:SS)');
+
+      // Invalid seconds in MM:SS form.
+      assert_equals(document.getElementById("invalidSecMMSS").x.animVal.value, 0,
+        'dur="30:99" should be invalid (seconds > 59 in MM:SS)');
+
+      // Valid boundary dur="00:59:59". Should animate.
+      assert_not_equals(document.getElementById("boundaryValid").x.animVal.value, 0,
+        'dur="00:59:59" should be valid and animate');
+    }));
+  });
+});
+</script>

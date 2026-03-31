@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column fill-reverse justify-items aligns individual items within the tracks</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="column-fill-reverse-justify-items-001-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column fill-reverse;
+      grid-template-columns: repeat(2, 80px);
+      border: 1px solid blue;
+      gap: 4px;
+      width: min-content;
+      height: 130px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: 28px;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-items: start</p>
+  <div class="grid-lanes" style="justify-items: start;">
+    <item>item 1</item>
+    <item>item 2</item>
+    <item>item 3</item>
+    <item>item 4</item>
+    <item>item 5</item>
+    <item>item 6</item>
+  </div>
+
+  <p>justify-items: center</p>
+  <div class="grid-lanes" style="justify-items: center;">
+    <item>item 1</item>
+    <item>item 2</item>
+    <item>item 3</item>
+    <item>item 4</item>
+    <item>item 5</item>
+    <item>item 6</item>
+  </div>
+
+  <p>justify-items: end</p>
+  <div class="grid-lanes" style="justify-items: end;">
+    <item>item 1</item>
+    <item>item 2</item>
+    <item>item 3</item>
+    <item>item 4</item>
+    <item>item 5</item>
+    <item>item 6</item>
+  </div>
+</body>
+</html>

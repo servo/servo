@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
-<title>paused and normal image animation mixed</title>
+<title>paused, stopped and normal image animation mixed</title>
 <link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
 <meta charset="utf-8" />
 <link rel="match" href="image-animation-img-paused-normal-mixed.tentative-ref.html" />
@@ -9,7 +9,7 @@
   let count = 0;
   function loaded() {
     count++;
-    if(count === 4) {
+    if(count === 5) {
         takeScreenshotDelayed(300);
     }
   }
@@ -19,5 +19,6 @@
 <img src="../../images/anim-gr.gif" onload="loaded()" />
 <img src="../../images/anim-gr.gif" style="image-animation: paused;" onload="loaded()" />
 <img src="../../images/anim-gr.gif" style="image-animation: normal;" onload="loaded()"  />
+<img src="../../images/anim-gr.gif" style="image-animation: stopped;" onload="loaded()" />
 
 </html>

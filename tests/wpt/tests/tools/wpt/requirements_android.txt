@@ -1,1 +1,1 @@
-mozrunner==8.3.2
+mozrunner==8.4.0

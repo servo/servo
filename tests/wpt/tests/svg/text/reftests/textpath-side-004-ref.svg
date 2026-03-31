@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="200" viewBox="0 0 400 200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
+  </style>
+  <defs>
+    <path id="curve" d="M 50,80 Q 200,10 350,80"/>
+  </defs>
+  <!-- Reference: no side attribute (default = left) for both -->
+  <g transform="translate(0,0)">
+    <text fill="blue">
+      <textPath href="#curve">ABCDE</textPath>
+    </text>
+  </g>
+  <g transform="translate(0,80)">
+    <text fill="green">
+      <textPath href="#curve">ABCDE</textPath>
+    </text>
+  </g>
+</svg>

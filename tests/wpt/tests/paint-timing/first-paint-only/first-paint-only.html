@@ -9,8 +9,8 @@
 <div id="main"></div>
 
 <script>
-setup({"hide_test_state": true});
-async_test(function (t) {
+  setup({"hide_test_state": true});
+  promise_test(async t => {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     const div = document.createElement("div");
     div.style.width = "100px";
@@ -18,9 +18,9 @@ async_test(function (t) {
     div.style.backgroundColor = "red";
     div.style.color = "blue";
     document.getElementById("main").appendChild(div);
-    assertFirstPaint(t, 20);
-
-}, "Performance first paint timing entry exists. No first contentful paint.");
+    await assertFirstPaint();
+    await assertNoFirstContentfulPaint();
+  }, "Performance first paint timing entry exists. No first contentful paint.");
 </script>
 </body>
 </html>

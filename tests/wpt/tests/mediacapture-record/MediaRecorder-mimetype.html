@@ -370,7 +370,7 @@ promise_test(async t => {
   const onstartPromise = new Promise(resolve => {
     recorder.onstart = () => {
       recorder.onstart = () => t.step_func(() => {
-        assert_not_reached("MediaRecorder doesn't fire 'onstart' twice");
+        assert_unreached("MediaRecorder doesn't fire 'onstart' twice");
       });
       resolve();
     }
@@ -385,7 +385,7 @@ promise_test(async t => {
   const onstartPromise = new Promise(resolve => {
     recorder.onstart = () => {
       recorder.onstart = () => t.step_func(() => {
-        assert_not_reached("MediaRecorder doesn't fire 'onstart' twice");
+        assert_unreached("MediaRecorder doesn't fire 'onstart' twice");
       });
       resolve();
     }
@@ -400,7 +400,7 @@ promise_test(async t => {
   const onstartPromise = new Promise(resolve => {
     recorder.onstart = () => {
       recorder.onstart = () => t.step_func(() => {
-        assert_not_reached("MediaRecorder doesn't fire 'onstart' twice");
+        assert_unreached("MediaRecorder doesn't fire 'onstart' twice");
       });
       resolve();
     }

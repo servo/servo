@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS container style query reference</title>
+
+<style>
+@property --c {
+  syntax: "<color>";
+  initial-value: transparent;
+  inherits: true;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+}
+
+.outer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
+  gap: .5em;
+}
+
+.outer div {
+  border-left: 1em solid black;
+  color: white;
+}
+
+.outer div::before {
+  content: attr(style);
+	display: block;
+  padding: .5em;
+  background: green;
+}
+</style>
+
+<body>
+  <p>All items should have a green background:</p>
+  <div class="outer">
+    <div style="--c: black"></div>
+    <div style="--c: #000"></div>
+    <div style="--c: #000f"></div>
+    <div style="--c: rgb(0 0 0)"></div>
+    <div style="--c: rgb(calc(5 - 5) 0 0)"></div>
+    <div style="--c: rgb(clamp(-1, pi, 0) 0 0)"></div>
+    <div style="--c: rgba(0, 0, 0, 1)"></div>
+    <div style="--c: rgb(-10 0 0)"></div>
+    <div style="--c: rgb(from black r g b)"></div>
+    <div style="--c: hwb(0 0 100)"></div>
+    <div style="--c: hsl(0 0 0)"></div>
+    <div style="--c: color(srgb 0 0 0)"></div>
+    <div style="--c: color(srgb-linear 0 0 0)"></div>
+    <div style="--c: color(display-p3 0 0 0)"></div>
+    <div style="--c: color(xyz-d65 0 0 0)"></div>
+    <div style="--c: lab(0 0 0)"></div>
+    <div style="--c: oklch(0 0 0)"></div>
+    <div style="--c: oklab(from black l a b)"></div>
+  </div>
+</body>

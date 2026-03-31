@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="200" viewBox="0 0 400 200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElementSideAttribute"/>
+    <html:link rel="help" href="https://github.com/w3c/svgwg/issues/1068"/>
+    <html:link rel="match" href="textpath-side-002-ref.svg"/>
+  </metadata>
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
+  </style>
+  <defs>
+    <path id="curve" d="M 50,80 Q 200,10 350,80"/>
+  </defs>
+  <!-- side="left" should render identically to the default (no side attribute) -->
+  <g transform="translate(0,0)">
+    <text fill="blue">
+      <textPath href="#curve" side="left">ABCDE</textPath>
+    </text>
+  </g>
+  <g transform="translate(0,80)">
+    <text fill="green">
+      <textPath href="#curve" side="left">ABCDE</textPath>
+    </text>
+  </g>
+</svg>

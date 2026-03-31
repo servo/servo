@@ -19,6 +19,7 @@ test(function() {
   let root = host.attachShadow({ mode: "open" });
   root.innerHTML = `<div></div>`;
   root.adoptedStyleSheets = [sheet];
+  let adoptedStyleSheets = root.adoptedStyleSheets;
 
   function assertAdoptedStyleSheet() {
     assert_equals(host.ownerDocument, root.firstChild.ownerDocument, "Shadow root was not adopted?");
@@ -27,6 +28,7 @@ test(function() {
     if (root.ownerDocument == document) {
       assert_equals(getComputedStyle(root.firstChild).color, "rgb(0, 0, 255)", "Sheet should apply");
     }
+    assert_equals(adoptedStyleSheets, root.adoptedStyleSheets, "adoptedStyleSheets should be the same array");
   }
 
   assertAdoptedStyleSheet();
@@ -54,5 +56,6 @@ test(function() {
   document.body.appendChild(iframe);
   iframe.contentDocument.body.appendChild(host);
   assert_equals(root.adoptedStyleSheets.length, 0);
+  assert_equals(adoptedStyleSheets, root.adoptedStyleSheets, "adoptedStyleSheets should be the same array");
 }, "adoptedStyleSheets won'te be cleared when adopting into/from <template>s");
 </script>

@@ -207,7 +207,11 @@ def get_emulator(paths, device_serial=None):
     if android_device is None:
         do_delayed_imports(paths)
 
-    substs = {"top_srcdir": wpt_root, "TARGET_CPU": "x86"}
+    substs = {
+        "top_srcdir": wpt_root,
+        "TARGET_CPU": platform.uname().machine,
+        "HOST_CPU_ARCH": platform.uname().machine
+    }
     emulator = android_device.AndroidEmulator(substs=substs,
                                               device_serial=device_serial,
                                               verbose=True)

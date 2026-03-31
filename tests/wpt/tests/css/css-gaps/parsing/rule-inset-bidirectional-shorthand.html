@@ -111,6 +111,32 @@
                     rowRuleInteriorInsetEnd: '40px',
                 }
             },
+            {
+                input: 'overlap-join',
+                expected: {
+                    columnRuleEdgeInsetStart: 'overlap-join',
+                    columnRuleEdgeInsetEnd: 'overlap-join',
+                    columnRuleInteriorInsetStart: 'overlap-join',
+                    columnRuleInteriorInsetEnd: 'overlap-join',
+                    rowRuleEdgeInsetStart: 'overlap-join',
+                    rowRuleEdgeInsetEnd: 'overlap-join',
+                    rowRuleInteriorInsetStart: 'overlap-join',
+                    rowRuleInteriorInsetEnd: 'overlap-join',
+                }
+            },
+            {
+                input: 'overlap-join 10px / overlap-join 10px',
+                expected: {
+                    columnRuleEdgeInsetStart: 'overlap-join',
+                    columnRuleEdgeInsetEnd: '10px',
+                    columnRuleInteriorInsetStart: 'overlap-join',
+                    columnRuleInteriorInsetEnd: '10px',
+                    rowRuleEdgeInsetStart: 'overlap-join',
+                    rowRuleEdgeInsetEnd: '10px',
+                    rowRuleInteriorInsetStart: 'overlap-join',
+                    rowRuleInteriorInsetEnd: '10px',
+                }
+            },
 
         ];
 

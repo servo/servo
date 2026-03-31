@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<div id="target"></div>
+<div id="evilParent"></div>
+<div id="node1">node1</div>
+<script>
+  window.node1 = document.getElementById("node1");
+  function runTest() {
+    document.getElementById("target").append(node1, document.getElementById("node2"));
+  }
+</script>
+<div id="node2">
+  <iframe allow="unload" srcdoc="
+      <!DOCTYPE HTML>
+      <script>
+        window.addEventListener('load', function() {
+          window.parent.runTest();
+        });
+        window.addEventListener('unload', function() {
+          let p = window.parent;
+          let doc = p.document;
+          doc.getElementById('evilParent').appendChild(p.node1);
+        });
+      </script>
+    ">
+  </iframe>
+</div>

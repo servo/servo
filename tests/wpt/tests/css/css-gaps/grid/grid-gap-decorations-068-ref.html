@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .container {
+    display: grid;
+    grid-template: repeat(3, 50px) / repeat(3, 50px);
+    gap: 20px;
+    padding: 0px;
+  }
+  .item {
+    background: lightgray;
+  }
+  .col-gap {
+    height: 135px;
+    border-right: 10px rgba(0, 0, 255, 0.5) solid;
+    width: 0px;
+    position: absolute;
+    top: 0px;
+    left: 55px;
+  }
+
+  .row-gap {
+    width: 135px;
+    border-bottom: 10px rgba(255, 0, 0, 0.5) solid;
+    height: 0px;
+    position: absolute;
+    top: 55px;
+    left: 0px;
+  }
+</style>
+
+<div class="container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item" style="grid-area: 2 / 1"></div>
+  <div class="item" style="grid-area: 2 / 2"></div>
+</div>
+
+<div class="col-gap"></div>
+<div class="col-gap" style="left: 125px;"></div>
+
+<div class="row-gap"></div>
+<div class="row-gap" style="top: 125px; left: 0px;"></div>

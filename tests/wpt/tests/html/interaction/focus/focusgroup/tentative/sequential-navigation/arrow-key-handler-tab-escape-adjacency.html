@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Tab escape adjacency behavior for arrow key handler elements</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Shift+Tab from input at end goes to second-to-last item, not first -->
+<div focusgroup="toolbar inline">
+  <button id="end_A" type="button">A</button>
+  <button id="end_B" type="button">B</button>
+  <input id="end_input" type="text" value="text">
+</div>
+
+<!-- Shift+Tab from select in middle goes to adjacent item, not first -->
+<div focusgroup="toolbar inline">
+  <button id="mid_A" type="button">A</button>
+  <button id="mid_B" type="button">B</button>
+  <select id="mid_select">
+    <option>12px</option>
+    <option>14px</option>
+  </select>
+  <button id="mid_C" type="button">C</button>
+</div>
+
+<!-- Tab from handler does not skip focusable opted-out content -->
+<div focusgroup="toolbar inline">
+  <button id="fwd_A" type="button">A</button>
+  <select id="fwd_select">
+    <option>12px</option>
+    <option>14px</option>
+  </select>
+  <div focusgroup="none">
+    <button id="fwd_optedout" type="button">Opted Out</button>
+  </div>
+  <button id="fwd_B" type="button">B</button>
+</div>
+
+<!-- Shift+Tab from handler does not skip focusable opted-out content before it -->
+<div focusgroup="toolbar inline">
+  <button id="back_A" type="button">A</button>
+  <div focusgroup="none">
+    <button id="back_optedout" type="button">Opted Out</button>
+  </div>
+  <select id="back_select">
+    <option>12px</option>
+    <option>14px</option>
+  </select>
+  <button id="back_B" type="button">B</button>
+</div>
+
+<script>
+  promise_test(async t => {
+    const b = document.getElementById("end_B");
+    const input = document.getElementById("end_input");
+
+    await focusAndWait(input);
+    assert_equals(document.activeElement, input, "Precondition: focus starts on input");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, b,
+                  "Shift+Tab from arrow key handler at end should go to adjacent item (B), not first item (A)");
+  }, "Shift+Tab from arrow key handler at end goes to immediately previous item");
+
+  promise_test(async t => {
+    const b = document.getElementById("mid_B");
+    const sel = document.getElementById("mid_select");
+
+    await focusAndWait(sel);
+    assert_equals(document.activeElement, sel, "Precondition: focus starts on select");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, b,
+                  "Shift+Tab from arrow key handler in middle should go to adjacent item (B), not first item (A)");
+  }, "Shift+Tab from arrow key handler in middle goes to immediately previous item");
+
+  promise_test(async t => {
+    const sel = document.getElementById("fwd_select");
+    const optedout = document.getElementById("fwd_optedout");
+
+    await focusAndWait(sel);
+    assert_equals(document.activeElement, sel, "Precondition: focus starts on select");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, optedout,
+                  "Tab from arrow key handler should not skip focusable opted-out content");
+  }, "Tab from arrow key handler does not skip focusable content in opted-out subtree");
+
+  promise_test(async t => {
+    const sel = document.getElementById("back_select");
+    const optedout = document.getElementById("back_optedout");
+
+    await focusAndWait(sel);
+    assert_equals(document.activeElement, sel, "Precondition: focus starts on select");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, optedout,
+                  "Shift+Tab from arrow key handler should not skip focusable opted-out content");
+  }, "Shift+Tab from arrow key handler does not skip focusable content in opted-out subtree");
+</script>

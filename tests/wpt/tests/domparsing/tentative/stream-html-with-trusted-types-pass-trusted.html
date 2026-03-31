@@ -32,47 +32,83 @@
         container.innerHTML = cleanupPolicy.createHTML("");
       }
 
-      promise_test(async (t) => {
-        t.add_cleanup(cleanup);
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        t.add_cleanup(() => d.remove());
-        createParserOptions = (options) => ({
-          ...options,
-          runScripts: false
-        });
-        const trusted_options = withScripts.createParserOptions({
-          runScripts: true,
-        });
-        assert_true(trusted_options instanceof TrustedParserOptions);
-        assert_true(trusted_options.runScripts);
-        const writer = d.streamHTMLUnsafe(trusted_options).getWriter();
-        window.did_run = false;
-        await writer.write("<script>window.did_run = true;<" + "/script>");
-        await writer.close();
-        assert_true(window.did_run);
-      }, "A given TrustedParserOptions can override default policy's runScript");
+      const methods = [
+        "streamHTML",
+        "streamHTMLUnsafe",
+        "streamAppendHTML",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTML",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTML",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTML",
+        "streamAfterHTMLUnsafe",
+      ];
 
-      promise_test(async (t) => {
-        t.add_cleanup(cleanup);
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        t.add_cleanup(() => d.remove());
-        createParserOptions = (options) => ({
-          ...options,
-          sanitizer: {removeElements: ["div"]}
-        });
-        const trusted_options = withScripts.createParserOptions({
-          sanitizer: { removeElements: ["span"] },
-        });
-        assert_true(trusted_options instanceof TrustedParserOptions);
-        const writer = d.streamHTMLUnsafe(trusted_options).getWriter();
-        window.did_run = false;
-        await writer.write("<div id=allowed><span id=forbidden></span<</div>");
-        await writer.close();
-        assert_equals(d.querySelector("#forbidden"), null, "span should be removed");
-        assert_not_equals(d.querySelector("#allowed"), null, "div should be present");
-      }, "A given TrustedParserOptions can override default policy's sanitizer");
+      for (const method of methods) {
+        const safe = !method.endsWith("Unsafe");
+        promise_test(
+          async (t) => {
+            t.add_cleanup(cleanup);
+            let d = document.createElement("div");
+            const container = document.querySelector("#container");
+            container.appendChild(d);
+            t.add_cleanup(() => d.remove());
+            createParserOptions = (options) => ({
+              ...options,
+              runScripts: false,
+            });
+            const trusted_options = withScripts.createParserOptions({
+              runScripts: true,
+            });
+            assert_true(trusted_options instanceof TrustedParserOptions);
+            assert_true(trusted_options.runScripts);
+            const writer = d[method](trusted_options).getWriter();
+            window.did_run = false;
+            await writer.write("<script>window.did_run = true;<" + "/script>");
+            await writer.close();
+            assert_equals(
+              container.querySelectorAll("script").length,
+              safe ? 0 : 1,
+            );
+            assert_equals(window.did_run, !safe);
+          },
+          `A given TrustedParserOptions can${safe ? " not" : ""} override default policy's runScript/safety for ${method}`,
+        );
+      }
+
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: { removeElements: ["div"] },
+          });
+          const trusted_options = withScripts.createParserOptions({
+            sanitizer: { removeElements: ["span"] },
+          });
+          assert_true(trusted_options instanceof TrustedParserOptions);
+          const writer = d[method](trusted_options).getWriter();
+          window.did_run = false;
+          await writer.write(
+            "<div id=allowed><span id=forbidden></span<</div>",
+          );
+          await writer.close();
+          assert_equals(
+            d.parentNode.querySelector("#forbidden"),
+            null,
+            "span should be removed",
+          );
+          assert_not_equals(
+            d.parentNode.querySelector("#allowed"),
+            null,
+            "div should be present",
+          );
+        }, `A given TrustedParserOptions can override default policy's sanitizer for ${method}`);
+      }
     </script>
   </body>
 </html>

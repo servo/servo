@@ -27,6 +27,19 @@
       navigator.userActivation.isActive,
       "User activation should not be active",
     );
+    const options = makeGetOptions({ data: BigInt(1) });
+    await promise_rejects_dom(
+      t,
+      "NotAllowedError",
+      navigator.credentials.get(options),
+    );
+  }, "navigator.credentials.get() with non-serializable data and no user activation should reject with NotAllowedError.");
+
+  promise_test(async (t) => {
+    assert_false(
+      navigator.userActivation.isActive,
+      "User activation should not be active",
+    );
     const options = makeGetOptions({ protocol: [] });
     await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
     assert_false(

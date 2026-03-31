@@ -5,7 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<div marker=p id="placeholder"><?start>Old content<?end></div>
+<div id="placeholder"><?start name="p">Old content<?end></div>
 <script>
 promise_test(async t => {
     const writable = document.body.streamAppendHTMLUnsafe({runScripts: true});

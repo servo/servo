@@ -19,8 +19,8 @@
     background: blue;
   }
 </style>
-<div class="container" marker="content">
-  <?start><span class="red">Has red</span>
+<div class="container">
+  <?start name="content"?><span class="red">Has red</span>
 </div>
 
 <script>
@@ -33,7 +33,7 @@
   }
   promise_test(async () => {
     for (let i = 0; i < 20; ++i) {
-      await update('<?start><span class="blue">Has blue</span>');
+      await update('<?start name="content"?><span class="blue">Has blue</span>');
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await update("Green (no span)");
       await new Promise((resolve) => requestAnimationFrame(resolve));

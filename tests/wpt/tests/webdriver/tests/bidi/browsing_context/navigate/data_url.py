@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 import pytest
 
-from . import navigate_and_assert
+from .. import navigate_and_assert
 
 pytestmark = pytest.mark.asyncio
 

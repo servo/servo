@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test: background-clip:border-area with corner-shape</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape">
+<link rel="match" href="clip-border-area-corner-shape-ref.html">
+<meta name="assert" content="border-area clipping respects corner-shape values">
+<meta name="fuzzy" content="maxDifference=0-200; totalPixels=0-4000">
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 50px solid transparent;
+        border-radius: 40%;
+        background-clip: border-area;
+        background-image: url(../resources/blue-100.png);
+    }
+
+    .round {
+        corner-shape: round;
+    }
+
+    .squircle {
+        corner-shape: squircle;
+    }
+
+    .bevel {
+        corner-shape: bevel;
+    }
+
+    .scoop {
+        corner-shape: scoop;
+    }
+
+    .notch {
+        corner-shape: notch;
+    }
+
+    .mixed {
+        corner-top-left-shape: squircle;
+        corner-top-right-shape: bevel;
+        corner-bottom-right-shape: scoop;
+        corner-bottom-left-shape: notch;
+    }
+</style>
+</head>
+<body>
+
+<div class="test round"></div>
+<div class="test squircle"></div>
+<div class="test bevel"></div>
+<div class="test scoop"></div>
+<div class="test notch"></div>
+<div class="test mixed"></div>
+
+</body>
+</html>

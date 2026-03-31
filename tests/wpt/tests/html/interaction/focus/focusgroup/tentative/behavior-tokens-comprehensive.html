@@ -40,14 +40,14 @@
   <button id=mb3>mb3</button>
 </div>
 
-<!-- radiogroup: no default axis, no wrap -->
+<!-- radiogroup: both axes, wrap -->
 <div focusgroup="radiogroup">
   <button id=rg1>rg1</button>
   <button id=rg2>rg2</button>
   <button id=rg3>rg3</button>
 </div>
 
-<!-- listbox: no default axis, no wrap -->
+<!-- listbox: block axis only, no wrap -->
 <div focusgroup="listbox">
   <button id=lb1>lb1</button>
   <button id=lb2>lb2</button>
@@ -163,7 +163,7 @@
     assert_equals(document.activeElement.id, 'mb1');
   }, "menubar: wraps");
 
-  // --- radiogroup: both axes, no wrap ---
+  // --- radiogroup: both axes, wrap ---
 
   promise_test(async t => {
     await focusAndKeyPress(document.getElementById('rg1'), kArrowRight);
@@ -177,23 +177,23 @@
 
   promise_test(async t => {
     await focusAndKeyPress(document.getElementById('rg3'), kArrowRight);
-    assert_equals(document.activeElement.id, 'rg3');
-  }, "radiogroup: does not wrap");
+    assert_equals(document.activeElement.id, 'rg1');
+  }, "radiogroup: wraps");
 
-  // --- listbox: both axes, no wrap ---
+  // --- listbox: block axis only, no wrap ---
 
   promise_test(async t => {
     await focusAndKeyPress(document.getElementById('lb1'), kArrowRight);
-    assert_equals(document.activeElement.id, 'lb2');
-  }, "listbox: ArrowRight navigates");
+    assert_equals(document.activeElement.id, 'lb1');
+  }, "listbox: ArrowRight blocked (block-only)");
 
   promise_test(async t => {
     await focusAndKeyPress(document.getElementById('lb1'), kArrowDown);
     assert_equals(document.activeElement.id, 'lb2');
-  }, "listbox: ArrowDown navigates");
+  }, "listbox: ArrowDown navigates (block)");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb3'), kArrowRight);
+    await focusAndKeyPress(document.getElementById('lb3'), kArrowDown);
     assert_equals(document.activeElement.id, 'lb3');
   }, "listbox: does not wrap");
 

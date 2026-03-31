@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Tab escape from multi-tab-stop arrow key handler elements</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Video element inside focusgroup: Tab/Shift+Tab escape from video -->
+<div focusgroup="toolbar inline">
+  <button id="vid_A" type="button">A</button>
+  <video id="vid" controls></video>
+  <button id="vid_B" type="button">B</button>
+</div>
+
+<!-- Standalone video outside any focusgroup — Tab through controls works normally -->
+<button id="standalone_before" type="button">Before</button>
+<div focusgroup="toolbar inline">
+  <button id="standalone_X" type="button">X</button>
+</div>
+<video id="standalone_vid" controls></video>
+<button id="standalone_after" type="button">After</button>
+
+<script>
+  promise_test(async t => {
+    const a = document.getElementById("vid_A");
+    const vid = document.getElementById("vid");
+    const b = document.getElementById("vid_B");
+
+    await focusAndWait(a);
+    assert_equals(document.activeElement, a, "Precondition: focus on A");
+
+    await focusAndKeyPress(a, kArrowRight);
+    assert_equals(document.activeElement, vid,
+        "Arrow right from A should navigate to video");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, b,
+        "Tab from video should escape to adjacent item B");
+  }, "Tab escape from video element inside focusgroup goes to adjacent item");
+
+  promise_test(async t => {
+    const a = document.getElementById("vid_A");
+    const vid = document.getElementById("vid");
+    const b = document.getElementById("vid_B");
+
+    await focusAndWait(b);
+    assert_equals(document.activeElement, b, "Precondition: focus on B");
+
+    await focusAndKeyPress(b, kArrowLeft);
+    assert_equals(document.activeElement, vid,
+        "Arrow left from B should navigate to video");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, a,
+        "Shift+Tab from video should escape to adjacent item A");
+  }, "Shift+Tab escape from video element inside focusgroup goes to adjacent item");
+
+  // Tab from before the video (outside any focusgroup) should enter the
+  // video's internal controls normally, without focusgroup Tab escape
+  // interfering.
+  promise_test(async t => {
+    const before = document.getElementById("standalone_before");
+    const vid = document.getElementById("standalone_vid");
+    const after = document.getElementById("standalone_after");
+
+    await focusAndWait(before);
+    assert_equals(document.activeElement, before, "Precondition: focus on Before");
+
+    let maxTabs = 10;
+    while (document.activeElement !== vid && maxTabs-- > 0) {
+      await sendTabForward();
+    }
+    assert_equals(document.activeElement, vid,
+        "Should reach video controls via Tab");
+
+    maxTabs = 20;
+    while (document.activeElement !== after && maxTabs-- > 0) {
+      await sendTabForward();
+    }
+    assert_equals(document.activeElement, after,
+        "Tab should exit video controls and reach After button via normal tab order");
+  }, "Tab through video controls outside focusgroup follows normal tab order");
+
+  promise_test(async t => {
+    const a = document.getElementById("vid_A");
+    const vid = document.getElementById("vid");
+    const b = document.getElementById("vid_B");
+
+    await focusAndWait(a);
+    assert_equals(document.activeElement, a, "Precondition: focus on A");
+
+    await focusAndKeyPress(a, kArrowRight);
+    assert_equals(document.activeElement, vid,
+        "Arrow right from A should navigate to video");
+
+    // Tab enters the video's internal controls (shadow DOM).
+    await sendTabForward();
+    let maxTabs = 20;
+    while (document.activeElement !== b && maxTabs-- > 0) {
+      await sendTabForward();
+    }
+    assert_equals(document.activeElement, b,
+        "Tab from inside video controls should escape to adjacent focusgroup item B");
+  }, "Tab escape from inside video shadow DOM controls reaches adjacent focusgroup item");
+</script>

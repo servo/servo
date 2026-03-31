@@ -12,7 +12,17 @@ features:
   - targeted-scroll-marker*
   - chrome-421199213-crash.html
   - targeted-column-scroll-marker-selection-*
+  # scroll-marker-targets exclusions, keep synced
+  - "!scroll-marker-target-before-after.html"
+  - "!html-scroll-marker-target-before-after.html"
 - name: scroll-buttons
   files:
   - root-scroll-button*
   - scroll-button*
+- name: scroll-marker-targets
+  files:
+  - scroll-marker-target-before-after.html
+  - html-scroll-marker-target-before-after.html
+- name: scroll-target-group
+  files:
+  - scroll-target-group*

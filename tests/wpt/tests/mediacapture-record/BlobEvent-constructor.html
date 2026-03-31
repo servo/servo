@@ -35,4 +35,17 @@ test(function() {
   assert_equals(event.type, "type");
   assert_equals(event.data, blob);
 }, "The BlobEvent instance's data attribute is set.");
+
+test(function() {
+  var blob = new Blob();
+  var event = new BlobEvent("type", { data: blob });
+  assert_equals(event.timecode, NaN, "timecode defaults to NaN");
+}, "The BlobEvent instance's timecode defaults to NaN when not specified.");
+
+test(function() {
+  var blob = new Blob();
+  var now = Date.now();
+  var event = new BlobEvent("type", { data: blob, timecode: now });
+  assert_equals(event.timecode, now, "timecode is set correctly");
+}, "The BlobEvent instance's timecode is set from BlobEventInit.");
 </script>

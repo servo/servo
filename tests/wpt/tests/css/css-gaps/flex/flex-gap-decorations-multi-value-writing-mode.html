@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gap decoration colors with multiple values
+    and non-default writing-mode values.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#gap-decorations">
+<link rel="match" href="flex-gap-decorations-multi-value-writing-mode-ref.html">
+<link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        column-rule-color: red, green, blue;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+        row-rule-color: orange, purple;
+        row-rule-style: solid;
+        row-rule-width: 10px;
+        width: 170px;
+        height: 230px;
+        margin-bottom: 20px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+</style>
+<div class="flex" style="writing-mode: vertical-rl;">
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+</div>
+<div class="flex" style="writing-mode: vertical-lr;">
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+</div>
+<div class="flex" style="writing-mode: sideways-rl;">
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+</div>
+<div class="flex" style="writing-mode: sideways-lr;">
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
+</div>
