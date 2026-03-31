@@ -42,7 +42,7 @@ use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
 pub use servo_base::id::WebViewId;
-use servo_base::id::{PipelineNamespace, PipelineNamespaceId};
+use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineNamespace};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -829,7 +829,7 @@ impl Servo {
         }
 
         // Reserving a namespace to create WebViewId.
-        PipelineNamespace::install(PipelineNamespaceId(0));
+        PipelineNamespace::install(EMBEDDER_PIPELINE_NAMESPACE_ID);
 
         // Get both endpoints of a special channel for communication between
         // the client window and `Paint`. This channel is unique because
