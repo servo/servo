@@ -37,6 +37,7 @@ pub use self::background_hang_monitor::*;
         )
     ),
     all(target_os = "windows", target_arch = "aarch64"),
+    target_os = "freebsd"
 ))]
 pub(crate) use crate::sampler::DummySampler as SamplerImpl;
 #[cfg(all(

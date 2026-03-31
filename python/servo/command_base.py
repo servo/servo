@@ -246,6 +246,10 @@ def is_linux() -> bool:
     return sys.platform.startswith("linux")
 
 
+def is_freebsd() -> bool:
+    return sys.platform.startswith("freebsd")
+
+
 class BuildNotFound(Exception):
     def __init__(self, message: str) -> None:
         self.message = message
