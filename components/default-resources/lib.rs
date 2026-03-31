@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use embedder_traits::resources::{Resource, ResourceReader, ResourceReaderMethods};
+use embedder_traits::resources::{Resource, ResourceReaderMethods};
 
 /// A default resource reader that provides baked in resources.
 pub struct DefaultResourceReader;
@@ -35,4 +35,4 @@ impl ResourceReaderMethods for DefaultResourceReader {
     }
 }
 
-inventory::submit! { &DefaultResourceReader as ResourceReader }
+embedder_traits::submit_resource_reader!(&DefaultResourceReader);

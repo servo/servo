@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-use servo::resources::{Resource, ResourceReader, ResourceReaderMethods};
+use servo::resources::{Resource, ResourceReaderMethods};
 
 pub(crate) struct ResourceReaderImpl {
     resource_dir: OnceLock<PathBuf>,
@@ -15,7 +15,7 @@ static RESOURCE_READER: ResourceReaderImpl = ResourceReaderImpl {
     resource_dir: OnceLock::new(),
 };
 
-inventory::submit!(&RESOURCE_READER as ResourceReader);
+servo::submit_resource_reader!(&RESOURCE_READER);
 
 pub(crate) fn set_resource_dir(resource_dir: PathBuf) {
     if let Err(e) = RESOURCE_READER.resource_dir.set(resource_dir) {

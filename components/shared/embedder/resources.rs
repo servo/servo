@@ -5,9 +5,57 @@
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
+#[doc(hidden)]
+pub use inventory as _inventory;
+
+/// A static reference to a ResourceReader
+///
+/// If you need to initialize the resource reader at runtime, use interior mutability.
+///
+/// # Examples
+///
+/// ```
+/// pub(crate) struct ResourceReaderImpl {
+///     resource_dir: OnceLock<PathBuf>,
+/// }
+/// static RESOURCE_READER: ResourceReaderImpl = ResourceReaderImpl {
+///     resource_dir: OnceLock::new(),
+/// };
+///
+/// servo::submit_resource_reader!(&RESOURCE_READER);
+///
+/// /// This can be called during initialization, e.g. after parsing commandline flags.
+/// pub(crate) fn set_resource_dir(resource_dir: PathBuf) {
+///     RESOURCE_READER.resource_dir.set(resource_dir).expect("Already initialized.")
+/// }
+/// impl ResourceReaderMethods for ResourceReaderImpl {
+///  //
+/// }
+/// ```
 pub type ResourceReader = &'static (dyn ResourceReaderMethods + Sync + Send);
 
-// The embedder may register a resource reader via `inventory::submit!()`
+/// Register the [`ResourceReader`] implementation.
+///
+/// This should be added at most once in the whole project.
+/// In particular this means you should make sure to disable the (default)
+/// `baked-in-resources` feature of servo if you want to override the default reader.
+///
+/// # Examples
+///
+/// Put `submit_resource_reader` invocations **outside** any function body:
+/// ```
+/// servo_embedder_traits::submit_resource_reader!(my_resource_reader);
+/// ```
+#[macro_export]
+macro_rules! submit_resource_reader {
+    ($resource_reader:expr) => {
+        $crate::resources::_inventory::submit! {
+            $resource_reader as $crate::resources::ResourceReader
+        }
+    };
+}
+
+// The embedder may register a resource reader via `submit_resource_reader!()`
 // Note: A weak symbol would perhaps be preferable, but that isn't available in stable rust yet.
 inventory::collect!(ResourceReader);
 
@@ -21,7 +69,7 @@ static RESOURCE_READER: LazyLock<ResourceReader> = {
             log::error!(
                 "Multiple resource readers registered. Taking the first implementation \
                 (random, non deterministic order). This is a bug! Check usages of \
-                `inventory::submit!()`. Perhaps you meant to disable the default resource reader \
+                `submit_resource_reader!()`. Perhaps you meant to disable the default resource reader \
                 (selected by depending on the `servo-default-resources` crate) ?"
             );
         }

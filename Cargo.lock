@@ -7726,7 +7726,6 @@ dependencies = [
 name = "servo-default-resources"
 version = "0.0.6"
 dependencies = [
- "inventory",
  "servo-embedder-traits",
 ]
 
@@ -8958,7 +8957,6 @@ dependencies = [
  "hilog",
  "hitrace",
  "image",
- "inventory",
  "ipc-channel",
  "jni 0.21.1",
  "keyboard-types",
