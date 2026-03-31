@@ -6,7 +6,7 @@ use bitflags::bitflags;
 use cookie::Cookie;
 use log::warn;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{ResourceThreads, SiteDescriptor};
+use net_traits::{CookieSource, PendingCookieRequest, ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
@@ -79,6 +79,7 @@ pub struct SiteDataManager {
     private_resource_threads: ResourceThreads,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
+    pending_cookie_requests: Vec<PendingCookieRequest>,
 }
 
 impl SiteDataManager {
@@ -93,6 +94,7 @@ impl SiteDataManager {
             private_resource_threads,
             public_storage_threads,
             private_storage_threads,
+            pending_cookie_requests: Vec::new(),
         }
     }
 
@@ -225,5 +227,32 @@ impl SiteDataManager {
             cookie,
             CookieSource::HTTP,
         );
+    }
+
+    /// Asynchronously returns the cookies for the domain associated with the given [`Url`].
+    ///
+    /// The cookies are delivered via the provided callback during
+    /// [`Servo::spin_event_loop`](crate::Servo::spin_event_loop).
+    pub fn cookies_for_url_async(
+        &mut self,
+        url: Url,
+        source: CookieSource,
+        callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
+    ) {
+        let request =
+            self.public_resource_threads
+                .cookies_for_url_async(url.into(), source, callback);
+        self.pending_cookie_requests.push(request);
+    }
+
+    /// Poll all pending asynchronous cookie requests. Invoke callbacks for any
+    /// that have received a response. Called during the event loop spin.
+    pub(crate) fn poll_pending_cookie_requests(&mut self) {
+        self.pending_cookie_requests
+            .retain_mut(|request| match request.poll() {
+                Ok(true) => false,
+                Ok(false) => true,
+                Err(()) => false,
+            });
     }
 }

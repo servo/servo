@@ -28,8 +28,8 @@ use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{
-    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
-    SendResult,
+    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericReceiver, GenericSend,
+    GenericSender, SendResult, TryReceiveError,
 };
 use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -478,6 +478,34 @@ pub trait AsyncRuntime: Send {
     fn shutdown(&mut self);
 }
 
+/// A pending asynchronous cookie request`.
+pub struct PendingCookieRequest {
+    receiver: GenericReceiver<Vec<Serde<Cookie<'static>>>>,
+    callback: Option<Box<dyn FnOnce(Vec<Cookie<'static>>)>>,
+}
+
+impl PendingCookieRequest {
+    /// Try to receive the cookie response without blocking.
+    ///
+    /// Returns `Ok(true)` if the callback was invoked (request complete),
+    /// `Ok(false)` if the response is not ready yet,
+    /// or `Err(())` if the request was failed.
+    pub fn poll(&mut self) -> Result<bool, ()> {
+        match self.receiver.try_recv() {
+            Ok(cookies) => {
+                if let Some(callback) = self.callback.take() {
+                    let cookies: Vec<Cookie<'static>> =
+                        cookies.into_iter().map(|c| c.into_inner()).collect();
+                    callback(cookies);
+                }
+                Ok(true)
+            },
+            Err(TryReceiveError::Empty) => Ok(false),
+            Err(TryReceiveError::ReceiveError(_)) => Err(()),
+        }
+    }
+}
+
 /// Handle to a resource thread
 pub type CoreResourceThread = GenericSender<CoreResourceMsg>;
 
@@ -552,6 +580,22 @@ impl ResourceThreads {
             .into_iter()
             .map(|cookie| cookie.into_inner())
             .collect()
+    }
+
+    pub fn cookies_for_url_async(
+        &self,
+        url: ServoUrl,
+        source: CookieSource,
+        callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
+    ) -> PendingCookieRequest {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::GetCookiesForUrl(url, sender, source));
+        PendingCookieRequest {
+            receiver,
+            callback: Some(Box::new(callback)),
+        }
     }
 
     pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
