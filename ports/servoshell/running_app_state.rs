@@ -468,7 +468,7 @@ impl RunningAppState {
 
     /// If we are exiting after achieving a stable image or we want to save the display of the
     /// [`WebView`] to an image file, request a screenshot of the [`WebView`].
-    fn maybe_request_screenshot(&self, webview: WebView) {
+    fn maybe_request_screenshot(&self, webview: &WebView) {
         let output_path = self.servoshell_preferences.output_image_path.clone();
         if !self.servoshell_preferences.exit_after_stable_image && output_path.is_none() {
             return;
@@ -755,7 +755,7 @@ impl WebViewDelegate for RunningAppState {
             .set_cursor(cursor);
     }
 
-    fn notify_load_status_changed(&self, webview: WebView, status: LoadStatus) {
+    fn notify_load_status_changed(&self, webview: &WebView, status: LoadStatus) {
         self.window_for_webview_id(webview.id()).set_needs_update();
 
         if status == LoadStatus::Complete {

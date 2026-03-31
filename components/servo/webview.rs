@@ -276,7 +276,7 @@ impl WebView {
         self.inner().load_status
     }
 
-    pub(crate) fn set_load_status(self, new_value: LoadStatus) {
+    pub(crate) fn set_load_status(&self, new_value: LoadStatus) {
         if self.inner().load_status == new_value {
             return;
         }
@@ -458,7 +458,7 @@ impl WebView {
     }
 
     pub fn reload(&self) {
-        self.inner_mut().load_status = LoadStatus::Started;
+        self.set_load_status(LoadStatus::Started);
         self.inner()
             .servo
             .constellation_proxy()
