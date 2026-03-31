@@ -8740,6 +8740,7 @@ dependencies = [
  "serde",
  "servo-base",
  "servo-config",
+ "servo-default-resources",
  "servo-malloc-size-of",
  "servo-net-traits",
  "servo-profile",

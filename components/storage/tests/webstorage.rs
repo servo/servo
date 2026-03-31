@@ -6,6 +6,7 @@ use profile::mem as profile_mem;
 use servo_base::generic_channel as base_channel;
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::TEST_WEBVIEW_ID;
+use servo_default_resources as _;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};

@@ -17,7 +17,7 @@ test = false
 doctest = false
 
 [features]
-test-util = ["hyper-util/server-graceful"]
+test-util = ["hyper-util/server-graceful", "dep:servo-default-resources"]
 
 [dependencies]
 async-compression = { version = "0.4.12", default-features = false, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
@@ -69,6 +69,7 @@ serde = { workspace = true }
 servo_arc = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
+servo-default-resources = { workspace = true, optional = true }
 servo-url = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
