@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://w3c.github.io/uievents/#interface-mouseevent
+// https://w3c.github.io/pointerevents/#dom-mouseevent
 [Exposed=Window]
 interface MouseEvent : UIEvent {
     [Throws] constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict = {});
@@ -27,7 +27,7 @@ interface MouseEvent : UIEvent {
     boolean getModifierState (DOMString keyArg);
 };
 
-// https://w3c.github.io/uievents/#dictdef-eventmodifierinit
+// https://w3c.github.io/pointerevents/#dom-mouseeventinit
 dictionary MouseEventInit : EventModifierInit {
     long           screenX = 0;
     long           screenY = 0;
@@ -38,7 +38,7 @@ dictionary MouseEventInit : EventModifierInit {
     EventTarget?   relatedTarget = null;
 };
 
-// https://w3c.github.io/uievents/#idl-interface-MouseEvent-initializers
+// https://w3c.github.io/pointerevents/#dom-mouseevent-initmouseevent
 partial interface MouseEvent {
     // Deprecated in DOM Level 3
     undefined initMouseEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,

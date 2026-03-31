@@ -183,7 +183,7 @@ impl MouseEvent {
         ev
     }
 
-    /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>
+    /// <https://w3c.github.io/pointerevents/#initialize-a-mouseevent>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn initialize_mouse_event(
         &self,
@@ -230,7 +230,7 @@ impl MouseEvent {
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         // These values come from the event tables in
-        // <https://w3c.github.io/uievents/#events-mouse-types>.
+        // <https://w3c.github.io/pointerevents/#mouse-event-types>.
         let (bubbles, cancelable, composed) = match event_name {
             FireMouseEventType::Move | FireMouseEventType::Over | FireMouseEventType::Out => {
                 (EventBubbles::Bubbles, EventCancelable::Cancelable, true)
@@ -269,8 +269,9 @@ impl MouseEvent {
         mouse_event
     }
 
-    /// Create a [MouseEvent] triggered by the embedder
-    /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
+    /// Create a [MouseEvent] triggered by the embedder.
+    ///
+    /// <https://w3c.github.io/pointerevents/#create-a-cancelable-mouseevent>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn for_platform_button_event(
         event_type: Atom,
@@ -441,7 +442,7 @@ impl MouseEvent {
 }
 
 impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-mouseevent>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -480,22 +481,22 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         Ok(event)
     }
 
-    /// <https://w3c.github.io/uievents/#widl-MouseEvent-screenX>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-screenx>
     fn ScreenX(&self) -> i32 {
         self.screen_point.get().x
     }
 
-    /// <https://w3c.github.io/uievents/#widl-MouseEvent-screenY>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-screeny>
     fn ScreenY(&self) -> i32 {
         self.screen_point.get().y
     }
 
-    /// <https://w3c.github.io/uievents/#widl-MouseEvent-clientX>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-clientx>
     fn ClientX(&self) -> i32 {
         self.client_point.get().x
     }
 
-    /// <https://w3c.github.io/uievents/#widl-MouseEvent-clientY>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-clienty>
     fn ClientY(&self) -> i32 {
         self.client_point.get().y
     }
@@ -586,42 +587,42 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         self.PageY()
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-ctrlkey>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-ctrlkey>
     fn CtrlKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::CONTROL)
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-shiftkey>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-shiftkey>
     fn ShiftKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::SHIFT)
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-altkey>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-altkey>
     fn AltKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::ALT)
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-metakey>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-metakey>
     fn MetaKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::META)
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-button>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-button>
     fn Button(&self) -> i16 {
         self.button.get()
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-buttons>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-buttons>
     fn Buttons(&self) -> u16 {
         self.buttons.get()
     }
 
-    /// <https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-relatedtarget>
     fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.upcast::<Event>().related_target()
     }
 
-    /// <https://w3c.github.io/uievents/#widl-MouseEvent-initMouseEvent>
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-initmouseevent>
     fn InitMouseEvent(
         &self,
         type_arg: DOMString,
@@ -696,7 +697,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         self.uievent.IsTrusted()
     }
 
-    /// <https://w3c.github.io/uievents/#dom-mouseevent-getmodifierstate>
+    /// <https://w3c.github.io/pointerevents/#dfn-getmodifierstate-keyarg>
     fn GetModifierState(&self, key_arg: DOMString) -> bool {
         self.modifiers
             .get()
