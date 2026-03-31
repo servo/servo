@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="400" height="500" viewBox="0 0 400 500"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElementSideAttribute"/>
+    <html:link rel="help" href="https://github.com/w3c/svgwg/issues/1068"/>
+    <html:link rel="match" href="textpath-side-005-ref.svg"/>
+    <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-200"/>
+  </metadata>
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 16px; }
+  </style>
+  <defs>
+    <!-- Clockwise circle as path, starting at 3 o'clock (230,100) -->
+    <path id="circle-cw" d="M 230,100 A 80,80 0 0,1 70,100 A 80,80 0 0,1 230,100"/>
+    <!-- Visual guide -->
+    <circle id="guide" cx="150" cy="100" r="80"/>
+  </defs>
+  <!-- Row 1: side="left" on CW circle (text on outside) -->
+  <g transform="translate(0,0)">
+    <use href="#guide" style="fill:none;stroke:lightblue"/>
+    <text fill="blue">
+      <textPath href="#circle-cw" side="left">ABCD</textPath>
+    </text>
+  </g>
+  <!-- Row 2: side="right" on CW circle (text on inside) -->
+  <g transform="translate(0,220)">
+    <use href="#guide" style="fill:none;stroke:lightblue"/>
+    <text fill="green">
+      <textPath href="#circle-cw" side="right">ABCD</textPath>
+    </text>
+  </g>
+</svg>

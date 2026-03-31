@@ -370,7 +370,7 @@ let $$9 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x8e\x80\x80\x80\x00\x03\x
 let $9 = instance($$9);
 
 // global.wast:659
-assert_return(() => call($9, "get-elem", [0]), "global.wast:659", "ref.null");
+assert_return(() => call($9, "get-elem", [0]), "global.wast:659", null);
 
 // global.wast:660
 assert_return(() => call($9, "get-elem", [4]), "global.wast:660", "ref.func");

@@ -57,3 +57,9 @@ def get_base64_for_extension_file(filename):
         "rb",
     ) as file:
         return base64.b64encode(file.read()).decode("utf-8")
+
+
+def is_wayland():
+    # We don't use mozinfo.display here to make sure it also
+    # works upstream in wpt Github repo.
+    return os.environ.get("WAYLAND_DISPLAY", "") != ""

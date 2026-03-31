@@ -205,6 +205,29 @@
           );
         }
       }
+      for (const method of [
+        "streamAfterHTML",
+        "streamBeforeHTML",
+        "streamReplaceWithHTML",
+      ]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          const comment = doc.appendChild(doc.createComment("ref"));
+          assert_throws_dom("HierarchyRequestError", () => {
+            comment[method_name]();
+          });
+        }, `${method_name} throw if parent is a Document`);
+
+        test(() => {
+          const fragment = document.createDocumentFragment();
+          const span = document.createElement("span");
+          fragment.appendChild(span);
+          assert_throws_dom("HierarchyRequestError", () => {
+            span[method_name]();
+          });
+        }, `${method_name} throw if parent is a DocumentFragment`);
+      }
     }
   </script>
 </body>

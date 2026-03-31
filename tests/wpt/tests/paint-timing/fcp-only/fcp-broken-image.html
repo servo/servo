@@ -5,17 +5,17 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/utils.js"></script>
-<img id='broken'></div>
+<img id='broken'>
 <script>
 setup({"hide_test_state": true});
 promise_test(async t => {
   const onload = new Promise(r => window.addEventListener('load', r));
   await onload;
-  return assertNoFirstContentfulPaint(t).then(() => {
-    document.getElementById('broken').src = '../non-existent-image.jpg';
-  }).then(() => {
-    return assertFirstContentfulPaint(t);
-  });
-}, 'Broken image triggers First Contentful Paint.');
+  await assertNoFirstContentfulPaint(t);
+
+  document.getElementById('broken').src = '../non-existent-image.jpg';
+
+  await assertNoFirstContentfulPaint(t);
+}, 'Broken image should not trigger First Contentful Paint.');
 </script>
 </body>

@@ -56,4 +56,19 @@
     element.style = `background: border-area padding-box;`;
     assert_equals(element.style.background , 'padding-box border-area');
   }, "border-area padding-box");
+
+  test((t) => {
+    element.style = `background: border-area text;`;
+    assert_equals(element.style.backgroundClip , 'border-area text');
+  }, "border-area text sets background-clip");
+
+  test((t) => {
+    element.style = `background: text border-area;`;
+    assert_equals(element.style.backgroundClip , 'border-area text');
+  }, "text border-area serializes as border-area text");
+
+  test((t) => {
+    element.style = `background: border-area text;`;
+    assert_equals(element.style.backgroundOrigin , 'border-box');
+  }, "border-area text sets background-origin to border-box");
 </script>
