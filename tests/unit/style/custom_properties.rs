@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
+use selectors::matching::IncludeStartingStyle;
 use servo_arc::Arc;
 use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
@@ -20,7 +21,7 @@ use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
 use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::CascadeLevel;
+use style::rule_tree::{CascadeLevel, RuleCascadeFlags};
 use style::stylesheets::UrlExtraData;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -86,10 +87,14 @@ fn cascade(
         stylist.quirks_mode(),
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
+        IncludeStartingStyle::No,
     );
     let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
-    let priority =
-        CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root());
+    let priority = CascadePriority::new(
+        CascadeLevel::same_tree_author_normal(),
+        LayerOrder::root(),
+        RuleCascadeFlags::empty(),
+    );
     let mut attribute_tracker = AttributeTracker::new_dummy();
 
     for declaration in &declarations {

@@ -10,7 +10,9 @@ use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands};
-use style::rule_tree::{CascadeLevel, CascadeOrigin, RuleTree, StrongRuleNode, StyleSource};
+use style::rule_tree::{
+    CascadeLevel, CascadeOrigin, RuleCascadeFlags, RuleTree, StrongRuleNode, StyleSource,
+};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{
@@ -97,7 +99,7 @@ fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>)
     rule_tree.insert_ordered_rules(rules.into_iter().map(|(style_source, cascade_level)| {
         (
             style_source,
-            CascadePriority::new(cascade_level, LayerOrder::root()),
+            CascadePriority::new(cascade_level, LayerOrder::root(), RuleCascadeFlags::empty()),
         )
     }))
 }

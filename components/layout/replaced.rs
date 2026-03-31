@@ -13,6 +13,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
+use selectors::matching::IncludeStartingStyle;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
@@ -244,6 +245,7 @@ impl ReplacedContents {
             context.style_context.quirks_mode(),
             rule_cache_conditions,
             ContainerSizeQuery::none(),
+            IncludeStartingStyle::No,
         );
 
         let attr_to_computed = |attr_val: &AttrValue| {

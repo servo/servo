@@ -16,7 +16,7 @@ use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands,
 };
 use style::queries::values::PrefersColorScheme;
-use style::rule_tree::StyleSource;
+use style::rule_tree::{RuleCascadeFlags, StyleSource};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
@@ -86,7 +86,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             i as u32,
                             LayerId::root(),
                             ContainerConditionId::none(),
-                            /* in_starting_style = */ false,
+                            RuleCascadeFlags::empty(),
                             ScopeConditionId::none(),
                         )
                     })
