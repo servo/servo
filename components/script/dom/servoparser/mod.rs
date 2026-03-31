@@ -36,8 +36,8 @@ use script_traits::DocumentActivity;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
-use servo_constellation_traits::TargetSnapshotParams;
-use servo_url::ServoUrl;
+use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
+use servo_url::{MutableOrigin, ServoUrl};
 use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
@@ -87,6 +87,7 @@ use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::dom::virtualmethods::vtable_for;
+use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType};
@@ -927,6 +928,7 @@ pub(crate) struct ParserContext {
     /// To report CSP violations to the global that initiated the navigation
     parent_info: Option<PipelineId>,
     target_snapshot_params: TargetSnapshotParams,
+    load_origin: LoadOrigin,
 }
 
 impl ParserContext {
@@ -937,6 +939,7 @@ impl ParserContext {
         creation_sandboxing_flag_set: SandboxingFlagSet,
         parent_info: Option<PipelineId>,
         target_snapshot_params: TargetSnapshotParams,
+        load_origin: LoadOrigin,
     ) -> ParserContext {
         ParserContext {
             parser: None,
@@ -956,6 +959,7 @@ impl ParserContext {
                 about_base_url: Default::default(),
             },
             target_snapshot_params,
+            load_origin,
         }
     }
 
@@ -1313,12 +1317,23 @@ impl FetchResponseListener for ParserContext {
         // Step 21.11. Set responseOrigin to the result of determining the origin
         // given response's URL, finalSandboxFlags, and entry's document state's
         // initiator origin.
-        // TODO
+        let source_origin = match self.load_origin {
+            LoadOrigin::Script(ref snapshot) => {
+                Some(MutableOrigin::from_snapshot(snapshot.clone()))
+            },
+            _ => None,
+        };
+        let origin = determine_the_origin(
+            metadata.as_ref().map(|metadata| &metadata.final_url),
+            final_sandboxing_flag_set,
+            source_origin,
+        );
 
         let parser = match ScriptThread::page_headers_available(
             self.webview_id,
             self.pipeline_id,
             metadata.as_ref(),
+            origin.clone(),
             cx,
         ) {
             Some(parser) => parser,
@@ -1345,7 +1360,7 @@ impl FetchResponseListener for ParserContext {
         policy_container.csp_list.should_navigation_response_to_navigation_request_be_blocked(
             window,
             self.url.clone().into_url(),
-            &document.origin().immutable().clone().into_url_origin(),
+            &origin.immutable().clone().into_url_origin(),
         )
         // navigationParams's reserved environment is non-null and the result of
         // checking a navigation response's adherence to its embedder policy given navigationParams's response,
@@ -1357,7 +1372,7 @@ impl FetchResponseListener for ParserContext {
         || !check_a_navigation_response_adherence_to_x_frame_options(
             window,
             policy_container.csp_list.as_ref(),
-            &document.origin(),
+            &origin,
             metadata
                 .as_ref()
                 .and_then(|metadata| metadata.headers.as_ref()),

@@ -151,7 +151,7 @@ use crate::messaging::{
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
-use crate::navigation::{InProgressLoad, NavigationListener, determine_the_origin};
+use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
@@ -537,10 +537,11 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<&Metadata>,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, cx)
+            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, origin, cx)
         })
     }
 
@@ -3072,6 +3073,7 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<&Metadata>,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
@@ -3124,7 +3126,7 @@ impl ScriptThread {
         };
 
         let load = self.incomplete_loads.borrow_mut().remove(idx);
-        metadata.map(|meta| self.load(meta, load, cx))
+        metadata.map(|meta| self.load(meta, load, origin, cx))
     }
 
     /// Handles a request for the window title.
@@ -3332,6 +3334,7 @@ impl ScriptThread {
         &self,
         metadata: &Metadata,
         incomplete: InProgressLoad,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServoParser> {
         let script_to_constellation_chan = ScriptToConstellationChan {
@@ -3347,18 +3350,6 @@ impl ScriptThread {
         debug!(
             "ScriptThread: loading {} on pipeline {:?}",
             incomplete.load_data.url, incomplete.pipeline_id
-        );
-
-        let source_origin = match incomplete.load_data.load_origin {
-            LoadOrigin::Script(ref snapshot) => {
-                Some(MutableOrigin::from_snapshot(snapshot.clone()))
-            },
-            _ => None,
-        };
-        let origin = determine_the_origin(
-            Some(&final_url),
-            incomplete.load_data.creation_sandboxing_flag_set,
-            source_origin,
         );
 
         let font_context = Arc::new(FontContext::new(
@@ -3820,6 +3811,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
+            incomplete.load_data.load_origin.clone(),
         );
         self.incomplete_parser_contexts
             .0
@@ -4040,6 +4032,7 @@ impl ScriptThread {
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
             incomplete.target_snapshot_params,
+            incomplete.load_data.load_origin.clone(),
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4092,6 +4085,7 @@ impl ScriptThread {
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
         let target_snapshot_params = incomplete.target_snapshot_params;
+        let load_origin = incomplete.load_data.load_origin.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4101,6 +4095,7 @@ impl ScriptThread {
             creation_sandboxing_flag_set,
             parent_info,
             target_snapshot_params,
+            load_origin,
         );
         let dummy_request_id = RequestId::default();
 
