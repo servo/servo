@@ -1959,28 +1959,10 @@ impl Element {
     /// Returns the focusable appropriate DOM anchor for the focuable area when this element is
     /// clicked on.
     ///
-    /// This returns the shadow host if this is a text control inner editor. This is a workaround
-    /// for the focus delegation of shadow DOM and should be used only to delegate focusable inner
-    /// editor of [HTMLInputElement] and [HTMLTextAreaElement].
-    ///
     /// TODO: This should eventually handle `delegatesFocus` in shadow DOM.
     pub(crate) fn find_click_focusable_area(&self) -> Option<DomRoot<Element>> {
         if self.is_click_focusable() {
             return Some(DomRoot::from_ref(self));
-        }
-
-        if self.upcast::<Node>().implemented_pseudo_element() ==
-            Some(PseudoElement::ServoTextControlInnerEditor)
-        {
-            // The containing shadow host might not be a focusable area if it is disabled.
-            let containing_shadow_host = self
-                .containing_shadow_root()
-                .map(|root| root.Host())
-                .expect("Text control inner shadow DOM should always have a shadow host.");
-            if !containing_shadow_host.is_click_focusable() {
-                return None;
-            }
-            return Some(containing_shadow_host);
         }
 
         self.node
