@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use core::slice;
 use std::sync::{Arc, Mutex};
 
 use log::debug;
@@ -63,9 +64,12 @@ impl MediaSourceWrapper {
                 length,
                 pos
             );
+            let buffer = unsafe {
+                slice::from_raw_parts_mut(buffer, length as usize)
+            };
             let (read_bytes, seek_pos) = {
                 let mut playback_buffer_lock = playback_buffer_clone.lock().unwrap();
-                playback_buffer_lock.read_data(buffer, length, pos)
+                playback_buffer_lock.read_data(buffer, pos)
             };
             // The playback_buffer lock must be released before calling the seek
             // closure, which blocks on IPC with the script thread. Holding the
@@ -177,7 +181,7 @@ impl PlaybackBuffer {
     }
 
     /// Return (Number of Bytes read, Some(Seek Position) if no data at that position)
-    pub fn read_data(&mut self, dest: *mut u8, length: u32, pos: i64) -> (i32, Option<u64>) {
+    pub fn read_data(&mut self, dest_slice: &mut [u8], pos: i64) -> (i32, Option<u64>) {
         if self.is_seeking {
             debug!(
                 "Currently seeking, cannot read data at position {}, buffer head is at {}, buffer len is {}， has_active_request: {}",
@@ -210,7 +214,7 @@ impl PlaybackBuffer {
             self.is_seeking = true;
             return (0, Some(pos as u64));
         }
-        let read_len = available_data.clamp(0, length as i64) as usize;
+        let read_len = available_data.clamp(0, dest_slice.len() as i64) as usize;
         if read_len == 0 {
             debug!(
                 "No available data to read at position {}, buffer head is at {}, buffer len is {}， has_active_request: {}",
@@ -221,7 +225,6 @@ impl PlaybackBuffer {
             );
             return (0, None);
         }
-        let dest_slice = unsafe { std::slice::from_raw_parts_mut(dest, length as usize) };
         dest_slice[..read_len]
             .copy_from_slice(&self.buffer[(pos_offset) as usize..(pos_offset as usize + read_len)]);
 
