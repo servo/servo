@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Configuration options for a single run of the servo application. Created
-//! from command line arguments.
+//! Options are global configuration options that are initialized once and cannot be changed at
+//! runtime.
 
 use std::default::Default;
 use std::path::PathBuf;
@@ -12,15 +12,14 @@ use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
-/// Global flags for Servo, currently set on the command line.
+/// The set of global options supported by Servo. The values for these can be configured during
+/// initialization of Servo and cannot be changed later at runtime.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
-    /// `None` to disable the time profiler or `Some` to enable it with:
+    /// `None` to disable the time profiler or `Some` to enable it with either:
     ///
     ///  - an interval in seconds to cause it to produce output on that interval.
-    ///    (`i.e. -p 5`).
     ///  - a file path to write profiling info to a TSV file upon Servo's termination.
-    ///    (`i.e. -p out.tsv`).
     pub time_profiling: Option<OutputOptions>,
 
     /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
@@ -79,10 +78,10 @@ pub struct Opts {
     pub unminify_css: bool,
 }
 
-/// Debug options for Servo, currently set on the command line with -Z
+/// Debug options for Servo.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DiagnosticsLogging {
-    /// List all the debug options.
+    /// Print all the debug options supported by Servo to the standard output.
     pub help: bool,
 
     /// Print the DOM after each restyle.
@@ -202,9 +201,9 @@ impl DiagnosticsLogging {
     }
 }
 
+/// The destination for the time profiler reports.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum OutputOptions {
-    /// Database connection config (hostname, name, user, pass)
     FileName(String),
     Stdout(f64),
 }
@@ -241,16 +240,16 @@ static OPTIONS: OnceLock<Opts> = OnceLock::new();
 /// Initialize options.
 ///
 /// Should only be called once at process startup.
-/// Must be called before the first call to [get].
+/// Must be called before the first call to [`get`].
 pub fn initialize_options(opts: Opts) {
     OPTIONS.set(opts).expect("Already initialized");
 }
 
 /// Get the servo options
 ///
-/// If the servo options have not been initialized by calling [initialize_options], then the
-/// options will be initialized to default values. Outside of tests the options should
-/// be explicitly initialized.
+/// If the servo options have not been initialized by calling [`initialize_options`], then the
+/// options will be initialized to default values. Outside of tests the options should be
+/// explicitly initialized.
 #[inline]
 pub fn get() -> &'static Opts {
     // In unit-tests using default options reduces boilerplate.
