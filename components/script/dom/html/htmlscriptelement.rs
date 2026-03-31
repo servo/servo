@@ -205,16 +205,8 @@ impl HTMLScriptElement {
     fn get_script_kind(&self) -> Option<ExternalScriptKind> {
         let element = self.upcast::<Element>();
         let was_parser_inserted = self.parser_inserted.get();
-        let mut asynch = element.has_attribute(&local_name!("async"));
-
-        // Step 4.
-        // If parser document is non-null and el does not have an async attribute, then set el's force async to true.
-        if was_parser_inserted && !asynch {
-            asynch = true;
-        }
-
+        let asynch = element.has_attribute(&local_name!("async"));
         let script_type = self.get_script_type()?;
-
         let mut script_kind = ExternalScriptKind::Asap;
 
         match script_type {
