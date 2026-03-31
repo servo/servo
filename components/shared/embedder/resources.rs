@@ -11,7 +11,7 @@ pub type ResourceReader = &'static (dyn ResourceReaderMethods + Sync + Send);
 // Note: A weak symbol would perhaps be preferable, but that isn't available in stable rust yet.
 inventory::collect!(ResourceReader);
 
-static RES: LazyLock<ResourceReader> = {
+static RESOURCE_READER: LazyLock<ResourceReader> = {
     LazyLock::new(|| {
         let mut resource_reader_iterator = inventory::iter::<ResourceReader>.into_iter();
         let Some(resource_reader) = resource_reader_iterator.next() else {
@@ -30,7 +30,7 @@ static RES: LazyLock<ResourceReader> = {
 };
 
 pub fn read_bytes(res: Resource) -> Vec<u8> {
-    RES.read(res)
+    RESOURCE_READER.read(res)
 }
 
 pub fn read_string(res: Resource) -> String {
@@ -38,11 +38,11 @@ pub fn read_string(res: Resource) -> String {
 }
 
 pub fn sandbox_access_files() -> Vec<PathBuf> {
-    RES.sandbox_access_files()
+    RESOURCE_READER.sandbox_access_files()
 }
 
 pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
-    RES.sandbox_access_files_dirs()
+    RESOURCE_READER.sandbox_access_files_dirs()
 }
 
 pub enum Resource {
