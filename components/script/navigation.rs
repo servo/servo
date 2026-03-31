@@ -182,7 +182,7 @@ pub(crate) struct InProgressLoad {
     /// The [`Theme`] to use for this page, once it loads.
     #[no_trace]
     pub(crate) theme: Theme,
-    ///
+    /// The [`TargetSnapshotParams`] to use when creating this document.
     #[no_trace]
     pub(crate) target_snapshot_params: TargetSnapshotParams,
 }

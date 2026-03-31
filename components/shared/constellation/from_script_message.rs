@@ -434,7 +434,8 @@ pub struct IFrameLoadInfo {
     /// Whether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub history_handling: NavigationHistoryBehavior,
-    ///
+    /// A snapshot of the navigation-related parameters of the target
+    /// of this navigation.
     pub target_snapshot_params: TargetSnapshotParams,
 }
 

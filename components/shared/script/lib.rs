@@ -77,7 +77,7 @@ pub struct NewPipelineInfo {
     pub user_content_manager_id: Option<UserContentManagerId>,
     /// The [`Theme`] of the new layout.
     pub theme: Theme,
-    ///
+    /// A snapshot of the navigation parameters of the target of this navigation.
     pub target_snapshot_params: TargetSnapshotParams,
 }
 
