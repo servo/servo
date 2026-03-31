@@ -73,7 +73,7 @@ def copy_packaged_resources(top_dir: str, destination: str) -> None:
     os.makedirs(destination, exist_ok=True)
     shutil.copytree(path.join(top_dir, "resources"), destination, dirs_exist_ok=True)
     shutil.copytree(
-        path.join(top_dir, "components", "shared", "default-resources", "resources"),
+        path.join(top_dir, "components", "default-resources", "resources"),
         path.join(destination, "named_resources"),
         dirs_exist_ok=True,
     )

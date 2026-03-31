@@ -75,7 +75,7 @@ class MachCommands(CommandBase):
     @Command("update-hsts-preload", description="Download the HSTS preload list", category="bootstrap")
     def bootstrap_hsts_preload(self, force: bool = False) -> None:
         preload_filename = "hsts_preload.fstmap"
-        preload_path = path.join(self.context.topdir, "components", "shared", "default-resources", "resources")
+        preload_path = path.join(self.context.topdir, "components", "default-resources", "resources")
 
         chromium_hsts_url = (
             "https://chromium.googlesource.com/chromium/src"
@@ -116,7 +116,6 @@ class MachCommands(CommandBase):
         dst_filename = path.join(
             self.context.topdir,
             "components",
-            "shared",
             "default-resources",
             "resources",
             "public_domains.txt",
