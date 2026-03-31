@@ -84,7 +84,9 @@ impl MediaSourceWrapper {
         };
 
         let box_closure: Box<dyn Fn(*mut u8, u32, i64) -> i32> = Box::new(read_at_closure);
-        // Why do we need double boxing here? Because we need to convert the closure into a raw pointer to pass to C, but Rust does not allow us to directly convert a Box<dyn Fn> into a raw pointer, we need to first box it and then convert the box into a raw pointer.
+        // Double boxing is needed because we need to convert the closure into a raw pointer to pass to C,
+        // but Rust does not allow us to directly convert a Box<dyn Fn> into a raw pointer, we need to first box it 
+        // and then convert the box into a raw pointer.
         let double_box_closure = Box::new(box_closure);
 
         extern "C" fn oh_avdatasource_read_at_callback(
