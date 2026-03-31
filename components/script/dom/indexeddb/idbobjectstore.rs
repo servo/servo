@@ -169,6 +169,39 @@ impl IDBObjectStore {
         self.global().storage_threads().sender()
     }
 
+    /// <https://www.w3.org/TR/IndexedDB-3/#clone>
+    fn clone_value_in_target_realm(
+        &self,
+        cx: &mut JSContext,
+        value: HandleValue,
+        clone: MutableHandleValue<'_>,
+    ) -> Fallible<()> {
+        // Step 1. Assert: transaction's state is active.
+        debug_assert!(self.transaction.is_active());
+
+        // Step 2. Set transaction's state to inactive.
+        //
+        // NOTE: The transaction is made inactive so that getters or other side
+        // effects triggered by the cloning operation are unable to make
+        // additional requests against the transaction.
+        self.transaction.set_active_flag(false);
+
+        let result = (|| {
+            // Step 3. Let serialized be ? StructuredSerializeForStorage(value).
+            let serialized = structuredclone::write(cx.into(), value, None)?;
+
+            // Step 4. Let clone be ? StructuredDeserialize(serialized, targetRealm).
+            let _ = structuredclone::read(&self.global(), serialized, clone, CanGc::from_cx(cx))?;
+            Ok(())
+        })();
+
+        // Step 5. Set transaction's state to active.
+        self.transaction.set_active_flag(true);
+
+        // Step 6. Return clone.
+        result
+    }
+
     fn has_key_generator(&self) -> bool {
         self.has_key_generator
     }
@@ -315,22 +348,12 @@ impl IDBObjectStore {
         // Step 9. Let targetRealm be a user-agent defined Realm.
         // Step 10. Let clone be a clone of value in targetRealm during transaction.
         // Rethrow any exceptions.
-        let cloned_value = structuredclone::write(cx.into(), value, None)?;
+        rooted!(&in(cx) let mut cloned_js_value = NullValue());
+        self.clone_value_in_target_realm(cx, value, cloned_js_value.handle_mut())?;
 
         // Step 11. If store uses in-line keys, then:
         let cloned_value = match self.key_path.as_ref() {
             Some(key_path) => {
-                rooted!(&in(cx) let mut cloned_js_value = NullValue());
-                let _ = structuredclone::read(
-                    &self.global(),
-                    cloned_value,
-                    cloned_js_value.handle_mut(),
-                    CanGc::from_cx(cx),
-                )?;
-
-                // TODO: Avoid this deserialize/re-serialize round-trip once extract/inject can
-                // operate directly on the structured clone payload.
-
                 // Step 11.1. Let kpk be the result of extracting a key from a value using a key
                 // path with clone and store’s key path. Rethrow any exceptions.
                 match extract_key(cx, cloned_js_value.handle(), key_path, None)? {
@@ -377,7 +400,7 @@ impl IDBObjectStore {
 
                 structuredclone::write(cx.into(), cloned_js_value.handle(), None)?
             },
-            None => cloned_value,
+            None => structuredclone::write(cx.into(), cloned_js_value.handle(), None)?,
         };
         let Ok(serialized_value) = postcard::to_stdvec(&cloned_value) else {
             return Err(Error::InvalidState(None));
