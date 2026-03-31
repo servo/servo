@@ -145,7 +145,8 @@ use servo_base::generic_channel::{
     GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
 };
 use servo_base::id::{
-    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
+    BrowsingContextGroupId, BrowsingContextId, CONSTELLATION_PIPELINE_NAMESPACE_ID,
+    FIRST_CONTENT_PIPELINE_NAMESPACE_ID, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
     ScriptEventLoopId, WebViewId,
 };
@@ -651,8 +652,7 @@ where
 
                 let swmanager_receiver = swmanager_ipc_receiver.route_preserving_errors();
 
-                // Zero is reserved for the embedder.
-                PipelineNamespace::install(PipelineNamespaceId(1));
+                PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
                 #[cfg(feature = "webgpu")]
                 let webrender_wgpu = WebRenderWGPU {
@@ -699,9 +699,7 @@ where
                     pipelines: Default::default(),
                     browsing_contexts: Default::default(),
                     pending_changes: vec![],
-                    // We initialize the namespace at 2, since we reserved
-                    // namespace 0 for the embedder, and 0 for the constellation
-                    next_pipeline_namespace_id: Cell::new(PipelineNamespaceId(2)),
+                    next_pipeline_namespace_id: Cell::new(FIRST_CONTENT_PIPELINE_NAMESPACE_ID),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,

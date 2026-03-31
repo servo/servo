@@ -251,6 +251,12 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = c
 )]
 pub struct PipelineNamespaceId(pub u32);
 
+pub const EMBEDDER_PIPELINE_NAMESPACE_ID: PipelineNamespaceId = PipelineNamespaceId(0);
+pub const CONSTELLATION_PIPELINE_NAMESPACE_ID: PipelineNamespaceId = PipelineNamespaceId(1);
+/// The next available [`PipelineNamespaceId`] for the allocation in the constellation. Starting from 2,
+/// since we reserved namespace 0 for the embedder, and 1 for the constellation.
+pub const FIRST_CONTENT_PIPELINE_NAMESPACE_ID: PipelineNamespaceId = PipelineNamespaceId(2);
+
 namespace_id! {PipelineId, PipelineIndex, "Pipeline"}
 
 size_of_test!(PipelineId, 8);
