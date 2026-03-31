@@ -75,7 +75,7 @@ class MachCommands(CommandBase):
     @Command("update-hsts-preload", description="Download the HSTS preload list", category="bootstrap")
     def bootstrap_hsts_preload(self, force: bool = False) -> None:
         preload_filename = "hsts_preload.fstmap"
-        preload_path = path.join(self.context.topdir, "components", "shared", "embedder", "resources")
+        preload_path = path.join(self.context.topdir, "components", "shared", "default-resources", "resources")
 
         chromium_hsts_url = (
             "https://chromium.googlesource.com/chromium/src"
@@ -108,7 +108,7 @@ class MachCommands(CommandBase):
 
     @Command(
         "update-pub-domains",
-        description="Download the public domains list and update the copy in embedder_traits",
+        description="Download the public domains list and update the copy in servo-default-resources",
         category="bootstrap",
     )
     def bootstrap_pub_suffix(self, force: bool = False) -> None:
@@ -117,7 +117,7 @@ class MachCommands(CommandBase):
             self.context.topdir,
             "components",
             "shared",
-            "embedder",
+            "default-resources",
             "resources",
             "public_domains.txt",
         )
