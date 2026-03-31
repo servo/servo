@@ -281,7 +281,8 @@ impl WebView {
             return;
         }
         self.inner_mut().load_status = new_value;
-        self.delegate().notify_load_status_changed(self, new_value);
+        self.delegate()
+            .notify_load_status_changed(self.clone(), new_value);
     }
 
     pub fn url(&self) -> Option<Url> {

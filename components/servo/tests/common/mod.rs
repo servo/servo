@@ -125,7 +125,7 @@ impl WebViewDelegate for WebViewDelegateImpl {
         webview.paint();
     }
 
-    fn notify_load_status_changed(&self, _webview: &WebView, status: LoadStatus) {
+    fn notify_load_status_changed(&self, _webview: WebView, status: LoadStatus) {
         if status == LoadStatus::Complete {
             self.load_status_changed.set(true);
         }
