@@ -7,9 +7,6 @@ use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::{MessagePortId, MessagePortIndex};
-use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::{FromJSValConvertible, ToJSValConvertible};
@@ -29,7 +26,6 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableWritablePair, StreamPipeOptions,
 };
 use script_bindings::str::DOMString;
-
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use script_bindings::conversions::{is_array_like, StringificationBehavior};
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -67,9 +63,12 @@ use crate::script_runtime::CanGc;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
-
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource, create_buffer_source};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{MessagePortId, MessagePortIndex};
+use servo_constellation_traits::MessagePortImpl;
 use super::readablestreambyobreader::ReadIntoRequest;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 
 /// State Machine for `PipeTo`.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
