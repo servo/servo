@@ -8,7 +8,7 @@ mozlog == 8.1.0
 setuptools == 78.1.1
 toml == 0.9.2
 
-# these are copied from requirements_firefox.txt
+# these are copied from tests/wpt/tests/tools/wptrunner/requirements_firefox.txt
 mozleak == 0.2
 mozrunner == 8.4.0
 mozversion == 2.4.0
