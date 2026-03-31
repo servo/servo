@@ -83,13 +83,11 @@ impl InnerDOMLayoutData {
     }
 
     fn repair_style(&self, node: &ServoThreadSafeLayoutNode, context: &SharedStyleContext) {
-        println!("repair style: {:?}", node);
         if let Some(layout_object) = &*self.self_box.borrow() {
             layout_object.repair_style(context, node, &node.style(context));
         }
 
         for pseudo_layout_data in self.pseudo_boxes.iter() {
-            println!("  - {:?}", pseudo_layout_data.pseudo);
             let Some(node_with_pseudo) = node.with_pseudo(pseudo_layout_data.pseudo) else {
                 continue;
             };
