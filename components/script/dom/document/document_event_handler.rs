@@ -1374,7 +1374,12 @@ impl DocumentEventHandler {
         );
 
         let event = keyevent.upcast::<Event>();
-        event.set_composed(true);
+
+        // FIXME: https://github.com/servo/servo/issues/43809
+        if event.type_() != atom!("keydown") {
+            event.set_composed(true);
+        }
+
         event.fire(target, can_gc);
 
         let mut flags = event.flags();
