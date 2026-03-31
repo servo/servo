@@ -8,17 +8,24 @@ use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, ns};
 use servo_config::pref;
 
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::document::Document;
+use crate::dom::document::documentorshadowroot::DocumentOrShadowRoot;
 use crate::dom::element::Element;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::node::NodeTraits;
+use crate::dom::node::node::Node;
 use crate::dom::promise::Promise;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::types::HTMLDialogElement;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::realms::{AlreadyInRealm, InRealm};
@@ -212,6 +219,40 @@ impl Document {
                 }
             },
         }
+    }
+}
+
+impl DocumentOrShadowRoot {
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
+    pub(crate) fn get_fullscreen_element(
+        node: &Node,
+        fullscreen_element: Option<DomRoot<Element>>,
+    ) -> Option<DomRoot<Element>> {
+        // Step 1. If this is a shadow root and its host is not connected, then return null.
+        if let Some(shadow_root) = node.downcast::<ShadowRoot>() {
+            if !shadow_root.Host().is_connected() {
+                return None;
+            }
+        }
+
+        // Step 2. Let candidate be the result of retargeting fullscreen element against this.
+        let retargeted = fullscreen_element?
+            .upcast::<EventTarget>()
+            .retarget(node.upcast());
+        // It's safe to unwrap downcasting to `Element` because `retarget` either returns `fullscreen_element` or a host of `fullscreen_element` and hosts are always elements.
+        let candidate = DomRoot::downcast::<Element>(retargeted).unwrap();
+
+        // Step 3. If candidate and this are in the same tree, then return candidate.
+        if *candidate
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty()) ==
+            *node
+        {
+            return Some(candidate);
+        }
+
+        // Step 4. Return null.
+        None
     }
 }
 
