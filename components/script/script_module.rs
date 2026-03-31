@@ -649,7 +649,6 @@ impl ModuleOwner {
             ModuleOwner::DynamicModule(_) => {},
             ModuleOwner::Window(script) => {
                 let script = script.root();
-                let document = script.owner_document();
 
                 let load = match module_tree {
                     Some(module_tree) => Ok(Script::Module(module_tree)),
@@ -661,10 +660,13 @@ impl ModuleOwner {
                     .has_attribute(&local_name!("async"));
 
                 if !asynch && script.get_parser_inserted() {
+                    let document = script.get_parser_document();
                     document.deferred_script_loaded(cx, &script, load);
                 } else if !asynch && !script.get_non_blocking() {
+                    let document = script.get_preparation_time_document().unwrap();
                     document.asap_in_order_script_loaded(cx, &script, load);
                 } else {
+                    let document = script.get_preparation_time_document().unwrap();
                     document.asap_script_loaded(cx, &script, load);
                 };
             },

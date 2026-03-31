@@ -256,6 +256,14 @@ impl HTMLScriptElement {
 
         Some(document)
     }
+
+    pub(crate) fn get_preparation_time_document(&self) -> Option<DomRoot<Document>> {
+        self.preparation_time_document.get()
+    }
+
+    pub(crate) fn get_parser_document(&self) -> DomRoot<Document> {
+        self.parser_document.as_rooted()
+    }
 }
 
 /// Supported script types as defined by
@@ -779,7 +787,7 @@ impl HTMLScriptElement {
         self.already_started.set(true);
 
         // Step 15. Set el's preparation-time document to its node document.
-        let doc = self.owner_document();
+        let mut doc = self.owner_document();
         self.preparation_time_document.set(Some(&doc));
 
         // Step 16.
@@ -955,15 +963,23 @@ impl HTMLScriptElement {
                         was_parser_inserted &&
                         !asynch
                     {
+                        doc = self.parser_document.as_rooted();
+
                         // Step 33.4: classic, has src, has defer, was parser-inserted, is not async.
                         ExternalScriptKind::Deferred
                     } else if was_parser_inserted && !asynch {
+                        doc = self.parser_document.as_rooted();
+
                         // Step 33.5: classic, has src, was parser-inserted, is not async.
                         ExternalScriptKind::ParsingBlocking
                     } else if !asynch && !self.non_blocking.get() {
+                        doc = self.preparation_time_document.get().unwrap();
+
                         // Step 33.3: classic, has src, is not async, is not non-blocking.
                         ExternalScriptKind::AsapInOrder
                     } else {
+                        doc = self.preparation_time_document.get().unwrap();
+
                         // Step 33.2: classic, has src.
                         ExternalScriptKind::Asap
                     };
