@@ -1862,10 +1862,10 @@ impl DocumentEventHandler {
         if scrolled_node.is_root() {
             document.handle_viewport_scroll_event();
         } else {
-            // Otherwise, check whether it is for a relevant element within the document.
-            let Some(node_id) = node_id_from_scroll_id(scrolled_node.0 as usize) else {
-                return;
-            };
+            // Otherwise, check whether it is for a relevant element within the document. For a `::before` or `::after`
+            // pseudo element we follow Gecko or Chromium's behavior to ensure that the event reaches the originating
+            // node.
+            let node_id = node_id_from_scroll_id(scrolled_node.0 as usize);
             let node = unsafe {
                 node::from_untrusted_node_address(UntrustedNodeAddress::from_id(node_id))
             };

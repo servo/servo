@@ -14,7 +14,7 @@ pub mod wrapper_traits;
 use std::any::Any;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
+use std::sync::atomic::AtomicIsize;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -655,8 +655,8 @@ pub struct PendingRestyle {
 /// The type of fragment that a scroll root is created for.
 ///
 /// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
-/// into the lower 2 bits of the `ScrollRootId`, which otherwise contains a 32-bit-aligned
-/// heap address.
+/// into the lower 2 bits of the `OpaqueNodeId`, which otherwise contains a 32-bit-aligned
+/// or 64-bit-aligned heap address depending on the machine.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FragmentType {
     /// A StackingContext for the fragment body itself.
@@ -677,36 +677,13 @@ impl From<Option<PseudoElement>> for FragmentType {
     }
 }
 
-/// The next ID that will be used for a special scroll root id.
-///
-/// A special scroll root is a scroll root that is created for generated content.
-static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicU64 = AtomicU64::new(0);
-
-/// If none of the bits outside this mask are set, the scroll root is a special scroll root.
-/// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
-
-/// Returns a new scroll root ID for a scroll root.
-fn next_special_id() -> u64 {
-    // We shift this left by 2 to make room for the fragment type ID.
-    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
-        SPECIAL_SCROLL_ROOT_ID_MASK
-}
-
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
     debug_assert_eq!(id & (fragment_type as usize), 0);
-    if fragment_type == FragmentType::FragmentBody {
-        id as u64
-    } else {
-        next_special_id() | (fragment_type as u64)
-    }
+    (id as u64) | (fragment_type as u64)
 }
 
-pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        return Some(id & !3);
-    }
-    None
+pub fn node_id_from_scroll_id(id: usize) -> usize {
+    id & !3
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
