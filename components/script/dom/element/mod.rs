@@ -6,3 +6,4 @@ pub(crate) use self::element::*;
 pub(crate) mod attributes;
 #[allow(clippy::module_inception, reason = "The interface name is element")]
 pub(crate) mod element;
+pub(crate) mod focus;
