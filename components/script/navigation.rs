@@ -218,7 +218,7 @@ impl InProgressLoad {
             policy_container: RequestPolicyContainer::PolicyContainer(
                 self.load_data.policy_container.clone().unwrap_or_default(),
             ),
-            origin: Origin::Origin(client_origin),
+            origin: Origin::Origin(client_origin.clone()),
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
         };
@@ -241,6 +241,7 @@ impl InProgressLoad {
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)
+        .origin(client_origin)
         .crash(self.load_data.crash.clone())
         .client(request_client);
         request_builder.url_list = self.url_list.clone();

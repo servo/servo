@@ -3987,12 +3987,6 @@ impl ScriptThread {
             .map(Referrer::ReferrerUrl)
             .unwrap_or(Referrer::NoReferrer);
         request_builder.referrer_policy = metadata.referrer_policy;
-        request_builder.origin = request_builder
-            .client
-            .as_ref()
-            .expect("Must have a client during redirect")
-            .origin
-            .clone();
 
         let headers = metadata
             .headers
