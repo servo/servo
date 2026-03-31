@@ -4207,7 +4207,10 @@ where
                     load_data.clone(),
                     is_private,
                     throttled,
-                    TargetSnapshotParams::default(), //XXXjdm wrong
+                    //TODO(jdm): We need to store the original target snapshot params
+                    // with the pipeline when it's created, so we can support reloading
+                    // a discarded document properly.
+                    TargetSnapshotParams::default(),
                 );
                 self.add_pending_change(SessionHistoryChange {
                     webview_id,
