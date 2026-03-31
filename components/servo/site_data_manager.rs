@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use bitflags::bitflags;
 use cookie::Cookie;
 use log::warn;
@@ -79,7 +81,7 @@ pub struct SiteDataManager {
     private_resource_threads: ResourceThreads,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
-    pending_cookie_requests: Vec<PendingCookieRequest>,
+    pending_cookie_requests: RefCell<Vec<PendingCookieRequest>>,
 }
 
 impl SiteDataManager {
@@ -94,7 +96,7 @@ impl SiteDataManager {
             private_resource_threads,
             public_storage_threads,
             private_storage_threads,
-            pending_cookie_requests: Vec::new(),
+            pending_cookie_requests: RefCell::new(Vec::new()),
         }
     }
 
@@ -234,7 +236,7 @@ impl SiteDataManager {
     /// The cookies are delivered via the provided callback during
     /// [`Servo::spin_event_loop`](crate::Servo::spin_event_loop).
     pub fn cookies_for_url_async(
-        &mut self,
+        &self,
         url: Url,
         source: CookieSource,
         callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
@@ -242,17 +244,18 @@ impl SiteDataManager {
         let request =
             self.public_resource_threads
                 .cookies_for_url_async(url.into(), source, callback);
-        self.pending_cookie_requests.push(request);
+        self.pending_cookie_requests.borrow_mut().push(request);
     }
 
-    /// Poll all pending asynchronous cookie requests. Invoke callbacks for any
-    /// that have received a response. Called during the event loop spin.
-    pub(crate) fn poll_pending_cookie_requests(&mut self) {
+    /// Poll pending asynchronous cookie requests, invoking callbacks for any
+    /// that have completed.
+    pub(crate) fn poll_pending_cookie_requests(&self) {
         self.pending_cookie_requests
+            .borrow_mut()
             .retain_mut(|request| match request.poll() {
-                Ok(true) => false,
-                Ok(false) => true,
-                Err(()) => false,
+                Some(true) => false,
+                Some(false) => true,
+                None => false,
             });
     }
 }

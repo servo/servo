@@ -251,7 +251,7 @@ impl ServoInner {
         }
 
         self.site_data_manager
-            .borrow_mut()
+            .borrow()
             .poll_pending_cookie_requests();
         self.paint.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
@@ -1025,10 +1025,6 @@ impl Servo {
 
     pub fn site_data_manager(&self) -> &SiteDataManager {
         &self.0.site_data_manager
-    }
-
-    pub fn site_data_manager_mut<'a>(&'a self) -> RefMut<'a, SiteDataManager> {
-        self.0.site_data_manager.borrow_mut()
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {

@@ -744,7 +744,7 @@ fn test_get_cookie_async() {
     let result_clone = result.clone();
     servo_test
         .servo()
-        .site_data_manager_mut()
+        .site_data_manager()
         .cookies_for_url_async(url.into_url(), CookieSource::NonHTTP, move |cookies| {
             assert!(continued_clone.get(), "callback fired synchronously");
             *result_clone.borrow_mut() = Some(cookies);

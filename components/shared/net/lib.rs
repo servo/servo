@@ -487,10 +487,10 @@ pub struct PendingCookieRequest {
 impl PendingCookieRequest {
     /// Try to receive the cookie response without blocking.
     ///
-    /// Returns `Ok(true)` if the callback was invoked (request complete),
-    /// `Ok(false)` if the response is not ready yet,
-    /// or `Err(())` if the request was failed.
-    pub fn poll(&mut self) -> Result<bool, ()> {
+    /// Returns `Some(true)` if the callback was invoked (request complete),
+    /// `Some(false)` if the response is not ready yet,
+    /// or `None` if the request was failed.
+    pub fn poll(&mut self) -> Option<bool> {
         match self.receiver.try_recv() {
             Ok(cookies) => {
                 if let Some(callback) = self.callback.take() {
@@ -498,10 +498,10 @@ impl PendingCookieRequest {
                         cookies.into_iter().map(|c| c.into_inner()).collect();
                     callback(cookies);
                 }
-                Ok(true)
+                Some(true)
             },
-            Err(TryReceiveError::Empty) => Ok(false),
-            Err(TryReceiveError::ReceiveError(_)) => Err(()),
+            Err(TryReceiveError::Empty) => Some(false),
+            Err(TryReceiveError::ReceiveError(_)) => None,
         }
     }
 }
