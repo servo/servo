@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// The types of preference values in Servo.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PrefValue {
     Float(f64),
@@ -16,6 +17,8 @@ pub enum PrefValue {
 }
 
 impl PrefValue {
+    /// Parse the `input` string as a preference value. Defaults to a `PrefValue::Str` if the input
+    /// cannot be parsed as valid value of one of the other types.
     pub fn from_booleanish_str(input: &str) -> Self {
         match input {
             "false" => PrefValue::Bool(false),
