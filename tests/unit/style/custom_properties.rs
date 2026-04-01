@@ -79,7 +79,7 @@ fn cascade(
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
-    builder.custom_properties = inherited.clone();
+    builder.substitution_functions.custom_properties = inherited.clone();
     let mut rule_cache_conditions = RuleCacheConditions::default();
     let mut context = Context::new(
         builder,
@@ -104,7 +104,7 @@ fn cascade(
         DeferFontRelativeCustomPropertyResolution::No,
         &mut attribute_tracker,
     );
-    context.builder.custom_properties
+    context.builder.substitution_functions.custom_properties
 }
 
 #[bench]
