@@ -532,7 +532,6 @@ function createEnvironmentActor(environment) {
             info.bindingVariables = buildBindings(environment)
         }
 
-        // TODO: Update this instead of registering
         actor = registerEnvironmentActor(info, parent);
         environmentActorsToEnvironments.set(actor, environment);
     }
@@ -541,15 +540,28 @@ function createEnvironmentActor(environment) {
 }
 
 function buildBindings(environment) {
-    let bindingVar = new Map();
+    let bindingVars = [];
     for (const name of environment.names()) {
         const value = environment.getVariable(name);
-        // <https://searchfox.org/firefox-main/source/devtools/server/actors/environment.js#87>
-        // We should not do this, it is more of a place holder for now.
-        // TODO: build and pass correct structure for this. This structure is very similar to "eval"
-        bindingVar[name] = JSON.stringify(value);
+        const property = {
+            name: name,
+            configurable: false,
+            enumerable: true,
+            writable: !value?.optimizedOut,
+            isAccessor: false,
+            value: createValueGrip(value),
+        };
+
+        // To avoid recursion errors in the WebIDL, preview needs to live outside of the property descriptor
+        let preview = undefined;
+        if (property.value.preview) {
+            preview = property.value.preview;
+            delete property.value.preview;
+        }
+
+        bindingVars.push({ property, preview });
     }
-    return bindingVar;
+    return bindingVars;
 }
 
 // Get a `Debugger.Environment` instance within which evaluation is taking place.

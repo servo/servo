@@ -10,26 +10,18 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::actor::{Actor, ActorEncode, ActorRegistry};
-use crate::actors::object::ObjectActorMsg;
+use crate::actors::object::{ObjectActorMsg, ObjectPropertyDescriptor};
 
 #[derive(Serialize)]
 struct EnvironmentBindings {
     arguments: Vec<Value>,
-    variables: HashMap<String, EnvironmentVariableDesc>,
+    variables: HashMap<String, ObjectPropertyDescriptor>,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct EnvironmentFunction {
     display_name: String,
-}
-
-#[derive(Serialize)]
-struct EnvironmentVariableDesc {
-    value: String,
-    configurable: bool,
-    enumerable: bool,
-    writable: bool,
 }
 
 #[derive(Serialize)]
@@ -110,15 +102,13 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
                     .binding_variables
                     .clone()
                     .into_iter()
-                    .map(|(key, value)| {
+                    .map(|ref property_descriptor| {
                         (
-                            key,
-                            EnvironmentVariableDesc {
-                                value,
-                                configurable: false,
-                                enumerable: true,
-                                writable: false,
-                            },
+                            property_descriptor.name.clone(),
+                            ObjectPropertyDescriptor::from_property_descriptor(
+                                registry,
+                                property_descriptor,
+                            ),
                         )
                     })
                     .collect(),
