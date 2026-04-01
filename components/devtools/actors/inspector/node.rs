@@ -277,18 +277,18 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let get_or_register_node_actor = |id: &str| {
             if !registry.script_actor_registered(id.to_string()) {
-                let name = registry.new_name::<NodeActor>();
-                registry.register_script_actor(id.to_string(), name.clone());
+                let node_name = registry.new_name::<NodeActor>();
+                registry.register_script_actor(id.to_string(), node_name.clone());
 
                 let node_actor = NodeActor {
-                    name: name.clone(),
+                    name: node_name.clone(),
                     script_chan: script_chan.clone(),
                     pipeline,
                     walker: walker.clone(),
                     style_rules: AtomicRefCell::new(HashMap::new()),
                 };
                 registry.register(node_actor);
-                name
+                node_name
             } else {
                 registry.script_to_actor(id.to_string())
             }
