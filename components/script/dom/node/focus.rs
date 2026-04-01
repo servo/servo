@@ -7,8 +7,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
-use crate::dom::document::focus::{FocusableArea, FocusableAreaKind};
+use crate::dom::document::focus::{FocusOperation, FocusableArea, FocusableAreaKind};
 use crate::dom::types::{Element, HTMLDialogElement};
 use crate::dom::{FocusInitiator, Node, NodeTraits, ShadowIncluding};
 
@@ -194,12 +193,14 @@ impl Node {
     /// that this is currently in a state of transition from Servo's old internal focus APIs to ones
     /// that match the specification. That is why the arguments to this method do not match the
     /// specification yet.
-    pub(crate) fn run_the_focusing_steps(&self, focus_options: FocusOptions, can_gc: CanGc) {
+    ///
+    /// Return `true` if anything was focused or `false` otherwise.
+    pub(crate) fn run_the_focusing_steps(&self, can_gc: CanGc) -> bool {
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
         // >    passed.
         let Some(focusable_area) = self.get_the_focusable_area() else {
-            return;
+            return false;
         };
 
         // > 2. If new focus target is null, then:
@@ -221,11 +222,11 @@ impl Node {
         // TODO: Handle all of these steps by converting the focus transaction code to follow
         // the HTML focus specification.
         let document = self.owner_document();
-        document.request_focus_with_options(
-            focusable_area,
+        document.focus(
+            FocusOperation::Focus(focusable_area),
             FocusInitiator::Local,
-            focus_options,
             can_gc,
         );
+        true
     }
 }

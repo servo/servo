@@ -12,7 +12,6 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::{
     HTMLAnchorElement, HTMLButtonElement, HTMLElement, HTMLFieldSetElement, HTMLInputElement,
@@ -187,12 +186,7 @@ impl InteractiveElementCommand {
             // >  2. Fire a click event at the element.
             InteractiveElementCommand::HTMLElement(html_element) => {
                 let node: &Node = html_element.upcast();
-                node.run_the_focusing_steps(
-                    FocusOptions {
-                        preventScroll: true,
-                    },
-                    can_gc,
-                );
+                node.run_the_focusing_steps(can_gc);
                 node.fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
             },
         }
