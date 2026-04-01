@@ -72,8 +72,9 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
             // Create a new actor for the object.
             // These are currently never cleaned up, and we make no attempt at re-using the same actor
             // if the same object is logged repeatedly.
-            let actor = ObjectActor::register(registry, None, object.class.clone());
+            let actor = ObjectActor::register(registry, None, object.class.clone(), None);
 
+            // TODO: Replace these with ObjectActor::encode
             #[derive(Serialize)]
             #[serde(rename_all = "camelCase")]
             struct DevtoolsConsoleObjectArgument {
@@ -343,16 +344,8 @@ impl ConsoleActor {
                 class,
                 preview,
             } => {
-                let properties = preview
-                    .clone()
-                    .and_then(|preview| preview.own_properties)
-                    .unwrap_or_default();
-                let actor = ObjectActor::register_with_properties(
-                    registry,
-                    Some(uuid),
-                    class.clone(),
-                    properties,
-                );
+                let actor =
+                    ObjectActor::register(registry, Some(uuid), class.clone(), preview.clone());
 
                 m.insert("type".to_owned(), Value::String("object".to_owned()));
                 m.insert("class".to_owned(), Value::String(class));
@@ -376,8 +369,10 @@ impl ConsoleActor {
                     if let Some(ref props) = preview.own_properties {
                         let mut own_props_map = Map::new();
                         for prop in props {
-                            let descriptor =
-                                serde_json::to_value(ObjectPropertyDescriptor::from(prop)).unwrap();
+                            let descriptor = serde_json::to_value(
+                                ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
+                            )
+                            .unwrap();
                             own_props_map.insert(prop.name.clone(), descriptor);
                         }
                         preview_map

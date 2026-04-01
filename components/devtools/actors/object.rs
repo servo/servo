@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DebuggerValue, PropertyDescriptor};
+use devtools_traits::{DebuggerValue, ObjectPreview, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Number, Value};
@@ -11,12 +11,6 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::property_iterator::PropertyIteratorActor;
 use crate::protocol::ClientRequest;
-
-#[derive(Serialize)]
-pub(crate) struct ObjectPreview {
-    kind: String,
-    url: String,
-}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,7 +51,8 @@ pub(crate) struct ObjectActorMsg {
     frozen: bool,
     sealed: bool,
     is_error: bool,
-    preview: ObjectPreview,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    preview: Option<ObjectPreview>,
 }
 
 #[derive(Serialize)]
@@ -68,19 +63,22 @@ pub(crate) struct ObjectPropertyDescriptor {
     pub value: Value,
 }
 
-impl From<&PropertyDescriptor> for ObjectPropertyDescriptor {
-    fn from(prop: &PropertyDescriptor) -> Self {
+impl ObjectPropertyDescriptor {
+    pub(crate) fn from_property_descriptor(
+        registry: &ActorRegistry,
+        prop: &PropertyDescriptor,
+    ) -> Self {
         Self {
             configurable: prop.configurable,
             enumerable: prop.enumerable,
             writable: prop.writable,
-            value: debugger_value_to_json(&prop.value, &prop.name),
+            value: debugger_value_to_json(registry, &prop.value),
         }
     }
 }
 
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#148>
-fn debugger_value_to_json(value: &DebuggerValue, name: &str) -> Value {
+fn debugger_value_to_json(registry: &ActorRegistry, value: &DebuggerValue) -> Value {
     match value {
         DebuggerValue::VoidValue => {
             let mut v = Map::new();
@@ -108,12 +106,17 @@ fn debugger_value_to_json(value: &DebuggerValue, name: &str) -> Value {
             }
         },
         DebuggerValue::StringValue(str) => Value::String(str.clone()),
-        DebuggerValue::ObjectValue { class, .. } => {
-            let mut v = Map::new();
-            v.insert("type".to_owned(), Value::String("object".to_owned()));
-            v.insert("class".to_owned(), Value::String(class.clone()));
-            v.insert("name".to_owned(), Value::String(name.into()));
-            Value::Object(v)
+        DebuggerValue::ObjectValue {
+            uuid,
+            class,
+            preview,
+            ..
+        } => {
+            let object_name =
+                ObjectActor::register(registry, Some(uuid.clone()), class.clone(), preview.clone());
+            let object_msg = registry.encode::<ObjectActor, _>(&object_name);
+            let value = serde_json::to_value(object_msg).unwrap_or_default();
+            Value::Object(value.as_object().cloned().unwrap_or_default())
         },
     }
 }
@@ -123,7 +126,7 @@ pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
     class: String,
-    properties: Vec<PropertyDescriptor>,
+    preview: Option<ObjectPreview>,
 }
 
 impl Actor for ObjectActor {
@@ -142,8 +145,12 @@ impl Actor for ObjectActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "enumProperties" => {
-                let property_iterator_name =
-                    PropertyIteratorActor::register(registry, self.properties.clone());
+                let properties = self
+                    .preview
+                    .as_ref()
+                    .and_then(|preview| preview.own_properties.clone())
+                    .unwrap_or_default();
+                let property_iterator_name = PropertyIteratorActor::register(registry, properties);
                 let property_iterator =
                     registry.find::<PropertyIteratorActor>(&property_iterator_name);
                 let count = property_iterator.count();
@@ -190,15 +197,11 @@ impl Actor for ObjectActor {
 }
 
 impl ObjectActor {
-    pub fn register(registry: &ActorRegistry, uuid: Option<String>, class: String) -> String {
-        Self::register_with_properties(registry, uuid, class, Vec::new())
-    }
-
-    pub fn register_with_properties(
+    pub fn register(
         registry: &ActorRegistry,
         uuid: Option<String>,
         class: String,
-        properties: Vec<PropertyDescriptor>,
+        preview: Option<ObjectPreview>,
     ) -> String {
         let Some(uuid) = uuid else {
             let name = registry.new_name::<Self>();
@@ -206,7 +209,7 @@ impl ObjectActor {
                 name: name.clone(),
                 _uuid: None,
                 class,
-                properties,
+                preview,
             };
             registry.register(actor);
             return name;
@@ -217,7 +220,7 @@ impl ObjectActor {
                 name: name.clone(),
                 _uuid: Some(uuid.clone()),
                 class,
-                properties,
+                preview,
             };
 
             registry.register_script_actor(uuid, name.clone());
@@ -236,15 +239,17 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             actor: self.name(),
             type_: "object".into(),
             class: self.class.clone(),
-            own_property_length: self.properties.len() as i32,
+            own_property_length: self
+                .preview
+                .as_ref()
+                .and_then(|preview| preview.own_properties_length)
+                .unwrap_or_default() as i32,
             extensible: true,
             frozen: false,
             sealed: false,
             is_error: false,
-            preview: ObjectPreview {
-                kind: "ObjectWithURL".into(),
-                url: "".into(), // TODO: Use the correct url
-            },
+            // TODO: Do the same processing as in console::value_to_json
+            preview: self.preview.clone(),
         }
     }
 }
