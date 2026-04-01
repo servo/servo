@@ -516,9 +516,9 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         }
 
         // Step 4-6.
-        let mut property_names: Vec<String> =
+        let property_names: Vec<String> =
             get_property(cx, paint_obj.handle(), c"inputProperties", ())?.unwrap_or_default();
-        let properties = property_names.drain(..).map(Atom::from).collect();
+        let properties = property_names.into_iter().map(Atom::from).collect();
 
         // Step 7-9.
         let input_arguments: Vec<String> =

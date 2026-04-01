@@ -198,8 +198,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         } else {
             let mut len = devices.len();
 
-            let mut rooted_devices: Vec<_> =
-                devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
+            let rooted_devices: Vec<_> = devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
             devices.clear();
 
             let mut trusted = Some(TrustedPromise::new(p.clone()));
@@ -220,7 +219,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 })
                 .expect("Could not create callback");
 
-            for device in rooted_devices.drain(..) {
+            for device in rooted_devices {
                 device.disconnect(callback.clone());
             }
         };

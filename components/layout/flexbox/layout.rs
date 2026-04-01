@@ -1125,7 +1125,7 @@ fn item_with_auto_cross_size_stretches_to_line_size(
         !margin.cross_end.is_auto()
 }
 
-/// “Collect flex items into flex lines”
+/// "Collect flex items into flex lines"
 /// <https://drafts.csswg.org/css-flexbox/#algo-line-break>
 fn do_initial_flex_line_layout<'items>(
     flex_context: &mut FlexContext,
@@ -1186,7 +1186,7 @@ fn do_initial_flex_line_layout<'items>(
     if flex_context.layout_context.use_rayon {
         lines.par_drain(..).map(construct_line).collect()
     } else {
-        lines.drain(..).map(construct_line).collect()
+        lines.into_iter().map(construct_line).collect()
     }
 }
 

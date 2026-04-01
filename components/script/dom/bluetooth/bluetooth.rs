@@ -724,7 +724,7 @@ impl PermissionAlgorithm for Bluetooth {
         }
 
         // Step 7.
-        status.set_devices(matching_devices.drain(..).collect());
+        status.set_devices(std::mem::take(&mut matching_devices));
 
         // https://w3c.github.io/permissions/#dom-permissions-query
         // Step 7.
