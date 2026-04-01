@@ -13,11 +13,10 @@ use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
-use crate::dom::document::FocusInitiator;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::{
-    Element, HTMLAnchorElement, HTMLButtonElement, HTMLElement, HTMLFieldSetElement,
-    HTMLInputElement, HTMLLabelElement, HTMLLegendElement, HTMLOptionElement,
+    HTMLAnchorElement, HTMLButtonElement, HTMLElement, HTMLFieldSetElement, HTMLInputElement,
+    HTMLLabelElement, HTMLLegendElement, HTMLOptionElement,
 };
 
 /// This is an implementation of <https://html.spec.whatwg.org/multipage/#concept-command>. Note
@@ -187,17 +186,14 @@ impl InteractiveElementCommand {
             // >  1. Run the focusing steps for the element.
             // >  2. Fire a click event at the element.
             InteractiveElementCommand::HTMLElement(html_element) => {
-                let element: &Element = html_element.upcast();
-                element.run_the_focusing_steps(
-                    FocusInitiator::Script,
+                let node: &Node = html_element.upcast();
+                node.run_the_focusing_steps(
                     FocusOptions {
                         preventScroll: true,
                     },
                     can_gc,
                 );
-                html_element
-                    .upcast::<Node>()
-                    .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+                node.fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
             },
         }
     }

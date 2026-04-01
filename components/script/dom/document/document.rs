@@ -126,6 +126,7 @@ use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReactionStack, CustomElementRegistry,
 };
 use crate::dom::customevent::CustomEvent;
+use crate::dom::document::focus::{FocusOperation, FocusableArea};
 use crate::dom::document_embedder_controls::DocumentEmbedderControls;
 use crate::dom::document_event_handler::DocumentEventHandler;
 use crate::dom::documentfragment::DocumentFragment;
@@ -266,17 +267,6 @@ pub(crate) enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct FocusTransaction {
-    /// The focused element of this document.
-    element: Option<Dom<Element>>,
-    /// See [`Document::has_focus`].
-    has_focus: bool,
-    /// Focus options for the transaction
-    focus_options: FocusOptions,
-}
-
 /// Information about a declarative refresh
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum DeclarativeRefresh {
@@ -381,8 +371,6 @@ pub(crate) struct Document {
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
-    /// The state of this document's focus transaction.
-    focus_transaction: DomRefCell<Option<FocusTransaction>>,
     /// The element that currently has the document focus context.
     focused: MutNullableDom<Element>,
     /// The last sequence number sent to the constellation.
@@ -1371,23 +1359,6 @@ impl Document {
         self.focus_sequence.get()
     }
 
-    pub(crate) fn has_focus_transaction(&self) -> bool {
-        self.focus_transaction.borrow().is_some()
-    }
-
-    /// Initiate a new round of checking for elements requesting focus. The last element to call
-    /// `request_focus` before `commit_focus_transaction` is called will receive focus.
-    pub(crate) fn begin_focus_transaction(&self) {
-        // Initialize it with the current state
-        *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
-            element: self.focused.get().as_deref().map(Dom::from_ref),
-            has_focus: self.has_focus.get(),
-            focus_options: FocusOptions {
-                preventScroll: true,
-            },
-        });
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
     /// > For each doc of docs, if the focused area of doc is not a focusable area, then run the
     /// > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
@@ -1403,19 +1374,19 @@ impl Document {
         {
             return;
         }
-        self.request_focus(None, FocusInitiator::Script, can_gc);
+        self.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
     }
 
     /// Request that the given element receive focus with default options.
     /// See [`Self::request_focus_with_options`] for the details.
     pub(crate) fn request_focus(
         &self,
-        elem: Option<&Element>,
+        target: FocusableArea,
         focus_initiator: FocusInitiator,
         can_gc: CanGc,
     ) {
         self.request_focus_with_options(
-            elem,
+            target,
             focus_initiator,
             FocusOptions {
                 preventScroll: true,
@@ -1431,37 +1402,16 @@ impl Document {
     /// commits an implicit transaction.
     pub(crate) fn request_focus_with_options(
         &self,
-        target: Option<&Element>,
+        target: FocusableArea,
         focus_initiator: FocusInitiator,
         focus_options: FocusOptions,
         can_gc: CanGc,
     ) {
-        // If a target element is specified, and it's non-focusable, ignore the request.
-        if target.is_some_and(|target| match focus_initiator {
-            FocusInitiator::Keyboard => !target.is_sequentially_focusable(),
-            FocusInitiator::Click => !target.is_click_focusable(),
-            FocusInitiator::Script | FocusInitiator::Remote => !target.is_focusable_area(),
-        }) {
-            return;
-        }
-
-        let implicit_transaction = self.focus_transaction.borrow().is_none();
-
-        if implicit_transaction {
-            self.begin_focus_transaction();
-        }
-
-        {
-            let mut focus_transaction = self.focus_transaction.borrow_mut();
-            let focus_transaction = focus_transaction.as_mut().unwrap();
-            focus_transaction.element = target.map(Dom::from_ref);
-            focus_transaction.has_focus = true;
-            focus_transaction.focus_options = focus_options;
-        }
-
-        if implicit_transaction {
-            self.commit_focus_transaction(focus_initiator, can_gc);
-        }
+        self.focus(
+            FocusOperation::Focus(target, focus_options),
+            focus_initiator,
+            can_gc,
+        );
     }
 
     /// Update the local focus state accordingly after being notified that the
@@ -1472,45 +1422,32 @@ impl Document {
             warn!("Top-level document cannot be unfocused");
             return;
         }
-
-        // Since this method is called from an event loop, there mustn't be
-        // an in-progress focus transaction
-        assert!(
-            self.focus_transaction.borrow().is_none(),
-            "there mustn't be an in-progress focus transaction at this point"
-        );
-
-        // Start an implicit focus transaction
-        self.begin_focus_transaction();
-
-        // Update the transaction
-        {
-            let mut focus_transaction = self.focus_transaction.borrow_mut();
-            focus_transaction.as_mut().unwrap().has_focus = false;
-        }
-
-        // Commit the implicit focus transaction
-        self.commit_focus_transaction(FocusInitiator::Remote, can_gc);
+        self.focus(FocusOperation::Unfocus, FocusInitiator::Remote, can_gc);
     }
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
-    pub(crate) fn commit_focus_transaction(&self, focus_initiator: FocusInitiator, can_gc: CanGc) {
-        let (mut new_focused, new_focus_state, prevent_scroll) = {
-            let focus_transaction = self.focus_transaction.borrow();
-            let focus_transaction = focus_transaction
-                .as_ref()
-                .expect("no focus transaction in progress");
-            (
-                focus_transaction
-                    .element
-                    .as_ref()
-                    .map(|e| DomRoot::from_ref(&**e)),
-                focus_transaction.has_focus,
-                focus_transaction.focus_options.preventScroll,
-            )
+    fn focus(
+        &self,
+        focus_operation: FocusOperation,
+        focus_initiator: FocusInitiator,
+        can_gc: CanGc,
+    ) {
+        let (mut new_focused, new_focus_state, prevent_scroll) = match focus_operation {
+            FocusOperation::Focus(focusable_area, focus_options) => (
+                match focusable_area {
+                    FocusableArea::Node { node, .. } => DomRoot::downcast::<Element>(node),
+                    FocusableArea::Viewport => None,
+                },
+                true,
+                focus_options.preventScroll,
+            ),
+            FocusOperation::Unfocus => (
+                self.focused.get().as_deref().map(DomRoot::from_ref),
+                false,
+                false,
+            ),
         };
-        *self.focus_transaction.borrow_mut() = None;
 
         if !new_focus_state {
             // In many browsers, a document forgets its focused area when the
@@ -3974,7 +3911,7 @@ impl Document {
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
-            focus_transaction: DomRefCell::new(None),
+
             focused: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_focus: Cell::new(has_focus),
@@ -6729,15 +6666,9 @@ pub(crate) enum FocusType {
 /// Specifies the initiator of a focus operation.
 #[derive(Clone, Copy, PartialEq)]
 pub enum FocusInitiator {
-    /// The operation is initiated by this document via a keyboard event to be broadcast through the
-    /// constellation.
-    Keyboard,
-    /// The operation is initiated by this document via a click event to be broadcast through the
-    /// constellation.
-    Click,
-    /// The operation is initiated by this document via script to be broadcast through the
-    /// constellation.
-    Script,
+    /// The operation is initiated by a focus change in this [`Document`]. This
+    /// means the change might trigger focus changes in parent [`Document`]s.
+    Local,
     /// The operation is initiated somewhere else, and we are updating our
     /// internal state accordingly.
     Remote,

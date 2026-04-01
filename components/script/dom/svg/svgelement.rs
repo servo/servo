@@ -16,7 +16,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
-use crate::dom::document::{Document, FocusInitiator};
+use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -144,11 +144,8 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        self.upcast::<Element>().run_the_focusing_steps(
-            FocusInitiator::Script,
-            *options,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Node>()
+            .run_the_focusing_steps(*options, CanGc::from_cx(cx));
 
         // > 3. If options["focusVisible"] is true, or does not exist but in an
         // >    implementation-defined  way the user agent determines it would be best to do so,
