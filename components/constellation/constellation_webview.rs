@@ -67,10 +67,12 @@ impl ConstellationWebView {
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
-        embedder_proxy.send(ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
-            webview_id,
-            active_top_level_pipeline_id.into(),
-        ));
+        embedder_proxy.send(
+            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
+                webview_id,
+                active_top_level_pipeline_id.into(),
+            ),
+        );
 
         Self {
             webview_id,

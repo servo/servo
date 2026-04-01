@@ -48,7 +48,7 @@ fn test_basic_accessibility_update() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     let tree = build_tree(updates);
 
     let root_node = tree.state().root();
