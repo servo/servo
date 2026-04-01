@@ -4,7 +4,6 @@
 
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
-use selectors::matching::IncludeStartingStyle;
 use servo_arc::Arc;
 use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
@@ -87,7 +86,7 @@ fn cascade(
         stylist.quirks_mode(),
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
-        IncludeStartingStyle::No,
+        RuleCascadeFlags::empty(),
     );
     let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
     let priority = CascadePriority::new(

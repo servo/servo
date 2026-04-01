@@ -139,6 +139,7 @@ impl CSSRule {
                 s,
                 can_gc,
             )),
+            StyleCssRule::AppearanceBase(_) => unimplemented!(), // TODO
         }
     }
 
@@ -233,6 +234,7 @@ impl CSSRule {
                     rule.update_rule(s.clone(), guard);
                 }
             },
+            StyleCssRule::AppearanceBase(_) => unimplemented!(), // TODO
         }
     }
 }
