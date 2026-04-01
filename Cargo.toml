@@ -17,7 +17,7 @@ repository = "https://github.com/servo/servo"
 description = "A component of the servo web-engine."
 license = "MPL-2.0"
 edition = "2024"
-publish = false
+publish = true
 # We have yet to decide on a policy for updating the minimum supported Rust version.
 # Before increasing this, please open a discussion on Zulip explaining the reason
 # why we should consider increasing our minimum supported Rust version.
