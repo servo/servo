@@ -2488,7 +2488,9 @@ impl DocumentEventHandler {
     }
 
     fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
-        element.upcast::<Node>().run_the_focusing_steps(can_gc);
+        element
+            .upcast::<Node>()
+            .run_the_focusing_steps(None, can_gc);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
