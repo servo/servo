@@ -128,7 +128,7 @@ pub(crate) struct NodeActorMsg {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct NodeActor {
-    name: String,
+    node_name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub walker: String,
@@ -137,7 +137,7 @@ pub(crate) struct NodeActor {
 
 impl Actor for NodeActor {
     fn name(&self) -> String {
-        self.name.clone()
+        self.node_name.clone()
     }
 
     /// The node actor can handle the following messages:
@@ -277,18 +277,18 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let get_or_register_node_actor = |id: &str| {
             if !registry.script_actor_registered(id.to_string()) {
-                let name = registry.new_name::<NodeActor>();
-                registry.register_script_actor(id.to_string(), name.clone());
+                let node_name = registry.new_name::<NodeActor>();
+                registry.register_script_actor(id.to_string(), node_name.clone());
 
                 let node_actor = NodeActor {
-                    name: name.clone(),
+                    node_name: node_name.clone(),
                     script_chan: script_chan.clone(),
                     pipeline,
                     walker: walker.clone(),
                     style_rules: AtomicRefCell::new(HashMap::new()),
                 };
                 registry.register(node_actor);
-                name
+                node_name
             } else {
                 registry.script_to_actor(id.to_string())
             }

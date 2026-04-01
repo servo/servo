@@ -141,12 +141,12 @@ impl PageStyleActor {
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node = registry.find::<NodeActor>(target);
-        let walker = registry.find::<WalkerActor>(&node.walker);
+        let node_actor = registry.find::<NodeActor>(target);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker);
         let browsing_context_actor = walker.browsing_context_actor(registry);
         let entries: Vec<_> = find_child(
-            &node.script_chan,
-            node.pipeline,
+            &node_actor.script_chan,
+            node_actor.pipeline,
             target,
             registry,
             &walker.root(registry)?.actor,
@@ -269,8 +269,8 @@ impl PageStyleActor {
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node = registry.find::<NodeActor>(target);
-        let walker = registry.find::<WalkerActor>(&node.walker);
+        let node_actor = registry.find::<NodeActor>(target);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker);
         let browsing_context_actor = walker.browsing_context_actor(registry);
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
         browsing_context_actor

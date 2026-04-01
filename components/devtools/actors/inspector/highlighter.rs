@@ -99,10 +99,10 @@ impl Actor for HighlighterActor {
 impl HighlighterActor {
     fn instruct_script_thread_to_highlight_node(
         &self,
-        node_actor: Option<String>,
+        node_name: Option<String>,
         registry: &ActorRegistry,
     ) {
-        let node_id = node_actor.map(|node_actor| registry.actor_to_script(node_actor));
+        let node_id = node_name.map(|node_name| registry.actor_to_script(node_name));
         let browsing_context_actor =
             registry.find::<BrowsingContextActor>(&self.browsing_context_name);
         browsing_context_actor

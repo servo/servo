@@ -121,8 +121,8 @@ impl Actor for StyleRuleActor {
                     .collect();
 
                 // Query the rule modification
-                let node = registry.find::<NodeActor>(&self.node);
-                let walker = registry.find::<WalkerActor>(&node.walker);
+                let node_actor = registry.find::<NodeActor>(&self.node);
+                let walker = registry.find::<WalkerActor>(&node_actor.walker);
                 let browsing_context_actor = walker.browsing_context_actor(registry);
                 browsing_context_actor
                     .script_chan()
@@ -151,8 +151,8 @@ impl StyleRuleActor {
     }
 
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
-        let node = registry.find::<NodeActor>(&self.node);
-        let walker = registry.find::<WalkerActor>(&node.walker);
+        let node_actor = registry.find::<NodeActor>(&self.node);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker);
         let browsing_context_actor = walker.browsing_context_actor(registry);
 
         let (document_sender, document_receiver) = generic_channel::channel()?;
@@ -223,8 +223,8 @@ impl StyleRuleActor {
         &self,
         registry: &ActorRegistry,
     ) -> Option<HashMap<String, ComputedDeclaration>> {
-        let node = registry.find::<NodeActor>(&self.node);
-        let walker = registry.find::<WalkerActor>(&node.walker);
+        let node_actor = registry.find::<NodeActor>(&self.node);
+        let walker = registry.find::<WalkerActor>(&node_actor.walker);
         let browsing_context_actor = walker.browsing_context_actor(registry);
 
         let (style_sender, style_receiver) = generic_channel::channel()?;
