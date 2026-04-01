@@ -73,9 +73,14 @@ impl Actor for LongStringActor {
 }
 
 impl LongStringActor {
-    pub fn new(registry: &ActorRegistry, full_string: String) -> Self {
+    pub fn register(registry: &ActorRegistry, full_string: String) -> String {
         let name = registry.new_name::<Self>();
-        LongStringActor { name, full_string }
+        let actor = Self {
+            name: name.clone(),
+            full_string,
+        };
+        registry.register::<Self>(actor);
+        name
     }
 
     pub fn long_string_obj(&self) -> LongStringObj {
