@@ -32,8 +32,8 @@ pub(crate) struct TimelineActor {
     pipeline_id: PipelineId,
     #[conditional_malloc_size_of]
     is_recording: Arc<Mutex<bool>>,
-    framerate_actor: AtomicRefCell<Option<String>>,
-    memory_actor: AtomicRefCell<Option<String>>,
+    framerate_name: AtomicRefCell<Option<String>>,
+    memory_name: AtomicRefCell<Option<String>>,
     #[conditional_malloc_size_of]
     registry: Arc<Mutex<ActorRegistry>>,
     start_stamp: CrossProcessInstant,
@@ -45,8 +45,8 @@ struct Emitter {
     registry: Arc<Mutex<ActorRegistry>>,
     start_stamp: CrossProcessInstant,
 
-    framerate_actor: Option<String>,
-    memory_actor: Option<String>,
+    framerate_name: Option<String>,
+    memory_name: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -146,8 +146,8 @@ impl TimelineActor {
             marker_types,
             script_sender,
             is_recording: Arc::new(Mutex::new(false)),
-            framerate_actor: AtomicRefCell::new(None),
-            memory_actor: AtomicRefCell::new(None),
+            framerate_name: AtomicRefCell::new(None),
+            memory_name: AtomicRefCell::new(None),
             start_stamp: CrossProcessInstant::now(),
             registry,
         }
@@ -216,19 +216,19 @@ impl Actor for TimelineActor {
                 // init memory actor
                 if let Some(with_memory) = msg.get("withMemory") {
                     if let Some(true) = with_memory.as_bool() {
-                        *self.memory_actor.borrow_mut() = Some(MemoryActor::create(registry));
+                        *self.memory_name.borrow_mut() = Some(MemoryActor::create(registry));
                     }
                 }
 
                 // init framerate actor
                 if let Some(with_ticks) = msg.get("withTicks") {
                     if let Some(true) = with_ticks.as_bool() {
-                        let framerate_actor = Some(FramerateActor::create(
+                        let framerate_name = Some(FramerateActor::create(
                             registry,
                             self.pipeline_id,
                             self.script_sender.clone(),
                         ));
-                        *self.framerate_actor.borrow_mut() = framerate_actor;
+                        *self.framerate_name.borrow_mut() = framerate_name;
                     }
                 }
 
@@ -237,8 +237,8 @@ impl Actor for TimelineActor {
                     self.registry.clone(),
                     self.start_stamp,
                     request.stream(),
-                    self.memory_actor.borrow().clone(),
-                    self.framerate_actor.borrow().clone(),
+                    self.memory_name.borrow().clone(),
+                    self.framerate_name.borrow().clone(),
                 );
 
                 self.pull_timeline_data(rx, emitter);
@@ -264,12 +264,12 @@ impl Actor for TimelineActor {
                     .unwrap();
 
                 // TODO: move this to the cleanup method.
-                if let Some(ref actor_name) = *self.framerate_actor.borrow() {
-                    registry.remove(actor_name.clone());
+                if let Some(ref framerate_name) = *self.framerate_name.borrow() {
+                    registry.remove(framerate_name.clone());
                 }
 
-                if let Some(ref actor_name) = *self.memory_actor.borrow() {
-                    registry.remove(actor_name.clone());
+                if let Some(ref memory_name) = *self.memory_name.borrow() {
+                    registry.remove(memory_name.clone());
                 }
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
@@ -306,8 +306,8 @@ impl Emitter {
             registry,
             start_stamp,
 
-            framerate_actor: framerate_actor_name,
-            memory_actor: memory_actor_name,
+            framerate_name: framerate_actor_name,
+            memory_name: memory_actor_name,
         }
     }
 
@@ -331,10 +331,10 @@ impl Emitter {
         };
         self.stream.write_json_packet(&reply)?;
 
-        if let Some(ref actor_name) = self.framerate_actor {
+        if let Some(ref framerate_name) = self.framerate_name {
             let mut lock = self.registry.lock();
             let registry = lock.as_mut().unwrap();
-            let framerate_actor = registry.find::<FramerateActor>(actor_name);
+            let framerate_actor = registry.find::<FramerateActor>(framerate_name);
             let framerate_reply = FramerateEmitterReply {
                 type_: "framerate".to_owned(),
                 from: framerate_actor.name(),
@@ -344,9 +344,9 @@ impl Emitter {
             self.stream.write_json_packet(&framerate_reply)?;
         }
 
-        if let Some(ref actor_name) = self.memory_actor {
+        if let Some(ref memory_name) = self.memory_name {
             let registry = self.registry.lock().unwrap();
-            let memory_actor = registry.find::<MemoryActor>(actor_name);
+            let memory_actor = registry.find::<MemoryActor>(memory_name);
             let memory_reply = MemoryEmitterReply {
                 type_: "memory".to_owned(),
                 from: memory_actor.name(),
