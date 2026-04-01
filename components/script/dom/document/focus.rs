@@ -6,10 +6,9 @@ use bitflags::bitflags;
 use script_bindings::root::DomRoot;
 
 use crate::dom::Node;
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 
 pub(crate) enum FocusOperation {
-    Focus(FocusableArea, FocusOptions),
+    Focus(FocusableArea),
     Unfocus,
 }
 

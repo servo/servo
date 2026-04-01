@@ -6,12 +6,13 @@ use std::f64::consts::PI;
 
 use dom_struct::dom_struct;
 use euclid::Point2D;
+use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutDom};
-use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::pointerevent::PointerEvent;
 use crate::dom::window::Window;
@@ -138,7 +139,7 @@ impl Touch {
             _ => (EventBubbles::Bubbles, EventCancelable::from(is_cancelable)),
         };
 
-        PointerEvent::new(
+        let pointer_event = PointerEvent::new(
             window,
             event_type.into(),
             bubbles,
@@ -168,7 +169,15 @@ impl Touch {
             vec![], // coalesced_events
             vec![], // predicted_events
             can_gc,
-        )
+        );
+
+        // https://w3c.github.io/pointerevents/#dfn-attributes-and-default-actions
+        // For pointerenter and pointerleave events, the composed [DOM] attribute SHOULD be false;
+        // for all other pointer events in the table above, the attribute SHOULD be true.
+        let composed = !matches!(event_type, "pointerenter" | "pointerleave");
+        pointer_event.upcast::<Event>().set_composed(composed);
+
+        pointer_event
     }
 }
 

@@ -12,6 +12,8 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
+use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -36,7 +38,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{FocusOperation, FocusableArea};
 use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::document_event_handler::character_to_code;
 use crate::dom::documentfragment::DocumentFragment;
@@ -63,6 +65,7 @@ use crate::dom::node::{
     BindContext, MoveContext, Node, NodeTraits, ShadowIncluding, UnbindContext,
     from_untrusted_node_address,
 };
+use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -460,8 +463,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        self.upcast::<Node>()
-            .run_the_focusing_steps(*options, can_gc);
+        if !self.upcast::<Node>().run_the_focusing_steps(can_gc) {
+            // The specification seems to imply we should scroll into view even if this element
+            // is not a focusable area. No browser does this, so we return early in that case.
+            // See https://github.com/whatwg/html/issues/12231.
+            return;
+        }
 
         // > 3. If options["focusVisible"] is true, or does not exist but in an
         // >    implementation-defined  way the user agent determines it would be best to do so,
@@ -469,8 +476,19 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
         // > 4. If options["preventScroll"] is false, then scroll a target into view given this,
         // >    "auto", "center", and "center".
-        // TODO: This is currently handled as part of the focusing steps, but should eventually be
-        // handled here.
+        if !options.preventScroll {
+            let scroll_axis = ScrollAxisState {
+                position: ScrollLogicalPosition::Center,
+                requirement: ScrollRequirement::IfNotVisible,
+            };
+            self.upcast::<Element>().scroll_into_view_with_options(
+                ScrollBehavior::Smooth,
+                scroll_axis,
+                scroll_axis,
+                None,
+                None,
+            );
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-blur>
@@ -481,8 +499,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        let document = self.owner_document();
-        document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
+        self.owner_document().focus(
+            FocusOperation::Focus(FocusableArea::Viewport),
+            FocusInitiator::Local,
+            can_gc,
+        );
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
@@ -1321,7 +1342,11 @@ impl VirtualMethods for HTMLElement {
             .get_focused_element()
             .is_some_and(|focused_element| &*focused_element == element)
         {
-            document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
+            document.focus(
+                FocusOperation::Focus(FocusableArea::Viewport),
+                FocusInitiator::Local,
+                can_gc,
+            );
         }
 
         // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard

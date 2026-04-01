@@ -87,7 +87,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ScrollLogicalPosition;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 #[cfg(any(feature = "webxr", feature = "gamepad"))]
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -175,7 +174,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
 use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
-use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBox};
+use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -1374,42 +1373,9 @@ impl Document {
         {
             return;
         }
-        self.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
-    }
-
-    /// Request that the given element receive focus with default options.
-    /// See [`Self::request_focus_with_options`] for the details.
-    pub(crate) fn request_focus(
-        &self,
-        target: FocusableArea,
-        focus_initiator: FocusInitiator,
-        can_gc: CanGc,
-    ) {
-        self.request_focus_with_options(
-            target,
-            focus_initiator,
-            FocusOptions {
-                preventScroll: true,
-            },
-            can_gc,
-        );
-    }
-
-    /// Request that the given element receive focus once the current
-    /// transaction is complete. `None` specifies to focus the document.
-    ///
-    /// If there's no ongoing transaction, this method automatically starts and
-    /// commits an implicit transaction.
-    pub(crate) fn request_focus_with_options(
-        &self,
-        target: FocusableArea,
-        focus_initiator: FocusInitiator,
-        focus_options: FocusOptions,
-        can_gc: CanGc,
-    ) {
         self.focus(
-            FocusOperation::Focus(target, focus_options),
-            focus_initiator,
+            FocusOperation::Focus(FocusableArea::Viewport),
+            FocusInitiator::Local,
             can_gc,
         );
     }
@@ -1427,26 +1393,23 @@ impl Document {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
-    fn focus(
+    pub(crate) fn focus(
         &self,
         focus_operation: FocusOperation,
         focus_initiator: FocusInitiator,
         can_gc: CanGc,
     ) {
-        let (mut new_focused, new_focus_state, prevent_scroll) = match focus_operation {
-            FocusOperation::Focus(focusable_area, focus_options) => (
+        let (mut new_focused, new_focus_state) = match focus_operation {
+            FocusOperation::Focus(focusable_area) => (
                 match focusable_area {
                     FocusableArea::Node { node, .. } => DomRoot::downcast::<Element>(node),
                     FocusableArea::Viewport => None,
                 },
                 true,
-                focus_options.preventScroll,
             ),
-            FocusOperation::Unfocus => (
-                self.focused.get().as_deref().map(DomRoot::from_ref),
-                false,
-                false,
-            ),
+            FocusOperation::Unfocus => {
+                (self.focused.get().as_deref().map(DomRoot::from_ref), false)
+            },
         };
 
         if !new_focus_state {
@@ -1521,28 +1484,6 @@ impl Document {
                 }
                 // FIXME: pass appropriate relatedTarget
                 self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
-
-                // Scroll operation to happen after element gets focus. This is needed to ensure that the
-                // focused element is visible. Only scroll if preventScroll was not specified.
-                if !prevent_scroll {
-                    // We are following the firefox implementation where we are only scrolling to the element
-                    // if the element itself it not visible.
-                    let scroll_axis = ScrollAxisState {
-                        position: ScrollLogicalPosition::Center,
-                        requirement: ScrollRequirement::IfNotVisible,
-                    };
-
-                    // TODO(stevennovaryo): we doesn't differentiate focus operation from script and from user
-                    //                      for a scroll yet.
-                    // TODO(#40474): Implement specific ScrollIntoView for a selection of text control element.
-                    elem.scroll_into_view_with_options(
-                        ScrollBehavior::Smooth,
-                        scroll_axis,
-                        scroll_axis,
-                        None,
-                        None,
-                    );
-                }
             }
         }
 

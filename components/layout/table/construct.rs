@@ -1169,14 +1169,18 @@ fn add_column(
     // The HTML specification clamps value of `span` for `<col>` to [1, 1000].
     assert!((1..=1000).contains(&span));
 
-    let column = old_column.unwrap_or_else(|| {
-        ArcRefCell::new(TableTrack {
+    let column = match old_column {
+        Some(column) => {
+            column.borrow_mut().group_index = group_index;
+            column
+        },
+        None => ArcRefCell::new(TableTrack {
             base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
             group_index,
             is_anonymous,
             shared_background_style: SharedStyle::new(column_info.style.clone()),
-        })
-    });
+        }),
+    };
     collection.extend(repeat_n(column.clone(), span as usize));
     column
 }

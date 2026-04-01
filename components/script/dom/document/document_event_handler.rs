@@ -53,13 +53,12 @@ use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{FocusOperation, FocusableArea};
 use crate::dom::document::{FireMouseEventType, FocusInitiator};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
@@ -691,6 +690,7 @@ impl DocumentEventHandler {
 
         // Send pointermove event before mousemove.
         let pointer_event = mouse_event.to_pointer_event(Atom::from("pointermove"), can_gc);
+        pointer_event.upcast::<Event>().set_composed(true);
         pointer_event
             .upcast::<Event>()
             .fire(new_target.upcast(), can_gc);
@@ -842,8 +842,8 @@ impl DocumentEventHandler {
             embedder_traits::MouseButtonAction::Down => atom!("mousedown"),
         };
 
-        // From <https://w3c.github.io/uievents/#event-type-mousedown>
-        // and <https://w3c.github.io/uievents/#event-type-mouseup>:
+        // From <https://w3c.github.io/pointerevents/#dfn-mousedown>
+        // and <https://w3c.github.io/pointerevents/#mouseup>:
         //
         // UIEvent.detail: indicates the current click count incremented by one. For
         // example, if no click happened before the mousedown, detail will contain
@@ -896,8 +896,8 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    self.window.Document().request_focus(
-                        node.find_click_focusable_area(),
+                    self.window.Document().focus(
+                        FocusOperation::Focus(node.find_click_focusable_area()),
                         FocusInitiator::Local,
                         can_gc,
                     );
@@ -914,7 +914,7 @@ impl DocumentEventHandler {
                     );
                 }
             },
-            // https://w3c.github.io/uievents/#handle-native-mouse-up
+            // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
             MouseButtonAction::Up => {
                 // Step 6. Dispatch pointerup event.
                 let down_button_count = self.down_button_count.get();
@@ -956,8 +956,8 @@ impl DocumentEventHandler {
         }
     }
 
-    /// <https://w3c.github.io/uievents/#handle-native-mouse-click>
-    /// <https://w3c.github.io/uievents/#event-type-dblclick>
+    /// <https://w3c.github.io/pointerevents/#handle-native-mouse-click>
+    /// <https://w3c.github.io/pointerevents/#handle-native-mouse-double-click>
     fn maybe_trigger_click_for_mouse_button_down_event(
         &self,
         event: MouseButtonEvent,
@@ -980,7 +980,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        // From <https://w3c.github.io/uievents/#event-type-click>
+        // From <https://w3c.github.io/pointerevents/#click>
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
         //
@@ -1033,7 +1033,7 @@ impl DocumentEventHandler {
         }
     }
 
-    /// <https://www.w3.org/TR/uievents/#maybe-show-context-menu>
+    /// <https://www.w3.org/TR/pointerevents4/#maybe-show-context-menu>
     fn maybe_show_context_menu(
         &self,
         target: &EventTarget,
@@ -1041,7 +1041,7 @@ impl DocumentEventHandler {
         input_event: &ConstellationInputEvent,
         can_gc: CanGc,
     ) {
-        // <https://w3c.github.io/uievents/#contextmenu>
+        // <https://w3c.github.io/pointerevents/#contextmenu>
         let menu_event = PointerEvent::new(
             &self.window,                // window
             "contextmenu".into(),        // type
@@ -1075,6 +1075,7 @@ impl DocumentEventHandler {
             vec![],                   // predicted_events
             can_gc,
         );
+        menu_event.upcast::<Event>().set_composed(true);
 
         // Step 3. Let result = dispatch menuevent at target.
         let result = menu_event.upcast::<Event>().fire(target, can_gc);
@@ -1373,6 +1374,12 @@ impl DocumentEventHandler {
         );
 
         let event = keyevent.upcast::<Event>();
+
+        // FIXME: https://github.com/servo/servo/issues/43809
+        if event.type_() != atom!("keydown") {
+            event.set_composed(true);
+        }
+
         event.fire(target, can_gc);
 
         let mut flags = event.flags();
@@ -1400,6 +1407,7 @@ impl DocumentEventHandler {
                 &keyboard_event.event,
                 can_gc,
             );
+            keypress_event.upcast::<Event>().set_composed(true);
             let event = keypress_event.upcast::<Event>();
             event.fire(target, can_gc);
             flags = event.flags();
@@ -1412,7 +1420,11 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
+                document.focus(
+                    FocusOperation::Focus(FocusableArea::Viewport),
+                    FocusInitiator::Local,
+                    can_gc,
+                );
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
@@ -1504,6 +1516,7 @@ impl DocumentEventHandler {
 
         let dom_event = dom_event.upcast::<Event>();
         dom_event.set_trusted(true);
+        dom_event.set_composed(true);
         dom_event.fire(node.upcast(), can_gc);
 
         dom_event.flags().into()
@@ -2475,9 +2488,7 @@ impl DocumentEventHandler {
     }
 
     fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
-        element
-            .upcast::<Node>()
-            .run_the_focusing_steps(FocusOptions::default(), can_gc);
+        element.upcast::<Node>().run_the_focusing_steps(can_gc);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
