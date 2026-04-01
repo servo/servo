@@ -75,7 +75,7 @@ class MachCommands(CommandBase):
     @Command("update-hsts-preload", description="Download the HSTS preload list", category="bootstrap")
     def bootstrap_hsts_preload(self, force: bool = False) -> None:
         preload_filename = "hsts_preload.fstmap"
-        preload_path = path.join(self.context.topdir, "resources")
+        preload_path = path.join(self.context.topdir, "components", "default-resources", "resources")
 
         chromium_hsts_url = (
             "https://chromium.googlesource.com/chromium/src"
@@ -108,12 +108,18 @@ class MachCommands(CommandBase):
 
     @Command(
         "update-pub-domains",
-        description="Download the public domains list and update resources/public_domains.txt",
+        description="Download the public domains list and update the copy in servo-default-resources",
         category="bootstrap",
     )
     def bootstrap_pub_suffix(self, force: bool = False) -> None:
         list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
-        dst_filename = path.join(self.context.topdir, "resources", "public_domains.txt")
+        dst_filename = path.join(
+            self.context.topdir,
+            "components",
+            "default-resources",
+            "resources",
+            "public_domains.txt",
+        )
         not_implemented_case = re.compile(r"^[^*]+\*")
 
         try:

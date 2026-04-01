@@ -31,7 +31,7 @@ mod webview_delegate;
 // should be exported at the root. See <https://github.com/servo/servo/issues/18475>.
 pub use accesskit;
 pub use embedder_traits::user_contents::UserScript;
-pub use embedder_traits::*;
+pub use embedder_traits::{submit_resource_reader, *};
 pub use image::RgbaImage;
 pub use keyboard_types::{
     Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey,
@@ -106,3 +106,7 @@ pub mod protocol_handler {
 
     pub use crate::webview_delegate::ProtocolHandlerRegistration;
 }
+
+// We need to reference this crate, in order for the linker not to remove it.
+#[cfg(all(feature = "baked-in-resources", not(target_env = "ohos")))]
+use servo_default_resources as _;

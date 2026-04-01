@@ -106,6 +106,7 @@ icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
+inventory = { version = "0.3.24" }
 ipc-channel = "0.21"
 itertools = "0.14"
 js = { package = "mozjs", version = "=0.15.7", default-features = false, features = ["libz-sys", "intl"] }
@@ -265,6 +266,7 @@ servo-config = { version = "0.0.6", path = "components/config" }
 servo-config-macro = { version = "0.0.6", path = "components/config/macro" }
 servo-constellation = { version = "0.0.6", path = "components/constellation" }
 servo-constellation-traits = { version = "0.0.6", path = "components/shared/constellation" }
+servo-default-resources = { version = "0.0.6", path = "components/default-resources" }
 servo-geometry = { version = "0.0.6", path = "components/geometry" }
 servo-media = { version = "0.0.6", path = "components/media/servo-media" }
 servo-media-audio = { version = "0.0.6", path = "components/media/audio" }

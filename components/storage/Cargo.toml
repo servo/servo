@@ -36,6 +36,7 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 profile = { workspace = true }
+servo-default-resources = { workspace = true }
 url = { workspace = true }
 
 [[test]]

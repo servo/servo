@@ -43,9 +43,7 @@ impl ResourceProtocolHandler {
             )));
         };
 
-        let file_path = crate::resources::resources_dir_path()
-            .join("resource_protocol")
-            .join(path);
+        let file_path = crate::resources::resource_protocol_dir_path().join(path);
 
         if !file_path.exists() || file_path.is_dir() {
             return Box::pin(std::future::ready(Response::network_error(

@@ -22,6 +22,7 @@ use hyper_util::rt::tokio::TokioIo;
 use net_traits::AsyncRuntime;
 use rustls_pki_types::pem::PemObject;
 use rustls_pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use servo_default_resources as _;
 use servo_url::ServoUrl;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::{self, TlsAcceptor};
