@@ -389,6 +389,8 @@ fn finish_fetching_a_classic_script(
         },
     }
 
+    // <https://html.spec.whatwg.org/multipage/#steps-to-run-when-the-result-is-ready>
+    // Step 4
     elem.delay_load_event(false, url, cx)
 }
 
@@ -781,7 +783,7 @@ impl HTMLScriptElement {
         self.already_started.set(true);
 
         // Step 15. Set el's preparation-time document to its node document.
-        let mut doc = self.owner_document();
+        let doc = self.owner_document();
         self.preparation_time_document.set(Some(&doc));
 
         // Step 16.
@@ -903,6 +905,11 @@ impl HTMLScriptElement {
         // What we actually need is global's import map eventually.
 
         let base_url = doc.base_url();
+
+        let kind = self
+            .get_script_kind()
+            .expect("Script kind should be determined at this point");
+
         if let Some(src) = element.get_attribute(&local_name!("src")) {
             // Step 31. If el has a src content attribute, then:
 
@@ -950,27 +957,11 @@ impl HTMLScriptElement {
                 options.render_blocking = true;
             }
 
-            let kind = self
-                .get_script_kind()
-                .expect("Script kind should be determined at this point");
-
             // Step 31.11. Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
-                    doc = self.get_script_active_document().expect("Just to make sure we running in the correct document incase the script has been moved");
-
                     // Step 31.11. Fetch a classic script.
                     fetch_a_classic_script(self, kind, url, cors_setting, options, encoding);
-
-                    // Step 33.2/33.3/33.4/33.5, substeps 1-2. Add el to the corresponding script list.
-                    match kind {
-                        ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                        ExternalScriptKind::ParsingBlocking => {
-                            doc.set_pending_parsing_blocking_script(self, None)
-                        },
-                        ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
-                        ExternalScriptKind::Asap => doc.add_asap_script(self),
-                    }
                 },
                 ScriptType::Module => {
                     // If el does not have an integrity attribute, then set options's integrity metadata to
@@ -988,14 +979,6 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         options,
                     );
-
-                    // Step 33.2/33.3/33.4/33.5, substeps 1-2. Add el to the corresponding script list.
-                    match kind {
-                        ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                        ExternalScriptKind::ParsingBlocking => {},
-                        ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
-                        ExternalScriptKind::Asap => doc.add_asap_script(self),
-                    }
                 },
                 ScriptType::ImportMap => (),
             }
@@ -1034,6 +1017,7 @@ impl HTMLScriptElement {
                         // Step 34.3: otherwise.
                         self.execute(cx, result);
                     }
+                    return;
                 },
                 ScriptType::Module => {
                     // Step 32.2.2.1 Set el's delaying the load event to true.
@@ -1048,17 +1032,6 @@ impl HTMLScriptElement {
                         // Step 32.2.2.2.2 Set options's render-blocking to true.
                         options.render_blocking = true;
                     }
-
-                    // We should add inline module script elements
-                    // into those vectors in case that there's no
-                    // descendants in the inline module script.
-                    if !asynch && was_parser_inserted {
-                        doc.add_deferred_script(self);
-                    } else if !asynch && !self.non_blocking.get() {
-                        doc.push_asap_in_order_script(self);
-                    } else {
-                        doc.add_asap_script(self);
-                    };
 
                     fetch_inline_module_script(
                         cx,
@@ -1088,8 +1061,27 @@ impl HTMLScriptElement {
 
                     // Step 34.3
                     self.execute(cx, Ok(script));
+                    return;
                 },
             }
+        }
+
+        let doc = self.get_script_active_document().expect(
+            "Just to make sure we running in the correct document incase the script has been moved",
+        );
+
+        // Step 33.2/33.3/33.4/33.5, substeps 1-2. Add el to the corresponding script list.
+        match kind {
+            ExternalScriptKind::Deferred => doc.add_deferred_script(self),
+            ExternalScriptKind::ParsingBlocking => {
+                if Some(element.get_attribute(&local_name!("src"))).is_some() &&
+                    script_type == ScriptType::Classic
+                {
+                    doc.set_pending_parsing_blocking_script(self, None);
+                }
+            },
+            ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
+            ExternalScriptKind::Asap => doc.add_asap_script(self),
         }
     }
 

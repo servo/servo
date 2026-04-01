@@ -668,6 +668,9 @@ impl ModuleOwner {
                     let document = script.get_preparation_time_document().unwrap();
                     document.asap_script_loaded(cx, &script, load);
                 };
+
+                // <https://html.spec.whatwg.org/multipage/#steps-to-run-when-the-result-is-ready>
+                // Step 4
                 if let Some(module_tree) = module_tree {
                     script.delay_load_event(false, module_tree.url.clone(), cx);
                 } else {
