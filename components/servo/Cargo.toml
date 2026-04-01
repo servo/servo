@@ -65,6 +65,7 @@ webgl_backtrace = [
     "servo-canvas-traits/webgl_backtrace",
 ]
 webgpu = [
+    "dep:webgpu",
     "script/webgpu",
     "paint/webgpu",
     "servo-constellation/webgpu",
@@ -133,7 +134,7 @@ tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
 webgl = { workspace = true, default-features = false }
-webgpu = { workspace = true }
+webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }

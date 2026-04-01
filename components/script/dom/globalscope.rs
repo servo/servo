@@ -142,7 +142,7 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
@@ -3224,7 +3224,7 @@ impl GlobalScope {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
             DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
         };
-        let _ac = enter_realm(self);
+        let _ac = crate::realms::enter_realm(self);
         if let Some(device) = self
             .gpu_devices
             .borrow_mut()
