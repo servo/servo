@@ -478,12 +478,21 @@ enum BlobResult {
     File(Uuid, usize),
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum ManagedMessagePortDom {
+    /// Port is active, holding a strong reference.
+    Enabled(Dom<MessagePort>),
+    /// Port was closed, downgraded to a weak reference for GC.
+    Disabled(WeakRef<MessagePort>),
+}
+
 /// Data representing a message-port managed by this global.
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ManagedMessagePort {
-    /// The DOM port.
-    dom_port: Dom<MessagePort>,
+    /// The DOM port, either active (Enabled) or closed (Disabled/weak).
+    dom_port: ManagedMessagePortDom,
     /// The logic and data backing the DOM port.
     /// The option is needed to take out the port-impl
     /// as part of its transferring steps,
@@ -494,9 +503,6 @@ pub(crate) struct ManagedMessagePort {
     /// and only add them, and ask the constellation to complete the transfer,
     /// in a subsequent task if the port hasn't been re-transfered.
     pending: bool,
-    /// Whether the port has been closed by script in this global,
-    /// so it can be removed.
-    explicitly_closed: bool,
     /// The handler for `message` or `messageerror` used in the cross realm transform,
     /// if any was setup with this port.
     cross_realm_transform: Option<CrossRealmTransform>,
@@ -944,7 +950,11 @@ impl GlobalScope {
                         port_impl.complete_transfer(tasks);
                         if disentangled {
                             port_impl.disentangle();
-                            managed_port.dom_port.disentangle();
+                            if let ManagedMessagePortDom::Enabled(ref dom_port) =
+                                managed_port.dom_port
+                            {
+                                dom_port.disentangle();
+                            }
                         }
                         port_impl.enabled()
                     } else {
@@ -975,7 +985,11 @@ impl GlobalScope {
                     .as_mut()
                     .expect("managed-port has no port-impl.");
                 port_impl.disentangle();
-                managed_port.dom_port.as_rooted()
+                if let ManagedMessagePortDom::Enabled(ref dom_port) = managed_port.dom_port {
+                    dom_port.as_rooted()
+                } else {
+                    return;
+                }
             } else {
                 // Note: this, and the other return below,
                 // can happen if the port has already been transferred out of this global,
@@ -1076,11 +1090,14 @@ impl GlobalScope {
                             .port_impl
                             .as_mut()
                             .expect("managed-port has no port-impl.");
-                        managed_port.dom_port.disentangle();
-                        port_impl.disentangle();
-
-                        if **port_id == other_port {
-                            dom_port = Some(managed_port.dom_port.as_rooted())
+                        if let ManagedMessagePortDom::Enabled(ref m_dom_port) =
+                            managed_port.dom_port
+                        {
+                            m_dom_port.disentangle();
+                            port_impl.disentangle();
+                            if **port_id == other_port {
+                                dom_port = Some(m_dom_port.as_rooted())
+                            }
                         }
                     },
                 }
@@ -1122,7 +1139,11 @@ impl GlobalScope {
                     },
                     Some(managed_port) => {
                         if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                            managed_port.dom_port.entangle(*entangled_id);
+                            if let ManagedMessagePortDom::Enabled(ref dom_port) =
+                                managed_port.dom_port
+                            {
+                                dom_port.entangle(*entangled_id);
+                            }
                             port_impl.entangle(*entangled_id);
                         } else {
                             panic!("managed-port has no port-impl.");
@@ -1146,7 +1167,7 @@ impl GlobalScope {
         {
             let mut port_impl = message_ports
                 .remove(port_id)
-                .map(|ref mut managed_port| {
+                .map(|mut managed_port| {
                     managed_port
                         .port_impl
                         .take()
@@ -1175,8 +1196,14 @@ impl GlobalScope {
             let (message_buffer, dom_port) = match message_ports.get_mut(port_id) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
+                    let dom_port = match managed_port.dom_port {
+                        ManagedMessagePortDom::Enabled(ref dom_port) => dom_port.as_rooted(),
+                        ManagedMessagePortDom::Disabled(_) => {
+                            panic!("start_message_port called on a closed port.")
+                        },
+                    };
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        (port_impl.start(), managed_port.dom_port.as_rooted())
+                        (port_impl.start(), dom_port)
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
@@ -1213,13 +1240,21 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             match message_ports.get_mut(port_id) {
-                None => panic!("close_message_port called on an unknown port."),
+                None => {
+                    // Port was already removed from the map after GC — idempotent, no-op.
+                },
                 Some(managed_port) => {
+                    // Close the port-impl (idempotent if already closed).
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.close();
-                        managed_port.explicitly_closed = true;
                     } else {
-                        panic!("managed-port has no port-impl.");
+                        debug_assert!(false, "close_message_port: managed-port has no port-impl");
+                    }
+                    // Downgrade the DOM reference to a WeakRef so GC can collect it.
+                    // If already Disabled, this is a no-op (idempotent close).
+                    if let ManagedMessagePortDom::Enabled(ref dom_port) = managed_port.dom_port {
+                        managed_port.dom_port =
+                            ManagedMessagePortDom::Disabled(WeakRef::new(&**dom_port));
                     }
                 },
             };
@@ -1459,14 +1494,21 @@ impl GlobalScope {
                 return;
             }
             match message_ports.get_mut(&port_id) {
-                None => panic!("route_task_to_port called for an unknown port."),
+                None => None,
                 Some(managed_port) => {
-                    // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
+                    // If the port is not enabled yet, or if is awaiting the completion of its transfer,
                     // the task will be buffered and dispatched upon enablement or completion of the transfer.
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        let to_dispatch = port_impl.handle_incoming(task).map(|to_dispatch| {
-                            (DomRoot::from_ref(&*managed_port.dom_port), to_dispatch)
-                        });
+                        let dom_root = match managed_port.dom_port {
+                            ManagedMessagePortDom::Enabled(ref dom_port) => dom_port.as_rooted(),
+                            ManagedMessagePortDom::Disabled(_) => {
+                                // Port is closed; discard the task.
+                                return;
+                            },
+                        };
+                        let to_dispatch = port_impl
+                            .handle_incoming(task)
+                            .map(|to_dispatch| (dom_root, to_dispatch));
                         cross_realm_transform.set(managed_port.cross_realm_transform.clone());
                         to_dispatch
                     } else {
@@ -1610,7 +1652,7 @@ impl GlobalScope {
             let to_be_removed: Vec<MessagePortId> = message_ports
                 .iter()
                 .filter_map(|(id, managed_port)| {
-                    if managed_port.explicitly_closed {
+                    if matches!(managed_port.dom_port, ManagedMessagePortDom::Disabled(_)) {
                         Some(*id)
                     } else {
                         None
@@ -1765,10 +1807,9 @@ impl GlobalScope {
                 message_ports.insert(
                     *dom_port.message_port_id(),
                     ManagedMessagePort {
+                        dom_port: ManagedMessagePortDom::Enabled(Dom::from_ref(dom_port)),
                         port_impl: Some(port_impl),
-                        dom_port: Dom::from_ref(dom_port),
                         pending: true,
-                        explicitly_closed: false,
                         cross_realm_transform: None,
                     },
                 );
@@ -1788,10 +1829,9 @@ impl GlobalScope {
                 message_ports.insert(
                     *dom_port.message_port_id(),
                     ManagedMessagePort {
+                        dom_port: ManagedMessagePortDom::Enabled(Dom::from_ref(dom_port)),
                         port_impl: Some(port_impl),
-                        dom_port: Dom::from_ref(dom_port),
                         pending: false,
-                        explicitly_closed: false,
                         cross_realm_transform: None,
                     },
                 );

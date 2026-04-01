@@ -60,3 +60,19 @@ test(() => {
   assert_throws_dom("DataCloneError", () => c2.port1.postMessage(null, [c1.port1]));
   c2.port1.postMessage(null, [c1.port2]);
 }, "close() detaches a MessagePort (but not the one its entangled with)");
+
+test(() => {
+    const channel = new MessageChannel();
+    channel.port1.close();
+    // Calling close() again in the same task must not throw/panic.
+    channel.port1.close();
+}, "close is idempotent within a task");
+
+async_test(t => {
+    const channel = new MessageChannel();
+    channel.port1.close();
+    // Queue a timer and call close() again from the next task.
+    setTimeout(t.step_func_done(() => {
+        channel.port1.close(); // must not panic or throw
+    }), 0);
+}, "close is idempotent across tasks");
