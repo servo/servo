@@ -140,6 +140,7 @@ impl CSSRule {
                 can_gc,
             )),
             StyleCssRule::AppearanceBase(_) => unimplemented!(), // TODO
+            StyleCssRule::ViewTransition(_) => unimplemented!(), // TODO
         }
     }
 
@@ -235,6 +236,7 @@ impl CSSRule {
                 }
             },
             StyleCssRule::AppearanceBase(_) => unimplemented!(), // TODO
+            StyleCssRule::ViewTransition(_) => unimplemented!(), // TODO
         }
     }
 }
