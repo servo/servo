@@ -53,11 +53,13 @@ use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::{FireMouseEventType, FocusInitiator};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
@@ -885,30 +887,20 @@ impl DocumentEventHandler {
 
                 self.down_button_count.set(down_button_count + 1);
 
-                let document = self.window.Document();
-                document.begin_focus_transaction();
-
-                // Try to focus `el`. If it's not focusable, focus the document instead.
-                //
-                // The specification says to run the focusing steps on `el` here, but we want a
-                // special behavior implemented by `Element::find_click_focusable_area` which climbs
-                // the tree finding the first ancestor with an associated focusable area.
-                document.request_focus(None, FocusInitiator::Click, can_gc);
-                if let Some(click_focusable_area) = element.find_click_focusable_area() {
-                    document.request_focus(
-                        Some(&*click_focusable_area),
-                        FocusInitiator::Click,
-                        can_gc,
-                    );
-                }
-
                 // Step 7. Let result = dispatch event at target
                 let result = dom_event.dispatch(node.upcast(), false, can_gc);
 
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
-                if result && document.has_focus_transaction() {
-                    document.commit_focus_transaction(FocusInitiator::Click, can_gc);
+                if result {
+                    // Note that this differs from the specification, because we are going to look
+                    // for the first inclusive ancestor that is click focusable and then focus it.
+                    // See documentation for [`Node::find_click_focusable_area`].
+                    self.window.Document().request_focus(
+                        node.find_click_focusable_area(),
+                        FocusInitiator::Local,
+                        can_gc,
+                    );
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -991,10 +983,15 @@ impl DocumentEventHandler {
         // From <https://w3c.github.io/uievents/#event-type-click>
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
+        //
         // For nodes inside a text input UA shadow DOM, dispatch dblclick at the shadow host.
-        let delegated = element.find_click_focusable_area();
-        let element = delegated.as_deref().unwrap_or(element);
-        self.most_recently_clicked_element.set(Some(element));
+        // TODO: This should likely be handled via event retargeting.
+        let element = match hit_test_result.node.find_click_focusable_area() {
+            FocusableArea::Node { node, .. } => DomRoot::downcast::<Element>(node),
+            _ => None,
+        }
+        .unwrap_or_else(|| DomRoot::from_ref(element));
+        self.most_recently_clicked_element.set(Some(&*element));
 
         let click_count = self.click_counting_info.borrow().count;
         element.set_click_in_progress(true);
@@ -1415,11 +1412,7 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.request_focus(
-                    document.GetBody().as_ref().map(|e| e.upcast()),
-                    FocusInitiator::Keyboard,
-                    can_gc,
-                );
+                document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
@@ -2483,8 +2476,8 @@ impl DocumentEventHandler {
 
     fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
         element
-            .owner_document()
-            .request_focus(Some(element), FocusInitiator::Keyboard, can_gc);
+            .upcast::<Node>()
+            .run_the_focusing_steps(FocusOptions::default(), can_gc);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,

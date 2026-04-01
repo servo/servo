@@ -36,6 +36,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::document_event_handler::character_to_code;
 use crate::dom::documentfragment::DocumentFragment;
@@ -459,8 +460,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        self.element
-            .run_the_focusing_steps(FocusInitiator::Script, *options, can_gc);
+        self.upcast::<Node>()
+            .run_the_focusing_steps(*options, can_gc);
 
         // > 3. If options["focusVisible"] is true, or does not exist but in an
         // >    implementation-defined  way the user agent determines it would be best to do so,
@@ -481,7 +482,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = self.owner_document();
-        document.request_focus(None, FocusInitiator::Script, can_gc);
+        document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
@@ -1320,7 +1321,7 @@ impl VirtualMethods for HTMLElement {
             .get_focused_element()
             .is_some_and(|focused_element| &*focused_element == element)
         {
-            document.request_focus(None, FocusInitiator::Script, can_gc);
+            document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
         }
 
         // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard
