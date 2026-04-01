@@ -91,7 +91,7 @@ use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TraversalDirection, WindowSizeType,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -151,7 +151,7 @@ use crate::messaging::{
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
-use crate::navigation::{InProgressLoad, NavigationListener, determine_the_origin};
+use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
@@ -537,10 +537,17 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<&Metadata>,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, cx)
+            script_thread.handle_page_headers_available(
+                webview_id,
+                pipeline_id,
+                metadata,
+                origin,
+                cx,
+            )
         })
     }
 
@@ -1737,11 +1744,13 @@ impl ScriptThread {
                 browsing_context_id,
                 load_data,
                 history_handling,
+                target_snapshot_params,
             ) => self.handle_navigate_iframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
                 history_handling,
+                target_snapshot_params,
                 cx,
             ),
             ScriptThreadMessage::UnloadDocument(pipeline_id) => {
@@ -3070,6 +3079,7 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<&Metadata>,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
@@ -3122,7 +3132,7 @@ impl ScriptThread {
         };
 
         let load = self.incomplete_loads.borrow_mut().remove(idx);
-        metadata.map(|meta| self.load(meta, load, cx))
+        metadata.map(|meta| self.load(meta, load, origin, cx))
     }
 
     /// Handles a request for the window title.
@@ -3330,6 +3340,7 @@ impl ScriptThread {
         &self,
         metadata: &Metadata,
         incomplete: InProgressLoad,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServoParser> {
         let script_to_constellation_chan = ScriptToConstellationChan {
@@ -3345,18 +3356,6 @@ impl ScriptThread {
         debug!(
             "ScriptThread: loading {} on pipeline {:?}",
             incomplete.load_data.url, incomplete.pipeline_id
-        );
-
-        let source_origin = match incomplete.load_data.load_origin {
-            LoadOrigin::Script(ref snapshot) => {
-                Some(MutableOrigin::from_snapshot(snapshot.clone()))
-            },
-            _ => None,
-        };
-        let origin = determine_the_origin(
-            Some(&final_url),
-            incomplete.load_data.creation_sandboxing_flag_set,
-            source_origin,
         );
 
         let font_context = Arc::new(FontContext::new(
@@ -3725,6 +3724,7 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
+        target_snapshot_params: TargetSnapshotParams,
         cx: &mut js::context::JSContext,
     ) {
         let iframe = self
@@ -3736,6 +3736,7 @@ impl ScriptThread {
                 load_data,
                 history_handling,
                 ProcessingMode::NotFirstTime,
+                target_snapshot_params,
                 cx,
             );
         }
@@ -3815,6 +3816,8 @@ impl ScriptThread {
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
+            incomplete.target_snapshot_params,
+            incomplete.load_data.load_origin.clone(),
         );
         self.incomplete_parser_contexts
             .0
@@ -4034,6 +4037,8 @@ impl ScriptThread {
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
+            incomplete.target_snapshot_params,
+            incomplete.load_data.load_origin.clone(),
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4085,6 +4090,8 @@ impl ScriptThread {
         let pipeline_id = incomplete.pipeline_id;
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
+        let target_snapshot_params = incomplete.target_snapshot_params;
+        let load_origin = incomplete.load_data.load_origin.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4093,6 +4100,8 @@ impl ScriptThread {
             url,
             creation_sandboxing_flag_set,
             parent_info,
+            target_snapshot_params,
+            load_origin,
         );
         let dummy_request_id = RequestId::default();
 
@@ -4146,6 +4155,7 @@ impl ScriptThread {
                     ScriptToConstellationMessage::LoadUrl(
                         LoadData::new_for_new_unrelated_webview(url),
                         NavigationHistoryBehavior::Push,
+                        TargetSnapshotParams::default(),
                     ),
                 ))
                 .unwrap();

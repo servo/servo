@@ -4058,7 +4058,7 @@ impl Document {
             waiting_on_canvas_image_updates: Cell::new(false),
             current_rendering_epoch: Default::default(),
             custom_element_reaction_stack,
-            active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
+            active_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
@@ -4958,6 +4958,10 @@ impl Document {
 
     pub(crate) fn custom_element_reaction_stack(&self) -> Rc<CustomElementReactionStack> {
         self.custom_element_reaction_stack.clone()
+    }
+
+    pub(crate) fn active_sandboxing_flag_set(&self) -> SandboxingFlagSet {
+        self.active_sandboxing_flag_set.get()
     }
 
     pub(crate) fn has_active_sandboxing_flag(&self, flag: SandboxingFlagSet) -> bool {

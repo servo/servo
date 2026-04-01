@@ -22,20 +22,27 @@ use net_traits::request::{
 use net_traits::response::ResponseInit;
 use net_traits::{
     BoxedFetchCallback, CoreResourceThread, DOCUMENT_ACCEPT_HEADER_VALUE, FetchResponseMsg,
-    Metadata, fetch_async, set_default_accept_language,
+    Metadata, ReferrerPolicy, fetch_async, set_default_accept_language,
 };
+use script_bindings::inheritance::Castable;
 use script_traits::{DocumentActivity, NewPipelineInfo};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationMessage,
+    TargetSnapshotParams,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use url::Position;
 
+use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::element::Element;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::node::node::NodeTraits;
 use crate::dom::window::Window;
+use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
 use crate::script_runtime::CanGc;
@@ -175,6 +182,9 @@ pub(crate) struct InProgressLoad {
     /// The [`Theme`] to use for this page, once it loads.
     #[no_trace]
     pub(crate) theme: Theme,
+    /// The [`TargetSnapshotParams`] to use when creating this document.
+    #[no_trace]
+    pub(crate) target_snapshot_params: TargetSnapshotParams,
 }
 
 impl InProgressLoad {
@@ -196,6 +206,7 @@ impl InProgressLoad {
             url_list: vec![url],
             user_content_manager_id: new_pipeline_info.user_content_manager_id,
             theme: new_pipeline_info.theme,
+            target_snapshot_params: new_pipeline_info.target_snapshot_params,
         }
     }
 
@@ -436,6 +447,10 @@ pub(crate) fn navigate(
             window_proxy.start_delaying_load_events_mode();
         }
 
+        // Step 16. Let targetSnapshotParams be the result of snapshotting target
+        // snapshot params given navigable.
+        let target_snapshot_params = snapshot_target_snapshot_params(&window_proxy);
+
         if let Some(sender) = window.webdriver_load_status_sender() {
             let _ = sender.send(WebDriverLoadStatus::NavigationStart);
         }
@@ -454,7 +469,7 @@ pub(crate) fn navigate(
                 let global = window.as_global_scope();
                 if ScriptThread::navigate_to_javascript_url(cx, global, global, &mut load_data, None, None) {
                     sender
-                        .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling))
+                        .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling, target_snapshot_params))
                         .unwrap();
                 }
             });
@@ -467,7 +482,69 @@ pub(crate) fn navigate(
             window.send_to_constellation(ScriptToConstellationMessage::LoadUrl(
                 load_data,
                 history_handling,
+                target_snapshot_params,
             ));
         }
     };
+}
+
+/// <https://html.spec.whatwg.org/multipage/#determining-the-creation-sandboxing-flags>
+pub(crate) fn determine_creation_sandboxing_flags(
+    browsing_context: Option<&WindowProxy>,
+    element: Option<&Element>,
+) -> SandboxingFlagSet {
+    // To determine the creation sandboxing flags for a browsing context
+    // browsing context, given null or an element embedder, return the union
+    // of the flags that are present in the following sandboxing flag sets:
+    match element {
+        // If embedder is null, then: the flags set on browsing context's
+        // popup sandboxing flag set.
+        None => browsing_context
+            .and_then(|browsing_context| browsing_context.document())
+            .map(|document| document.active_sandboxing_flag_set())
+            .unwrap_or(SandboxingFlagSet::empty()),
+        Some(element) => {
+            // If embedder is an element, then: the flags set on embedder's
+            // iframe sandboxing flag set.
+            // If embedder is an element, then: the flags set on embedder's
+            // node document's active sandboxing flag set.
+            element
+                .downcast::<HTMLIFrameElement>()
+                .map(|iframe| iframe.sandboxing_flag_set())
+                .unwrap_or(SandboxingFlagSet::empty())
+                .union(element.owner_document().active_sandboxing_flag_set())
+        },
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#determining-the-iframe-element-referrer-policy>
+pub(crate) fn determine_iframe_element_referrer_policy(
+    element: Option<&Element>,
+) -> ReferrerPolicy {
+    // Step 1. If embedder is an iframe element, then return embedder's referrerpolicy
+    // attribute's state's corresponding keyword.
+    element
+        .and_then(|element| element.downcast::<HTMLIFrameElement>())
+        .map(|iframe| {
+            let token = iframe.ReferrerPolicy();
+            ReferrerPolicy::from(&*token.str())
+        })
+        // Step 2. Return the empty string.
+        .unwrap_or(ReferrerPolicy::EmptyString)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#snapshotting-target-snapshot-params>
+pub(crate) fn snapshot_target_snapshot_params(navigable: &WindowProxy) -> TargetSnapshotParams {
+    // TODO(jdm): This doesn't work for cross-origin parent frames.
+    let container = navigable.frame_element();
+    // the result of determining the creation sandboxing flags given targetNavigable's
+    // active browsing context and targetNavigable's container
+    let sandboxing_flags = determine_creation_sandboxing_flags(Some(navigable), container);
+    // the result of determining the iframe element referrer policy given
+    // targetNavigable's container
+    let iframe_element_referrer_policy = determine_iframe_element_referrer_policy(container);
+    TargetSnapshotParams {
+        sandboxing_flags,
+        iframe_element_referrer_policy,
+    }
 }

@@ -21,7 +21,7 @@ use script_traits::{NewPipelineInfo, UpdatePipelineIdReason};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptToConstellationMessage,
+    ScriptToConstellationMessage, TargetSnapshotParams,
 };
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -52,6 +52,9 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
+use crate::navigation::{
+    determine_creation_sandboxing_flags, determine_iframe_element_referrer_policy,
+};
 use crate::network_listener::ResourceTimingListener;
 use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -155,6 +158,7 @@ impl HTMLIFrameElement {
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
         mode: ProcessingMode,
+        target_snapshot_params: TargetSnapshotParams,
         cx: &mut js::context::JSContext,
     ) {
         // In case we fired a synchronous load event, but navigate away
@@ -170,6 +174,7 @@ impl HTMLIFrameElement {
             PipelineType::Navigation,
             history_handling,
             mode,
+            target_snapshot_params,
             cx,
         );
     }
@@ -180,6 +185,7 @@ impl HTMLIFrameElement {
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
         mode: ProcessingMode,
+        target_snapshot_params: TargetSnapshotParams,
         cx: &mut js::context::JSContext,
     ) {
         let document = self.owner_document();
@@ -197,7 +203,12 @@ impl HTMLIFrameElement {
         }
 
         if load_data.url.scheme() != "javascript" {
-            self.continue_navigation(load_data, pipeline_type, history_handling);
+            self.continue_navigation(
+                load_data,
+                pipeline_type,
+                history_handling,
+                target_snapshot_params,
+            );
             return;
         }
 
@@ -229,7 +240,7 @@ impl HTMLIFrameElement {
                     }
                     load_data.about_base_url = doc.root().about_base_url();
                 }
-                this.continue_navigation(load_data, pipeline_type, history_handling);
+                this.continue_navigation(load_data, pipeline_type, history_handling, target_snapshot_params);
             }));
     }
 
@@ -238,6 +249,7 @@ impl HTMLIFrameElement {
         load_data: LoadData,
         pipeline_type: PipelineType,
         history_handling: NavigationHistoryBehavior,
+        target_snapshot_params: TargetSnapshotParams,
     ) {
         let browsing_context_id = match self.browsing_context_id() {
             None => return warn!("Attempted to start a new pipeline on an unattached iframe."),
@@ -262,6 +274,7 @@ impl HTMLIFrameElement {
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
             history_handling,
+            target_snapshot_params,
         };
 
         let viewport_details = window
@@ -298,6 +311,7 @@ impl HTMLIFrameElement {
                     viewport_details,
                     user_content_manager_id: None,
                     theme: window.theme(),
+                    target_snapshot_params,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -358,7 +372,14 @@ impl HTMLIFrameElement {
         // Step 4. Navigate element's content navigable to url using element's node document,
         // with historyHandling set to historyHandling, referrerPolicy set to referrerPolicy,
         // documentResource set to srcdocString, and initialInsertion set to initialInsertion.
-        self.navigate_or_reload_child_browsing_context(load_data, history_handling, mode, cx);
+        let target_snapshot_params = snapshot_self(self);
+        self.navigate_or_reload_child_browsing_context(
+            load_data,
+            history_handling,
+            mode,
+            target_snapshot_params,
+            cx,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#will-lazy-load-element-steps>
@@ -552,7 +573,14 @@ impl HTMLIFrameElement {
             NavigationHistoryBehavior::Push
         };
 
-        self.navigate_or_reload_child_browsing_context(load_data, history_handling, mode, cx);
+        let target_snapshot_params = snapshot_self(self);
+        self.navigate_or_reload_child_browsing_context(
+            load_data,
+            history_handling,
+            mode,
+            target_snapshot_params,
+            cx,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
@@ -593,6 +621,7 @@ impl HTMLIFrameElement {
             PipelineType::InitialAboutBlank,
             NavigationHistoryBehavior::Push,
             ProcessingMode::FirstTime,
+            snapshot_self(self),
             cx,
         );
     }
@@ -1266,5 +1295,18 @@ impl<'a> ResourceTimingListener for IframeContext<'a> {
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.element.upcast::<Node>().owner_doc().global()
+    }
+}
+
+fn snapshot_self(iframe: &HTMLIFrameElement) -> TargetSnapshotParams {
+    let child_navigable = iframe.GetContentWindow();
+    TargetSnapshotParams {
+        sandboxing_flags: determine_creation_sandboxing_flags(
+            child_navigable.as_deref(),
+            Some(iframe.upcast()),
+        ),
+        iframe_element_referrer_policy: determine_iframe_element_referrer_policy(Some(
+            iframe.upcast(),
+        )),
     }
 }
