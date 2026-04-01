@@ -81,6 +81,7 @@ use script_traits::{
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel;
+use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
@@ -90,7 +91,7 @@ use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
     LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TraversalDirection, WindowSizeType,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -120,7 +121,6 @@ use crate::dom::bindings::conversions::{
     ConversionResult, SafeFromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -151,7 +151,7 @@ use crate::messaging::{
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
-use crate::navigation::{InProgressLoad, NavigationListener, determine_the_origin};
+use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
@@ -537,10 +537,17 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<&Metadata>,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, cx)
+            script_thread.handle_page_headers_available(
+                webview_id,
+                pipeline_id,
+                metadata,
+                origin,
+                cx,
+            )
         })
     }
 
@@ -602,65 +609,6 @@ impl ScriptThread {
     /// update timer has fired or the renderer has asked us for a new rendering update.
     pub(crate) fn set_needs_rendering_update(&self) {
         self.needs_rendering_update.store(true, Ordering::Relaxed);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#navigate>
-    pub(crate) fn navigate(
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        mut load_data: LoadData,
-        history_handling: NavigationHistoryBehavior,
-        initial_insertion: Option<bool>,
-    ) {
-        with_script_thread(|script_thread| {
-            let is_javascript = load_data.url.scheme() == "javascript";
-            // Step 20. If url's scheme is "javascript", then:
-            if is_javascript {
-                let Some(window) = script_thread.documents.borrow().find_window(pipeline_id) else {
-                    return;
-                };
-                let global = window.as_global_scope();
-                let trusted_global = Trusted::new(global);
-                let sender = script_thread
-                    .senders
-                    .pipeline_to_constellation_sender
-                    .clone();
-                load_data.about_base_url = window.Document().about_base_url();
-                // Step 20.1 Queue a global task on the navigation and traversal
-                //   task source given navigable's active window to navigate to a
-                //   javascript: URL given navigable, url, historyHandling,
-                //   sourceSnapshotParams, initiatorOriginSnapshot, userInvolvement,
-                //   cspNavigationType, initialInsertion, and navigationId.
-                let task = task!(navigate_javascript: move |cx| {
-                    // Important re security. See https://github.com/servo/servo/issues/23373
-                    if trusted_global.root().is::<Window>() {
-                        let global = &trusted_global.root();
-                        // If this method returns true we are creating a new document
-                        if Self::navigate_to_javascript_url(cx, global, global, &mut load_data, None, initial_insertion) {
-                            sender
-                                .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
-                                .unwrap();
-                        }
-                    }
-                });
-                global
-                    .task_manager()
-                    .navigation_and_traversal_task_source()
-                    .queue(task);
-                // Step 20.2. Return.
-                return;
-            }
-
-            script_thread
-                .senders
-                .pipeline_to_constellation_sender
-                .send((
-                    webview_id,
-                    pipeline_id,
-                    ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
-                ))
-                .expect("Sending a LoadUrl message to the constellation failed");
-        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
@@ -1796,11 +1744,13 @@ impl ScriptThread {
                 browsing_context_id,
                 load_data,
                 history_handling,
+                target_snapshot_params,
             ) => self.handle_navigate_iframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
                 history_handling,
+                target_snapshot_params,
                 cx,
             ),
             ScriptThreadMessage::UnloadDocument(pipeline_id) => {
@@ -1811,6 +1761,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::ThemeChange(_, theme) => {
                 self.handle_theme_change_msg(theme);
+            },
+            ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
+                self.handle_get_document_origin(pipeline_id, result_sender);
             },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
@@ -2758,6 +2711,19 @@ impl ScriptThread {
         }
     }
 
+    fn handle_get_document_origin(
+        &self,
+        id: PipelineId,
+        result_sender: GenericSender<Option<String>>,
+    ) {
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .map(|document| document.origin().immutable().ascii_serialization()),
+        );
+    }
+
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
     fn handle_exit_fullscreen(&self, id: PipelineId, cx: &mut js::context::JSContext) {
         let document = self.documents.borrow().find_document(id);
@@ -2775,23 +2741,11 @@ impl ScriptThread {
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
             || {
-                let source_origin = match new_pipeline_info.load_data.load_origin {
-                    LoadOrigin::Script(ref snapshot) => {
-                        Some(MutableOrigin::from_snapshot(snapshot.clone()))
-                    },
-                    _ => None,
-                };
-                let origin = determine_the_origin(
-                    Some(&new_pipeline_info.load_data.url),
-                    new_pipeline_info.load_data.creation_sandboxing_flag_set,
-                    source_origin,
-                );
-
                 self.devtools_state
                     .notify_pipeline_created(new_pipeline_info.new_pipeline_id);
 
                 // Kick off the fetch for the new resource.
-                self.pre_page_load(cx, InProgressLoad::new(new_pipeline_info, origin));
+                self.pre_page_load(cx, InProgressLoad::new(new_pipeline_info));
             },
         );
     }
@@ -3125,6 +3079,7 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<&Metadata>,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
@@ -3177,7 +3132,7 @@ impl ScriptThread {
         };
 
         let load = self.incomplete_loads.borrow_mut().remove(idx);
-        metadata.map(|meta| self.load(meta, load, cx))
+        metadata.map(|meta| self.load(meta, load, origin, cx))
     }
 
     /// Handles a request for the window title.
@@ -3385,6 +3340,7 @@ impl ScriptThread {
         &self,
         metadata: &Metadata,
         incomplete: InProgressLoad,
+        origin: MutableOrigin,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<ServoParser> {
         let script_to_constellation_chan = ScriptToConstellationChan {
@@ -3401,13 +3357,6 @@ impl ScriptThread {
             "ScriptThread: loading {} on pipeline {:?}",
             incomplete.load_data.url, incomplete.pipeline_id
         );
-
-        let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
-        {
-            incomplete.origin.clone()
-        } else {
-            MutableOrigin::new(final_url.origin())
-        };
 
         let font_context = Arc::new(FontContext::new(
             self.system_font_service.clone(),
@@ -3713,6 +3662,7 @@ impl ScriptThread {
                 title: String::from(title),
                 url,
                 is_top_level_global,
+                is_service_worker: false,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                 (browsing_context_id, pipeline_id, worker_id, webview_id),
@@ -3774,6 +3724,7 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
+        target_snapshot_params: TargetSnapshotParams,
         cx: &mut js::context::JSContext,
     ) {
         let iframe = self
@@ -3785,6 +3736,7 @@ impl ScriptThread {
                 load_data,
                 history_handling,
                 ProcessingMode::NotFirstTime,
+                target_snapshot_params,
                 cx,
             );
         }
@@ -3864,6 +3816,8 @@ impl ScriptThread {
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
+            incomplete.target_snapshot_params,
+            incomplete.load_data.load_origin.clone(),
         );
         self.incomplete_parser_contexts
             .0
@@ -3897,7 +3851,7 @@ impl ScriptThread {
                 self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
             },
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
-                self.handle_fetch_chunk(pipeline_id, request_id, chunk.0)
+                self.handle_fetch_chunk(cx, pipeline_id, request_id, chunk.0)
             },
             FetchResponseMsg::ProcessResponseEOF(request_id, eof, timing) => {
                 self.handle_fetch_eof(cx, pipeline_id, request_id, eof, timing)
@@ -3933,13 +3887,19 @@ impl ScriptThread {
         }
     }
 
-    fn handle_fetch_chunk(&self, pipeline_id: PipelineId, request_id: RequestId, chunk: Vec<u8>) {
+    fn handle_fetch_chunk(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+        request_id: RequestId,
+        chunk: Vec<u8>,
+    ) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
             .iter_mut()
             .find(|&&mut (parser_pipeline_id, _)| parser_pipeline_id == pipeline_id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response_chunk(request_id, chunk);
+            ctxt.process_response_chunk(cx, request_id, chunk);
         }
     }
 
@@ -4030,6 +3990,12 @@ impl ScriptThread {
             .map(Referrer::ReferrerUrl)
             .unwrap_or(Referrer::NoReferrer);
         request_builder.referrer_policy = metadata.referrer_policy;
+        request_builder.origin = request_builder
+            .client
+            .as_ref()
+            .expect("Must have a client during redirect")
+            .origin
+            .clone();
 
         let headers = metadata
             .headers
@@ -4071,6 +4037,8 @@ impl ScriptThread {
             incomplete.load_data.url.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
             incomplete.parent_info,
+            incomplete.target_snapshot_params,
+            incomplete.load_data.load_origin.clone(),
         );
 
         let mut meta = Metadata::default(incomplete.load_data.url.clone());
@@ -4092,7 +4060,7 @@ impl ScriptThread {
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(dummy_request_id, chunk.into());
+        context.process_response_chunk(cx, dummy_request_id, chunk.into());
         context.process_response_eof(
             cx,
             dummy_request_id,
@@ -4122,6 +4090,8 @@ impl ScriptThread {
         let pipeline_id = incomplete.pipeline_id;
         let parent_info = incomplete.parent_info;
         let about_base_url = incomplete.load_data.about_base_url.clone();
+        let target_snapshot_params = incomplete.target_snapshot_params;
+        let load_origin = incomplete.load_data.load_origin.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(
@@ -4130,13 +4100,15 @@ impl ScriptThread {
             url,
             creation_sandboxing_flag_set,
             parent_info,
+            target_snapshot_params,
+            load_origin,
         );
         let dummy_request_id = RequestId::default();
 
         context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
-        context.process_response_chunk(dummy_request_id, chunk);
+        context.process_response_chunk(cx, dummy_request_id, chunk);
         context.process_response_eof(
             cx,
             dummy_request_id,
@@ -4183,6 +4155,7 @@ impl ScriptThread {
                     ScriptToConstellationMessage::LoadUrl(
                         LoadData::new_for_new_unrelated_webview(url),
                         NavigationHistoryBehavior::Push,
+                        TargetSnapshotParams::default(),
                     ),
                 ))
                 .unwrap();

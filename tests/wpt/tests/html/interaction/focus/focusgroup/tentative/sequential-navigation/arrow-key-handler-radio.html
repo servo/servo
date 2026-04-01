@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Radio buttons are native arrow key handlers</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=toolbar focusgroup="toolbar nomemory">
+  <button id=btn1 type="button">Bold</button>
+  <label><input id=r1 type="radio" name="group" checked> Radio 1</label>
+  <label><input id=r2 type="radio" name="group"> Radio 2</label>
+  <button id=btn2 type="button">Italic</button>
+</div>
+
+<script>
+  // Arrow keys CAN navigate TO a radio button (entry works).
+  promise_test(async t => {
+    const btn1 = document.getElementById("btn1");
+    const r1 = document.getElementById("r1");
+
+    await focusAndWait(btn1);
+    assert_equals(document.activeElement, btn1, "Precondition: focus starts on btn1");
+
+    await focusAndKeyPress(btn1, kArrowRight);
+    assert_equals(document.activeElement, r1,
+                  "Arrow right should navigate TO radio button (entry allowed)");
+  }, "Arrow keys can navigate TO radio button (entry)");
+
+  // Arrow keys on a focused radio navigate WITHIN the radio group via native
+  // radio group navigation, NOT via focusgroup. Verify that ArrowRight from
+  // r1 moves to r2 (native behavior) rather than to btn2 (which would mean
+  // focusgroup incorrectly overrode the native handler).
+  promise_test(async t => {
+    const r1 = document.getElementById("r1");
+    const r2 = document.getElementById("r2");
+    const btn2 = document.getElementById("btn2");
+
+    await focusAndWait(r1);
+    assert_equals(document.activeElement, r1, "Precondition: focus starts on r1");
+
+    await focusAndKeyPress(r1, kArrowRight);
+    assert_not_equals(document.activeElement, btn2,
+                      "Focusgroup must not move focus past the radio group");
+    assert_equals(document.activeElement, r2,
+                  "Arrow right should cycle within radio group via native behavior");
+  }, "Arrow keys navigate within radio group, not via focusgroup");
+
+  // Tab from radio: the radio group acts as a segment boundary, so Tab moves
+  // to the next segment's entry element (btn2).
+  // Reset checked state: the previous test's ArrowRight moved checked from r1
+  // to r2. Because radio group members are individual focusgroup items (not
+  // yet treated as a single unit), a checked r2 would be the segment entry
+  // rather than btn2. Setting r1 back to checked makes r2 non-keyboard-
+  // focusable, so btn2 becomes the entry instead.
+  promise_test(async t => {
+    const r1 = document.getElementById("r1");
+    const btn2 = document.getElementById("btn2");
+
+    r1.checked = true;
+    await focusAndWait(r1);
+    assert_equals(document.activeElement, r1, "Precondition: focus starts on radio");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, btn2,
+                  "Tab from radio should move to next segment entry");
+  }, "Tab from radio moves to next segment entry");
+
+  // Shift+Tab from radio: moves to the previous segment's entry element (btn1).
+  // Reset checked state for the same reason as the previous test.
+  promise_test(async t => {
+    const r1 = document.getElementById("r1");
+    const btn1 = document.getElementById("btn1");
+
+    r1.checked = true;
+    await focusAndWait(r1);
+    assert_equals(document.activeElement, r1, "Precondition: focus starts on radio");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, btn1,
+                  "Shift+Tab from radio should move to previous segment entry");
+  }, "Shift+Tab from radio moves to previous segment entry");
+
+  // Tab from second radio also escapes to the next segment entry. After the
+  // previous tests set r1.checked = true, r2 is unchecked. This exercises the
+  // fix where a focused but non-keyboard-focusable element (unchecked radio)
+  // must still act as a segment barrier.
+  promise_test(async t => {
+    const r2 = document.getElementById("r2");
+    const btn2 = document.getElementById("btn2");
+
+    await focusAndWait(r2);
+    assert_equals(document.activeElement, r2, "Precondition: focus starts on r2");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, btn2,
+                  "Tab from any radio in the group should move to next segment entry");
+  }, "Tab from second radio also escapes to next segment entry");
+</script>

@@ -72,7 +72,7 @@ struct GetWatcherReply {
 #[derive(MallocSizeOf)]
 pub(crate) struct TabDescriptorActor {
     name: String,
-    browsing_context_actor: String,
+    browsing_context_name: String,
     is_top_level_global: bool,
 }
 
@@ -99,13 +99,14 @@ impl Actor for TabDescriptorActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-        let pipeline = ctx_actor.pipeline_id();
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
+        let pipeline = browsing_context_actor.pipeline_id();
 
         match msg_type {
             "getTarget" => request.reply_final(&GetTargetReply {
                 from: self.name(),
-                frame: registry.encode::<BrowsingContextActor, _>(&self.browsing_context_actor),
+                frame: registry.encode::<BrowsingContextActor, _>(&self.browsing_context_name),
             })?,
             "getFavicon" => {
                 // TODO: Return a favicon when available
@@ -116,17 +117,17 @@ impl Actor for TabDescriptorActor {
             },
             "getWatcher" => request.reply_final(&GetWatcherReply {
                 from: self.name(),
-                watcher: registry.encode::<WatcherActor, _>(&ctx_actor.watcher),
+                watcher: registry.encode::<WatcherActor, _>(&browsing_context_actor.watcher_name),
             })?,
             "goBack" => {
-                ctx_actor
+                browsing_context_actor
                     .script_chan()
                     .send(DevtoolScriptControlMsg::GoBack(pipeline))
                     .map_err(|_| ActorError::Internal)?;
                 request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
             "goForward" => {
-                ctx_actor
+                browsing_context_actor
                     .script_chan()
                     .send(DevtoolScriptControlMsg::GoForward(pipeline))
                     .map_err(|_| ActorError::Internal)?;
@@ -143,7 +144,7 @@ impl Actor for TabDescriptorActor {
                     .ok_or(ActorError::Internal)?
                     .map_err(|_| ActorError::Internal)?;
 
-                ctx_actor
+                browsing_context_actor
                     .script_chan()
                     .send(DevtoolScriptControlMsg::NavigateTo(pipeline, url))
                     .map_err(|_| ActorError::Internal)?;
@@ -152,7 +153,7 @@ impl Actor for TabDescriptorActor {
             },
             "reloadDescriptor" => {
                 // There is an extra bypassCache parameter that we don't currently use.
-                ctx_actor
+                browsing_context_actor
                     .script_chan()
                     .send(DevtoolScriptControlMsg::Reload(pipeline))
                     .map_err(|_| ActorError::Internal)?;
@@ -168,15 +169,15 @@ impl Actor for TabDescriptorActor {
 impl TabDescriptorActor {
     pub(crate) fn new(
         registry: &ActorRegistry,
-        browsing_context_actor: String,
+        browsing_context_name: String,
         is_top_level_global: bool,
     ) -> TabDescriptorActor {
         let name = registry.new_name::<Self>();
-        let root = registry.find::<RootActor>("root");
-        root.tabs.borrow_mut().push(name.clone());
+        let root_actor = registry.find::<RootActor>("root");
+        root_actor.tabs.borrow_mut().push(name.clone());
         TabDescriptorActor {
             name,
-            browsing_context_actor,
+            browsing_context_name,
             is_top_level_global,
         }
     }
@@ -186,22 +187,23 @@ impl TabDescriptorActor {
     }
 
     pub fn browsing_context(&self) -> String {
-        self.browsing_context_actor.clone()
+        self.browsing_context_name.clone()
     }
 }
 
 impl ActorEncode<TabDescriptorActorMsg> for TabDescriptorActor {
     fn encode(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
-        let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-        let title = ctx_actor.title.borrow().clone();
-        let url = ctx_actor.url.borrow().clone();
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&self.browsing_context_name);
+        let title = browsing_context_actor.title.borrow().clone();
+        let url = browsing_context_actor.url.borrow().clone();
 
         TabDescriptorActorMsg {
             actor: self.name(),
-            browser_id: ctx_actor.browser_id.value(),
-            browsing_context_id: ctx_actor.browsing_context_id.value(),
+            browser_id: browsing_context_actor.browser_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             is_zombie_tab: false,
-            outer_window_id: ctx_actor.outer_window_id().value(),
+            outer_window_id: browsing_context_actor.outer_window_id().value(),
             selected: false,
             title,
             traits: DescriptorTraits {

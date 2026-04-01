@@ -77,6 +77,10 @@ use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, Poi
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
+/// <https://262.ecma-international.org/6.0/#sec-number.max_safe_integer>
+/// 2^53 - 1
+pub(crate) static MAXIMUM_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
         (
@@ -1859,6 +1863,18 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = generic_channel::channel().unwrap();
 
+        // Step 6. cookie expiry time is not an integer type,
+        // or it less than 0 or greater than the maximum safe integer,
+        // return error with error code invalid argument.
+        if let Some(ref expiry) = params.expiry {
+            if expiry.0 > MAXIMUM_SAFE_INTEGER {
+                return Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "expiry time greater than maximum safe integer",
+                ));
+            }
+        }
+
         let mut cookie_builder =
             CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
                 .secure(params.secure)
@@ -1870,9 +1886,10 @@ impl Handler {
             cookie_builder = cookie_builder.path(path.clone());
         }
         if let Some(ref expiry) = params.expiry {
-            if let Ok(datetime) = OffsetDateTime::from_unix_timestamp(expiry.0 as i64) {
-                cookie_builder = cookie_builder.expires(datetime);
-            }
+            let datetime = OffsetDateTime::from_unix_timestamp(expiry.0 as i64).map_err(|_| {
+                WebDriverError::new(ErrorStatus::InvalidArgument, "invalid expiry time")
+            })?;
+            cookie_builder = cookie_builder.expires(datetime);
         }
         if let Some(ref same_site) = params.sameSite {
             cookie_builder = match same_site.as_str() {

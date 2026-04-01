@@ -67,17 +67,14 @@ pub(crate) fn derive_bits(
     let Handle::X25519PublicKey(public_key) = public_key.handle() else {
         return Err(Error::Operation(None));
     };
-    let shared_key = private_key.diffie_hellman(public_key);
-    let secret = shared_key.as_bytes();
+    let secret = private_key.diffie_hellman(public_key);
 
     // Step 6. If secret is the all-zero value, then throw a OperationError. This check must be
     // performed in constant-time, as per [RFC7748] Section 6.1.
-    let mut is_all_zero = true;
-    for byte in secret {
-        is_all_zero &= *byte == 0;
-    }
-    if is_all_zero {
-        return Err(Error::Operation(None));
+    if !secret.was_contributory() {
+        return Err(Error::Operation(Some(
+            "Secret is the all-zero value".into(),
+        )));
     }
 
     // Step 7.
@@ -88,13 +85,14 @@ pub(crate) fn derive_bits(
     //         throw an OperationError.
     //     Otherwise:
     //         Return a byte sequence containing the first length bits of secret.
+    let secret_slice = secret.as_bytes();
     match length {
-        None => Ok(secret.to_vec()),
+        None => Ok(secret_slice.to_vec()),
         Some(length) => {
-            if secret.len() * 8 < length as usize {
+            if secret_slice.len() * 8 < length as usize {
                 Err(Error::Operation(None))
             } else {
-                let mut secret = secret[..length.div_ceil(8) as usize].to_vec();
+                let mut secret = secret_slice[..length.div_ceil(8) as usize].to_vec();
                 if length % 8 != 0 {
                     // Clean excess bits in last byte of secret.
                     let mask = u8::MAX << (8 - length % 8);

@@ -14,8 +14,8 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 use serde::{Deserialize, Serialize};
 pub use serializable::*;
 use servo_base::id::{
-    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, ImageBitmapId,
-    ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
+    BlobId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId, FileListId,
+    ImageBitmapId, ImageDataId, MessagePortId, OffscreenCanvasId, QuotaExceededErrorId,
 };
 use strum::IntoEnumIterator;
 pub use transferable::*;
@@ -28,6 +28,10 @@ pub struct StructuredSerializedData {
     pub serialized: Vec<u8>,
     /// Serialized in a structured callback,
     pub blobs: Option<FxHashMap<BlobId, BlobImpl>>,
+    /// Serialized files.
+    pub files: Option<FxHashMap<FileId, SerializableFile>>,
+    /// Serialized file lists.
+    pub file_lists: Option<FxHashMap<FileListId, SerializableFileList>>,
     /// Serialized point objects.
     pub points: Option<FxHashMap<DomPointId, DomPoint>>,
     /// Serialized rect objects.

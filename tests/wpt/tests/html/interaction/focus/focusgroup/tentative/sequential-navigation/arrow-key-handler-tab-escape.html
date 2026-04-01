@@ -3,7 +3,6 @@
 <title>HTML Test: focusgroup - Native arrow key handler elements and Tab escape</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
-<meta name="assert" content="Native arrow key handler elements inside a focusgroup do not trigger focusgroup arrow navigation when focused. Tab/Shift+Tab from a focused handler moves to the next/previous segment entry.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -54,8 +53,8 @@
                   "Left arrow should not move focus out of native arrow key handler (native behavior)");
   }, "Arrow keys cannot navigate FROM native arrow key handler (exit blocked)");
 
-  // Tab from native arrow key handler: the focused handler creates a segment
-  // boundary, so Tab moves to the next segment's entry element.
+  // Tab from native arrow key handler should move to the next adjacent
+  // focusgroup item.
   promise_test(async t => {
     const search = document.getElementById("search");
     const italic = document.getElementById("italic");
@@ -65,11 +64,11 @@
 
     await sendTabForward();
     assert_equals(document.activeElement, italic,
-                  "Tab from native arrow key handler should move to next segment entry");
-  }, "Tab from native arrow key handler moves to next segment entry");
+                  "Tab from native arrow key handler should move to next adjacent focusgroup item");
+  }, "Tab from native arrow key handler moves to next adjacent item");
 
-  // Shift+Tab from native arrow key handler: the focused handler creates a
-  // segment boundary, so Shift+Tab moves to the previous segment's entry.
+  // Shift+Tab from native arrow key handler: focus moves to the previous
+  // adjacent focusgroup item.
   promise_test(async t => {
     const bold = document.getElementById("bold");
     const search = document.getElementById("search");
@@ -79,6 +78,6 @@
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, bold,
-                  "Shift+Tab from native arrow key handler should go to previous segment entry");
-  }, "Shift+Tab from native arrow key handler goes to previous segment entry");
+                  "Shift+Tab from native arrow key handler should go to previous adjacent focusgroup item");
+  }, "Shift+Tab from native arrow key handler goes to previous adjacent item");
 </script>

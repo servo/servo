@@ -36,7 +36,8 @@ use script_traits::DocumentActivity;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
-use servo_url::ServoUrl;
+use servo_constellation_traits::{LoadOrigin, TargetSnapshotParams};
+use servo_url::{MutableOrigin, ServoUrl};
 use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
@@ -80,11 +81,13 @@ use crate::dom::processingoptions::{
     LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
 };
 use crate::dom::reporting::reportingendpoint::ReportingEndpoint;
+use crate::dom::security::csp::CspReporting;
 use crate::dom::security::xframeoptions::check_a_navigation_response_adherence_to_x_frame_options;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
 use crate::dom::virtualmethods::vtable_for;
+use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType};
@@ -924,6 +927,8 @@ pub(crate) struct ParserContext {
     navigation_params: NavigationParams,
     /// To report CSP violations to the global that initiated the navigation
     parent_info: Option<PipelineId>,
+    target_snapshot_params: TargetSnapshotParams,
+    load_origin: LoadOrigin,
 }
 
 impl ParserContext {
@@ -933,6 +938,8 @@ impl ParserContext {
         url: ServoUrl,
         creation_sandboxing_flag_set: SandboxingFlagSet,
         parent_info: Option<PipelineId>,
+        target_snapshot_params: TargetSnapshotParams,
+        load_origin: LoadOrigin,
     ) -> ParserContext {
         ParserContext {
             parser: None,
@@ -951,6 +958,8 @@ impl ParserContext {
                 resource_header: vec![],
                 about_base_url: Default::default(),
             },
+            target_snapshot_params,
+            load_origin,
         }
     }
 
@@ -1279,6 +1288,10 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
+        // <https://html.spec.whatwg.org/multipage/#create-navigation-params-by-fetching>
+        // Step 21.9. Set responsePolicyContainer to the result of creating a
+        // policy container from a fetch response given response and request's
+        // reserved client.
         let (policy_container, endpoints_list, link_headers) = match metadata.as_ref() {
             None => (PolicyContainer::default(), None, vec![]),
             Some(metadata) => (
@@ -1291,10 +1304,36 @@ impl FetchResponseListener for ParserContext {
             ),
         };
 
+        // Step 21.10. Set finalSandboxFlags to the union of targetSnapshotParams's
+        // sandboxing flags and responsePolicyContainer's CSP list's CSP-derived
+        // sandboxing flags.
+        let final_sandboxing_flag_set = policy_container
+            .csp_list
+            .as_ref()
+            .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
+            .unwrap_or(SandboxingFlagSet::empty())
+            .union(self.target_snapshot_params.sandboxing_flags);
+
+        // Step 21.11. Set responseOrigin to the result of determining the origin
+        // given response's URL, finalSandboxFlags, and entry's document state's
+        // initiator origin.
+        let source_origin = match self.load_origin {
+            LoadOrigin::Script(ref snapshot) => {
+                Some(MutableOrigin::from_snapshot(snapshot.clone()))
+            },
+            _ => None,
+        };
+        let origin = determine_the_origin(
+            metadata.as_ref().map(|metadata| &metadata.final_url),
+            final_sandboxing_flag_set,
+            source_origin,
+        );
+
         let parser = match ScriptThread::page_headers_available(
             self.webview_id,
             self.pipeline_id,
             metadata.as_ref(),
+            origin.clone(),
             cx,
         ) {
             Some(parser) => parser,
@@ -1311,13 +1350,18 @@ impl FetchResponseListener for ParserContext {
 
         // https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry%27s-document
         // Step 4. Otherwise, if any of the following are true:
+        if
         // navigationParams is null;
         // TODO
         // the result of should navigation response to navigation request of
         // type in target be blocked by Content Security Policy? given
         // navigationParams's request, navigationParams's response, navigationParams's policy container's CSP list,
         // cspNavigationType, and navigable is "Blocked";
-        // TODO
+        policy_container.csp_list.should_navigation_response_to_navigation_request_be_blocked(
+            window,
+            self.url.clone().into_url(),
+            &origin.immutable().clone().into_url_origin(),
+        )
         // navigationParams's reserved environment is non-null and the result of
         // checking a navigation response's adherence to its embedder policy given navigationParams's response,
         // navigable, and navigationParams's policy container's embedder policy is false; or
@@ -1325,10 +1369,10 @@ impl FetchResponseListener for ParserContext {
         // the result of checking a navigation response's adherence to `X-Frame-Options`
         // given navigationParams's response, navigable, navigationParams's policy container's CSP list,
         // and navigationParams's origin is false,
-        if !check_a_navigation_response_adherence_to_x_frame_options(
+        || !check_a_navigation_response_adherence_to_x_frame_options(
             window,
             policy_container.csp_list.as_ref(),
-            &document.origin(),
+            &origin,
             metadata
                 .as_ref()
                 .and_then(|metadata| metadata.headers.as_ref()),
@@ -1344,19 +1388,6 @@ impl FetchResponseListener for ParserContext {
             // Step 4.4. If navigationParams is not null, then:
             // TODO
         }
-
-        // From Step 23.8.3 of https://html.spec.whatwg.org/multipage/#navigate
-        // Let finalSandboxFlags be the union of targetSnapshotParams's sandboxing flags and
-        // policyContainer's CSP list's CSP-derived sandboxing flags.
-        //
-        // TODO: This deviates a bit from the specification, because there isn't a `targetSnapshotParam`
-        // concept yet.
-        let final_sandboxing_flag_set = policy_container
-            .csp_list
-            .as_ref()
-            .and_then(|csp| csp.get_sandboxing_flag_set_for_document())
-            .unwrap_or(SandboxingFlagSet::empty())
-            .union(document.creation_sandboxing_flag_set());
 
         if let Some(endpoints) = endpoints_list {
             window.set_endpoints_list(endpoints);
@@ -1436,11 +1467,12 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    #[expect(unsafe_code)]
-    fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
-        // TODO: https://github.com/servo/servo/issues/42841
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        payload: Vec<u8>,
+    ) {
         if self.is_synthesized_document {
             return;
         }

@@ -69,6 +69,16 @@ def check_call_with_randomized_backoff(args: list[str], retries: int) -> int:
         return check_call_with_randomized_backoff(args, retries - 1)
 
 
+def copy_packaged_resources(top_dir: str, destination: str) -> None:
+    os.makedirs(destination, exist_ok=True)
+    shutil.copytree(path.join(top_dir, "resources"), destination, dirs_exist_ok=True)
+    shutil.copytree(
+        path.join(top_dir, "components", "default-resources", "resources"),
+        path.join(destination, "named_resources"),
+        dirs_exist_ok=True,
+    )
+
+
 @CommandProvider
 class PackageCommands(CommandBase):
     @staticmethod
@@ -176,7 +186,7 @@ class PackageCommands(CommandBase):
             if path.exists(dir_to_resources):
                 delete(dir_to_resources)
 
-            shutil.copytree(path.join(dir_to_root, "resources"), dir_to_resources)
+            copy_packaged_resources(dir_to_root, dir_to_resources)
 
             variant = ":assemble" + flavor_name + arch_string + build_type_string
             apk_task_name = ":servoapp" + variant
@@ -198,10 +208,8 @@ class PackageCommands(CommandBase):
                 print("Cleaning up from previous packaging")
                 delete(ohos_target_dir)
             shutil.copytree(ohos_app_dir, ohos_target_dir)
-            resources_src_dir = path.join(self.get_top_dir(), "resources")
             resources_app_dir = path.join(ohos_target_dir, "AppScope", "resources", "resfile", "servo")
-            os.makedirs(resources_app_dir, exist_ok=True)
-            shutil.copytree(resources_src_dir, resources_app_dir, dirs_exist_ok=True)
+            copy_packaged_resources(self.get_top_dir(), str(resources_app_dir))
 
             # Map non-debug profiles to 'release' buildMode HAP.
             if build_type.is_custom():
@@ -273,7 +281,7 @@ class PackageCommands(CommandBase):
                 delete(dir_to_dmg)
 
             print("Copying files")
-            shutil.copytree(path.join(dir_to_root, "resources"), dir_to_resources)
+            copy_packaged_resources(dir_to_root, dir_to_resources)
             shutil.copy2(
                 path.join(dir_to_root, "ports/servoshell/platform/macos/Info.plist"),
                 path.join(dir_to_app, "Contents", "Info.plist"),
@@ -349,7 +357,7 @@ class PackageCommands(CommandBase):
             print("Copying files")
             dir_to_temp = path.join(dir_to_msi, "temp")
             dir_to_resources = path.join(dir_to_temp, "resources")
-            shutil.copytree(path.join(dir_to_root, "resources"), dir_to_resources)
+            copy_packaged_resources(dir_to_root, dir_to_resources)
             shutil.copy(binary_path, dir_to_temp)
             copy_windows_dependencies(target_dir, dir_to_temp)
 
@@ -417,7 +425,7 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             dir_to_resources = path.join(dir_to_temp, "resources")
-            shutil.copytree(path.join(dir_to_root, "resources"), dir_to_resources)
+            copy_packaged_resources(dir_to_root, dir_to_resources)
             shutil.copy(binary_path, dir_to_temp)
 
             print("Creating tarball")

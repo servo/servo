@@ -68,13 +68,14 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::input_element::HTMLInputElement;
+use crate::dom::input_element::input_type::InputType;
 use crate::dom::node::{
     BindContext, Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper,
 };
@@ -85,6 +86,7 @@ use crate::dom::types::HTMLIFrameElement;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
+use crate::navigation::navigate;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -168,7 +170,7 @@ impl HTMLFormElement {
                     {
                         if let Some(inp) = child.downcast::<HTMLInputElement>() {
                             // input, only return it if it's not image-button state
-                            return inp.input_type() != InputType::Image;
+                            return !matches!(*inp.input_type(), InputType::Image(_));
                         } else {
                             // control, but not an input
                             return true;
@@ -382,7 +384,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                         },
                         HTMLElementTypeId::HTMLInputElement => {
                             let input_elem = elem.downcast::<HTMLInputElement>().unwrap();
-                            if input_elem.input_type() == InputType::Image {
+                            if matches!(*input_elem.input_type(), InputType::Image(_)) {
                                 return false;
                             }
                             input_elem.form_owner()
@@ -1093,7 +1095,7 @@ impl HTMLFormElement {
         // given the form element and the following steps:
         let form = Trusted::new(self);
         let window = Trusted::new(target);
-        let task = task!(navigate_to_form_planned_navigation: move || {
+        let task = task!(navigate_to_form_planned_navigation: move |cx| {
             // 4.1 Set the form's planned navigation to null.
             // Note: we implement the equivalent by incrementing the counter above,
             // and checking it here.
@@ -1108,14 +1110,13 @@ impl HTMLFormElement {
             }
 
             // 4.2 Navigate targetNavigable to url
-            window
-                .root()
-                .load_url(
-                    NavigationHistoryBehavior::Push,
-                    false,
-                    load_data,
-                    CanGc::note(),
-                );
+            navigate(
+                cx,
+                &window.root(),
+                NavigationHistoryBehavior::Push,
+                false,
+                load_data,
+            );
         });
 
         // 5. Set the form's planned navigation to the just-queued task.
@@ -1286,7 +1287,10 @@ impl HTMLFormElement {
             let input_matches = child_element
                 .downcast::<HTMLInputElement>()
                 .is_some_and(|input| {
-                    matches!(input.input_type(), InputType::Text | InputType::Search)
+                    matches!(
+                        *input.input_type(),
+                        InputType::Text(_) | InputType::Search(_)
+                    )
                 });
             let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));

@@ -18,7 +18,7 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
+use crate::navigation::navigate;
 
 #[derive(PartialEq)]
 pub(crate) enum NavigationType {
@@ -83,7 +83,7 @@ impl Location {
             history_handling
         };
         // Step 4. Navigate navigable to url using sourceDocument, with exceptionsEnabled set to true and historyHandling set to historyHandling.
-        navigable.load_url(history_handling, false, load_data, CanGc::from_cx(cx));
+        navigate(cx, navigable, history_handling, false, load_data);
     }
 
     /// Navigate the relevant `Document`'s browsing context.
@@ -155,11 +155,12 @@ impl Location {
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
-        self.window.load_url(
+        navigate(
+            cx,
+            &self.window,
             history_handling,
             reload_triggered,
             load_data,
-            CanGc::from_cx(cx),
         );
     }
 

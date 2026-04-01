@@ -102,7 +102,6 @@ use xcomponent_sys::{
 
 use super::app::{App, AppInitOptions, EmbeddedPlatformWindow, VsyncRefreshDriver};
 use super::host_trait::HostTrait;
-use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 /// Queue length for the thread-safe function to submit URL updates to ArkTS
@@ -209,7 +208,7 @@ fn init_app(
 
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     debug!("Resources are located at: {:?}", resource_dir);
-    servo::resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
+    resources::set_resource_dir(resource_dir.clone());
 
     let args = options
         .commandline_args

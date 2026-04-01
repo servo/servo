@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: keydown entry dispatched without a repaint.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<div id='target' tabindex=0>key target</div>
+<script>
+  // When a key is held on a static page with no pending repaints, keydown
+  // timing entries must still be dispatched promptly via a posted task
+  // rather than waiting indefinitely for a paint that may never come.
+  // Without the fix, entries would only be flushed when some unrelated
+  // activity (e.g. mouse movement) triggered a repaint, causing durations
+  // inflated to the total key-hold time.
+  promise_test(async t => {
+    const entries = [];
+
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        if (entry.name === 'keydown') entries.push(entry);
+      }
+    }).observe({type: 'event', durationThreshold: 16});
+
+    const target = document.getElementById('target');
+    target.focus();
+
+    // Wait for any focus-related repaint and for the browser to go idle.
+    // afterNextPaint() resolves from a setTimeout inside a rAF callback, so
+    // the rendering pipeline may still be scheduled for one or two more
+    // vsyncs at that point; the extra delay lets painting settle before
+    // sending the key.
+    await afterNextPaint();
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+
+    // Block every keydown long enough that each entry exceeds the 16ms
+    // observation threshold, without involving any DOM changes that would
+    // schedule a repaint.
+    target.addEventListener('keydown', () => mainThreadBusy(30));
+
+    const keyDownHandled = new Promise(resolve => {
+      let keyDownCount = 0;
+      target.addEventListener('keydown', () => {
+        if (++keyDownCount === 2) {
+          resolve();
+        }
+      }, { capture: true });
+    });
+
+    await new test_driver.Actions()
+      .keyDown('a')
+      .keyDown('a')
+      .send();
+    await keyDownHandled;
+
+    // The entry must be dispatched via a posted task, without requiring a
+    // repaint. step_wait will fail if no entry arrives within the timeout.
+    await t.step_wait(() => entries.length === 2,
+      'keydown timing entry should be dispatched without a repaint');
+
+    assert_equals(entries.length, 2, 'two keydown entries');
+
+    // Duration should reflect only the processing time (~30ms), not the full
+    // key-hold duration.
+    assert_less_than(entries[0].duration, 60,
+      'duration must not be inflated to the key-hold duration');
+    assert_less_than(entries[1].duration, 60,
+      'duration must not be inflated to the key-hold duration');
+  }, 'keydown timing entry is dispatched without a repaint');
+</script>
+</html>

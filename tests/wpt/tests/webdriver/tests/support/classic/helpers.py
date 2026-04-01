@@ -1,10 +1,10 @@
 import math
 import sys
-import os
 
 import webdriver
 
 from tests.support import defaults
+from tests.support.helpers import is_wayland
 from tests.support.sync import Poll
 
 
@@ -235,12 +235,6 @@ def is_maximized(session, original_rect):
 
 def is_not_maximized(session):
     return not _get_maximized_state(session)
-
-
-def is_wayland():
-    # We don't use mozinfo.display here to make sure it also
-    # works upstream in wpt Github repo.
-    return os.environ.get("WAYLAND_DISPLAY", "") != ""
 
 
 def wait_for_new_handle(session, handles_before):

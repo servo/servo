@@ -16,8 +16,12 @@ test_valid_value("background-clip", "border-box");
 test_valid_value("background-clip", "padding-box");
 test_valid_value("background-clip", "content-box");
 test_valid_value("background-clip", "border-area");
+test_valid_value("background-clip", "text");
+test_valid_value("background-clip", "border-area text");
+test_valid_value("background-clip", "text border-area", "border-area text");
 
 test_valid_value("background-clip", "border-box, padding-box, content-box, border-area");
+test_valid_value("background-clip", "border-area text, content-box");
 </script>
 </body>
 </html>

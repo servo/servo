@@ -36,7 +36,7 @@ use layout_api::{
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
 use net_traits::ReferrerPolicy;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
@@ -70,11 +70,12 @@ use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use stylo_atoms::Atom;
+use time::Duration as TimeDuration;
 use url::{Host, Position};
 
-use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
+use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -108,7 +109,7 @@ use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -131,12 +132,10 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
 };
+use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
-use crate::dom::element::{
-    CustomElementCreationMode, Element, ElementCreator, ElementPerformFullscreenEnter,
-    ElementPerformFullscreenExit,
-};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
@@ -185,7 +184,7 @@ use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
-use crate::dom::types::{HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry};
+use crate::dom::types::{HTMLCanvasElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::websocket::WebSocket;
@@ -196,11 +195,11 @@ use crate::dom::xpathexpression::XPathExpression;
 use crate::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
-use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::mime::{APPLICATION, CHARSET};
+use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
+use crate::realms::enter_realm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::NonSendTaskBox;
@@ -238,7 +237,7 @@ pub(crate) struct RefreshRedirectDue {
 }
 impl RefreshRedirectDue {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
-    pub(crate) fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, cx: &mut js::context::JSContext) {
         // After the refresh has come due (as defined below),
         // if the user has not canceled the redirect and, if meta is given,
         // document's active sandboxing flag set does not have the sandboxed
@@ -251,8 +250,13 @@ impl RefreshRedirectDue {
         let load_data = self
             .window
             .load_data_for_document(self.url.clone(), self.window.pipeline_id());
-        self.window
-            .load_url(NavigationHistoryBehavior::Replace, false, load_data, can_gc);
+        navigate(
+            cx,
+            &self.window,
+            NavigationHistoryBehavior::Replace,
+            false,
+            load_data,
+        );
     }
 }
 
@@ -542,7 +546,7 @@ pub(crate) struct Document {
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
     /// <https://drafts.csswg.org/web-animations/#timeline>
-    animation_timeline: DomRefCell<AnimationTimeline>,
+    timeline: Dom<DocumentTimeline>,
     /// Animations for this Document
     animations: Animations,
     /// Image Animation Manager for this Document
@@ -3882,6 +3886,7 @@ impl Document {
         has_trustworthy_ancestor_origin: bool,
         custom_element_reaction_stack: Rc<CustomElementReactionStack>,
         creation_sandboxing_flag_set: SandboxingFlagSet,
+        can_gc: CanGc,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -4030,11 +4035,7 @@ impl Document {
             dirty_canvases: DomRefCell::new(Default::default()),
             has_pending_animated_image_update: Cell::new(false),
             selection: MutNullableDom::new(None),
-            animation_timeline: if pref!(layout_animations_test_enabled) {
-                DomRefCell::new(AnimationTimeline::new_for_testing())
-            } else {
-                DomRefCell::new(AnimationTimeline::new())
-            },
+            timeline: DocumentTimeline::new(window, can_gc).as_traced(),
             animations: Animations::new(),
             image_animation_manager: DomRefCell::new(ImageAnimationManager::default()),
             dirty_root: Default::default(),
@@ -4057,7 +4058,7 @@ impl Document {
             waiting_on_canvas_image_updates: Cell::new(false),
             current_rendering_epoch: Default::default(),
             custom_element_reaction_stack,
-            active_sandboxing_flag_set: Cell::new(SandboxingFlagSet::empty()),
+            active_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
@@ -4256,6 +4257,7 @@ impl Document {
                 has_trustworthy_ancestor_origin,
                 custom_element_reaction_stack,
                 creation_sandboxing_flag_set,
+                can_gc,
             )),
             window,
             proto,
@@ -4521,195 +4523,8 @@ impl Document {
             .set(self.ignore_opens_during_unload_counter.get() - 1);
     }
 
-    /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(&self, pending: &Element, can_gc: CanGc) -> Rc<Promise> {
-        // Step 1
-        // > Let pendingDoc be this’s node document.
-        // `Self` is the pending document.
-
-        // Step 2
-        // > Let promise be a new promise.
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
-
-        // Step 3
-        // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
-        if !self.is_fully_active() {
-            promise.reject_error(
-                Error::Type(c"Document is not fully active".to_owned()),
-                can_gc,
-            );
-            return promise;
-        }
-
-        // Step 4
-        // > Let error be false.
-        let mut error = false;
-
-        // Step 5
-        // > If any of the following conditions are false, then set error to true:
-        {
-            // > - This’s namespace is the HTML namespace or this is an SVG svg or MathML math element. [SVG] [MATHML]
-            match *pending.namespace() {
-                ns!(mathml) => {
-                    if pending.local_name().as_ref() != "math" {
-                        error = true;
-                    }
-                },
-                ns!(svg) => {
-                    if pending.local_name().as_ref() != "svg" {
-                        error = true;
-                    }
-                },
-                ns!(html) => (),
-                _ => error = true,
-            }
-
-            // > - This is not a dialog element.
-            if pending.is::<HTMLDialogElement>() {
-                error = true;
-            }
-
-            // > - The fullscreen element ready check for this returns true.
-            if !pending.fullscreen_element_ready_check() {
-                error = true;
-            }
-
-            // > - Fullscreen is supported.
-            // <https://fullscreen.spec.whatwg.org/#fullscreen-is-supported>
-            // > Fullscreen is supported if there is no previously-established user preference, security risk, or platform limitation.
-            // TODO: Add checks for whether fullscreen is supported as definition.
-
-            // > - This’s relevant global object has transient activation or the algorithm is triggered by a user generated orientation change.
-            // TODO: implement screen orientation API
-            if !pending.owner_window().has_transient_activation() {
-                error = true;
-            }
-        }
-
-        if pref!(dom_fullscreen_test) {
-            // For reftests we just take over the current window,
-            // and don't try to really enter fullscreen.
-            info!("Tests don't really enter fullscreen.");
-        } else {
-            // TODO fullscreen is supported
-            // TODO This algorithm is allowed to request fullscreen.
-            warn!("Fullscreen not supported yet");
-        }
-
-        // Step 6
-        // > If error is false, then consume user activation given pendingDoc’s relevant global object.
-        if !error {
-            pending.owner_window().consume_user_activation();
-        }
-
-        // Step 8.
-        // > If error is false, then resize pendingDoc’s node navigable’s top-level traversable’s active document’s viewport’s dimensions,
-        // > optionally taking into account options["navigationUI"]:
-        // TODO(#21600): Improve spec compliance of steps 7-13 paralelism.
-        // TODO(#42064): Implement fullscreen options, and ensure that this is spec compliant for all embedder.
-        if !error {
-            let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), true);
-            self.send_to_embedder(event);
-        }
-
-        // Step 7
-        // > Return promise, and run the remaining steps in parallel.
-        let pipeline_id = self.window().pipeline_id();
-
-        let trusted_pending = Trusted::new(pending);
-        let trusted_pending_doc = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
-        let handler = ElementPerformFullscreenEnter::new(
-            trusted_pending,
-            trusted_pending_doc,
-            trusted_promise,
-            error,
-        );
-        let script_msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::EnterFullscreen,
-            handler,
-            Some(pipeline_id),
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(script_msg);
-        self.window().main_thread_script_chan().send(msg).unwrap();
-
-        promise
-    }
-
-    /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    pub(crate) fn exit_fullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
-        let global = self.global();
-
-        // Step 1
-        // > Let promise be a new promise
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
-
-        // Step 2
-        // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
-        if !self.is_fully_active() || self.fullscreen_element.get().is_none() {
-            promise.reject_error(
-                Error::Type(
-                    c"No fullscreen element to exit or document is not fully active".to_owned(),
-                ),
-                can_gc,
-            );
-            return promise;
-        }
-
-        // TODO(#42067): Implement step 3-7, handling fullscreen's propagation across navigables.
-
-        let element = self.fullscreen_element.get().unwrap();
-        let window = self.window();
-
-        // Step 10
-        // > If resize is true, resize doc’s viewport to its "normal" dimensions.
-        // TODO(#21600): Improve spec compliance of steps 8-15 paralelism.
-        let event = EmbedderMsg::NotifyFullscreenStateChanged(self.webview_id(), false);
-        self.send_to_embedder(event);
-
-        // Step 8
-        // > Return promise, and run the remaining steps in parallel.
-        let trusted_element = Trusted::new(&*element);
-        let trusted_promise = TrustedPromise::new(promise.clone());
-        let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
-        let pipeline_id = Some(global.pipeline_id());
-        let script_msg = CommonScriptMsg::Task(
-            ScriptThreadEventCategory::ExitFullscreen,
-            handler,
-            pipeline_id,
-            TaskSourceName::DOMManipulation,
-        );
-        let msg = MainThreadScriptMsg::Common(script_msg);
-        window.main_thread_script_chan().send(msg).unwrap();
-
-        promise
-    }
-
     pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
         self.fullscreen_element.set(element);
-    }
-
-    pub(crate) fn get_allow_fullscreen(&self) -> bool {
-        // https://html.spec.whatwg.org/multipage/#allowed-to-use
-        match self.browsing_context() {
-            // Step 1
-            None => false,
-            Some(_) => {
-                // Step 2
-                let window = self.window();
-                if window.is_top_level() {
-                    true
-                } else {
-                    // Step 3
-                    window
-                        .GetFrameElement()
-                        .is_some_and(|el| el.has_attribute(&local_name!("allowfullscreen")))
-                }
-            },
-        }
     }
 
     fn reset_form_owner_for_listeners(&self, id: &Atom, can_gc: CanGc) {
@@ -4895,8 +4710,8 @@ impl Document {
             .collect()
     }
 
-    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
-        self.animation_timeline.borrow_mut().advance_specific(delta);
+    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: TimeDuration) {
+        self.timeline.advance_specific(delta);
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
             .update_for_new_timeline_value(&self.window, current_timeline_value);
@@ -4909,7 +4724,9 @@ impl Document {
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
-        self.animation_timeline.borrow().current_value()
+        self.timeline
+            .upcast::<AnimationTimeline>()
+            .current_time_in_seconds()
     }
 
     pub(crate) fn animations(&self) -> &Animations {
@@ -4938,7 +4755,7 @@ impl Document {
     pub(crate) fn update_animations_and_send_events(&self, cx: &mut js::context::JSContext) {
         // Only update the time if it isn't being managed by a test.
         if !self.layout_animations_test_enabled {
-            self.animation_timeline.borrow_mut().update();
+            self.timeline.update(self.window());
         }
 
         // > 1. Update the current time of all timelines associated with doc passing now
@@ -5141,6 +4958,10 @@ impl Document {
 
     pub(crate) fn custom_element_reaction_stack(&self) -> Rc<CustomElementReactionStack> {
         self.custom_element_reaction_stack.clone()
+    }
+
+    pub(crate) fn active_sandboxing_flag_set(&self) -> SandboxingFlagSet {
+        self.active_sandboxing_flag_set.get()
     }
 
     pub(crate) fn has_active_sandboxing_flag(&self, flag: SandboxingFlagSet) -> bool {
@@ -6242,7 +6063,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .window
             .as_global_scope()
             .resource_threads()
-            .send(GetCookiesForUrl(url, tx, NonHTTP));
+            .send(GetCookieStringForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -6885,6 +6706,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         result
+    }
+
+    fn Timeline(&self) -> DomRoot<DocumentTimeline> {
+        self.timeline.as_rooted()
     }
 }
 

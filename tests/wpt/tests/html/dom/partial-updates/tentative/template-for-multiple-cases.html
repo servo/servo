@@ -50,9 +50,8 @@
       }
     }
     function add_test_scenario(label, placeholder, patch, expected_output, options = {}) {
-      const tail = options.tail ? patch : "";
-      const wrapped_html = `<div marker="p">${placeholder}</div>${patch}`;
-      const wrapped_expected_output = `<div marker="p">${expected_output}</div>${tail}`;
+      const wrapped_html = `<div>${placeholder}</div>${patch}`;
+      const wrapped_expected_output = `<div>${expected_output}</div>${options.tail ? patch : ""}`;
       for (const method of [
         "innerHTML",
         "iframe",
@@ -90,35 +89,35 @@
 
     add_test_scenario(
       "Simple replacement with only start",
-      `<?start>Old content`,
+      `<?start name="p">Old content`,
       `<template for="p">New content</template>`,
       `New content`,
     );
 
     add_test_scenario(
       "Simple replacement with start and end",
-      `<?start>Old<?end> content`,
+      `<?start name="p">Old<?end> content`,
       `<template for="p">New</template>`,
       `New content`,
     );
 
     add_test_scenario(
       "Void marker at start",
-      `<?marker> content`,
+      `<?marker name=p> content`,
       `<template for="p">New</template>`,
       `New content`,
     );
 
     add_test_scenario(
       "Void marker at end",
-      `New <?marker>`,
+      `New <?marker name=p>`,
       `<template for="p">content</template>`,
       `New content`,
     );
 
     add_test_scenario(
       "Void marker in the middle",
-      `New <?marker> content`,
+      `New <?marker name=p> content`,
       `<template for="p">X</template>`,
       `New X content`,
     );
@@ -126,93 +125,72 @@
     add_test_scenario(
       "Multiple named markers",
       `New <?marker name="a"> content <?marker name="b">`,
-      `<template for="p#a">X</template><template for="p#b">Y</template>`,
+      `<template for="a">X</template><template for="b">Y</template>`,
       `New X content Y`,
     );
 
     add_test_scenario(
       "Multiple named markers with same name only replaces first one",
       `New <?marker name="a"> content <?marker name="a">`,
-      `<template for="p#a">X</template>`,
+      `<template for="a">X</template>`,
       `New X content <?marker name="a"?>`,
     );
 
     add_test_scenario(
-      "Named and unnamed markers",
-      `New <?marker name="a"> content <?marker>`,
-      `<template for="p#a">X</template><template for="p">Y</template>`,
-      `New X content Y`,
-    );
-
-    add_test_scenario(
-      "Unnamed and named markers",
-      `New <?marker> content <?marker name="a">`,
-      `<template for="p#a">X</template><template for="p">Y</template>`,
-      `New Y content X`,
-    );
-
-    add_test_scenario(
       "Multiple templates for same marker",
-      `<?marker> <?marker> content <?marker name="a">`,
-      `<template for="p#a">X</template><template for="p">Y</template>`,
-      `Y <?marker ?> content X`,
+      `<?marker name=b> content`,
+      `<template for="b">X<?marker name=b></template><template for="b">Y</template>`,
+      `XY content`,
     );
 
     add_test_scenario(
       "Nested named markers - replace outer",
       `<?start name="a">New <?start name="b"> content <?end> after <?end>`,
-      `<template for="p#a">X</template>`,
-      `X`,
-    );
-
-    add_test_scenario(
-      "Nested named markers - replace outer anonymous",
-      `<?start>New <?start name="b"> content <?end> after <?end>`,
-      `<template for="p">X</template>`,
+      `<template for="a">X</template>`,
       `X`,
     );
 
     add_test_scenario(
       "Nested named markers - replace inner",
       `<?start name="a">New <?start name="b"> content <?end> after`,
-      `<template for="p#b">X</template>`,
+      `<template for="b">X</template>`,
       `<?start name="a"?>New X after`,
     );
 
-    add_test_scenario(
-      "Nested named markers - replace inner anonymous",
-      `<?start name="a">New <?start> content <?end> after`,
-      `<template for="p">X</template>`,
-      `<?start name="a"?>New X after`,
-    );
 
     add_test_scenario(
       "Interleaved markers (a)",
-      `<?start name="a">New <?start> content <?end name="a"> after<?end>`,
-      `<template for="p#a">X</template>`,
+      `<?start name="a">New <?start name="b"> content <?end name="a"> after<?end>`,
+      `<template for="a">X</template>`,
       `X`,
     );
 
     add_test_scenario(
       "Interleaved markers (b)",
-      `<?start name="a">New <?start> content <?end name="a"> after<?end>`,
-      `<template for="p">X</template>`,
+      `<?start name="a">New <?start name="b"> content <?end name="a"> after<?end>`,
+      `<template for="b">X</template>`,
       `<?start name="a"?>New X after<?end ?>`,
     );
 
     add_test_scenario(
       "Hash in marker name",
       `<?start name="a#b">New <?start> content <?end> after<?end>`,
-      `<template for="p#a#b">X</template>`,
+      `<template for="a#b">X</template>`,
       `X`,
     );
-
     add_test_scenario(
-      "Hash in marker name matches precisely",
-      `<?start name="a#b">New <?start> content <?end> after<?end>`,
-      `<template for="p#a">X</template>`,
-      `<?start name="a#b"?>New <?start ?> content <?end ?> after<?end ?>`,
+      "Empty marker name with <?start> and <?end>",
+      `<?start name="">Old<?end>`,
+      `<template for="">New</template>`,
+      `<?start name=""?>Old<?end ?>`,
       {tail: true}
     );
-  </script>
+    add_test_scenario(
+      "Empty marker name with <?marker>",
+      `<?marker name="">Old`,
+      `<template for="">New</template>`,
+      `<?marker name=""?>Old`,
+      {tail: true}
+    );
+      </script>
 </body>

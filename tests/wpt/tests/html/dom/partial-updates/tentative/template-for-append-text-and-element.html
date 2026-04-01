@@ -5,8 +5,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div id="placeholder" marker="placeholder">Some<?start></div>
-<template for="placeholder"> <span>content</span></template>
+<div id="placeholder">Some<?start name="p"?></div>
+<template for="p"> <span>content</span></template>
 <script>
   test(() => {
     const placeholder = document.getElementById("placeholder");

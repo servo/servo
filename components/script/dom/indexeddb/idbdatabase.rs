@@ -237,36 +237,44 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         name: DOMString,
         options: &IDBObjectStoreParameters,
     ) -> Fallible<DomRoot<IDBObjectStore>> {
-        // Step 2
-        let upgrade_transaction = match self.upgrade_transaction.get() {
+        // Step 1. Let database be this’s associated database.
+
+        // Step 2. Let transaction be database’s upgrade transaction if it is not null,
+        // or throw an "InvalidStateError" DOMException otherwise.
+        let transaction = match self.upgrade_transaction.get() {
             Some(txn) => txn,
             None => return Err(Error::InvalidState(None)),
         };
 
-        // Step 3
-        if !upgrade_transaction.is_active() {
+        // Step 3. If transaction’s state is not active, then throw a
+        // "TransactionInactiveError" DOMException.
+        if !transaction.is_active() {
             return Err(Error::TransactionInactive(None));
         }
 
-        // Step 4
+        // Step 4. Let keyPath be options’s keyPath member if it is not undefined
+        // or null, or null otherwise.
         let key_path = options.keyPath.as_ref();
 
-        // Step 5
+        // Step 5. If keyPath is not null and is not a valid key path, throw a
+        // "SyntaxError" DOMException.
         if let Some(path) = key_path {
             if !is_valid_key_path(cx, path)? {
                 return Err(Error::Syntax(None));
             }
         }
 
-        // Step 6
+        // Step 6. If an object store named name already exists in database throw
+        // a "ConstraintError" DOMException.
         if self.object_store_names.borrow().contains(&name) {
             return Err(Error::Constraint(None));
         }
 
-        // Step 7
+        // Step 7. Let autoIncrement be options’s autoIncrement member.
         let auto_increment = options.autoIncrement;
 
-        // Step 8
+        // Step 8. If autoIncrement is true and keyPath is an empty string or any
+        // sequence (empty or otherwise), throw an "InvalidAccessError" DOMException.
         if auto_increment {
             match key_path {
                 Some(StringOrStringSequence::String(path)) => {
@@ -281,7 +289,10 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             }
         }
 
-        // Step 9
+        // Step 9. Let store be a new object store in database. Set the created
+        // object store’s name to name. If autoIncrement is true, then the
+        // created object store uses a key generator. If keyPath is not null,
+        // set the created object store’s key path to keyPath.
         let object_store = IDBObjectStore::new(
             &self.global(),
             self.name.clone(),
@@ -289,7 +300,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             Some(options),
             if auto_increment { Some(1) } else { None },
             CanGc::from_cx(cx),
-            &upgrade_transaction,
+            &transaction,
         );
 
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
@@ -323,6 +334,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         };
 
         self.object_store_names.borrow_mut().push(name);
+
+        // Step 10. Return a new object store handle associated with store and transaction.
         Ok(object_store)
     }
 

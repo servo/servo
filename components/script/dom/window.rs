@@ -80,9 +80,8 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_config::pref;
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
-    WindowSizeType,
+    LoadData, LoadOrigin, ScreenshotReadinessResponse, ScriptToConstellationChan,
+    ScriptToConstellationMessage, StructuredSerializedData, WindowSizeType,
 };
 use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -96,7 +95,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
-use url::Position;
+use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
@@ -429,9 +428,6 @@ pub(crate) struct Window {
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unnecessary.
     has_sent_idle_message: Cell<bool>,
-
-    /// Unminify Css.
-    unminify_css: bool,
 
     /// The [`UserScript`]s added via `UserContentManager`. These are potentially shared with other
     /// `WebView`s in this `ScriptThread`.
@@ -2535,9 +2531,9 @@ impl Window {
 
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
-    pub(crate) fn advance_animation_clock(&self, delta_ms: i32) {
+    pub(crate) fn advance_animation_clock(&self, delta: TimeDuration) {
         self.Document()
-            .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
+            .advance_animation_timeline_for_testing(delta);
         ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
     }
 
@@ -3083,56 +3079,6 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
-
-        if self.unminify_css {
-            *self.unminified_css_dir.borrow_mut() = Some(unminified_path("unminified-css"));
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#navigate-fragid>
-    fn navigate_to_fragment(&self, url: &ServoUrl, history_handling: NavigationHistoryBehavior) {
-        let doc = self.Document();
-        // Step 1. Let navigation be navigable's active window's navigation API.
-        // TODO
-        // Step 2. Let destinationNavigationAPIState be navigable's active session history entry's navigation API state.
-        // TODO
-        // Step 3. If navigationAPIState is not null, then set destinationNavigationAPIState to navigationAPIState.
-        // TODO
-
-        // Step 4. Let continue be the result of firing a push/replace/reload navigate event
-        // at navigation with navigationType set to historyHandling, isSameDocument set to true,
-        // userInvolvement set to userInvolvement, sourceElement set to sourceElement,
-        // destinationURL set to url, and navigationAPIState set to destinationNavigationAPIState.
-        // TODO
-        // Step 5. If continue is false, then return.
-        // TODO
-
-        // Step 6. Let historyEntry be a new session history entry, with
-        // Step 7. Let entryToReplace be navigable's active session history entry if historyHandling is "replace", otherwise null.
-        // Step 8. Let history be navigable's active document's history object.
-        // Step 9. Let scriptHistoryIndex be history's index.
-        // Step 10. Let scriptHistoryLength be history's length.
-        // Step 11. If historyHandling is "push", then:
-        // Step 13. Set navigable's active session history entry to historyEntry.
-        self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
-            url.clone(),
-            history_handling,
-        ));
-        // Step 12. Set navigable's active document's URL to url.
-        let old_url = doc.url();
-        doc.set_url(url.clone());
-        // Step 14. Update document for history step application given navigable's active document,
-        // historyEntry, true, scriptHistoryIndex, scriptHistoryLength, and historyHandling.
-        doc.update_document_for_history_step_application(&old_url, url);
-        // Step 15. Scroll to the fragment given navigable's active document.
-        let Some(fragment) = url.fragment() else {
-            unreachable!("Must always have a fragment");
-        };
-        doc.scroll_to_the_fragment(fragment);
-        // Step 16. Let traversable be navigable's traversable navigable.
-        // TODO
-        // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:
-        // TODO
     }
 
     pub(crate) fn load_data_for_document(
@@ -3158,112 +3104,6 @@ impl Window {
             source_document.has_trustworthy_ancestor_origin(),
             source_document.creation_sandboxing_flag_set_considering_parent_iframe(),
         )
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#navigate>
-    pub(crate) fn load_url(
-        &self,
-        history_handling: NavigationHistoryBehavior,
-        force_reload: bool,
-        load_data: LoadData,
-        can_gc: CanGc,
-    ) {
-        let doc = self.Document();
-
-        // Step 3. Let initiatorOriginSnapshot be sourceDocument's origin.
-        let initiator_origin_snapshot = &load_data.load_origin;
-
-        // TODO: Important re security. See https://github.com/servo/servo/issues/23373
-        // Step 5. check that the source browsing-context is "allowed to navigate" this window.
-
-        // Step 4 and 5
-        let pipeline_id = self.pipeline_id();
-        let window_proxy = self.window_proxy();
-        if let Some(active) = window_proxy.currently_active() {
-            if pipeline_id == active && doc.is_prompting_or_unloading() {
-                return;
-            }
-        }
-
-        // Step 23. Let unloadPromptCanceled be the result of checking if unloading
-        // is canceled for navigable's active document's inclusive descendant navigables.
-        if doc.check_if_unloading_is_cancelled(false, can_gc) {
-            // Step 12. If historyHandling is "auto", then:
-            let history_handling = if history_handling == NavigationHistoryBehavior::Auto {
-                // Step 12.1. If url equals navigable's active document's URL, and
-                // initiatorOriginSnapshot is same origin with targetNavigable's active document's
-                // origin, then set historyHandling to "replace".
-                //
-                // Note: `targetNavigable` is not actually defined in the spec, "active document" is
-                // assumed to be the correct reference based on WPT results
-                if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
-                    if load_data.url == doc.url() && initiator_origin.same_origin(&*doc.origin()) {
-                        NavigationHistoryBehavior::Replace
-                    } else {
-                        // Step 12.2. Otherwise, set historyHandling to "push".
-                        NavigationHistoryBehavior::Push
-                    }
-                } else {
-                    // Step 12.2. Otherwise, set historyHandling to "push".
-                    NavigationHistoryBehavior::Push
-                }
-            } else {
-                history_handling
-            };
-            // Step 13. If the navigation must be a replace given url and navigable's active
-            // document, then set historyHandling to "replace".
-            //
-            // Inlines implementation of https://html.spec.whatwg.org/multipage/#the-navigation-must-be-a-replace
-            let history_handling =
-                if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
-                    NavigationHistoryBehavior::Replace
-                } else {
-                    history_handling
-                };
-
-            // Step 14. If all of the following are true:
-            // > documentResource is null;
-            // > response is null;
-            if !force_reload
-                // > url equals navigable's active session history entry's URL with exclude fragments set to true; and
-                && load_data.url.as_url()[..Position::AfterQuery] ==
-                    doc.url().as_url()[..Position::AfterQuery]
-                // > url's fragment is non-null,
-                && load_data.url.fragment().is_some()
-            {
-                // Step 14.1. Navigate to a fragment given navigable, url, historyHandling,
-                // userInvolvement, sourceElement, navigationAPIState, and navigationId.
-                let webdriver_sender = self.webdriver_load_status_sender.borrow().clone();
-                if let Some(ref sender) = webdriver_sender {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStart);
-                }
-                self.navigate_to_fragment(&load_data.url, history_handling);
-                // Step 14.2. Return.
-                if let Some(sender) = webdriver_sender {
-                    let _ = sender.send(WebDriverLoadStatus::NavigationStop);
-                }
-                return;
-            }
-
-            // Step 15. If navigable's parent is non-null, then set navigable's is delaying load events to true.
-            let window_proxy = self.window_proxy();
-            if window_proxy.parent().is_some() {
-                window_proxy.start_delaying_load_events_mode();
-            }
-
-            if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
-                let _ = sender.send(WebDriverLoadStatus::NavigationStart);
-            }
-
-            // Step 13
-            ScriptThread::navigate(
-                self.webview_id,
-                pipeline_id,
-                load_data,
-                history_handling,
-                None,
-            );
-        };
     }
 
     /// Handle a potential change to the [`ViewportDetails`] of this [`Window`],
@@ -3419,6 +3259,12 @@ impl Window {
         *self.webdriver_load_status_sender.borrow_mut() = sender;
     }
 
+    pub(crate) fn webdriver_load_status_sender(
+        &self,
+    ) -> Option<GenericSender<WebDriverLoadStatus>> {
+        self.webdriver_load_status_sender.borrow().clone()
+    }
+
     pub(crate) fn is_alive(&self) -> bool {
         self.current_state.get() == WindowState::Alive
     }
@@ -3562,6 +3408,10 @@ impl Window {
 
     pub(crate) fn set_navigation_start(&self) {
         self.navigation_start.set(CrossProcessInstant::now());
+    }
+
+    pub(crate) fn navigation_start(&self) -> CrossProcessInstant {
+        self.navigation_start.get()
     }
 
     pub(crate) fn set_last_activation_timestamp(&self, time: UserActivationTimestamp) {
@@ -3825,14 +3675,17 @@ impl Window {
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
             pending_images_for_rasterization: Default::default(),
-            unminified_css_dir: Default::default(),
+            unminified_css_dir: DomRefCell::new(if unminify_css {
+                Some(unminified_path("unminified-css"))
+            } else {
+                None
+            }),
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
             exists_mut_observer: Cell::new(false),
             paint_api,
             has_sent_idle_message: Cell::new(false),
-            unminify_css,
             user_scripts,
             player_context,
             throttled: Cell::new(false),

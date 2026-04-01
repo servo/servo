@@ -4,7 +4,7 @@ mozdevice==4.2.0
 mozinstall==2.1.0
 mozleak==0.2
 mozprofile==3.0.0
-mozrunner==8.3.2
+mozrunner==8.4.0
 mozversion==2.4.0
 psutil==5.9.8
 types-psutil==6.1.0.20241221

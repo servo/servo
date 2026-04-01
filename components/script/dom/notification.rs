@@ -792,7 +792,12 @@ impl FetchResponseListener for ResourceFetchListener {
         };
     }
 
-    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut js::context::JSContext,
+        request_id: RequestId,
+        payload: Vec<u8>,
+    ) {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.pending_image_id,

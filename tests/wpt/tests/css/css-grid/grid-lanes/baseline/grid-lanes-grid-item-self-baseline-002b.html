@@ -18,7 +18,7 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
 .grid {
   float: left;
   display: grid-lanes;
-  grid: none / repeat(4, auto);
+  grid-template-rows: auto;
   place-items: start;
   padding-block-start: 1px;
   margin-left: 1px;
@@ -27,7 +27,7 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
   width: 100px;
 }
 .c {
-  grid: repeat(4, auto) / none;
+  grid-template-columns: auto;
 }
 .ae { align-content: end; }
 .je { justify-content: end; }

@@ -34,6 +34,7 @@ use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabe
 use script_bindings::codegen::GenericBindings::KeyboardEventBinding::KeyboardEventMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
@@ -758,8 +759,15 @@ impl DocumentEventHandler {
     }
 
     fn element_for_activation(&self, element: DomRoot<Element>) -> DomRoot<Element> {
+        let node: &Node = element.upcast();
+        if node.is_in_ua_widget() {
+            if let Some(containing_shadow_root) = node.containing_shadow_root() {
+                return containing_shadow_root.Host();
+            }
+        }
+
         // If the element is a label, the activable element is the control element.
-        if element.upcast::<Node>().type_id() ==
+        if node.type_id() ==
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLLabelElement,
             ))
@@ -769,6 +777,7 @@ impl DocumentEventHandler {
                 return DomRoot::from_ref(control.upcast::<Element>());
             }
         }
+
         element
     }
 
@@ -876,18 +885,22 @@ impl DocumentEventHandler {
 
                 self.down_button_count.set(down_button_count + 1);
 
-                // For a node within a text input UA shadow DOM,
-                // delegate the focus target into its shadow host.
-                // TODO: This focus delegation should be done
-                // with shadow DOM delegateFocus attribute.
-                let target_el = element.find_click_focusable_area();
-
                 let document = self.window.Document();
                 document.begin_focus_transaction();
 
                 // Try to focus `el`. If it's not focusable, focus the document instead.
+                //
+                // The specification says to run the focusing steps on `el` here, but we want a
+                // special behavior implemented by `Element::find_click_focusable_area` which climbs
+                // the tree finding the first ancestor with an associated focusable area.
                 document.request_focus(None, FocusInitiator::Click, can_gc);
-                document.request_focus(target_el.as_deref(), FocusInitiator::Click, can_gc);
+                if let Some(click_focusable_area) = element.find_click_focusable_area() {
+                    document.request_focus(
+                        Some(&*click_focusable_area),
+                        FocusInitiator::Click,
+                        can_gc,
+                    );
+                }
 
                 // Step 7. Let result = dispatch event at target
                 let result = dom_event.dispatch(node.upcast(), false, can_gc);
@@ -1853,10 +1866,10 @@ impl DocumentEventHandler {
         if scrolled_node.is_root() {
             document.handle_viewport_scroll_event();
         } else {
-            // Otherwise, check whether it is for a relevant element within the document.
-            let Some(node_id) = node_id_from_scroll_id(scrolled_node.0 as usize) else {
-                return;
-            };
+            // Otherwise, check whether it is for a relevant element within the document. For a `::before` or `::after`
+            // pseudo element we follow Gecko or Chromium's behavior to ensure that the event reaches the originating
+            // node.
+            let node_id = node_id_from_scroll_id(scrolled_node.0 as usize);
             let node = unsafe {
                 node::from_untrusted_node_address(UntrustedNodeAddress::from_id(node_id))
             };

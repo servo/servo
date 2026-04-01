@@ -307,22 +307,9 @@ pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::R
         Origin::Origin(origin) => origin,
     };
 
-    let mut original_url = request.original_url();
-    let current_url = if original_url.scheme() == "ws" {
-        // We need to retroactively upgrade the ws URL if the rewritten http URL was upgraded to a secure scheme.
-        // https://github.com/w3c/webappsec-csp/issues/532
-        if request.url().scheme() == "https" {
-            original_url.as_mut_url().set_scheme("wss").unwrap();
-        }
-        // For ws scheme, we should check against the original URL, not the current HTTP URL
-        original_url.clone()
-    } else {
-        request.current_url()
-    };
-
     let csp_request = csp::Request {
-        url: original_url.into_url(),
-        current_url: current_url.into_url(),
+        url: request.url().into_url(),
+        current_url: request.current_url().into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
         destination: request.destination,

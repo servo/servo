@@ -2407,6 +2407,224 @@ const gemmTests = [
         }
       }
     }
+  },
+  {
+    'name': 'gemm two float32 2D tensors options.alpha = 0.0 and 2D options.c',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            0.12300000190734863, 0.4560000002384186, 0.7889999747276306, 0.012000000104308128,
+            0.3449999988079071, 0.6779999732971191, 0.9010000228881836, 0.23399999737739563
+          ],
+          'descriptor': {shape: [2, 4], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [
+            0.9869999885559082, 0.6539999842643738,
+            0.32100000977516174, 0.09799999743700027,
+            0.7649999856948853, 0.4320000112056732,
+            0.10899999737739563, 0.8759999871253967
+          ],
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
+        },
+        'inputC': {
+          'data': [
+            82.77201843261719, 91.38520812988281,
+            12.651897430419922, 20.12200355529785
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'gemm',
+        'arguments': [
+          {'a': 'inputA'}, {'b': 'inputB'},
+          {'options': {'c': 'inputC', 'alpha': 0.0, 'beta': 2.0}}
+        ],
+        'outputs': 'gemmOutput'
+      }],
+      'expectedOutputs': {
+        'gemmOutput': {
+          'data': [
+            165.54403686523438, 182.77041625976562,
+            25.303794860839844, 40.2440071105957
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gemm two float32 2D tensors options.alpha = 0.0 and 1D options.c',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            0.12300000190734863, 0.4560000002384186, 0.7889999747276306, 0.012000000104308128,
+            0.3449999988079071, 0.6779999732971191, 0.9010000228881836, 0.23399999737739563
+          ],
+          'descriptor': {shape: [2, 4], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [
+            0.9869999885559082, 0.6539999842643738,
+            0.32100000977516174, 0.09799999743700027,
+            0.7649999856948853, 0.4320000112056732,
+            0.10899999737739563, 0.8759999871253967
+          ],
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
+        },
+        'inputC': {
+          'data': [82.77201843261719, 91.38520812988281],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'gemm',
+        'arguments': [
+          {'a': 'inputA'}, {'b': 'inputB'},
+          {'options': {'c': 'inputC', 'alpha': 0.0, 'beta': 2.0}}
+        ],
+        'outputs': 'gemmOutput'
+      }],
+      'expectedOutputs': {
+        'gemmOutput': {
+          'data': [
+            165.54403686523438, 182.77041625976562,
+            165.54403686523438, 182.77041625976562
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gemm two float32 2D tensors options.alpha = 0.0 and 1D options.c, beta = 1',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            0.12300000190734863, 0.4560000002384186, 0.7889999747276306, 0.012000000104308128,
+            0.3449999988079071, 0.6779999732971191, 0.9010000228881836, 0.23399999737739563
+          ],
+          'descriptor': {shape: [2, 4], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [
+            0.9869999885559082, 0.6539999842643738,
+            0.32100000977516174, 0.09799999743700027,
+            0.7649999856948853, 0.4320000112056732,
+            0.10899999737739563, 0.8759999871253967
+          ],
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
+        },
+        'inputC': {
+          'data': [82.77201843261719, 91.38520812988281],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'gemm',
+        'arguments': [
+          {'a': 'inputA'}, {'b': 'inputB'},
+          {'options': {'c': 'inputC', 'alpha': 0.0, 'beta': 1.0}}
+        ],
+        'outputs': 'gemmOutput'
+      }],
+      'expectedOutputs': {
+        'gemmOutput': {
+          'data': [
+            82.77201843261719, 91.38520812988281,
+            82.77201843261719, 91.38520812988281
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gemm two float32 2D tensors options.alpha = 0.0 and scalar options.c',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            0.12300000190734863, 0.4560000002384186, 0.7889999747276306, 0.012000000104308128,
+            0.3449999988079071, 0.6779999732971191, 0.9010000228881836, 0.23399999737739563
+          ],
+          'descriptor': {shape: [2, 4], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [
+            0.9869999885559082, 0.6539999842643738,
+            0.32100000977516174, 0.09799999743700027,
+            0.7649999856948853, 0.4320000112056732,
+            0.10899999737739563, 0.8759999871253967
+          ],
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
+        },
+        'inputC': {
+          'data': [82.77201843261719],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'gemm',
+        'arguments': [
+          {'a': 'inputA'}, {'b': 'inputB'},
+          {'options': {'c': 'inputC', 'alpha': 0.0, 'beta': 2.0}}
+        ],
+        'outputs': 'gemmOutput'
+      }],
+      'expectedOutputs': {
+        'gemmOutput': {
+          'data': [
+            165.54403686523438, 165.54403686523438,
+            165.54403686523438, 165.54403686523438
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'gemm two float32 2D tensors options.alpha = 0.0',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            0.12300000190734863, 0.4560000002384186, 0.7889999747276306,
+            0.3449999988079071, 0.6779999732971191, 0.9010000228881836
+          ],
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
+        },
+        'inputB': {
+          'data': [
+            0.9869999885559082, 0.6539999842643738, 0.32100000977516174, 0.09799999743700027,
+            0.7649999856948853, 0.4320000112056732, 0.10899999737739563, 0.8759999871253967,
+            0.2340000033378601, 0.5669999718666077, 0.8999999761581421, 0.12200000286102295
+          ],
+          'descriptor': {shape: [3, 4], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'gemm',
+        'arguments': [
+          {'a': 'inputA'}, {'b': 'inputB'},
+          {'options': {'alpha': 0.0}}
+        ],
+        'outputs': 'gemmOutput'
+      }],
+      'expectedOutputs': {
+        'gemmOutput': {
+          'data': [
+            0, 0, 0, 0,
+            0, 0, 0, 0
+          ],
+          'descriptor': {shape: [2, 4], dataType: 'float32'}
+        }
+      }
+    }
   }
 ];
 

@@ -51,4 +51,4 @@ uuid = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
-embedder_traits = { workspace = true, features = ["baked-default-resources"] }
+servo-default-resources = { workspace = true }

@@ -25,7 +25,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
 };
-use crate::dom::html::htmlinputelement::HTMLInputElement;
+use crate::dom::html::input_element::HTMLInputElement;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

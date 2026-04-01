@@ -541,6 +541,44 @@ impl ResourceThreads {
             .send(CoreResourceMsg::DeleteCookies(None, Some(sender)));
         let _ = receiver.recv();
     }
+
+    pub fn cookies_for_url(&self, url: ServoUrl, source: CookieSource) -> Vec<Cookie<'static>> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::GetCookiesForUrl(url, sender, source));
+        receiver
+            .recv()
+            .unwrap()
+            .into_iter()
+            .map(|cookie| cookie.into_inner())
+            .collect()
+    }
+
+    pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
+        let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
+            url,
+            Serde(cookie),
+            source,
+            None,
+        ));
+    }
+
+    pub fn set_cookie_for_url_sync(
+        &self,
+        url: ServoUrl,
+        cookie: Cookie<'static>,
+        source: CookieSource,
+    ) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
+            url,
+            Serde(cookie),
+            source,
+            Some(sender),
+        ));
+        let _ = receiver.recv();
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -602,8 +640,14 @@ pub enum CoreResourceMsg {
     Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
     FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
-    /// Store a cookie for a given originating URL
-    SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
+    /// Store a cookie for a given originating URL.
+    /// If a sender is provided, the caller will block until the cookie is stored.
+    SetCookieForUrl(
+        ServoUrl,
+        Serde<Cookie<'static>>,
+        CookieSource,
+        Option<GenericSender<()>>,
+    ),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
     SetCookieForUrlAsync(
@@ -612,8 +656,14 @@ pub enum CoreResourceMsg {
         Serde<Cookie<'static>>,
         CookieSource,
     ),
-    /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(ServoUrl, GenericSender<Option<String>>, CookieSource),
+    /// Retrieve the stored cookies as a header string for a given URL.
+    GetCookieStringForUrl(ServoUrl, GenericSender<Option<String>>, CookieSource),
+    /// Retrieve the stored cookies as a vector for the given URL.
+    GetCookiesForUrl(
+        ServoUrl,
+        GenericSender<Vec<Serde<Cookie<'static>>>>,
+        CookieSource,
+    ),
     /// Get a cookie by name for a given originating URL
     GetCookiesDataForUrl(
         ServoUrl,

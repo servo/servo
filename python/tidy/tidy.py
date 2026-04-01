@@ -435,7 +435,7 @@ def check_ruff_lints() -> Iterator[tuple[str, int, str]]:
 
 def check_flake8_lints() -> Iterator[tuple[str, int, str]]:
     try:
-        args = ["uv", "run", "flake8", "--append-config=flake8.ini"]
+        args = ["uv", "run", "--frozen", "flake8", "--append-config=flake8.ini"]
         subprocess.check_output(args, universal_newlines=True, cwd="tests/wpt/tests/tools")
     except subprocess.CalledProcessError as e:
         output = e.output

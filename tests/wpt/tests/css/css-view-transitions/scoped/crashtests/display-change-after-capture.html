@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" contents="crbug.com/493951244">
+  <title></title>
+  <style>
+    #scope {
+      display: block;
+      width: 200px;
+      height: 200px;
+      background: lightblue;
+      padding: 20px;
+    }
+    #child {
+      view-transition-name: child;
+      width: 100px;
+      height: 100px;
+      background: coral;
+    }
+  </style>
+</head>
+<body>
+<div id="scope">
+  <div id="child">Content</div>
+</div>
+
+<script>
+  const scope = document.getElementById('scope');
+  const child = document.getElementById('child');
+  const vt = scope.startViewTransition(() => {
+    child.textContent = 'Updated content';
+    child.style.background = 'green';
+  });
+
+  vt.ready.then(() => {
+    // Transition is now animating. Change scope to inline.
+    scope.style.display = 'inline';
+  });
+  vt.finished.then(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</body>
+</html>

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg(not(target_os = "windows"))]
-
 use std::fs;
 use std::iter::FromIterator;
 use std::path::Path;
@@ -1386,7 +1384,6 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
 }
 
 #[test]
-#[cfg(not(target_os = "windows"))]
 fn test_fetch_with_devtools() {
     static MESSAGE: &'static [u8] = b"Yay!";
     let handler =

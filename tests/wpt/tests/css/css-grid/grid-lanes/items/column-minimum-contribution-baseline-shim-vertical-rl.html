@@ -29,7 +29,7 @@
   content: '';
   display: inline-block;
   width: 25px;
-  height: 25px;
+  height: 50px;
   vertical-align: top;
 }
 .item2::before {
@@ -57,37 +57,37 @@
 <div class="grid-lanes" style="grid-template-columns: minmax(auto, 0px);">
   <div class="item1" data-offset-x="-25" data-offset-y="0"></div>
   <div class="item2" data-offset-x="25" data-offset-y="50"></div>
-  <div class="area" data-expected-width="75" data-expected-height="100"></div>
+  <div class="area" data-expected-width="75"></div>
 </div>
 
 <div class="grid-lanes" style="grid-template-columns: minmax(auto, 75px);">
   <div class="item1" data-offset-x="-25" data-offset-y="0"></div>
   <div class="item2" data-offset-x="25" data-offset-y="50"></div>
-  <div class="area" data-expected-width="75" data-expected-height="100"></div>
+  <div class="area" data-expected-width="75"></div>
 </div>
 
 <div class="grid-lanes" style="grid-template-columns: minmax(auto, 88px);">
   <div class="item1" data-offset-x="-12" data-offset-y="0"></div>
   <div class="item2" data-offset-x="38" data-offset-y="50"></div>
-  <div class="area" data-expected-width="88" data-expected-height="100"></div>
+  <div class="area" data-expected-width="88"></div>
 </div>
 
 <div class="grid-lanes" style="grid-template-columns: minmax(auto, 100px);">
   <div class="item1" data-offset-x="0" data-offset-y="0"></div>
   <div class="item2" data-offset-x="50" data-offset-y="50"></div>
-  <div class="area" data-expected-width="100" data-expected-height="100"></div>
+  <div class="area" data-expected-width="100"></div>
 </div>
 
 <div class="grid-lanes" style="grid-template-columns: minmax(auto, 150px);">
   <div class="item1" data-offset-x="0" data-offset-y="0"></div>
   <div class="item2" data-offset-x="50" data-offset-y="50"></div>
-  <div class="area" data-expected-width="100" data-expected-height="100"></div>
+  <div class="area" data-expected-width="100"></div>
 </div>
 
 <div class="grid-lanes" style="grid-template-columns: minmax(auto, auto);">
   <div class="item1" data-offset-x="0" data-offset-y="0"></div>
   <div class="item2" data-offset-x="50" data-offset-y="50"></div>
-  <div class="area" data-expected-width="100" data-expected-height="100"></div>
+  <div class="area" data-expected-width="100"></div>
 </div>
 
 <script>

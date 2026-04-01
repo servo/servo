@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-use std::net::TcpStream;
-
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_base::generic_channel::GenericSender;
@@ -32,12 +30,12 @@ pub enum WorkerType {
 pub(crate) struct WorkerActor {
     pub name: String,
     pub console_name: String,
-    pub thread: String,
+    pub thread_name: String,
     pub worker_id: WorkerId,
     pub url: ServoUrl,
     pub type_: WorkerType,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
+    pub streams: AtomicRefCell<FxHashSet<StreamId>>,
 }
 
 impl ResourceAvailable for WorkerActor {
@@ -67,9 +65,7 @@ impl Actor for WorkerActor {
                 };
                 // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
                 request.write_json_packet(&msg)?;
-                self.streams
-                    .borrow_mut()
-                    .insert(stream_id, request.try_clone_stream().unwrap());
+                self.streams.borrow_mut().insert(stream_id);
                 // FIXME: fix messages to not require forging a pipeline for worker messages
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
@@ -80,7 +76,7 @@ impl Actor for WorkerActor {
                 let msg = ConnectReply {
                     from: self.name(),
                     type_: "connected".to_owned(),
-                    thread_actor: self.thread.clone(),
+                    thread_actor: self.thread_name.clone(),
                     console_actor: self.console_name.clone(),
                 };
                 // FIXME: we don’t send an actual reply (message without type), which seems to be a bug?
@@ -97,6 +93,14 @@ impl Actor for WorkerActor {
                 request.write_json_packet(&msg)?;
             },
 
+            "getPushSubscription" => {
+                let msg = GetPushSubscriptionReply {
+                    from: self.name(),
+                    subscription: None,
+                };
+                request.reply_final(&msg)?
+            },
+
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
@@ -110,6 +114,12 @@ impl Actor for WorkerActor {
                 .unwrap();
         }
     }
+}
+
+#[derive(Serialize)]
+struct GetPushSubscriptionReply {
+    from: String,
+    subscription: Option<()>,
 }
 
 #[derive(Serialize)]
@@ -164,7 +174,7 @@ impl ActorEncode<WorkerActorMsg> for WorkerActor {
         WorkerActorMsg {
             actor: self.name(),
             console_actor: self.console_name.clone(),
-            thread_actor: self.thread.clone(),
+            thread_actor: self.thread_name.clone(),
             id: self.worker_id.0.to_string(),
             url: self.url.to_string(),
             traits: WorkerTraits {
@@ -172,7 +182,11 @@ impl ActorEncode<WorkerActorMsg> for WorkerActor {
                 supports_top_level_target_flag: false,
             },
             type_: self.type_ as u32,
-            target_type: "worker".to_string(),
+            target_type: match self.type_ {
+                WorkerType::Service => "service_worker",
+                _ => "worker",
+            }
+            .to_string(),
         }
     }
 }

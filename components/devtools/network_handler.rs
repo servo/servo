@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::net::TcpStream;
 use std::sync::Arc;
 
 use devtools_traits::NetworkEvent;
@@ -11,6 +10,7 @@ use serde::Serialize;
 use crate::actor::{ActorEncode, ActorRegistry};
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::watcher::WatcherActor;
+use crate::protocol::DevtoolsConnection;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 
 #[derive(Clone, Serialize)]
@@ -23,21 +23,21 @@ pub(crate) struct Cause {
 
 pub(crate) fn handle_network_event(
     registry: Arc<ActorRegistry>,
-    netevent_actor_name: String,
-    mut connections: Vec<TcpStream>,
+    network_event_name: String,
+    mut connections: Vec<DevtoolsConnection>,
     network_event: NetworkEvent,
 ) {
-    let actor = registry.find::<NetworkEventActor>(&netevent_actor_name);
-    let watcher = registry.find::<WatcherActor>(&actor.watcher);
+    let network_event_actor = registry.find::<NetworkEventActor>(&network_event_name);
+    let watcher_actor = registry.find::<WatcherActor>(&network_event_actor.watcher_name);
 
     match network_event {
         NetworkEvent::HttpRequest(httprequest) => {
-            actor.add_request(httprequest);
-            let msg = actor.encode(&registry);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_request(httprequest);
+            let msg = network_event_actor.encode(&registry);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     msg.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Available,
@@ -45,7 +45,7 @@ pub(crate) fn handle_network_event(
                 );
 
                 // Also push initial resource update (request headers, cookies)
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -55,11 +55,11 @@ pub(crate) fn handle_network_event(
         },
 
         NetworkEvent::HttpRequestUpdate(httprequest) => {
-            actor.add_request(httprequest);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_request(httprequest);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -68,11 +68,11 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::HttpResponse(httpresponse) => {
-            actor.add_response(httpresponse);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_response(httpresponse);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,
@@ -81,11 +81,11 @@ pub(crate) fn handle_network_event(
             }
         },
         NetworkEvent::SecurityInfo(update) => {
-            actor.add_security_info(update.security_info);
-            let resource = actor.resource_updates(&registry);
+            network_event_actor.add_security_info(update.security_info);
+            let resource = network_event_actor.resource_updates(&registry);
 
             for stream in &mut connections {
-                watcher.resource_array(
+                watcher_actor.resource_array(
                     resource.clone(),
                     "network-event".to_string(),
                     ResourceArrayType::Updated,

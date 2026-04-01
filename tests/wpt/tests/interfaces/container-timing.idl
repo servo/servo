@@ -1,0 +1,21 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Container Timing API (https://wicg.github.io/container-timing/)
+
+[Exposed=Window]
+interface PerformanceContainerTiming : PerformanceEntry {
+    readonly attribute DOMString identifier;
+    readonly attribute DOMRectReadOnly intersectionRect;
+    readonly attribute unsigned long long size;
+    readonly attribute DOMHighResTimeStamp firstRenderTime;
+    readonly attribute Element? lastPaintedElement;
+    readonly attribute Element? rootElement;
+};
+
+PerformanceContainerTiming includes PaintTimingMixin;
+
+partial interface Element {
+    [CEReactions] attribute DOMString containertiming;
+    [CEReactions] attribute DOMString? containertimingIgnore;
+};

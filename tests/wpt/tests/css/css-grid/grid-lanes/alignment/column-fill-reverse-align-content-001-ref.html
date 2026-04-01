@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(2, 80px);
+      gap: 4px;
+      width: 200px;
+      height: 180px;
+      border: 1px solid;
+    }
+
+    item {
+      display: block;
+      width: 40px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" style="align-content: end;">
+    <item>3</item>
+    <item>4</item>
+    <item>1</item>
+    <item>2</item>
+  </div>
+
+  <div class="container" style="align-content: center;">
+    <item>3</item>
+    <item>4</item>
+    <item>1</item>
+    <item>2</item>
+  </div>
+
+  <div class="container" style="align-content: start;">
+    <item>3</item>
+    <item>4</item>
+    <item>1</item>
+    <item>2</item>
+  </div>
+</body>
+</html>

@@ -46,7 +46,7 @@ pub(crate) fn Platform() -> DOMString {
 }
 
 #[expect(non_snake_case)]
-#[cfg(any(target_os = "android", target_os = "linux"))]
+#[cfg(any(target_os = "android", target_os = "linux", target_os = "freebsd"))]
 pub(crate) fn Platform() -> DOMString {
     DOMString::from("Linux")
 }

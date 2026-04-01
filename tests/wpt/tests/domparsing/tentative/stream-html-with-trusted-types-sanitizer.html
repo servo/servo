@@ -29,79 +29,100 @@
         createParserOptions = (options) => options;
       }
 
-      promise_test(async (t) => {
-        t.add_cleanup(cleanup);
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        t.add_cleanup(() => d.remove());
-        createParserOptions = (options) => ({
-          ...options,
-          sanitizer: { removeElements: ["span"] },
-        });
-        const writer = d.streamHTMLUnsafe().getWriter();
-        await writer.write(
-          "<div id='allowed'><span id=forbidden></span></div>",
-        );
-        await writer.close();
-        assert_equals(d.querySelector("#forbidden"), null);
-        assert_not_equals(d.querySelector("#allowed"), null);
-      }, "createParserOptions can inject a sanitizer config");
+      const methods = [
+        "streamHTMLUnsafe",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTMLUnsafe",
+      ];
 
-      promise_test(async (t) => {
-        t.add_cleanup(cleanup);
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        t.add_cleanup(() => d.remove());
-        createParserOptions = (options) => ({
-          ...options,
-          sanitizer: new Sanitizer({ removeElements: ["span"] }),
-        });
-        const writer = d.streamHTMLUnsafe().getWriter();
-        await writer.write("<div id=allowed><span id=forbidden></span></div>");
-        await writer.close();
-        assert_equals(d.querySelector("#forbidden"), null);
-        assert_not_equals(d.querySelector("#allowed"), null);
-      }, "createParserOptions can inject a sanitizer");
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: { removeElements: ["span"] },
+          });
+          const writer = d[method]().getWriter();
+          await writer.write(
+            "<div id='allowed'><span id=forbidden></span></div>",
+          );
+          await writer.close();
+          assert_equals(d.parentNode.querySelector("#forbidden"), null);
+          assert_not_equals(d.parentNode.querySelector("#allowed"), null);
+        }, `createParserOptions can inject a sanitizer config for ${method}`);
+      }
 
-      promise_test(async (t) => {
-        t.add_cleanup(cleanup);
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        t.add_cleanup(() => d.remove());
-        createParserOptions = (options) => ({
-          sanitizer: { removeElements: ["span"] },
-        });
-        const writer = d
-          .streamHTMLUnsafe({ sanitizer: { removeElements: ["div"] } })
-          .getWriter();
-        await writer.write("<div id=allowed><span id=forbidden></span></div>");
-        await writer.close();
-        assert_equals(d.querySelector("#forbidden"), null);
-        assert_not_equals(d.querySelector("#allowed"), null);
-      }, "createParserOptions can override a sanitizer config");
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: new Sanitizer({ removeElements: ["span"] }),
+          });
+          const writer = d[method]().getWriter();
+          await writer.write(
+            "<div id=allowed><span id=forbidden></span></div>",
+          );
+          await writer.close();
+          assert_equals(d.parentNode.querySelector("#forbidden"), null);
+          assert_not_equals(d.parentNode.querySelector("#allowed"), null);
+        }, `createParserOptions can inject a sanitizer for ${method}`);
+      }
 
-      promise_test(async (t) => {
-        t.add_cleanup(cleanup);
-        let d = document.createElement("div");
-        document.querySelector("#container").appendChild(d);
-        t.add_cleanup(() => d.remove());
-        window.did_run = false;
-        t.add_cleanup(() => {
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
+          createParserOptions = (options) => ({
+            sanitizer: { removeElements: ["span"] },
+          });
+          const writer = d[method]({
+            sanitizer: { removeElements: ["div"] },
+          }).getWriter();
+          await writer.write(
+            "<div id=allowed><span id=forbidden></span></div>",
+          );
+          await writer.close();
+          assert_equals(d.parentNode.querySelector("#forbidden"), null);
+          assert_not_equals(d.parentNode.querySelector("#allowed"), null);
+        }, `createParserOptions can override a sanitizer config for ${method}`);
+      }
+
+      for (const method of methods) {
+        promise_test(async (t) => {
+          t.add_cleanup(cleanup);
+          let d = document.createElement("div");
+          document.querySelector("#container").appendChild(d);
+          t.add_cleanup(() => d.remove());
           window.did_run = false;
-        });
-        createParserOptions = (options) => ({
-          runScripts: false,
-        });
-        const writer = d
-          .streamHTMLUnsafe({ sanitizer: { removeElements: ["div"] } })
-          .getWriter();
-        await writer.write(
-          "<div id=allowed><script>window.did_run = true;<" + "/script></div>",
-        );
-        await writer.close();
-        assert_false(window.did_run);
-        assert_not_equals(d.querySelector("#allowed"), null);
-      }, "createParserOptions can remove a sanitizer");
-</script>
+          t.add_cleanup(() => {
+            window.did_run = false;
+          });
+          createParserOptions = (options) => ({
+            runScripts: false,
+          });
+          const writer = d[method]({
+            sanitizer: { removeElements: ["div"] },
+          }).getWriter();
+          await writer.write(
+            "<div id=allowed><script>window.did_run = true;<" +
+              "/script></div>",
+          );
+          await writer.close();
+          assert_false(window.did_run);
+          assert_not_equals(d.parentNode.querySelector("#allowed"), null);
+        }, `createParserOptions can remove a sanitizer for ${method}`);
+      }
+    </script>
   </body>
 </html>

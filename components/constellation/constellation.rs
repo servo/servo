@@ -107,8 +107,8 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
-    AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
+    AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderProxy, FocusSequenceNumber,
+    GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
     NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg,
@@ -145,7 +145,8 @@ use servo_base::generic_channel::{
     GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
 };
 use servo_base::id::{
-    BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
+    BrowsingContextGroupId, BrowsingContextId, CONSTELLATION_PIPELINE_NAMESPACE_ID,
+    FIRST_CONTENT_PIPELINE_NAMESPACE_ID, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
     ScriptEventLoopId, WebViewId,
 };
@@ -163,7 +164,8 @@ use servo_constellation_traits::{
     LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
     ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TraversalDirection, UserContentManagerAction, WindowSizeType,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
+    WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -176,6 +178,7 @@ use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
 
+use super::embedder::ConstellationToEmbedderMsg;
 use crate::broadcastchannel::BroadcastChannels;
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -188,7 +191,13 @@ use crate::process_manager::ProcessManager;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{NeedsToReload, SessionHistoryChange, SessionHistoryDiff};
 
-type PendingApprovalNavigations = FxHashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
+struct PendingApprovalNavigation {
+    load_data: LoadData,
+    history_behaviour: NavigationHistoryBehavior,
+    target_snapshot_params: TargetSnapshotParams,
+}
+
+type PendingApprovalNavigations = FxHashMap<PipelineId, PendingApprovalNavigation>;
 
 #[derive(Debug)]
 /// The state used by MessagePortInfo to represent the various states the port can be in.
@@ -316,8 +325,13 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the embedder (renderer and libservo) to send messages to the [`Constellation`].
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
 
-    /// A channel through which messages can be sent to the embedder.
+    /// A channel through which messages can be sent to the embedder. This is not used by the `Constellation`
+    /// itself but only needed to create an `EventLoop`.
+    /// Messages from the `Constellation` to the embedder are sent using the `constellation_to_embedder_proxy`
     pub(crate) embedder_proxy: EmbedderProxy,
+
+    /// A channel through which messages can be sent to the embedder.
+    pub(crate) constellation_to_embedder_proxy: GenericEmbedderProxy<ConstellationToEmbedderMsg>,
 
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to `Paint`.
@@ -511,8 +525,13 @@ pub struct Constellation<STF, SWF> {
 
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
-    /// A channel through which messages can be sent to the embedder.
+    /// A channel through which messages can be sent to the embedder. This is not used by the `Constellation`
+    /// itself but only needed to create an `EventLoop`.
+    /// Messages from the `Constellation` to the embedder are sent using the `constellation_to_embedder_proxy`
     pub embedder_proxy: EmbedderProxy,
+
+    /// A channel through which messages can be sent to the embedder.
+    pub constellation_to_embedder_proxy: GenericEmbedderProxy<ConstellationToEmbedderMsg>,
 
     /// A channel through which messages can be sent to `Paint` in-process.
     pub paint_proxy: PaintProxy,
@@ -640,8 +659,7 @@ where
 
                 let swmanager_receiver = swmanager_ipc_receiver.route_preserving_errors();
 
-                // Zero is reserved for the embedder.
-                PipelineNamespace::install(PipelineNamespaceId(1));
+                PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
                 #[cfg(feature = "webgpu")]
                 let webrender_wgpu = WebRenderWGPU {
@@ -665,6 +683,7 @@ where
                     embedder_to_constellation_receiver,
                     layout_factory,
                     embedder_proxy: state.embedder_proxy,
+                    constellation_to_embedder_proxy: state.constellation_to_embedder_proxy,
                     paint_proxy: state.paint_proxy,
                     webviews: Default::default(),
                     devtools_sender: state.devtools_sender,
@@ -687,9 +706,7 @@ where
                     pipelines: Default::default(),
                     browsing_contexts: Default::default(),
                     pending_changes: vec![],
-                    // We initialize the namespace at 2, since we reserved
-                    // namespace 0 for the embedder, and 0 for the constellation
-                    next_pipeline_namespace_id: Cell::new(PipelineNamespaceId(2)),
+                    next_pipeline_namespace_id: Cell::new(FIRST_CONTENT_PIPELINE_NAMESPACE_ID),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
@@ -784,7 +801,8 @@ where
         // shut down. This helps ensure we've shut down all our internal threads before
         // de-initializing Servo (see the `thread_count` warning on MacOS).
         debug!("Asking embedding layer to complete shutdown.");
-        self.embedder_proxy.send(EmbedderMsg::ShutdownComplete);
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::ShutdownComplete);
     }
 
     /// Helper that sends a message to the event loop of a given pipeline, logging the
@@ -1010,6 +1028,7 @@ where
         load_data: LoadData,
         is_private: bool,
         throttled: bool,
+        target_snapshot_params: TargetSnapshotParams,
     ) {
         if self.shutting_down {
             return;
@@ -1051,6 +1070,7 @@ where
             viewport_details: initial_viewport_details,
             user_content_manager_id,
             theme,
+            target_snapshot_params,
         };
         let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
             Ok(pipeline) => pipeline,
@@ -1306,9 +1326,9 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
         match message {
-            HangMonitorAlert::Profile(bytes) => {
-                self.embedder_proxy.send(EmbedderMsg::ReportProfile(bytes))
-            },
+            HangMonitorAlert::Profile(bytes) => self
+                .constellation_to_embedder_proxy
+                .send(ConstellationToEmbedderMsg::ReportProfile(bytes)),
             HangMonitorAlert::Hang(hang) => {
                 // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
                 // via the embedder?
@@ -1345,9 +1365,15 @@ where
                 };
 
                 match pending {
-                    Some((load_data, history_handling)) => {
+                    Some(pending) => {
                         if allowed {
-                            self.load_url(webview_id, pipeline_id, load_data, history_handling);
+                            self.load_url(
+                                webview_id,
+                                pipeline_id,
+                                pending.load_data,
+                                pending.history_behaviour,
+                                pending.target_snapshot_params,
+                            );
                         } else {
                             if let Some((sender, id)) = &self.webdriver_load_status_sender {
                                 if pipeline_id == *id {
@@ -1398,6 +1424,7 @@ where
                     pipeline_id,
                     load_data,
                     NavigationHistoryBehavior::Push,
+                    TargetSnapshotParams::default(),
                 );
             },
             // Create a new top level browsing context. Will use response_chan to return
@@ -1421,7 +1448,8 @@ where
                 self.handle_focus_web_view(webview_id);
             },
             EmbedderToConstellationMessage::BlurWebView => {
-                self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
+                self.constellation_to_embedder_proxy
+                    .send(ConstellationToEmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
             EmbedderToConstellationMessage::TraverseHistory(
@@ -1430,11 +1458,9 @@ where
                 traversal_id,
             ) => {
                 self.handle_traverse_history_msg(webview_id, direction);
-                self.embedder_proxy
-                    .send(EmbedderMsg::HistoryTraversalComplete(
-                        webview_id,
-                        traversal_id,
-                    ));
+                self.constellation_to_embedder_proxy.send(
+                    ConstellationToEmbedderMsg::HistoryTraversalComplete(webview_id, traversal_id),
+                );
             },
             EmbedderToConstellationMessage::ChangeViewportDetails(
                 webview_id,
@@ -1810,12 +1836,17 @@ where
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             },
             // Ask the embedder for permission to load a new page.
-            ScriptToConstellationMessage::LoadUrl(load_data, history_handling) => {
+            ScriptToConstellationMessage::LoadUrl(
+                load_data,
+                history_handling,
+                target_snapshot_params,
+            ) => {
                 self.schedule_navigation(
                     webview_id,
                     source_pipeline_id,
                     load_data,
                     history_handling,
+                    target_snapshot_params,
                 );
             },
             ScriptToConstellationMessage::AbortLoadUrl => {
@@ -1946,6 +1977,13 @@ where
                     );
                 }
             },
+            ScriptToConstellationMessage::GetDocumentOrigin(pipeline_id, response_sender) => {
+                self.send_message_to_pipeline(
+                    pipeline_id,
+                    ScriptThreadMessage::GetDocumentOrigin(pipeline_id, response_sender),
+                    "Document origin retrieval after closure",
+                );
+            },
             ScriptToConstellationMessage::ScheduleJob(job) => {
                 self.handle_schedule_serviceworker_job(source_pipeline_id, job);
             },
@@ -1990,8 +2028,9 @@ where
                     };
                 }
                 self.active_media_session = Some(pipeline_id);
-                self.embedder_proxy
-                    .send(EmbedderMsg::MediaSessionEvent(webview_id, event));
+                self.constellation_to_embedder_proxy.send(
+                    ConstellationToEmbedderMsg::MediaSessionEvent(webview_id, event),
+                );
             },
             #[cfg(feature = "webgpu")]
             ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids) => self
@@ -2941,11 +2980,12 @@ where
         backtrace: &Option<String>,
     ) {
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        self.embedder_proxy.send(EmbedderMsg::Panic(
-            webview_id,
-            reason.clone(),
-            backtrace.clone(),
-        ));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::Panic(
+                webview_id,
+                reason.clone(),
+                backtrace.clone(),
+            ));
 
         let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
             return warn!("failed browsing context is missing");
@@ -2998,6 +3038,7 @@ where
             new_load_data,
             is_private,
             throttled,
+            TargetSnapshotParams::default(),
         );
         self.add_pending_change(SessionHistoryChange {
             webview_id,
@@ -3013,8 +3054,8 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, true));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::WebViewFocused(webview_id, true));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3109,6 +3150,12 @@ where
         };
 
         webview.accessibility_active = active;
+        self.constellation_to_embedder_proxy.send(
+            ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
+                webview_id,
+                webview.active_top_level_pipeline_id.into(),
+            ),
+        );
 
         // Forward the activation to the webview’s active pipelines (of those that represent
         // documents). For inactive pipelines (documents in bfcache), we only need to forward the
@@ -3144,13 +3191,15 @@ where
         let event_id = event.id;
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");
-            self.embedder_proxy.send(EmbedderMsg::InputEventsHandled(
-                webview_id,
-                vec![InputEventOutcome {
-                    id: event_id,
-                    result: Default::default(),
-                }],
-            ));
+            self.constellation_to_embedder_proxy.send(
+                ConstellationToEmbedderMsg::InputEventsHandled(
+                    webview_id,
+                    vec![InputEventOutcome {
+                        id: event_id,
+                        result: Default::default(),
+                    }],
+                ),
+            );
             return;
         };
 
@@ -3162,13 +3211,15 @@ where
         };
 
         if !webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts) {
-            self.embedder_proxy.send(EmbedderMsg::InputEventsHandled(
-                webview_id,
-                vec![InputEventOutcome {
-                    id: event_id,
-                    result: Default::default(),
-                }],
-            ));
+            self.constellation_to_embedder_proxy.send(
+                ConstellationToEmbedderMsg::InputEventsHandled(
+                    webview_id,
+                    vec![InputEventOutcome {
+                        id: event_id,
+                        result: Default::default(),
+                    }],
+                ),
+            );
         }
     }
 
@@ -3193,6 +3244,7 @@ where
         self.webviews.insert(
             webview_id,
             ConstellationWebView::new(
+                &self.constellation_to_embedder_proxy,
                 webview_id,
                 pipeline_id,
                 browsing_context_id,
@@ -3219,6 +3271,7 @@ where
             load_data,
             is_private,
             throttled,
+            TargetSnapshotParams::default(),
         );
         self.add_pending_change(SessionHistoryChange {
             webview_id,
@@ -3249,8 +3302,8 @@ where
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         // Step 4. Remove traversable from the user interface (e.g., close or hide its tab in a tabbed browser).
         self.webviews.remove(&webview_id);
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewClosed(webview_id));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::WebViewClosed(webview_id));
 
         let Some(browsing_context) = browsing_context else {
             return warn!(
@@ -3300,11 +3353,9 @@ where
         evaluation_id: JavaScriptEvaluationId,
         result: Result<JSValue, JavaScriptEvaluationError>,
     ) {
-        self.embedder_proxy
-            .send(EmbedderMsg::FinishJavaScriptEvaluation(
-                evaluation_id,
-                result,
-            ));
+        self.constellation_to_embedder_proxy.send(
+            ConstellationToEmbedderMsg::FinishJavaScriptEvaluation(evaluation_id, result),
+        );
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3360,6 +3411,7 @@ where
             new_pipeline_id,
             is_private,
             mut history_handling,
+            target_snapshot_params,
             ..
         } = load_info.info;
 
@@ -3439,6 +3491,7 @@ where
             load_info.load_data,
             is_private,
             browsing_context_throttled,
+            target_snapshot_params,
         );
         self.add_pending_change(SessionHistoryChange {
             webview_id,
@@ -3526,10 +3579,11 @@ where
             let _ = response_sender.send(None);
             return;
         };
-        self.embedder_proxy.send(EmbedderMsg::AllowOpeningWebView(
-            opener_webview_id,
-            webview_id_sender,
-        ));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::AllowOpeningWebView(
+                opener_webview_id,
+                webview_id_sender,
+            ));
         let NewWebViewDetails {
             webview_id: new_webview_id,
             viewport_details,
@@ -3585,6 +3639,7 @@ where
         self.webviews.insert(
             new_webview_id,
             ConstellationWebView::new(
+                &self.constellation_to_embedder_proxy,
                 new_webview_id,
                 new_pipeline_id,
                 new_browsing_context_id,
@@ -3700,6 +3755,7 @@ where
         source_id: PipelineId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
+        target_snapshot_params: TargetSnapshotParams,
     ) {
         match self.pending_approval_navigations.entry(source_id) {
             Entry::Occupied(_) => {
@@ -3709,16 +3765,21 @@ where
                 );
             },
             Entry::Vacant(entry) => {
-                let _ = entry.insert((load_data.clone(), history_handling));
+                let _ = entry.insert(PendingApprovalNavigation {
+                    load_data: load_data.clone(),
+                    history_behaviour: history_handling,
+                    target_snapshot_params,
+                });
             },
         };
         // Allow the embedder to handle the url itself
-        self.embedder_proxy
-            .send(EmbedderMsg::AllowNavigationRequest(
+        self.constellation_to_embedder_proxy.send(
+            ConstellationToEmbedderMsg::AllowNavigationRequest(
                 webview_id,
                 source_id,
                 load_data.url,
-            ));
+            ),
+        );
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -3728,6 +3789,7 @@ where
         source_id: PipelineId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
+        target_snapshot_params: TargetSnapshotParams,
     ) -> Option<PipelineId> {
         debug!(
             "{}: Loading ({}replacing): {}",
@@ -3790,6 +3852,7 @@ where
                     browsing_context_id,
                     load_data,
                     history_handling,
+                    target_snapshot_params,
                 );
                 let result = match self.pipelines.get(&parent_pipeline_id) {
                     Some(parent_pipeline) => parent_pipeline.event_loop.send(msg),
@@ -3847,6 +3910,7 @@ where
                     load_data,
                     is_private,
                     is_throttled,
+                    target_snapshot_params,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     webview_id,
@@ -4141,6 +4205,10 @@ where
                     load_data.clone(),
                     is_private,
                     throttled,
+                    // TODO(jdm): We need to store the original target snapshot params
+                    // with the pipeline when it's created, so we can support reloading
+                    // a discarded document properly.
+                    TargetSnapshotParams::default(),
                 );
                 self.add_pending_change(SessionHistoryChange {
                     webview_id,
@@ -4183,6 +4251,7 @@ where
                     title: new_pipeline.title.clone(),
                     url: new_pipeline.url.clone(),
                     is_top_level_global: webview_id == browsing_context_id,
+                    is_service_worker: false,
                 };
                 let state = NavigationState::Stop(new_pipeline.id, page_info);
                 let _ = chan.send(DevtoolsControlMsg::FromScript(
@@ -4404,8 +4473,8 @@ where
         }
 
         // Focus the top-level browsing context.
-        self.embedder_proxy
-            .send(EmbedderMsg::WebViewFocused(webview_id, true));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::WebViewFocused(webview_id, true));
 
         // If a container with a non-null nested browsing context is focused,
         // the nested browsing context's active document becomes the focused
@@ -4845,11 +4914,12 @@ where
                 .rev()
                 .scan(current_url, &resolve_url_future),
         );
-        self.embedder_proxy.send(EmbedderMsg::HistoryChanged(
-            webview_id,
-            entries,
-            current_index,
-        ));
+        self.constellation_to_embedder_proxy
+            .send(ConstellationToEmbedderMsg::HistoryChanged(
+                webview_id,
+                entries,
+                current_index,
+            ));
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -5728,6 +5798,12 @@ where
             if let Some(webview) = self.webviews.get_mut(&webview_id) {
                 if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
                     webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
+                    self.constellation_to_embedder_proxy.send(
+                        ConstellationToEmbedderMsg::AccessibilityTreeIdChanged(
+                            webview_id,
+                            webview.active_top_level_pipeline_id.into(),
+                        ),
+                    );
                 }
             }
 

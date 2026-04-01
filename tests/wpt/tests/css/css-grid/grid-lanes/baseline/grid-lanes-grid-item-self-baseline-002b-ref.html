@@ -16,7 +16,7 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
 .grid {
   float: left;
   display: grid;
-  grid: auto / repeat(4, auto);
+  grid: auto / repeat(4, min-content);
   place-items: start;
   padding-block-start: 1px;
   margin-left: 1px;
@@ -24,7 +24,7 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
   height: 100px;
   width: 100px;
 }
-.c { grid: repeat(4, auto) / auto; }
+.c { grid: repeat(4, min-content) / auto; }
 .ae { align-content: end; }
 .je { justify-content: end; }
 

@@ -37,7 +37,7 @@ pub(crate) struct NetworkEventActor {
     resource_id: u64,
     response: AtomicRefCell<Option<NetworkEventResponse>>,
     security_info: AtomicRefCell<TlsSecurityInfo>,
-    pub watcher: String,
+    pub watcher_name: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -535,11 +535,11 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-    pub fn new(name: String, resource_id: u64, watcher: String) -> NetworkEventActor {
+    pub fn new(name: String, resource_id: u64, watcher_name: String) -> NetworkEventActor {
         NetworkEventActor {
             name,
             resource_id,
-            watcher,
+            watcher_name,
             ..Default::default()
         }
     }
@@ -624,9 +624,9 @@ impl NetworkEventActor {
     }
 
     pub fn resource_updates(&self, registry: &ActorRegistry) -> NetworkEventResource {
-        let watcher = registry.find::<WatcherActor>(&self.watcher);
-        let browsing_context =
-            registry.find::<BrowsingContextActor>(&watcher.browsing_context_actor);
+        let watcher_actor = registry.find::<WatcherActor>(&self.watcher_name);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&watcher_actor.browsing_context_name);
 
         NetworkEventResource {
             resource_id: self.resource_id,
@@ -637,7 +637,7 @@ impl NetworkEventActor {
                 response: self.response_fields(),
                 security: self.security_fields(),
             },
-            browsing_context_id: browsing_context.browsing_context_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             inner_window_id: 0,
         }
     }
@@ -702,13 +702,13 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
             LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
         };
 
-        let watcher = registry.find::<WatcherActor>(&self.watcher);
-        let browsing_context =
-            registry.find::<BrowsingContextActor>(&watcher.browsing_context_actor);
+        let watcher_actor = registry.find::<WatcherActor>(&self.watcher_name);
+        let browsing_context_actor =
+            registry.find::<BrowsingContextActor>(&watcher_actor.browsing_context_name);
 
         NetworkEventMsg {
             actor: self.name(),
-            browsing_context_id: browsing_context.browsing_context_id.value(),
+            browsing_context_id: browsing_context_actor.browsing_context_id.value(),
             cause: Cause {
                 type_: request.destination.as_str().to_string(),
                 loading_document_uri: None, // Set if available

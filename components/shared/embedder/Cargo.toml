@@ -14,9 +14,6 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [features]
-# bakes default resources into the library.
-# This feature is mainly intended for testing purposes.
-baked-default-resources = []
 gamepad = []
 
 [dependencies]
@@ -29,6 +26,7 @@ http = { workspace = true }
 hyper_serde = { workspace = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
+inventory = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }

@@ -8,26 +8,23 @@
 
 promise_test(async t => {
   await ensureLanguageModel();
-
-  // Start a new session.
   const session = await createLanguageModel();
-  // Test the streaming prompt API.
-  const streamingResponse =
-    session.promptStreaming(kTestPrompt);
-  assert_equals(
-    Object.prototype.toString.call(streamingResponse),
-    "[object ReadableStream]"
-  );
-  const reader = streamingResponse.getReader();
-  let result = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) {
-      break;
-    }
-    if (value) {
-      result += value;
-    }
-  }
-  assert_greater_than(result.length, 0, "The result should not be empty.");
+  const streamingResponse = session.promptStreaming(kTestPrompt);
+  assert_true(streamingResponse instanceof ReadableStream);
+  const result = (await Array.fromAsync(streamingResponse)).join('');
+  assert_greater_than(result.length, 0, 'The result should not be empty.');
 });
+
+promise_test(async (t) => {
+  await ensureLanguageModel();
+  const model = await createLanguageModel();
+
+  // null, undefined, and objects are coerced to strings.
+  for await (const _ of model.promptStreaming(null)) { }
+  for await (const _ of model.promptStreaming(undefined)) { }
+  for await (const _ of model.promptStreaming({})) { }
+  for await (const _ of model.promptStreaming('')) { }
+  for await (const _ of model.promptStreaming([])) { }
+  for await (const _ of model.promptStreaming([{ role: 'user', content: [] }])) { }
+  for await (const _ of model.promptStreaming([{ role: 'user', content: [{ type: 'text', value: '' }] }])) { }
+}, 'LanguageModel.promptStreaming() allows empty and coerced inputs');

@@ -55,4 +55,14 @@
     test_attr('--x', 'attr(var(--y), 3px)', 'var(--x)', '');
     document.getElementById("attr").style.setProperty('--y', null);
 
+    // var() in the type position only.
+    document.getElementById("attr").style.setProperty('--type', 'type(<number>)');
+    test_attr('font-weight', 'attr(data-foo var(--type))', '42', '42');
+    test_attr('font-weight', 'attr(data-foo var(--type), 100)', 'invalid', '100');
+    document.getElementById("attr").style.setProperty('--type', null);
+
+    document.getElementById("attr").style.setProperty('--unit', 'number');
+    test_attr('font-weight', 'attr(data-foo var(--unit))', '42', '42');
+    document.getElementById("attr").style.setProperty('--unit', null);
+
 </script>

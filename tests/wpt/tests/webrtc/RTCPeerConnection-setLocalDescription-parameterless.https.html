@@ -119,7 +119,7 @@ promise_test(async t => {
   offerer.close();
   try {
     await offerer.setLocalDescription();
-    assert_not_reached();
+    assert_unreached();
   } catch (e) {
     assert_equals(e.name, "InvalidStateError");
   }
@@ -155,7 +155,7 @@ promise_test(async t => {
   const answerer = new RTCPeerConnection();
   try {
     await answerer.setRemoteDescription();
-    assert_not_reached();
+    assert_unreached();
   } catch (e) {
     assert_equals(e.name, "TypeError");
   }
@@ -169,7 +169,7 @@ promise_test(async t => {
   new RTCSessionDescription({type: "offer", sdp});
   try {
     new RTCSessionDescription({sdp});
-    assert_not_reached();
+    assert_unreached();
   } catch (e) {
     assert_equals(e.name, "TypeError");
   }

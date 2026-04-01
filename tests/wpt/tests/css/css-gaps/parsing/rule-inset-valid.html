@@ -14,11 +14,11 @@
   <script>
     const properties = ['column-rule-inset', 'row-rule-inset', 'rule-inset'];
     for (const property of properties) {
-      test_valid_value(property, '0', '0px 0px / 0px 0px');
-      test_valid_value(property, '-20px', '-20px -20px / -20px -20px');
-      test_valid_value(property, '5%', '5% 5% / 5% 5%');
-      test_valid_value(property, '10vmin', '10vmin 10vmin / 10vmin 10vmin');
-      test_valid_value(property, 'calc(8em + 4ex)', 'calc(8em + 4ex) calc(8em + 4ex) / calc(8em + 4ex) calc(8em + 4ex)');
+      test_valid_value(property, '0', '0px');
+      test_valid_value(property, '-20px');
+      test_valid_value(property, '5%');
+      test_valid_value(property, '10vmin');
+      test_valid_value(property, 'calc(8em + 4ex)');
       test_valid_value(property, '10px 20px / 30px -10px');
       test_valid_value(property, '-10px -20px / 25% 24%');
       test_valid_value(property, '5% 10% / 15% 25%');
@@ -26,6 +26,11 @@
       test_valid_value(property, '10px 20px / -5px', '10px 20px / -5px -5px');
       test_valid_value(property, '10px / 20px 30px', '10px 10px / 20px 30px');
       test_valid_value(property, '10px / 20px', '10px 10px / 20px 20px');
+      test_valid_value(property, 'overlap-join');
+      test_valid_value(property, 'overlap-join 10px / overlap-join 10px');
+      test_valid_value(property, '10px overlap-join / 10px overlap-join');
+      test_valid_value(property, 'overlap-join / 10px', 'overlap-join overlap-join / 10px 10px');
+      test_valid_value(property, 'overlap-join overlap-join / overlap-join overlap-join', 'overlap-join');
     }
   </script>
 </body>

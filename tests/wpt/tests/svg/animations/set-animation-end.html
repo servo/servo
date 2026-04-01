@@ -1,0 +1,26 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>After animation has finished the shape should return to its unanimated state</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<svg>
+  <style>
+    .square {
+      fill: green;
+    }
+    .round {
+      rx: 5px;
+      fill: red;
+    }
+  </style>
+  <rect width="100" height="100" class="square">
+    <set attributeName="class" to="round" dur="2s" onbegin="test()"/>
+  </rect>
+  <script>
+  function test() {
+    document.getElementsByTagName('svg')[0].setCurrentTime(2);
+    takeScreenshot();
+  }
+  </script>
+</svg>

@@ -29,6 +29,7 @@ use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::reflector::MutDomObject;
 use script_traits::NewPipelineInfo;
@@ -38,7 +39,7 @@ use servo_base::generic_channel::GenericSend;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    ScriptToConstellationMessage,
+    ScriptToConstellationMessage, TargetSnapshotParams,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
@@ -59,6 +60,7 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::navigation::navigate;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -312,6 +314,23 @@ impl WindowProxy {
             .get()
             .and_then(ScriptThread::find_document)
             .expect("A WindowProxy creating an auxiliary to have an active document");
+
+        // <https://html.spec.whatwg.org/multipage/#navigable-target-names>
+        // > If the user agent has been configured such that in this instance it
+        // > will create a new top-level traversable
+        // >
+        // Step 9. If sandboxingFlagSet's sandbox propagates to auxiliary browsing
+        //   contexts flag is set, then all the flags that are set in sandboxingFlagSet
+        // must be set in chosen's active browsing context's popup sandboxing flag set.
+        let sandboxing_flag_set = document.active_sandboxing_flag_set();
+        let propagate_sandbox = sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOX_PROPOGATES_TO_AUXILIARY_BROWSING_CONTEXTS_FLAG);
+        let sandboxing_flag_set = if propagate_sandbox {
+            sandboxing_flag_set
+        } else {
+            SandboxingFlagSet::empty()
+        };
+
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
@@ -325,8 +344,7 @@ impl WindowProxy {
             None, // Doesn't inherit secure context
             None,
             false,
-            // There are no sandboxing restrictions when creating auxiliary browsing contexts.
-            SandboxingFlagSet::empty(),
+            sandboxing_flag_set,
         );
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
@@ -351,6 +369,10 @@ impl WindowProxy {
             // Use the current `WebView`'s theme initially, but the embedder may
             // change this later.
             theme: window.theme(),
+            target_snapshot_params: TargetSnapshotParams {
+                sandboxing_flags: sandboxing_flag_set,
+                iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
+            },
         };
 
         with_script_thread(|script_thread| {
@@ -583,7 +605,7 @@ impl WindowProxy {
             } else {
                 NavigationHistoryBehavior::Push
             };
-            target_window.load_url(history_handling, false, load_data, CanGc::from_cx(cx));
+            navigate(cx, target_window, history_handling, false, load_data);
         }
         // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
         if noopener {
@@ -689,6 +711,19 @@ impl WindowProxy {
                 self.browsing_context_id(),
             ))
             .unwrap();
+    }
+
+    pub fn document_origin(&self) -> Option<String> {
+        let pipeline_id = self.currently_active()?;
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        self.global()
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::GetDocumentOrigin(
+                pipeline_id,
+                result_sender,
+            ))
+            .ok()?;
+        result_receiver.recv().ok()?
     }
 
     #[expect(unsafe_code)]

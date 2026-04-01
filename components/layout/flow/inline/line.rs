@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::{FontMetrics, GlyphStore};
+use fonts::GlyphStore;
 use itertools::Either;
 use layout_api::wrapper_traits::SharedSelection;
 use malloc_size_of_derive::MallocSizeOf;
@@ -19,11 +19,11 @@ use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use unicode_bidi::{BidiInfo, Level};
-use webrender_api::FontInstanceKey;
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
 use crate::cell::ArcRefCell;
+use crate::flow::inline::text_run::FontAndScriptInfo;
 use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
     LogicalRect, LogicalVec2, PhysicalRect, ToLogical, ToLogicalWithContainingBlock,
@@ -218,7 +218,7 @@ impl LineItemLayout<'_, '_> {
             .iter()
             .map(|item| {
                 let level = match item {
-                    LineItem::TextRun(_, text_run) => text_run.bidi_level,
+                    LineItem::TextRun(_, text_run) => text_run.info.bidi_level,
                     // TODO: This level needs either to be last_level, or if there were
                     // unicode characters inserted for the inline box, we need to get the
                     // level from them.
@@ -558,19 +558,25 @@ impl LineItemLayout<'_, '_> {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relative alignment, it might be different.
+        let font_metrics = &text_item.info.font.metrics;
         let start_corner = LogicalVec2 {
             inline: self.current_state.inline_advance,
             block: self.current_state.baseline_offset -
-                text_item.font_metrics.ascent -
+                font_metrics.ascent -
                 self.current_state.parent_offset.block,
         };
         let content_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
-                block: text_item.font_metrics.line_gap,
+                block: font_metrics.line_gap,
                 inline: inline_advance,
             },
         };
+
+        let font_key = text_item.info.font.key(
+            self.layout.layout_context.painter_id,
+            &self.layout.layout_context.font_context,
+        );
 
         self.current_state.inline_advance += inline_advance;
         self.current_state.fragments.push((
@@ -581,8 +587,8 @@ impl LineItemLayout<'_, '_> {
                     PhysicalRect::zero(),
                 ),
                 selected_style: text_item.inline_styles.selected.clone(),
-                font_metrics: text_item.font_metrics,
-                font_key: text_item.font_key,
+                font_metrics: font_metrics.clone(),
+                font_key,
                 glyphs: text_item.text,
                 justification_adjustment: self.justification_adjustment,
                 offsets: text_item.offsets,
@@ -813,13 +819,10 @@ pub(crate) struct TextRunOffsets {
 }
 
 pub(super) struct TextRunLineItem {
+    pub info: Arc<FontAndScriptInfo>,
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
     pub text: Vec<std::sync::Arc<GlyphStore>>,
-    pub font_metrics: Arc<FontMetrics>,
-    pub font_key: FontInstanceKey,
-    /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
-    pub bidi_level: Level,
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
@@ -889,14 +892,13 @@ impl TextRunLineItem {
 
     pub(crate) fn merge_if_possible(
         &mut self,
-        new_font_key: FontInstanceKey,
-        new_bidi_level: Level,
+        new_info: &Arc<FontAndScriptInfo>,
         new_glyph_store: &Arc<GlyphStore>,
         new_offsets: &Option<TextRunOffsets>,
         new_inline_styles: &SharedInlineStyles,
     ) -> bool {
-        if self.font_key != new_font_key ||
-            self.bidi_level != new_bidi_level ||
+        if !Arc::ptr_eq(&self.info.font, &new_info.font) ||
+            self.info.bidi_level != new_info.bidi_level ||
             !self.inline_styles.ptr_eq(new_inline_styles)
         {
             return false;

@@ -1,4 +1,6 @@
 <!doctype html>
+<html>
+<head>
 <meta charset=utf-8>
 <title>RTCPeerConnection Screen-sharing Simulcast Tests</title>
 <meta name="timeout" content="long">
@@ -9,11 +11,25 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
 <script>
+async function getDisplayMedia(options) {
+  const button = document.createElement("button");
+  button.innerHTML = "getDisplayMedia button";
+  document.body.prepend(button);
+  const p = new Promise((resolve, reject) => button.onclick = () => {
+    navigator.mediaDevices.getDisplayMedia(options).then(resolve, reject);
+    button.remove();
+  });
+  await test_driver.click(button);
+  return p;
+}
+
 promise_test(async t => {
   // Test getDisplayMedia with simulcast
   await test_driver.bless('getDisplayMedia');
-  const stream = await navigator.mediaDevices.getDisplayMedia({
+  const stream = await getDisplayMedia({
     video: {width: 640, height: 480}
   });
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
@@ -26,3 +42,5 @@ promise_test(async t => {
   return negotiateSimulcastAndWaitForVideo(t, stream, rids, pc1, pc2);
 }, 'Basic simulcast setup with two spatial layers');
 </script>
+</body>
+</html>

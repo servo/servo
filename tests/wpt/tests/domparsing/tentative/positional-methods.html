@@ -73,5 +73,29 @@
         }
       }
     }
+
+    for (const safe of [true, false]) {
+      for (const method of ["afterHTML", "beforeHTML", "replaceWithHTML"]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          const comment = doc.appendChild(doc.createComment("ref"));
+          comment[method_name]("<span>fails</span>");
+          assert_equals(doc.querySelector("span"), null);
+          comment.beforeHTML("<span>fails</span>");
+          assert_equals(doc.querySelector("span"), null);
+          comment.replaceWithHTML("<span>fails</span>");
+          assert_equals(doc.querySelector("span"), null);
+        }, `${method_name} fail silently if parent is a Document`);
+
+        test(() => {
+          const fragment = document.createDocumentFragment();
+          const span = document.createElement("span");
+          fragment.appendChild(span);
+          span[method_name]("<p>fails</p>");
+          assert_equals(fragment.querySelector("p"), null);
+        }, `${method_name} fail silently if parent is a DocumentFragment`);
+      }
+    }
   </script>
 </body>

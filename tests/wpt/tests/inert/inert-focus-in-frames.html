@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div inert>
+  <iframe height=400 width=600 id="main-iframe"></iframe>
+</div>
+
+<script>
+let framesLoadedResolver = null;
+const framesLoadedPromise = new Promise(resolve => framesLoadedResolver = resolve);
+let framesLoaded = 0;
+const numFrames = 4;
+
+const frameMarkup = `<!DOCTYPE html>
+<html>
+  <frameset rows="*" cols="50,50">
+    <frame src="resources/inert-focus-in-frames-frame1.html">
+    <frame src="resources/inert-focus-in-frames-frame2.html">
+  </frameset>
+</html>`;
+
+function frameLoaded() {
+  framesLoaded++;
+  if (framesLoaded == numFrames)
+    framesLoadedResolver();
+}
+
+const mainIframe = document.getElementById("main-iframe");
+mainIframe.contentDocument.write(frameMarkup);
+mainIframe.contentDocument.close();
+mainIframe.contentWindow.frames[1].window.onload = frameLoaded;
+window.onload = frameLoaded;
+
+promise_test(async () => {
+  await framesLoadedPromise;
+  // Ensure focus events fire consistently before checking nested targets.
+  await test_driver.click(document.documentElement);
+
+  function testCanFocus(element) {
+    let focusedElement = null;
+    element.addEventListener("focus", () => { focusedElement = element; }, false);
+    element.focus();
+    assert_equals(focusedElement, element, element.id);
+  }
+
+  const frame1 = mainIframe.contentWindow.frames[0].document;
+  testCanFocus(frame1.querySelector(".target"));
+
+  const iframe = frame1.querySelector("#iframe1").contentDocument;
+  testCanFocus(iframe.querySelector(".target"));
+}, "Focus can go into frames or iframes in inert subtree");
+</script>

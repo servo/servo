@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: row fill-reverse with align-content: baseline</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="match" href="row-fill-reverse-align-content-002-ref.html">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row fill-reverse;
+      grid-template-rows: repeat(2, 70px);
+      gap: 4px;
+      width: 260px;
+      height: 170px;
+      border: 1px solid;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: min-content;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container alignment -->
+  <p>align-content: baseline</p>
+  <div class="grid-lanes" style="align-content: baseline;">
+    <item>item 1</item>
+    <item>item 2</item>
+    <item>item 3</item>
+  </div>
+
+  <!-- Self alignment -->
+  <p>align-self</p>
+  <div class="grid-lanes">
+    <item style="align-self: start;">start</item>
+    <item style="align-self: end;">end</item>
+    <item style="align-self: center;">center</item>
+    <item style="align-self: baseline;">baseline</item>
+  </div>
+</body>
+</html>

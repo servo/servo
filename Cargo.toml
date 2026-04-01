@@ -52,7 +52,7 @@ chacha20poly1305 = "0.10"
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
-content-security-policy = { version = "0.7.0", features = ["serde"] }
+content-security-policy = { version = "0.8.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.36", features = ["serde"] }
@@ -106,6 +106,7 @@ icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
+inventory = { version = "0.3.24" }
 ipc-channel = "0.21"
 itertools = "0.14"
 js = { package = "mozjs", version = "=0.15.7", default-features = false, features = ["libz-sys", "intl"] }
@@ -153,19 +154,19 @@ read-fonts = "0.35.0"
 regex = "1.12"
 resvg = "0.45.0"
 rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
-rustc-hash = "2.1.1"
+rustc-hash = "2.1.2"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
 sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
+selectors = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -173,16 +174,16 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "1e32f24e7eec55f45c5be6c6cd090c38e8318e96" }
+stylo = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "8557228b96c0e343764953e72a62ea503baf01b3" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.9.2", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
+taffy = { version = "0.10", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
 tendril = { version = "0.5", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
 tikv-jemallocator = "0.6.1"
@@ -200,11 +201,11 @@ unicode-bidi = "0.3.18"
 unicode_categories = "0.1.1"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
-unicode-segmentation = "1.12.0"
+unicode-segmentation = "1.13.2"
 url = "2.5"
 urlpattern = "0.3"
 utf-8 = "0.7"
-uuid = { version = "1.22.0", features = ["v4", "v5"] }
+uuid = { version = "1.23.0", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"
 webdriver = "0.53.0"
@@ -265,6 +266,7 @@ servo-config = { version = "0.0.6", path = "components/config" }
 servo-config-macro = { version = "0.0.6", path = "components/config/macro" }
 servo-constellation = { version = "0.0.6", path = "components/constellation" }
 servo-constellation-traits = { version = "0.0.6", path = "components/shared/constellation" }
+servo-default-resources = { version = "0.0.6", path = "components/default-resources" }
 servo-geometry = { version = "0.0.6", path = "components/geometry" }
 servo-media = { version = "0.0.6", path = "components/media/servo-media" }
 servo-media-audio = { version = "0.0.6", path = "components/media/audio" }

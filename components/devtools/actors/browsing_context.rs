@@ -6,8 +6,6 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use std::net::TcpStream;
-
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
@@ -29,7 +27,7 @@ use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -143,11 +141,11 @@ pub(crate) struct BrowsingContextActor {
     pub browsing_context_id: DevtoolsBrowsingContextId,
     accessibility: String,
     pub console_name: String,
-    css_properties: String,
-    pub(crate) inspector: String,
+    css_properties_name: String,
+    pub(crate) inspector_name: String,
     reflow_name: String,
-    style_sheets: String,
-    pub thread: String,
+    style_sheets_name: String,
+    pub thread_name: String,
     _tab: String,
     // Different pipelines may run on different script threads.
     // These should be kept around even when the active pipeline is updated,
@@ -156,7 +154,7 @@ pub(crate) struct BrowsingContextActor {
     //       detect when `ScriptThread`s are destroyed and remove the associated
     //       entries.
     script_chans: AtomicRefCell<FxHashMap<PipelineId, GenericSender<DevtoolScriptControlMsg>>>,
-    pub watcher: String,
+    pub watcher_name: String,
 }
 
 impl ResourceAvailable for BrowsingContextActor {
@@ -214,9 +212,11 @@ impl BrowsingContextActor {
             title,
             url,
             is_top_level_global,
+            ..
         } = page_info;
 
-        let accessibility = AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
+        let accessibility_actor =
+            AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -224,24 +224,25 @@ impl BrowsingContextActor {
             properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
-        let css_properties =
+        let css_properties_actor =
             CssPropertiesActor::new(registry.new_name::<CssPropertiesActor>(), properties);
 
-        let inspector = InspectorActor::register(registry, name.clone());
+        let inspector_name = InspectorActor::register(registry, name.clone());
 
         let reflow_actor = ReflowActor::new(registry.new_name::<ReflowActor>());
 
-        let style_sheets = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
+        let style_sheets_actor = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
 
-        let tabdesc = TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
+        let tab_descriptor_actor =
+            TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
 
-        let thread = ThreadActor::new(
+        let thread_actor = ThreadActor::new(
             registry.new_name::<ThreadActor>(),
             script_sender.clone(),
             Some(name.clone()),
         );
 
-        let watcher = WatcherActor::new(
+        let watcher_actor = WatcherActor::new(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -259,24 +260,24 @@ impl BrowsingContextActor {
             active_outer_window_id: AtomicRefCell::new(outer_window_id),
             browser_id,
             browsing_context_id,
-            accessibility: accessibility.name(),
+            accessibility: accessibility_actor.name(),
             console_name,
-            css_properties: css_properties.name(),
-            inspector,
+            css_properties_name: css_properties_actor.name(),
+            inspector_name,
             reflow_name: reflow_actor.name(),
-            style_sheets: style_sheets.name(),
-            _tab: tabdesc.name(),
-            thread: thread.name(),
-            watcher: watcher.name(),
+            style_sheets_name: style_sheets_actor.name(),
+            _tab: tab_descriptor_actor.name(),
+            thread_name: thread_actor.name(),
+            watcher_name: watcher_actor.name(),
         };
 
-        registry.register(accessibility);
-        registry.register(css_properties);
+        registry.register(accessibility_actor);
+        registry.register(css_properties_actor);
         registry.register(reflow_actor);
-        registry.register(style_sheets);
-        registry.register(tabdesc);
-        registry.register(thread);
-        registry.register(watcher);
+        registry.register(style_sheets_actor);
+        registry.register(tab_descriptor_actor);
+        registry.register(thread_actor);
+        registry.register(watcher_actor);
 
         target
     }
@@ -295,7 +296,7 @@ impl BrowsingContextActor {
         &self,
         state: NavigationState,
         id_map: &mut IdMap,
-        connections: impl Iterator<Item = &'a mut TcpStream>,
+        connections: impl Iterator<Item = &'a mut DevtoolsConnection>,
     ) {
         let (pipeline_id, title, url, state) = match state {
             NavigationState::Start(url) => (None, None, url, "start"),
@@ -405,11 +406,11 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
             console_actor: self.console_name.clone(),
-            css_properties_actor: self.css_properties.clone(),
-            inspector_actor: self.inspector.clone(),
+            css_properties_actor: self.css_properties_name.clone(),
+            inspector_actor: self.inspector_name.clone(),
             reflow_actor: self.reflow_name.clone(),
-            style_sheets_actor: self.style_sheets.clone(),
-            thread_actor: self.thread.clone(),
+            style_sheets_actor: self.style_sheets_name.clone(),
+            thread_actor: self.thread_name.clone(),
             target_type: TargetType::Frame,
         }
     }

@@ -61,7 +61,7 @@ let testFunction = function(session, fakeDeviceController, t) {
 
   function onSessionVisibilityChangeInvalid(event) {
     t.step( () => {
-      assert_not_reached("Should not fire visibilitychange events for the same state");
+      assert_unreached("Should not fire visibilitychange events for the same state");
     });
   }
 

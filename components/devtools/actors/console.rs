@@ -7,12 +7,11 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::EvaluateJSReplyValue::{
-    ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
+use devtools_traits::DebuggerValue::{
+    self, BooleanValue, NullValue, NumberValue, ObjectValue, StringValue, VoidValue,
 };
 use devtools_traits::{
     ConsoleArgument, ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError,
@@ -29,7 +28,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor};
 use crate::actors::worker::WorkerActor;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId};
 
@@ -287,9 +286,10 @@ impl ConsoleActor {
             Root::BrowsingContext(browsing_context_name) => registry
                 .find::<BrowsingContextActor>(browsing_context_name)
                 .script_chan(),
-            Root::DedicatedWorker(worker) => {
-                registry.find::<WorkerActor>(worker).script_chan.clone()
-            },
+            Root::DedicatedWorker(worker_name) => registry
+                .find::<WorkerActor>(worker_name)
+                .script_chan
+                .clone(),
         }
     }
 
@@ -300,8 +300,125 @@ impl ConsoleActor {
                     .find::<BrowsingContextActor>(browsing_context_name)
                     .pipeline_id(),
             ),
-            Root::DedicatedWorker(worker) => {
-                UniqueId::Worker(registry.find::<WorkerActor>(worker).worker_id)
+            Root::DedicatedWorker(worker_name) => {
+                UniqueId::Worker(registry.find::<WorkerActor>(worker_name).worker_id)
+            },
+        }
+    }
+
+    // TODO: This should be handled with struct serialization instead of manually adding values to a map
+    fn value_to_json(value: DebuggerValue, registry: &ActorRegistry) -> Value {
+        let mut m = Map::new();
+        match value {
+            VoidValue => {
+                m.insert("type".to_owned(), Value::String("undefined".to_owned()));
+                Value::Object(m)
+            },
+            NullValue => {
+                m.insert("type".to_owned(), Value::String("null".to_owned()));
+                Value::Object(m)
+            },
+            BooleanValue(val) => Value::Bool(val),
+            NumberValue(val) => {
+                if val.is_nan() {
+                    m.insert("type".to_owned(), Value::String("NaN".to_owned()));
+                    Value::Object(m)
+                } else if val.is_infinite() {
+                    if val < 0. {
+                        m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
+                    } else {
+                        m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
+                    }
+                    Value::Object(m)
+                } else if val == 0. && val.is_sign_negative() {
+                    m.insert("type".to_owned(), Value::String("-0".to_owned()));
+                    Value::Object(m)
+                } else {
+                    Value::Number(Number::from_f64(val).unwrap())
+                }
+            },
+            StringValue(s) => Value::String(s),
+            ObjectValue {
+                uuid,
+                class,
+                preview,
+            } => {
+                let properties = preview
+                    .clone()
+                    .and_then(|preview| preview.own_properties)
+                    .unwrap_or_default();
+                let actor = ObjectActor::register_with_properties(
+                    registry,
+                    Some(uuid),
+                    class.clone(),
+                    properties,
+                );
+
+                m.insert("type".to_owned(), Value::String("object".to_owned()));
+                m.insert("class".to_owned(), Value::String(class));
+                m.insert("actor".to_owned(), Value::String(actor));
+                m.insert("extensible".to_owned(), Value::Bool(true));
+                m.insert("frozen".to_owned(), Value::Bool(false));
+                m.insert("sealed".to_owned(), Value::Bool(false));
+
+                // Build preview
+                // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
+                let Some(preview) = preview else {
+                    return Value::Object(m);
+                };
+                let mut preview_map = Map::new();
+
+                if preview.kind == "ArrayLike" {
+                    if let Some(length) = preview.array_length {
+                        preview_map.insert("length".to_owned(), Value::Number(length.into()));
+                    }
+                } else {
+                    if let Some(ref props) = preview.own_properties {
+                        let mut own_props_map = Map::new();
+                        for prop in props {
+                            let descriptor =
+                                serde_json::to_value(ObjectPropertyDescriptor::from(prop)).unwrap();
+                            own_props_map.insert(prop.name.clone(), descriptor);
+                        }
+                        preview_map
+                            .insert("ownProperties".to_owned(), Value::Object(own_props_map));
+                    }
+
+                    if let Some(length) = preview.own_properties_length {
+                        preview_map.insert(
+                            "ownPropertiesLength".to_owned(),
+                            Value::Number(length.into()),
+                        );
+                        m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                    }
+                }
+                preview_map.insert("kind".to_owned(), Value::String(preview.kind));
+
+                // Function-specific metadata
+                if let Some(function) = preview.function {
+                    if let Some(name) = function.name {
+                        m.insert("name".to_owned(), Value::String(name));
+                    }
+                    if let Some(display_name) = function.display_name {
+                        m.insert("displayName".to_owned(), Value::String(display_name));
+                    }
+                    m.insert(
+                        "parameterNames".to_owned(),
+                        Value::Array(
+                            function
+                                .parameter_names
+                                .into_iter()
+                                .map(Value::String)
+                                .collect(),
+                        ),
+                    );
+                    m.insert("isAsync".to_owned(), Value::Bool(function.is_async));
+                    m.insert("isGenerator".to_owned(), Value::Bool(function.is_generator));
+                }
+
+                m.insert("preview".to_owned(), Value::Object(preview_map));
+
+                Value::Object(m)
             },
         }
     }
@@ -317,8 +434,7 @@ impl ConsoleActor {
             .and_then(|v| v.as_str())
             .map(String::from);
         let (chan, port) = generic_channel::channel().unwrap();
-        // FIXME: Redesign messages so we don't have to fake pipeline ids when
-        //        communicating with workers.
+        // FIXME: Redesign messages so we don't have to fake pipeline ids when communicating with workers.
         let pipeline = match self.current_unique_id(registry) {
             UniqueId::Pipeline(p) => p,
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
@@ -332,134 +448,13 @@ impl ConsoleActor {
             ))
             .unwrap();
 
-        // TODO: Extract conversion into protocol module or some other useful place
         let eval_result = port.recv().map_err(|_| ())?;
         let has_exception = eval_result.has_exception;
-
-        let result = match eval_result.value {
-            VoidValue => {
-                let mut m = Map::new();
-                m.insert("type".to_owned(), Value::String("undefined".to_owned()));
-                Value::Object(m)
-            },
-            NullValue => {
-                let mut m = Map::new();
-                m.insert("type".to_owned(), Value::String("null".to_owned()));
-                Value::Object(m)
-            },
-            BooleanValue(val) => Value::Bool(val),
-            NumberValue(val) => {
-                if val.is_nan() {
-                    let mut m = Map::new();
-                    m.insert("type".to_owned(), Value::String("NaN".to_owned()));
-                    Value::Object(m)
-                } else if val.is_infinite() {
-                    let mut m = Map::new();
-                    if val < 0. {
-                        m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
-                    } else {
-                        m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
-                    }
-                    Value::Object(m)
-                } else if val == 0. && val.is_sign_negative() {
-                    let mut m = Map::new();
-                    m.insert("type".to_owned(), Value::String("-0".to_owned()));
-                    Value::Object(m)
-                } else {
-                    Value::Number(Number::from_f64(val).unwrap())
-                }
-            },
-            StringValue(s) => Value::String(s),
-            ActorValue {
-                class,
-                uuid,
-                name,
-                display_name,
-                parameter_names,
-                is_async,
-                is_generator,
-                own_properties,
-                own_properties_length,
-                kind,
-                array_length,
-            } => {
-                let properties = own_properties.clone().unwrap_or_default();
-                // TODO: Replace this with a struct to avoid having the Map.
-                let mut m = Map::new();
-                let actor = ObjectActor::register_with_properties(
-                    registry,
-                    Some(uuid),
-                    class.clone(),
-                    properties,
-                );
-
-                m.insert("type".to_owned(), Value::String("object".to_owned()));
-                m.insert("class".to_owned(), Value::String(class));
-                m.insert("actor".to_owned(), Value::String(actor));
-                m.insert("extensible".to_owned(), Value::Bool(true));
-                m.insert("frozen".to_owned(), Value::Bool(false));
-                m.insert("sealed".to_owned(), Value::Bool(false));
-                if let Some(name) = name {
-                    m.insert("name".to_owned(), Value::String(name));
-                }
-
-                // Function-specific metadata
-                if let Some(display_name) = display_name {
-                    m.insert("displayName".to_owned(), Value::String(display_name));
-                }
-                if let Some(param_names) = parameter_names {
-                    m.insert(
-                        "parameterNames".to_owned(),
-                        Value::Array(param_names.into_iter().map(Value::String).collect()),
-                    );
-                }
-                if let Some(is_async) = is_async {
-                    m.insert("isAsync".to_owned(), Value::Bool(is_async));
-                }
-                if let Some(is_generator) = is_generator {
-                    m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
-                }
-
-                // Build preview
-                // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
-                let mut preview = Map::new();
-                let preview_kind = kind.unwrap_or_else(|| "Object".to_owned());
-                preview.insert("kind".to_owned(), Value::String(preview_kind.clone()));
-
-                if preview_kind == "ArrayLike" {
-                    if let Some(length) = array_length {
-                        preview.insert("length".to_owned(), Value::Number(length.into()));
-                    }
-                } else {
-                    if let Some(ref props) = own_properties {
-                        let mut own_props_map = Map::new();
-                        for prop in props {
-                            let descriptor =
-                                serde_json::to_value(ObjectPropertyDescriptor::from(prop)).unwrap();
-                            own_props_map.insert(prop.name.clone(), descriptor);
-                        }
-                        preview.insert("ownProperties".to_owned(), Value::Object(own_props_map));
-                    }
-
-                    if let Some(length) = own_properties_length {
-                        preview.insert(
-                            "ownPropertiesLength".to_owned(),
-                            Value::Number(length.into()),
-                        );
-                        m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
-                    }
-                }
-
-                m.insert("preview".to_owned(), Value::Object(preview));
-
-                Value::Object(m)
-            },
-        };
 
         let reply = EvaluateJSReply {
             from: self.name(),
             input,
-            result,
+            result: Self::value_to_json(eval_result.value, registry),
             timestamp: get_time_stamp(),
             exception: Value::Null,
             exception_message: Value::Null,
@@ -474,7 +469,7 @@ impl ConsoleActor {
         resource: ConsoleResource,
         id: UniqueId,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) {
         self.cached_events
             .borrow_mut()
@@ -506,7 +501,7 @@ impl ConsoleActor {
         &self,
         id: UniqueId,
         registry: &ActorRegistry,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
     ) {
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(browsing_context_name) = &self.root {
@@ -593,7 +588,7 @@ impl Actor for ConsoleActor {
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
-                let stream = request.reply(&early_reply)?;
+                let mut stream = request.reply(&early_reply)?;
 
                 if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
                     // We don't support the side-effect free evaluation that eager evaluation

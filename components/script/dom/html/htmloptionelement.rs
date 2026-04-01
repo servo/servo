@@ -418,20 +418,32 @@ impl VirtualMethods for HTMLOptionElement {
                 self.update_select_validity(CanGc::from_cx(cx));
             },
             local_name!("selected") => {
+                let mut selectedness_changed = false;
                 match mutation {
                     AttributeMutation::Set(..) => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
-                        if !self.dirtiness.get() {
-                            self.selectedness.set(true);
+                        if !self.dirtiness.get() && !self.selectedness.get() {
+                            self.set_selectedness(true);
+                            selectedness_changed = true;
                         }
                     },
                     AttributeMutation::Removed => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
-                        if !self.dirtiness.get() {
-                            self.selectedness.set(false);
+                        if !self.dirtiness.get() && self.selectedness.get() {
+                            self.set_selectedness(false);
+                            selectedness_changed = true;
                         }
                     },
                 }
+
+                if selectedness_changed {
+                    self.pick_if_selected_and_reset();
+
+                    if let Some(select_element) = self.owner_select_element() {
+                        select_element.update_shadow_tree(cx);
+                    }
+                }
+
                 self.update_select_validity(CanGc::from_cx(cx));
             },
             local_name!("label") => {

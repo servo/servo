@@ -250,7 +250,7 @@ impl EventSourceContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dispatchMessage>
-    fn dispatch_event(&mut self, can_gc: CanGc) {
+    fn dispatch_event(&mut self, cx: &mut js::context::JSContext) {
         let event_source = self.event_source.root();
         // Step 1
         *event_source.last_event_id.borrow_mut() = DOMString::from(self.last_event_id.clone());
@@ -275,9 +275,9 @@ impl EventSourceContext {
         // Steps 4-5
         let event = {
             let _ac = enter_realm(&*event_source);
-            rooted!(in(*GlobalScope::get_cx()) let mut data = UndefinedValue());
+            rooted!(&in(cx) let mut data = UndefinedValue());
             self.data
-                .safe_to_jsval(GlobalScope::get_cx(), data.handle_mut(), can_gc);
+                .safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
             MessageEvent::new(
                 &event_source.global(),
                 type_,
@@ -288,7 +288,7 @@ impl EventSourceContext {
                 None,
                 event_source.last_event_id.borrow().clone(),
                 Vec::with_capacity(0),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         };
         // Step 7
@@ -300,17 +300,17 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
         global.task_manager().remote_event_task_source().queue(
-            task!(dispatch_the_event_source_event: move || {
+            task!(dispatch_the_event_source_event: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
-                    event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::note());
+                    event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::from_cx(cx));
                 }
             }),
         );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#event-stream-interpretation>
-    fn parse(&mut self, stream: Chars, can_gc: CanGc) {
+    fn parse(&mut self, cx: &mut js::context::JSContext, stream: Chars) {
         let mut stream = stream.peekable();
 
         while let Some(ch) = stream.next() {
@@ -347,12 +347,12 @@ impl EventSourceContext {
                     self.process_field();
                 },
 
-                ('\n', &ParserState::Eol) => self.dispatch_event(can_gc),
+                ('\n', &ParserState::Eol) => self.dispatch_event(cx),
                 ('\r', &ParserState::Eol) => {
                     if let Some(&'\n') = stream.peek() {
                         continue;
                     }
-                    self.dispatch_event(can_gc);
+                    self.dispatch_event(cx);
                 },
 
                 ('\n', &ParserState::Comment) => self.parser_state = ParserState::Eol,
@@ -430,7 +430,12 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        chunk: Vec<u8>,
+    ) {
         let mut output = String::with_capacity(chunk.len());
         let mut input = &chunk[..];
 
@@ -443,17 +448,17 @@ impl FetchResponseListener for EventSourceContext {
                     .decode_to_string_without_replacement(input, &mut output, false);
             match result {
                 encoding_rs::DecoderResult::InputEmpty => {
-                    self.parse(output.chars(), CanGc::note());
+                    self.parse(cx, output.chars());
                     return;
                 },
                 encoding_rs::DecoderResult::Malformed(_, _) => {
-                    self.parse(output.chars(), CanGc::note());
-                    self.parse("\u{FFFD}".chars(), CanGc::note());
+                    self.parse(cx, output.chars());
+                    self.parse(cx, "\u{FFFD}".chars());
                     output.clear();
                     input = &input[bytes_read..];
                 },
                 encoding_rs::DecoderResult::OutputFull => {
-                    self.parse(output.chars(), CanGc::note());
+                    self.parse(cx, output.chars());
                     output.clear();
                     input = &input[bytes_read..];
                 },
@@ -473,10 +478,10 @@ impl FetchResponseListener for EventSourceContext {
             .decoder
             .decode_to_string_without_replacement(&[], &mut output, true);
         if !output.is_empty() {
-            self.parse("\u{FFFD}".chars(), CanGc::from_cx(cx));
+            self.parse(cx, "\u{FFFD}".chars());
         }
         if matches!(result, encoding_rs::DecoderResult::Malformed(_, _)) {
-            self.parse("\u{FFFD}".chars(), CanGc::from_cx(cx));
+            self.parse(cx, "\u{FFFD}".chars());
         }
         if response.is_ok() {
             self.reestablish_the_connection();
@@ -571,11 +576,10 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         url: DOMString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
-        // TODO: Step 2 relevant settings object
-        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url,
-        // relative to settings.
-        let base_url = global.api_base_url();
-        let url_record = match base_url.join(&url.str()) {
+        // Step 2. Let settings be the relevant settings object for the `EventSource` constructor.
+        // Bindings pass that environment as `global`.
+        // Step 3. Let urlRecord be the result of encoding-parsing a URL given url, relative to settings.
+        let url_record = match global.encoding_parse_a_url(&url.str()) {
             Ok(u) => u,
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax(None)),
@@ -601,7 +605,8 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         };
         // Step 8 Let request be the result of creating a potential-CORS request
         // given urlRecord, the empty string, and corsAttributeState.
-        // TODO: Step 9 set request's client settings
+        // Step 9. Set request's client to the environment settings object and other state;
+        // `with_global_scope` supplies client, origin, policy container, etc.
         let mut request = create_a_potential_cors_request(
             global.webview_id(),
             url_record,

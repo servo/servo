@@ -64,7 +64,7 @@ impl SourceManager {
         self.source_actor_names
             .borrow()
             .iter()
-            .map(|actor_name| registry.find::<SourceActor>(actor_name).source_form())
+            .map(|source_name| registry.find::<SourceActor>(source_name).source_form())
             .collect()
     }
 
@@ -73,10 +73,10 @@ impl SourceManager {
         registry: &ActorRegistry,
         source_url: &str,
     ) -> Option<DowncastableActorArc<SourceActor>> {
-        for name in self.source_actor_names.borrow().iter() {
-            let source = registry.find::<SourceActor>(name);
-            if source.url == ServoUrl::from_str(source_url).ok()? {
-                return Some(source);
+        for source_name in self.source_actor_names.borrow().iter() {
+            let source_actor = registry.find::<SourceActor>(source_name);
+            if source_actor.url == ServoUrl::from_str(source_url).ok()? {
+                return Some(source_actor);
             }
         }
         None
@@ -143,29 +143,8 @@ struct GetBreakpointPositionsRequest {
 }
 
 impl SourceActor {
-    pub fn new(
-        name: String,
-        url: ServoUrl,
-        content: Option<String>,
-        content_type: Option<String>,
-        spidermonkey_id: u32,
-        introduction_type: String,
-        script_sender: GenericSender<DevtoolScriptControlMsg>,
-    ) -> SourceActor {
-        SourceActor {
-            name,
-            url,
-            content: AtomicRefCell::new(content),
-            content_type,
-            is_black_boxed: false,
-            spidermonkey_id,
-            introduction_type,
-            script_sender,
-        }
-    }
-
     #[expect(clippy::too_many_arguments)]
-    pub fn new_registered(
+    pub fn register(
         registry: &ActorRegistry,
         pipeline_id: PipelineId,
         url: ServoUrl,
@@ -175,21 +154,20 @@ impl SourceActor {
         introduction_type: String,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
     ) -> String {
-        let source_actor_name = registry.new_name::<Self>();
-
-        let source_actor = SourceActor::new(
-            source_actor_name.clone(),
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             url,
-            content,
+            content: AtomicRefCell::new(content),
             content_type,
+            is_black_boxed: false,
             spidermonkey_id,
             introduction_type,
             script_sender,
-        );
-        registry.register(source_actor);
-        registry.register_source_actor(pipeline_id, &source_actor_name);
-
-        source_actor_name
+        };
+        registry.register::<Self>(actor);
+        registry.register_source_actor(pipeline_id, &name);
+        name
     }
 
     pub fn source_form(&self) -> SourceForm {

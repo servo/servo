@@ -24,6 +24,13 @@
      ]
     ],
     "canvas": {
+     "canvas-edge-cases-crash.html": [
+      "9259aff8d30a319da2632bacb5a912050e9e510e",
+      [
+       null,
+       {}
+      ]
+     ],
      "toblob-then-change-size-crash.html": [
       "355474b4832dde985a73baad925702bbb0cbc73f",
       [
@@ -152,6 +159,35 @@
   },
   "reftest": {
    "appearance": {
+    "input-range.html": [
+     "ed42641aa50cb89647ac3671da73d40b30f55f0d",
+     [
+      "appearance/input-range.html",
+      [
+       [
+        "/_mozilla/appearance/input-range-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
+    ],
     "input-text-caret-mixed-language.html": [
      "d1f45de7548cca878fa90c6a0c67993f75ee5720",
      [
@@ -8337,6 +8373,10 @@
     []
    ],
    "appearance": {
+    "input-range-ref.html": [
+     "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
+     []
+    ],
     "input-text-caret-mixed-language-ref.html": [
      "ff0b91f2a8857fdefa4a8a3d7d75e06e53e699cf",
      []
@@ -12927,7 +12967,7 @@
      ]
     ],
     "css-property-listing.html": [
-     "75f31b3c83bcc08072e207f1b2d5885db7a759ef",
+     "c363eb71b5d8be9fcc3c7cd698638b80339a158f",
      [
       null,
       {}
@@ -14278,7 +14318,7 @@
      ]
     ],
     "interfaces.https.html": [
-     "72f27d4a245219ae82912600881af2f18e6e3af9",
+     "24a12c711f475e8e1c4415f963e03e7c8334af01",
      [
       null,
       {}

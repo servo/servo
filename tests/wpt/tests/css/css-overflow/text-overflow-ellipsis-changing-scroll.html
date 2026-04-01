@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Overflow: text-overflow: ellipsis after scroll changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#ellipsis-interaction">
+<link rel="match" href="text-overflow-ellipsis-changing-scroll-ref.html">
+<meta name="assert" content="Ellipsis rendering should not change after scroll offset is changed back to the original offset">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #overflow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100px;
+    border: 1px solid black;
+  }
+</style>
+<div id="overflow">ELLIPSISELLIPSIS</div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overflow.scrollLeft = 100;
+      overflow.style.fontSize = "17px";
+      overflow.offsetTop;
+      overflow.style.fontSize = "";
+      overflow.scrollLeft = 0;
+      takeScreenshot();
+    });
+  });
+</script>

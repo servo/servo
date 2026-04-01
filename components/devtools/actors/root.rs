@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::device::DeviceActor;
@@ -25,6 +25,35 @@ use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerActorMsg};
 use crate::protocol::{ActorDescription, ClientRequest};
 use crate::{EmptyReplyMsg, StreamId};
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ServiceWorkerInfo {
+    actor: String,
+    url: String,
+    state: u32,
+    state_text: String,
+    id: String,
+    fetch: bool,
+    traits: HashMap<&'static str, bool>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ServiceWorkerRegistrationMsg {
+    actor: String,
+    scope: String,
+    url: String,
+    registration_state: String,
+    last_update_time: u64,
+    traits: HashMap<&'static str, bool>,
+    // Firefox DevTools (LegacyServiceWorkersWatcher) matches workers via these
+    // four named fields, not via a `workers` array.
+    evaluating_worker: Option<ServiceWorkerInfo>,
+    installing_worker: Option<ServiceWorkerInfo>,
+    waiting_worker: Option<ServiceWorkerInfo>,
+    active_worker: Option<ServiceWorkerInfo>,
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -100,7 +129,7 @@ struct ListWorkersReply {
 #[derive(Serialize)]
 struct ListServiceWorkerRegistrationsReply {
     from: String,
-    registrations: Vec<u32>, // TODO: follow actual JSON structure.
+    registrations: Vec<ServiceWorkerRegistrationMsg>,
 }
 
 #[derive(Serialize)]
@@ -134,9 +163,10 @@ struct GetProcessResponse {
 pub(crate) struct RootActor {
     active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,
-    process: String,
+    process_name: String,
     pub tabs: AtomicRefCell<Vec<String>>,
     pub workers: AtomicRefCell<Vec<String>>,
+    pub service_workers: AtomicRefCell<Vec<String>>,
 }
 
 impl Actor for RootActor {
@@ -154,28 +184,28 @@ impl Actor for RootActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "connect" => {
-                let message = json!({
-                    "from": "root",
-                });
+                let message = EmptyReplyMsg {
+                    from: "root".into(),
+                };
                 request.reply_final(&message)?
             },
 
             // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
-                let process = registry.encode::<ProcessActor, _>(&self.process);
+                let process_descriptor = registry.encode::<ProcessActor, _>(&self.process_name);
                 let reply = GetProcessResponse {
                     from: self.name(),
-                    process_descriptor: process,
+                    process_descriptor,
                 };
                 request.reply_final(&reply)?
             },
 
             "getRoot" => {
-                let actor = GetRootReply {
+                let reply = GetRootReply {
                     from: "root".to_owned(),
                     global_actors: self.global_actors.clone(),
                 };
-                request.reply_final(&actor)?
+                request.reply_final(&reply)?
             },
 
             "getTab" => {
@@ -196,49 +226,81 @@ impl Actor for RootActor {
             },
 
             "listAddons" => {
-                let actor = ListAddonsReply {
+                let reply = ListAddonsReply {
                     from: "root".to_owned(),
                     addons: vec![],
                 };
-                request.reply_final(&actor)?
+                request.reply_final(&reply)?
             },
 
             "listProcesses" => {
-                let process = registry.encode::<ProcessActor, _>(&self.process);
+                let process_descriptor = registry.encode::<ProcessActor, _>(&self.process_name);
                 let reply = ListProcessesResponse {
                     from: self.name(),
-                    processes: vec![process],
+                    processes: vec![process_descriptor],
                 };
                 request.reply_final(&reply)?
             },
 
             "listServiceWorkerRegistrations" => {
+                let registrations = self
+                    .service_workers
+                    .borrow()
+                    .iter()
+                    .map(|worker_name| {
+                        let worker = registry.find::<WorkerActor>(worker_name);
+                        let url = worker.url.to_string();
+                        // Find correct scope url in the service worker
+                        let scope = url.clone();
+                        ServiceWorkerRegistrationMsg {
+                            actor: worker.name(),
+                            scope,
+                            url: url.clone(),
+                            registration_state: "".to_string(),
+                            last_update_time: 0,
+                            traits: HashMap::new(),
+                            evaluating_worker: None,
+                            installing_worker: None,
+                            waiting_worker: None,
+                            active_worker: Some(ServiceWorkerInfo {
+                                actor: worker.name(),
+                                url,
+                                state: 4, // activated
+                                state_text: "activated".to_string(),
+                                id: worker.worker_id.to_string(),
+                                fetch: false,
+                                traits: HashMap::new(),
+                            }),
+                        }
+                    })
+                    .collect();
                 let reply = ListServiceWorkerRegistrationsReply {
                     from: self.name(),
-                    registrations: vec![],
+                    registrations,
                 };
                 request.reply_final(&reply)?
             },
 
             "listTabs" => {
-                let actor = ListTabsReply {
+                let reply = ListTabsReply {
                     from: "root".to_owned(),
                     tabs: self
                         .tabs
                         .borrow()
                         .iter()
-                        .filter_map(|target| {
-                            let tab_actor = registry.find::<TabDescriptorActor>(target);
+                        .filter_map(|tab_descriptor_name| {
+                            let tab_descriptor_actor =
+                                registry.find::<TabDescriptorActor>(tab_descriptor_name);
                             // Filter out iframes and workers
-                            if tab_actor.is_top_level_global() {
-                                Some(tab_actor.encode(registry))
+                            if tab_descriptor_actor.is_top_level_global() {
+                                Some(tab_descriptor_actor.encode(registry))
                             } else {
                                 None
                             }
                         })
                         .collect(),
                 };
-                request.reply_final(&actor)?
+                request.reply_final(&reply)?
             },
 
             "listWorkers" => {
@@ -248,7 +310,7 @@ impl Actor for RootActor {
                         .workers
                         .borrow()
                         .iter()
-                        .map(|name| registry.encode::<WorkerActor, _>(name))
+                        .map(|worker_name| registry.encode::<WorkerActor, _>(worker_name))
                         .collect(),
                 };
                 request.reply_final(&reply)?
@@ -285,29 +347,28 @@ impl RootActor {
     /// Registers the root actor and its global actors (those not associated with a specific target).
     pub fn register(registry: &mut ActorRegistry) {
         // Global actors
-        let device = DeviceActor::new(registry.new_name::<DeviceActor>());
+        let device_actor = DeviceActor::new(registry.new_name::<DeviceActor>());
         let perf = PerformanceActor::new(registry.new_name::<PerformanceActor>());
-        let preference = PreferenceActor::new(registry.new_name::<PreferenceActor>());
+        let preference_name = PreferenceActor::register(registry);
 
         // Process descriptor
-        let process = ProcessActor::new(registry.new_name::<ProcessActor>());
+        let process_actor = ProcessActor::new(registry.new_name::<ProcessActor>());
 
         // Root actor
-        let root = Self {
+        let root_actor = Self {
             global_actors: GlobalActors {
-                device_actor: device.name(),
+                device_actor: device_actor.name(),
                 perf_actor: perf.name(),
-                preference_actor: preference.name(),
+                preference_actor: preference_name,
             },
-            process: process.name(),
+            process_name: process_actor.name(),
             ..Default::default()
         };
 
         registry.register(perf);
-        registry.register(device);
-        registry.register(preference);
-        registry.register(process);
-        registry.register(root);
+        registry.register(device_actor);
+        registry.register(process_actor);
+        registry.register(root_actor);
     }
 
     fn get_tab_msg_by_browser_id(
@@ -319,8 +380,10 @@ impl RootActor {
             .tabs
             .borrow()
             .iter()
-            .map(|target| registry.encode::<TabDescriptorActor, _>(target))
-            .find(|tab| tab.browser_id() == browser_id);
+            .map(|tab_descriptor_name| {
+                registry.encode::<TabDescriptorActor, _>(tab_descriptor_name)
+            })
+            .find(|tab_descriptor_actor| tab_descriptor_actor.browser_id() == browser_id);
 
         if let Some(ref mut msg) = tab_msg {
             msg.selected = true;

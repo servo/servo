@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="crbug.com/493132381">
+  <title>Test name capture on elements with scroll markers</title>
+  <style>
+    #wrapper {
+      position: relative;
+      view-transition-group: contain;
+      overflow: clip;
+    }
+    #scroller {
+      height: 300px;
+      width: 300px;
+      overflow: auto;
+      position: relative;
+    }
+    @supports (scroll-marker-group:before) {
+      #scroller {
+        scroll-marker-group: before;
+      }
+      #scroller::scroll-marker-group {
+        padding: 5px;
+        height: 20px;
+        display: block;
+        width: 300px;
+        position: relative;
+        z-index: 1;
+      }
+      #scroller .item::scroll-marker {
+        content: "";
+        width: 10px;
+        height: 10px;
+        background-color: blue;
+        border-radius: 100%;
+        display: inline-block;
+        margin: 5px;
+        position: relative;
+        opacity: 0.9;
+      }
+      #scroller .item::scroll-marker:target-current {
+        background-color: aqua;
+      }
+    }
+    .item {
+      view-transition-name: match-element;
+      height: 300px;
+      width: 100%;
+      position: relative;
+    }
+    .item:nth-child(even){
+      background-color: rebeccapurple;
+    }
+    .item:nth-child(odd){
+      background-color: hotpink;
+    }
+    ::view-transition-group(*) {
+      animation-duration: 3s;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrapper">
+    <div id="scroller" class="hide-scroll-markers">
+      <div id="a" class="item"></div>
+      <div id="b" class="item"></div>
+      <div id="c" class="item"></div>
+    </div>
+  </div>
+</body>
+<script>
+  window.onload = async () => {
+    const vt = wrapper.startViewTransition(() => {
+      scroller.style.overflow = 'clip';
+    });
+    await vt.ready;
+    document.documentElement.classList.remove('test-wait');
+  }
+</script>

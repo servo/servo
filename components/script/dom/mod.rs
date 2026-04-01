@@ -214,6 +214,8 @@ pub(crate) mod abortsignal;
 #[expect(dead_code)]
 pub(crate) mod abstractrange;
 pub(crate) mod activation;
+pub(crate) mod animations;
+pub(crate) use self::animations::*;
 pub(crate) mod attr;
 pub(crate) mod audio;
 pub(crate) use self::audio::*;
@@ -267,7 +269,6 @@ pub(crate) mod domrectreadonly;
 pub(crate) mod domstringlist;
 pub(crate) mod domstringmap;
 pub(crate) mod domtokenlist;
-#[expect(dead_code)]
 pub(crate) mod element;
 pub(crate) mod elementinternals;
 pub(crate) mod encoding;
@@ -279,6 +280,7 @@ pub(crate) mod fetchlaterresult;
 pub(crate) mod file;
 pub(crate) use self::file::*;
 pub(crate) mod formdata;
+pub(crate) mod fullscreen;
 #[cfg(feature = "gamepad")]
 pub(crate) mod gamepad;
 #[cfg(feature = "gamepad")]

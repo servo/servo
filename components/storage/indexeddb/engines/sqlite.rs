@@ -69,6 +69,17 @@ pub struct SqliteEngine {
 }
 
 impl SqliteEngine {
+    fn object_store_by_name(
+        connection: &Connection,
+        store_name: &str,
+    ) -> Result<object_store_model::Model, Error> {
+        connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )
+    }
+
     // TODO: intake dual pools
     pub fn new(
         base_dir: &Path,
@@ -265,6 +276,7 @@ impl SqliteEngine {
         should_overwrite: bool,
         key_generator_current_number: Option<i32>,
     ) -> Result<PutItemResult, Error> {
+        let no_overwrite = !should_overwrite;
         let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
@@ -274,21 +286,29 @@ impl SqliteEngine {
                 })
                 .optional()
             })?;
-        if should_overwrite || existing_item.is_none() {
+        if existing_item.is_some() {
+            if no_overwrite {
+                return Ok(PutItemResult::CannotOverwrite);
+            }
+            // Preserve `put()` semantics by replacing the stored value when the primary
+            // key already exists.
+            connection.execute(
+                "UPDATE object_data SET data = ? WHERE object_store_id = ? AND key = ?",
+                params![value, store.id, serialized_key],
+            )?;
+        } else {
             connection.execute(
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
-            if let Some(next_key_generator_current_number) = key_generator_current_number {
-                connection.execute(
-                    "UPDATE object_store SET auto_increment = ? WHERE id = ?",
-                    params![next_key_generator_current_number, store.id],
-                )?;
-            }
-            Ok(PutItemResult::Key(key))
-        } else {
-            Ok(PutItemResult::CannotOverwrite)
         }
+        if let Some(next_key_generator_current_number) = key_generator_current_number {
+            connection.execute(
+                "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+                params![next_key_generator_current_number, store.id],
+            )?;
+        }
+        Ok(PutItemResult::Key(key))
     }
 
     fn delete_item(
@@ -360,9 +380,29 @@ impl KvsEngine for SqliteEngine {
     }
 
     fn delete_store(&self, store_name: &str) -> Result<(), Self::Error> {
+        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
+        // Step 7. Destroy store.
+        let object_store = Self::object_store_by_name(&self.connection, store_name)?;
+
+        self.connection.execute(
+            "DELETE FROM index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        self.connection.execute(
+            "DELETE FROM unique_index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        self.connection.execute(
+            "DELETE FROM object_store_index WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        self.connection.execute(
+            "DELETE FROM object_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
         let result = self.connection.execute(
-            "DELETE FROM object_store WHERE name = ?",
-            params![store_name.to_string()],
+            "DELETE FROM object_store WHERE id = ?",
+            params![object_store.id],
         )?;
         if result == 0 {
             Err(Error::QueryReturnedNoRows)
@@ -926,6 +966,58 @@ mod tests {
     }
 
     #[test]
+    fn test_delete_store_removes_store_records() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = get_pool();
+        let db = SqliteEngine::new(
+            base_dir.path(),
+            &IndexedDBDescription {
+                name: "test_db".to_string(),
+                origin: test_origin(),
+            },
+            thread_pool,
+        )
+        .unwrap();
+
+        db.create_store("test_store", None, false)
+            .expect("Failed to create store");
+        let object_store = SqliteEngine::object_store_by_name(&db.connection, "test_store")
+            .expect("Failed to fetch store metadata");
+        SqliteEngine::put_item(
+            &db.connection,
+            object_store.clone(),
+            IndexedDBKeyType::Number(1.0),
+            vec![1, 2, 3],
+            true,
+            None,
+        )
+        .expect("Failed to insert item");
+
+        let row_count_before: i64 = db
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM object_data WHERE object_store_id = ?",
+                rusqlite::params![object_store.id],
+                |row| row.get(0),
+            )
+            .expect("Failed to count rows before delete");
+        assert_eq!(row_count_before, 1);
+
+        db.delete_store("test_store")
+            .expect("Failed to delete store");
+
+        let row_count_after: i64 = db
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM object_data WHERE object_store_id = ?",
+                rusqlite::params![object_store.id],
+                |row| row.get(0),
+            )
+            .expect("Failed to count rows after delete");
+        assert_eq!(row_count_after, 0);
+    }
+
+    #[test]
     fn test_async_operations() {
         fn get_channel<T>() -> (GenericSender<T>, GenericReceiver<T>)
         where
@@ -962,6 +1054,7 @@ mod tests {
         let put2 = get_channel();
         let put3 = get_channel();
         let put_dup = get_channel();
+        let put_overwrite = get_channel();
         let get_item_some = get_channel();
         let get_item_none = get_channel();
         let get_all_items = get_channel();
@@ -1014,6 +1107,16 @@ mod tests {
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![10, 11, 12],
                             should_overwrite: false,
+                            key_generator_current_number: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put_overwrite.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![13, 14, 15],
+                            should_overwrite: true,
                             key_generator_current_number: None,
                         }),
                     },
@@ -1074,16 +1177,21 @@ mod tests {
         put3.1.recv().unwrap().unwrap();
         let err = put_dup.1.recv().unwrap().unwrap();
         assert_eq!(err, PutItemResult::CannotOverwrite);
+        let overwritten = put_overwrite.1.recv().unwrap().unwrap();
+        assert_eq!(
+            overwritten,
+            PutItemResult::Key(IndexedDBKeyType::Number(1.0))
+        );
         let get_result = get_item_some.1.recv().unwrap();
         let value = get_result.unwrap();
-        assert_eq!(value, Some(vec![1, 2, 3]));
+        assert_eq!(value, Some(vec![13, 14, 15]));
         let get_result = get_item_none.1.recv().unwrap();
         let value = get_result.unwrap();
         assert_eq!(value, None);
         let all_items = get_all_items.1.recv().unwrap().unwrap();
         assert_eq!(all_items.len(), 3);
         // Check that all three items are present
-        assert!(all_items.contains(&vec![1, 2, 3]));
+        assert!(all_items.contains(&vec![13, 14, 15]));
         assert!(all_items.contains(&vec![4, 5, 6]));
         assert!(all_items.contains(&vec![7, 8, 9]));
         let amount = count.1.recv().unwrap().unwrap();

@@ -19,7 +19,7 @@ mod egl;
 mod panic_hook;
 mod parser;
 mod prefs;
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
 mod resources;
 mod running_app_state;
 mod webdriver;

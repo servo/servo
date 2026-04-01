@@ -236,6 +236,7 @@
 
     for (const badValue of throwingValues) {
       const options = makeCreateOptions({ data: badValue });
+      await test_driver.bless("user activation");
       await promise_rejects_js(
         t,
         TypeError,
@@ -256,4 +257,30 @@
       "Should throw for invalid form element"
     );
   }, "Throws when form element does not contain password.");
+
+  promise_test(async (t) => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    const options = {
+      digital: {
+        requests: [
+          {
+            protocol: "unknown-protocol",
+            data: BigInt(1), // malformed/non-serializable
+          },
+          {
+            protocol: "openid4vci",
+            data: { some: "data" }, // proper data
+          },
+        ],
+      },
+      signal,
+    };
+
+    await test_driver.bless("user activation");
+    const promise = navigator.credentials.create(options);
+    controller.abort();
+    await promise_rejects_dom(t, "AbortError", promise);
+  }, "navigator.credentials.create() with one unknown protocol with malformed data and one known protocol with proper data should skip the unknown one and not fail.");
 </script>

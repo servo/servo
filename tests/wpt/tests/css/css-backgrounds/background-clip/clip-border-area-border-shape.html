@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Backgrounds Test: background-clip:border-area with border-shape</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="clip-border-area-border-shape-ref.html">
+<meta name="assert" content="border-area clipping respects border-shape values">
+<meta name="fuzzy" content="maxDifference=0-130; totalPixels=0-3000">
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 50px solid transparent;
+        background-clip: border-area;
+        background-image: url(../resources/blue-100.png);
+    }
+
+    .circle {
+        border-shape: circle();
+    }
+
+    .hexagon {
+        border-shape: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .diamond {
+        border-shape: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
+</style>
+</head>
+<body>
+
+<div class="test circle"></div>
+<div class="test hexagon"></div>
+<div class="test diamond"></div>
+
+</body>
+</html>

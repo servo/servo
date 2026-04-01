@@ -305,3 +305,17 @@ def test_add_cookie_with_invalid_samesite_type(session, url, same_site):
 
     response = add_cookie(session, new_cookie)
     assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("expiry", [2 ** 53, -1, 0.5])
+def test_add_cookie_with_invalid_expiry(session, url, expiry):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "expiry": expiry
+    }
+
+    session.url = url("/common/blank.html")
+
+    response = add_cookie(session, new_cookie)
+    assert_error(response, "invalid argument")

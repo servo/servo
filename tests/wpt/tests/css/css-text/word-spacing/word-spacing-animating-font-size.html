@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>percentage word-spacing animates when animating font-size</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel='help' href='https://www.w3.org/TR/css-text-3/#word-spacing'>
+<link rel='match' href='reference/word-spacing-animating-font-size-ref.html'>
+<style>
+  #target {
+    word-spacing: 100%;
+  }
+</style>
+</head>
+<body>
+<div>The words below should be separated by 20 pixels.</div>
+<div id="target">WORD WORD WORD</div>
+
+<script>
+  const target = document.querySelector('#target');
+
+  const animation = target.animate({ fontSize: ['0px', '40px'] }, 40);
+  animation.pause();
+  animation.currentTime = 20;
+</script>
+</body>
+</html>

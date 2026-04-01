@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation: stopped resets and stop at the first frame</title>
+<link rel="help" href="https://drafts.csswg.org/css-image-animation-1/">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-stopped-reset-frame.tentative-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  function loaded() {
+    // The GIF has 3 frames:
+    //   Frame 1: red,   20ms  (passes quickly)
+    //   Frame 2: green, 200ms (we stop during this frame)
+    //   Frame 3: blue
+    //
+    // Wait 100ms so we are well past frame 1 (20ms) but still within
+    // frame 2 (200ms), then stop. The stopped image should show frame 1
+    // (red), proving that stopping resets to the first frame.
+    setTimeout(() => {
+      document.getElementById('img1').style.imageAnimation = 'stopped';
+      requestAnimationFrame(()=> {
+        requestAnimationFrame(()=>{
+          takeScreenshot();
+        })
+      })
+    }, 100);
+  }
+</script>
+
+<img id="img1" src="../../images/anim-rgb.gif" onload="loaded()" />
+
+</html>

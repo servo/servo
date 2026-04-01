@@ -7,7 +7,8 @@ use std::time::SystemTime;
 use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
 use js::rust::HandleObject;
-use servo_constellation_traits::BlobImpl;
+use servo_base::id::{FileId, FileIndex};
+use servo_constellation_traits::{BlobImpl, SerializableFile};
 use time::{Duration, OffsetDateTime};
 
 use crate::dom::bindings::codegen::Bindings::FileBinding;
@@ -17,7 +18,9 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::blob::{Blob, blob_parts_to_bytes, normalize_type_string};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -109,6 +112,50 @@ impl File {
 
     pub(crate) fn get_modified(&self) -> SystemTime {
         self.modified
+    }
+
+    pub(crate) fn serialized_data(&self) -> Result<SerializableFile, ()> {
+        let (_, blob_impl) = self.upcast::<Blob>().serialize()?;
+        Ok(SerializableFile {
+            blob_impl,
+            name: self.name.to_string(),
+            modified: self.LastModified(),
+        })
+    }
+}
+
+impl Serializable for File {
+    type Index = FileIndex;
+    type Data = SerializableFile;
+
+    /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
+    fn serialize(&self) -> Result<(FileId, SerializableFile), ()> {
+        Ok((FileId::new(), self.serialized_data()?))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: SerializableFile,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()> {
+        let modified = OffsetDateTime::UNIX_EPOCH + Duration::milliseconds(serialized.modified);
+        Ok(File::new(
+            owner,
+            serialized.blob_impl,
+            serialized.name.into(),
+            Some(modified.into()),
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        reader: StructuredData<'a, '_>,
+    ) -> &'a mut Option<rustc_hash::FxHashMap<FileId, Self::Data>> {
+        match reader {
+            StructuredData::Reader(r) => &mut r.files,
+            StructuredData::Writer(w) => &mut w.files,
+        }
     }
 }
 

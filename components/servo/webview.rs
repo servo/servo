@@ -7,6 +7,9 @@ use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
 
+use accesskit::{
+    Node as AccesskitNode, NodeId, Role, Tree, TreeId, TreeUpdate, Uuid as AccesskitUuid,
+};
 use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
@@ -95,7 +98,10 @@ pub(crate) struct WebViewInner {
     ///
     /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via
     /// [`EmbedderToConstellationMessage::SetAccessibilityActive`].
-    pub(crate) accesskit_tree_id: Option<accesskit::TreeId>,
+    pub(crate) accesskit_tree_id: Option<TreeId>,
+    /// [`TreeId`] of the web contents of this [`WebView`]’s active top-level pipeline,
+    /// which is grafted into the tree for this [`WebView`].
+    pub(crate) grafted_accesskit_tree_id: Option<TreeId>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -145,6 +151,7 @@ impl WebView {
                 .gamepad_delegate
                 .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
             accesskit_tree_id: None,
+            grafted_accesskit_tree_id: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -768,7 +775,7 @@ impl WebView {
     }
 
     /// AccessKit subtree id for this [`WebView`], if accessibility is active.
-    pub fn accesskit_tree_id(&self) -> Option<accesskit::TreeId> {
+    pub fn accesskit_tree_id(&self) -> Option<TreeId> {
         self.inner().accesskit_tree_id
     }
 
@@ -776,9 +783,9 @@ impl WebView {
     /// AccessKit subtree id if accessibility is now active.
     ///
     /// After accessibility is activated, you must [graft] (with [`set_tree_id()`]) the returned
-    /// [`accesskit::TreeId`] into your application’s main AccessKit tree as soon as possible,
-    /// *before* sending any tree updates from the webview to your AccessKit adapter. Otherwise you
-    /// may violate AccessKit’s subtree invariants and **panic**.
+    /// [`TreeId`] into your application’s main AccessKit tree as soon as possible, *before*
+    /// sending any tree updates from the webview to your AccessKit adapter. Otherwise you may
+    /// violate AccessKit’s subtree invariants and **panic**.
     ///
     /// This method may call [`WebViewDelegate::notify_accessibility_tree_update()`] synchronously
     /// with an initial tree update, so if your impl for that method can’t create the graft node
@@ -787,7 +794,7 @@ impl WebView {
     ///
     /// [graft]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.tree_id
     /// [`set_tree_id()`]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.set_tree_id
-    pub fn set_accessibility_active(&self, active: bool) -> Option<accesskit::TreeId> {
+    pub fn set_accessibility_active(&self, active: bool) -> Option<TreeId> {
         if !pref!(accessibility_enabled) {
             return None;
         }
@@ -797,17 +804,17 @@ impl WebView {
         }
 
         if active {
-            let accesskit_tree_id = accesskit::TreeId(accesskit::Uuid::new_v4());
+            let accesskit_tree_id = TreeId(AccesskitUuid::new_v4());
             self.inner_mut().accesskit_tree_id = Some(accesskit_tree_id);
 
             // Synchronously emit a TreeUpdate containing just a ScrollView, but no graft node yet.
-            let root_node_id = accesskit::NodeId(0);
-            let root_node = accesskit::Node::new(accesskit::Role::ScrollView);
+            let root_node_id = NodeId(0);
+            let root_node = AccesskitNode::new(Role::ScrollView);
             self.delegate().notify_accessibility_tree_update(
                 self.clone(),
-                accesskit::TreeUpdate {
+                TreeUpdate {
                     nodes: vec![(root_node_id, root_node)],
-                    tree: Some(accesskit::Tree {
+                    tree: Some(Tree {
                         root: root_node_id,
                         toolkit_name: None,
                         toolkit_version: None,
@@ -825,6 +832,40 @@ impl WebView {
         );
 
         self.accesskit_tree_id()
+    }
+
+    pub fn notify_accessibility_tree_id(&self, grafted_tree_id: TreeId) {
+        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
+            return;
+        };
+        let old_grafted_tree_id = self
+            .inner_mut()
+            .grafted_accesskit_tree_id
+            .replace(grafted_tree_id);
+        // TODO(accessibility): try to avoid duplicate notifications in the first place?
+        if old_grafted_tree_id == Some(grafted_tree_id) {
+            return;
+        }
+        let root_node_id = NodeId(0);
+        let mut root_node = AccesskitNode::new(Role::ScrollView);
+        let graft_node_id = NodeId(1);
+        let mut graft_node = AccesskitNode::new(Role::GenericContainer);
+        graft_node.set_label("graft");
+        graft_node.set_tree_id(grafted_tree_id);
+        root_node.set_children(vec![graft_node_id]);
+        self.delegate().notify_accessibility_tree_update(
+            self.clone(),
+            TreeUpdate {
+                nodes: vec![(root_node_id, root_node), (graft_node_id, graft_node)],
+                tree: Some(Tree {
+                    root: root_node_id,
+                    toolkit_name: None,
+                    toolkit_version: None,
+                }),
+                tree_id: webview_accesskit_tree_id,
+                focus: root_node_id,
+            },
+        );
     }
 }
 

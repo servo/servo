@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+Tests that focusing an element inside a cross origin iframe during prerendering
+does not cancel the prerender and causes the parent frame to scroll, matching
+same origin in process behavior.
+-->
+<title>Focus-triggered scroll in cross-origin iframe during prerendering</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function runTest(originKey, label) {
+  promise_test(async t => {
+    const uid = token();
+    const bc = new PrerenderChannel('test-channel', uid);
+
+    const gotMessage = new Promise(resolve => {
+      bc.addEventListener('message', e => {
+        resolve(e.data);
+      }, {once: true});
+    });
+
+    const origin = get_host_info()[originKey];
+    const url = `resources/scroll-into-view-cross-origin-iframe.html?uid=${uid}&target_hint=${getTargetHint()}&iframe_origin=${encodeURIComponent(origin)}`;
+    window.open(url, '_blank', 'noopener');
+
+    const result = await gotMessage;
+    assert_equals(result.error, undefined,
+        'Prerendered page should not report an error');
+    assert_true(result.iframeLoadedDuringPrerendering,
+        'Iframe should have loaded during prerendering');
+    assert_true(result.prerenderActivated,
+        'Page should have been activated from prerender (not cancelled by scroll)');
+    assert_true(result.activeElementUpdated,
+        'Active element has been updated');
+    assert_false(result.hasFocus,
+        'Iframe document should not have focus during prerendering');
+    assert_greater_than(result.iframeScrollTop, 0,
+        'Iframe should have scrolled internally during prerendering');
+
+    bc.close();
+    new PrerenderChannel('close', uid).postMessage('');
+  }, `Focusing an element in a ${label} iframe should scroll the parent during prerendering`);
+}
+
+runTest('HTTPS_ORIGIN', 'same-origin');
+runTest('HTTPS_REMOTE_ORIGIN', 'cross-origin');
+runTest('HTTPS_NOTSAMESITE_ORIGIN', 'cross-site');
+</script>

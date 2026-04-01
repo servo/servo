@@ -225,6 +225,10 @@ partial interface Document {
   Selection? getSelection();
 };
 
+// https://drafts.csswg.org/web-animations-1/#extensions-to-the-document-interface
+partial interface Document {
+    readonly attribute DocumentTimeline timeline;
+};
 
 // Servo internal API.
 partial interface Document {

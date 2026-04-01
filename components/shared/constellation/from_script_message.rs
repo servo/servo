@@ -219,6 +219,10 @@ pub struct ScopeThings {
     pub devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// service worker id
     pub worker_id: WorkerId,
+    /// the browsing context id of the page that registered the service worker
+    pub browsing_context_id: BrowsingContextId,
+    /// the webview id of the page that registered the service worker
+    pub webview_id: WebViewId,
 }
 
 /// Message that gets passed to service worker scope on postMessage
@@ -430,6 +434,9 @@ pub struct IFrameLoadInfo {
     /// Whether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub history_handling: NavigationHistoryBehavior,
+    /// A snapshot of the navigation-related parameters of the target
+    /// of this navigation.
+    pub target_snapshot_params: TargetSnapshotParams,
 }
 
 /// Specifies the information required to load a URL in an iframe.
@@ -624,12 +631,14 @@ pub enum ScriptToConstellationMessage {
         usize,
         GenericSender<Option<BrowsingContextId>>,
     ),
+    /// Get the origin of the document corresponding to the given pipeline
+    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
-    LoadUrl(LoadData, NavigationHistoryBehavior),
+    LoadUrl(LoadData, NavigationHistoryBehavior, TargetSnapshotParams),
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
@@ -722,5 +731,23 @@ impl fmt::Debug for ScriptToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let variant_string: &'static str = self.into();
         write!(formatter, "ScriptMsg::{variant_string}")
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#target-snapshot-params>
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct TargetSnapshotParams {
+    /// <https://html.spec.whatwg.org/multipage/#target-snapshot-params-sandbox>
+    pub sandboxing_flags: SandboxingFlagSet,
+    /// <https://html.spec.whatwg.org/multipage/#target-snapshot-params-iframe-referrer-policy>
+    pub iframe_element_referrer_policy: ReferrerPolicy,
+}
+
+impl Default for TargetSnapshotParams {
+    fn default() -> Self {
+        Self {
+            sandboxing_flags: SandboxingFlagSet::empty(),
+            iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
+        }
     }
 }

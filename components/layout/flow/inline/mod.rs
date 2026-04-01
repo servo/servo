@@ -82,7 +82,7 @@ use std::sync::Arc;
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, FontRef, GlyphStore};
+use fonts::{FontMetrics, GlyphStore};
 use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use layout_api::wrapper_traits::SharedSelection;
@@ -123,6 +123,7 @@ use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::inline::line::TextRunOffsets;
+use crate::flow::inline::text_run::FontAndScriptInfo;
 use crate::flow::{
     BlockLevelBox, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
     compute_inline_content_sizes_for_block_level_boxes, layout_block_level_child,
@@ -1531,8 +1532,7 @@ impl InlineFormattingContextLayout<'_> {
         &mut self,
         glyph_store: Arc<GlyphStore>,
         text_run: &TextRun,
-        font: &FontRef,
-        bidi_level: Level,
+        info: &Arc<FontAndScriptInfo>,
         offsets: Option<TextRunOffsets>,
     ) {
         let inline_advance = glyph_store.total_advance();
@@ -1541,12 +1541,6 @@ impl InlineFormattingContextLayout<'_> {
         } else {
             SegmentContentFlags::empty()
         };
-
-        let font_metrics = &font.metrics;
-        let font_key = font.key(
-            self.layout_context.painter_id,
-            &self.layout_context.font_context,
-        );
 
         let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
@@ -1561,10 +1555,11 @@ impl InlineFormattingContextLayout<'_> {
         // If the metrics of this font don't match the default font, we are likely using another
         // font from the font list or a fallback and should incorporate its block size into the block
         // size of the container.
+        let font_metrics = &info.font.metrics;
         if self
             .current_inline_container_state()
             .font_metrics
-            .block_metrics_meaningfully_differ(&font.metrics)
+            .block_metrics_meaningfully_differ(font_metrics)
         {
             // TODO(mrobinson): This value should probably be cached somewhere.
             let container_state = self.current_inline_container_state();
@@ -1589,8 +1584,7 @@ impl InlineFormattingContextLayout<'_> {
         {
             if *inline_box_identifier == current_inline_box_identifier &&
                 line_item.merge_if_possible(
-                    font_key,
-                    bidi_level,
+                    info,
                     &glyph_store,
                     &offsets,
                     &text_run.inline_styles,
@@ -1606,9 +1600,7 @@ impl InlineFormattingContextLayout<'_> {
                 text: vec![glyph_store],
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
-                font_metrics: font_metrics.clone(),
-                font_key,
-                bidi_level,
+                info: info.clone(),
                 offsets: offsets.map(Box::new),
                 is_empty_for_text_cursor: false,
             },
@@ -1621,19 +1613,12 @@ impl InlineFormattingContextLayout<'_> {
     fn possibly_push_empty_text_run_to_unbreakable_segment(
         &mut self,
         text_run: &TextRun,
-        font: &FontRef,
-        bidi_level: Level,
+        info: &Arc<FontAndScriptInfo>,
         offsets: Option<TextRunOffsets>,
     ) {
         if offsets.is_none() || self.current_line_segment.has_content {
             return;
         }
-
-        let font_metrics = &font.metrics;
-        let font_key = font.key(
-            self.layout_context.painter_id,
-            &self.layout_context.font_context,
-        );
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             self.current_inline_box_identifier(),
@@ -1641,9 +1626,7 @@ impl InlineFormattingContextLayout<'_> {
                 text: Default::default(),
                 base_fragment_info: text_run.base_fragment_info,
                 inline_styles: text_run.inline_styles.clone(),
-                font_metrics: font_metrics.clone(),
-                font_key,
-                bidi_level,
+                info: info.clone(),
                 offsets: offsets.map(Box::new),
                 is_empty_for_text_cursor: true,
             },

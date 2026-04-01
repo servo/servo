@@ -18,8 +18,11 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add features that should be default to ports/servoshell/Cargo.toml
-default = ["clipboard", "js_jit"]
+default = ["baked-in-resources", "clipboard", "js_jit"]
 background_hang_monitor = ["servo-background-hang-monitor/sampler"]
+# This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
+# which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
+baked-in-resources = ["dep:servo-default-resources"]
 bluetooth = [
     "servo-bluetooth-traits",
     "dep:servo-bluetooth",
@@ -78,6 +81,7 @@ webxr = [
 [dependencies]
 accesskit = { workspace = true }
 bitflags = { workspace = true }
+cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools = { workspace = true }
 devtools_traits = { workspace = true }
@@ -133,6 +137,12 @@ webgpu = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
+
+# On most platforms we bake in the resources for simplicity. On ohos we load resources via the filesystem.
+# In the future we might want to use this approach also for the other platforms.
+# If the feature is turned off, a resource reader must be injected into the build via `inventory::submit!()`.
+[target.'cfg(not(target_env = "ohos"))'.dependencies]
+servo-default-resources = { workspace = true, optional = true }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 webxr = { workspace = true, optional = true }

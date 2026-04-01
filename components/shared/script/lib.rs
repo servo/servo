@@ -42,7 +42,7 @@ use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::prefs::PrefValue;
 use servo_constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
-    ScrollStateUpdate, StructuredSerializedData, WindowSizeType,
+    ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -77,6 +77,8 @@ pub struct NewPipelineInfo {
     pub user_content_manager_id: Option<UserContentManagerId>,
     /// The [`Theme`] of the new layout.
     pub theme: Theme,
+    /// A snapshot of the navigation parameters of the target of this navigation.
+    pub target_snapshot_params: TargetSnapshotParams,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -176,6 +178,9 @@ pub enum ScriptThreadMessage {
     RefreshCursor(PipelineId),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
+    /// Retrieve the origin of a document for a pipeline, in case a child needs to retrieve the
+    /// origin of a parent in a different script thread.
+    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
     /// Notifies script thread of a change to one of its document's activity
     SetDocumentActivity(PipelineId, DocumentActivity),
     /// Set whether to use less resources by running timers at a heavily limited rate.
@@ -189,6 +194,7 @@ pub enum ScriptThreadMessage {
         BrowsingContextId,
         LoadData,
         NavigationHistoryBehavior,
+        TargetSnapshotParams,
     ),
     /// Post a message to a given window.
     PostMessage {
