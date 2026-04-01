@@ -39,6 +39,10 @@
 # Reviewers for XPath related code
 /components/xpath @simonwuelker
 
+# Reviewers for DevTools
+/components/devtools @atbrakhi @eerii
+/components/shared/devtools @atbrakhi @eerii
+
 # Reviewers for CI related code
 /.github/workflows @sagudev
 /.github/actions @sagudev
