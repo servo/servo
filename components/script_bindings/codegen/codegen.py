@@ -9346,3 +9346,38 @@ impl Clone for TopTypeId {
 
         return CGGeneric((base_template.replace('${apis}', '\n'.join(apis))
                                        .replace('${interfaces}', '\n'.join(interfaces))))
+
+    @staticmethod
+    def ContentEventHandlerNames(config: Configuration) -> CGThing:
+        """Generate the sorted list of content event handler attribute names
+        by inspecting WebIDL definitions for interfaces that inherit from
+        HTMLElement or SVGElement."""
+        EVENT_HANDLER_CALLBACKS = {
+            "EventHandlerNonNull",
+            "OnErrorEventHandlerNonNull",
+            "OnBeforeUnloadEventHandlerNonNull",
+        }
+
+        handler_names: set[str] = set()
+
+        for descriptor in config.getDescriptors(isCallback=False, isIteratorInterface=False):
+            # Only include interfaces that inherit from HTMLElement or
+            # SVGElement, to avoid non-content event handlers like
+            # Document.onreadystatechange or XMLHttpRequest handlers.
+            chain = descriptor.prototypeChain
+            if "HTMLElement" not in chain and "SVGElement" not in chain:
+                continue
+
+            for member in descriptor.interface.members:
+                if not member.isAttr():
+                    continue
+                if not member.type.isCallback():
+                    continue
+                # pyrefly: ignore  # missing-attribute
+                callback = member.type.unroll().callback
+                if callback.identifier.name in EVENT_HANDLER_CALLBACKS:
+                    handler_names.add(member.identifier.name)
+
+        sorted_names = sorted(handler_names)
+        lines = [f'    "{name}",' for name in sorted_names]
+        return CGGeneric("[\n" + "\n".join(lines) + "\n]\n")

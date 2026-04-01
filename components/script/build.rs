@@ -19,6 +19,7 @@ fn main() {
         "ConcreteInheritTypes.rs",
         "UnionTypes.rs",
         "InterfaceObjectMapPhf.rs",
+        "ContentEventHandlerNames.rs",
     ]
     .iter()
     .map(Path::new)
