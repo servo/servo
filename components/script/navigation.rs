@@ -529,7 +529,7 @@ pub(crate) fn determine_iframe_element_referrer_policy(
             let token = iframe.ReferrerPolicy();
             ReferrerPolicy::from(&*token.str())
         })
-    // Step 2. Return the empty string.
+        // Step 2. Return the empty string.
         .unwrap_or(ReferrerPolicy::EmptyString)
 }
 
