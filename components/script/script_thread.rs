@@ -115,7 +115,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
@@ -129,7 +128,7 @@ use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{FocusOperation, FocusableArea};
 use crate::dom::document::{
     Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument,
     RenderingUpdateReason,
@@ -2887,10 +2886,9 @@ impl ScriptThread {
         }
 
         if let Some(focusable_area) = iframe_element.get_the_focusable_area() {
-            iframe_element.owner_document().request_focus_with_options(
-                focusable_area,
+            iframe_element.owner_document().focus(
+                FocusOperation::Focus(focusable_area),
                 FocusInitiator::Remote,
-                FocusOptions::default(),
                 can_gc,
             );
         }
@@ -2912,7 +2910,11 @@ impl ScriptThread {
                 );
                 return;
             }
-            doc.request_focus(FocusableArea::Viewport, FocusInitiator::Remote, can_gc);
+            doc.focus(
+                FocusOperation::Focus(FocusableArea::Viewport),
+                FocusInitiator::Remote,
+                can_gc,
+            );
         } else {
             warn!(
                 "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_focus_document_msg."

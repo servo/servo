@@ -53,13 +53,12 @@ use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{FocusOperation, FocusableArea};
 use crate::dom::document::{FireMouseEventType, FocusInitiator};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
@@ -897,8 +896,8 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    self.window.Document().request_focus(
-                        node.find_click_focusable_area(),
+                    self.window.Document().focus(
+                        FocusOperation::Focus(node.find_click_focusable_area()),
                         FocusInitiator::Local,
                         can_gc,
                     );
@@ -1421,7 +1420,11 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.request_focus(FocusableArea::Viewport, FocusInitiator::Local, can_gc);
+                document.focus(
+                    FocusOperation::Focus(FocusableArea::Viewport),
+                    FocusInitiator::Local,
+                    can_gc,
+                );
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
@@ -2485,9 +2488,7 @@ impl DocumentEventHandler {
     }
 
     fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
-        element
-            .upcast::<Node>()
-            .run_the_focusing_steps(FocusOptions::default(), can_gc);
+        element.upcast::<Node>().run_the_focusing_steps(can_gc);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
