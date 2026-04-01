@@ -468,9 +468,10 @@ impl Actor for NetworkEventActor {
                     let (encoding, text) = if mime_type.is_some() {
                         // Queue a LongStringActor for this body
                         let body_string = String::from_utf8_lossy(body).to_string();
-                        let long_string_actor = LongStringActor::new(registry, body_string);
-                        let value = long_string_actor.long_string_obj();
-                        registry.register(long_string_actor);
+                        let long_string_name = LongStringActor::register(registry, body_string);
+                        let value = registry
+                            .find::<LongStringActor>(&long_string_name)
+                            .long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
                         let b64 = STANDARD.encode(&body.0);
