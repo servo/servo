@@ -450,7 +450,7 @@ impl WatcherActor {
             TargetConfigurationActor::new(registry.new_name::<TargetConfigurationActor>());
         let thread_configuration_actor =
             ThreadConfigurationActor::new(registry.new_name::<ThreadConfigurationActor>());
-        let breakpoint_list = BreakpointListActor::new(
+        let breakpoint_list_actor = BreakpointListActor::new(
             registry.new_name::<BreakpointListActor>(),
             browsing_context_name.clone(),
         );
@@ -461,14 +461,14 @@ impl WatcherActor {
             network_parent_name: network_parent_actor.name(),
             target_configuration: target_configuration.name(),
             thread_configuration_name: thread_configuration_actor.name(),
-            breakpoint_list: breakpoint_list.name(),
+            breakpoint_list: breakpoint_list_actor.name(),
             session_context,
         };
 
         registry.register(network_parent_actor);
         registry.register(target_configuration);
         registry.register(thread_configuration_actor);
-        registry.register(breakpoint_list);
+        registry.register(breakpoint_list_actor);
 
         watcher_actor
     }
