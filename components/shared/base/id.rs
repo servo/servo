@@ -428,6 +428,10 @@ namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "Ser
 
 namespace_id! {BlobId, BlobIndex, "Blob"}
 
+namespace_id! {FileId, FileIndex, "File"}
+
+namespace_id! {FileListId, FileListIndex, "FileList"}
+
 namespace_id! {DomPointId, DomPointIndex, "DomPoint"}
 
 namespace_id! {DomRectId, DomRectIndex, "DomRect"}
