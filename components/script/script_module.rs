@@ -672,7 +672,7 @@ impl ModuleOwner {
                     script.delay_load_event(false, module_tree.url.clone(), cx);
                 } else {
                     // If the module failed to load, we still want to terminate the load event
-                    script.delay_load_event(false, element.owner_document().base_url().clone(), cx);
+                    script.delay_load_event(false, element.owner_document().base_url(), cx);
                 }
             },
         }
