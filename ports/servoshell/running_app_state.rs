@@ -216,6 +216,13 @@ pub(crate) struct RunningAppState {
 
     /// The currently focused [`ServoShellWindow`], if one is focused.
     focused_window: RefCell<Option<Rc<ServoShellWindow>>>,
+
+    /// Whether accessibility is active in servoshell.
+    ///
+    /// Set by the platform via AccessKit, and forwarded to existing and new WebViews via
+    /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
+    /// and [`ServoShellWindow::create_toplevel_webview()`].
+    accessibility_active: Cell<bool>,
 }
 
 impl RunningAppState {
@@ -265,6 +272,7 @@ impl RunningAppState {
             exit_scheduled: Default::default(),
             user_content_manager,
             experimental_preferences_enabled,
+            accessibility_active: Cell::new(false),
         }
     }
 
@@ -274,10 +282,10 @@ impl RunningAppState {
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window.clone()));
-        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
             .insert(window.id(), window.clone());
+        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
 
         // If the window already has platform focus, mark it as focused in our application state.
         if platform_window.has_platform_focus() {
@@ -660,6 +668,23 @@ impl RunningAppState {
                 );
             });
         }
+    }
+
+    pub(crate) fn set_accessibility_active(&self, active: bool) {
+        let was_active = self.accessibility_active.replace(active);
+        if active == was_active {
+            return;
+        }
+
+        for window in self.windows().values() {
+            for (_, webview) in window.webviews() {
+                webview.set_accessibility_active(active);
+            }
+        }
+    }
+
+    pub(crate) fn accessibility_active(&self) -> bool {
+        self.accessibility_active.get()
     }
 }
 
