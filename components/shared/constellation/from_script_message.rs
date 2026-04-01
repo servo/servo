@@ -739,7 +739,7 @@ impl fmt::Debug for ScriptToConstellationMessage {
 pub struct TargetSnapshotParams {
     /// <https://html.spec.whatwg.org/multipage/#target-snapshot-params-sandbox>
     pub sandboxing_flags: SandboxingFlagSet,
-    /// https://html.spec.whatwg.org/multipage/#target-snapshot-params-iframe-referrer-policy
+    /// <https://html.spec.whatwg.org/multipage/#target-snapshot-params-iframe-referrer-policy>
     pub iframe_element_referrer_policy: ReferrerPolicy,
 }
 

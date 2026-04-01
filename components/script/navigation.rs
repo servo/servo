@@ -523,18 +523,19 @@ pub(crate) fn determine_iframe_element_referrer_policy(
 ) -> ReferrerPolicy {
     // Step 1. If embedder is an iframe element, then return embedder's referrerpolicy
     // attribute's state's corresponding keyword.
-    // Step 2. Return the empty string.
     element
         .and_then(|element| element.downcast::<HTMLIFrameElement>())
         .map(|iframe| {
             let token = iframe.ReferrerPolicy();
             ReferrerPolicy::from(&*token.str())
         })
+    // Step 2. Return the empty string.
         .unwrap_or(ReferrerPolicy::EmptyString)
 }
 
 /// <https://html.spec.whatwg.org/multipage/#snapshotting-target-snapshot-params>
 pub(crate) fn snapshot_target_snapshot_params(navigable: &WindowProxy) -> TargetSnapshotParams {
+    // TODO(jdm): This doesn't work for cross-origin parent frames.
     let container = navigable.frame_element();
     // the result of determining the creation sandboxing flags given targetNavigable's
     // active browsing context and targetNavigable's container
