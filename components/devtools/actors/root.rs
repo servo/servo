@@ -348,7 +348,7 @@ impl RootActor {
     pub fn register(registry: &mut ActorRegistry) {
         // Global actors
         let device_actor = DeviceActor::new(registry.new_name::<DeviceActor>());
-        let perf = PerformanceActor::new(registry.new_name::<PerformanceActor>());
+        let performance_name = PerformanceActor::register(registry);
         let preference_name = PreferenceActor::register(registry);
 
         // Process descriptor
@@ -358,14 +358,13 @@ impl RootActor {
         let root_actor = Self {
             global_actors: GlobalActors {
                 device_actor: device_actor.name(),
-                perf_actor: perf.name(),
+                perf_actor: performance_name,
                 preference_actor: preference_name,
             },
             process_name: process_actor.name(),
             ..Default::default()
         };
 
-        registry.register(perf);
         registry.register(device_actor);
         registry.register(process_actor);
         registry.register(root_actor);

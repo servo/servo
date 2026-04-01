@@ -98,8 +98,11 @@ impl Actor for PerformanceActor {
 }
 
 impl PerformanceActor {
-    pub fn new(name: String) -> PerformanceActor {
-        PerformanceActor { name }
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = PerformanceActor { name: name.clone() };
+        registry.register(actor);
+        name
     }
 
     pub fn description() -> ActorDescription {
