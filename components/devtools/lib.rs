@@ -818,9 +818,9 @@ impl DevtoolsInstance {
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let pause = self.registry.new_name::<PauseActor>();
+        let pause_name = self.registry.new_name::<PauseActor>();
         self.registry.register(PauseActor {
-            name: pause.clone(),
+            name: pause_name.clone(),
         });
 
         let frame_actor = self.registry.find::<FrameActor>(&frame_offset.actor);
@@ -829,7 +829,7 @@ impl DevtoolsInstance {
         let msg = ThreadInterruptedReply {
             from: thread.name(),
             type_: "paused".to_owned(),
-            actor: pause,
+            actor: pause_name,
             frame: frame_actor.encode(&self.registry),
             why: pause_reason,
         };
