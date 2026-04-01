@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use core::f32;
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::sync::Arc;
@@ -19,6 +18,7 @@ use paint_api::display_list::{
 use servo_base::id::ScrollTreeNodeId;
 use servo_base::print_tree::PrintTree;
 use servo_config::opts::DiagnosticsLogging;
+use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::float::T as ComputedFloat;
@@ -1538,12 +1538,14 @@ impl BoxFragment {
                 };
                 radii = offset_radii(builder.border_radius, offsets_from_border);
             } else if overflow.x != ComputedOverflow::Clip {
-                overflow_clip_rect.min.x = f32::MIN;
-                overflow_clip_rect.max.x = f32::MAX;
+                let max = LayoutRect::max_rect();
+                overflow_clip_rect.min.x = max.min.x;
+                overflow_clip_rect.max.x = max.max.x;
                 radii = BorderRadius::zero();
             } else {
-                overflow_clip_rect.min.y = f32::MIN;
-                overflow_clip_rect.max.y = f32::MAX;
+                let max = LayoutRect::max_rect();
+                overflow_clip_rect.min.y = max.min.y;
+                overflow_clip_rect.max.y = max.max.y;
                 radii = BorderRadius::zero();
             }
 
