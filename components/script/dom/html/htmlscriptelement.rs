@@ -362,7 +362,7 @@ impl ScriptOrigin {
 fn finish_fetching_a_classic_script(
     elem: &HTMLScriptElement,
     script_kind: ExternalScriptKind,
-    _url: ServoUrl,
+    url: ServoUrl,
     load: ScriptResult,
     cx: &mut js::context::JSContext,
 ) {
@@ -388,6 +388,8 @@ fn finish_fetching_a_classic_script(
             document.pending_parsing_blocking_script_loaded(elem, load, cx);
         },
     }
+
+    elem.delay_load_event(false, url, cx)
 }
 
 pub(crate) type ScriptResult = Result<Script, ()>;
@@ -948,33 +950,14 @@ impl HTMLScriptElement {
                 options.render_blocking = true;
             }
 
+            let kind = self
+                .get_script_kind()
+                .expect("Script kind should be determined at this point");
+
             // Step 31.11. Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
-                    let kind = if element.has_attribute(&local_name!("defer")) &&
-                        was_parser_inserted &&
-                        !asynch
-                    {
-                        doc = self.parser_document.as_rooted();
-
-                        // Step 33.4: classic, has src, has defer, was parser-inserted, is not async.
-                        ExternalScriptKind::Deferred
-                    } else if was_parser_inserted && !asynch {
-                        doc = self.parser_document.as_rooted();
-
-                        // Step 33.5: classic, has src, was parser-inserted, is not async.
-                        ExternalScriptKind::ParsingBlocking
-                    } else if !asynch && !self.non_blocking.get() {
-                        doc = self.preparation_time_document.get().unwrap();
-
-                        // Step 33.3: classic, has src, is not async, is not non-blocking.
-                        ExternalScriptKind::AsapInOrder
-                    } else {
-                        doc = self.preparation_time_document.get().unwrap();
-
-                        // Step 33.2: classic, has src.
-                        ExternalScriptKind::Asap
-                    };
+                    doc = self.get_script_active_document().expect("Just to make sure we running in the correct document incase the script has been moved");
 
                     // Step 31.11. Fetch a classic script.
                     fetch_a_classic_script(self, kind, url, cors_setting, options, encoding);
@@ -1006,16 +989,13 @@ impl HTMLScriptElement {
                         options,
                     );
 
-                    if !asynch && was_parser_inserted {
-                        // 33.4: module, not async, parser-inserted
-                        doc.add_deferred_script(self);
-                    } else if !asynch && !self.non_blocking.get() {
-                        // 33.3: module, not parser-inserted
-                        doc.push_asap_in_order_script(self);
-                    } else {
-                        // 33.2: module, async
-                        doc.add_asap_script(self);
-                    };
+                    // Step 33.2/33.3/33.4/33.5, substeps 1-2. Add el to the corresponding script list.
+                    match kind {
+                        ExternalScriptKind::Deferred => doc.add_deferred_script(self),
+                        ExternalScriptKind::ParsingBlocking => {},
+                        ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
+                        ExternalScriptKind::Asap => doc.add_asap_script(self),
+                    }
                 },
                 ScriptType::ImportMap => (),
             }
@@ -1153,12 +1133,8 @@ impl HTMLScriptElement {
 
         let document = self.owner_document();
 
-        let url: ServoUrl;
-
         match script {
             Script::Classic(script) => {
-                url = script.url.clone();
-
                 // Step 6."classic".1. Let oldCurrentScript be the value to which document's currentScript object was most recently set.
                 let old_script = document.GetCurrentScript();
 
@@ -1181,8 +1157,6 @@ impl HTMLScriptElement {
                 document.set_current_script(old_script.as_deref());
             },
             Script::Module(module_tree) => {
-                url = module_tree.url.clone();
-
                 // TODO Step 6."module".1. Assert: document's currentScript attribute is null.
                 document.set_current_script(None);
 
@@ -1192,8 +1166,6 @@ impl HTMLScriptElement {
                     .run_a_module_script(cx, module_tree, false);
             },
             Script::ImportMap(script) => {
-                url = script.url.clone();
-
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
                 register_import_map(&self.owner_global(), script.import_map, CanGc::from_cx(cx));
             },
@@ -1209,7 +1181,6 @@ impl HTMLScriptElement {
         if self.from_an_external_file.get() {
             self.dispatch_event(cx, atom!("load"));
         }
-        self.delay_load_event(false, url, cx)
     }
 
     pub(crate) fn queue_error_event(&self) {

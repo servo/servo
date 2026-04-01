@@ -649,15 +649,14 @@ impl ModuleOwner {
             ModuleOwner::DynamicModule(_) => {},
             ModuleOwner::Window(script) => {
                 let script = script.root();
+                let element = script.upcast::<Element>();
 
                 let load = match module_tree {
-                    Some(module_tree) => Ok(Script::Module(module_tree)),
+                    Some(ref module_tree) => Ok(Script::Module(module_tree.clone())),
                     None => Err(()),
                 };
 
-                let asynch = script
-                    .upcast::<Element>()
-                    .has_attribute(&local_name!("async"));
+                let asynch = element.has_attribute(&local_name!("async"));
 
                 if !asynch && script.get_parser_inserted() {
                     let document = script.get_parser_document();
@@ -669,6 +668,12 @@ impl ModuleOwner {
                     let document = script.get_preparation_time_document().unwrap();
                     document.asap_script_loaded(cx, &script, load);
                 };
+                if let Some(module_tree) = module_tree {
+                    script.delay_load_event(false, module_tree.url.clone(), cx);
+                } else {
+                    // If the module failed to load, we still want to terminate the load event
+                    script.delay_load_event(false, element.owner_document().base_url().clone(), cx);
+                }
             },
         }
     }
