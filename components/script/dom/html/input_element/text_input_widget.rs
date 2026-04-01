@@ -8,7 +8,6 @@ use js::context::JSContext;
 use markup5ever::QualName;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
-use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
@@ -19,9 +18,8 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::htmlinputelement::input_type::InputType;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::textcontrol::TextControlElement;
 
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
@@ -37,7 +35,7 @@ impl TextInputWidget {
     fn get_or_create_shadow_tree(
         &self,
         cx: &mut JSContext,
-        input: &HTMLInputElement,
+        text_control_element: &impl TextControlElement,
     ) -> Ref<'_, TextInputWidgetShadowTree> {
         {
             if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
@@ -47,22 +45,26 @@ impl TextInputWidget {
             }
         }
 
-        let element = input.upcast::<Element>();
+        let element = text_control_element.upcast::<Element>();
         let shadow_root = element
             .shadow_root()
             .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
         let shadow_root = shadow_root.upcast();
         *self.shadow_tree.borrow_mut() = Some(TextInputWidgetShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
+        self.get_or_create_shadow_tree(cx, text_control_element)
     }
 
-    pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(input)
+    pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, element: &impl TextControlElement) {
+        self.get_or_create_shadow_tree(cx, element).update(element)
     }
 
-    pub(crate) fn update_placeholder_contents(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input)
-            .update_placeholder(cx, input);
+    pub(crate) fn update_placeholder_contents(
+        &self,
+        cx: &mut JSContext,
+        element: &impl TextControlElement,
+    ) {
+        self.get_or_create_shadow_tree(cx, element)
+            .update_placeholder(cx, element);
     }
 }
 
@@ -131,20 +133,21 @@ impl TextInputWidgetShadowTree {
     fn init_placeholder_container_if_necessary(
         &self,
         cx: &mut JSContext,
-        host: &HTMLInputElement,
+        element: &impl TextControlElement,
     ) -> Option<DomRoot<Element>> {
         if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
             return Some(placeholder_container.root_element());
         }
         // If there is no placeholder text and we haven't already created one then it is
         // not necessary to initialize a new placeholder container.
-        if host.placeholder().is_empty() {
+        let placeholder = element.placeholder_text();
+        if placeholder.is_empty() {
             return None;
         }
 
         let placeholder_container = create_ua_widget_div_with_text_node(
             cx,
-            &host.owner_document(),
+            &element.owner_document(),
             self.inner_container.upcast::<Node>(),
             PseudoElement::Placeholder,
             true,
@@ -156,20 +159,20 @@ impl TextInputWidgetShadowTree {
     fn placeholder_character_data(
         &self,
         cx: &mut JSContext,
-        input_element: &HTMLInputElement,
+        element: &impl TextControlElement,
     ) -> Option<DomRoot<CharacterData>> {
-        self.init_placeholder_container_if_necessary(cx, input_element)
+        self.init_placeholder_container_if_necessary(cx, element)
             .and_then(|placeholder_container| {
                 let first_child = placeholder_container.upcast::<Node>().GetFirstChild()?;
                 Some(DomRoot::from_ref(first_child.downcast::<CharacterData>()?))
             })
     }
 
-    pub(crate) fn update_placeholder(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
-        if let Some(character_data) = self.placeholder_character_data(cx, input_element) {
-            let placeholder_value = input_element.placeholder().clone();
-            if character_data.Data() != placeholder_value {
-                character_data.SetData(placeholder_value);
+    pub(crate) fn update_placeholder(&self, cx: &mut JSContext, element: &impl TextControlElement) {
+        if let Some(character_data) = self.placeholder_character_data(cx, element) {
+            let placeholder_value = element.placeholder_text();
+            if character_data.Data() != *placeholder_value {
+                character_data.SetData(placeholder_value.clone());
             }
         }
     }
@@ -185,7 +188,7 @@ impl TextInputWidgetShadowTree {
 
     // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
     // like an exstension to this one.
-    pub(crate) fn update(&self, input_element: &HTMLInputElement) {
+    pub(crate) fn update(&self, element: &impl TextControlElement) {
         // The addition of zero-width space here forces the text input to have an inline formatting
         // context that might otherwise be trimmed if there's no text. This is important to ensure
         // that the input element is at least as tall as the line gap of the caret:
@@ -194,11 +197,10 @@ impl TextInputWidgetShadowTree {
         // This is also used to ensure that the caret will still be rendered when the input is empty.
         // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
         //       need to fix the rendering of caret beforehand.
-        let value = input_element.Value();
-        let input_type = &*input_element.input_type();
-        let value_text = match (value.is_empty(), input_type) {
+        let value = element.value_text();
+        let value_text = match (value.is_empty(), element.is_password_field()) {
             // For a password input, we replace all of the character with its replacement char.
-            (false, InputType::Password(_)) => value
+            (false, true) => value
                 .str()
                 .chars()
                 .map(|_| PASSWORD_REPLACEMENT_CHAR)

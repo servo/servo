@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::default::Default;
 
 use dom_struct::dom_struct;
@@ -12,8 +12,6 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
-use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
-use script_bindings::root::Dom;
 use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -39,14 +37,14 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::input_element::HTMLInputElement;
+use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
-use crate::dom::text::Text;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::types::{CharacterData, FocusEvent, MouseEvent};
+use crate::dom::types::{FocusEvent, MouseEvent};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
@@ -64,9 +62,8 @@ pub(crate) struct HTMLTextAreaElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
-    /// A DOM [`Text`] node that is the stored in the root of this [`HTMLTextArea`]'s
-    /// shadow tree. This how content from the text area is exposed to layout.
-    shadow_node: DomRefCell<Option<Dom<Text>>>,
+    /// A [`TextInputWidget`] that manages the shadow DOM for this `<textarea>`.
+    text_input_widget: DomRefCell<TextInputWidget>,
     /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
     /// and layout should reflect the new value after a display list update.
     #[no_trace]
@@ -138,7 +135,7 @@ impl HTMLTextAreaElement {
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
-            shadow_node: Default::default(),
+            text_input_widget: Default::default(),
             shared_selection: Default::default(),
         }
     }
@@ -210,48 +207,16 @@ impl HTMLTextAreaElement {
         self.validity_state(CanGc::from_cx(cx))
             .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
-        let textinput_content = self.textinput.borrow().get_content();
-        let element = self.upcast::<Element>();
         let placeholder_shown =
-            textinput_content.is_empty() && !self.placeholder.borrow().is_empty();
-        element.set_placeholder_shown_state(placeholder_shown);
+            self.textinput.borrow().is_empty() && !self.placeholder.borrow().is_empty();
+        self.upcast::<Element>()
+            .set_placeholder_shown_state(placeholder_shown);
 
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        if self.shadow_node.borrow().is_none() {
-            let shadow_node = Text::new(
-                Default::default(),
-                &shadow_root.owner_document(),
-                CanGc::from_cx(cx),
-            );
-            Node::replace_all(cx, Some(shadow_node.upcast()), shadow_root.upcast());
-            self.shadow_node
-                .borrow_mut()
-                .replace(shadow_node.as_traced());
-        }
-
-        let content = if placeholder_shown {
-            self.placeholder.borrow().clone()
-        } else if textinput_content.is_empty() {
-            // The addition of zero-width space here forces the text input to have an inline formatting
-            // context that might otherwise be trimmed if there's no text. This is important to ensure
-            // that the input element is at least as tall as the line gap of the caret:
-            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-            "\u{200B}".into()
-        } else {
-            textinput_content
-        };
-
-        let shadow_node = self.shadow_node.borrow_mut();
-        let character_data = shadow_node
-            .as_ref()
-            .expect("Should have always created a node at this point.")
-            .upcast::<CharacterData>();
-        if character_data.Data() != content {
-            character_data.SetData(content);
-            self.maybe_update_shared_selection();
-        }
+        self.text_input_widget.borrow().update_shadow_tree(cx, self);
+        self.text_input_widget
+            .borrow()
+            .update_placeholder_contents(cx, self);
+        self.maybe_update_shared_selection();
     }
 
     fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
@@ -316,6 +281,14 @@ impl TextControlElement for HTMLTextAreaElement {
             enabled,
         };
         self.owner_window().layout().set_needs_new_display_list();
+    }
+
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {
+        self.placeholder.borrow()
+    }
+
+    fn value_text(&self) -> DOMString {
+        self.Value()
     }
 }
 

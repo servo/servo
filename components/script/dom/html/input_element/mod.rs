@@ -905,10 +905,6 @@ impl HTMLInputElement {
     fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
         self.textinput.borrow_mut()
     }
-
-    fn placeholder(&self) -> Ref<'_, DOMString> {
-        self.placeholder.borrow()
-    }
 }
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
@@ -992,6 +988,18 @@ impl TextControlElement for HTMLInputElement {
             enabled,
         };
         self.owner_window().layout().set_needs_new_display_list();
+    }
+
+    fn is_password_field(&self) -> bool {
+        matches!(*self.input_type(), InputType::Password(_))
+    }
+
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {
+        self.placeholder.borrow()
+    }
+
+    fn value_text(&self) -> DOMString {
+        self.Value()
     }
 }
 
