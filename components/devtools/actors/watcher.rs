@@ -186,7 +186,7 @@ pub(crate) struct WatcherActor {
     network_parent_name: String,
     target_configuration: String,
     thread_configuration_name: String,
-    breakpoint_list: String,
+    breakpoint_list_name: String,
     session_context: SessionContext,
 }
 
@@ -422,7 +422,7 @@ impl Actor for WatcherActor {
                 let msg = GetBreakpointListActorReply {
                     from: self.name(),
                     breakpoint_list: registry
-                        .encode::<BreakpointListActor, _>(&self.breakpoint_list),
+                        .encode::<BreakpointListActor, _>(&self.breakpoint_list_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -461,7 +461,7 @@ impl WatcherActor {
             network_parent_name: network_parent_actor.name(),
             target_configuration: target_configuration.name(),
             thread_configuration_name: thread_configuration_actor.name(),
-            breakpoint_list: breakpoint_list_actor.name(),
+            breakpoint_list_name: breakpoint_list_actor.name(),
             session_context,
         };
 
