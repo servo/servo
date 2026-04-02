@@ -1118,8 +1118,8 @@ pub struct NewWebViewDetails {
 /// ```
 ///  let mut headers = http::HeaderMap::new();
 ///  headers.append(HeaderName::from_static("CustomHeader"), "Value".parse().unwrap());
-///   let url_request = URLRequest::new(url).headers(headers);
-///    webview.load_request(url_request);
+///  let url_request = URLRequest::new(url).headers(headers);
+///  webview.load_request(url_request);
 /// ```
 pub struct UrlRequest {
     pub url: ServoUrl,
