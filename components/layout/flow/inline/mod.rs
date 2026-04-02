@@ -1851,13 +1851,11 @@ impl InlineFormattingContext {
         // Enable Chinese/Japanese line breaking behavior when this inline formatting context
         // has a Japanese or Chinese language set.
         options.ja_zh = {
-            use std::str::FromStr;
-
             use icu_locid::LanguageIdentifier;
-            let lang_str = lang.0.as_ref();
-            LanguageIdentifier::from_str(lang_str).is_ok_and(|lang_id| {
-                let lang = lang_id.language.as_str();
-                lang == "ja" || lang == "zh"
+            use icu_locid::subtags::language;
+
+            lang.0.as_ref().parse::<LanguageIdentifier>().is_ok_and(|lang_id| {
+                lang_id.language == language!("ja") || lang_id.language == language!("zh")
             })
         };
 
