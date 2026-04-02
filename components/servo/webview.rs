@@ -820,6 +820,7 @@ impl WebView {
             self.inner_mut().accesskit_tree_id = Some(accesskit_tree_id);
         } else {
             self.inner_mut().accesskit_tree_id = None;
+            self.inner_mut().grafted_accesskit_tree_id = None;
         }
 
         self.inner().servo.constellation_proxy().send(
