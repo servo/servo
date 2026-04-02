@@ -38,8 +38,8 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
-use crate::dom::document::focus::{FocusOperation, FocusableArea};
-use crate::dom::document::{Document, FocusInitiator};
+use crate::dom::document::Document;
+use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
 use crate::dom::document_event_handler::character_to_code;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
@@ -499,7 +499,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        self.owner_document().focus(
+        self.owner_document().focus_handler().focus(
             FocusOperation::Focus(FocusableArea::Viewport),
             FocusInitiator::Local,
             can_gc,
@@ -1339,10 +1339,11 @@ impl VirtualMethods for HTMLElement {
         // TODO: Should this also happen for non-HTML elements such as SVG elements?
         let element = self.as_element();
         if document
+            .focus_handler()
             .focused_element()
             .is_some_and(|focused_element| &*focused_element == element)
         {
-            document.focus(
+            document.focus_handler().focus(
                 FocusOperation::Focus(FocusableArea::Viewport),
                 FocusInitiator::Local,
                 can_gc,

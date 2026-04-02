@@ -20,6 +20,14 @@ use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
+/// The type of a [`FocusEvent`].
+pub(crate) enum FocusEventType {
+    /// Element gained focus. Doesn't bubble.
+    Focus,
+    /// Element lost focus. Doesn't bubble.
+    Blur,
+}
+
 #[dom_struct]
 pub(crate) struct FocusEvent {
     uievent: UIEvent,

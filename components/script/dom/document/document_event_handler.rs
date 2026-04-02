@@ -58,8 +58,8 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
-use crate::dom::document::focus::{FocusOperation, FocusableArea};
-use crate::dom::document::{FireMouseEventType, FocusInitiator};
+use crate::dom::document::FireMouseEventType;
+use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
@@ -896,7 +896,7 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    self.window.Document().focus(
+                    self.window.Document().focus_handler().focus(
                         FocusOperation::Focus(node.find_click_focusable_area()),
                         FocusInitiator::Local,
                         can_gc,
@@ -1357,7 +1357,7 @@ impl DocumentEventHandler {
         can_gc: CanGc,
     ) -> InputEventResult {
         let document = self.window.Document();
-        let focused = document.focused_element();
+        let focused = document.focus_handler().focused_element();
         let body = document.GetBody();
 
         let target = match (&focused, &body) {
@@ -1420,7 +1420,7 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.focus(
+                document.focus_handler().focus(
                     FocusOperation::Focus(FocusableArea::Viewport),
                     FocusInitiator::Local,
                     can_gc,
@@ -1434,7 +1434,7 @@ impl DocumentEventHandler {
         // spec: https://w3c.github.io/uievents/#compositionupdate
         // spec: https://w3c.github.io/uievents/#compositionend
         // > Event.target : focused element processing the composition
-        let focused = document.focused_element();
+        let focused = document.focus_handler().focused_element();
         let target = if let Some(elem) = &focused {
             elem.upcast()
         } else {
@@ -1752,7 +1752,7 @@ impl DocumentEventHandler {
 
         // Step 6 if the context is editable:
         let document = self.window.Document();
-        let target = target.or(document.focused_element());
+        let target = target.or(document.focus_handler().focused_element());
         let target = target
             .map(|target| DomRoot::from_ref(target.upcast()))
             .or_else(|| {
@@ -2018,6 +2018,7 @@ impl DocumentEventHandler {
         let mut starting_point = self
             .window
             .Document()
+            .focus_handler()
             .focused_element()
             .map(DomRoot::upcast::<Node>);
 
@@ -2242,6 +2243,7 @@ impl DocumentEventHandler {
 
         let document = self.window.Document();
         let mut scrolling_box = document
+            .focus_handler()
             .focused_element()
             .or(self.most_recently_clicked_element.get())
             .and_then(|element| element.scrolling_box(ScrollContainerQueryFlags::Inclusive))
