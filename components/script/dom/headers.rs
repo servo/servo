@@ -30,7 +30,6 @@ use crate::script_runtime::CanGc;
 pub(crate) struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
-    #[ignore_malloc_size_of = "Defined in hyper"]
     #[no_trace]
     header_list: DomRefCell<HyperHeaders>,
 }

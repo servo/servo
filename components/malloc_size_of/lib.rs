@@ -59,7 +59,6 @@ use resvg::usvg::{self, tiny_skia_path};
 use style::properties::ComputedValues;
 use style::values::generics::length::GenericLengthPercentageOrAuto;
 pub use stylo_malloc_size_of::MallocSizeOfOps;
-use uuid::Uuid;
 
 /// Trait for measuring the "deep" heap usage of a data structure. This is the
 /// most commonly-used of the traits.
@@ -389,6 +388,13 @@ impl<T: MallocSizeOf> MallocSizeOf for std::collections::VecDeque<T> {
             n += elem.size_of(ops);
         }
         n
+    }
+}
+
+impl MallocSizeOf for std::path::PathBuf {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // This should be an approximation of the actual size
+        self.as_os_str().as_encoded_bytes().len()
     }
 }
 
@@ -1073,6 +1079,12 @@ impl<T> MallocSizeOf for tokio::sync::mpsc::UnboundedSender<T> {
     }
 }
 
+impl<T> MallocSizeOf for tokio::sync::oneshot::Sender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T> MallocSizeOf for ipc_channel::ipc::IpcSender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
@@ -1109,6 +1121,22 @@ impl MallocSizeOf for servo_arc::Arc<ComputedValues> {
     }
 }
 
+impl MallocSizeOf for http::HeaderMap {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // The headermap in http is more complicated than a simple hashmap
+        // However, this should give us a reasonable approximation.
+        self.iter()
+            .map(|entry| entry.0.size_of(ops) + entry.1.size_of(ops))
+            .sum()
+    }
+}
+
+impl MallocSizeOf for data_url::mime::Mime {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.type_.size_of(ops) + self.parameters.size_of(ops) + self.subtype.size_of(ops)
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
@@ -1117,12 +1145,13 @@ malloc_size_of_is_0!(f32, f64);
 malloc_size_of_is_0!(i8, i16, i32, i64, i128, isize);
 malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
 
-malloc_size_of_is_0!(Uuid);
+malloc_size_of_is_0!(uuid::Uuid);
 malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(content_security_policy::Destination);
 malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
 malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);
+malloc_size_of_is_0!(http::Method);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);
@@ -1154,8 +1183,21 @@ malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(time::Duration);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
-malloc_size_of_is_0!(urlpattern::UrlPattern);
 malloc_size_of_is_0!(std::net::TcpStream);
+
+impl MallocSizeOf for urlpattern::UrlPattern {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // This is an approximation
+        self.protocol().len() +
+            self.username().len() +
+            self.password().len() +
+            self.hostname().len() +
+            self.port().len() +
+            self.pathname().len() +
+            self.search().len() +
+            self.hash().len()
+    }
+}
 
 impl<S: tendril::TendrilSink<tendril::fmt::UTF8, A>, A: tendril::Atomicity> MallocSizeOf
     for tendril::stream::LossyDecoder<S, A>

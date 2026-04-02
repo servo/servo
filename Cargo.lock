@@ -8024,6 +8024,7 @@ dependencies = [
  "atomic_refcell",
  "content-security-policy",
  "crossbeam-channel",
+ "data-url",
  "encoding_rs",
  "euclid",
  "http 1.4.0",

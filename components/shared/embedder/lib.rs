@@ -639,13 +639,11 @@ pub struct WebResourceRequest {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub url: Url,
     pub is_for_main_frame: bool,

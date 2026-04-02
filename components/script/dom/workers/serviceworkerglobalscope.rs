@@ -168,11 +168,9 @@ pub(crate) struct ServiceWorkerGlobalScope {
     /// indicating the sw should stop running,
     /// while still draining the task-queue
     // and running all enqueued, and not cancelled, tasks.
-    #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     time_out_port: Receiver<Instant>,
 
-    #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     swmanager_sender: GenericSender<ServiceWorkerMsg>,
 

@@ -174,7 +174,6 @@ pub struct PreloadEntry {
     /// <https://html.spec.whatwg.org/multipage/#preload-response>
     pub response: Option<Response>,
     /// <https://html.spec.whatwg.org/multipage/#preload-on-response-available>
-    #[ignore_malloc_size_of = "Channels are hard"]
     pub on_response_available: Option<TokioSender<Response>>,
 }
 
@@ -318,7 +317,7 @@ pub enum BodyChunkRequest {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
-    #[ignore_malloc_size_of = "Channels are hard"]
+    #[conditional_malloc_size_of]
     body_chunk_request_channel: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
@@ -427,7 +426,6 @@ pub struct RequestBuilder {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
@@ -438,7 +436,6 @@ pub struct RequestBuilder {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
 
     /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
@@ -782,12 +779,10 @@ pub struct Request {
     pub id: RequestId,
     pub preload_id: Option<PreloadId>,
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     /// <https://fetch.spec.whatwg.org/#local-urls-only-flag>
     pub local_urls_only: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub unsafe_request: bool,

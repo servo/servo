@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use layout_api::AnimatingImages;
-use malloc_size_of::MallocSizeOf;
 use paint_api::ImageUpdate;
 use parking_lot::RwLock;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -18,23 +17,18 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_thread::with_script_thread;
 
-#[derive(Clone, Default, JSTraceable)]
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct ImageAnimationManager {
     /// The set of [`AnimatingImages`] which is used to communicate the addition
     /// and removal of animating images from layout.
     #[no_trace]
+    #[conditional_malloc_size_of]
     animating_images: Arc<RwLock<AnimatingImages>>,
 
     /// The [`TimerId`] of the currently scheduled animated image update callback.
     #[no_trace]
     callback_timer_id: Cell<Option<TimerId>>,
-}
-
-impl MallocSizeOf for ImageAnimationManager {
-    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        (*self.animating_images.read()).size_of(ops)
-    }
 }
 
 impl ImageAnimationManager {

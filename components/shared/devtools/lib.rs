@@ -493,9 +493,7 @@ pub struct PageError {
 #[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpRequest {
     pub url: ServoUrl,
-    #[ignore_malloc_size_of = "http type"]
     pub method: Method,
-    #[ignore_malloc_size_of = "http type"]
     pub headers: HeaderMap,
     pub body: Option<DebugVec>,
     pub pipeline_id: PipelineId,
