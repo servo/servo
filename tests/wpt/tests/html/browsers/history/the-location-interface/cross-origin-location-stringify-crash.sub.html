@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Stringifying cross-origin location should not crash</title>
+<meta name="assert" content="console.log of a cross-origin location object should not crash.">
+<script src="/common/get-host-info.sub.js"></script>
+<script>
+  var iframe = document.createElement("iframe");
+  iframe.src = get_host_info().HTTP_REMOTE_ORIGIN + "/common/blank.html";
+  iframe.onload = function() {
+    console.log(iframe.contentWindow.location);
+    document.documentElement.classList.remove("test-wait");
+  };
+  document.body.appendChild(iframe);
+</script>
+</html>
