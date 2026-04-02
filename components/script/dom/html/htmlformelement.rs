@@ -1135,7 +1135,8 @@ impl HTMLFormElement {
                 history_handling,
                 false,
                 load_data,
-            );
+            )
+        });
 
         // 5. Set the form's planned navigation to the just-queued task.
         // Done above as part of incrementing the planned navigation counter.
