@@ -1357,7 +1357,7 @@ impl DocumentEventHandler {
         can_gc: CanGc,
     ) -> InputEventResult {
         let document = self.window.Document();
-        let focused = document.get_focused_element();
+        let focused = document.focused_element();
         let body = document.GetBody();
 
         let target = match (&focused, &body) {
@@ -1434,7 +1434,7 @@ impl DocumentEventHandler {
         // spec: https://w3c.github.io/uievents/#compositionupdate
         // spec: https://w3c.github.io/uievents/#compositionend
         // > Event.target : focused element processing the composition
-        let focused = document.get_focused_element();
+        let focused = document.focused_element();
         let target = if let Some(elem) = &focused {
             elem.upcast()
         } else {
@@ -1752,7 +1752,7 @@ impl DocumentEventHandler {
 
         // Step 6 if the context is editable:
         let document = self.window.Document();
-        let target = target.or(document.get_focused_element());
+        let target = target.or(document.focused_element());
         let target = target
             .map(|target| DomRoot::from_ref(target.upcast()))
             .or_else(|| {
@@ -2018,7 +2018,7 @@ impl DocumentEventHandler {
         let mut starting_point = self
             .window
             .Document()
-            .get_focused_element()
+            .focused_element()
             .map(DomRoot::upcast::<Node>);
 
         // > 2. If there is a sequential focus navigation starting point defined and it is inside
@@ -2242,7 +2242,7 @@ impl DocumentEventHandler {
 
         let document = self.window.Document();
         let mut scrolling_box = document
-            .get_focused_element()
+            .focused_element()
             .or(self.most_recently_clicked_element.get())
             .and_then(|element| element.scrolling_box(ScrollContainerQueryFlags::Inclusive))
             .unwrap_or_else(|| {

@@ -10,6 +10,8 @@ use embedder_traits::UntrustedNodeAddress;
 use js::rust::HandleValue;
 use layout_api::ElementsFromPointFlags;
 use rustc_hash::FxBuildHasher;
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, ErrorResult};
 use script_bindings::script_runtime::{CanGc, JSContext};
 use servo_arc::Arc;
@@ -21,7 +23,9 @@ use style::stylesheets::{Stylesheet, StylesheetContents};
 use stylo_atoms::Atom;
 use webrender_api::units::LayoutPoint;
 
+use crate::dom::Document;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
@@ -31,10 +35,9 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
 use crate::dom::element::Element;
-use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::types::CSSStyleSheet;
+use crate::dom::types::{CSSStyleSheet, EventTarget};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
 
@@ -221,23 +224,48 @@ impl DocumentOrShadowRoot {
         elements
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
-    pub(crate) fn get_active_element(
-        &self,
-        focused_element: Option<DomRoot<Element>>,
-        body: Option<DomRoot<HTMLElement>>,
-        document_element: Option<DomRoot<Element>>,
-    ) -> Option<DomRoot<Element>> {
-        // TODO: Step 2.
+    /// <https://html.spec.whatwg.org/multipage/#dom-documentorshadowroot-activeelement-dev>
+    pub(crate) fn active_element(&self, this: &Node) -> Option<DomRoot<Element>> {
+        // Step 1. Let candidate be this's node document's focused area's DOM anchor.
+        //
+        // Note: When `Document::focused_element` returns `None`, that means that the
+        // `Document` / viewport itself is focused.
+        let document = self.window.Document();
+        let candidate = match document.focused_element() {
+            Some(candidate) => DomRoot::upcast::<Node>(candidate),
+            None => DomRoot::upcast::<Node>(document.clone()),
+        };
 
-        match focused_element {
-            Some(element) => Some(element), // Step 3. and 4.
-            None => match body {
-                // Step 5.
-                Some(body) => Some(DomRoot::upcast(body)),
-                None => document_element,
-            },
+        // Step 2. Set candidate to the result of retargeting candidate against this.
+        //
+        // Note: `retarget()` operates on `EventTarget`, but we can be assured that we are
+        // only dealing with various kinds of `Node`s here.
+        let candidate =
+            DomRoot::downcast::<Node>(candidate.upcast::<EventTarget>().retarget(this.upcast()))?;
+
+        // Step 3. If candidate's root is not this, then return null.
+        if this != &*candidate.GetRootNode(&GetRootNodeOptions::empty()) {
+            return None;
         }
+
+        // Step 4. If candidate is not a Document object, then return candidate.
+        if let Some(candidate) = DomRoot::downcast::<Element>(candidate.clone()) {
+            return Some(candidate);
+        }
+        assert!(candidate.is::<Document>());
+
+        // Step 5. If candidate has a body element, then return that body element.
+        if let Some(body) = document.GetBody() {
+            return Some(DomRoot::upcast(body));
+        }
+
+        // Step 6. If candidate's document element is non-null, then return that document element.
+        if let Some(document_element) = document.GetDocumentElement() {
+            return Some(document_element);
+        }
+
+        // Step 7. Return null.
+        None
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.

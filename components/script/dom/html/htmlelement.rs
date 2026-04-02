@@ -1339,7 +1339,7 @@ impl VirtualMethods for HTMLElement {
         // TODO: Should this also happen for non-HTML elements such as SVG elements?
         let element = self.as_element();
         if document
-            .get_focused_element()
+            .focused_element()
             .is_some_and(|focused_element| &*focused_element == element)
         {
             document.focus(
