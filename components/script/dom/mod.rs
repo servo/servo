@@ -306,7 +306,7 @@ pub(crate) mod messageport;
 pub(crate) mod mimetype;
 pub(crate) mod mimetypearray;
 pub(crate) mod mutationobserver;
-pub(crate) mod mutationrecord;
+pub(crate) use self::mutationobserver::*;
 pub(crate) mod namednodemap;
 pub(crate) mod navigationpreloadmanager;
 pub(crate) mod navigator;
