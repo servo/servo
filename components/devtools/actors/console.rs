@@ -69,7 +69,7 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
             // Create a new actor for the object.
             // These are currently never cleaned up, and we make no attempt at re-using the same actor
             // if the same object is logged repeatedly.
-            let actor = ObjectActor::register(registry, None, object.class.clone(), None);
+            let object_name = ObjectActor::register(registry, None, object.class.clone(), None);
 
             // TODO: Replace these with ObjectActor::encode
             #[derive(Serialize)]
@@ -111,7 +111,7 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
 
             let argument = DevtoolsConsoleObjectArgument {
                 r#type: "object".to_owned(),
-                actor,
+                actor: object_name,
                 class: object.class,
                 own_property_length: own_properties.len(),
                 extensible: true,

@@ -169,18 +169,18 @@ impl Actor for ObjectActor {
             },
 
             "enumSymbols" => {
-                let symbol_iterator = SymbolIteratorActor {
+                let symbol_iterator_actor = SymbolIteratorActor {
                     name: registry.new_name::<SymbolIteratorActor>(),
                 };
                 let msg = EnumReply {
                     from: self.name(),
                     iterator: EnumIterator {
-                        actor: symbol_iterator.name(),
+                        actor: symbol_iterator_actor.name(),
                         type_: EnumIteratorType::SymbolIterator,
                         count: 0,
                     },
                 };
-                registry.register(symbol_iterator);
+                registry.register(symbol_iterator_actor);
                 request.reply_final(&msg)?
             },
 
