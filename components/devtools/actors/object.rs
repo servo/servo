@@ -153,9 +153,9 @@ impl Actor for ObjectActor {
                     .and_then(|preview| preview.own_properties.clone())
                     .unwrap_or_default();
                 let property_iterator_name = PropertyIteratorActor::register(registry, properties);
-                let property_iterator =
+                let property_iterator_actor =
                     registry.find::<PropertyIteratorActor>(&property_iterator_name);
-                let count = property_iterator.count();
+                let count = property_iterator_actor.count();
                 let msg = EnumReply {
                     from: self.name(),
                     iterator: EnumIterator {
