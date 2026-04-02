@@ -1,6 +1,6 @@
 [package]
 name = "servo-hyper-serde"
-version = "0.13.2"
+version.workspace = true
 edition.workspace = true
 authors = ["The Servo Project Developers"]
 description = "Serde support for hyper types."
