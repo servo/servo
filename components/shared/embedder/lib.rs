@@ -1131,7 +1131,7 @@ pub struct UrlRequest {
 }
 
 impl UrlRequest {
-    pub fn new(url: ServoUrl) -> Self {
+    pub fn new(url: Url) -> Self {
         UrlRequest {
             url,
             headers: HeaderMap::new(),
