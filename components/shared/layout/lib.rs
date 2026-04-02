@@ -688,7 +688,7 @@ pub fn node_id_from_scroll_id(id: usize) -> usize {
 
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct ImageAnimationState {
-    #[ignore_malloc_size_of = "RasterImage"]
+    #[conditional_malloc_size_of]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
     frame_start_time: f64,

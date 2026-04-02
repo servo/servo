@@ -376,7 +376,6 @@ pub(crate) struct Window {
     test_runner: MutNullableDom<TestRunner>,
 
     /// A handle for communicating messages to the WebGL thread, if available.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     webgl_chan: Option<WebGLChan>,
 

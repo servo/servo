@@ -78,13 +78,11 @@ pub enum LoadContext {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CustomResponse {
-    #[ignore_malloc_size_of = "Defined in hyper"]
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
     pub headers: HeaderMap,
-    #[ignore_malloc_size_of = "Defined in hyper"]
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"

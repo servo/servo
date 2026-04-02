@@ -91,7 +91,6 @@ pub struct ResponseInit {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     pub status_code: u16,
     pub referrer: Option<ServoUrl>,
@@ -110,7 +109,6 @@ pub struct Response {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     #[conditional_malloc_size_of]
     pub body: Arc<Mutex<ResponseBody>>,

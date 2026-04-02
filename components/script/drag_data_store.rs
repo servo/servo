@@ -71,7 +71,7 @@ impl Kind {
 /// <https://html.spec.whatwg.org/multipage/#drag-data-store-bitmap>
 #[derive(MallocSizeOf)]
 struct Bitmap {
-    #[ignore_malloc_size_of = "RasterImage"]
+    #[conditional_malloc_size_of]
     image: Option<Arc<RasterImage>>,
     x: i32,
     y: i32,

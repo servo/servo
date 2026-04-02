@@ -192,9 +192,7 @@ impl BroadcastClone for SerializableFileList {
 /// File-based blob
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct FileBlob {
-    #[ignore_malloc_size_of = "Uuid are hard(not really)"]
     id: Uuid,
-    #[ignore_malloc_size_of = "PathBuf are hard"]
     name: Option<PathBuf>,
     cache: RefCell<Option<Vec<u8>>>,
     size: u64,
