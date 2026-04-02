@@ -508,7 +508,7 @@ impl IntersectionObserver {
                 }
             },
             Some(ElementOrDocument::Element(element)) => {
-                // To ensure consistency, we also checks for element's right now, but we could depends on the
+                // To ensure consistency, we also check for elements right now, but we can depend on the
                 // layout query later.
                 if element.owner_document() != target.owner_document() {
                     return IntersectionObservationOutput::default_skipped();
@@ -848,7 +848,7 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
         .map_err(|_| ())
 }
 
-/// In terms of intersection observer, we wants account for zero area rectangle as long as it is not negative.
+/// In terms of intersection observer, we consider zero-area rectangles as long as the area is not negative.
 fn intersect_rectangle(
     lhs: &Rect<Au, CSSPixel>,
     rhs: &Rect<Au, CSSPixel>,
@@ -875,7 +875,10 @@ fn compute_the_intersection(
     // We had delegated the computation of this to the caller of the function.
 
     // > 2. Let container be the containing block of target.
-    let mut container = match target.upcast::<Node>().containing_block_node() {
+    let mut container = match target
+        .upcast::<Node>()
+        .containing_block_node_without_reflow()
+    {
         Some(node) => ElementOrDocument::Element(DomRoot::downcast(node).unwrap()),
         None => ElementOrDocument::Document(target.owner_document()),
     };
@@ -926,16 +929,16 @@ fn compute_the_intersection(
         };
 
         // > 3.2. Map intersectionRect to the coordinate space of container.
-        // TODO: We doesn't map the coordinate space per each iteration yet, instead all the rectangle are in
-        // the viewport coordinate space. But this would cause the scroll margin calculation to be not accurate in
-        // relation to transforms.
+        // TODO(#35767): We don't map the coordinate space per each iteration yet, instead all the rectangles are
+        // in the viewport coordinate space. But this would cause the scroll margin calculation to be inaccurate
+        // with respect to transforms.
 
         // > 3.3. If container is a scroll container, apply the IntersectionObserver’s [[scrollMargin]]
         // >      to the container’s clip rect as described in apply scroll margin to a scrollport.
         // > 3.4. If container has a content clip or a css clip-path property, update intersectionRect
         // >      by applying container’s clip.
-        // TODO: handle `overflow: clip` and` resolve clipping for x-axis and y-axis independently. Additionally,
-        //       handle css clip-path as well.
+        // TODO(#35767): handle `overflow: clip` and resolve clipping for x-axis and y-axis independently.
+        // Additionally, handle css `clip-path` as well.
         if IntersectionObserver::has_content_clip(&containing_element) {
             if let Some(container_padding_box) = containing_element
                 .upcast::<Node>()
@@ -963,11 +966,11 @@ fn compute_the_intersection(
         // > 3.5. If container is the root element of a browsing context, update container to be the
         // >      browsing context’s document; otherwise, update container to be the containing block
         // >      of container.
-        // Additionally, for a node that doesn't have an element that establish it's containing block, it should be contained
-        // by the browsing context's document.
+        // Additionally, for a node that doesn't have an element that establish it's containing block, we should
+        // refer to the browsing context's document.
         container = match containing_element
             .upcast::<Node>()
-            .containing_block_node()
+            .containing_block_node_without_reflow()
             .and_then(DomRoot::downcast::<Element>)
         {
             Some(element) => ElementOrDocument::Element(element),
@@ -977,16 +980,12 @@ fn compute_the_intersection(
 
     // Step 4
     // > Map intersectionRect to the coordinate space of root.
-    // TODO: we doesn't map the coordinate space per each iteration yet, instead all the rectangle are in
-    // the viewport coordinate space.
+    // TODO(#35767): we don't map the coordinate space per each iteration yet, instead all the rectangles are
+    // in the viewport coordinate space.
 
     // Step 5
     // > Update intersectionRect by intersecting it with the root intersection rectangle.
-    if let Some(rect) = intersect_rectangle(&intersection_rect, &root_bounds) {
-        intersection_rect = rect;
-    } else {
-        return None;
-    }
+    intersection_rect = intersect_rectangle(&intersection_rect, &root_bounds)?;
 
     // Step 6
     // > Map intersectionRect to the coordinate space of the viewport of the document containing target.

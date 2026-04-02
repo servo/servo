@@ -1053,7 +1053,7 @@ impl Node {
     }
 
     /// Return the node that establishes a containing block for this node.
-    pub(crate) fn containing_block_node(&self) -> Option<DomRoot<Node>> {
+    pub(crate) fn containing_block_node_without_reflow(&self) -> Option<DomRoot<Node>> {
         self.owner_window()
             .containing_block_node_query_without_reflow(self)
     }

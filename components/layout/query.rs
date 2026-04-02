@@ -748,21 +748,11 @@ fn style_and_flags_for_node(
     layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
 }
 
-fn is_containing_block_for_position(position: Position, ancestor: &ServoLayoutNode) -> bool {
-    let Some(layout_data) = ancestor.inner_layout_data() else {
-        return false;
-    };
-    let ancestor_layout_box = layout_data.self_box.borrow();
-    let Some(ancestor_layout_box) = ancestor_layout_box.as_ref() else {
-        return false;
-    };
-
-    let Some((ancestor_style, ancestor_flags)) =
-        ancestor_layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
-    else {
-        return false;
-    };
-
+fn is_containing_block_for_position(
+    position: Position,
+    ancestor_style: &ServoArc<ComputedValues>,
+    ancestor_flags: FragmentFlags,
+) -> bool {
     match position {
         Position::Static | Position::Relative | Position::Sticky => {
             !ancestor_style.is_inline_box(ancestor_flags)
@@ -784,11 +774,12 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
 
     #[expect(unsafe_code)]
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
-        let Some((ancestor_style, _ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
             continue;
         };
 
-        if is_containing_block_for_position(current_position_value, &ancestor) {
+        if is_containing_block_for_position(current_position_value, &ancestor_style, ancestor_flags)
+        {
             return Some(ancestor);
         }
 
@@ -867,7 +858,11 @@ pub(crate) fn process_scroll_container_query(
             continue;
         };
 
-        if !is_containing_block_for_position(current_position_value, &ancestor) {
+        if !is_containing_block_for_position(
+            current_position_value,
+            &ancestor_style,
+            ancestor_flags,
+        ) {
             continue;
         }
 
