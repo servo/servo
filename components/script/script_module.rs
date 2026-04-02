@@ -180,7 +180,7 @@ pub(crate) enum ModuleStatus {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ModuleTree {
     #[no_trace]
-    pub url: ServoUrl,
+    url: ServoUrl,
     #[ignore_malloc_size_of = "mozjs"]
     record: OnceCell<ModuleObject>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -650,11 +650,11 @@ impl ModuleOwner {
                 let script = script.root();
 
                 let load = match module_tree {
-                    Some(ref module_tree) => Ok(Script::Module(module_tree.clone())),
+                    Some(module_tree) => Ok(Script::Module(module_tree)),
                     None => Err(()),
                 };
 
-                finish_fetching_a_script(&script, load, cx);
+                finish_fetching_a_script(&script, script.get_script_kind(), load, cx);
             },
         }
     }

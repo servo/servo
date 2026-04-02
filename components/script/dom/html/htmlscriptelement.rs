@@ -19,7 +19,6 @@ use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
-use script_bindings::codegen::GenericBindings::DOMTokenListBinding::DOMTokenListMethods;
 use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -30,6 +29,7 @@ use uuid::Uuid;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -200,7 +200,7 @@ impl HTMLScriptElement {
     /// script's active document without full preparation.
     ///
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
-    fn get_script_kind(&self) -> ExternalScriptKind {
+    pub(crate) fn get_script_kind(&self) -> ExternalScriptKind {
         let element = self.upcast::<Element>();
         let was_parser_inserted = self.parser_inserted.get();
         let asynch = element.has_attribute(&local_name!("async"));
@@ -239,14 +239,6 @@ impl HTMLScriptElement {
             ExternalScriptKind::Deferred => self.parser_document.as_rooted(),
             ExternalScriptKind::ParsingBlocking => self.parser_document.as_rooted(),
         }
-    }
-
-    pub(crate) fn get_preparation_time_document(&self) -> Option<DomRoot<Document>> {
-        self.preparation_time_document.get()
-    }
-
-    pub(crate) fn get_parser_document(&self) -> DomRoot<Document> {
-        self.parser_document.as_rooted()
     }
 }
 
@@ -353,6 +345,7 @@ impl ScriptOrigin {
 /// Final steps of <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
 pub(crate) fn finish_fetching_a_script(
     elem: &HTMLScriptElement,
+    script_kind: ExternalScriptKind,
     load: ScriptResult,
     cx: &mut js::context::JSContext,
 ) {
@@ -360,7 +353,7 @@ pub(crate) fn finish_fetching_a_script(
     // of https://html.spec.whatwg.org/multipage/#prepare-the-script-element
     let document;
 
-    match elem.get_script_kind() {
+    match script_kind {
         ExternalScriptKind::Asap => {
             document = elem.preparation_time_document.get().unwrap();
             document.asap_script_loaded(cx, elem, load)
@@ -482,7 +475,7 @@ impl FetchResponseListener for ClassicContext {
             (Err(error), _) | (_, Err(error)) => {
                 error!("Fetching classic script failed {:?}", error);
                 // Step 6, response is an error.
-                finish_fetching_a_script(&self.elem.root(), Err(()), cx);
+                finish_fetching_a_script(&self.elem.root(), self.kind, Err(()), cx);
 
                 // Resource timing is expected to be available before "error" or "load" events are fired.
                 network_listener::submit_timing(cx, &self, &response, &timing);
@@ -558,7 +551,7 @@ impl FetchResponseListener for ClassicContext {
             }
         } else {*/
         let load = Script::Classic(script);
-        finish_fetching_a_script(&elem, Ok(load), cx);
+        finish_fetching_a_script(&elem, self.kind, Ok(load), cx);
         // }
 
         network_listener::submit_timing(cx, &self, &response, &timing);
@@ -1560,7 +1553,7 @@ pub(crate) fn substitute_with_local_script(
 }
 
 #[derive(Clone, Copy)]
-enum ExternalScriptKind {
+pub enum ExternalScriptKind {
     Deferred,
     ParsingBlocking,
     AsapInOrder,

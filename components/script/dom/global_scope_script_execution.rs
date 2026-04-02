@@ -46,7 +46,7 @@ pub(crate) struct ClassicScript {
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
     #[no_trace]
-    pub url: ServoUrl,
+    url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
     muted_errors: ErrorReporting,
 }
