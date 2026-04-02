@@ -7907,7 +7907,7 @@ dependencies = [
 
 [[package]]
 name = "servo-hyper-serde"
-version = "0.13.2"
+version = "0.1.0"
 dependencies = [
  "cookie 0.18.1",
  "headers 0.4.1",
