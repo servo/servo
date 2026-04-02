@@ -457,7 +457,7 @@ impl WebView {
             ))
     }
 
-    /// Load a URL with additional HTTP headers.
+    /// Load a [`UrlRequest`] into this [`WebView`].
     pub fn load_request(&self, url_request: UrlRequest) {
         self.inner()
             .servo
