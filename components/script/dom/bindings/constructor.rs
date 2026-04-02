@@ -91,7 +91,7 @@ fn html_constructor(
         throw_dom_exception(
             cx.into(),
             global,
-            Error::Type(c"new.target must not be the active function object".to_owned()),
+            Error::Type(c"Illegal constructor.".to_owned()),
             CanGc::from_cx(cx),
         );
         return Err(());
