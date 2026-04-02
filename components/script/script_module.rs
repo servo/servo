@@ -14,7 +14,6 @@ use std::{mem, ptr};
 
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
@@ -75,11 +74,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, Script, substitute_with_local_script,
 };
+use crate::dom::htmlscriptelement::finish_fetching_a_script;
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -649,34 +648,13 @@ impl ModuleOwner {
             ModuleOwner::DynamicModule(_) => {},
             ModuleOwner::Window(script) => {
                 let script = script.root();
-                let element = script.upcast::<Element>();
 
                 let load = match module_tree {
                     Some(ref module_tree) => Ok(Script::Module(module_tree.clone())),
                     None => Err(()),
                 };
 
-                let asynch = element.has_attribute(&local_name!("async"));
-
-                if !asynch && script.get_parser_inserted() {
-                    let document = script.get_parser_document();
-                    document.deferred_script_loaded(cx, &script, load);
-                } else if !asynch && !script.get_non_blocking() {
-                    let document = script.get_preparation_time_document().unwrap();
-                    document.asap_in_order_script_loaded(cx, &script, load);
-                } else {
-                    let document = script.get_preparation_time_document().unwrap();
-                    document.asap_script_loaded(cx, &script, load);
-                };
-
-                // <https://html.spec.whatwg.org/multipage/#steps-to-run-when-the-result-is-ready>
-                // Step 4
-                if let Some(module_tree) = module_tree {
-                    script.delay_load_event(false, module_tree.url.clone(), cx);
-                } else {
-                    // If the module failed to load, we still want to terminate the load event
-                    script.delay_load_event(false, element.owner_document().base_url(), cx);
-                }
+                finish_fetching_a_script(&script, load, cx);
             },
         }
     }
