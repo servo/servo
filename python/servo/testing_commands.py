@@ -209,12 +209,12 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         self_contained_tests = [
+            "hyper_serde",
             "servo-background-hang-monitor",
             "servo-base",
             "servo-constellation",
             "servo-devtools",
             "servo-fonts",
-            "servo-hyper-serde",
             "servo-layout",
             "servo-layout-api",
             "servo",

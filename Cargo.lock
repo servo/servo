@@ -3855,6 +3855,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyper_serde"
+version = "0.13.2"
+dependencies = [
+ "cookie 0.18.1",
+ "headers 0.4.1",
+ "http 1.4.0",
+ "hyper 1.9.0",
+ "mime",
+ "serde",
+ "serde_bytes",
+ "serde_core",
+ "serde_test",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7689,6 +7704,7 @@ dependencies = [
  "encoding_rs",
  "euclid",
  "http 1.4.0",
+ "hyper_serde",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -7700,7 +7716,6 @@ dependencies = [
  "servo-devtools-traits",
  "servo-embedder-traits",
  "servo-fonts-traits",
- "servo-hyper-serde",
  "servo-malloc-size-of",
  "servo-net-traits",
  "servo-paint-api",
@@ -7793,6 +7808,7 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "http 1.4.0",
+ "hyper_serde",
  "image",
  "inventory",
  "keyboard-types",
@@ -7802,7 +7818,6 @@ dependencies = [
  "serde",
  "servo-base",
  "servo-geometry",
- "servo-hyper-serde",
  "servo-malloc-size-of",
  "servo-pixels",
  "servo-url",
@@ -7903,21 +7918,6 @@ dependencies = [
  "servo-malloc-size-of",
  "webrender",
  "webrender_api",
-]
-
-[[package]]
-name = "servo-hyper-serde"
-version = "0.13.2"
-dependencies = [
- "cookie 0.18.1",
- "headers 0.4.1",
- "http 1.4.0",
- "hyper 1.9.0",
- "mime",
- "serde",
- "serde_bytes",
- "serde_core",
- "serde_test",
 ]
 
 [[package]]
@@ -8297,6 +8297,7 @@ dependencies = [
  "hyper 1.9.0",
  "hyper-rustls",
  "hyper-util",
+ "hyper_serde",
  "imsz",
  "ipc-channel",
  "itertools 0.14.0",
@@ -8319,7 +8320,6 @@ dependencies = [
  "servo-default-resources",
  "servo-devtools-traits",
  "servo-embedder-traits",
- "servo-hyper-serde",
  "servo-malloc-size-of",
  "servo-net",
  "servo-net-traits",
@@ -8353,6 +8353,7 @@ dependencies = [
  "headers 0.4.1",
  "http 1.4.0",
  "hyper-util",
+ "hyper_serde",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -8368,7 +8369,6 @@ dependencies = [
  "servo-config",
  "servo-default-resources",
  "servo-embedder-traits",
- "servo-hyper-serde",
  "servo-malloc-size-of",
  "servo-paint-api",
  "servo-pixels",
@@ -8547,6 +8547,7 @@ dependencies = [
  "hkdf",
  "html5ever",
  "http 1.4.0",
+ "hyper_serde",
  "icu_locid",
  "indexmap",
  "ipc-channel",
@@ -8597,7 +8598,6 @@ dependencies = [
  "servo-fonts",
  "servo-fonts-traits",
  "servo-geometry",
- "servo-hyper-serde",
  "servo-jstraceable-derive",
  "servo-layout-api",
  "servo-malloc-size-of",

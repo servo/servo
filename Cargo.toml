@@ -296,7 +296,7 @@ xpath = { package = "servo-xpath", version = "0.1.0", path = "components/xpath" 
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
 # Independently versioned workspace local crates. These crates will not take part in auto-bumps.
-hyper_serde = { package = "servo-hyper-serde", version = "0.13.2", path = "components/hyper_serde" }
+hyper_serde = { version = "0.13.2", path = "components/hyper_serde" }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
