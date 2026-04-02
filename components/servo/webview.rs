@@ -49,6 +49,10 @@ pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1,
 /// considers that the webview has closed and will clean up all associated resources related
 /// to this webview.
 ///
+/// ## Creating a WebView
+///
+/// To create a [`WebView`], use [`WebViewBuilder`].
+///
 /// ## Rendering Model
 ///
 /// Every [`WebView`] has a [`RenderingContext`](crate::RenderingContext). The embedder manages when
@@ -874,7 +878,7 @@ impl WebViewTrait for ServoRendererWebView {
     }
 }
 
-/// Builder for [`WebView`].
+/// Builder for creating a [`WebView`].
 pub struct WebViewBuilder {
     servo: Servo,
     rendering_context: Rc<dyn RenderingContext>,
