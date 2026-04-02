@@ -10,9 +10,6 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::DebuggerValue::{
-    self, BooleanValue, NullValue, NumberValue, ObjectValue, StringValue, VoidValue,
-};
 use devtools_traits::{
     ConsoleArgument, ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError,
     StackFrame, get_time_stamp,
@@ -26,7 +23,7 @@ use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor};
+use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor, debugger_value_to_json};
 use crate::actors::worker::WorkerActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
@@ -307,117 +304,6 @@ impl ConsoleActor {
         }
     }
 
-    // TODO: This should be handled with struct serialization instead of manually adding values to a map
-    fn value_to_json(value: DebuggerValue, registry: &ActorRegistry) -> Value {
-        let mut m = Map::new();
-        match value {
-            VoidValue => {
-                m.insert("type".to_owned(), Value::String("undefined".to_owned()));
-                Value::Object(m)
-            },
-            NullValue => {
-                m.insert("type".to_owned(), Value::String("null".to_owned()));
-                Value::Object(m)
-            },
-            BooleanValue(val) => Value::Bool(val),
-            NumberValue(val) => {
-                if val.is_nan() {
-                    m.insert("type".to_owned(), Value::String("NaN".to_owned()));
-                    Value::Object(m)
-                } else if val.is_infinite() {
-                    if val < 0. {
-                        m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
-                    } else {
-                        m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
-                    }
-                    Value::Object(m)
-                } else if val == 0. && val.is_sign_negative() {
-                    m.insert("type".to_owned(), Value::String("-0".to_owned()));
-                    Value::Object(m)
-                } else {
-                    Value::Number(Number::from_f64(val).unwrap())
-                }
-            },
-            StringValue(s) => Value::String(s),
-            ObjectValue {
-                uuid,
-                class,
-                preview,
-            } => {
-                let actor =
-                    ObjectActor::register(registry, Some(uuid), class.clone(), preview.clone());
-
-                m.insert("type".to_owned(), Value::String("object".to_owned()));
-                m.insert("class".to_owned(), Value::String(class));
-                m.insert("actor".to_owned(), Value::String(actor));
-                m.insert("extensible".to_owned(), Value::Bool(true));
-                m.insert("frozen".to_owned(), Value::Bool(false));
-                m.insert("sealed".to_owned(), Value::Bool(false));
-
-                // Build preview
-                // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
-                let Some(preview) = preview else {
-                    return Value::Object(m);
-                };
-                let mut preview_map = Map::new();
-
-                if preview.kind == "ArrayLike" {
-                    if let Some(length) = preview.array_length {
-                        preview_map.insert("length".to_owned(), Value::Number(length.into()));
-                    }
-                } else {
-                    if let Some(ref props) = preview.own_properties {
-                        let mut own_props_map = Map::new();
-                        for prop in props {
-                            let descriptor = serde_json::to_value(
-                                ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
-                            )
-                            .unwrap();
-                            own_props_map.insert(prop.name.clone(), descriptor);
-                        }
-                        preview_map
-                            .insert("ownProperties".to_owned(), Value::Object(own_props_map));
-                    }
-
-                    if let Some(length) = preview.own_properties_length {
-                        preview_map.insert(
-                            "ownPropertiesLength".to_owned(),
-                            Value::Number(length.into()),
-                        );
-                        m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
-                    }
-                }
-                preview_map.insert("kind".to_owned(), Value::String(preview.kind));
-
-                // Function-specific metadata
-                if let Some(function) = preview.function {
-                    if let Some(name) = function.name {
-                        m.insert("name".to_owned(), Value::String(name));
-                    }
-                    if let Some(display_name) = function.display_name {
-                        m.insert("displayName".to_owned(), Value::String(display_name));
-                    }
-                    m.insert(
-                        "parameterNames".to_owned(),
-                        Value::Array(
-                            function
-                                .parameter_names
-                                .into_iter()
-                                .map(Value::String)
-                                .collect(),
-                        ),
-                    );
-                    m.insert("isAsync".to_owned(), Value::Bool(function.is_async));
-                    m.insert("isGenerator".to_owned(), Value::Bool(function.is_generator));
-                }
-
-                m.insert("preview".to_owned(), Value::Object(preview_map));
-
-                Value::Object(m)
-            },
-        }
-    }
-
     fn evaluate_js(
         &self,
         registry: &ActorRegistry,
@@ -449,7 +335,7 @@ impl ConsoleActor {
         let reply = EvaluateJSReply {
             from: self.name(),
             input,
-            result: Self::value_to_json(eval_result.value, registry),
+            result: debugger_value_to_json(registry, eval_result.value),
             timestamp: get_time_stamp(),
             exception: Value::Null,
             exception_message: Value::Null,

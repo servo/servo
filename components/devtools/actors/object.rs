@@ -36,7 +36,7 @@ struct EnumReply {
 #[derive(Serialize)]
 struct PrototypeReply {
     from: String,
-    prototype: ObjectActorMsg,
+    prototype: Value,
 }
 
 #[derive(Serialize)]
@@ -72,48 +72,50 @@ impl ObjectPropertyDescriptor {
             configurable: prop.configurable,
             enumerable: prop.enumerable,
             writable: prop.writable,
-            value: debugger_value_to_json(registry, &prop.value),
+            value: debugger_value_to_json(registry, prop.value.clone()),
         }
     }
 }
 
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#148>
-fn debugger_value_to_json(registry: &ActorRegistry, value: &DebuggerValue) -> Value {
+pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerValue) -> Value {
+    let mut v = Map::new();
     match value {
         DebuggerValue::VoidValue => {
-            let mut v = Map::new();
             v.insert("type".to_owned(), Value::String("undefined".to_owned()));
             Value::Object(v)
         },
-        DebuggerValue::NullValue => Value::Null,
-        DebuggerValue::BooleanValue(boolean) => Value::Bool(*boolean),
-        DebuggerValue::NumberValue(num) => {
-            if num.is_nan() {
-                let mut v = Map::new();
+        DebuggerValue::NullValue => {
+            v.insert("type".to_owned(), Value::String("null".to_owned()));
+            Value::Object(v)
+        },
+        DebuggerValue::BooleanValue(boolean) => Value::Bool(boolean),
+        DebuggerValue::NumberValue(val) => {
+            if val.is_nan() {
                 v.insert("type".to_owned(), Value::String("NaN".to_owned()));
                 Value::Object(v)
-            } else if num.is_infinite() {
-                let mut v = Map::new();
-                let type_str = if num.is_sign_positive() {
-                    "Infinity"
+            } else if val.is_infinite() {
+                if val < 0. {
+                    v.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
                 } else {
-                    "-Infinity"
-                };
-                v.insert("type".to_owned(), Value::String(type_str.to_owned()));
+                    v.insert("type".to_owned(), Value::String("Infinity".to_owned()));
+                }
+                Value::Object(v)
+            } else if val == 0. && val.is_sign_negative() {
+                v.insert("type".to_owned(), Value::String("-0".to_owned()));
                 Value::Object(v)
             } else {
-                Value::Number(Number::from_f64(*num).unwrap_or(Number::from(0)))
+                Value::Number(Number::from_f64(val).unwrap())
             }
         },
-        DebuggerValue::StringValue(str) => Value::String(str.clone()),
+        DebuggerValue::StringValue(str) => Value::String(str),
         DebuggerValue::ObjectValue {
             uuid,
             class,
             preview,
             ..
         } => {
-            let object_name =
-                ObjectActor::register(registry, Some(uuid.clone()), class.clone(), preview.clone());
+            let object_name = ObjectActor::register(registry, Some(uuid), class, preview);
             let object_msg = registry.encode::<ObjectActor, _>(&object_name);
             let value = serde_json::to_value(object_msg).unwrap_or_default();
             Value::Object(value.as_object().cloned().unwrap_or_default())
@@ -233,24 +235,76 @@ impl ObjectActor {
     }
 }
 
-impl ActorEncode<ObjectActorMsg> for ObjectActor {
-    fn encode(&self, _: &ActorRegistry) -> ObjectActorMsg {
-        ObjectActorMsg {
-            actor: self.name(),
-            type_: "object".into(),
-            class: self.class.clone(),
-            own_property_length: self
-                .preview
-                .as_ref()
-                .and_then(|preview| preview.own_properties_length)
-                .unwrap_or_default() as i32,
-            extensible: true,
-            frozen: false,
-            sealed: false,
-            is_error: false,
-            // TODO: Do the same processing as in console::value_to_json
-            preview: self.preview.clone(),
+impl ActorEncode<Value> for ObjectActor {
+    fn encode(&self, registry: &ActorRegistry) -> Value {
+        // TODO: convert to a serialize struct instead
+        let mut m = Map::new();
+        m.insert("type".to_owned(), Value::String("object".to_owned()));
+        m.insert("class".to_owned(), Value::String(self.class.clone()));
+        m.insert("actor".to_owned(), Value::String(self.name()));
+        m.insert("extensible".to_owned(), Value::Bool(true));
+        m.insert("frozen".to_owned(), Value::Bool(false));
+        m.insert("sealed".to_owned(), Value::Bool(false));
+
+        // Build preview
+        // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
+        let Some(preview) = self.preview.clone() else {
+            return Value::Object(m);
+        };
+        let mut preview_map = Map::new();
+
+        if preview.kind == "ArrayLike" {
+            if let Some(length) = preview.array_length {
+                preview_map.insert("length".to_owned(), Value::Number(length.into()));
+            }
+        } else {
+            if let Some(ref props) = preview.own_properties {
+                let mut own_props_map = Map::new();
+                for prop in props {
+                    let descriptor = serde_json::to_value(
+                        ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
+                    )
+                    .unwrap();
+                    own_props_map.insert(prop.name.clone(), descriptor);
+                }
+                preview_map.insert("ownProperties".to_owned(), Value::Object(own_props_map));
+            }
+
+            if let Some(length) = preview.own_properties_length {
+                preview_map.insert(
+                    "ownPropertiesLength".to_owned(),
+                    Value::Number(length.into()),
+                );
+                m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+            }
         }
+        preview_map.insert("kind".to_owned(), Value::String(preview.kind));
+
+        // Function-specific metadata
+        if let Some(function) = preview.function {
+            if let Some(name) = function.name {
+                m.insert("name".to_owned(), Value::String(name));
+            }
+            if let Some(display_name) = function.display_name {
+                m.insert("displayName".to_owned(), Value::String(display_name));
+            }
+            m.insert(
+                "parameterNames".to_owned(),
+                Value::Array(
+                    function
+                        .parameter_names
+                        .into_iter()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            );
+            m.insert("isAsync".to_owned(), Value::Bool(function.is_async));
+            m.insert("isGenerator".to_owned(), Value::Bool(function.is_generator));
+        }
+
+        m.insert("preview".to_owned(), Value::Object(preview_map));
+
+        Value::Object(m)
     }
 }
 
