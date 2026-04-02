@@ -453,7 +453,7 @@ impl WebView {
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
-                UrlRequest::new(url.into()),
+                UrlRequest::new(url),
             ))
     }
 

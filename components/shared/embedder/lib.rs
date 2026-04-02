@@ -1133,7 +1133,7 @@ pub struct UrlRequest {
 impl UrlRequest {
     pub fn new(url: Url) -> Self {
         UrlRequest {
-            url,
+            url: url.into(),
             headers: HeaderMap::new(),
         }
     }
