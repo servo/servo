@@ -195,18 +195,20 @@ impl Node {
     /// specification yet.
     ///
     /// Return `true` if anything was focused or `false` otherwise.
-    pub(crate) fn run_the_focusing_steps(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn run_the_focusing_steps(
+        &self,
+        fallback_target: Option<FocusableArea>,
+        can_gc: CanGc,
+    ) -> bool {
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
         // >    passed.
-        let Some(focusable_area) = self.get_the_focusable_area() else {
-            return false;
-        };
-
         // > 2. If new focus target is null, then:
         // > 2.1 If no fallback target was specified, then return.
         // > 2.2 Otherwise, set new focus target to the fallback target.
-        // TODO: Handle the fallback.
+        let Some(focusable_area) = self.get_the_focusable_area().or(fallback_target) else {
+            return false;
+        };
 
         // > 3. If new focus target is a navigable container with non-null content navigable, then
         // >    set new focus target to the content navigable's active document.

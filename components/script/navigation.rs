@@ -307,6 +307,7 @@ pub(crate) fn determine_the_origin(
 
 /// <https://html.spec.whatwg.org/multipage/#navigate-fragid>
 fn navigate_to_fragment(
+    cx: &mut JSContext,
     window: &Window,
     url: &ServoUrl,
     history_handling: NavigationHistoryBehavior,
@@ -348,7 +349,7 @@ fn navigate_to_fragment(
     let Some(fragment) = url.fragment() else {
         unreachable!("Must always have a fragment");
     };
-    doc.scroll_to_the_fragment(fragment);
+    doc.scroll_to_the_fragment(fragment, CanGc::from_cx(cx));
     // Step 16. Let traversable be navigable's traversable navigable.
     // TODO
     // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:
@@ -430,7 +431,7 @@ pub(crate) fn navigate(
         if let Some(ref sender) = webdriver_sender {
             let _ = sender.send(WebDriverLoadStatus::NavigationStart);
         }
-        navigate_to_fragment(window, &load_data.url, history_handling);
+        navigate_to_fragment(cx, window, &load_data.url, history_handling);
         // Step 14.2. Return.
         if let Some(sender) = webdriver_sender {
             let _ = sender.send(WebDriverLoadStatus::NavigationStop);

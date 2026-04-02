@@ -1231,7 +1231,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
-    pub(crate) fn scroll_to_the_fragment(&self, fragment: &str) {
+    pub(crate) fn scroll_to_the_fragment(&self, fragment: &str, can_gc: CanGc) {
         // Step 1. If document's indicated part is null, then set document's target element to null.
         //
         // > For an HTML document document, its indicated part is the result of
@@ -1270,8 +1270,10 @@ impl Document {
             None,
             None,
         );
-        // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback target.
-        // TODO
+
+        // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback
+        // target.
+        indicated_part.run_the_focusing_steps(Some(FocusableArea::Viewport), can_gc);
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
         self.event_handler()
@@ -2513,7 +2515,7 @@ impl Document {
                 // TODO
 
                 if let Some(fragment) = document.url().fragment() {
-                    document.scroll_to_the_fragment(fragment);
+                    document.scroll_to_the_fragment(fragment, CanGc::note());
                 }
             }));
 
