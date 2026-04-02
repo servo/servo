@@ -237,6 +237,7 @@ dom_struct = { package = "servo-dom-struct", version = "0.1.0-rc1", path = "comp
 embedder_traits = { package = "servo-embedder-traits", version = "0.1.0-rc1", path = "components/shared/embedder" }
 fonts = { package = "servo-fonts", version = "0.1.0-rc1", path = "components/fonts" }
 fonts_traits = { package = "servo-fonts-traits", version = "0.1.0-rc1", path = "components/shared/fonts" }
+hyper_serde = { package = "servo-hyper-serde", version = "0.1.0-rc1", path = "components/hyper_serde" }
 jstraceable_derive = { package = "servo-jstraceable-derive", version = "0.1.0-rc1", path = "components/jstraceable_derive" }
 layout = { package = "servo-layout", version = "0.1.0-rc1", path = "components/layout" }
 layout_api = { package = "servo-layout-api", version = "0.1.0-rc1", path = "components/shared/layout" }
@@ -294,9 +295,6 @@ webxr = { package = "servo-webxr", version = "0.1.0-rc1", path = "components/web
 webxr-api = { package = "servo-webxr-api", version = "0.1.0-rc1", path = "components/shared/webxr" }
 xpath = { package = "servo-xpath", version = "0.1.0-rc1", path = "components/xpath" }
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
-
-# Independently versioned workspace local crates. These crates will not take part in auto-bumps.
-hyper_serde = { package = "servo-hyper-serde", version = "0.13.2", path = "components/hyper_serde" }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
