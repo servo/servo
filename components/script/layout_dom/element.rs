@@ -1074,12 +1074,6 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
             return None;
         }
 
-        if pseudo_element == PseudoElement::DetailsSummary &&
-            (!self.has_local_name(&local_name!("details")) || !self.has_namespace(&ns!(html)))
-        {
-            return None;
-        }
-
         if pseudo_element == PseudoElement::DetailsContent &&
             (!self.has_local_name(&local_name!("details")) ||
                 !self.has_namespace(&ns!(html)) ||
@@ -1091,7 +1085,6 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         // These pseudo-element type cannot be nested.
         if !self.pseudo_element_chain.is_empty() {
             assert!(!pseudo_element.is_eager());
-            assert!(pseudo_element != PseudoElement::DetailsSummary);
             assert!(pseudo_element != PseudoElement::DetailsContent);
         }
 
