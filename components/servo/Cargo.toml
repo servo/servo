@@ -154,9 +154,9 @@ accesskit_consumer = "0.35.0"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
+itertools = { workspace = true }
 net = { workspace = true, features = ["test-util"] }
 rustls = { version = "0.23", default-features = false }
-itertools = { workspace = true }
 # This must always be a path dependency, we don't want to add a dependency on a
 # crates.io version of ourselves - we want to enable a feature of ourselves.
 servo = { path = ".", features = ["tracing"] }
