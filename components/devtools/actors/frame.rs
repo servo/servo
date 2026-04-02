@@ -112,12 +112,12 @@ impl FrameActor {
         source_actor: String,
         frame_result: FrameInfo,
     ) -> String {
-        let object_actor = ObjectActor::register(registry, None, "Object".to_owned(), None);
+        let object_name = ObjectActor::register(registry, None, "Object".to_owned(), None);
 
         let name = registry.new_name::<Self>();
         let actor = Self {
             name: name.clone(),
-            object_actor,
+            object_actor: object_name,
             source_actor,
             frame_result,
             current_offset: Default::default(),
