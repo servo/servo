@@ -156,7 +156,7 @@ impl ActorRegistry {
     }
 
     /// Create a unique name based on a monotonically increasing suffix
-    /// TODO: Merge this with `register/register_later` and don't allow to
+    /// TODO: Merge this with `register` and don't allow to
     /// create new names without registering an actor.
     pub fn new_name<T: Actor>(&self) -> String {
         let suffix = self.next.fetch_add(1, Ordering::Relaxed);
