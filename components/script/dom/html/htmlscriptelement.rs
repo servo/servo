@@ -1020,6 +1020,8 @@ impl HTMLScriptElement {
                     return;
                 },
                 ScriptType::Module => {
+                    let doc = self.get_script_active_document().expect("Just to make sure we running in the correct document incase the script has been moved");
+
                     // Step 32.2.2.1 Set el's delaying the load event to true.
                     self.delay_load_event(true, base_url.clone(), cx);
 
@@ -1033,6 +1035,13 @@ impl HTMLScriptElement {
                         options.render_blocking = true;
                     }
 
+                    match kind {
+                        ExternalScriptKind::Deferred => doc.add_deferred_script(self),
+                        ExternalScriptKind::ParsingBlocking => {},
+                        ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
+                        ExternalScriptKind::Asap => doc.add_asap_script(self),
+                    }
+
                     fetch_inline_module_script(
                         cx,
                         ModuleOwner::Window(Trusted::new(self)),
@@ -1041,6 +1050,7 @@ impl HTMLScriptElement {
                         options,
                         self.line_number as u32,
                     );
+                    return;
                 },
                 ScriptType::ImportMap => {
                     // Step 32.1 Let result be the result of creating an import map
