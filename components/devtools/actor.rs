@@ -49,7 +49,6 @@ impl ActorError {
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
-/// TODO: ensure the name is immutable
 pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
     fn handle_message(
         &self,
@@ -157,7 +156,7 @@ impl ActorRegistry {
     }
 
     /// Create a unique name based on a monotonically increasing suffix
-    /// TODO: Merge this with `register/register_later` and don't allow to
+    /// TODO: Merge this with `register` and don't allow to
     /// create new names without registering an actor.
     pub fn new_name<T: Actor>(&self) -> String {
         let suffix = self.next.fetch_add(1, Ordering::Relaxed);
