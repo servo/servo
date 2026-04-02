@@ -1328,6 +1328,8 @@ impl VirtualMethods for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-trees:concept-node-remove-ext>
+    ///
+    /// TODO: These are the node removal steps, so this should be done for all Nodes.
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         // 1. Let document be removedNode's node document.
         let document = self.owner_document();
@@ -1336,18 +1338,18 @@ impl VirtualMethods for HTMLElement {
         // document's viewport, and set document's relevant global object's navigation API's focus
         // changed during ongoing navigation to false.
         //
-        // TODO: Should this also happen for non-HTML elements such as SVG elements?
+        // We are not calling the focusing steps on purpose here. There is a note about this in
+        // the specification that reads:
+        //
+        // > This does not perform the unfocusing steps, focusing steps, or focus update steps, and
+        // > thus no blur or change events are fired.
         let element = self.as_element();
         if document
             .focus_handler()
             .focused_element()
             .is_some_and(|focused_element| &*focused_element == element)
         {
-            document.focus_handler().focus(
-                FocusOperation::Focus(FocusableArea::Viewport),
-                FocusInitiator::Local,
-                can_gc,
-            );
+            document.focus_handler().set_focused_element(None);
         }
 
         // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard

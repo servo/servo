@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -15,7 +16,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::execcommand::contenteditable::ContentEditableRange;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
-use crate::dom::{Event, EventBubbles, EventCancelable, Node};
+use crate::dom::{Event, EventBubbles, EventCancelable, Node, NodeTraits};
 
 pub(crate) enum FocusOperation {
     Focus(FocusableArea),
@@ -108,6 +109,46 @@ impl DocumentFocusHandler {
     /// Return the element that currently has focus. If `None` is returned the viewport itself has focus.
     pub(crate) fn focused_element(&self) -> Option<DomRoot<Element>> {
         self.focused_element.get()
+    }
+
+    /// Set the element that currently has focus and update the focus state for both the previously
+    /// set element (if any) and the new one, as well as the new one. This will not do anything if
+    /// the new element is the same as the previous one. Note that this *will not* fire any focus
+    /// events. If that is necessary the [`DocumentFocusHandler::focus`] should be used.
+    pub(crate) fn set_focused_element(&self, new_element: Option<&Element>) {
+        let previously_focused_element = self.focused_element.get();
+        if new_element == previously_focused_element.as_deref() {
+            return;
+        }
+
+        // From <https://html.spec.whatwg.org/multipage/#selector-focus>
+        // > For the purposes of the CSS :focus pseudo-class, an element has the focus when:
+        // >  - it is not itself a navigable container; and
+        // >  - any of the following are true:
+        // >    - it is one of the elements listed in the current focus chain of the top-level
+        // >      traversable; or
+        // >    - its shadow root shadowRoot is not null and shadowRoot is the root of at least one
+        // >      element that has the focus.
+        //
+        // We are trying to accomplish the last requirement here, by walking up the tree and
+        // marking each shadow host as focused.
+        fn recursively_set_focus_status(element: &Element, new_state: bool) {
+            element.set_focus_state(new_state);
+
+            let Some(shadow_root) = element.containing_shadow_root() else {
+                return;
+            };
+            recursively_set_focus_status(&shadow_root.Host(), new_state);
+        }
+
+        if let Some(previously_focused_element) = previously_focused_element {
+            recursively_set_focus_status(&previously_focused_element, false);
+        }
+        if let Some(newly_focused_element) = new_element {
+            recursively_set_focus_status(newly_focused_element, true);
+        }
+
+        self.focused_element.set(new_element);
     }
 
     /// Get the last sequence number sent to the constellation.
@@ -205,12 +246,17 @@ impl DocumentFocusHandler {
         trace_focus_chain("New", new_focused_filtered, new_focus_state);
 
         if old_focused_filtered != new_focused_filtered {
-            if let Some(elem) = &old_focused_filtered {
-                let node = elem.upcast::<Node>();
-                elem.set_focus_state(false);
+            // Although the "focusing steps" in the HTML specification say to wait until after firing
+            // the "blur" event to change the currently focused area of the Document, browsers tend
+            // to set it to the viewport before firing the "blur" event.
+            //
+            // See https://github.com/whatwg/html/issues/1569
+            self.set_focused_element(None);
+
+            if let Some(element) = &old_focused_filtered {
                 // FIXME: pass appropriate relatedTarget
-                if node.is_connected() {
-                    self.fire_focus_event(FocusEventType::Blur, node.upcast(), None, can_gc);
+                if element.upcast::<Node>().is_connected() {
+                    self.fire_focus_event(FocusEventType::Blur, element.upcast(), None, can_gc);
                 }
             }
         }
@@ -219,7 +265,7 @@ impl DocumentFocusHandler {
             self.fire_focus_event(FocusEventType::Blur, self.window.upcast(), None, can_gc);
         }
 
-        self.focused_element.set(new_focused.as_deref());
+        self.set_focused_element(new_focused.as_deref());
         self.has_focus.set(new_focus_state);
 
         if old_focus_state != new_focus_state && new_focus_state {
