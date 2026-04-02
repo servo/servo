@@ -97,7 +97,7 @@ hkdf = "0.12"
 html5ever = "0.39"
 http = "1.4"
 http-body-util = "0.1"
-hyper = "1.8"
+hyper = "1.9"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio", "client-proxy"] }
 icu_locid = "1.5.0"
