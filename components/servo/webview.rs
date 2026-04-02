@@ -15,7 +15,7 @@ use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
     InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
     MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
+    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -24,7 +24,7 @@ use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
-use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection, UrlRequest};
+use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -458,7 +458,7 @@ impl WebView {
     }
 
     /// Load a URL with additional HTTP headers.
-    pub fn load_with_request(&self, url_request: UrlRequest) {
+    pub fn load_request(&self, url_request: UrlRequest) {
         self.inner()
             .servo
             .constellation_proxy()
