@@ -9,7 +9,6 @@ use std::io::{self, ErrorKind, Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::sync::{Arc, Mutex};
 
-use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Value, json};
@@ -34,53 +33,6 @@ pub(crate) struct Method {
 pub trait JsonPacketStream {
     fn write_json_packet<T: Serialize>(&mut self, message: &T) -> Result<(), ActorError>;
     fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
-}
-
-impl JsonPacketStream for TcpStream {
-    fn write_json_packet<T: Serialize>(&mut self, message: &T) -> Result<(), ActorError> {
-        let s = serde_json::to_string(message).map_err(|_| ActorError::Internal)?;
-        debug!("<- {}", s);
-        write!(self, "{}:{}", s.len(), s).map_err(|_| ActorError::Internal)?;
-        Ok(())
-    }
-
-    fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
-        // https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#stream-transport
-        // In short, each JSON packet is [ascii length]:[JSON data of given length]
-        let mut buffer = vec![];
-        loop {
-            let mut buf = [0];
-            let byte = match self.read(&mut buf) {
-                Ok(0) => return Ok(None),                                            // EOF
-                Err(e) if e.kind() == ErrorKind::ConnectionReset => return Ok(None), // EOF
-                Ok(1) => buf[0],
-                Ok(_) => unreachable!(),
-                Err(e) => return Err(e.to_string()),
-            };
-            match byte {
-                b':' => {
-                    let packet_len_str = match String::from_utf8(buffer) {
-                        Ok(packet_len) => packet_len,
-                        Err(_) => return Err("nonvalid UTF8 in packet length".to_owned()),
-                    };
-                    let packet_len = match packet_len_str.parse::<u64>() {
-                        Ok(packet_len) => packet_len,
-                        Err(_) => return Err("packet length missing / not parsable".to_owned()),
-                    };
-                    let mut packet = String::new();
-                    self.take(packet_len)
-                        .read_to_string(&mut packet)
-                        .map_err(|e| e.to_string())?;
-                    debug!("{}", packet);
-                    return match serde_json::from_str(&packet) {
-                        Ok(json) => Ok(Some(json)),
-                        Err(err) => Err(err.to_string()),
-                    };
-                },
-                c => buffer.push(c),
-            }
-        }
-    }
 }
 
 /// Wraps a Remote Debugging Protocol TCP stream, guaranteeing that network
