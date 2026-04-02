@@ -49,7 +49,6 @@ impl ActorError {
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
-/// TODO: ensure the name is immutable
 pub(crate) trait Actor: Any + ActorAsAny + Send + Sync + MallocSizeOf {
     fn handle_message(
         &self,
