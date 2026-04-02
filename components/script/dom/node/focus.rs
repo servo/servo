@@ -7,9 +7,11 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 
-use crate::dom::document::focus::{FocusOperation, FocusableArea, FocusableAreaKind};
+use crate::dom::document::focus::{
+    FocusInitiator, FocusOperation, FocusableArea, FocusableAreaKind,
+};
 use crate::dom::types::{Element, HTMLDialogElement};
-use crate::dom::{FocusInitiator, Node, NodeTraits, ShadowIncluding};
+use crate::dom::{Node, NodeTraits, ShadowIncluding};
 
 impl Node {
     /// Returns the appropriate [`FocusableArea`] when this [`Node`] is clicked on according to
@@ -95,7 +97,7 @@ impl Node {
             .and_then(Element::shadow_root)
             .is_some_and(|shadow_root| shadow_root.DelegatesFocus())
         {
-            if let Some(focused_element) = self.owner_document().focused_element() {
+            if let Some(focused_element) = self.owner_document().focus_handler().focused_element() {
                 // >   Step 2. If focus target is a shadow-including inclusive ancestor of
                 // >           focusedElement, then return focusedElement.
                 if self
@@ -224,7 +226,7 @@ impl Node {
         // TODO: Handle all of these steps by converting the focus transaction code to follow
         // the HTML focus specification.
         let document = self.owner_document();
-        document.focus(
+        document.focus_handler().focus(
             FocusOperation::Focus(focusable_area),
             FocusInitiator::Local,
             can_gc,

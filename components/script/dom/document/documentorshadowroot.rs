@@ -231,7 +231,7 @@ impl DocumentOrShadowRoot {
         // Note: When `Document::focused_element` returns `None`, that means that the
         // `Document` / viewport itself is focused.
         let document = self.window.Document();
-        let candidate = match document.focused_element() {
+        let candidate = match document.focus_handler().focused_element() {
             Some(candidate) => DomRoot::upcast::<Node>(candidate),
             None => DomRoot::upcast::<Node>(document.clone()),
         };

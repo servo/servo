@@ -128,10 +128,9 @@ use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
-use crate::dom::document::focus::{FocusOperation, FocusableArea};
+use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
 use crate::dom::document::{
-    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument,
-    RenderingUpdateReason,
+    Document, DocumentSource, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -1243,7 +1242,9 @@ impl ScriptThread {
             // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
             // > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
             // > focus changed during ongoing navigation to false.
-            document.perform_focus_fixup_rule(CanGc::from_cx(cx));
+            document
+                .focus_handler()
+                .perform_focus_fixup_rule(CanGc::from_cx(cx));
 
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
@@ -2875,18 +2876,18 @@ impl ScriptThread {
             return;
         };
 
-        if document.get_focus_sequence() > sequence {
+        if document.focus_handler().focus_sequence() > sequence {
             debug!(
                 "Disregarding the FocusIFrame message because the contained sequence number is \
                 too old ({:?} < {:?})",
                 sequence,
-                document.get_focus_sequence()
+                document.focus_handler().focus_sequence()
             );
             return;
         }
 
         if let Some(focusable_area) = iframe_element.get_the_focusable_area() {
-            iframe_element.owner_document().focus(
+            iframe_element.owner_document().focus_handler().focus(
                 FocusOperation::Focus(focusable_area),
                 FocusInitiator::Remote,
                 can_gc,
@@ -2900,17 +2901,18 @@ impl ScriptThread {
         sequence: FocusSequenceNumber,
         can_gc: CanGc,
     ) {
-        if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
-            if doc.get_focus_sequence() > sequence {
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            let focus_handler = document.focus_handler();
+            if focus_handler.focus_sequence() > sequence {
                 debug!(
                     "Disregarding the FocusDocument message because the contained sequence number is \
                     too old ({:?} < {:?})",
                     sequence,
-                    doc.get_focus_sequence()
+                    focus_handler.focus_sequence()
                 );
                 return;
             }
-            doc.focus(
+            focus_handler.focus(
                 FocusOperation::Focus(FocusableArea::Viewport),
                 FocusInitiator::Remote,
                 can_gc,
@@ -2928,17 +2930,18 @@ impl ScriptThread {
         sequence: FocusSequenceNumber,
         can_gc: CanGc,
     ) {
-        if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
-            if doc.get_focus_sequence() > sequence {
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            let focus_handler = document.focus_handler();
+            if focus_handler.focus_sequence() > sequence {
                 debug!(
                     "Disregarding the Unfocus message because the contained sequence number is \
                     too old ({:?} < {:?})",
                     sequence,
-                    doc.get_focus_sequence()
+                    focus_handler.focus_sequence()
                 );
                 return;
             }
-            doc.handle_container_unfocus(can_gc);
+            focus_handler.handle_container_unfocus(can_gc);
         } else {
             warn!(
                 "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_unfocus_msg."
