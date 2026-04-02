@@ -95,7 +95,7 @@ impl Node {
             .and_then(Element::shadow_root)
             .is_some_and(|shadow_root| shadow_root.DelegatesFocus())
         {
-            if let Some(focused_element) = self.owner_document().get_focused_element() {
+            if let Some(focused_element) = self.owner_document().focused_element() {
                 // >   Step 2. If focus target is a shadow-including inclusive ancestor of
                 // >           focusedElement, then return focusedElement.
                 if self

@@ -371,7 +371,7 @@ pub(crate) struct Document {
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
     /// The element that currently has the document focus context.
-    focused: MutNullableDom<Element>,
+    focused_element: MutNullableDom<Element>,
     /// The last sequence number sent to the constellation.
     #[no_trace]
     focus_sequence: Cell<FocusSequenceNumber>,
@@ -1336,8 +1336,8 @@ impl Document {
 
     /// Return the element that currently has focus.
     // https://w3c.github.io/uievents/#events-focusevent-doc-focus
-    pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
-        self.focused.get()
+    pub(crate) fn focused_element(&self) -> Option<DomRoot<Element>> {
+        self.focused_element.get()
     }
 
     /// Get the last sequence number sent to the constellation.
@@ -1368,7 +1368,7 @@ impl Document {
     /// TODO: Handle the "focus changed during ongoing navigation" flag.
     pub(crate) fn perform_focus_fixup_rule(&self, can_gc: CanGc) {
         if self
-            .focused
+            .focused_element
             .get()
             .as_deref()
             .is_none_or(|focused| focused.is_focusable_area())
@@ -1409,9 +1409,10 @@ impl Document {
                 },
                 true,
             ),
-            FocusOperation::Unfocus => {
-                (self.focused.get().as_deref().map(DomRoot::from_ref), false)
-            },
+            FocusOperation::Unfocus => (
+                self.focused_element.get().as_deref().map(DomRoot::from_ref),
+                false,
+            ),
         };
 
         if !new_focus_state {
@@ -1426,7 +1427,7 @@ impl Document {
             }
         }
 
-        let old_focused = self.focused.get();
+        let old_focused = self.focused_element.get();
         let old_focus_state = self.has_focus.get();
 
         debug!(
@@ -1470,7 +1471,7 @@ impl Document {
             self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None, can_gc);
         }
 
-        self.focused.set(new_focused.as_deref());
+        self.focused_element.set(new_focused.as_deref());
         self.has_focus.set(new_focus_state);
 
         if old_focus_state != new_focus_state && new_focus_state {
@@ -3855,7 +3856,7 @@ impl Document {
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
 
-            focused: Default::default(),
+            focused_element: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_focus: Cell::new(has_focus),
             current_script: Default::default(),
@@ -5051,11 +5052,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-activeelement>
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
-        self.document_or_shadow_root.get_active_element(
-            self.get_focused_element(),
-            self.GetBody(),
-            self.GetDocumentElement(),
-        )
+        self.document_or_shadow_root.active_element(self.upcast())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-hasfocus>
