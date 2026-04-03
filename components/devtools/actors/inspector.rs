@@ -4,7 +4,6 @@
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -55,7 +54,7 @@ pub(crate) struct InspectorActor {
     name: String,
     highlighter_name: String,
     page_style_name: String,
-    pub(crate) walker: String,
+    pub(crate) walker_name: String,
 }
 
 impl Actor for InspectorActor {
@@ -91,7 +90,7 @@ impl Actor for InspectorActor {
             "getWalker" => {
                 let msg = GetWalkerReply {
                     from: self.name(),
-                    walker: registry.encode::<WalkerActor, _>(&self.walker),
+                    walker: registry.encode::<WalkerActor, _>(&self.walker_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -121,23 +120,18 @@ impl InspectorActor {
             name: registry.new_name::<PageStyleActor>(),
         };
 
-        let walker = WalkerActor {
-            name: registry.new_name::<WalkerActor>(),
-            mutations: AtomicRefCell::new(vec![]),
-            browsing_context_name,
-        };
+        let walker_name = WalkerActor::register(registry, browsing_context_name);
 
         let inspector_actor = Self {
             name: registry.new_name::<InspectorActor>(),
             highlighter_name: highlighter_actor.name(),
             page_style_name: page_style_actor.name(),
-            walker: walker.name(),
+            walker_name,
         };
         let inspector_name = inspector_actor.name();
 
         registry.register(highlighter_actor);
         registry.register(page_style_actor);
-        registry.register(walker);
         registry.register(inspector_actor);
 
         inspector_name

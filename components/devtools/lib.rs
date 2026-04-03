@@ -599,7 +599,9 @@ impl DevtoolsInstance {
         let inspector_actor = self
             .registry
             .find::<InspectorActor>(&browsing_context_actor.inspector_name);
-        let walker_actor = self.registry.find::<WalkerActor>(&inspector_actor.walker);
+        let walker_actor = self
+            .registry
+            .find::<WalkerActor>(&inspector_actor.walker_name);
 
         for connection in self.connections.lock().unwrap().values_mut() {
             walker_actor.handle_dom_mutation(dom_mutation.clone(), connection)?;

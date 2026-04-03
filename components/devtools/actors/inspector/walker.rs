@@ -280,6 +280,17 @@ impl Actor for WalkerActor {
 }
 
 impl WalkerActor {
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+        let name = registry.new_name::<WalkerActor>();
+        let actor = WalkerActor {
+            name: name.clone(),
+            mutations: AtomicRefCell::new(vec![]),
+            browsing_context_name,
+        };
+        registry.register::<Self>(actor);
+        name
+    }
+
     pub(crate) fn browsing_context_actor(
         &self,
         registry: &ActorRegistry,
