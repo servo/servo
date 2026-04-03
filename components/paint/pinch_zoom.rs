@@ -76,12 +76,13 @@ impl PinchZoom {
     }
 
     pub(crate) fn set_zoom(&mut self, new_factor: f32, new_center: DevicePoint) {
-        let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
-
-        if self.zoom_factor <= 1.0 {
+        if new_factor <= 1.0 {
+            self.zoom_factor = 1.0; // Update the zoom factor to 1.0 to avoid precision issues when zooming back in after zooming out fully.
             self.transform = Transform2D::identity();
             return;
         }
+
+        let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
 
         let magnification = self.zoom_factor / old_factor;
         let transform = self
