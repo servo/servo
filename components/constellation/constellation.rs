@@ -1408,8 +1408,13 @@ where
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            EmbedderToConstellationMessage::LoadUrl(webview_id, url) => {
-                let load_data = LoadData::new_for_new_unrelated_webview(url);
+            EmbedderToConstellationMessage::LoadUrl(webview_id, url_request) => {
+                let mut load_data = LoadData::new_for_new_unrelated_webview(url_request.url);
+
+                if !url_request.headers.is_empty() {
+                    load_data.headers.extend(url_request.headers);
+                }
+
                 let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,

@@ -92,6 +92,7 @@ env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
 gstreamer = { workspace = true, optional = true }
+http = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
@@ -163,6 +164,7 @@ accesskit_consumer = "0.35.0"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
+itertools = { workspace = true }
 net = { workspace = true, features = ["test-util"] }
 rustls = { version = "0.23", default-features = false }
 # This must always be a path dependency, we don't want to add a dependency on a

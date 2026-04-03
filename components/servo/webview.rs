@@ -15,7 +15,7 @@ use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
     InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
     MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
+    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -457,7 +457,18 @@ impl WebView {
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
-                url.into(),
+                UrlRequest::new(url),
+            ))
+    }
+
+    /// Load a [`UrlRequest`] into this [`WebView`].
+    pub fn load_request(&self, url_request: UrlRequest) {
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::LoadUrl(
+                self.id(),
+                url_request,
             ))
     }
 

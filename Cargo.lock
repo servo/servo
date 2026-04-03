@@ -7422,6 +7422,7 @@ dependencies = [
  "hyper 1.9.0",
  "image",
  "ipc-channel",
+ "itertools 0.14.0",
  "keyboard-types",
  "log",
  "mozangle",
@@ -7641,6 +7642,7 @@ version = "0.1.0"
 dependencies = [
  "accesskit",
  "backtrace",
+ "base64 0.22.1",
  "content-security-policy",
  "crossbeam-channel",
  "euclid",
@@ -7685,6 +7687,7 @@ dependencies = [
 name = "servo-constellation-traits"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "content-security-policy",
  "encoding_rs",
  "euclid",

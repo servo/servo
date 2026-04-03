@@ -20,7 +20,7 @@ use embedder_traits::user_contents::{
 };
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, InputEventAndId, JavaScriptEvaluationId,
-    MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId,
+    MediaSessionActionType, NewWebViewDetails, PaintHitTestResult, Theme, TraversalId, UrlRequest,
     ViewportDetails, WebDriverCommandMsg,
 };
 pub use from_script_message::*;
@@ -47,8 +47,8 @@ pub enum EmbedderToConstellationMessage {
     Exit,
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
-    /// Request to load a page.
-    LoadUrl(WebViewId, ServoUrl),
+    /// Request to load a page, with optionally additional data in [`URLRequest`].
+    LoadUrl(WebViewId, UrlRequest),
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.

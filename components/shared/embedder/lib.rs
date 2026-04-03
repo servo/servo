@@ -1109,3 +1109,36 @@ pub struct NewWebViewDetails {
     pub viewport_details: ViewportDetails,
     pub user_content_manager_id: Option<UserContentManagerId>,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+/// A request to load a URL. This can be used to trigger a configurable load in a `WebView`.
+///
+/// ```
+///  let mut headers = http::HeaderMap::new();
+///  headers.append(HeaderName::from_static("CustomHeader"), "Value".parse().unwrap());
+///  let url_request = URLRequest::new(url).headers(headers);
+///  webview.load_request(url_request);
+/// ```
+pub struct UrlRequest {
+    pub url: ServoUrl,
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
+    pub headers: HeaderMap,
+}
+
+impl UrlRequest {
+    pub fn new(url: Url) -> Self {
+        UrlRequest {
+            url: url.into(),
+            headers: HeaderMap::new(),
+        }
+    }
+
+    /// Set headers that will be added to the Headers
+    pub fn headers(mut self, headers: HeaderMap) -> Self {
+        self.headers = headers;
+        self
+    }
+}
