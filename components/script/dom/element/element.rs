@@ -700,7 +700,7 @@ impl Element {
         // longer in the flat tree.
         let node = self.upcast::<Node>();
         if node.is_connected() {
-            node.remove_layout_boxes_from_subtree();
+            node.remove_layout_boxes_from_subtree(cx.no_gc());
         }
         // Step 6. Set shadow's delegates focus to delegatesFocus
         shadow_root.set_delegates_focus(delegates_focus);
@@ -4544,7 +4544,7 @@ impl VirtualMethods for Element {
                 }
             }
             if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
-                if let Some(child) = mutation.modified_edge_element() {
+                if let Some(child) = mutation.modified_edge_element(cx.no_gc()) {
                     child.dirty(NodeDamage::Other);
                 }
             }

@@ -367,8 +367,8 @@ impl Node {
     /// Clear this [`Node`]'s layout data and also clear the layout data of all children.
     /// Note that this clears layout data from all non-flat tree descendants and flat tree
     /// descendants.
-    pub(crate) fn remove_layout_boxes_from_subtree(&self) {
-        for node in self.traverse_preorder(ShadowIncluding::Yes) {
+    pub(crate) fn remove_layout_boxes_from_subtree(&self, no_gc: &NoGC) {
+        for node in self.traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes) {
             node.layout_data.borrow_mut().take();
         }
     }
@@ -380,7 +380,11 @@ impl Node {
 
     /// Clean up flags and runs steps 11-14 of remove a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext, can_gc: CanGc) {
+    pub(crate) fn complete_remove_subtree(
+        cx: &mut JSContext,
+        root: &Node,
+        context: &UnbindContext,
+    ) {
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
             .union(NodeFlags::IS_CONNECTED)
@@ -388,7 +392,7 @@ impl Node {
             .union(NodeFlags::HAS_SNAPSHOT)
             .union(NodeFlags::HANDLED_SNAPSHOT);
 
-        for node in root.traverse_preorder(ShadowIncluding::No) {
+        for node in root.traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
 
             // If the element has a shadow root attached to it then we traverse that as well,
@@ -396,7 +400,7 @@ impl Node {
             if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
                 for node in shadow_root
                     .upcast::<Node>()
-                    .traverse_preorder(ShadowIncluding::Yes)
+                    .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
                 {
                     node.set_flag(RESET_FLAGS, false);
                 }
@@ -409,7 +413,7 @@ impl Node {
 
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
-        let cleanup_node = |node: &Node| {
+        let cleanup_node = |cx: &mut JSContext, node: &Node| {
             node.owner_doc().cancel_animations_for_node(node);
             node.clean_up_style_and_layout_data();
 
@@ -417,7 +421,7 @@ impl Node {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
-            vtable_for(node).unbind_from_tree(context, can_gc);
+            vtable_for(node).unbind_from_tree(context, CanGc::from_cx(cx));
 
             // Step 12 & 14.2. Enqueue disconnected custom element reactions.
             if is_parent_connected {
@@ -432,7 +436,7 @@ impl Node {
         };
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
-            cleanup_node(&node);
+            cleanup_node(cx, &node);
 
             // Make sure that we don't accidentally initialize the rare data for this node
             // by setting it to None
@@ -449,7 +453,7 @@ impl Node {
                     .upcast::<Node>()
                     .traverse_preorder(ShadowIncluding::Yes)
                 {
-                    cleanup_node(&node);
+                    cleanup_node(cx, &node);
                 }
             }
         }
@@ -499,7 +503,7 @@ impl Node {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, child: &Node, cached_index: Option<u32>, can_gc: CanGc) {
+    fn remove_child(&self, cx: &mut JSContext, child: &Node, cached_index: Option<u32>) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.note_dirty_descendants();
 
@@ -538,7 +542,7 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        Self::complete_remove_subtree(child, &context, can_gc);
+        Self::complete_remove_subtree(cx, child, &context);
     }
 
     fn move_child(&self, child: &Node) {
@@ -1245,7 +1249,7 @@ impl Node {
         let node = doc.node_from_nodes_and_strings(cx, nodes)?;
 
         // Step 2. Ensure pre-insert validity of node into this before null.
-        Node::ensure_pre_insertion_validity(&node, self, None)?;
+        Node::ensure_pre_insertion_validity(cx.no_gc(), &node, self, None)?;
 
         // Step 3. Replace all with node within this.
         Node::replace_all(cx, Some(&node), self);
@@ -1419,7 +1423,7 @@ impl Node {
 
         // Step 16. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
-            .traverse_preorder(ShadowIncluding::No)
+            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
             .any(|element| element.is::<HTMLSlotElement>());
         if has_slot_descendant {
             // Step 16.1. Run assign slottables for a tree with oldParent’s root.
@@ -1647,6 +1651,18 @@ impl Node {
         }
     }
 
+    pub(crate) fn children_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
+        UnrootedSimpleNodeIterator {
+            current: self.get_first_child_unrooted(no_gc),
+            next_node: |n, no_gc| n.get_next_sibling_unrooted(no_gc),
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
+
     pub(crate) fn rev_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetLastChild(),
@@ -1654,9 +1670,19 @@ impl Node {
         }
     }
 
+    /// Returns the children as Elements
     pub(crate) fn child_elements(&self) -> impl Iterator<Item = DomRoot<Element>> + use<> {
         self.children()
             .filter_map(DomRoot::downcast as fn(_) -> _)
+            .peekable()
+    }
+
+    pub(crate) fn child_elements_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Element>> + use<'a> {
+        self.children_unrooted(no_gc)
+            .filter_map(UnrootedDom::downcast)
             .peekable()
     }
 
@@ -2875,7 +2901,7 @@ impl Node {
         // Step 3. If document is not oldDocument:
         if &*old_doc != document {
             // Step 3.1. For each inclusiveDescendant in node’s shadow-including inclusive descendants:
-            for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+            for descendant in node.traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes) {
                 // Step 3.1.1 Set inclusiveDescendant’s node document to document.
                 descendant.set_owner_doc(document);
 
@@ -2893,7 +2919,7 @@ impl Node {
             // callback name "adoptedCallback", and « oldDocument, document ».
             let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
             for descendant in node
-                .traverse_preorder(ShadowIncluding::Yes)
+                .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
                 .filter_map(|d| d.as_custom_element())
             {
                 custom_element_reaction_stack.enqueue_callback_reaction(
@@ -2916,6 +2942,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity>
     pub(crate) fn ensure_pre_insertion_validity(
+        no_gc: &NoGC,
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
@@ -2985,20 +3012,20 @@ impl Node {
             match node.type_id() {
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6."DocumentFragment". If node has more than one element child or has a Text node child.
-                    if node.children().any(|c| c.is::<Text>()) {
+                    if node.children_unrooted(no_gc).any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest(None));
                     }
-                    match node.child_elements().count() {
+                    match node.child_elements_unrooted(no_gc).count() {
                         0 => (),
                         // Step 6."DocumentFragment". Otherwise, if node has one element child and either parent has an element child,
                         // child is a doctype, or child is non-null and a doctype is following child.
                         1 => {
-                            if parent.child_elements().next().is_some() {
+                            if parent.child_elements_unrooted(no_gc).next().is_some() {
                                 return Err(Error::HierarchyRequest(None));
                             }
                             if let Some(child) = child {
                                 if child
-                                    .inclusively_following_siblings()
+                                    .inclusively_following_siblings_unrooted(no_gc)
                                     .any(|child| child.is_doctype())
                                 {
                                     return Err(Error::HierarchyRequest(None));
@@ -3010,14 +3037,14 @@ impl Node {
                 },
                 NodeTypeId::Element(_) => {
                     // Step 6."Element". parent has an element child, child is a doctype, or child is non-null and a doctype is following child.
-                    if parent.child_elements().next().is_some() {
+                    if parent.child_elements_unrooted(no_gc).next().is_some() {
                         return Err(Error::HierarchyRequest(Some(
                             "Parent has an element child".to_owned(),
                         )));
                     }
                     if let Some(child) = child {
                         if child
-                            .inclusively_following_siblings()
+                            .inclusively_following_siblings_unrooted(no_gc)
                             .any(|following| following.is_doctype())
                         {
                             return Err(Error::HierarchyRequest(Some(
@@ -3029,21 +3056,21 @@ impl Node {
                 NodeTypeId::DocumentType => {
                     // Step 6."DocumentType". parent has a doctype child, child is non-null and an element is preceding child,
                     // or child is null and parent has an element child.
-                    if parent.children().any(|c| c.is_doctype()) {
+                    if parent.children_unrooted(no_gc).any(|c| c.is_doctype()) {
                         return Err(Error::HierarchyRequest(None));
                     }
                     match child {
                         Some(child) => {
                             if parent
-                                .children()
-                                .take_while(|c| &**c != child)
+                                .children_unrooted(no_gc)
+                                .take_while(|c| **c != child)
                                 .any(|c| c.is::<Element>())
                             {
                                 return Err(Error::HierarchyRequest(None));
                             }
                         },
                         None => {
-                            if parent.child_elements().next().is_some() {
+                            if parent.child_elements_unrooted(no_gc).next().is_some() {
                                 return Err(Error::HierarchyRequest(None));
                             }
                         },
@@ -3066,7 +3093,7 @@ impl Node {
         child: Option<&Node>,
     ) -> Fallible<DomRoot<Node>> {
         // Step 1. Ensure pre-insert validity of node into parent before child.
-        Node::ensure_pre_insertion_validity(node, parent, child)?;
+        Node::ensure_pre_insertion_validity(cx.no_gc(), node, parent, child)?;
 
         // Step 2. Let referenceChild be child.
         let reference_child_root;
@@ -3391,7 +3418,7 @@ impl Node {
 
         // Step 7. Remove node from its parent's children.
         // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
-        parent.remove_child(node, cached_index, CanGc::from_cx(cx));
+        parent.remove_child(cx, node, cached_index);
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -3410,7 +3437,7 @@ impl Node {
 
         // Step 10. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
-            .traverse_preorder(ShadowIncluding::No)
+            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
             .any(|elem| elem.is::<HTMLSlotElement>());
         if has_slot_descendant {
             // Step 10.1 Run assign slottables for a tree with parent’s root.
@@ -4175,14 +4202,17 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
-                    if node.children().any(|c| c.is::<Text>()) {
+                    if node.children_unrooted(cx.no_gc()).any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest(None));
                     }
-                    match node.child_elements().count() {
+                    match node.child_elements_unrooted(cx.no_gc()).count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if self.child_elements().any(|c| c.upcast::<Node>() != child) {
+                            if self
+                                .child_elements_unrooted(cx.no_gc())
+                                .any(|c| c.upcast::<Node>() != child)
+                            {
                                 return Err(Error::HierarchyRequest(None));
                             }
                             if child.following_siblings().any(|child| child.is_doctype()) {
@@ -4195,7 +4225,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
-                    if self.child_elements().any(|c| c.upcast::<Node>() != child) {
+                    if self
+                        .child_elements_unrooted(cx.no_gc())
+                        .any(|c| c.upcast::<Node>() != child)
+                    {
                         return Err(Error::HierarchyRequest(None));
                     }
                     if child.following_siblings().any(|child| child.is_doctype()) {
@@ -4204,12 +4237,15 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children().any(|c| c.is_doctype() && &*c != child) {
+                    if self
+                        .children_unrooted(cx.no_gc())
+                        .any(|c| c.is_doctype() && *c != child)
+                    {
                         return Err(Error::HierarchyRequest(None));
                     }
                     if self
-                        .children()
-                        .take_while(|c| &**c != child)
+                        .children_unrooted(cx.no_gc())
+                        .take_while(|c| **c != child)
                         .any(|c| c.is::<Element>())
                     {
                         return Err(Error::HierarchyRequest(None));
@@ -4898,7 +4934,7 @@ impl<'a> ChildrenMutation<'a> {
     /// NOTE: This does not check whether the inserted/removed nodes were elements, so in some
     /// cases it will return a false positive.  This doesn't matter for correctness, because at
     /// worst the returned element will be restyled unnecessarily.
-    pub(crate) fn modified_edge_element(&self) -> Option<DomRoot<Node>> {
+    pub(crate) fn modified_edge_element(&self, no_gc: &NoGC) -> Option<DomRoot<Node>> {
         match *self {
             // Add/remove at start of container: Return the first following element.
             ChildrenMutation::Prepend { next, .. } |
@@ -4907,8 +4943,9 @@ impl<'a> ChildrenMutation<'a> {
                 next: Some(next),
                 ..
             } => next
-                .inclusively_following_siblings()
-                .find(|node| node.is::<Element>()),
+                .inclusively_following_siblings_unrooted(no_gc)
+                .find(|node| node.is::<Element>())
+                .map(|node| node.as_rooted()),
             // Add/remove at end of container: Return the last preceding element.
             ChildrenMutation::Append { prev, .. } |
             ChildrenMutation::Replace {
@@ -4916,8 +4953,9 @@ impl<'a> ChildrenMutation<'a> {
                 next: None,
                 ..
             } => prev
-                .inclusively_preceding_siblings()
-                .find(|node| node.is::<Element>()),
+                .inclusively_preceding_siblings_unrooted(no_gc)
+                .find(|node| node.is::<Element>())
+                .map(|node| node.as_rooted()),
             // Insert or replace in the middle:
             ChildrenMutation::Insert { prev, next, .. } |
             ChildrenMutation::Replace {
@@ -4926,19 +4964,21 @@ impl<'a> ChildrenMutation<'a> {
                 ..
             } => {
                 if prev
-                    .inclusively_preceding_siblings()
+                    .inclusively_preceding_siblings_unrooted(no_gc)
                     .all(|node| !node.is::<Element>())
                 {
                     // Before the first element: Return the first following element.
-                    next.inclusively_following_siblings()
+                    next.inclusively_following_siblings_unrooted(no_gc)
                         .find(|node| node.is::<Element>())
+                        .map(|node| node.as_rooted())
                 } else if next
-                    .inclusively_following_siblings()
+                    .inclusively_following_siblings_unrooted(no_gc)
                     .all(|node| !node.is::<Element>())
                 {
                     // After the last element: Return the last preceding element.
-                    prev.inclusively_preceding_siblings()
+                    prev.inclusively_preceding_siblings_unrooted(no_gc)
                         .find(|node| node.is::<Element>())
+                        .map(|node| node.as_rooted())
                 } else {
                     None
                 }

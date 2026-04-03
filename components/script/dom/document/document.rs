@@ -109,7 +109,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout, UnrootedDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::bindings::weakref::DOMTracker;
@@ -5361,11 +5361,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         };
 
         let node = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-            let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-            });
+            let elem = root
+                .upcast::<Node>()
+                .child_elements_unrooted(cx.no_gc())
+                .find(|node| {
+                    node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
+                });
             match elem {
-                Some(elem) => DomRoot::upcast::<Node>(elem),
+                Some(elem) => UnrootedDom::upcast::<Node>(elem).as_rooted(),
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(
@@ -5387,10 +5390,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         } else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
-                .traverse_preorder(ShadowIncluding::No)
+                .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
-                Some(elem) => elem,
+                Some(elem) => elem.as_rooted(),
                 None => match self.GetHead() {
                     Some(head) => {
                         let name = QualName::new(None, ns!(html), local_name!("title"));

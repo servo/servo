@@ -902,7 +902,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         };
 
         // Step 6.
-        Node::ensure_pre_insertion_validity(node, &parent, reference_node.as_deref())?;
+        Node::ensure_pre_insertion_validity(cx.no_gc(), node, &parent, reference_node.as_deref())?;
 
         // Step 7.
         let split_text;
