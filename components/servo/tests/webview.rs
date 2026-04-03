@@ -444,32 +444,52 @@ fn test_page_zoom() {
 }
 
 #[test]
-fn test_viewport_meta_tag_initial_zoom() {
+fn test_viewport_meta_tag_initial_scale() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
         builder.preferences(preferences)
     });
+
+    let initial_scale: f64 = 2.0;
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
         .url(
             Url::parse(
-                "data:text/html,\
+                format!(
+                    "data:text/html,\
                     <!DOCTYPE html>\
-                    <meta name=viewport content=\"initial-scale=5\">",
+                    <meta name=viewport content=\"initial-scale={}\">",
+                    initial_scale
+                )
+                .as_str(),
             )
             .unwrap(),
         )
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    // Initially HiDPI should be 1.0
+    assert_eq!(webview.hidpi_scale_factor().get(), 1.0);
 
-    // Wait for at least one frame after the load completes.
-    delegate.reset();
-    servo_test.spin(move || webview.page_zoom() != 5.0);
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // HiDPI should be same after parsing the viewport meta from page.
+    assert_eq!(webview.hidpi_scale_factor().get(), 1.0);
+
+    // devicePixelRatio should be unaffected by Meta Tag.
+    assert_eq!(
+        Ok(JSValue::Number(webview.hidpi_scale_factor().get() as f64)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.devicePixelRatio;")
+    );
+
+    // Meta Tag should affect VisualViewport Scale.
+    assert_eq!(
+        Ok(JSValue::Number(initial_scale)),
+        evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;")
+    );
 }
 
 #[test]
