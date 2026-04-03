@@ -16,9 +16,9 @@ use servo::{
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Preferences, Servo, ServoBuilder,
     SimpleDialog, WebView, WebViewDelegate,
 };
-use webrender_api::units::DevicePoint;
-use servo_l10n::set_locale_reader;
 use servo_l10n::resources::LocaleReaderMethods;
+use servo_l10n::set_locale_reader;
+use webrender_api::units::DevicePoint;
 
 /// A minimal locale reader that provides just enough to pass the unit tests.
 struct TestLocaleReader {}

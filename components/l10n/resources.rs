@@ -26,11 +26,8 @@ pub fn set_locale_reader(reader: LocaleReader) {
 }
 
 pub fn load_bundle(bundle: &str, locale: &str) -> Option<String> {
-    let lock = get_or_init();
-    let guard = lock.read();
-    let Some(ref reader) = *guard else {
-        return None;
-    };
+    let guard = get_or_init().read();
+    let reader = (*guard).as_ref()?;
     reader.load_bundle(bundle, locale)
 }
 
