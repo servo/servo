@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };
+use devtools_traits::{AncestorData, MatchedRule};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -28,7 +29,7 @@ const ELEMENT_STYLE_TYPE: u32 = 100;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct AppliedRule {
     actor: String,
-    ancestor_data: Vec<()>,
+    ancestor_data: Vec<AncestorData>,
     authored_text: String,
     css_text: String,
     pub declarations: Vec<AppliedDeclaration>,
@@ -83,7 +84,7 @@ pub(crate) struct StyleRuleActorMsg {
 pub(crate) struct StyleRuleActor {
     name: String,
     node_name: String,
-    selector: Option<(String, usize)>,
+    selector: Option<MatchedRule>,
 }
 
 impl Actor for StyleRuleActor {
@@ -142,12 +143,19 @@ impl Actor for StyleRuleActor {
 }
 
 impl StyleRuleActor {
-    pub fn new(name: String, node: String, selector: Option<(String, usize)>) -> Self {
-        Self {
-            name,
+    pub fn register(
+        registry: &ActorRegistry,
+        node: String,
+        selector: Option<MatchedRule>,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             node_name: node,
             selector,
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
@@ -169,16 +177,12 @@ impl StyleRuleActor {
         // not, this represents the style attribute.
         let (style_sender, style_receiver) = generic_channel::channel()?;
         let req = match &self.selector {
-            Some(selector) => {
-                let (selector, stylesheet) = selector.clone();
-                GetStylesheetStyle(
-                    browsing_context_actor.pipeline_id(),
-                    registry.actor_to_script(self.node_name.clone()),
-                    selector,
-                    stylesheet,
-                    style_sender,
-                )
-            },
+            Some(matched_rule) => GetStylesheetStyle(
+                browsing_context_actor.pipeline_id(),
+                registry.actor_to_script(self.node_name.clone()),
+                matched_rule.clone(),
+                style_sender,
+            ),
             None => GetAttributeStyle(
                 browsing_context_actor.pipeline_id(),
                 registry.actor_to_script(self.node_name.clone()),
@@ -190,7 +194,11 @@ impl StyleRuleActor {
 
         Some(AppliedRule {
             actor: self.name(),
-            ancestor_data: vec![], // TODO: Fill with hierarchy
+            ancestor_data: self
+                .selector
+                .as_ref()
+                .map(|r| r.ancestor_data.clone())
+                .unwrap_or_default(),
             authored_text: "".into(),
             css_text: "".into(), // TODO: Specify the css text
             declarations: style
@@ -210,7 +218,7 @@ impl StyleRuleActor {
                 })
                 .collect(),
             href: node.base_uri,
-            selectors: self.selector.iter().map(|(s, _)| s).cloned().collect(),
+            selectors: self.selector.iter().map(|r| r.selector.clone()).collect(),
             selectors_specificity: self.selector.iter().map(|_| 1).collect(),
             type_: ELEMENT_STYLE_TYPE,
             traits: StyleRuleActorTraits {

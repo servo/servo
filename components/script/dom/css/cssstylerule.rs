@@ -86,6 +86,16 @@ impl CSSStyleRule {
 
         *self.style_rule.borrow_mut() = stylerule;
     }
+
+    pub(crate) fn block_id(&self) -> usize {
+        let guard = self.css_grouping_rule.shared_lock().read();
+        self.style_rule
+            .borrow()
+            .read_with(&guard)
+            .block
+            .raw_ptr()
+            .as_ptr() as usize
+    }
 }
 
 impl SpecificCSSRule for CSSStyleRule {

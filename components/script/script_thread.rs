@@ -2131,22 +2131,17 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(cx, &self.devtools_state, id, &node_id, reply)
             },
-            DevtoolScriptControlMsg::GetStylesheetStyle(
-                id,
-                node_id,
-                selector,
-                stylesheet,
-                reply,
-            ) => devtools::handle_get_stylesheet_style(
-                cx,
-                &self.devtools_state,
-                &documents,
-                id,
-                &node_id,
-                selector,
-                stylesheet,
-                reply,
-            ),
+            DevtoolScriptControlMsg::GetStylesheetStyle(id, node_id, matched_rule, reply) => {
+                devtools::handle_get_stylesheet_style(
+                    cx,
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    &node_id,
+                    matched_rule,
+                    reply,
+                )
+            },
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(
                     cx,

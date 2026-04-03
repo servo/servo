@@ -9,7 +9,8 @@ use std::collections::HashMap;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{
-    AttrModification, DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode,
+    AttrModification, DevtoolScriptControlMsg, EventListenerInfo, MatchedRule, NodeInfo,
+    ShadowRootMode,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -132,7 +133,7 @@ pub(crate) struct NodeActor {
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub walker: String,
-    pub style_rules: AtomicRefCell<HashMap<(String, usize), String>>,
+    pub style_rules: AtomicRefCell<HashMap<MatchedRule, String>>,
 }
 
 impl Actor for NodeActor {
