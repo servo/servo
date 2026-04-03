@@ -270,13 +270,15 @@ pub(crate) struct ConsoleActor {
 }
 
 impl ConsoleActor {
-    pub fn new(name: String, root: Root) -> Self {
-        Self {
-            name,
+    pub fn register(registry: &ActorRegistry, name: String, root: Root) -> String {
+        let actor = Self {
+            name: name.clone(),
             root,
             cached_events: Default::default(),
             client_ready_to_receive_messages: false.into(),
-        }
+        };
+        registry.register(actor);
+        name
     }
 
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
