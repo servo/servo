@@ -490,15 +490,22 @@ class CGMethodCall(CGThing):
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
 
-            # We can't handle unions of non-object values at the distinguishing index.
+            # We can't handle unions of values with types other than
+            # object, string, number and boolean, at the distinguishing
+            # index.
             for (returnType, args) in possibleSignatures:
                 type = args[distinguishingIndex].type
                 if type.isUnion():
                     if type.nullable():
                         type = type.inner
                     for type in type.flatMemberTypes:
-                        if not (type.isObject() or type.isNonCallbackInterface()):
-                            raise TypeError("No support for unions with non-object variants "
+                        if not (type.isObject() or
+                                type.isNonCallbackInterface() or
+                                type.isString() or
+                                type.isNumeric() or
+                                type.isBoolean()):
+                            raise TypeError("No support for unions with variants of type "
+                                            "other than object, string, number and boolean "
                                             f"as distinguishing arguments yet: {args[distinguishingIndex].location}",
                                             )
 
@@ -547,19 +554,36 @@ class CGMethodCall(CGThing):
             if len(interfacesSigs) > 0:
                 # The spec says that we should check for "platform objects
                 # implementing an interface", but it's enough to guard on these
-                # being an object.  The code for unwrapping non-callback
+                # being an object, a string, a number, or a boolean, for
+                # each overload.  The code for unwrapping non-callback
                 # interfaces and typed arrays will just bail out and move on to
-                # the next overload if the object fails to unwrap correctly.  We
-                # could even not do the isObject() check up front here, but in
-                # cases where we have multiple object overloads it makes sense
-                # to do it only once instead of for each overload.  That will
-                # also allow the unwrapping test to skip having to do codegen
-                # for the null-or-undefined case, which we already handled
-                # above.
-                caseBody.append(CGGeneric(f"if {distinguishingArg}.get().is_object() {{"))
+                # the next overload if the object fails to unwrap correctly.
                 for idx, sig in enumerate(interfacesSigs):
-                    caseBody.append(CGIndenter(CGGeneric("'_block: {")))
+                    caseBody.append(CGGeneric("'_block: {"))
+
                     type = sig[1][distinguishingIndex].type
+                    conditions = []
+                    if type.isObject() or type.isNonCallbackInterface():
+                        conditions.append("is_object()")
+                    if type.isUnion():
+                        if type.nullable():
+                            innerType = type.inner
+                        else:
+                            innerType = type
+                        for memberType in innerType.flatMemberTypes:
+                            if memberType.isObject() or memberType.isNonCallbackInterface():
+                                conditions.append("is_object()")
+                            elif memberType.isString():
+                                conditions.append("is_string()")
+                            elif memberType.isNumeric():
+                                conditions.append("is_number()")
+                            elif memberType.isBoolean():
+                                conditions.append("is_boolean()")
+                    conditions = [f"{distinguishingArg}.get().{condition}" for condition in conditions]
+                    conditions = " || ".join(conditions)
+                    if conditions != "":
+                        conditions = "if " + conditions
+                    caseBody.append(CGIndenter(CGGeneric(f"{conditions} {{")))
 
                     # The argument at index distinguishingIndex can't possibly
                     # be unset here, because we've already checked that argc is
@@ -576,17 +600,17 @@ class CGMethodCall(CGThing):
                         f"arg{distinguishingIndex}",
                         needsAutoRoot=type_needs_auto_root(type))
 
-                    # Indent by 4, since we need to indent further than our "do" statement
-                    caseBody.append(CGIndenter(testCode, 4))
+                    # Indent by 8, since we need to indent further than our "do" statement
+                    caseBody.append(CGIndenter(testCode, 8))
                     # If we got this far, we know we unwrapped to the right
                     # interface, so just do the call.  Start conversion with
                     # distinguishingIndex + 1, since we already converted
                     # distinguishingIndex.
                     caseBody.append(CGIndenter(
-                        getPerSignatureCall(sig, distinguishingIndex + 1), 4))
+                        getPerSignatureCall(sig, distinguishingIndex + 1), 8))
                     caseBody.append(CGIndenter(CGGeneric("}")))
 
-                caseBody.append(CGGeneric("}"))
+                    caseBody.append(CGGeneric("}"))
 
             # XXXbz Now we're supposed to check for distinguishingArg being
             # an array or a platform object that supports indexed

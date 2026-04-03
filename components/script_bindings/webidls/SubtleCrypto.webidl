@@ -297,12 +297,12 @@ partial interface SubtleCrypto {
     sequence<KeyUsage> keyUsages
   );
 
-  // static boolean supports(DOMString operation,
-  //                  AlgorithmIdentifier algorithm,
-  //                  optional unsigned long? length = null);
-  // static boolean supports(DOMString operation,
-  //                  AlgorithmIdentifier algorithm,
-  //                  AlgorithmIdentifier additionalAlgorithm);
+  static boolean supports(DOMString operation,
+                   AlgorithmIdentifier algorithm,
+                   optional unsigned long? length = null);
+  static boolean supports(DOMString operation,
+                   AlgorithmIdentifier algorithm,
+                   AlgorithmIdentifier additionalAlgorithm);
 };
 
 // https://wicg.github.io/webcrypto-modern-algos/#subtlecrypto-interface-keyformat

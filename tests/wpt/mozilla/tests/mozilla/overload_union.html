@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for overload with union</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedUnionOfObjectAndString({href: "a"}), "union");
+  assert_equals(t.passOverloadedUnionOfObjectAndString("a"), "union");
+  assert_equals(t.passOverloadedUnionOfObjectAndString(true), "boolean");
+
+}, "Overload of union of object and string works")
+
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedUnionOfObjectAndNumber({href: "a"}), "union");
+  assert_equals(t.passOverloadedUnionOfObjectAndNumber(100), "union");
+  assert_equals(t.passOverloadedUnionOfObjectAndNumber(true), "boolean");
+
+}, "Overload of union of object and number works")
+
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedUnionOfObjectAndBoolean({href: "a"}), "union");
+  assert_equals(t.passOverloadedUnionOfObjectAndBoolean(true), "union");
+  assert_equals(t.passOverloadedUnionOfObjectAndBoolean(100), "number");
+
+}, "Overload of union of object and boolean works")
+
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedUnionOfStringAndNumber("a"), "union");
+  assert_equals(t.passOverloadedUnionOfStringAndNumber(100), "union");
+  assert_equals(t.passOverloadedUnionOfStringAndNumber(true), "boolean");
+
+}, "Overload of union of string and number works")
+
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedUnionOfStringAndBoolean("a"), "union");
+  assert_equals(t.passOverloadedUnionOfStringAndBoolean(true), "union");
+  assert_equals(t.passOverloadedUnionOfStringAndBoolean(100), "number");
+
+}, "Overload of union of string and boolean works")
+
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedUnionOfNumberAndBoolean(100), "union");
+  assert_equals(t.passOverloadedUnionOfNumberAndBoolean(true), "union");
+  assert_equals(t.passOverloadedUnionOfNumberAndBoolean("a"), "string");
+
+}, "Overload of union of number and boolean works")
+</script>

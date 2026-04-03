@@ -303,6 +303,19 @@ interface TestBinding {
   DOMString passOverloadedDict(Node arg);
   DOMString passOverloadedDict(TestURLLike arg);
 
+  DOMString passOverloadedUnionOfObjectAndString((object or DOMString) arg);
+  DOMString passOverloadedUnionOfObjectAndString(boolean arg);
+  DOMString passOverloadedUnionOfObjectAndNumber((object or long) arg);
+  DOMString passOverloadedUnionOfObjectAndNumber(boolean arg);
+  DOMString passOverloadedUnionOfObjectAndBoolean((object or boolean) arg);
+  DOMString passOverloadedUnionOfObjectAndBoolean(long arg);
+  DOMString passOverloadedUnionOfStringAndNumber((DOMString or long) arg);
+  DOMString passOverloadedUnionOfStringAndNumber(boolean arg);
+  DOMString passOverloadedUnionOfStringAndBoolean((DOMString or boolean) arg);
+  DOMString passOverloadedUnionOfStringAndBoolean(long arg);
+  DOMString passOverloadedUnionOfNumberAndBoolean((long or boolean) arg);
+  DOMString passOverloadedUnionOfNumberAndBoolean(DOMString arg);
+
   undefined passNullableBoolean(boolean? arg);
   undefined passNullableByte(byte? arg);
   undefined passNullableOctet(octet? arg);

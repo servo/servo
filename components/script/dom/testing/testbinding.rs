@@ -30,12 +30,12 @@ use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
     TestDictionaryParent, TestDictionaryWithParent, TestDictionaryWithTypedArray, TestEnum,
     TestURLLike,
 };
-use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::codegen::UnionTypes::{
-    BlobOrBlobSequence, BlobOrBoolean, BlobOrString, BlobOrUnsignedLong, ByteStringOrLong,
+    self, BlobOrBlobSequence, BlobOrBoolean, BlobOrString, BlobOrUnsignedLong, ByteStringOrLong,
     ByteStringSequenceOrLong, ByteStringSequenceOrLongOrString, EventOrString, EventOrUSVString,
-    HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean, LongOrLongSequenceSequence,
-    LongSequenceOrBoolean, StringOrBoolean, StringOrLongSequence, StringOrStringSequence,
+    HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean, LongOrBoolean,
+    LongOrLongSequenceSequence, LongSequenceOrBoolean, ObjectOrBoolean, ObjectOrLong,
+    ObjectOrString, StringOrBoolean, StringOrLong, StringOrLongSequence, StringOrStringSequence,
     StringOrUnsignedLong, StringSequenceOrUnsignedLong, UnsignedLongOrBoolean,
 };
 use crate::dom::bindings::error::{Error, Fallible};
@@ -708,6 +708,51 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 
     fn PassOverloadedDict_(&self, u: &TestURLLike) -> DOMString {
         u.href.clone()
+    }
+
+    fn PassOverloadedUnionOfObjectAndString(
+        &self,
+        _: SafeJSContext,
+        _: ObjectOrString,
+    ) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfObjectAndString_(&self, _: bool) -> DOMString {
+        "boolean".into()
+    }
+    fn PassOverloadedUnionOfObjectAndNumber(&self, _: SafeJSContext, _: ObjectOrLong) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfObjectAndNumber_(&self, _: bool) -> DOMString {
+        "boolean".into()
+    }
+    fn PassOverloadedUnionOfObjectAndBoolean(
+        &self,
+        _: SafeJSContext,
+        _: ObjectOrBoolean,
+    ) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfObjectAndBoolean_(&self, _: i32) -> DOMString {
+        "number".into()
+    }
+    fn PassOverloadedUnionOfStringAndNumber(&self, _: StringOrLong) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfStringAndNumber_(&self, _: bool) -> DOMString {
+        "boolean".into()
+    }
+    fn PassOverloadedUnionOfStringAndBoolean(&self, _: StringOrBoolean) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfStringAndBoolean_(&self, _: i32) -> DOMString {
+        "number".into()
+    }
+    fn PassOverloadedUnionOfNumberAndBoolean(&self, _: LongOrBoolean) -> DOMString {
+        "union".into()
+    }
+    fn PassOverloadedUnionOfNumberAndBoolean_(&self, _: DOMString) -> DOMString {
+        "string".into()
     }
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}

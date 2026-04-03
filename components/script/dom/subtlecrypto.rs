@@ -2270,6 +2270,526 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             }));
         promise
     }
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-SubtleCrypto-method-supports>
+    fn Supports(
+        cx: &mut js::context::JSContext,
+        _global: &GlobalScope,
+        operation: DOMString,
+        algorithm: AlgorithmIdentifier,
+        length: Option<u32>,
+    ) -> bool {
+        // Step 1. If operation is not one of "encrypt", "decrypt", "sign", "verify", "digest",
+        // "generateKey", "deriveKey", "deriveBits", "importKey", "exportKey", "wrapKey",
+        // "unwrapKey", "encapsulateKey", "encapsulateBits", "decapsulateKey", "decapsulateBits" or
+        // "getPublicKey", return false.
+        let operation = &*operation.str();
+        if !matches!(
+            operation,
+            "encrypt" |
+                "decrypt" |
+                "sign" |
+                "verify" |
+                "digest" |
+                "generateKey" |
+                "deriveKey" |
+                "deriveBits" |
+                "importKey" |
+                "exportKey" |
+                "wrapKey" |
+                "unwrapKey" |
+                "encapsulateKey" |
+                "encapsulateBits" |
+                "decapsulateKey" |
+                "decapsulateBits" |
+                "getPublicKey"
+        ) {
+            return false;
+        }
+
+        // Step 2. Return the result of checking support for an algorithm, with op set to
+        // operation, alg set to algorithm, and length set to length.
+        check_support_for_algorithm(cx, operation, &algorithm, length)
+    }
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-SubtleCrypto-method-supports-additionalAlgorithm>
+    fn Supports_(
+        cx: &mut js::context::JSContext,
+        _global: &GlobalScope,
+        operation: DOMString,
+        algorithm: AlgorithmIdentifier,
+        additional_algorithm: AlgorithmIdentifier,
+    ) -> bool {
+        // Step 1. If operation is not one of "encrypt", "decrypt", "sign", "verify", "digest",
+        // "generateKey", "deriveKey", "deriveBits", "importKey", "exportKey", "wrapKey",
+        // "unwrapKey", "encapsulateKey", "encapsulateBits", "decapsulateKey", "decapsulateBits" or
+        // "getPublicKey", return false.
+        let mut operation = &*operation.str();
+        if !matches!(
+            operation,
+            "encrypt" |
+                "decrypt" |
+                "sign" |
+                "verify" |
+                "digest" |
+                "generateKey" |
+                "deriveKey" |
+                "deriveBits" |
+                "importKey" |
+                "exportKey" |
+                "wrapKey" |
+                "unwrapKey" |
+                "encapsulateKey" |
+                "encapsulateBits" |
+                "decapsulateKey" |
+                "decapsulateBits" |
+                "getPublicKey"
+        ) {
+            return false;
+        }
+
+        // Step 2.
+        // If operation is "deriveKey", "unwrapKey", "encapsulateKey" or "decapsulateKey":
+        //     If the result of checking support for an algorithm with op set to "importKey" and
+        //     alg set to additionalAlgorithm is false, return false.
+        // If operation is "wrapKey":
+        //     If the result of checking support for an algorithm with op set to "exportKey" and
+        //     alg set to additionalAlgorithm is false, return false.
+        if matches!(
+            operation,
+            "deriveKey" | "unwrapKey" | "encapsulateKey" | "decapsulateKey"
+        ) && !check_support_for_algorithm(cx, "importKey", &additional_algorithm, None)
+        {
+            return false;
+        }
+        if operation == "wrapKey" &&
+            !check_support_for_algorithm(cx, "exportKey", &additional_algorithm, None)
+        {
+            return false;
+        }
+
+        // Step 3. Let length be null.
+        let mut length = None;
+
+        // Step 4. If operation is "deriveKey":
+        if operation == "deriveKey" {
+            // Step 4.1. If the result of checking support for an algorithm with op set to "get key
+            // length" and alg set to additionalAlgorithm is false, return false.
+            if !check_support_for_algorithm(cx, "get key length", &additional_algorithm, None) {
+                return false;
+            }
+
+            // Step 4.2. Let normalizedAdditionalAlgorithm be the result of normalizing an
+            // algorithm, with alg set to additionalAlgorithm and op set to "get key length".
+            let Ok(normalized_additional_algorithm) =
+                normalize_algorithm::<GetKeyLengthOperation>(cx, &additional_algorithm)
+            else {
+                return false;
+            };
+
+            // Step 4.3. Let length be the result of performing the get key length algorithm
+            // specified by additionalAlgorithm using normalizedAdditionalAlgorithm.'
+            match normalized_additional_algorithm.get_key_length() {
+                Ok(key_length) => {
+                    length = key_length;
+                },
+                Err(_) => return false,
+            };
+
+            // Step 4.4. Set operation to "deriveBits".
+            operation = "deriveBits";
+        }
+
+        // Step 5. Return the result of checking support for an algorithm, with op set to
+        // operation, alg set to algorithm, and length set to length.
+        check_support_for_algorithm(cx, operation, &algorithm, length)
+    }
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#dfn-check-support-for-algorithm>
+pub(crate) fn check_support_for_algorithm(
+    cx: &mut js::context::JSContext,
+    mut operation: &str,
+    algorithm: &AlgorithmIdentifier,
+    length: Option<u32>,
+) -> bool {
+    // Step 1. If op is "encapsulateKey" or "encapsulateBits", set op to "encapsulate".
+    if operation == "encapsulateKey" || operation == "encapsulateBits" {
+        operation = "encapsulate";
+    }
+
+    // Step 2. If op is "decapsulateKey" or "decapsulateBits", set op to "decapsulate".
+    if operation == "decapsulateKey" || operation == "decapsulateBits" {
+        operation = "decapsulate";
+    }
+
+    // Step 3. If op is "getPublicKey":
+    if operation == "getPublicKey" {
+        // Step 3.1. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg
+        // set to alg and op set to "exportKey".
+        // Step 3.2. If an error occurred, return false.
+        let Ok(normalized_algorithm) = normalize_algorithm::<ExportKeyOperation>(cx, algorithm)
+        else {
+            return false;
+        };
+
+        // Step 3.3. If the cryptographic algorithm identified by normalizedAlgorithm does not
+        // support deriving a public key from a private key, then return false.
+        // Step 3.4. Otherwise, return true.
+        //
+        // NOTE: We rely on [`normalize_algorithm`] to check whether the algorithm supports the
+        // getPublicKey operation.
+        return normalize_algorithm::<GetPublicKeyOperation>(
+            cx,
+            &AlgorithmIdentifier::String(DOMString::from(normalized_algorithm.name().as_str())),
+        )
+        .is_ok();
+    }
+
+    // Step 4. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
+    // alg and op set to op.
+    // Step 5. If an error occurred:
+    //     Step 5.1. If op is "wrapKey", return the result of checking support for an algorithm
+    //     with op set to "encrypt" and alg set to alg.
+    //     Step 5.2. If op is "unwrapKey", return the result of checking support for an algorithm
+    //     with op set to "decrypt" and alg set to alg.
+    //     Step 5.3. Otherwise, return false.
+    // Step 6. If the specified operation or algorithm (or one of its parameter values) is expected
+    // to fail (for any key and/or data) for an implementation-specific reason (e.g. known
+    // nonconformance to the specification), return false.
+    // Step 7. If op is "generateKey" or "importKey", let usages be the empty list.
+    // Step 8. For each of the steps of the operation specified by op of the algorithm specified by
+    // normalizedAlgorithm:
+    //     If the step says to throw an error:
+    //         Return false.
+    //     If the step says to generate a key:
+    //         Return true.
+    //     If the step relies on an unavailable parameter, such as key, plaintext or ciphertext:
+    //         Return true.
+    //     If the step says to return a value:
+    //         Return true.
+    //     Otherwise:
+    //         Execute the step.
+    //
+    // NOTE:
+    // - Step 8 can be interpreted as executing the specified operation of the specified algorithm
+    //   in "dry-run" mode in which it validates the algorithm parameters, length, and usages but
+    //   does not execute the computation-demanding cryptographic calculation. It returns true if
+    //   the validation passes, and returns false otherwise.
+    // - In Step 8, we apply all validation to the parameters in normalizedAlgorithms and length,
+    //   as described in the specified operation of the specified algorithm. Since usages is an
+    //   empty list, it should pass the validation described in the specified operation of the
+    //   specified algorithm. So, we sipmly ignore it here.
+    // - The "getPublicKey" operation is not included here, since it is handled in Step 3.
+    // - We explicitly list all patterns in the inner `match` blocks so that the Rust compiler will
+    //   remind the implementer to add the necessary parameter validation here when a new operation
+    //   of an algorithm is added.
+    match operation {
+        "encrypt" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<EncryptOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                EncryptAlgorithm::RsaOaep(_) => true,
+                EncryptAlgorithm::AesCtr(normalized_algorithm) => {
+                    normalized_algorithm.counter.len() == 16 &&
+                        normalized_algorithm.length != 0 &&
+                        normalized_algorithm.length <= 128
+                },
+                EncryptAlgorithm::AesCbc(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() == 16
+                },
+                EncryptAlgorithm::AesGcm(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() <= u32::MAX as usize &&
+                        normalized_algorithm.tag_length.is_none_or(|length| {
+                            matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)
+                        })
+                },
+                EncryptAlgorithm::AesOcb(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() <= 15 &&
+                        normalized_algorithm
+                            .tag_length
+                            .is_none_or(|length| matches!(length, 64 | 96 | 128))
+                },
+                EncryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() == 12 &&
+                        normalized_algorithm
+                            .tag_length
+                            .is_none_or(|length| length == 128)
+                },
+            }
+        },
+        "decrypt" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<DecryptOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                DecryptAlgorithm::RsaOaep(_) => true,
+                DecryptAlgorithm::AesCtr(normalized_algorithm) => {
+                    normalized_algorithm.counter.len() == 16 &&
+                        normalized_algorithm.length != 0 &&
+                        normalized_algorithm.length <= 128
+                },
+                DecryptAlgorithm::AesCbc(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() == 16
+                },
+                DecryptAlgorithm::AesGcm(normalized_algorithm) => {
+                    normalized_algorithm
+                        .tag_length
+                        .is_none_or(|length| matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128)) &&
+                        normalized_algorithm.iv.len() <= u32::MAX as usize &&
+                        normalized_algorithm
+                            .additional_data
+                            .is_none_or(|data| data.len() <= u32::MAX as usize)
+                },
+                DecryptAlgorithm::AesOcb(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() <= 15 &&
+                        normalized_algorithm
+                            .tag_length
+                            .is_none_or(|length| matches!(length, 64 | 96 | 128))
+                },
+                DecryptAlgorithm::ChaCha20Poly1305(normalized_algorithm) => {
+                    normalized_algorithm.iv.len() == 12 &&
+                        normalized_algorithm
+                            .tag_length
+                            .is_none_or(|length| length == 128)
+                },
+            }
+        },
+        "sign" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<SignOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                SignAlgorithm::RsassaPkcs1V1_5(_) |
+                SignAlgorithm::RsaPss(_) |
+                SignAlgorithm::Ecdsa(_) |
+                SignAlgorithm::Ed25519(_) |
+                SignAlgorithm::Hmac(_) |
+                SignAlgorithm::MlDsa(_) => true,
+            }
+        },
+        "verify" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<VerifyOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                VerifyAlgorithm::RsassaPkcs1V1_5(_) |
+                VerifyAlgorithm::RsaPss(_) |
+                VerifyAlgorithm::Ecdsa(_) |
+                VerifyAlgorithm::Ed25519(_) |
+                VerifyAlgorithm::Hmac(_) |
+                VerifyAlgorithm::MlDsa(_) => true,
+            }
+        },
+        "digest" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<DigestOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                DigestAlgorithm::Sha(_) |
+                DigestAlgorithm::Sha3(_) |
+                DigestAlgorithm::CShake(_) |
+                DigestAlgorithm::TurboShake(_) => true,
+            }
+        },
+        "deriveBits" => {
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<DeriveBitsOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                DeriveBitsAlgorithm::Ecdh(_) | DeriveBitsAlgorithm::X25519(_) => true,
+                DeriveBitsAlgorithm::Hkdf(_) => length.is_some_and(|length| length % 8 == 0),
+                DeriveBitsAlgorithm::Pbkdf2(normalized_algorithm) => {
+                    length.is_some_and(|length| length % 8 == 0) &&
+                        normalized_algorithm.iterations != 0
+                },
+                DeriveBitsAlgorithm::Argon2(normalized_algorithm) => {
+                    length.is_some_and(|length| length >= 32 && length % 8 == 0) &&
+                        normalized_algorithm
+                            .version
+                            .is_none_or(|version| version == 19) &&
+                        normalized_algorithm.parallelism != 0 &&
+                        normalized_algorithm.parallelism <= 16777215 &&
+                        normalized_algorithm.memory >= 8 * normalized_algorithm.parallelism &&
+                        normalized_algorithm.passes != 0
+                },
+            }
+        },
+        "wrapKey" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<WrapKeyOperation>(cx, algorithm)
+            else {
+                return check_support_for_algorithm(cx, "encrypt", algorithm, length);
+            };
+
+            match normalized_algorithm {
+                WrapKeyAlgorithm::AesKw(_) => true,
+            }
+        },
+        "unwrapKey" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<UnwrapKeyOperation>(cx, algorithm)
+            else {
+                return check_support_for_algorithm(cx, "decrypt", algorithm, length);
+            };
+
+            match normalized_algorithm {
+                UnwrapKeyAlgorithm::AesKw(_) => true,
+            }
+        },
+        "generateKey" => {
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<GenerateKeyOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                GenerateKeyAlgorithm::RsassaPkcs1V1_5(_) |
+                GenerateKeyAlgorithm::RsaPss(_) |
+                GenerateKeyAlgorithm::RsaOaep(_) => true,
+                GenerateKeyAlgorithm::Ecdsa(normalized_algorithm) |
+                GenerateKeyAlgorithm::Ecdh(normalized_algorithm) => {
+                    SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
+                },
+                GenerateKeyAlgorithm::Ed25519(_) | GenerateKeyAlgorithm::X25519(_) => true,
+                GenerateKeyAlgorithm::AesCtr(normalized_algorithm) |
+                GenerateKeyAlgorithm::AesCbc(normalized_algorithm) |
+                GenerateKeyAlgorithm::AesGcm(normalized_algorithm) |
+                GenerateKeyAlgorithm::AesKw(normalized_algorithm) => {
+                    matches!(normalized_algorithm.length, 128 | 192 | 256)
+                },
+                GenerateKeyAlgorithm::Hmac(normalized_algorithm) => {
+                    normalized_algorithm.length.is_none_or(|length| length != 0)
+                },
+                GenerateKeyAlgorithm::MlKem(_) | GenerateKeyAlgorithm::MlDsa(_) => true,
+                GenerateKeyAlgorithm::AesOcb(normalized_algorithm) => {
+                    matches!(normalized_algorithm.length, 128 | 192 | 256)
+                },
+                GenerateKeyAlgorithm::ChaCha20Poly1305(_) => true,
+            }
+        },
+        "importKey" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<ImportKeyOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
+                ImportKeyAlgorithm::RsaPss(_) |
+                ImportKeyAlgorithm::RsaOaep(_) |
+                ImportKeyAlgorithm::Ecdsa(_) |
+                ImportKeyAlgorithm::Ecdh(_) |
+                ImportKeyAlgorithm::Ed25519(_) |
+                ImportKeyAlgorithm::X25519(_) |
+                ImportKeyAlgorithm::AesCtr(_) |
+                ImportKeyAlgorithm::AesCbc(_) |
+                ImportKeyAlgorithm::AesGcm(_) |
+                ImportKeyAlgorithm::AesKw(_) |
+                ImportKeyAlgorithm::Hmac(_) |
+                ImportKeyAlgorithm::Hkdf(_) |
+                ImportKeyAlgorithm::Pbkdf2(_) |
+                ImportKeyAlgorithm::MlKem(_) |
+                ImportKeyAlgorithm::MlDsa(_) |
+                ImportKeyAlgorithm::AesOcb(_) |
+                ImportKeyAlgorithm::ChaCha20Poly1305(_) |
+                ImportKeyAlgorithm::Argon2(_) => true,
+            }
+        },
+        "exportKey" => {
+            let Ok(normalized_algorithm) = normalize_algorithm::<ExportKeyOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                ExportKeyAlgorithm::RsassaPkcs1V1_5(_) |
+                ExportKeyAlgorithm::RsaPss(_) |
+                ExportKeyAlgorithm::RsaOaep(_) |
+                ExportKeyAlgorithm::Ecdsa(_) |
+                ExportKeyAlgorithm::Ecdh(_) |
+                ExportKeyAlgorithm::Ed25519(_) |
+                ExportKeyAlgorithm::X25519(_) |
+                ExportKeyAlgorithm::AesCtr(_) |
+                ExportKeyAlgorithm::AesCbc(_) |
+                ExportKeyAlgorithm::AesGcm(_) |
+                ExportKeyAlgorithm::AesKw(_) |
+                ExportKeyAlgorithm::Hmac(_) |
+                ExportKeyAlgorithm::MlKem(_) |
+                ExportKeyAlgorithm::MlDsa(_) |
+                ExportKeyAlgorithm::AesOcb(_) |
+                ExportKeyAlgorithm::ChaCha20Poly1305(_) => true,
+            }
+        },
+        "get key length" => {
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<GetKeyLengthOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                GetKeyLengthAlgorithm::AesCtr(normalized_derived_key_algorithm) |
+                GetKeyLengthAlgorithm::AesCbc(normalized_derived_key_algorithm) |
+                GetKeyLengthAlgorithm::AesGcm(normalized_derived_key_algorithm) |
+                GetKeyLengthAlgorithm::AesKw(normalized_derived_key_algorithm) => {
+                    matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
+                },
+                GetKeyLengthAlgorithm::Hmac(normalized_derived_key_algorithm) => {
+                    normalized_derived_key_algorithm
+                        .length
+                        .is_none_or(|length| length != 0)
+                },
+                GetKeyLengthAlgorithm::Hkdf(_) | GetKeyLengthAlgorithm::Pbkdf2(_) => true,
+                GetKeyLengthAlgorithm::AesOcb(normalized_derived_key_algorithm) => {
+                    matches!(normalized_derived_key_algorithm.length, 128 | 192 | 256)
+                },
+                GetKeyLengthAlgorithm::ChaCha20Poly1305(_) | GetKeyLengthAlgorithm::Argon2(_) => {
+                    true
+                },
+            }
+        },
+        "encapsulate" => {
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<EncapsulateOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                EncapsulateAlgorithm::MlKem(_) => true,
+            }
+        },
+        "decapsulate" => {
+            let Ok(normalized_algorithm) =
+                normalize_algorithm::<DecapsulateOperation>(cx, algorithm)
+            else {
+                return false;
+            };
+
+            match normalized_algorithm {
+                DecapsulateAlgorithm::MlKem(_) => true,
+            }
+        },
+        _ => false,
+    }
+
+    // Step 9. Assert: this step is never reached, because one of the steps of the operation will
+    // have said to return a value or throw an error, causing us to return true or false,
+    // respectively.
 }
 
 /// Alternative to std::convert::TryFrom, with `&mut js::context::JSContext`
