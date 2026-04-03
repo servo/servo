@@ -8031,6 +8031,7 @@ dependencies = [
  "encoding_rs",
  "euclid",
  "http 1.4.0",
+ "icu_locid",
  "indexmap",
  "ipc-channel",
  "keyboard-types",
