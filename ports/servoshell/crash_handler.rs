@@ -11,11 +11,9 @@ pub fn install() {
     use std::sync::atomic;
     use std::thread;
 
-    use sig::signal;
-
     use crate::backtrace;
 
-    extern "C" fn handler(sig: i32) {
+    fn handler(siginfo: &libc::siginfo_t) {
         // Only print crash message and backtrace the first time, to avoid
         // infinite recursion if the printing causes another signal.
         static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
@@ -26,7 +24,7 @@ pub fn install() {
             // practice will often segfault (see below).
             let stderr = std::io::stderr();
             let mut stderr = stderr.lock();
-            let _ = write!(&mut stderr, "Caught signal {sig}");
+            let _ = write!(&mut stderr, "Caught signal {}", siginfo.si_signo);
             if let Some(name) = thread::current().name() {
                 let _ = write!(&mut stderr, " in thread \"{}\"", name);
             }
@@ -42,13 +40,19 @@ pub fn install() {
         // know to be “async-signal-safe”, which includes sigaction(), raise(),
         // and _exit(), but generally doesn’t include anything that allocates.
         // https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_04_03_03
-        raise_signal_or_exit_with_error(sig);
+        raise_signal_or_exit_with_error(siginfo.si_signo);
     }
 
-    signal!(libc::SIGSEGV, handler); // handle segfaults
-    signal!(libc::SIGILL, handler); // handle stack overflow and unsupported CPUs
-    signal!(libc::SIGIOT, handler); // handle double panics
-    signal!(libc::SIGBUS, handler); // handle invalid memory access
+    unsafe {
+        signal_hook_registry::register_unchecked(libc::SIGSEGV, handler)
+            .expect("Could not register signal"); // handle segfaults
+        signal_hook_registry::register_unchecked(libc::SIGILL, handler)
+            .expect("Could not register signal"); // handle stack overflow and unsupported CPUs
+        signal_hook_registry::register_unchecked(libc::SIGIOT, handler)
+            .expect("Could not register signal"); // handle double panics
+        signal_hook_registry::register_unchecked(libc::SIGBUS, handler)
+            .expect("Could not register signal"); // handle invalid memory access
+    }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "android")))]

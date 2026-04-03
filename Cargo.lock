@@ -8975,7 +8975,7 @@ dependencies = [
  "servo-allocator",
  "servo-base",
  "servo-webdriver-server",
- "sig",
+ "signal-hook-registry",
  "surfman",
  "tokio",
  "tracing",
@@ -9040,15 +9040,6 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
-name = "sig"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6567e29578f9bfade6a5d94a32b9a4256348358d2a3f448cab0021f9a02614a2"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "signal-hook-registry"
