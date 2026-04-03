@@ -562,9 +562,7 @@ impl WebView {
     /// zoom, which will adjust the `devicePixelRatio` of the page and cause it to modify
     /// its layout.
     ///
-    /// These values will be clamped internally. The values used for clamping can be
-    /// adjusted by page content when `<meta viewport>` parsing is enabled via
-    /// `Prefs::viewport_meta_enabled`.
+    /// These values will be clamped internally to the inclusive range [0.1, 10.0]).
     pub fn set_page_zoom(&self, new_zoom: f32) {
         self.inner()
             .servo
@@ -584,8 +582,9 @@ impl WebView {
     /// zoom, which is a type of zoom which does not modify layout, and instead simply
     /// magnifies the view in the viewport.
     ///
-    /// The final pinch zoom values will be clamped to reasonable defaults (currently to
-    /// the inclusive range [1.0, 10.0]).
+    /// The final pinch zoom values will be clamped to defaults (the inclusive range [1.0, 10.0]).
+    /// The values used for clamping can be adjusted by page content when `<meta viewport>`
+    /// parsing is enabled via `Prefs::viewport_meta_enabled`, exclusively on mobile devices.
     pub fn adjust_pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .servo

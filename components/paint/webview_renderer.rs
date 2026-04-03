@@ -114,7 +114,7 @@ pub(crate) struct WebViewRenderer {
     animating: bool,
     /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
     /// and initial values for zoom derived from the `viewport` meta tag in web content.
-    viewport_description: Option<ViewportDescription>,
+    viewport_description: ViewportDescription,
 
     //
     // Data that is shared with the parent renderer.
@@ -153,7 +153,7 @@ impl WebViewRenderer {
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             hidden: false,
             animating: false,
-            viewport_description: None,
+            viewport_description: Default::default(),
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
@@ -772,8 +772,11 @@ impl WebViewRenderer {
 
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
             match scroll_event {
-                ScrollZoomEvent::PinchZoom(factor, center) => {
-                    new_pinch_zoom.zoom(factor, center);
+                ScrollZoomEvent::PinchZoom(magnification, center) => {
+                    let new_factor = self
+                        .viewport_description
+                        .clamp_zoom(self.pinch_zoom.zoom_factor().0 * magnification);
+                    new_pinch_zoom.set_zoom(new_factor, center);
                 },
                 ScrollZoomEvent::Scroll(scroll_event_info) => {
                     let combined_event = match combined_scroll_event.as_mut() {
@@ -1083,7 +1086,7 @@ impl WebViewRenderer {
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.set_page_zoom(viewport_description.initial_scale);
-        self.viewport_description = Some(viewport_description);
+        self.viewport_description = viewport_description;
     }
 
     pub(crate) fn scroll_trees_memory_usage(
