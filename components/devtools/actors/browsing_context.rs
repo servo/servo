@@ -224,8 +224,7 @@ impl BrowsingContextActor {
             properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
-        let css_properties_actor =
-            CssPropertiesActor::new(registry.new_name::<CssPropertiesActor>(), properties);
+        let css_properties_name = CssPropertiesActor::register(registry, properties);
 
         let inspector_name = InspectorActor::register(registry, name.clone());
 
@@ -262,7 +261,7 @@ impl BrowsingContextActor {
             browsing_context_id,
             accessibility: accessibility_actor.name(),
             console_name,
-            css_properties_name: css_properties_actor.name(),
+            css_properties_name,
             inspector_name,
             reflow_name: reflow_actor.name(),
             style_sheets_name,
@@ -272,7 +271,6 @@ impl BrowsingContextActor {
         };
 
         registry.register(accessibility_actor);
-        registry.register(css_properties_actor);
         registry.register(reflow_actor);
         registry.register(tab_descriptor_actor);
         registry.register(thread_actor);

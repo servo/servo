@@ -57,7 +57,16 @@ impl Actor for CssPropertiesActor {
 }
 
 impl CssPropertiesActor {
-    pub fn new(name: String, properties: HashMap<String, CssDatabaseProperty>) -> Self {
-        Self { name, properties }
+    pub fn register(
+        registry: &ActorRegistry,
+        properties: HashMap<String, CssDatabaseProperty>,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
+            properties,
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }
