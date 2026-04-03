@@ -74,8 +74,11 @@ impl Actor for DeviceActor {
 }
 
 impl DeviceActor {
-    pub fn new(name: String) -> DeviceActor {
-        DeviceActor { name }
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = DeviceActor { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
     }
 
     pub fn description() -> ActorDescription {

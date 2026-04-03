@@ -347,7 +347,7 @@ impl RootActor {
     /// Registers the root actor and its global actors (those not associated with a specific target).
     pub fn register(registry: &mut ActorRegistry) {
         // Global actors
-        let device_actor = DeviceActor::new(registry.new_name::<DeviceActor>());
+        let device_name = DeviceActor::register(registry);
         let perf = PerformanceActor::new(registry.new_name::<PerformanceActor>());
         let preference_name = PreferenceActor::register(registry);
 
@@ -357,7 +357,7 @@ impl RootActor {
         // Root actor
         let root_actor = Self {
             global_actors: GlobalActors {
-                device_actor: device_actor.name(),
+                device_actor: device_name,
                 perf_actor: perf.name(),
                 preference_actor: preference_name,
             },
@@ -366,7 +366,6 @@ impl RootActor {
         };
 
         registry.register(perf);
-        registry.register(device_actor);
         registry.register(process_actor);
         registry.register(root_actor);
     }
