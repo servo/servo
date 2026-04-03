@@ -1761,14 +1761,16 @@ async fn http_network_or_cache_fetch(
         return Response::network_error(NetworkError::CorsGeneral);
     }
 
-    // TODO(#33616): Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
+    // Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
+    response.url_list = http_request.url_list.clone();
 
     // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
     if http_request.headers.contains_key(RANGE) {
         response.range_requested = true;
     }
 
-    // TODO(#33616): Step 13 Set response’s request-includes-credentials to includeCredentials.
+    // Step 13 Set response’s request-includes-credentials to includeCredentials.
+    response.request_includes_credentials = include_credentials;
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
     // includeCredentials is true, and request’s window is an environment settings object, then:
