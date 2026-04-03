@@ -215,8 +215,7 @@ impl BrowsingContextActor {
             ..
         } = page_info;
 
-        let accessibility_actor =
-            AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
+        let accessibility = AccessibilityActor::register(registry);
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -256,7 +255,7 @@ impl BrowsingContextActor {
             active_outer_window_id: AtomicRefCell::new(outer_window_id),
             browser_id,
             browsing_context_id,
-            accessibility: accessibility_actor.name(),
+            accessibility,
             console_name,
             css_properties_name,
             inspector_name,
@@ -267,7 +266,6 @@ impl BrowsingContextActor {
             watcher_name: watcher_actor.name(),
         };
 
-        registry.register(accessibility_actor);
         registry.register(tab_descriptor_actor);
         registry.register(watcher_actor);
         registry.register::<Self>(actor);
