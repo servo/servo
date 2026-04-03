@@ -4,6 +4,7 @@
 <title>Stringifying cross-origin location should not crash</title>
 <meta name="assert" content="console.log of a cross-origin location object should not crash.">
 <script src="/common/get-host-info.sub.js"></script>
+<body>
 <script>
   var iframe = document.createElement("iframe");
   iframe.src = get_host_info().HTTP_REMOTE_ORIGIN + "/common/blank.html";
@@ -13,4 +14,5 @@
   };
   document.body.appendChild(iframe);
 </script>
+</body>
 </html>
