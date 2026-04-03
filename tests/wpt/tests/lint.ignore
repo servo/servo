@@ -132,6 +132,7 @@ CONSOLE: webaudio/resources/audit.js:41
 # Intentional use of console.*
 CONSOLE: infrastructure/testdriver/bidi/subscription.html
 CONSOLE: infrastructure/testdriver/bidi/subscription.window.js
+CONSOLE: html/browsers/history/the-location-interface/cross-origin-location-stringify-crash.sub.html
 CONSOLE: html/editing/dnd/events/ua-shadow-contents-manual.html
 
 # use of console in a public library - annotation-model ensures
