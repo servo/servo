@@ -231,7 +231,7 @@ impl BrowsingContextActor {
 
         let reflow_actor = ReflowActor::new(registry.new_name::<ReflowActor>());
 
-        let style_sheets_actor = StyleSheetsActor::new(registry.new_name::<StyleSheetsActor>());
+        let style_sheets_name = StyleSheetsActor::register(registry);
 
         let tab_descriptor_actor =
             TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
@@ -265,7 +265,7 @@ impl BrowsingContextActor {
             css_properties_name: css_properties_actor.name(),
             inspector_name,
             reflow_name: reflow_actor.name(),
-            style_sheets_name: style_sheets_actor.name(),
+            style_sheets_name,
             _tab: tab_descriptor_actor.name(),
             thread_name: thread_actor.name(),
             watcher_name: watcher_actor.name(),
@@ -274,7 +274,6 @@ impl BrowsingContextActor {
         registry.register(accessibility_actor);
         registry.register(css_properties_actor);
         registry.register(reflow_actor);
-        registry.register(style_sheets_actor);
         registry.register(tab_descriptor_actor);
         registry.register(thread_actor);
         registry.register(watcher_actor);
