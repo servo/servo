@@ -49,11 +49,14 @@ impl Actor for ThreadConfigurationActor {
 }
 
 impl ThreadConfigurationActor {
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             _configuration: HashMap::new(),
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }
 
