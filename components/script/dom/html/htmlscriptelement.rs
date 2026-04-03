@@ -178,19 +178,12 @@ impl HTMLScriptElement {
     ///
     /// <https://html.spec.whatwg.org/multipage/#concept-script-delay-load>
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub(crate) fn delay_load_event(
-        &self,
-        delay: bool,
-        url: ServoUrl,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn delay_load_event(&self, url: ServoUrl) {
         let document = self.get_script_active_document();
 
         let blocker = &self.delaying_the_load_event;
-        if delay && blocker.borrow().is_none() {
+        if blocker.borrow().is_none() {
             *blocker.borrow_mut() = Some(LoadBlocker::new(&document, LoadType::Script(url)));
-        } else if !delay && blocker.borrow().is_some() {
-            LoadBlocker::terminate(blocker, cx);
         }
     }
 
@@ -925,7 +918,7 @@ impl HTMLScriptElement {
             }
 
             // Step 31.8. Set el's delaying the load event to true.
-            self.delay_load_event(true, url.clone(), cx);
+            self.delay_load_event(url.clone());
 
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
             if self.marked_as_render_blocking.get() {
@@ -999,7 +992,7 @@ impl HTMLScriptElement {
                     let doc = self.get_script_active_document();
 
                     // Step 32.2.2.1 Set el's delaying the load event to true.
-                    self.delay_load_event(true, base_url.clone(), cx);
+                    self.delay_load_event(base_url.clone());
 
                     // Step 32.2.2.2 If el is potentially render-blocking, then:
                     if self.potentially_render_blocking() {
@@ -1553,7 +1546,7 @@ pub(crate) fn substitute_with_local_script(
 }
 
 #[derive(Clone, Copy)]
-pub enum ExternalScriptKind {
+pub(crate) enum ExternalScriptKind {
     Deferred,
     ParsingBlocking,
     AsapInOrder,
