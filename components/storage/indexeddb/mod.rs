@@ -1532,6 +1532,8 @@ impl IndexedDBManager {
                 // with name name, version 0 (zero), and with no object stores.
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
+
+                // TODO: use client storage.
                 let engine = match SqliteEngine::new(idb_base_dir, &key, self.thread_pool.clone()) {
                     Ok(engine) => engine,
                     Err(err) => {
