@@ -28,7 +28,7 @@ impl ServoErrorSender {
     }
 }
 
-/// Channel for errors raised by [`WebViewDelegate`] request objects.
+/// Channel for errors raised by [`WebViewDelegate`](crate::WebViewDelegate) request objects.
 ///
 /// This allows errors to be raised asynchronously.
 pub(crate) struct ServoErrorChannel {
