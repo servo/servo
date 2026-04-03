@@ -20,7 +20,7 @@ use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
 use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
-use style::rule_tree::CascadeLevel;
+use style::rule_tree::{CascadeLevel, RuleCascadeFlags};
 use style::stylesheets::UrlExtraData;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -79,17 +79,21 @@ fn cascade(
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
-    builder.custom_properties = inherited.clone();
+    builder.substitution_functions.custom_properties = inherited.clone();
     let mut rule_cache_conditions = RuleCacheConditions::default();
     let mut context = Context::new(
         builder,
         stylist.quirks_mode(),
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
+        RuleCascadeFlags::empty(),
     );
     let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
-    let priority =
-        CascadePriority::new(CascadeLevel::same_tree_author_normal(), LayerOrder::root());
+    let priority = CascadePriority::new(
+        CascadeLevel::same_tree_author_normal(),
+        LayerOrder::root(),
+        RuleCascadeFlags::empty(),
+    );
     let mut attribute_tracker = AttributeTracker::new_dummy();
 
     for declaration in &declarations {
@@ -100,7 +104,7 @@ fn cascade(
         DeferFontRelativeCustomPropertyResolution::No,
         &mut attribute_tracker,
     );
-    context.builder.custom_properties
+    context.builder.substitution_functions.custom_properties
 }
 
 #[bench]

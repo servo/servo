@@ -74,9 +74,10 @@ impl CSSPropertyRuleMethods<crate::DomTypeHolder> for CSSPropertyRule {
     fn Syntax(&self) -> DOMString {
         self.property_rule
             .borrow()
-            .data
+            .descriptors
             .syntax
-            .specified_string()
+            .as_ref()
+            .and_then(|s| s.specified_string())
             .unwrap_or_else(|| {
                 debug_assert!(false, "PropertyRule exists but missing a syntax string?");
                 "*"
@@ -88,7 +89,7 @@ impl CSSPropertyRuleMethods<crate::DomTypeHolder> for CSSPropertyRule {
     fn GetInitialValue(&self) -> Option<DOMString> {
         self.property_rule
             .borrow()
-            .data
+            .descriptors
             .initial_value
             .as_ref()
             .map(|value| value.to_css_string().into())
@@ -96,6 +97,6 @@ impl CSSPropertyRuleMethods<crate::DomTypeHolder> for CSSPropertyRule {
 
     /// <https://drafts.css-houdini.org/css-properties-values-api/#dom-csspropertyrule-inherits>
     fn Inherits(&self) -> bool {
-        self.property_rule.borrow().inherits()
+        self.property_rule.borrow().descriptors.inherits()
     }
 }

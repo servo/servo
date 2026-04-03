@@ -45,7 +45,7 @@ use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
     parse_style_attribute,
 };
-use style::rule_tree::CascadeLevel;
+use style::rule_tree::{CascadeLevel, CascadeOrigin};
 use style::selector_parser::{
     NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser, Snapshot,
     extended_filtering,
@@ -1447,7 +1447,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         let shared_lock = document.style_shared_lock();
         hints.push(ApplicableDeclarationBlock::from_declarations(
             Arc::new(shared_lock.wrap(property_declaration_block)),
-            CascadeLevel::PresHints,
+            CascadeLevel::new(CascadeOrigin::PresHints),
             LayerOrder::root(),
         ));
     }

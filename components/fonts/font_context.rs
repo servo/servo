@@ -646,7 +646,15 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             };
 
             let rule: &FontFaceRule = lock.read_with(guard);
-            let Some(font_face) = rule.font_face() else {
+
+            // Per https://github.com/w3c/csswg-drafts/issues/1133 an @font-face rule
+            // is valid as far as the CSS parser is concerned even if it doesn’t have
+            // a font-family or src declaration.
+            // However, both are required for the rule to represent an actual font face.
+            if rule.descriptors.font_family.is_none() {
+                continue;
+            }
+            let Some(ref sources) = rule.descriptors.src else {
                 continue;
             };
 
@@ -661,7 +669,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             number_loading += 1;
             self.start_loading_one_web_font(
                 Some(webview_id),
-                font_face.sources(),
+                sources,
                 css_font_face_descriptors,
                 WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
                 document_context,

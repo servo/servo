@@ -1997,6 +1997,7 @@ impl Node {
     pub(crate) fn set_implemented_pseudo_element(&self, pseudo_element: PseudoElement) {
         // Implemented pseudo element should exist only in the UA shadow DOM.
         debug_assert!(self.is_in_ua_widget());
+        debug_assert!(pseudo_element.is_element_backed());
         self.ensure_rare_data().implemented_pseudo_element = Some(pseudo_element);
     }
 

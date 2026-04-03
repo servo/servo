@@ -22,6 +22,7 @@ use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::{ComputedValues, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
+use style::rule_tree::RuleCascadeFlags;
 use style::servo::url::ComputedUrl;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::values::CSSFloat;
@@ -244,6 +245,7 @@ impl ReplacedContents {
             context.style_context.quirks_mode(),
             rule_cache_conditions,
             ContainerSizeQuery::none(),
+            RuleCascadeFlags::empty(),
         );
 
         let attr_to_computed = |attr_val: &AttrValue| {
