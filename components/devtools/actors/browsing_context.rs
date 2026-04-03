@@ -236,11 +236,8 @@ impl BrowsingContextActor {
         let tab_descriptor_actor =
             TabDescriptorActor::new(registry, name.clone(), is_top_level_global);
 
-        let thread_actor = ThreadActor::new(
-            registry.new_name::<ThreadActor>(),
-            script_sender.clone(),
-            Some(name.clone()),
-        );
+        let thread_name =
+            ThreadActor::register(registry, script_sender.clone(), Some(name.clone()));
 
         let watcher_actor = WatcherActor::new(
             registry,
@@ -267,7 +264,7 @@ impl BrowsingContextActor {
             reflow_name: reflow_actor.name(),
             style_sheets_name,
             _tab: tab_descriptor_actor.name(),
-            thread_name: thread_actor.name(),
+            thread_name,
             watcher_name: watcher_actor.name(),
         };
 
@@ -275,7 +272,6 @@ impl BrowsingContextActor {
         registry.register(css_properties_actor);
         registry.register(reflow_actor);
         registry.register(tab_descriptor_actor);
-        registry.register(thread_actor);
         registry.register(watcher_actor);
 
         target

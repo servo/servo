@@ -116,18 +116,21 @@ pub(crate) struct ThreadActor {
 }
 
 impl ThreadActor {
-    pub fn new(
-        name: String,
+    pub fn register(
+        registry: &ActorRegistry,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
         browsing_context_name: Option<String>,
-    ) -> ThreadActor {
-        ThreadActor {
-            name,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = ThreadActor {
+            name: name.clone(),
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
             browsing_context_name,
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }
 
