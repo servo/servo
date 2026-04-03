@@ -50,7 +50,10 @@ impl Actor for StyleSheetsActor {
 }
 
 impl StyleSheetsActor {
-    pub fn new(name: String) -> StyleSheetsActor {
-        StyleSheetsActor { name }
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = StyleSheetsActor { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
     }
 }
