@@ -275,6 +275,7 @@ pub(crate) mod encoding;
 pub(crate) use self::encoding::*;
 pub(crate) mod event;
 pub(crate) use self::event::*;
+pub(crate) mod eventsource;
 pub(crate) mod execcommand;
 pub(crate) mod fetchlaterresult;
 pub(crate) mod file;
