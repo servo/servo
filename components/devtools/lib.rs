@@ -540,9 +540,7 @@ impl DevtoolsInstance {
             Root::BrowsingContext(browsing_context_name.clone())
         };
 
-        let console_actor = ConsoleActor::new(console_name, parent_actor);
-
-        self.registry.register(console_actor);
+        ConsoleActor::register(&self.registry, console_name, parent_actor);
     }
 
     fn handle_title_changed(&self, pipeline_id: PipelineId, title: String) {
