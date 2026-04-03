@@ -8,58 +8,51 @@ interface HTMLElement : Element {
   [HTMLConstructor] constructor();
 
   // metadata attributes
-  [CEReactions]
-           attribute DOMString title;
-  [CEReactions]
-           attribute DOMString lang;
-  [CEReactions]
-           attribute boolean translate;
-  [CEReactions]
-           attribute DOMString dir;
+  [CEReactions] attribute DOMString title;
+  [CEReactions] attribute DOMString lang;
+  [CEReactions] attribute boolean translate;
+  [CEReactions] attribute DOMString dir;
   readonly attribute DOMStringMap dataset;
 
-  // microdata
-  //         attribute boolean itemScope;
-
-  //         attribute DOMString itemId;
-  //readonly attribute HTMLPropertiesCollection properties;
-  //         attribute any itemValue; // acts as DOMString on setting
   [Pref="dom_microdata_testing_enabled"]
   sequence<DOMString>? propertyNames();
   [Pref="dom_microdata_testing_enabled"]
   sequence<DOMString>? itemtypes();
 
   // user interaction
-  [CEReactions]
-           attribute boolean hidden;
+  [CEReactions] attribute boolean hidden;
+  // [CEReactions, Reflect] attribute boolean inert;
   undefined click();
-  // [CEReactions]
-  //         attribute long tabIndex;
-  undefined blur();
-  [CEReactions]
-            attribute DOMString accessKey;
+  [CEReactions] attribute DOMString accessKey;
   readonly attribute DOMString accessKeyLabel;
-  // [CEReactions]
-  //         attribute boolean draggable;
-  // [SameObject, PutForwards=value] readonly attribute DOMTokenList dropzone;
-  //         attribute HTMLMenuElement? contextMenu;
-  // [CEReactions]
-  //         attribute boolean spellcheck;
-  // void forceSpellCheck();
+  // [CEReactions] attribute boolean draggable;
+  // [CEReactions] attribute boolean spellcheck;
+  // [CEReactions, ReflectSetter] attribute DOMString writingSuggestions;
+  // [CEReactions, ReflectSetter] attribute DOMString autocapitalize;
+  // [CEReactions] attribute boolean autocorrect;
 
   [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerText;
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerText;
 
   [Throws] ElementInternals attachInternals();
 
-  // command API
-  // readonly attribute DOMString? commandType;
-  // readonly attribute DOMString? commandLabel;
-  // readonly attribute DOMString? commandIcon;
-  // readonly attribute boolean? commandHidden;
-  // readonly attribute boolean? commandDisabled;
-  // readonly attribute boolean? commandChecked;
+  // The popover API
+  // undefined showPopover(optional ShowPopoverOptions options = {});
+  // undefined hidePopover();
+  // boolean togglePopover(optional (TogglePopoverOptions or boolean) options = {});
+  // [CEReactions] attribute DOMString? popover;
+
+  // [CEReactions, Reflect, ReflectRange=(0, 8)] attribute unsigned long headingOffset;
+  // [CEReactions, Reflect] attribute boolean headingReset;
 };
+
+// dictionary ShowPopoverOptions {
+//   HTMLElement source;
+// };
+//
+// dictionary TogglePopoverOptions : ShowPopoverOptions {
+//   boolean force;
+// };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-htmlelement-interface
 partial interface HTMLElement {
