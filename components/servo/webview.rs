@@ -55,8 +55,8 @@ pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1,
 ///
 /// ## Rendering Model
 ///
-/// Every [`WebView`] has a [`RenderingContext`](crate::RenderingContext). The embedder manages when
-/// the contents of the [`WebView`] paint to the [`RenderingContext`](crate::RenderingContext). When
+/// Every [`WebView`] has a [`RenderingContext`]. The embedder manages when
+/// the contents of the [`WebView`] paint to the [`RenderingContext`]. When
 /// a [`WebView`] needs to be painted, for instance, because its contents have changed, Servo will
 /// call [`WebViewDelegate::notify_new_frame_ready`] in order to signal that it is time to repaint
 /// the [`WebView`] using [`WebView::paint`].
@@ -66,8 +66,8 @@ pub(crate) const MINIMUM_WEBVIEW_SIZE: Size2D<i32, DevicePixel> = Size2D::new(1,
 /// 1. [`WebViewDelegate::notify_new_frame_ready`] is called. The applications triggers a request
 ///    to repaint the window that contains this [`WebView`].
 /// 2. During window repainting, the application calls [`WebView::paint`] and the contents of the
-///    [`RenderingContext`][crate::RenderingContext] are updated.
-/// 3. If the [`RenderingContext`][crate::RenderingContext] is double-buffered, the
+///    [`RenderingContext`] are updated.
+/// 3. If the [`RenderingContext`] is double-buffered, the
 ///    application then calls [`crate::RenderingContext::present()`] in order to swap the back buffer
 ///    to the front, finally displaying the updated [`WebView`] contents.
 ///

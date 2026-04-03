@@ -32,14 +32,16 @@ pub trait ServoDelegate {
     /// [`WebResourceLoad::intercept`]. If not handled, the load will continue as normal.
     ///
     /// Note: This delegate method is called for all resource loads not associated with a
-    /// [`WebView`].  For loads associated with a [`WebView`], Servo  will call
-    /// [`crate::WebViewDelegate::load_web_resource`].
+    /// [`WebView`](crate::WebView).  For loads associated with a [`WebView`](crate::WebView),
+    /// Servo  will call [`crate::WebViewDelegate::load_web_resource`].
     fn load_web_resource(&self, _load: WebResourceLoad) {}
 
     /// Request to display a notification.
     fn show_notification(&self, _notification: Notification) {}
 
-    /// A console message was logged by content not associated with a specific [`WebView`].
+    /// A console message was logged by content not associated with a specific
+    /// [`WebView`](crate::WebView).
+    ///
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     fn show_console_message(&self, _level: ConsoleLogLevel, _message: String) {}
 }
