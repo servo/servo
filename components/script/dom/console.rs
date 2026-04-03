@@ -24,11 +24,13 @@ use js::rust::{
 use script_bindings::conversions::get_dom_class;
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
+use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::realms::{AlreadyInRealm, InRealm};
+use crate::script_runtime::{CanGc, JSContext};
 
 /// The maximum object depth logged by console methods.
 const MAX_LOG_DEPTH: usize = 10;
@@ -136,54 +138,71 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
     }
 }
 
-#[expect(unsafe_code)]
 fn console_argument_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
 ) -> ConsoleArgument {
-    if handle_value.is_string() {
-        let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
-        let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
-        return ConsoleArgument::String(dom_string);
-    }
-
-    if handle_value.is_int32() {
-        let integer = handle_value.to_int32();
-        return ConsoleArgument::Integer(integer);
-    }
-
-    if handle_value.is_number() {
-        let number = handle_value.to_number();
-        return ConsoleArgument::Number(number);
-    }
-
-    if handle_value.is_boolean() {
-        let boolean = handle_value.to_boolean();
-        return ConsoleArgument::Boolean(boolean);
-    }
-
-    if handle_value.is_object() {
-        // JS objects can create circular reference, and we want to avoid recursing infinitely
-        if seen.contains(&handle_value.asBits_) {
-            // FIXME: Handle this properly
-            return ConsoleArgument::String("[circular]".into());
+    #[expect(unsafe_code)]
+    fn inner(
+        cx: JSContext,
+        handle_value: HandleValue,
+        seen: &mut Vec<u64>,
+    ) -> Result<ConsoleArgument, ()> {
+        if handle_value.is_string() {
+            let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
+            let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
+            return Ok(ConsoleArgument::String(dom_string));
         }
 
-        seen.push(handle_value.asBits_);
-        let maybe_argument_object = console_object_from_handle_value(cx, handle_value, seen);
-        let js_value = seen.pop();
-        debug_assert_eq!(js_value, Some(handle_value.asBits_));
-
-        if let Some(console_argument_object) = maybe_argument_object {
-            return ConsoleArgument::Object(console_argument_object);
+        if handle_value.is_int32() {
+            let integer = handle_value.to_int32();
+            return Ok(ConsoleArgument::Integer(integer));
         }
+
+        if handle_value.is_number() {
+            let number = handle_value.to_number();
+            return Ok(ConsoleArgument::Number(number));
+        }
+
+        if handle_value.is_boolean() {
+            let boolean = handle_value.to_boolean();
+            return Ok(ConsoleArgument::Boolean(boolean));
+        }
+
+        if handle_value.is_object() {
+            // JS objects can create circular reference, and we want to avoid recursing infinitely
+            if seen.contains(&handle_value.asBits_) {
+                // FIXME: Handle this properly
+                return Ok(ConsoleArgument::String("[circular]".into()));
+            }
+
+            seen.push(handle_value.asBits_);
+            let maybe_argument_object = console_object_from_handle_value(cx, handle_value, seen);
+            let js_value = seen.pop();
+            debug_assert_eq!(js_value, Some(handle_value.asBits_));
+
+            if let Some(console_argument_object) = maybe_argument_object {
+                return Ok(ConsoleArgument::Object(console_argument_object));
+            }
+
+            return Err(());
+        }
+
+        // FIXME: Handle more complex argument types here
+        let stringified_value = stringify_handle_value(handle_value);
+
+        Ok(ConsoleArgument::String(stringified_value.into()))
     }
 
-    // FIXME: Handle more complex argument types here
-    let stringified_value = stringify_handle_value(handle_value);
-
-    ConsoleArgument::String(stringified_value.into())
+    match inner(cx, handle_value, seen) {
+        Ok(arg) => arg,
+        Err(()) => {
+            let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+            report_pending_exception(cx, InRealm::Already(&in_realm_proof), CanGc::note());
+            ConsoleArgument::String("<error>".into())
+        },
+    }
 }
 
 #[expect(unsafe_code)]
