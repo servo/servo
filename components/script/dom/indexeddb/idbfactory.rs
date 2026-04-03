@@ -13,6 +13,7 @@ use script_bindings::inheritance::Castable;
 use servo_base::generic_channel::GenericSend;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use storage_traits::client_storage::{StorageIdentifier, StorageProxyMap, StorageType};
 use storage_traits::indexeddb::{
     BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, SyncOperation,
 };
@@ -472,6 +473,7 @@ impl IDBFactory {
         name: DOMString,
         version: Option<u64>,
         request: &IDBOpenDBRequest,
+        proxy_map: StorageProxyMap,
     ) -> Result<(), ()> {
         let global = self.global();
         let request_id = request.get_id();
@@ -493,6 +495,7 @@ impl IDBFactory {
             name.to_string(),
             version,
             request.get_id(),
+            proxy_map,
         );
 
         // Note: algo continues in parallel.
@@ -551,12 +554,28 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Security(None));
         };
 
+        let handle = global.storage_threads().client_storage_handle();
+        let message = handle
+            .obtain_a_storage_bottle_map(
+                StorageType::Local,
+                global.webview_id(),
+                StorageIdentifier::IndexedDB,
+                origin.immutable().clone(),
+            )
+            .recv();
+        let Ok(response) = message else {
+            return Err(Error::Operation(None));
+        };
+        let Ok(proxy_map) = response else {
+            return Err(Error::Operation(None));
+        };
+
         // Step 4: Let request be a new open request.
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 5: Runs in parallel
         if self
-            .open_database(storage_key, name, version, &request)
+            .open_database(storage_key, name, version, &request, proxy_map)
             .is_err()
         {
             return Err(Error::Operation(None));

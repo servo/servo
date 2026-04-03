@@ -4,12 +4,13 @@
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::WebViewId;
 use servo_url::ImmutableOrigin;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ClientStorageThreadHandle {
     sender: GenericSender<ClientStorageThreadMessage>,
 }
@@ -22,7 +23,7 @@ impl ClientStorageThreadHandle {
     pub fn obtain_a_storage_bottle_map(
         &self,
         storage_type: StorageType,
-        webview: WebViewId,
+        webview: Option<WebViewId>,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
     ) -> GenericReceiver<Result<StorageProxyMap, String>> {
@@ -42,7 +43,7 @@ impl ClientStorageThreadHandle {
         &self,
         bottle_id: i64,
         name: String,
-    ) -> GenericReceiver<Result<PathBuf, String>> {
+    ) -> GenericReceiver<Result<(PathBuf, bool), String>> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let message = ClientStorageThreadMessage::CreateDatabase {
             bottle_id,
@@ -72,6 +73,12 @@ impl ClientStorageThreadHandle {
 impl From<ClientStorageThreadHandle> for GenericSender<ClientStorageThreadMessage> {
     fn from(handle: ClientStorageThreadHandle) -> Self {
         handle.sender
+    }
+}
+
+impl From<GenericSender<ClientStorageThreadMessage>> for ClientStorageThreadHandle {
+    fn from(sender: GenericSender<ClientStorageThreadMessage>) -> Self {
+        ClientStorageThreadHandle::new(sender)
     }
 }
 
@@ -165,6 +172,7 @@ pub enum ClientStorageErrorr<T> {
     DatabaseDoesNotExist,
     DirectoryCreationFailed,
     DirectoryDeletionFailed,
+    WrongStorageType,
     Internal(T),
 }
 
@@ -175,7 +183,7 @@ impl<T> From<T> for ClientStorageErrorr<T> {
 }
 
 /// <https://storage.spec.whatwg.org/#storage-proxy-map>
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StorageProxyMap {
     pub bottle_id: i64,
     pub handle: ClientStorageThreadHandle,
@@ -185,7 +193,7 @@ pub struct StorageProxyMap {
 pub enum ClientStorageThreadMessage {
     ObtainBottleMap {
         storage_type: StorageType,
-        webview: WebViewId,
+        webview: Option<WebViewId>,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: GenericSender<Result<StorageProxyMap, String>>,
@@ -193,7 +201,8 @@ pub enum ClientStorageThreadMessage {
     CreateDatabase {
         bottle_id: i64,
         name: String,
-        sender: GenericSender<Result<PathBuf, String>>,
+        /// Boolean stands for "created".
+        sender: GenericSender<Result<(PathBuf, bool), String>>,
     },
     DeleteDatabase {
         bottle_id: i64,

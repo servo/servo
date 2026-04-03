@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::thread;
 
 use log::warn;
-use rusqlite::{Connection, Transaction};
+use rusqlite::{Connection, OptionalExtension, Transaction};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_url::ImmutableOrigin;
@@ -22,7 +22,7 @@ trait RegistryEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>>;
+    ) -> Result<(PathBuf, bool), ClientStorageErrorr<Self::Error>>;
     fn delete_database(
         &mut self,
         bottle_id: i64,
@@ -31,7 +31,7 @@ trait RegistryEngine {
     fn obtain_a_storage_bottle_map(
         &mut self,
         storage_type: StorageType,
-        webview: WebViewId,
+        webview: Option<WebViewId>,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: &GenericSender<ClientStorageThreadMessage>,
@@ -302,8 +302,31 @@ impl RegistryEngine for SqliteEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>> {
+    ) -> Result<(PathBuf, bool), ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
+
+        let database_id: i64 = tx
+            .query_row(
+                "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
+                 ON CONFLICT(bottle_id, name) DO UPDATE SET name = excluded.name
+                RETURNING id;",
+                (bottle_id, name),
+                |row| row.get(0),
+            )
+            .map_err(ClientStorageErrorr::Internal)?;
+
+        let existing_path: Option<String> = tx
+            .query_row(
+                "SELECT path FROM directories WHERE database_id = ?1;",
+                [database_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(ClientStorageErrorr::Internal)?;
+
+        if let Some(p) = existing_path {
+            return Ok((PathBuf::from(p), false));
+        }
 
         let dir = Uuid::new_v4().to_string();
         let cluster = dir.chars().last().unwrap();
@@ -319,29 +342,15 @@ impl RegistryEngine for SqliteEngine {
             )))
         })?;
 
-        let database_id: i64 = tx
-            .query_row(
-                "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
-             ON CONFLICT(bottle_id, name) DO NOTHING
-             RETURNING id;",
-                (bottle_id, name),
-                |row| row.get(0),
-            )
-            .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => ClientStorageErrorr::DatabaseAlreadyExists,
-                e => ClientStorageErrorr::Internal(e),
-            })?;
-
         tx.execute(
             "INSERT INTO directories (database_id, path) VALUES (?1, ?2);",
             (database_id, path_str),
-        )?;
+        )
+        .map_err(ClientStorageErrorr::Internal)?;
 
         std::fs::create_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryCreationFailed)?;
 
-        tx.commit()?;
-
-        Ok(path)
+        Ok((path, true))
     }
 
     /// Delete a database for the indexedDB endpoint.
@@ -386,7 +395,7 @@ impl RegistryEngine for SqliteEngine {
     fn obtain_a_storage_bottle_map(
         &mut self,
         storage_type: StorageType,
-        webview: WebViewId,
+        webview: Option<WebViewId>,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: &GenericSender<ClientStorageThreadMessage>,
@@ -402,6 +411,11 @@ impl RegistryEngine for SqliteEngine {
             StorageType::Session => {
                 // Step 3: Otherwise:
                 // Step 3.1: Assert: type is "session".
+                let Some(webview) = webview else {
+                    debug_assert!(false, "Session storage is only available on Window.");
+                    return Err(ClientStorageErrorr::WrongStorageType);
+                };
+
                 // Step 3.2: Set shed to environment’s global object’s associated Document’s
                 // node navigable’s traversable navigable’s storage shed.
                 // Note: using the browsing context of the webview as the traversable navigable.

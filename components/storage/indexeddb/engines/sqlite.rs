@@ -83,24 +83,11 @@ impl SqliteEngine {
 
     // TODO: intake dual pools
     pub fn new(
-        base_dir: &Path,
+        db_path: PathBuf,
+        created: bool,
         db_info: &IndexedDBDescription,
         pool: Arc<ThreadPool>,
     ) -> Result<Self, Error> {
-        let mut db_path = PathBuf::new();
-        db_path.push(base_dir);
-        db_path.push(db_info.as_path());
-        let db_parent = db_path.clone();
-        db_path.push("db.sqlite");
-
-        let created_db_path = if !db_path.exists() {
-            std::fs::create_dir_all(db_parent).unwrap();
-            std::fs::File::create(&db_path).unwrap();
-            true
-        } else {
-            false
-        };
-
         let connection = Self::init_db(&db_path, db_info)?;
 
         for stmt in DB_PRAGMAS {
@@ -113,7 +100,7 @@ impl SqliteEngine {
             db_path,
             read_pool: pool.clone(),
             write_pool: pool,
-            created_db_path,
+            created_db_path: created,
         })
     }
 

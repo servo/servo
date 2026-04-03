@@ -7,7 +7,6 @@ mod engines;
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
@@ -25,6 +24,7 @@ use servo_base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveE
 use servo_base::threadpool::ThreadPool;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use storage_traits::client_storage::StorageProxyMap;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
     DbResult, IndexedDBIndex, IndexedDBObjectStore, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath,
@@ -36,27 +36,16 @@ use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteE
 use crate::shared::is_sqlite_disk_full_error;
 
 pub trait IndexedDBThreadFactory {
-    fn new(
-        config_dir: Option<PathBuf>,
-        mem_profiler_chan: MemProfilerChan,
-        reporter_name: String,
-    ) -> Self;
+    fn new(mem_profiler_chan: MemProfilerChan, reporter_name: String) -> Self;
 }
 
 impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
     fn new(
-        config_dir: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
         reporter_name: String,
     ) -> GenericSender<IndexedDBThreadMsg> {
         let (chan, port) = generic_channel::channel().unwrap();
         let chan2 = chan.clone();
-
-        let mut idb_base_dir = PathBuf::new();
-        if let Some(p) = config_dir {
-            idb_base_dir.push(p);
-        }
-        idb_base_dir.push("IndexedDB");
 
         let manager_sender = chan.clone();
 
@@ -64,7 +53,7 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
             .name("IndexedDBManager".to_owned())
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
-                    || IndexedDBManager::new(port, manager_sender, idb_base_dir).start(),
+                    || IndexedDBManager::new(port, manager_sender).start(),
                     reporter_name,
                     chan2,
                     IndexedDBThreadMsg::CollectMemoryReport,
@@ -81,30 +70,6 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
 pub struct IndexedDBDescription {
     pub origin: ImmutableOrigin,
     pub name: String,
-}
-
-impl IndexedDBDescription {
-    // randomly generated namespace for our purposes
-    const NAMESPACE_SERVO_IDB: &uuid::Uuid = &Uuid::from_bytes([
-        0x37, 0x9e, 0x56, 0xb0, 0x1a, 0x76, 0x44, 0xc2, 0xa0, 0xdb, 0xe2, 0x18, 0xc5, 0xc8, 0xa3,
-        0x5d,
-    ]);
-    // Converts the database description to a folder name where all
-    // data for this database is stored
-    pub(super) fn as_path(&self) -> PathBuf {
-        let mut path = PathBuf::new();
-
-        // uuid v5 is deterministic
-        let origin_uuid = Uuid::new_v5(
-            Self::NAMESPACE_SERVO_IDB,
-            self.origin.ascii_serialization().as_bytes(),
-        );
-        let db_name_uuid = Uuid::new_v5(Self::NAMESPACE_SERVO_IDB, self.name.as_bytes());
-        path.push(origin_uuid.to_string());
-        path.push(db_name_uuid.to_string());
-
-        path
-    }
 }
 
 #[derive(MallocSizeOf)]
@@ -649,6 +614,8 @@ enum OpenRequest {
         pending_versionchange: HashSet<Uuid>,
 
         id: Uuid,
+
+        proxy_map: StorageProxyMap,
     },
     Delete {
         /// The callback used to send a result to script.
@@ -679,6 +646,7 @@ impl OpenRequest {
                 pending_close: _,
                 pending_versionchange: _,
                 id,
+                proxy_map: _,
             } => id,
             OpenRequest::Delete {
                 sender: _,
@@ -702,6 +670,7 @@ impl OpenRequest {
                 pending_close: _,
                 pending_versionchange: _,
                 id: _,
+                proxy_map: _,
             } => true,
             OpenRequest::Delete {
                 sender: _,
@@ -726,6 +695,7 @@ impl OpenRequest {
                 pending_close,
                 pending_versionchange,
                 id: _,
+                proxy_map: _,
             } => {
                 !processed ||
                     pending_upgrade.is_some() ||
@@ -755,6 +725,7 @@ impl OpenRequest {
                 pending_versionchange: _,
                 pending_upgrade,
                 id,
+                proxy_map: _,
             } => {
                 if sender
                     .send(ConnectionMsg::AbortError {
@@ -803,7 +774,6 @@ struct Connection {
 struct IndexedDBManager {
     port: GenericReceiver<IndexedDBThreadMsg>,
     manager_sender: GenericSender<IndexedDBThreadMsg>,
-    idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
     thread_pool: Arc<ThreadPool>,
 
@@ -824,7 +794,6 @@ impl IndexedDBManager {
     fn new(
         port: GenericReceiver<IndexedDBThreadMsg>,
         manager_sender: GenericSender<IndexedDBThreadMsg>,
-        idb_base_dir: PathBuf,
     ) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
@@ -839,7 +808,6 @@ impl IndexedDBManager {
         IndexedDBManager {
             port,
             manager_sender,
-            idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
             serial_number_counter: 0,
@@ -1034,6 +1002,7 @@ impl IndexedDBManager {
                 pending_close: _,
                 pending_versionchange: _,
                 id,
+                proxy_map: _,
             } = open_request
             else {
                 return;
@@ -1266,6 +1235,7 @@ impl IndexedDBManager {
         db_name: String,
         version: Option<u64>,
         id: Uuid,
+        proxy_map: StorageProxyMap,
     ) {
         let key = IndexedDBDescription {
             name: db_name.clone(),
@@ -1280,6 +1250,7 @@ impl IndexedDBManager {
             pending_versionchange: Default::default(),
             pending_upgrade: None,
             id,
+            proxy_map,
         };
         let should_continue = {
             // Step 1: Let queue be the connection queue for storageKey and name.
@@ -1342,6 +1313,7 @@ impl IndexedDBManager {
             pending_close: _,
             pending_versionchange: _,
             pending_upgrade,
+            proxy_map: _,
         } = open_request
         else {
             return;
@@ -1434,6 +1406,7 @@ impl IndexedDBManager {
                 processed: _,
                 pending_versionchange,
                 pending_close,
+                proxy_map: _,
             } = open_request
             else {
                 return debug_assert!(
@@ -1510,6 +1483,7 @@ impl IndexedDBManager {
             pending_upgrade: _pending_upgrade,
             pending_close,
             pending_versionchange,
+            proxy_map,
         } = open_request
         else {
             return debug_assert!(
@@ -1518,7 +1492,6 @@ impl IndexedDBManager {
             );
         };
 
-        let idb_base_dir = self.idb_base_dir.as_path();
         let requested_version = *version;
 
         // Step 4: Let db be the database named name in origin, or null otherwise.
@@ -1532,9 +1505,37 @@ impl IndexedDBManager {
                 // with name name, version 0 (zero), and with no object stores.
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
-
-                // TODO: use client storage.
-                let engine = match SqliteEngine::new(idb_base_dir, &key, self.thread_pool.clone()) {
+                let Ok(response) = proxy_map
+                    .handle
+                    .create_database(proxy_map.bottle_id, db_name.clone())
+                    .recv()
+                else {
+                    if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                        id: *id,
+                        name: db_name.clone(),
+                        error: BackendError::DbErr(format!(
+                            "Failed to communicate with client storage."
+                        )),
+                    }) {
+                        debug!("Script exit during indexeddb database open {:?}", e);
+                    }
+                    return;
+                };
+                let (path, created) = match response {
+                    Ok((path, created)) => (path, created),
+                    Err(err) => {
+                        if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                            id: *id,
+                            name: db_name.clone(),
+                            error: BackendError::DbErr(format!("{err:?}")),
+                        }) {
+                            debug!("Script exit during indexeddb database open {:?}", e);
+                        }
+                        return;
+                    },
+                };
+                let engine = match SqliteEngine::new(path, created, &key, self.thread_pool.clone())
+                {
                     Ok(engine) => engine,
                     Err(err) => {
                         let error = backend_error_from_sqlite_error(err);
@@ -1834,6 +1835,7 @@ impl IndexedDBManager {
                 pending_upgrade,
                 pending_versionchange,
                 pending_close,
+                proxy_map: _,
             } = open_request
             {
                 pending_close.remove(&id);
@@ -1926,8 +1928,8 @@ impl IndexedDBManager {
             SyncOperation::CloseDatabase(origin, id, db_name) => {
                 self.close_database(origin, id, db_name);
             },
-            SyncOperation::OpenDatabase(sender, origin, db_name, version, id) => {
-                self.open_a_database_connection(sender, origin, db_name, version, id);
+            SyncOperation::OpenDatabase(sender, origin, db_name, version, id, proxy_map) => {
+                self.open_a_database_connection(sender, origin, db_name, version, id, proxy_map);
             },
             SyncOperation::AbortPendingUpgrades {
                 pending_upgrades,
