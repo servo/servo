@@ -254,9 +254,13 @@ impl DocumentFocusHandler {
             self.set_focused_element(None);
 
             if let Some(element) = &old_focused_filtered {
-                // FIXME: pass appropriate relatedTarget
                 if element.upcast::<Node>().is_connected() {
-                    self.fire_focus_event(FocusEventType::Blur, element.upcast(), None, can_gc);
+                    self.fire_focus_event(
+                        FocusEventType::Blur,
+                        element.upcast(),
+                        new_focused_filtered.map(|element| element.upcast()),
+                        can_gc,
+                    );
                 }
             }
         }
@@ -273,14 +277,17 @@ impl DocumentFocusHandler {
         }
 
         if old_focused_filtered != new_focused_filtered {
-            if let Some(elem) = &new_focused_filtered {
-                elem.set_focus_state(true);
-                let node = elem.upcast::<Node>();
-                if let Some(html_element) = elem.downcast::<HTMLElement>() {
+            if let Some(element) = &new_focused_filtered {
+                if let Some(html_element) = element.downcast::<HTMLElement>() {
                     html_element.handle_focus_state_for_contenteditable(can_gc);
                 }
-                // FIXME: pass appropriate relatedTarget
-                self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
+
+                self.fire_focus_event(
+                    FocusEventType::Focus,
+                    element.upcast(),
+                    old_focused_filtered.map(|element| element.upcast()),
+                    can_gc,
+                );
             }
         }
 
