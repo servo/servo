@@ -475,13 +475,7 @@ impl DevtoolsInstance {
         let console_name = self.registry.new_name::<ConsoleActor>();
 
         let parent_actor = if let Some(id) = worker_id {
-            let thread = ThreadActor::new(
-                self.registry.new_name::<ThreadActor>(),
-                script_sender.clone(),
-                None,
-            );
-            let thread_name = thread.name();
-            self.registry.register(thread);
+            let thread_name = ThreadActor::register(&self.registry, script_sender.clone(), None);
 
             let worker_type = if page_info.is_service_worker {
                 WorkerType::Service
