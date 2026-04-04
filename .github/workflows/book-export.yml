@@ -9,6 +9,9 @@ jobs:
     # Run job only on servo/servo
     if: github.repository == 'servo/servo'
     runs-on: ubuntu-latest
+    environment:
+      name: book-sync
+      deployment: false
     steps:
       - name: Check out Servo
         uses: actions/checkout@v6
