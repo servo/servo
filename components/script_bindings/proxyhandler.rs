@@ -526,7 +526,7 @@ fn ensure_cross_origin_property_holder(
 /// IDL operations on a cross-origin object involve [a security check][1].
 ///
 /// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
-pub unsafe fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
     jsapi::IsWindowProxy(*obj) ||
         native_from_object::<D::Location>(*obj, *cx).is_ok() ||
         native_from_object::<D::DissimilarOriginLocation>(*obj, *cx).is_ok()
