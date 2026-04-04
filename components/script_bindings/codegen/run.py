@@ -74,6 +74,7 @@ def main() -> None:
         ("ConcreteUnionTypes", "UnionTypes.rs"),
         ("DomTypes", "DomTypes.rs"),
         ("DomTypeHolder", "DomTypeHolder.rs"),
+        ("ContentEventHandlerNames", "ContentEventHandlerNames.rs"),
     ]:
         generate(config, name, os.path.join(out_dir, filename))
     make_dir(doc_servo)
