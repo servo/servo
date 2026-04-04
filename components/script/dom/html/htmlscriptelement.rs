@@ -995,7 +995,9 @@ impl HTMLScriptElement {
                     self.delay_load_event(base_url.clone());
 
                     // Step 32.2.2.2 If el is potentially render-blocking, then:
-                    if self.potentially_render_blocking() {
+                    if self.potentially_render_blocking() &&
+                        doc.allows_adding_render_blocking_elements()
+                    {
                         // Step 32.2.2.2.1 Block rendering on el.
                         self.marked_as_render_blocking.set(true);
                         doc.increment_render_blocking_element_count();
