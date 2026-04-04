@@ -28,6 +28,9 @@ jobs:
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Create Draft GH Release
     runs-on: ubuntu-latest
+    environment: &publish-environment
+      name: publish
+      deployment: false
     steps:
       - id: create-release
         run: |
@@ -66,6 +69,7 @@ jobs:
         && (inputs.regular_release || false) == false
     name: Publish GH Release
     runs-on: ubuntu-latest
+    environment: *publish-environment
     steps:
       - name: Publish as latest (success)
         if: ${{ !contains(needs.*.result, 'failure') && (!contains(needs.*.result, 'cancelled') && !cancelled()) }}
@@ -117,6 +121,9 @@ jobs:
       contents: write
       id-token: write
       attestations: write
+    environment:
+      name: publish
+      deployment: false
     env:
       ARTIFACT_BASENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendored"
       ARTIFACT_FILENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendored.tar.gz"
@@ -146,40 +153,75 @@ jobs:
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
-    permissions:
+    runs-on: ubuntu-latest
+    permissions: &nightly-upload-permissions
       id-token: write
       attestations: write
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-win
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
-      artifact_platform: windows-msvc
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-win.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: windows-msvc
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: &upload-release-steps
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            etc/ci
+          fetch-depth: 1
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Validate artifact IDs
+        run: |
+          if [[ -z "${ARTIFACT_IDS}" ]]; then
+            echo "Error: No artifact IDs provided."
+            echo "Help: Check the build job's outputs.artifact_ids value."
+            echo "If you recently renamed the build job without updating the corresponding output reference,"
+            echo "that is likely the cause of this error."
+            exit 1
+          fi
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ env.ARTIFACT_IDS }}
+          merge-multiple: true
+          path: release-artifacts
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: release-artifacts/*
+      - name: Upload release artifacts
+        run: |
+          ./etc/ci/upload_nightly.py "${ARTIFACT_PLATFORM}" \
+            --secret-from-environment \
+            --github-release-id "${GITHUB_RELEASE_ID}" \
+            release-artifacts/*
 
   upload-win-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
+    runs-on: ubuntu-latest
+    permissions: &release-upload-permissions
       id-token: write
       attestations: write
       # Necessary for the github token to upload artifacts to the release.
       contents: write
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-win
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
-      artifact_platform: windows-msvc
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-win.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: windows-msvc
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
 
   build-mac:
@@ -196,40 +238,37 @@ jobs:
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
+    runs-on: ubuntu-latest
+    permissions: *nightly-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-mac
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
-      artifact_platform: mac
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-mac.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: mac
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   upload-mac-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
+    runs-on: ubuntu-latest
+    permissions: *release-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-mac
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
-      artifact_platform: mac
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-mac.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: mac
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
@@ -245,40 +284,37 @@ jobs:
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
+    runs-on: ubuntu-latest
+    permissions: *nightly-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-mac-arm64
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
-      artifact_platform: mac-arm64
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: mac-arm64
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   upload-mac-arm64-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
+    runs-on: ubuntu-latest
+    permissions: *release-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-mac-arm64
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
-      artifact_platform: mac-arm64
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: mac-arm64
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   build-linux:
     # This job is only useful when run on upstream servo.
@@ -294,40 +330,37 @@ jobs:
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
+    runs-on: ubuntu-latest
+    permissions: *nightly-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-linux
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
-      artifact_platform: linux
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-linux.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: linux
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   upload-linux-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
+    runs-on: ubuntu-latest
+    permissions: *release-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-linux
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
-      artifact_platform: linux
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-linux.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: linux
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   build-android:
     # This job is only useful when run on upstream servo.
@@ -343,40 +376,37 @@ jobs:
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
+    runs-on: ubuntu-latest
+    permissions: *nightly-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-android
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
-      artifact_platform: android
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-android.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: android
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   upload-android-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
+    runs-on: ubuntu-latest
+    permissions: *release-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-android
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
-      artifact_platform: android
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-android.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: android
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
 
   build-ohos:
@@ -394,37 +424,34 @@ jobs:
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
+    runs-on: ubuntu-latest
+    permissions: *nightly-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-ohos
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
-      artifact_platform: ohos
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-ohos.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: ohos
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
 
   upload-ohos-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
+    runs-on: ubuntu-latest
+    permissions: *release-upload-permissions
+    environment: *publish-environment
     needs:
       - create-draft-release
       - build-ohos
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
-      artifact_platform: ohos
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    env:
+      ARTIFACT_IDS: ${{ needs.build-ohos.outputs.artifact_ids }}
+      ARTIFACT_PLATFORM: ohos
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-release-steps
