@@ -197,7 +197,8 @@ impl Actor for BrowsingContextActor {
 
 impl BrowsingContextActor {
     #[expect(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub(crate) fn register(
+        registry: &ActorRegistry,
         console_name: String,
         browser_id: DevtoolsBrowserId,
         browsing_context_id: DevtoolsBrowsingContextId,
@@ -205,8 +206,7 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
-        registry: &ActorRegistry,
-    ) -> BrowsingContextActor {
+    ) -> String {
         let name = registry.new_name::<BrowsingContextActor>();
         let DevtoolsPageInfo {
             title,
@@ -247,8 +247,8 @@ impl BrowsingContextActor {
         let mut script_chans = FxHashMap::default();
         script_chans.insert(pipeline_id, script_sender);
 
-        let target = BrowsingContextActor {
-            name,
+        let actor = BrowsingContextActor {
+            name: name.clone(),
             script_chans: AtomicRefCell::new(script_chans),
             title: AtomicRefCell::new(title),
             url: AtomicRefCell::new(url.into_string()),
@@ -270,8 +270,9 @@ impl BrowsingContextActor {
         registry.register(accessibility_actor);
         registry.register(tab_descriptor_actor);
         registry.register(watcher_actor);
+        registry.register::<Self>(actor);
 
-        target
+        name
     }
 
     pub(crate) fn handle_new_global(
