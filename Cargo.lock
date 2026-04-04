@@ -8255,6 +8255,7 @@ dependencies = [
  "ohos-window-sys",
  "once_cell",
  "rangemap",
+ "serde_json",
  "servo-media",
  "servo-media-audio",
  "servo-media-player",

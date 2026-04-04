@@ -8,32 +8,12 @@ use std::sync::{Arc, Mutex};
 use log::debug;
 use ohos_media_sys::avbuffer::OH_AVBuffer;
 use ohos_media_sys::avcodec_base::OH_AVDataSourceExt;
+use ohos_media_sys::avplayer::OH_AVPlayer_SetDataSource;
+use ohos_media_sys::avplayer_base::OH_AVPlayer;
 
-type SeekDataClosure = Box<dyn Fn(u64) -> bool + Send + Sync>;
+use crate::ohos_media::source_builder::MediaSourceBuilder;
+
 const DEFAULT_CACHE_SIZE: usize = 8 * 1024 * 1024; // 8MB
-pub struct MediaSourceBuilder {
-    pub enough_data: Option<Box<dyn Fn() + Send + Sync>>,
-    pub seek_data: Option<SeekDataClosure>,
-}
-
-impl MediaSourceBuilder {
-    pub fn set_enough_data<F: Fn() + Send + Sync + Clone + 'static>(mut self, callback: F) -> Self {
-        self.enough_data = Some(Box::new(callback));
-        self
-    }
-
-    pub fn set_seek_data<F: Fn(u64) -> bool + Send + Sync + Clone + 'static>(
-        mut self,
-        callback: F,
-    ) -> Self {
-        self.seek_data = Some(Box::new(callback));
-        self
-    }
-
-    pub fn build(self) -> MediaSourceWrapper {
-        MediaSourceWrapper::new(self)
-    }
-}
 
 pub struct MediaSourceWrapper {
     pub(crate) data_src: ohos_media_sys::avcodec_base::OH_AVDataSourceExt,
@@ -42,8 +22,6 @@ pub struct MediaSourceWrapper {
     closure_handle: *mut Box<dyn Fn(*mut u8, u32, i64) -> i32>,
 }
 
-// AVPlayer it self already have a short buffer internally,
-// we can just schedule when we does not have data for that specific location.
 impl MediaSourceWrapper {
     pub fn builder() -> MediaSourceBuilder {
         MediaSourceBuilder {
@@ -51,7 +29,11 @@ impl MediaSourceWrapper {
             seek_data: None,
         }
     }
+}
 
+// AVPlayer itself already have a short buffer internally,
+// we can just schedule fetch if we does not have data for that specific location.
+impl MediaSourceWrapper {
     pub fn new(source_cb: MediaSourceBuilder) -> Self {
         let playback_buffer = Arc::new(Mutex::new(PlaybackBuffer::new(source_cb.enough_data)));
 
@@ -134,12 +116,14 @@ impl MediaSourceWrapper {
         self.playback_buffer.lock().unwrap().end_of_stream();
     }
 
-    pub(crate) fn get_raw_inner_source(&mut self) -> *mut OH_AVDataSourceExt {
-        &mut self.data_src as *mut OH_AVDataSourceExt // Will it be considered not safe when accessing this pointer in Other function?
-    }
-
-    pub(crate) fn get_user_data(&self) -> *mut std::ffi::c_void {
-        self.closure_handle as *mut std::ffi::c_void
+    pub fn set_data_src(&mut self, av_player: *mut OH_AVPlayer) {
+        unsafe {
+            OH_AVPlayer_SetDataSource(
+                av_player,
+                &mut self.data_src as *mut OH_AVDataSourceExt,
+                self.closure_handle as *mut std::ffi::c_void,
+            );
+        }
     }
 }
 

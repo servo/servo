@@ -25,7 +25,10 @@ use servo_media_player::video::{self, Buffer, VideoFrame, VideoFrameData};
 use servo_media_player::{PlaybackState, Player, PlayerEvent, SeekLock, SeekLockMsg};
 use yuv::yuv_nv12_to_bgra;
 
-use crate::ohos_media::OhosPlayer as OhosPlayerInner;
+use crate::ohos_media::avplayer::OhosPlayer as OhosPlayerInner;
+#[cfg(not(sdk_api_21))]
+use crate::ohos_media::dummy_source::MediaSourceWrapper;
+#[cfg(sdk_api_21)]
 use crate::ohos_media::source::MediaSourceWrapper;
 
 // Height of decoded video frame from AVPlayer is padded to multiples of this value by the codec.
@@ -120,12 +123,9 @@ impl OhosAvPlayer {
 
     pub fn setup_info_event(&mut self) {
         let sender_clone = self.event_sender.clone();
-        let sender_clone_clone = self.event_sender.clone();
-        let sender_clone_clone_clone = self.event_sender.clone();
         let player_inner_clone = self.player_inner.clone();
         let state_manager_clone = self.state_manager.clone();
         let video_sink_clone = self.video_sink.as_ref().map(|v| v.clone());
-        let seek_channel = Arc::new(Mutex::new(SeekChannel::new()));
         let metadata_clone = self.last_metadata.clone();
 
         let event_info_closure =
@@ -308,28 +308,27 @@ impl OhosAvPlayer {
             .lock()
             .unwrap()
             .connect_info_event_callback(event_info_closure);
+    }
 
+    pub fn setup_data_source(&mut self) {
+        let sender_clone = self.event_sender.clone();
+        let sender_clone_clone = self.event_sender.clone();
+        let seek_channel = Arc::new(Mutex::new(SeekChannel::new()));
         let seekdata_send_closure = move |pos: u64| {
-            let _ = sender_clone_clone
-                .lock()
-                .unwrap()
-                .send(PlayerEvent::SeekData(
-                    pos,
-                    seek_channel.lock().unwrap().sender(),
-                ));
+            let _ = sender_clone.lock().unwrap().send(PlayerEvent::SeekData(
+                pos,
+                seek_channel.lock().unwrap().sender(),
+            ));
             let (ret, ack_channel) = seek_channel.lock().unwrap().wait();
             let _ = ack_channel.send(());
             debug!("Seek Initiated! :{}", pos);
-            let _ = sender_clone_clone
-                .lock()
-                .unwrap()
-                .send(PlayerEvent::NeedData);
+            let _ = sender_clone.lock().unwrap().send(PlayerEvent::NeedData);
             ret
         };
 
         let source = MediaSourceWrapper::builder()
             .set_enough_data(move || {
-                let _ = sender_clone_clone_clone
+                let _ = sender_clone_clone
                     .lock()
                     .unwrap()
                     .send(PlayerEvent::EnoughData);

@@ -129,7 +129,8 @@ impl Backend for OhosBackend {
             self.backend_chan.clone(),
         );
 
-        player.setup_info_event(); // TODO: Think about where to put this setup step.
+        player.setup_info_event();
+        player.setup_data_source();
         Arc::new(Mutex::new(player))
     }
 

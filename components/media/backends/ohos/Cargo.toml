@@ -32,3 +32,6 @@ lru = "0.16.3"
 rangemap = "1.6.0"
 libc = "0.2"
 yuv = "0.8.11"
+
+[build-dependencies]
+serde_json.workspace = true
