@@ -28,13 +28,10 @@ fn main() {
         .parse::<u32>()
         .expect("apiVersion should be a valid integer");
     let low_api_version = 21;
-    match api_version {
-        21.. => {
-            for version in low_api_version..=api_version {
+    if let 21.. = api_version {
+        for version in low_api_version..=api_version {
                 println!("cargo:rustc-cfg=sdk_api_{}", version);
-            }
-        },
-        _ => {},
+        }
     }
     println!("cargo:warning=Detected API version: {:?}", api_version);
     println!("cargo:rerun-if-env-changed=OHOS_SDK_NATIVE");
