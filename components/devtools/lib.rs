@@ -519,7 +519,8 @@ impl DevtoolsInstance {
                 .browsing_contexts
                 .entry(browsing_context_id)
                 .or_insert_with(|| {
-                    let browsing_context_actor = BrowsingContextActor::new(
+                    BrowsingContextActor::register(
+                        &self.registry,
                         console_name.clone(),
                         devtools_browser_id,
                         devtools_browsing_context_id,
@@ -527,11 +528,7 @@ impl DevtoolsInstance {
                         pipeline_id,
                         devtools_outer_window_id,
                         script_sender.clone(),
-                        &self.registry,
-                    );
-                    let browsing_context_name = browsing_context_actor.name();
-                    self.registry.register(browsing_context_actor);
-                    browsing_context_name
+                    )
                 });
             let browsing_context_actor = self
                 .registry
