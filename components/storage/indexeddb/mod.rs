@@ -1157,6 +1157,32 @@ impl IndexedDBManager {
         }
     }
 
+    /// Revert the backing database state after aborting an upgrade transaction.
+    ///
+    /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
+    /// IndexedDB §5.8 step 3 restores the previous version, or `0` if the database
+    /// was newly created. Step 4 restores the previous object store set, or the
+    /// empty set if the database was newly created. Servo eagerly creates the
+    /// backing database with version `0` and no stores during open, so aborting
+    /// that first upgrade must roll back to the pre-creation state by deleting the
+    /// placeholder backing store entirely.
+    ///
+    /// Related: <https://github.com/servo/servo/pull/42998>
+    fn revert_aborted_upgrade(&mut self, key: &IndexedDBDescription, old_version: u64) {
+        if old_version == 0 {
+            if let Some(db) = self.databases.remove(key) {
+                let _ = db.delete_database();
+            }
+            return;
+        }
+
+        let Some(db) = self.databases.get_mut(key) else {
+            return debug_assert!(false, "Db should have been created");
+        };
+        let res = db.set_version(old_version);
+        debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+    }
+
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
@@ -1181,22 +1207,7 @@ impl IndexedDBManager {
             open_request.abort()
         };
         if let Some(old_version) = old {
-            if old_version == 0 {
-                // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
-                // for newly created databases; Servo also drops the just-created backend entry
-                // so it is not observable via `indexedDB.databases()` after the abort.
-                // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                // Invariant: aborting initial creation leaves no database entry behind.
-                self.databases.remove(&key);
-            } else {
-                let Some(db) = self.databases.get_mut(&key) else {
-                    return debug_assert!(false, "Db should have been created");
-                };
-                // Step 3: Set connection’s version to database’s version if database previously existed
-                //  or 0 (zero) if database was newly created.
-                let res = db.set_version(old_version);
-                debug_assert!(res.is_ok(), "Setting a db version should not fail.");
-            }
+            self.revert_aborted_upgrade(&key, old_version);
         }
 
         self.remove_connection(&key, &id);
@@ -1246,22 +1257,7 @@ impl IndexedDBManager {
                 }
             }
             if let Some(version) = version_to_revert {
-                if version == 0 {
-                    // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
-                    // for newly created databases; Servo also drops the just-created backend entry
-                    // so it is not observable via `indexedDB.databases()` after the abort.
-                    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                    // Invariant: aborted initial upgrades must not remain as version-0 databases.
-                    self.databases.remove(&key);
-                } else {
-                    let Some(db) = self.databases.get_mut(&key) else {
-                        return debug_assert!(false, "Db should have been created");
-                    };
-                    // Step 3: Set connection’s version to database’s version if database previously existed
-                    //  or 0 (zero) if database was newly created.
-                    let res = db.set_version(version);
-                    debug_assert!(res.is_ok(), "Setting a db version should not fail.");
-                }
+                self.revert_aborted_upgrade(&key, version);
             }
         }
     }
