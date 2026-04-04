@@ -126,11 +126,14 @@ impl Actor for BreakpointListActor {
 }
 
 impl BreakpointListActor {
-    pub fn new(name: String, browsing_context_name: String) -> Self {
-        Self {
-            name,
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             browsing_context_name,
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }
 
