@@ -536,13 +536,16 @@ impl Actor for NetworkEventActor {
 }
 
 impl NetworkEventActor {
-    pub fn new(name: String, resource_id: u64, watcher_name: String) -> NetworkEventActor {
-        NetworkEventActor {
-            name,
+    pub fn register(registry: &ActorRegistry, resource_id: u64, watcher_name: String) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = NetworkEventActor {
+            name: name.clone(),
             resource_id,
             watcher_name,
             ..Default::default()
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 
     pub fn add_request(&self, request: HttpRequest) {

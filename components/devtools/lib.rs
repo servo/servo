@@ -688,13 +688,11 @@ impl DevtoolsInstance {
         let resource_id = self.next_resource_id;
         self.next_resource_id += 1;
 
-        let network_event_name = self.registry.new_name::<NetworkEventActor>();
-        let network_event_actor =
-            NetworkEventActor::new(network_event_name.clone(), resource_id, watcher_name);
+        let network_event_name =
+            NetworkEventActor::register(&self.registry, resource_id, watcher_name);
 
         self.actor_requests
             .insert(request_id, network_event_name.clone());
-        self.registry.register(network_event_actor);
 
         network_event_name
     }
