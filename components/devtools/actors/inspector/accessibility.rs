@@ -129,8 +129,11 @@ impl Actor for AccessibilityActor {
 }
 
 impl AccessibilityActor {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
     }
 }
 

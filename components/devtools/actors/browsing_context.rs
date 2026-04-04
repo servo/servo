@@ -139,7 +139,7 @@ pub(crate) struct BrowsingContextActor {
     active_pipeline_id: AtomicRefCell<PipelineId>,
     active_outer_window_id: AtomicRefCell<DevtoolsOuterWindowId>,
     pub browsing_context_id: DevtoolsBrowsingContextId,
-    accessibility: String,
+    accessibility_name: String,
     pub console_name: String,
     css_properties_name: String,
     pub(crate) inspector_name: String,
@@ -215,8 +215,7 @@ impl BrowsingContextActor {
             ..
         } = page_info;
 
-        let accessibility_actor =
-            AccessibilityActor::new(registry.new_name::<AccessibilityActor>());
+        let accessibility_name = AccessibilityActor::register(registry);
 
         let properties = (|| {
             let (properties_sender, properties_receiver) = generic_channel::channel()?;
@@ -256,7 +255,7 @@ impl BrowsingContextActor {
             active_outer_window_id: AtomicRefCell::new(outer_window_id),
             browser_id,
             browsing_context_id,
-            accessibility: accessibility_actor.name(),
+            accessibility_name,
             console_name,
             css_properties_name,
             inspector_name,
@@ -267,7 +266,6 @@ impl BrowsingContextActor {
             watcher_name: watcher_actor.name(),
         };
 
-        registry.register(accessibility_actor);
         registry.register(tab_descriptor_actor);
         registry.register(watcher_actor);
         registry.register::<Self>(actor);
@@ -397,7 +395,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             browsing_context_id: self.browsing_context_id.value(),
             outer_window_id: self.outer_window_id().value(),
             is_top_level_target: true,
-            accessibility_actor: self.accessibility.clone(),
+            accessibility_actor: self.accessibility_name.clone(),
             console_actor: self.console_name.clone(),
             css_properties_actor: self.css_properties_name.clone(),
             inspector_actor: self.inspector_name.clone(),
