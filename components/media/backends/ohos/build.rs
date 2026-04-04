@@ -30,7 +30,7 @@ fn main() {
     let low_api_version = 21;
     if let 21.. = api_version {
         for version in low_api_version..=api_version {
-                println!("cargo:rustc-cfg=sdk_api_{}", version);
+            println!("cargo:rustc-cfg=sdk_api_{}", version);
         }
     }
     println!("cargo:warning=Detected API version: {:?}", api_version);
