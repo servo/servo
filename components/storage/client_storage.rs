@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 use std::thread;
 
+use log::warn;
 use rusqlite::{Connection, Transaction};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
@@ -50,6 +51,15 @@ impl SqliteEngine {
         Ok(SqliteEngine {
             connection,
             base_dir,
+        })
+    }
+
+    fn memory() -> rusqlite::Result<Self> {
+        let connection = Connection::open_in_memory()?;
+        Self::init(&connection)?;
+        Ok(SqliteEngine {
+            connection,
+            base_dir: PathBuf::new(),
         })
     }
 
@@ -456,8 +466,10 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
-                let engine = SqliteEngine::new(storage_dir)
-                    .expect("Failed to initialize ClientStorage registry engine");
+                let engine = SqliteEngine::new(storage_dir).unwrap_or_else(|error| {
+                    warn!("Failed to initialize ClientStorage engine into storage dir: {error:?}");
+                    SqliteEngine::memory().unwrap()
+                });
                 ClientStorageThread::new(sender_clone, generic_receiver, engine).start();
             })
             .expect("Thread spawning failed");
