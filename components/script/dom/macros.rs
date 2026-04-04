@@ -49,19 +49,16 @@ macro_rules! make_limited_int_setter(
 
 #[macro_export]
 macro_rules! make_int_setter(
-    ($attr:ident, $htmlname:tt, $default:expr) => (
-        fn $attr(&self, value: i32) {
+    ($attr:ident, $htmlname:tt) => (
+        fn $attr(&self, cx: &mut js::context::JSContext, value: i32) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::script_runtime::CanGc;
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
         }
     );
-    ($attr:ident, $htmlname:tt) => {
-        make_int_setter!($attr, $htmlname, 0);
-    };
 );
 
 #[macro_export]
