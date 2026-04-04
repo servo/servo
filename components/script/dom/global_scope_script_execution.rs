@@ -4,12 +4,11 @@
 
 use std::borrow::Cow;
 use std::ffi::CStr;
-use std::ptr::NonNull;
 use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
-use js::jsapi::{ExceptionStackBehavior, JSScript, SetScriptPrivate};
+use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
@@ -17,6 +16,7 @@ use js::rust::wrappers2::{
     JS_GetScriptPrivate, JS_SetPendingException,
 };
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
+use js::gc::RootedTraceableBox;
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
 use servo_url::ServoUrl;
@@ -39,9 +39,8 @@ use crate::unminify::unminify_js;
 pub(crate) struct ClassicScript {
     /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
     /// On failure <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
-    #[no_trace]
     #[ignore_malloc_size_of = "mozjs"]
-    pub record: Result<NonNull<JSScript>, RethrowError>,
+    pub record: Result<RootedTraceableBox<Heap<*mut JSScript>>, RethrowError>,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-script-fetch-options>
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
@@ -121,7 +120,7 @@ impl GlobalScope {
             // Step 11.2. Return script.
             Err(RethrowError::from_pending_exception(cx.into()))
         } else {
-            Ok(NonNull::new(*compiled_script).expect("Can't be null"))
+            Ok(RootedTraceableBox::from_box(Heap::boxed(compiled_script.get())))
         };
 
         // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
@@ -174,9 +173,11 @@ impl GlobalScope {
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
                     rooted!(&in(cx) let mut rval = UndefinedValue());
+                    let script_ptr = compiled_script.get();
+                    assert!(!script_ptr.is_null(), "Compiled script must not be null");
                     result = evaluate_script(
                         cx,
-                        compiled_script,
+                        script_ptr,
                         script.url,
                         script.fetch_options,
                         rval.handle_mut(),
@@ -347,12 +348,12 @@ pub(crate) fn compile_script(
 #[expect(unsafe_code)]
 pub(crate) fn evaluate_script(
     cx: &mut JSContext,
-    compiled_script: NonNull<JSScript>,
+    compiled_script: *mut JSScript,
     url: ServoUrl,
     fetch_options: ScriptFetchOptions,
     rval: MutableHandleValue,
 ) -> bool {
-    rooted!(&in(cx) let record = compiled_script.as_ptr());
+    rooted!(&in(cx) let record = compiled_script);
     rooted!(&in(cx) let mut script_private = UndefinedValue());
 
     unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };
