@@ -8,6 +8,7 @@ use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
+use js::context::JSContext;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -204,12 +205,12 @@ macro_rules! css_properties(
                 );
                 self.get_property_value($id)
             }
-            fn $setter(&self, value: DOMString) -> ErrorResult {
+            fn $setter(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.set_property($id, value, DOMString::new(), CanGc::note())
+                self.set_property(cx, $id, value, DOMString::new())
             }
         )*
     );
@@ -317,17 +318,12 @@ impl CSSStyleDeclaration {
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
     fn set_property(
         &self,
+        cx: &mut JSContext,
         id: PropertyId,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        self.set_property_inner(
-            PotentiallyParsedPropertyId::Parsed(id),
-            value,
-            priority,
-            can_gc,
-        )
+        self.set_property_inner(cx, PotentiallyParsedPropertyId::Parsed(id), value, priority)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
@@ -336,10 +332,10 @@ impl CSSStyleDeclaration {
     /// the caller already has a parsed property ID.
     fn set_property_inner(
         &self,
+        cx: &mut JSContext,
         id: PotentiallyParsedPropertyId,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
@@ -420,7 +416,7 @@ impl CSSStyleDeclaration {
 
                 Ok(())
             },
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }
@@ -511,21 +507,21 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty>
     fn SetProperty(
         &self,
+        cx: &mut JSContext,
         property: DOMString,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         self.set_property_inner(
+            cx,
             PotentiallyParsedPropertyId::NotParsed(property),
             value,
             priority,
-            can_gc,
         )
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty>
-    fn RemoveProperty(&self, property: DOMString, can_gc: CanGc) -> Fallible<DOMString> {
+    fn RemoveProperty(&self, cx: &mut JSContext, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed(None));
@@ -542,7 +538,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
                 pdb.property_value_to_css(&id, &mut string).unwrap();
                 *changed = remove_property(pdb, &id);
             },
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 6
@@ -555,12 +551,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
-    fn SetCssFloat(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetCssFloat(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         self.set_property(
+            cx,
             PropertyId::NonCustom(LonghandId::Float.into()),
             value,
             DOMString::new(),
-            can_gc,
         )
     }
 
@@ -595,7 +591,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
-    fn SetCssText(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetCssText(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         let window = self.owner.window();
 
         // Step 1
@@ -616,7 +612,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
                     CssRuleType::Style,
                 );
             },
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         Ok(())

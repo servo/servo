@@ -610,10 +610,10 @@ pub(crate) fn handle_modify_rule(
 
     for modification in modifications {
         let _ = style.SetProperty(
+            cx,
             modification.name.into(),
             modification.value.into(),
             modification.priority.into(),
-            CanGc::from_cx(cx),
         );
     }
 }

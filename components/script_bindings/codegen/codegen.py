@@ -4172,6 +4172,7 @@ class CGCallGenerator(CGThing):
                  extendedAttributes: list[str],
                  descriptor: Descriptor,
                  nativeMethodName: str,
+                 is_attr: bool,
                  static: bool,
                  object: str = "this",
                  hasCEReactions: bool = False
@@ -4200,7 +4201,8 @@ class CGCallGenerator(CGThing):
             args.append(CGGeneric(name))
 
         needsCx = False
-        match needCx(returnType, (a for (a, _) in arguments), True):
+        is_implicit_cx_attribute = descriptor.implicitCxSetters and is_attr and nativeMethodName.startswith('Set')
+        match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
             case Context.Cx:
                 descriptor.cxMethods.append(nativeMethodName)
             case Context.CurrentRealm:
@@ -4348,7 +4350,7 @@ class CGPerSignatureCall(CGThing):
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
                 self.extendedAttributes, descriptor, nativeMethodName,
-                static, hasCEReactions=hasCEReactions))
+                idlNode.isAttr(), static, hasCEReactions=hasCEReactions))
 
         self.cgRoot = CGList(cgThings, "\n")
 
@@ -7105,7 +7107,7 @@ class CGInterfaceTrait(CGThing):
                                    m.type,
                                    m.type,
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                   cx=name in descriptor.cxMethods,
+                                   cx=name in descriptor.cxMethods or descriptor.implicitCxSetters,
                                    realm=name in descriptor.realmMethods,
                                    inRealm=name in descriptor.inRealmMethods,
                                    canGc=name in descriptor.canGcMethods,
