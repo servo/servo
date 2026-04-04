@@ -139,10 +139,9 @@ pub(crate) mod module {
     pub(crate) use crate::utils::{
         DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, DOMClass, DOMJSClass, JSCLASS_DOM_GLOBAL,
         ProtoOrIfaceArray, call_policies, enumerate_global, enumerate_window, exception_to_promise,
-        generic_getter, generic_method,
-        generic_setter, generic_static_promise_method, get_array_index_from_id,
-        get_property_on_prototype, has_property_on_prototype, may_resolve_global,
-        may_resolve_window, resolve_global, resolve_window, trace_global,
+        generic_getter, generic_method, generic_setter, generic_static_promise_method,
+        get_array_index_from_id, get_property_on_prototype, has_property_on_prototype,
+        may_resolve_global, may_resolve_window, resolve_global, resolve_window, trace_global,
     };
     pub(crate) use crate::weakref::DOM_WEAK_SLOT;
     pub(crate) use crate::{JSTraceable, proxyhandler};

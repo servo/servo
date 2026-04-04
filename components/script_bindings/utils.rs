@@ -44,9 +44,7 @@ use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE
 use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
-use crate::proxyhandler::{
-    is_cross_origin_object, report_cross_origin_denial,
-};
+use crate::proxyhandler::{is_cross_origin_object, report_cross_origin_denial};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::trace::trace_object;
@@ -491,15 +489,13 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
     ) -> bool,
     can_gc: CanGc,
 ) -> bool {
-    let mut cx = unsafe {
-        js::context::JSContext::from_ptr(NonNull::new(cx).unwrap())
-    };
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let args = CallArgs::from_vp(vp, argc);
 
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx.raw_cx_no_gc(), vp));
     let proto_id = (*info).__bindgen_anon_2.protoID;
 
-   // <https://heycam.github.io/webidl/#es-operations>
+    // <https://heycam.github.io/webidl/#es-operations>
     //
     // > To create an operation function, given an operation `op`, a namespace
     // > or interface `target`, and a Realm `realm`:
@@ -635,7 +631,8 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
             // FIXME: `Handle<jsid>` could have a default constructor
             //        like `Handle<Value>::null`
             rooted!(&in(*realm) let mut void_jsid: js::jsapi::jsid);
-            let result = report_cross_origin_denial::<D>(&mut realm, void_jsid.handle().into(), "call");
+            let result =
+                report_cross_origin_denial::<D>(&mut realm, void_jsid.handle().into(), "call");
             return if EXCEPTION_TO_REJECTION {
                 exception_to_promise(cx.raw_cx(), args.rval(), can_gc)
             } else {
@@ -662,12 +659,23 @@ unsafe fn generic_call<D: DomTypes, const EXCEPTION_TO_REJECTION: bool>(
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_method<D: DomTypes, Policy: CallPolicy, const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_method<
+    D: DomTypes,
+    Policy: CallPolicy,
+    const EXCEPTION_TO_REJECTION: bool,
+>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitMethodOp, CanGc::note())
+    generic_call::<D, EXCEPTION_TO_REJECTION>(
+        cx,
+        argc,
+        vp,
+        Policy::INFO,
+        CallJitMethodOp,
+        CanGc::note(),
+    )
 }
 
 /// Generic getter of IDL interface.
@@ -675,12 +683,23 @@ pub(crate) unsafe extern "C" fn generic_method<D: DomTypes, Policy: CallPolicy, 
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 /// `vp` must point to a VALID, non-null JSVal.
-pub(crate) unsafe extern "C" fn generic_getter<D: DomTypes, Policy: CallPolicy, const EXCEPTION_TO_REJECTION: bool>(
+pub(crate) unsafe extern "C" fn generic_getter<
+    D: DomTypes,
+    Policy: CallPolicy,
+    const EXCEPTION_TO_REJECTION: bool,
+>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, EXCEPTION_TO_REJECTION>(cx, argc, vp, Policy::INFO, CallJitGetterOp, CanGc::note())
+    generic_call::<D, EXCEPTION_TO_REJECTION>(
+        cx,
+        argc,
+        vp,
+        Policy::INFO,
+        CallJitGetterOp,
+        CanGc::note(),
+    )
 }
 
 unsafe extern "C" fn call_setter(
