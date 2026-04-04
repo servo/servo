@@ -250,7 +250,7 @@ impl BrowsingContextActor {
         let mut script_chans = FxHashMap::default();
         script_chans.insert(pipeline_id, script_sender);
 
-        let target = BrowsingContextActor {
+        let actor = BrowsingContextActor {
             name: name.clone(),
             script_chans: AtomicRefCell::new(script_chans),
             title: AtomicRefCell::new(title),
@@ -274,8 +274,7 @@ impl BrowsingContextActor {
         registry.register(tab_descriptor_actor);
         registry.register(thread_actor);
         registry.register(watcher_actor);
-
-        registry.register(target);
+        registry.register::<Self>(actor);
 
         name
     }
