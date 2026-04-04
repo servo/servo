@@ -9,9 +9,11 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
+use js::gc::HandleValue;
 use js::jsapi::{ExceptionStackBehavior, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetPendingException,
     JS_GetScriptPrivate, JS_SetPendingException,
@@ -23,11 +25,14 @@ use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
+use crate::realms::AlreadyInRealm;
 use crate::script_module::{
     ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
 };
@@ -239,7 +244,6 @@ impl GlobalScope {
         &self,
         cx: &mut JSContext,
         module_tree: Rc<ModuleTree>,
-        _rethrow_errors: bool,
     ) {
         // Step 1. Let settings be the settings object of script.
         // NOTE(pylbrecht): "settings" is `self` here.
@@ -255,12 +259,32 @@ impl GlobalScope {
 
         // Step 4. Prepare to run script given settings.
         run_a_script::<DomTypeHolder, _>(self, || {
+            let safe_cx = GlobalScope::get_cx();
+
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
             {
                 let module_error = module_tree.get_rethrow_error().borrow();
-                if module_error.is_some() {
-                    module_tree.report_error(self, CanGc::from_cx(cx));
+                if let Some(error) = &*module_error {
+                    //module_tree.report_error(self, CanGc::from_cx(cx));
+                    let evaluation_promise = Promise::new_rejected(
+                        self,
+                        safe_cx,
+                        error.handle(),
+                        CanGc::from_cx(cx),
+                    );
+                    let handler = PromiseNativeHandler::new(
+                        self,
+                        None,
+                        Some(Box::new(ReportErrorRejectionHandler)),
+                        CanGc::from_cx(cx),
+                    );
+                    let realm = AlreadyInRealm::assert_for_cx(safe_cx);
+                    evaluation_promise.append_native_handler(
+                        &handler,
+                        (&realm).into(),
+                        CanGc::from_cx(cx),
+                    );
                     return;
                 }
             }
@@ -271,16 +295,32 @@ impl GlobalScope {
             if let Some(record) = record {
                 // Step 7.2. Set evaluationPromise to record.Evaluate().
                 rooted!(&in(cx) let mut rval = UndefinedValue());
-                let evaluated =
+                let _evaluated =
                     module_tree.execute_module(self, record, rval.handle_mut(), CanGc::from_cx(cx));
 
                 // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
                 // with reason, report an exception given by reason for script's settings object's
                 // global object.
-                if let Err(exception) = evaluated {
-                    module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(self, CanGc::from_cx(cx));
-                }
+                //if evaluated.is_err() {
+                    assert!(rval.is_object());
+                    rooted!(&in(cx) let evaluation_promise_obj = rval.to_object());
+                    let evaluation_promise = Promise::new_with_js_promise(evaluation_promise_obj.handle(), safe_cx);
+                    let handler = PromiseNativeHandler::new(
+                        self,
+                        None,
+                        Some(Box::new(ReportErrorRejectionHandler)),
+                        CanGc::from_cx(cx),
+                    );
+                    let realm = AlreadyInRealm::assert_for_cx(safe_cx);
+                    evaluation_promise.append_native_handler(
+                        &handler,
+                        (&realm).into(),
+                        CanGc::from_cx(cx),
+                    );
+
+                    //module_tree.set_rethrow_error(exception);
+                    //module_tree.report_error(self, CanGc::from_cx(cx));
+                //}
             }
         });
     }
@@ -379,4 +419,23 @@ pub(crate) fn evaluate_script(
     }
 
     unsafe { JS_ExecuteScript(cx, record.handle(), rval) }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ReportErrorRejectionHandler;
+
+impl Callback for ReportErrorRejectionHandler {
+    #[expect(unsafe_code)]
+    fn callback(&self, realm: &mut CurrentRealm, v: HandleValue) {
+        let cx = GlobalScope::get_cx();
+        /*unsafe {
+            JS_SetPendingException(
+                *cx,
+                v,
+                ExceptionStackBehavior::Capture,
+            );
+        }*/
+        let in_realm = AlreadyInRealm::from(&mut *realm);
+        report_pending_exception(cx, (&in_realm).into(), CanGc::from_cx(&mut *realm));
+    }
 }

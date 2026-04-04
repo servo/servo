@@ -67,7 +67,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
-    Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
+    Error, ErrorToJsval, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -436,7 +436,7 @@ impl ModuleTree {
         module_record: js::gc::HandleObject,
         mut eval_result: MutableHandleValue,
         _can_gc: CanGc,
-    ) -> Result<(), RethrowError> {
+    ) -> Result<(), ()> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
@@ -452,18 +452,19 @@ impl ModuleTree {
             let throw_result = ThrowOnModuleEvaluationFailure(
                 *cx,
                 evaluation_promise.handle().into(),
-                ModuleErrorBehaviour::ThrowModuleErrorsSync,
+                ModuleErrorBehaviour::ReportModuleErrorsAsync,
             );
             if !throw_result {
                 warn!("fail to evaluate module");
 
-                rooted!(in(*cx) let mut exception = UndefinedValue());
+                /*rooted!(in(*cx) let mut exception = UndefinedValue());
                 assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
                     exception.get(),
-                ))))
+            ))))*/
+                Err(())
             } else {
                 debug!("module evaluated successfully");
                 Ok(())
@@ -471,7 +472,7 @@ impl ModuleTree {
         }
     }
 
-    #[expect(unsafe_code)]
+    /*#[expect(unsafe_code)]
     pub(crate) fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
         let module_error = self.rethrow_error.borrow();
 
@@ -486,7 +487,7 @@ impl ModuleTree {
             }
             report_pending_exception(GlobalScope::get_cx(), InRealm::Entered(&ar), can_gc);
         }
-    }
+    }*/
 
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     pub(crate) fn resolve_module_specifier(
