@@ -32,7 +32,7 @@ use js::rust::{
 use js::{jsapi, rooted};
 
 use crate::DomTypes;
-use crate::conversions::{is_dom_proxy, jsid_to_string};
+use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::DomObject;
@@ -222,6 +222,9 @@ pub fn set_property_descriptor(
 
 pub(crate) fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> {
     unsafe {
+        if js::glue::RUST_JSID_IS_VOID(id) {
+            return None;
+        }
         rooted!(in(*cx) let mut value = UndefinedValue());
         rooted!(in(*cx) let mut jsstr = ptr::null_mut::<jsapi::JSString>());
         jsapi::JS_IdToValue(*cx, id.get(), value.handle_mut().into())
@@ -518,6 +521,19 @@ fn ensure_cross_origin_property_holder(
     true
 }
 
+/// Check if `obj` is a `Location` or `Window` object.
+///
+/// IDL operations on a cross-origin object involve [a security check][1].
+///
+/// [1]: https://html.spec.whatwg.org/multipage/#integration-with-idl
+pub(crate) fn is_cross_origin_object<D: DomTypes>(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+    unsafe {
+        jsapi::IsWindowProxy(*obj) ||
+            native_from_object::<D::Location>(*obj, *cx).is_ok() ||
+            native_from_object::<D::DissimilarOriginLocation>(*obj, *cx).is_ok()
+    }
+}
+
 /// Report a cross-origin denial for a property, Always returns `false`, so it
 /// can be used as `return report_cross_origin_denial(...);`.
 ///
@@ -529,15 +545,15 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     id: RawHandleId,
     access: &str,
 ) -> bool {
-    debug!(
-        "permission denied to {} property {} on cross-origin object",
-        access,
-        id_to_source(cx.into(), id)
-            .as_ref()
-            .map(|source| source.str())
-            .as_deref()
-            .unwrap_or("< error >"),
-    );
+    if let Some(id) = id_to_source(cx.into(), id) {
+        debug!(
+            "permission denied to {} property {} on cross-origin object",
+            access,
+            &*id.str(),
+        );
+    } else {
+        debug!("permission denied to {} on cross-origin object", access);
+    }
     unsafe {
         if !js::rust::wrappers2::JS_IsExceptionPending(cx) {
             let global = D::GlobalScope::from_current_realm(cx);
