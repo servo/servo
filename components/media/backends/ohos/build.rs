@@ -2,6 +2,15 @@ use std::path;
 
 // build.rs
 fn main() {
+    println!("cargo:rustc-check-cfg=cfg(sdk_api_21)");
+    println!("cargo:rustc-check-cfg=cfg(sdk_api_22)");
+    println!("cargo:rustc-check-cfg=cfg(sdk_api_23)");
+
+    let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap();
+    if target_env != "ohos" {
+        return;
+    }
+
     let sdk_path_name = std::env::var("OHOS_SDK_NATIVE").expect("OHOS_SDK_NATIVE must be set");
 
     let sdk_path = path::PathBuf::from(sdk_path_name);
@@ -28,9 +37,5 @@ fn main() {
         _ => {},
     }
     println!("cargo:warning=Detected API version: {:?}", api_version);
-
-    println!("cargo:rustc-check-cfg=cfg(sdk_api_21)");
-    println!("cargo:rustc-check-cfg=cfg(sdk_api_22)");
-    println!("cargo:rustc-check-cfg=cfg(sdk_api_23)");
     println!("cargo:rerun-if-env-changed=OHOS_SDK_NATIVE");
 }
