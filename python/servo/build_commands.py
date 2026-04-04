@@ -307,7 +307,7 @@ class MachCommands(CommandBase):
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
-            self.features.append("servo_allocator/use-system-allocator")
+            self.features.append("servo-allocator/use-system-allocator")
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
                 print(
