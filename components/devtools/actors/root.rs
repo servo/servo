@@ -352,7 +352,7 @@ impl RootActor {
         let preference_name = PreferenceActor::register(registry);
 
         // Process descriptor
-        let process_actor = ProcessActor::new(registry.new_name::<ProcessActor>());
+        let process_name = ProcessActor::register(registry);
 
         // Root actor
         let root_actor = Self {
@@ -361,11 +361,10 @@ impl RootActor {
                 perf_actor: performance_name,
                 preference_actor: preference_name,
             },
-            process_name: process_actor.name(),
+            process_name,
             ..Default::default()
         };
 
-        registry.register(process_actor);
         registry.register(root_actor);
     }
 
