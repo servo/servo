@@ -65,7 +65,7 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
     make_getter!(Name, "name");
 
     // <https://html.spec.whatwg.org/multipage/#dom-map-name>
-    make_atomic_setter!(SetName, "name");
+    make_atomic_setter!(cx, SetName, "name");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-map-areas>
     fn Areas(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
