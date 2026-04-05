@@ -803,7 +803,7 @@ impl DevtoolsInstance {
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);
-        let thread = self
+        let thread_actor = self
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
@@ -816,7 +816,7 @@ impl DevtoolsInstance {
         frame_actor.set_offset(frame_offset.column, frame_offset.line);
 
         let msg = ThreadInterruptedReply {
-            from: thread.name(),
+            from: thread_actor.name(),
             type_: "paused".to_owned(),
             actor: pause_name,
             frame: frame_actor.encode(&self.registry),
@@ -845,11 +845,11 @@ impl DevtoolsInstance {
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);
-        let thread = self
+        let thread_actor = self
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let source = match thread
+        let source = match thread_actor
             .source_manager
             .find_source(&self.registry, &frame.url)
         {
