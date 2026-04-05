@@ -358,12 +358,18 @@ impl WebStorageManager {
         origin: &ImmutableOrigin,
     ) -> Result<&WebStorageEnvironment<SqliteEngine>, rusqlite::Error> {
         if self.environments.contains_key(origin) {
-            return Ok(self.environments.get(origin).unwrap());
+            return Ok(self
+                .environments
+                .get(origin)
+                .expect("environment should exist after contains_key check"));
         }
 
         self.add_new_environment(origin)?;
 
-        Ok(self.environments.get(origin).unwrap())
+        Ok(self
+            .environments
+            .get(origin)
+            .expect("environment should exist after add_new_environment"))
     }
 
     fn get_environment_mut(
@@ -371,12 +377,18 @@ impl WebStorageManager {
         origin: &ImmutableOrigin,
     ) -> Result<&mut WebStorageEnvironment<SqliteEngine>, rusqlite::Error> {
         if self.environments.contains_key(origin) {
-            return Ok(self.environments.get_mut(origin).unwrap());
+            return Ok(self
+                .environments
+                .get_mut(origin)
+                .expect("environment should exist after contains_key check"));
         }
 
         self.add_new_environment(origin)?;
 
-        Ok(self.environments.get_mut(origin).unwrap())
+        Ok(self
+            .environments
+            .get_mut(origin)
+            .expect("environment should exist after add_new_environment"))
     }
 
     fn select_data(
@@ -398,7 +410,13 @@ impl WebStorageManager {
                 if self.local_storage_origins.ensure_origin_descriptor(&origin) {
                     self.save_local_storage_origins();
                 }
-                self.get_environment(&origin).ok().map(|env| &env.data)
+                match self.get_environment(&origin) {
+                    Ok(env) => Some(&env.data),
+                    Err(e) => {
+                        warn!("Failed to get storage environment: {:?}", e);
+                        None
+                    },
+                }
             },
         }
     }
@@ -422,9 +440,13 @@ impl WebStorageManager {
                 if self.local_storage_origins.ensure_origin_descriptor(&origin) {
                     self.save_local_storage_origins();
                 }
-                self.get_environment_mut(&origin)
-                    .ok()
-                    .map(|env| &mut env.data)
+                match self.get_environment_mut(&origin) {
+                    Ok(env) => Some(&mut env.data),
+                    Err(e) => {
+                        warn!("Failed to get storage environment: {:?}", e);
+                        None
+                    },
+                }
             },
         }
     }
