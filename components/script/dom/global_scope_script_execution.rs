@@ -35,6 +35,7 @@ use crate::script_runtime::CanGc;
 use crate::unminify::unminify_js;
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ClassicScript {
     /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
@@ -74,6 +75,7 @@ pub(crate) enum RethrowErrors {
 impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(clippy::too_many_arguments)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn create_a_classic_script(
         &self,
         cx: &mut JSContext,
@@ -141,6 +143,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
     #[expect(unsafe_code)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn run_a_classic_script(
         &self,
         cx: &mut JSContext,
