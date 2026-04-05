@@ -452,7 +452,7 @@ impl WatcherActor {
             BreakpointListActor::register(registry, browsing_context_name.clone());
 
         let name = registry.new_name::<Self>();
-        let watcher_actor = Self {
+        let actor = Self {
             name: name.clone(),
             browsing_context_name,
             network_parent_name,
@@ -464,7 +464,7 @@ impl WatcherActor {
 
         registry.register(target_configuration);
 
-        registry.register::<Self>(watcher_actor);
+        registry.register::<Self>(actor);
 
         name
     }
