@@ -517,6 +517,9 @@ fn apply_sprintf_substitutions(cx: JSContext, messages: &[HandleValue]) -> (Stri
                 let spec = chars.next().unwrap();
                 if arg_index < messages.len() {
                     let num = unsafe { ToNumber(*cx, messages[arg_index]) };
+                    if num.is_err() {
+                        unsafe { jsapi::JS_ClearPendingException(*cx) };
+                    }
                     arg_index += 1;
                     format_integer_substitution(&mut result, num);
                 } else {
@@ -528,6 +531,9 @@ fn apply_sprintf_substitutions(cx: JSContext, messages: &[HandleValue]) -> (Stri
                 chars.next();
                 if arg_index < messages.len() {
                     let num = unsafe { ToNumber(*cx, messages[arg_index]) };
+                    if num.is_err() {
+                        unsafe { jsapi::JS_ClearPendingException(*cx) };
+                    }
                     arg_index += 1;
                     format_float_substitution(&mut result, num);
                 } else {
