@@ -567,6 +567,9 @@ pub async fn main_fetch(
             else if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
                 // request's current URL's scheme is "data"
                 current_scheme == "data" ||
+                // Added Blob URLs here because, the origin check is handled by the
+                // blob protocol handler itself, similar to how it is done with data: URLs.
+                current_scheme == "blob" ||
                 // Note: Although it is not part of the specification, we make an exception here
                 // for custom protocols that are explicitly marked as active for fetch.
                 context.protocols.is_fetchable(current_scheme) ||
