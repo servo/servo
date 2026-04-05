@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>background-clip:text on an inline spanning multiple lines with background image</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-multiline-background-image-ref.html">
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-10">
+<style>
+.target {
+  font-size: 100px;
+  background-image: url("../support/bgimg1x50.png");
+  background-clip: text;
+  color: transparent;
+}
+.container {
+  width: 400px;
+  line-height: 1;
+  word-wrap: break-word;
+  background-color: blue;
+}
+</style>
+<div class="container">
+  <span class="target">XXXXYYYYZZZZWWWW</span>
+</div>

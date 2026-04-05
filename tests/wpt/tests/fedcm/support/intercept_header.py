@@ -4,6 +4,6 @@ def main(request, response):
   base_url = f"https://{hostname}:{port}".encode('utf-8')
 
   header_value = b"client_id=\"1234\", params=\"redirect=post\", config_url=\"%s/fedcm/support/manifest_with_continue_on.json\"" % (base_url)
-  response.headers.set(b"fedcm-intercept-navigation", header_value)
+  response.headers.set(b"federation-initiate-request", header_value)
 
   return "Sent header: %s" % (header_value)

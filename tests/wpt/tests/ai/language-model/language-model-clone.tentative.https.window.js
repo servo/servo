@@ -22,14 +22,7 @@ promise_test(async () => {
   assert_equals(
       cloned_session.contextUsage, session.contextUsage,
       'cloned session should have the same contextUsage as the original session.');
-  assert_equals(
-    cloned_session.topK, session.topK,
-    'cloned session should have the same topK as the original session.'
-  );
-  assert_equals(
-    cloned_session.temperature, session.temperature,
-    'cloned session should have the same temperature as the original session.'
-  );
+
 
   const clone_result = await cloned_session.prompt(kTestPrompt);
   assert_equals(typeof clone_result, 'string');

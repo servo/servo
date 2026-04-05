@@ -36,6 +36,7 @@ test(() => {
     'first option should match :active-option after opening the datalist.');
   assert_false(optionTwo.matches(':active-option'),
     'second option should not match :active-option after opening the datalist.');
+  datalist.hidePopover();
   input.blur();
 }, 'When the datalist opens, the first option should match :active-option.');
 

@@ -7,10 +7,18 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 
-<input filter=select>
+<input id=input filter=select>
 <select id=select size=4>
   <option class=one>one</option>
   <option class=two>two</option>
+</select>
+
+<input id=input2 filter=select2>
+<select id=select2 size=2>
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+  <option>four</option>
 </select>
 
 <script>
@@ -95,5 +103,34 @@ function pressKey(keyCode) {
     assert_array_equals(selectedOptions(), [optionOne],
       'Active option should not become selected after pressing space.');
   }, `appearance ${appearanceValue}: Keyboard behavior for filterable select.`);
+
+  promise_test(async () => {
+    if (document.activeElement) {
+      document.activeElement.blur();
+    }
+    input2.value = '';
+    select2.value = '';
+    select2.style.appearance = appearanceValue;
+
+    input2.focus();
+    assert_equals(select2.querySelector(':active-option').value, 'one',
+      'First option should be :active-option at the start of the test.');
+    assert_equals(select2.scrollTop, 0,
+      'Select should be scrolled to the top at the start of the test.');
+
+    await pressKey(arrowDown);
+    await pressKey(arrowDown);
+    assert_equals(select2.querySelector(':active-option').value, 'three',
+      'Third option should be active after pressing down arrow twice.');
+    assert_not_equals(select2.scrollTop, 0,
+      'Select should be scrolled down after pressing down arrow twice.');
+
+    await pressKey(arrowUp);
+    await pressKey(arrowUp);
+    assert_equals(select2.querySelector(':active-option').value, 'one',
+      'First option should be :active-option after pressing arrow up twice.');
+    assert_equals(select2.scrollTop, 0,
+      'Select should be scrolled to the top after pressing arrow up twice.');
+  }, `appearance ${appearanceValue}: active option should get scrolled into view.`);
 });
 </script>

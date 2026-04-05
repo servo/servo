@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLSubmitButtonBehavior form submission behavior</title>
+<link rel="author" href="mailto:ansollan@microsoft.com">
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PlatformProvidedBehaviors/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form>
+  <custom-submit></custom-submit>
+</form>
+
+<div id="outside"></div>
+
+<script>
+class CustomSubmitButton extends HTMLElement {
+  static formAssociated = true;
+  constructor() {
+    super();
+    this.behavior_ = new HTMLSubmitButtonBehavior();
+    this.internals_ = this.attachInternals({ behaviors: [this.behavior_] });
+  }
+  get submitBehavior() { return this.behavior_; }
+}
+customElements.define('custom-submit', CustomSubmitButton);
+
+const form = document.querySelector('form');
+const outside = document.querySelector('#outside');
+const customSubmit = form.querySelector('custom-submit');
+
+function reset() {
+  form.replaceChildren();
+  form.removeAttribute('action');
+  form.removeAttribute('id');
+  form.onsubmit = null;
+  outside.replaceChildren();
+  customSubmit.removeAttribute('disabled');
+  customSubmit.removeAttribute('form');
+  customSubmit.removeAttribute('id');
+  form.appendChild(customSubmit);
+}
+
+test(() => {
+  assert_equals(typeof HTMLSubmitButtonBehavior, 'function',
+    'HTMLSubmitButtonBehavior should be a function');
+  const behavior = new HTMLSubmitButtonBehavior();
+  assert_true(behavior instanceof HTMLSubmitButtonBehavior,
+    'new HTMLSubmitButtonBehavior() should create an instance');
+}, 'HTMLSubmitButtonBehavior is a global constructor');
+
+test(() => {
+  const behavior = new HTMLSubmitButtonBehavior();
+  assert_true('disabled' in behavior, 'behavior should have disabled property');
+  assert_true('form' in behavior, 'behavior should have form property');
+  assert_true('formAction' in behavior, 'behavior should have formAction property');
+  assert_true('formMethod' in behavior, 'behavior should have formMethod property');
+  assert_true('formEnctype' in behavior, 'behavior should have formEnctype property');
+  assert_true('formNoValidate' in behavior, 'behavior should have formNoValidate property');
+  assert_true('formTarget' in behavior, 'behavior should have formTarget property');
+  assert_true('labels' in behavior, 'behavior should have labels property');
+  assert_true('name' in behavior, 'behavior should have name property');
+  assert_true('value' in behavior, 'behavior should have value property');
+}, 'HTMLSubmitButtonBehavior has expected properties');
+
+test(() => {
+  reset();
+  outside.appendChild(customSubmit);
+  const behavior = customSubmit.submitBehavior;
+  assert_equals(behavior.disabled, false, 'disabled should default to false');
+  assert_equals(behavior.form, null, 'form should default to null when not inside a form');
+  assert_equals(behavior.formAction, '', 'formAction should default to empty string');
+  assert_equals(behavior.formMethod, '', 'formMethod should default to empty string');
+  assert_equals(behavior.formEnctype, '', 'formEnctype should default to empty string');
+  assert_equals(behavior.formNoValidate, false, 'formNoValidate should default to false');
+  assert_equals(behavior.formTarget, '', 'formTarget should default to empty string');
+  assert_equals(behavior.labels.length, 0, 'labels should default to empty NodeList');
+  assert_equals(behavior.name, '', 'name should default to empty string');
+  assert_equals(behavior.value, '', 'value should default to empty string');
+}, 'HTMLSubmitButtonBehavior properties have correct default values');
+
+test(() => {
+  const behavior = new HTMLSubmitButtonBehavior();
+  behavior.disabled = true;
+  assert_equals(behavior.disabled, true, 'disabled should be writable');
+  behavior.formAction = '/submit';
+  assert_equals(behavior.formAction, '/submit', 'formAction should be writable');
+  behavior.formMethod = 'post';
+  assert_equals(behavior.formMethod, 'post', 'formMethod should be writable');
+  behavior.formEnctype = 'multipart/form-data';
+  assert_equals(behavior.formEnctype, 'multipart/form-data', 'formEnctype should be writable');
+  behavior.formNoValidate = true;
+  assert_equals(behavior.formNoValidate, true, 'formNoValidate should be writable');
+  behavior.formTarget = '_blank';
+  assert_equals(behavior.formTarget, '_blank', 'formTarget should be writable');
+  behavior.name = 'submitBtn';
+  assert_equals(behavior.name, 'submitBtn', 'name should be writable');
+  behavior.value = 'Submit';
+  assert_equals(behavior.value, 'Submit', 'value should be writable');
+}, 'HTMLSubmitButtonBehavior properties are writable');
+
+test(() => {
+  const formDesc = Object.getOwnPropertyDescriptor(
+      HTMLSubmitButtonBehavior.prototype, 'form');
+  const labelsDesc = Object.getOwnPropertyDescriptor(
+      HTMLSubmitButtonBehavior.prototype, 'labels');
+  assert_true(formDesc !== undefined && 'get' in formDesc,
+    'form should be an accessor property');
+  assert_equals(formDesc.set, undefined, 'form should not have a setter');
+  assert_true(labelsDesc !== undefined && 'get' in labelsDesc,
+    'labels should be an accessor property');
+  assert_equals(labelsDesc.set, undefined, 'labels should not have a setter');
+}, 'HTMLSubmitButtonBehavior.form and .labels are read-only');
+
+test(() => {
+  reset();
+  assert_equals(customSubmit.submitBehavior.form, form);
+}, 'HTMLSubmitButtonBehavior.form returns the associated form');
+
+test(() => {
+  reset();
+  outside.appendChild(customSubmit);
+  customSubmit.removeAttribute('form');
+  assert_equals(customSubmit.submitBehavior.form, null);
+}, 'HTMLSubmitButtonBehavior.form returns null when not in form');
+
+test(() => {
+  reset();
+  customSubmit.id = 'labeled-element';
+  const label = document.createElement('label');
+  label.htmlFor = 'labeled-element';
+  outside.appendChild(label);
+  outside.appendChild(customSubmit);
+
+  const labels = customSubmit.submitBehavior.labels;
+  assert_equals(labels.length, 1);
+  assert_equals(labels[0], label);
+}, 'HTMLSubmitButtonBehavior.labels returns associated labels');
+</script>

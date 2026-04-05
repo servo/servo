@@ -129,7 +129,7 @@ a=rtcp-rsize
       1.  If remoteDescription is null return a promise rejected with a
           newly created InvalidStateError.
  */
-if (interop2026) {
+if (rest) {
 promise_test(t => {
     const pc = new RTCPeerConnection();
 
@@ -145,7 +145,7 @@ promise_test(t => {
   }, 'Add ICE candidate before setting remote description should reject with InvalidStateError');
 }
 
-if (rest) {
+if (interop2026) {
   promise_test(t => {
     const pc = new RTCPeerConnection();
     pc.setRemoteDescription(sessionDesc);
@@ -160,7 +160,7 @@ if (rest) {
   }, 'addIceCandidate after close should reject with InvalidStateError');
 }
 
-if (interop2026) {
+if (rest) {
   /*
     Success cases
    */
@@ -652,8 +652,7 @@ if (interop2026) {
         })));
   }, 'Add candidate with sdpMid belonging to different usernameFragment should reject with OperationError');
 }
-
-if (rest) {
+if (interop2026) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());

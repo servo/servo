@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Percent-encoded fragment identifiers in SVG fill and stroke references (reference)</title>
+<style>svg { display: block; }</style>
+<p>The rects below should be filled/stroked with gradients, not black.</p>
+<svg width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <linearGradient id="foo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="green"/>
+      <stop offset="1" stop-color="green"/>
+    </linearGradient>
+    <linearGradient id="bar.baz" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="blue"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Unencoded references (known to work) -->
+  <rect x="10" y="10" width="50" height="40" fill="url(#foo)"/>
+  <rect x="70" y="10" width="50" height="40" fill="url(#bar.baz)"/>
+  <rect x="130" y="10" width="50" height="40" fill="none"
+        stroke="url(#foo)" stroke-width="4"/>
+  <rect x="10" y="65" width="50" height="40" fill="url(#foo) red"/>
+  <rect x="70" y="65" width="50" height="40" fill="none"
+        stroke="url(#foo) red" stroke-width="4"/>
+</svg>

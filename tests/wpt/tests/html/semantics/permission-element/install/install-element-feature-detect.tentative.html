@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Install Element: Feature detection</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(() => {
+    const el = document.createElement("install");
+    assert_true(el instanceof HTMLInstallElement,
+        "install element should be an instance of HTMLInstallElement");
+  }, "Test HTMLInstallElement existence and instanceof");
+</script>

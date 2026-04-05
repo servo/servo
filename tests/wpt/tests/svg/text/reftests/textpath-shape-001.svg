@@ -12,6 +12,7 @@
     <html:link rel="help"
           href="https://svgwg.org/svg2-draft/text.html#TextPathAttributes"/>
     <html:link rel="match"  href="textpath-shape-001-ref.svg" />
+    <html:meta name="fuzzy" content="maxDifference=0-30;totalPixels=0-1150" />
   </g>
 
   <style id="test-font" type="text/css">

@@ -78,11 +78,12 @@ promise_test(t => {
 }, "Same-origin => cross-origin 'fetch()'.");
 
 let websocket_url = "wss://{{host}}:{{ports[wss][0]}}/echo";
+let expected_websocket_csp_url = websocket_url.replace('wss://', 'https://');
 
 // The WebSocket URL is not the same as 'self'
 promise_test(t => {
   return Promise.all([
-    waitUntilCSPEventForURL(t, websocket_url),
+    waitUntilCSPEventForURL(t, expected_websocket_csp_url),
     new Promise(resolve => {
       let ws = new WebSocket(websocket_url);
       ws.onopen = resolve;
@@ -91,8 +92,8 @@ promise_test(t => {
 }, "WebSocket.");
 
 let expected_blocked_urls = self.XMLHttpRequest
-    ? [ fetch_cross_origin_url, xhr_cross_origin_url, redirect_url, websocket_url ]
-    : [ fetch_cross_origin_url, redirect_url, websocket_url ];
+    ? [ fetch_cross_origin_url, xhr_cross_origin_url, redirect_url, expected_websocket_csp_url ]
+    : [ fetch_cross_origin_url, redirect_url, expected_websocket_csp_url ];
 
 promise_test(async t => {
   let report_url = `{{location[server]}}/reporting/resources/report.py?` +

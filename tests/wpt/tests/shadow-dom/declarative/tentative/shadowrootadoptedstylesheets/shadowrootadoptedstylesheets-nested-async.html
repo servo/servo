@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets with nested shadow roots (async)</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Nested shadow roots with async specifiers. Both should independently
+    // create placeholders and have them replaced when their fetches complete.
+    const outerUrl = "./support/styles-red.css";
+    const innerUrl = "./support/styles-green.css";
+    document.body.setHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' " +
+          `shadowrootadoptedstylesheets='${outerUrl}'>` +
+          "<span id='outer_span'>Outer content</span>" +
+          "<div id='inner_host'>" +
+            "<template shadowrootmode='open' " +
+              `shadowrootadoptedstylesheets='${innerUrl}'>` +
+              "<span id='inner_span'>Inner content</span>" +
+            "</template>" +
+          "</div>" +
+        "</template>" +
+      "</div>"
+    );
+
+    const outerRoot = document.getElementById("host").shadowRoot;
+    const innerRoot = outerRoot.getElementById("inner_host").shadowRoot;
+
+    assert_equals(outerRoot.adoptedStyleSheets.length, 1,
+      "Outer root: expected 1 placeholder(s).");
+    assert_equals(outerRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Outer root: placeholder at index 0 should be empty.");
+    assert_equals(innerRoot.adoptedStyleSheets.length, 1,
+      "Inner root: expected 1 placeholder(s).");
+    assert_equals(innerRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Inner root: placeholder at index 0 should be empty.");
+
+    await fetchAndWait(outerUrl, innerUrl);
+
+    assertSheetRule(outerRoot, 0, "span { color: red; }", "Outer root");
+    assertSheetRule(innerRoot, 0, "span { color: green; }", "Inner root");
+    assert_equals(
+      getComputedStyle(outerRoot.getElementById("outer_span")).color,
+      "rgb(255, 0, 0)", "Outer span should be red.");
+    assert_equals(
+      getComputedStyle(innerRoot.getElementById("inner_span")).color,
+      "rgb(0, 128, 0)", "Inner span should be green, not red.");
+  }, "Nested shadow roots independently resolve async adoptedStyleSheets.");
+</script>
+</body>

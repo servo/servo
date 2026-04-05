@@ -115,7 +115,7 @@ def get_all_products() -> Mapping[str, EntryPoint]:
     # same name.
     return {
         ep.name: ep
-        for ep in itertools.chain(_BUILTIN_ENTRY_POINTS, reversed(eps))
+        for ep in itertools.chain(_BUILTIN_ENTRY_POINTS, reversed(list(eps)))
     }
 
 

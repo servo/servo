@@ -35,7 +35,5 @@ promise_test(async t => {
   assert_equals(
       typeof session.contextUsage, 'number',
       'contextUsage must be accessible.');
-  assert_equals(
-      typeof session.temperature, 'undefined', 'temperature is deprecated.');
-  assert_equals(typeof session.topK, 'undefined', 'topK is deprecated.');
+
 });

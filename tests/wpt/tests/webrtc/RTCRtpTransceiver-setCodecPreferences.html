@@ -340,9 +340,7 @@ if (interop2026) {
     assert_equals(rtpParameters.codecs[1].name, 'VP8');
 
   }, `setCodecPreferences() filters on receiver and prefers receiver order`);
-}
 
-if (rest) {
   ["audio", "video"].forEach(kind => promise_test(async (t) => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());

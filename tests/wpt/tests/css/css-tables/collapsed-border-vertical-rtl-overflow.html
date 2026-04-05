@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Collapsed border overflow in vertical-rl RTL composited table</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapsing">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=311117">
+<link rel="match" href="collapsed-border-vertical-rtl-overflow-ref.html">
+<style>
+body { margin: 60px; }
+div { display: inline-block; }
+table {
+    writing-mode: vertical-rl;
+    direction: rtl;
+    border-collapse: collapse;
+    border: none;
+    will-change: transform;
+}
+td {
+    width: 40px;
+    height: 40px;
+    padding: 5px;
+}
+.thin td { border: 2px solid blue; }
+.thick td { border: 40px solid orange; }
+</style>
+<div>
+    <table>
+        <tr class="thin"><td></td><td></td></tr>
+        <tr class="thick"><td></td><td></td></tr>
+    </table>
+</div>

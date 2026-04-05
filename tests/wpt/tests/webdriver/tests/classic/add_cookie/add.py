@@ -319,3 +319,19 @@ def test_add_cookie_with_invalid_expiry(session, url, expiry):
 
     response = add_cookie(session, new_cookie)
     assert_error(response, "invalid argument")
+
+
+def test_add_cookie_with_domain_not_matching_current_domain(session, url):
+    session.url = url("/common/blank.html")
+
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "domain": "example.com",
+        "path": "/",
+        "httpOnly": False,
+        "secure": False
+    }
+
+    response = add_cookie(session, new_cookie)
+    assert_error(response, "invalid cookie domain")

@@ -274,6 +274,15 @@
         await writer.close();
         assert_equals(parent.textContent, "12");
       }, `element.${method}: mutating the sanitizer while streaming does not effect the originally given sanitizer`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        assert_throws_js(TypeError, _ => {
+          placeholder[method]({sanitizer: {elements: ["div"], removeElements: ["div"]}});
+        });
+      }, `element.${method}: passing an invalid sanitizer config should not create the stream`);
     }
   }
 </script>

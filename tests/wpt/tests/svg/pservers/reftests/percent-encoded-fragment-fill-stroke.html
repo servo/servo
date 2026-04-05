@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Percent-encoded fragment identifiers in SVG fill and stroke references</title>
+<link rel="help" href="https://url.spec.whatwg.org/#fragment-percent-encode-set">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=306387">
+<link rel="match" href="percent-encoded-fragment-fill-stroke-ref.html">
+<meta name="assert" content="Percent-encoded characters in SVG fill/stroke URL fragment references should be decoded before element ID lookup, rendering the same as unencoded references.">
+<style>svg { display: block; }</style>
+<p>The rects below should be filled/stroked with gradients, not black.</p>
+<svg width="200" height="120" viewBox="0 0 200 120">
+  <defs>
+    <linearGradient id="foo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="green"/>
+      <stop offset="1" stop-color="green"/>
+    </linearGradient>
+    <linearGradient id="bar.baz" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="blue"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+  </defs>
+
+  <!-- fill with %66%6f%6f = "foo" -->
+  <rect x="10" y="10" width="50" height="40" fill="url(#%66%6f%6f)"/>
+
+  <!-- fill with %62%61%72%2e%62%61%7a = "bar.baz" -->
+  <rect x="70" y="10" width="50" height="40" fill="url(#%62%61%72%2e%62%61%7a)"/>
+
+  <!-- stroke with %66%6f%6f = "foo" -->
+  <rect x="130" y="10" width="50" height="40" fill="none"
+        stroke="url(#%66%6f%6f)" stroke-width="4"/>
+
+  <!-- fill with fallback: %66%6f%6f = "foo", fallback red (should NOT be red) -->
+  <rect x="10" y="65" width="50" height="40" fill="url(#%66%6f%6f) red"/>
+
+  <!-- stroke with fallback: %66%6f%6f = "foo", fallback red -->
+  <rect x="70" y="65" width="50" height="40" fill="none"
+        stroke="url(#%66%6f%6f) red" stroke-width="4"/>
+</svg>

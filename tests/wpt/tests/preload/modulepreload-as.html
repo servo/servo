@@ -14,7 +14,7 @@
     'worker',
   ];
 
-  const goodAsValues = ['', 'invalid-dest', 'sCrIpT', 'style', 'json', ...scriptLikes];
+  const goodAsValues = ['', 'invalid-dest', 'sCrIpT', 'style', 'json', 'text', ...scriptLikes];
   const linkPromises = {};
 
   function handleEvent(target, type) {
@@ -55,6 +55,7 @@
 <link rel="modulepreload" href="resources/module1.js?sCrIpT" as="sCrIpT" data-as="sCrIpT" onload="handleEvent(this, 'load')" onerror="handleEvent(this, 'error')">
 <link rel="modulepreload" href="resources/dummy.css?style" as="style" data-as="style" onload="handleEvent(this, 'load')" onerror="handleEvent(this, 'error')">
 <link rel="modulepreload" href="resources/dummy.json?json" as="json" data-as="json" onload="handleEvent(this, 'load')" onerror="handleEvent(this, 'error')">
+<link rel="modulepreload" href="resources/dummy.txt?text" as="text" data-as="text" onload="handleEvent(this, 'load')" onerror="handleEvent(this, 'error')">
 <script>
   const links = document.querySelectorAll('link[rel="modulepreload"]');
   for (const link of links) {

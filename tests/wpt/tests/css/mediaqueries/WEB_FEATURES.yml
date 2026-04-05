@@ -1,4 +1,7 @@
 features:
+- name: custom-media-queries
+  files:
+  - at-custom-media-*
 - name: prefers-color-scheme
   files:
   - prefers-color-scheme.html

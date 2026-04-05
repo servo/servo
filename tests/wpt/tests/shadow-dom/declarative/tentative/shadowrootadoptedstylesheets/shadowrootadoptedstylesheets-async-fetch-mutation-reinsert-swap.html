@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets mutation: reinsert placeholders in swapped positions</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Remove placeholders, then put them back in swapped positions.
+    // The fetch callback should replace each placeholder at its new position,
+    // and the cascade should reflect the new order.
+    const greenUrl = "./support/styles-green.css";
+    const redUrl = "./support/styles-red.css";
+    const { shadowRoot, testElement } = createStylesheetHost([greenUrl, redUrl]);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 2,
+      "Before swap: expected 2 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before swap: placeholder at index 0 should be empty.");
+    assert_equals(shadowRoot.adoptedStyleSheets[1].cssRules.length, 0,
+      "Before swap: placeholder at index 1 should be empty.");
+
+    const placeholderGreen = shadowRoot.adoptedStyleSheets[0];
+    const placeholderRed = shadowRoot.adoptedStyleSheets[1];
+    shadowRoot.adoptedStyleSheets = [placeholderRed, placeholderGreen];
+
+    assert_equals(shadowRoot.adoptedStyleSheets[0], placeholderRed,
+      "First entry should be the red placeholder.");
+    assert_equals(shadowRoot.adoptedStyleSheets[1], placeholderGreen,
+      "Second entry should be the green placeholder.");
+
+    await fetchAndWait(greenUrl, redUrl);
+
+    assertSheetRule(shadowRoot, 0, "span { color: red; }",
+      "After fetch (swapped index 0)");
+    assertSheetRule(shadowRoot, 1, "span { color: green; }",
+      "After fetch (swapped index 1)");
+
+    // Green is now last, so it should win the cascade.
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 128, 0)",
+      "Green should win the cascade as the last sheet after swapping.");
+  }, "Placeholders reinserted in swapped positions reflect new cascade order after fetch.");
+</script>
+</body>

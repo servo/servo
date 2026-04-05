@@ -276,7 +276,7 @@ cache_test(function(cache, test) {
   }, 'Cache.addAll with a mix of succeeding and failing requests');
 
 cache_test(function(cache, test) {
-    var request = new Request('../resources/simple.txt');
+    var request = new Request('./resources/simple.txt');
     return promise_rejects_dom(
       test,
       'InvalidStateError',
