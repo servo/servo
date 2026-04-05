@@ -238,6 +238,18 @@ class MachCommands(CommandBase):
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
             packages |= set(self_contained_tests)
 
+            if params:
+                # We have added all the unit test packages, now we need to remove the ones that were specified as file paths in params.
+                # This is needed incase we want to run a single test file that is not in the default test suite, or if we want to run a single test function in a test file.
+                for i in range(len(params)):
+                    single_file_test = params[i]
+                    # Split by '/' and take the last part
+                    last_part = single_file_test.split("/")[-1]
+                    # Remove file extension if present (assuming .rs)
+                    if last_part.endswith(".rs"):
+                        last_part = last_part[:-3]
+                    params[i] = last_part
+
         in_crate_packages = []
         for crate in self_contained_tests:
             try:
