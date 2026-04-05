@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
+use js::gc::RootedTraceableBox;
 use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
@@ -16,7 +17,6 @@ use js::rust::wrappers2::{
     JS_GetScriptPrivate, JS_SetPendingException,
 };
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
-use js::gc::RootedTraceableBox;
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
 use servo_url::ServoUrl;
@@ -120,7 +120,9 @@ impl GlobalScope {
             // Step 11.2. Return script.
             Err(RethrowError::from_pending_exception(cx.into()))
         } else {
-            Ok(RootedTraceableBox::from_box(Heap::boxed(compiled_script.get())))
+            Ok(RootedTraceableBox::from_box(Heap::boxed(
+                compiled_script.get(),
+            )))
         };
 
         // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
