@@ -83,6 +83,8 @@ use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{FontMetrics, GlyphStore};
+use icu_locid::LanguageIdentifier;
+use icu_locid::subtags::{Language, language};
 use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use layout_api::wrapper_traits::SharedSelection;
@@ -1851,11 +1853,10 @@ impl InlineFormattingContext {
         // Enable Chinese/Japanese line breaking behavior when this inline formatting context
         // has a Japanese or Chinese language set.
         options.ja_zh = {
-            use icu_locid::LanguageIdentifier;
-            use icu_locid::subtags::language;
-
-            lang.0.as_ref().parse::<LanguageIdentifier>().is_ok_and(|lang_id| {
-                lang_id.language == language!("ja") || lang_id.language == language!("zh")
+            lang.0.parse::<LanguageIdentifier>().is_ok_and(|lang_id| {
+                const JA: Language = language!("ja");
+                const ZH: Language = language!("zh");
+                matches!(lang_id.language, JA | ZH)
             })
         };
 
