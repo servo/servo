@@ -13240,6 +13240,15 @@
       }
      ]
     ],
+    "key-event-text-input-backspace.html": [
+     "fa6c35fd6a0ef966c313a9ef7ac720ea6be27113",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "key-event-text-input-motion.html": [
      "1e14f2dca3b8e019050396030c7de84bdf06b255",
      [
