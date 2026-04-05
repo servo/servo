@@ -273,7 +273,13 @@ impl IDBTransaction {
         // Step 5. For each object store handle handle associated with transaction,
         // including those for object stores that were created or deleted during
         // transaction:
-        for store in self.store_handles.borrow().values() {
+        let stores = self
+            .store_handles
+            .borrow()
+            .values()
+            .map(|store| DomRoot::from_ref(&**store))
+            .collect::<Vec<_>>();
+        for store in stores {
             store.restore_metadata_after_abort(can_gc);
         }
     }
