@@ -651,12 +651,17 @@ class CommandBase(object):
                 return BuildType.dev()
 
         if release:
+            self.config["build"]["mode"] = "release"
             return BuildType.release()
         elif dev:
+            self.config["build"]["mode"] = "dev"
             return BuildType.dev()
         elif prod:
+            self.config["build"]["mode"] = "production"
             return BuildType.prod()
         else:
+            # Guaranteed non-None.
+            self.config["build"]["mode"] = profile
             return BuildType.from_string(profile)
 
     def configure_build_target(self, kwargs: dict[str, Any], suppress_log: bool = False) -> None:
