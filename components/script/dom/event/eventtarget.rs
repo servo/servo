@@ -63,6 +63,9 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
+use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -947,6 +950,26 @@ impl EventTarget {
                 node.GetParentNode()
                     .map(|parent| DomRoot::from_ref(parent.upcast::<EventTarget>()))
             });
+        }
+
+        // https://w3c.github.io/IndexedDB/#events
+        // The get the parent algorithm for an IDBRequest returns the request's transaction.
+        if let Some(request) = self.downcast::<IDBRequest>() {
+            return request
+                .transaction()
+                .map(|tx| DomRoot::from_ref(tx.upcast::<EventTarget>()));
+        }
+
+        // The get the parent algorithm for an IDBTransaction returns the transaction's connection.
+        if let Some(transaction) = self.downcast::<IDBTransaction>() {
+            return Some(DomRoot::from_ref(
+                transaction.get_db().upcast::<EventTarget>(),
+            ));
+        }
+
+        // The get the parent algorithm for an IDBDatabase returns null.
+        if self.downcast::<IDBDatabase>().is_some() {
+            return None;
         }
 
         None

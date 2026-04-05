@@ -57,6 +57,7 @@ pub struct IDBTransaction {
     abort_initiated: Cell<bool>,
     abort_requested: Cell<bool>,
     committing: Cell<bool>,
+    commit_started: Cell<bool>,
     version_change_old_version: Cell<Option<u64>>,
     // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
     // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
@@ -102,6 +103,7 @@ impl IDBTransaction {
             abort_initiated: Cell::new(false),
             abort_requested: Cell::new(false),
             committing: Cell::new(false),
+            commit_started: Cell::new(false),
             version_change_old_version: Cell::new(None),
             version_change_old_object_store_names: DomRefCell::new(
                 (mode == IDBTransactionMode::Versionchange)
@@ -203,6 +205,17 @@ impl IDBTransaction {
         !self.finished.get() && !self.abort_initiated.get() && !self.committing.get()
     }
 
+    pub(crate) fn is_inactive(&self) -> bool {
+        !self.active.get() &&
+            !self.finished.get() &&
+            !self.abort_initiated.get() &&
+            !self.committing.get()
+    }
+
+    pub(crate) fn is_committing(&self) -> bool {
+        self.committing.get()
+    }
+
     pub(crate) fn is_finished(&self) -> bool {
         self.finished.get()
     }
@@ -239,6 +252,9 @@ impl IDBTransaction {
     }
 
     fn attempt_commit(&self) -> bool {
+        if self.commit_started.get() {
+            return true;
+        }
         let this = Trusted::new(self);
         let global = self.global();
         let task_source = global
@@ -291,6 +307,7 @@ impl IDBTransaction {
         }
 
         self.committing.set(true);
+        self.commit_started.set(true);
         true
     }
 
@@ -302,12 +319,12 @@ impl IDBTransaction {
         //  not been aborted.
         let finished = self.finished.get();
         let abort_initiated = self.abort_initiated.get();
-        let committing = self.committing.get();
+        let commit_started = self.commit_started.get();
         let active = self.active.get();
         let pending_request_count = self.pending_request_count.get();
         let next_unhandled_request_id = self.next_unhandled_request_id.get();
         let issued_count = self.issued_count();
-        if finished || abort_initiated || committing {
+        if finished || abort_initiated || commit_started {
             return;
         }
         if active || pending_request_count != 0 {
@@ -334,7 +351,7 @@ impl IDBTransaction {
         // The implementation must attempt to commit an inactive transaction when all requests
         // placed against the transaction have completed and their returned results handled,
         // no new requests have been placed against the transaction, and the transaction has not been aborted
-        if self.finished.get() || self.abort_initiated.get() || self.committing.get() {
+        if self.finished.get() || self.abort_initiated.get() || self.commit_started.get() {
             return;
         }
         if self.active.get() || self.pending_request_count.get() != 0 {
@@ -349,6 +366,10 @@ impl IDBTransaction {
 
     pub fn get_db_name(&self) -> DOMString {
         self.db.get_name()
+    }
+
+    pub(crate) fn get_db(&self) -> &IDBDatabase {
+        &self.db
     }
 
     pub fn get_serial_number(&self) -> u64 {
@@ -486,6 +507,7 @@ impl IDBTransaction {
             return;
         }
         self.committing.set(false);
+        self.commit_started.set(false);
         let this = Trusted::new(self);
         self.global()
             .task_manager()
@@ -545,6 +567,7 @@ impl IDBTransaction {
             return;
         }
         self.committing.set(false);
+        self.commit_started.set(false);
         self.version_change_old_version.set(None);
         self.version_change_old_object_store_names
             .borrow_mut()
@@ -708,21 +731,16 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(store)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-3/#commit-transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-commit>
     fn Commit(&self) -> Fallible<()> {
-        // Step 1
-        if self.finished.get() {
+        // Step 1. If this’s state is not active, then throw an "InvalidStateError" DOMException.
+        if !self.active.get() {
             return Err(Error::InvalidState(None));
         }
 
-        // https://w3c.github.io/IndexedDB/#transaction-lifetime
-        // Step 5: The implementation must attempt to commit an inactive transaction when all requests placed against
-        // the transaction have completed and their returned results handled, no new requests have been placed against the transaction, and the transaction has not been aborted
-        // An explicit call to commit() will initiate a commit without waiting for request results to be handled by script.
-        // When committing, the transaction state is set to committing. The implementation must atomically write any changes
-        // to the database made by requests placed against the transaction. That is, either all of the changes must be written,
-        // or if an error occurs, such as a disk write error, the implementation must not write any of the changes to the database, and the steps to abort a transaction will be followed.
+        // Step 2. Run commit a transaction with this.
         self.set_active_flag(false);
+        self.committing.set(true);
         self.force_commit();
 
         Ok(())

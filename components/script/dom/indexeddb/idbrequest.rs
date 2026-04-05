@@ -270,8 +270,10 @@ impl RequestListener {
             // Substep 3.2: Set the error of request to undefined
             request.set_error(None, CanGc::from_cx(cx));
 
-            // Substep 3.3: Fire a success event at request.
-            // TODO: follow spec here
+            // https://w3c.github.io/IndexedDB/#fire-success-event
+            // Step 1: Let event be the result of creating an event using Event.
+            // Step 2: Set event’s type attribute to "success".
+            // Step 3: Set event’s bubbles and cancelable attributes to false.
             let event = Event::new(
                 &global,
                 Atom::from("success"),
@@ -280,19 +282,31 @@ impl RequestListener {
                 CanGc::from_cx(cx),
             );
 
-            transaction.set_active_flag(true);
+            // Step 5: Let legacyOutputDidListenersThrowFlag be initially false.
+            let did_listeners_throw = Cell::new(false);
+            // Step 6: If transaction’s state is inactive, then set transaction’s state to active.
+            if transaction.is_inactive() {
+                transaction.set_active_flag(true);
+            }
+            // Step 7: Dispatch event at request with legacyOutputDidListenersThrowFlag.
             event
                 .upcast::<Event>()
-                .fire(request.upcast(), CanGc::from_cx(cx));
-            // https://w3c.github.io/IndexedDB/#transaction-lifetime
-            // Step 3:
-            // When each request associated with a transaction is processed,
-            // a success or error event will be fired. While the event is being
-            // dispatched, the transaction state is set to active, allowing additional
-            // requests to be made against the transaction. Once the event dispatch
-            // is complete, the transaction’s state is set to inactive again.
-            transaction.set_active_flag(false);
-            // Notify the transaction that this request has finished.
+                .fire_with_legacy_output_did_listeners_throw(
+                    request.upcast(),
+                    &did_listeners_throw,
+                    CanGc::from_cx(cx),
+                );
+            // Step 8: If transaction’s state is active, then:
+            if transaction.is_active() {
+                // Step 8.1: Set transaction’s state to inactive.
+                transaction.set_active_flag(false);
+                // Step 8.2: If legacyOutputDidListenersThrowFlag is true, then run abort a
+                // transaction with transaction and a newly created "AbortError" DOMException.
+                if did_listeners_throw.get() {
+                    transaction.initiate_abort(Error::Abort(None), CanGc::from_cx(cx));
+                    transaction.request_backend_abort();
+                }
+            }
             transaction.request_finished();
 
             Self::send_request_handled(&transaction, self.request_id);
@@ -329,8 +343,10 @@ impl RequestListener {
         // Substep 2: Set the error of request to result.
         request.set_error(Some(error.clone()), CanGc::from_cx(cx));
 
-        // Substep 3: Fire an error event at request.
-        // TODO: follow the spec here
+        // https://w3c.github.io/IndexedDB/#fire-error-event
+        // Step 1: Let event be the result of creating an event using Event.
+        // Step 2: Set event’s type attribute to "error".
+        // Step 3: Set event’s bubbles and cancelable attributes to true.
         let event = Event::new(
             global,
             Atom::from("error"),
@@ -339,29 +355,46 @@ impl RequestListener {
             CanGc::from_cx(cx),
         );
 
-        transaction.set_active_flag(true);
-        // https://w3c.github.io/IndexedDB/#events
-        // Step 3: Set event’s bubbles and cancelable attributes to false.
-        let default_not_prevented = event
-            .upcast::<Event>()
-            .fire(request.upcast(), CanGc::from_cx(cx));
-        // https://w3c.github.io/IndexedDB/#transaction-lifetime
-        // Step 3:
-        // When each request associated with a transaction is processed,
-        // a success or error event will be fired. While the event is being
-        // dispatched, the transaction state is set to active, allowing additional
-        // requests to be made against the transaction. Once the event dispatch
-        // is complete, the transaction’s state is set to inactive again.
-        transaction.set_active_flag(false);
-        // https://w3c.github.io/IndexedDB/#transaction-lifetime
-        // Step 4: A transaction can be aborted at any time before it is finished, even if the transaction isn’t currently active or hasn’t yet started.
-        // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
-        // When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction. This includes both changes to the contents of object stores as well as additions and removals of object stores and indexes.
-        if default_not_prevented {
-            transaction.initiate_abort(error, CanGc::from_cx(cx));
+        // If result is an error and transaction’s state is committing, then run abort a
+        // transaction with transaction and result, and terminate these steps.
+        if transaction.is_committing() {
+            transaction.initiate_abort(error.clone(), CanGc::from_cx(cx));
             transaction.request_backend_abort();
         }
-        // Notify the transaction that this request has finished.
+        // Step 5: Let legacyOutputDidListenersThrowFlag be initially false.
+        let did_listeners_throw = Cell::new(false);
+        // Step 6: If transaction’s state is inactive, then set transaction’s state to active.
+        if transaction.is_inactive() {
+            transaction.set_active_flag(true);
+        }
+        // Step 7: Dispatch event at request with legacyOutputDidListenersThrowFlag.
+        let default_not_prevented = event
+            .upcast::<Event>()
+            .fire_with_legacy_output_did_listeners_throw(
+                request.upcast(),
+                &did_listeners_throw,
+                CanGc::from_cx(cx),
+            );
+        // Step 8: If transaction’s state is active, then:
+        if transaction.is_active() {
+            // Step 8.1: Set transaction’s state to inactive.
+            transaction.set_active_flag(false);
+            // Step 8.2: If legacyOutputDidListenersThrowFlag is true, then run abort a transaction
+            // with transaction and a newly created "AbortError" DOMException and terminate these steps.
+            // NOTE: This is done even if event’s canceled flag is false.
+            // NOTE: This means that if an error event is fired and any of the event handlers throw an
+            // exception, transaction’s error property is set to an AbortError rather than request’s
+            // error, even if preventDefault() is never called.
+            if did_listeners_throw.get() {
+                transaction.initiate_abort(Error::Abort(None), CanGc::from_cx(cx));
+                transaction.request_backend_abort();
+            } else if default_not_prevented {
+                // Step 8.3: If event’s canceled flag is false, then run abort a transaction
+                // using transaction and request’s error, and terminate these steps.
+                transaction.initiate_abort(error, CanGc::from_cx(cx));
+                transaction.request_backend_abort();
+            }
+        }
         transaction.request_finished();
         Self::send_request_handled(&transaction, request_id);
     }
