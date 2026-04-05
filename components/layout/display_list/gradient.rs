@@ -5,19 +5,20 @@
 use app_units::Au;
 use euclid::Size2D;
 use style::Zero;
-use style::color::mix::ColorInterpolationMethod;
+use style::color::mix::{ColorInterpolationMethod, ColorMixItem, HueInterpolationMethod, mix_many};
+use style::color::{AbsoluteColor, ColorSpace};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
 use style::values::computed::{Angle, AngleOrPercentage, Color, LengthPercentage, Position};
+use style::values::generics::color::ColorMixFlags;
 use style::values::generics::image::{
     Circle, ColorStop, Ellipse, GradientFlags, GradientItem, ShapeExtent,
 };
 use webrender_api::units::LayoutPixel;
 use webrender_api::{
-    self as wr, ConicGradient as WebRenderConicGradient, Gradient as WebRenderLinearGradient,
-    RadialGradient as WebRenderRadialGradient, units,
+    self as wr, ConicGradient as WebRenderConicGradient, ExtendMode,
+    Gradient as WebRenderLinearGradient, RadialGradient as WebRenderRadialGradient, units,
 };
-use wr::ColorF;
 
 pub(super) enum WebRenderGradient {
     Linear(WebRenderLinearGradient),
@@ -74,7 +75,7 @@ pub(super) fn build(
             style,
             *angle,
             position,
-            *color_interpolation_method,
+            color_interpolation_method,
             items,
             *flags,
             size,
@@ -88,7 +89,7 @@ pub(super) fn build_linear(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
     line_direction: &LineDirection,
-    _color_interpolation_method: &ColorInterpolationMethod,
+    color_interpolation_method: &ColorInterpolationMethod,
     flags: GradientFlags,
     gradient_box: Size2D<f32, LayoutPixel>,
     builder: &mut super::DisplayListBuilder,
@@ -170,14 +171,16 @@ pub(super) fn build_linear(
     let start_point = center - half_gradient_line;
     let end_point = center + half_gradient_line;
 
-    let mut color_stops =
-        gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
-    let stops = fixup_stops(&mut color_stops);
     let extend_mode = if flags.contains(GradientFlags::REPEATING) {
         wr::ExtendMode::Repeat
     } else {
         wr::ExtendMode::Clamp
     };
+
+    let mut color_stops =
+        gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
+    let stops = create_webrender_stops(&mut color_stops, color_interpolation_method, extend_mode);
+
     WebRenderGradient::Linear(builder.wr().create_gradient(
         start_point,
         end_point,
@@ -193,7 +196,7 @@ pub(super) fn build_radial(
     items: &[GradientItem<Color, LengthPercentage>],
     shape: &EndingShape,
     center: &Position,
-    _color_interpolation_method: &ColorInterpolationMethod,
+    color_interpolation_method: &ColorInterpolationMethod,
     flags: GradientFlags,
     gradient_box: Size2D<f32, LayoutPixel>,
     builder: &mut super::DisplayListBuilder,
@@ -274,14 +277,16 @@ pub(super) fn build_radial(
     //  where the gradient line intersects the ending shape.”
     let gradient_line_length = radii.width;
 
-    let mut color_stops =
-        gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
-    let stops = fixup_stops(&mut color_stops);
     let extend_mode = if flags.contains(GradientFlags::REPEATING) {
         wr::ExtendMode::Repeat
     } else {
         wr::ExtendMode::Clamp
     };
+
+    let mut color_stops =
+        gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
+    let stops = create_webrender_stops(&mut color_stops, color_interpolation_method, extend_mode);
+
     WebRenderGradient::Radial(builder.wr().create_radial_gradient(
         center,
         radii,
@@ -296,7 +301,7 @@ fn build_conic(
     style: &ComputedValues,
     angle: Angle,
     center: &Position,
-    _color_interpolation_method: ColorInterpolationMethod,
+    color_interpolation_method: &ColorInterpolationMethod,
     items: &[GradientItem<Color, AngleOrPercentage>],
     flags: GradientFlags,
     gradient_box: Size2D<f32, LayoutPixel>,
@@ -312,13 +317,16 @@ fn build_conic(
             .to_used_value(Au::from_f32_px(gradient_box.height))
             .to_f32_px(),
     );
-    let mut color_stops = conic_gradient_items_to_color_stops(style, items);
-    let stops = fixup_stops(&mut color_stops);
+
     let extend_mode = if flags.contains(GradientFlags::REPEATING) {
         wr::ExtendMode::Repeat
     } else {
         wr::ExtendMode::Clamp
     };
+
+    let mut color_stops = conic_gradient_items_to_color_stops(style, items);
+    let stops = create_webrender_stops(&mut color_stops, color_interpolation_method, extend_mode);
+
     WebRenderGradient::Conic(builder.wr().create_conic_gradient(
         center,
         angle.radians(),
@@ -330,7 +338,7 @@ fn build_conic(
 fn conic_gradient_items_to_color_stops(
     style: &ComputedValues,
     items: &[GradientItem<Color, AngleOrPercentage>],
-) -> Vec<ColorStop<ColorF, f32>> {
+) -> Vec<ColorStop<AbsoluteColor, f32>> {
     // Remove color transititon hints, which are not supported yet.
     // https://drafts.csswg.org/css-images-4/#color-transition-hint
     //
@@ -346,11 +354,11 @@ fn conic_gradient_items_to_color_stops(
         .filter_map(|item| {
             match item {
                 GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color)),
+                    color: style.resolve_color(color),
                     position: None,
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color)),
+                    color: style.resolve_color(color),
                     position: match position {
                         AngleOrPercentage::Percentage(percentage) => Some(percentage.0),
                         AngleOrPercentage::Angle(angle) => Some(angle.degrees() / 360.),
@@ -368,7 +376,7 @@ fn gradient_items_to_color_stops(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
     gradient_line_length: Au,
-) -> Vec<ColorStop<ColorF, f32>> {
+) -> Vec<ColorStop<AbsoluteColor, f32>> {
     // Remove color transititon hints, which are not supported yet.
     // https://drafts.csswg.org/css-images-4/#color-transition-hint
     //
@@ -384,11 +392,11 @@ fn gradient_items_to_color_stops(
         .filter_map(|item| {
             match item {
                 GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color)),
+                    color: style.resolve_color(color),
                     position: None,
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color)),
+                    color: style.resolve_color(color),
                     position: Some(if gradient_line_length.is_zero() {
                         0.
                     } else {
@@ -406,8 +414,33 @@ fn gradient_items_to_color_stops(
         .collect()
 }
 
+fn create_webrender_stops(
+    stops: &mut [ColorStop<AbsoluteColor, f32>],
+    interpolation_method: &ColorInterpolationMethod,
+    extend_mode: ExtendMode,
+) -> Vec<wr::GradientStop> {
+    let stops = fixup_stops(stops);
+    if interpolation_method.space != ColorSpace::Srgb {
+        return interpolate_gradient_stop_colors(&stops, interpolation_method, extend_mode);
+    }
+
+    stops
+        .iter()
+        .map(|stop| wr::GradientStop {
+            color: super::rgba(stop.color),
+            offset: stop.position,
+        })
+        .collect()
+}
+
+#[derive(Clone, Copy)]
+struct UsedColorStop {
+    color: AbsoluteColor,
+    position: f32,
+}
+
 /// <https://drafts.csswg.org/css-images-4/#color-stop-fixup>
-fn fixup_stops(stops: &mut [ColorStop<ColorF, f32>]) -> Vec<wr::GradientStop> {
+fn fixup_stops(stops: &mut [ColorStop<AbsoluteColor, f32>]) -> Vec<UsedColorStop> {
     assert!(!stops.is_empty());
 
     // https://drafts.csswg.org/css-images-4/#color-stop-fixup
@@ -430,16 +463,16 @@ fn fixup_stops(stops: &mut [ColorStop<ColorF, f32>]) -> Vec<wr::GradientStop> {
         }
     }
 
-    let mut wr_stops = Vec::with_capacity(stops.len());
+    let mut used_color_stops = Vec::with_capacity(stops.len());
     let mut iter = stops.iter().enumerate();
     let (_, first) = iter.next().unwrap();
     let first_stop_position = first.position.unwrap();
-    wr_stops.push(wr::GradientStop {
-        offset: first_stop_position,
+    used_color_stops.push(UsedColorStop {
+        position: first_stop_position,
         color: first.color,
     });
     if stops.len() == 1 {
-        wr_stops.push(wr_stops[0]);
+        used_color_stops.push(used_color_stops[0]);
     }
 
     let mut last_positioned_stop_index = 0;
@@ -451,18 +484,132 @@ fn fixup_stops(stops: &mut [ColorStop<ColorF, f32>]) -> Vec<wr::GradientStop> {
                 let step = (position - last_positioned_stop_position) / step_count as f32;
                 for j in 1..step_count {
                     let color = stops[last_positioned_stop_index + j].color;
-                    let offset = last_positioned_stop_position + j as f32 * step;
-                    wr_stops.push(wr::GradientStop { offset, color })
+                    let position = last_positioned_stop_position + j as f32 * step;
+                    used_color_stops.push(UsedColorStop { position, color })
                 }
             }
             last_positioned_stop_index = i;
             last_positioned_stop_position = position;
-            wr_stops.push(wr::GradientStop {
-                offset: position,
+            used_color_stops.push(UsedColorStop {
+                position,
                 color: stop.color,
             })
         }
     }
 
-    wr_stops
+    used_color_stops
+}
+
+/// This is a port of Gecko's WrColorStopInterpolator:
+///
+/// See
+/// <https://searchfox.org/firefox-main/rev/4b851f6b592ecf1112ee47dd25e8de28c892ad67/layout/painting/nsCSSRenderingGradients.cpp#1200>
+fn interpolate_gradient_stop_colors(
+    stops: &[UsedColorStop],
+    interpolation_method: &ColorInterpolationMethod,
+    extend_mode: wr::ExtendMode,
+) -> Vec<wr::GradientStop> {
+    // This could be made tunable, but at 1.0/128 the error is largely
+    // irrelevant, as WebRender re-encodes it to 128 pairs of stops.
+    //
+    // Note that we don't attempt to place the positions of these stops
+    // precisely at intervals, we just add this many extra stops across the
+    // range where it is convenient.
+    const FULL_RANGE_EXTRA_STOPS: usize = 128;
+
+    // This indicates that we want to extend the end position on the last stop,
+    // which only matters if this is a CSS non-repeating gradient with
+    // StyleHueInterpolationMethod::Longer (only valid for hsl/hwb/lch/oklch).
+    //
+    // For the specific case of longer hue interpolation on a CSS non-repeating
+    // gradient, we have to pretend there is another stop at position=1.0 that
+    // duplicates the last stop, this is probably only used for things like a
+    // color wheel.  No such problem for SVG as it doesn't have that complexity.
+    let extend = extend_mode == wr::ExtendMode::Clamp &&
+        interpolation_method.hue == HueInterpolationMethod::Longer;
+
+    // We always emit at least two stops (start and end) for each input stop,
+    // which avoids ambiguity with incomplete oklch/lch/hsv/hsb color stops for
+    // the last stop pair, where the last color stop can't be interpreted on its
+    // own because it actually depends on the previous stop.
+    let mut output = Vec::with_capacity(stops.len() * 2 + FULL_RANGE_EXTRA_STOPS);
+
+    // This loop intentionally iterates extra stops at the beginning and end
+    // if extending was requested, or in the degenerate case where only one
+    // color stop was specified.
+    let extend = extend || stops.len() == 1;
+    let mut iter_stops = stops.len() - 1;
+    if extend {
+        iter_stops += 2;
+    }
+
+    for index in 0..iter_stops {
+        let this_index = if extend {
+            index.saturating_sub(1)
+        } else {
+            index
+        };
+
+        let next_index = if extend && (index == iter_stops - 1 || index == 0) {
+            this_index
+        } else {
+            this_index + 1
+        };
+
+        let start = &stops[this_index];
+        let end = &stops[next_index];
+        let mut start_position = start.position;
+        let mut end_position = end.position;
+
+        // For CSS non-repeating gradients with longer hue specified, we have to
+        // pretend there is a stop beyond the last stop, and one before the first.
+        // This is never the case on SVG gradients as they only use shorter hue.
+        //
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1885716 for more info.
+        let mut extra_stops = 0;
+        if extend {
+            // If we're extending, we just need a single new stop, which will
+            // duplicate the end being extended; do not create interpolated stops
+            // within the extension area!
+            if index == 0 {
+                start_position = start_position.min(0.0);
+                extra_stops = 1;
+            }
+            if index == iter_stops - 1 {
+                end_position = end_position.max(1.0);
+                extra_stops = 1;
+            }
+        }
+
+        if extra_stops == 0 {
+            // Within the actual gradient range, figure out how many extra stops
+            // to use for this section of the gradient.
+            extra_stops = (end_position * FULL_RANGE_EXTRA_STOPS as f32).floor() as u32;
+            extra_stops = extra_stops.clamp(1, FULL_RANGE_EXTRA_STOPS as u32);
+        }
+
+        let step = 1.0 / (extra_stops as f32);
+        for extra_stop in 0..=extra_stops {
+            let progress = (extra_stop as f32) * step;
+            let position = start_position + progress * (end_position - start_position);
+
+            let start_color = start.color;
+            let end_color = end.color;
+            let color = mix_many(
+                *interpolation_method,
+                [
+                    ColorMixItem::new(start_color, 1.0 - progress),
+                    ColorMixItem::new(end_color, progress),
+                ],
+                ColorMixFlags::empty(),
+            );
+
+            output.push(wr::GradientStop {
+                color: super::rgba(color),
+                offset: position,
+            });
+        }
+    }
+
+    output
 }
