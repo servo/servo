@@ -86,10 +86,12 @@ impl From<KeyPath> for indexeddb::KeyPath {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-struct IDBObjectStoreAbortState {
+struct IDBObjectStoreRollbackState {
+    newly_created_during_transaction: bool,
     rollback_name: Option<DOMString>,
     #[no_trace]
     rollback_indexes: Vec<indexeddb::IndexedDBIndex>,
+    key_generator_current_number: Option<i64>,
 }
 
 #[dom_struct]
@@ -98,7 +100,7 @@ pub struct IDBObjectStore {
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
     index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
-    abort_state_on_abort: DomRefCell<Option<IDBObjectStoreAbortState>>,
+    abort_state_on_abort: DomRefCell<Option<IDBObjectStoreRollbackState>>,
     transaction: Dom<IDBTransaction>,
     has_key_generator: bool,
     key_generator_current_number: Cell<Option<i64>>,
@@ -108,13 +110,18 @@ pub struct IDBObjectStore {
     db_name: DOMString,
 }
 
+pub(crate) struct IDBObjectStoreAbortState {
+    pub(crate) newly_created_during_transaction: bool,
+    pub(crate) rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
+    pub(crate) key_generator_current_number: Option<i64>,
+}
+
 impl IDBObjectStore {
     pub fn new_inherited(
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        rollback_indexes_on_abort: Option<Vec<indexeddb::IndexedDBIndex>>,
-        key_generator_current_number: Option<i64>,
+        abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -127,6 +134,11 @@ impl IDBObjectStore {
             None => None,
         };
         let has_key_generator = options.is_some_and(|options| options.autoIncrement);
+        let IDBObjectStoreAbortState {
+            newly_created_during_transaction,
+            rollback_indexes_on_abort,
+            key_generator_current_number,
+        } = abort_state;
         let key_generator_current_number = if has_key_generator {
             Some(key_generator_current_number.unwrap_or(1))
         } else {
@@ -138,11 +150,11 @@ impl IDBObjectStore {
             name: DomRefCell::new(name),
             key_path,
             index_set: DomRefCell::new(HashMap::new()),
-            abort_state_on_abort: DomRefCell::new(rollback_indexes_on_abort.map(|indexes| {
-                IDBObjectStoreAbortState {
-                    rollback_name: None,
-                    rollback_indexes: indexes,
-                }
+            abort_state_on_abort: DomRefCell::new(Some(IDBObjectStoreRollbackState {
+                newly_created_during_transaction,
+                rollback_name: None,
+                rollback_indexes: rollback_indexes_on_abort,
+                key_generator_current_number,
             })),
             transaction: Dom::from_ref(transaction),
             has_key_generator,
@@ -156,8 +168,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        rollback_indexes_on_abort: Option<Vec<indexeddb::IndexedDBIndex>>,
-        key_generator_current_number: Option<i64>,
+        abort_state: IDBObjectStoreAbortState,
         can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
@@ -166,8 +177,7 @@ impl IDBObjectStore {
                 db_name,
                 name,
                 options,
-                rollback_indexes_on_abort,
-                key_generator_current_number,
+                abort_state,
                 transaction,
             )),
             global,
@@ -182,13 +192,14 @@ impl IDBObjectStore {
     /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
     pub(crate) fn restore_metadata_after_abort(&self, can_gc: CanGc) {
         let Some(abort_state) = self.abort_state_on_abort.borrow().as_ref().cloned() else {
-            // Newly created object stores have no prior state to restore.
             return;
         };
 
         // Step 5.1. If handle’s object store was not newly created during transaction,
         // set handle’s name to its object store’s name.
-        if let Some(name) = abort_state.rollback_name {
+        if !abort_state.newly_created_during_transaction &&
+            let Some(name) = abort_state.rollback_name
+        {
             *self.name.borrow_mut() = name;
         }
 
@@ -197,14 +208,20 @@ impl IDBObjectStore {
         self.index_set.borrow_mut().clear();
         for index in abort_state.rollback_indexes {
             self.add_index(
-                index.name.into(),
+                index.name.clone().into(),
                 &IDBIndexParameters {
                     multiEntry: index.multi_entry,
                     unique: index.unique,
                 },
-                index.key_path.into(),
+                index.key_path.clone().into(),
                 can_gc,
             );
+        }
+
+        // Restore key generator state for existing object store handles.
+        if self.has_key_generator && !abort_state.newly_created_during_transaction {
+            self.key_generator_current_number
+                .set(abort_state.key_generator_current_number);
         }
     }
 
@@ -885,10 +902,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
 
         let old_name = self.name.borrow().clone();
-        if let Some(abort_state) = self.abort_state_on_abort.borrow_mut().as_mut() {
-            if abort_state.rollback_name.is_none() {
-                abort_state.rollback_name = Some(old_name.clone());
-            }
+        if let Some(abort_state) = self.abort_state_on_abort.borrow_mut().as_mut() &&
+            abort_state.rollback_name.is_none()
+        {
+            abort_state.rollback_name = Some(old_name.clone());
         }
 
         // Step 9. Set store’s name to name.

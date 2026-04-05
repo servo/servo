@@ -1410,10 +1410,10 @@ impl IndexedDBManager {
                     queue.retain_mut(|open_request| {
                         if ids.contains(&open_request.get_id()) {
                             let upgrade = open_request.abort();
-                            if upgrade_to_revert.is_none() {
-                                if let Some(upgrade) = upgrade {
-                                    upgrade_to_revert = Some(upgrade);
-                                }
+                            if upgrade_to_revert.is_none() &&
+                                let Some(upgrade) = upgrade
+                            {
+                                upgrade_to_revert = Some(upgrade);
                             }
                             false
                         } else {
