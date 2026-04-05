@@ -1611,11 +1611,7 @@ fn insert(
             if let Some(text) = text {
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
-                let text = Text::new(
-                    String::from(t).into(),
-                    &parent.owner_doc(),
-                    CanGc::from_cx(cx),
-                );
+                let text = Text::new(cx, String::from(t).into(), &parent.owner_doc());
                 parent
                     .InsertBefore(cx, text.upcast(), reference_child)
                     .unwrap();
@@ -1668,12 +1664,16 @@ impl TreeSink for Sink {
         Dom::from_ref(self.document.upcast())
     }
 
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn get_template_contents(&self, target: &Dom<Node>) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let template = target
             .downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
-        Dom::from_ref(template.Content(CanGc::note()).upcast())
+        Dom::from_ref(template.Content(cx).upcast())
     }
 
     fn same_node(&self, x: &Dom<Node>, y: &Dom<Node>) -> bool {
@@ -1723,25 +1723,33 @@ impl TreeSink for Sink {
         Dom::from_ref(element.upcast())
     }
 
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_comment(&self, text: StrTendril) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let comment = Comment::new(
+            cx,
             DOMString::from(String::from(text)),
             &self.document,
             None,
-            CanGc::note(),
         );
         Dom::from_ref(comment.upcast())
     }
 
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_pi(&self, target: StrTendril, data: StrTendril) -> Dom<Node> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
+            cx,
             DOMString::from(String::from(target)),
             DOMString::from(String::from(data)),
             doc,
-            CanGc::note(),
         );
         Dom::from_ref(pi.upcast())
     }
@@ -1854,11 +1862,11 @@ impl TreeSink for Sink {
 
         let doc = &*self.document;
         let doctype = DocumentType::new(
+            cx,
             DOMString::from(String::from(name)),
             Some(DOMString::from(String::from(public_id))),
             Some(DOMString::from(String::from(system_id))),
             doc,
-            CanGc::from_cx(cx),
         );
         doc.upcast::<Node>()
             .AppendChild(cx, doctype.upcast())

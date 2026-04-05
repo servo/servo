@@ -72,19 +72,19 @@ impl HTMLOptionElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLOptionElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLOptionElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -221,7 +221,7 @@ impl HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
     fn clone_an_option_into_selectedcontent(&self, cx: &mut JSContext, selectedcontent: &Element) {
         // Step 1. Let documentFragment be a new DocumentFragment whose node document is option's node document.
-        let document_fragment = DocumentFragment::new(&self.owner_document(), CanGc::from_cx(cx));
+        let document_fragment = DocumentFragment::new(cx, &self.owner_document());
 
         // Step 2. For each child of option's children:
         for child in self.upcast::<Node>().children() {

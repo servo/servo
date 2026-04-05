@@ -1536,21 +1536,17 @@ impl Document {
         if nodes.len() == 1 {
             Ok(match nodes.pop().unwrap() {
                 NodeOrString::Node(node) => node,
-                NodeOrString::String(string) => {
-                    DomRoot::upcast(self.CreateTextNode(string, CanGc::from_cx(cx)))
-                },
+                NodeOrString::String(string) => DomRoot::upcast(self.CreateTextNode(cx, string)),
             })
         } else {
-            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(CanGc::from_cx(cx)));
+            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(cx));
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
                         fragment.AppendChild(cx, &node)?;
                     },
                     NodeOrString::String(string) => {
-                        let node = DomRoot::upcast::<Node>(
-                            self.CreateTextNode(string, CanGc::from_cx(cx)),
-                        );
+                        let node = DomRoot::upcast::<Node>(self.CreateTextNode(cx, string));
                         // No try!() here because appending a text node
                         // should not fail.
                         fragment.AppendChild(cx, &node).unwrap();
@@ -5082,7 +5078,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createattribute>
-    fn CreateAttribute(&self, mut local_name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
+    fn CreateAttribute(
+        &self,
+        cx: &mut js::context::JSContext,
+        mut local_name: DOMString,
+    ) -> Fallible<DomRoot<Attr>> {
         // Step 1. If localName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException
         if !is_valid_attribute_local_name(&local_name.str()) {
@@ -5096,6 +5096,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(
+            cx,
             self,
             name.clone(),
             value,
@@ -5103,16 +5104,15 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             ns!(),
             None,
             None,
-            can_gc,
         ))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createattributens>
     fn CreateAttributeNS(
         &self,
+        cx: &mut js::context::JSContext,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Attr>> {
         // Step 1. Let (namespace, prefix, localName) be the result of validating and
         //      extracting namespace and qualifiedName given "attribute".
@@ -5122,6 +5122,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
+            cx,
             self,
             local_name,
             value,
@@ -5129,25 +5130,24 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             namespace,
             prefix,
             None,
-            can_gc,
         ))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createdocumentfragment>
-    fn CreateDocumentFragment(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
-        DocumentFragment::new(self, can_gc)
+    fn CreateDocumentFragment(&self, cx: &mut js::context::JSContext) -> DomRoot<DocumentFragment> {
+        DocumentFragment::new(cx, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createtextnode>
-    fn CreateTextNode(&self, data: DOMString, can_gc: CanGc) -> DomRoot<Text> {
-        Text::new(data, self, can_gc)
+    fn CreateTextNode(&self, cx: &mut js::context::JSContext, data: DOMString) -> DomRoot<Text> {
+        Text::new(cx, data, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createcdatasection>
     fn CreateCDATASection(
         &self,
+        cx: &mut js::context::JSContext,
         data: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<CDATASection>> {
         // Step 1
         if self.is_html_document {
@@ -5160,20 +5160,20 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3
-        Ok(CDATASection::new(data, self, can_gc))
+        Ok(CDATASection::new(cx, data, self))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createcomment>
-    fn CreateComment(&self, data: DOMString, can_gc: CanGc) -> DomRoot<Comment> {
-        Comment::new(data, self, None, can_gc)
+    fn CreateComment(&self, cx: &mut js::context::JSContext, data: DOMString) -> DomRoot<Comment> {
+        Comment::new(cx, data, self, None)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction>
     fn CreateProcessingInstruction(
         &self,
+        cx: &mut js::context::JSContext,
         target: DOMString,
         data: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1. If target does not match the Name production, then throw an "InvalidCharacterError" DOMException.
         if !matches_name_production(&target.str()) {
@@ -5186,7 +5186,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Ok(ProcessingInstruction::new(target, data, self, can_gc))
+        Ok(ProcessingInstruction::new(cx, target, data, self))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-importnode>

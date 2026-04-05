@@ -609,7 +609,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let end_offset = self.end_offset();
 
         // Step 1.
-        let fragment = DocumentFragment::new(&start_node.owner_doc(), CanGc::from_cx(cx));
+        let fragment = DocumentFragment::new(cx, &start_node.owner_doc());
 
         // Step 2.
         if self.start() == self.end() {
@@ -622,8 +622,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 let data = cdata
                     .SubstringData(start_offset, end_offset - start_offset)
                     .unwrap();
-                let clone =
-                    cdata.clone_with_data(data, &start_node.owner_doc(), CanGc::from_cx(cx));
+                let clone = cdata.clone_with_data(cx, data, &start_node.owner_doc());
                 // Step 4.3.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 4.4
@@ -646,8 +645,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 let data = cdata
                     .SubstringData(start_offset, start_node.len() - start_offset)
                     .unwrap();
-                let clone =
-                    cdata.clone_with_data(data, &start_node.owner_doc(), CanGc::from_cx(cx));
+                let clone = cdata.clone_with_data(cx, data, &start_node.owner_doc());
                 // Step 13.3.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
             } else {
@@ -685,8 +683,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 assert!(child == end_node);
                 // Steps 16.1-2.
                 let data = cdata.SubstringData(0, end_offset).unwrap();
-                let clone =
-                    cdata.clone_with_data(data, &start_node.owner_doc(), CanGc::from_cx(cx));
+                let clone = cdata.clone_with_data(cx, data, &start_node.owner_doc());
                 // Step 16.3.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
             } else {
@@ -724,7 +721,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let end_offset = self.end_offset();
 
         // Step 1.
-        let fragment = DocumentFragment::new(&start_node.owner_doc(), CanGc::from_cx(cx));
+        let fragment = DocumentFragment::new(cx, &start_node.owner_doc());
 
         // Step 2.
         if self.collapsed() {

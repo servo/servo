@@ -104,13 +104,9 @@ fn create_svg_element(
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, CanGc::from_cx(cx));
+            let obj = $ctor::new(cx, name.local, prefix, document, proto);
             DomRoot::upcast(obj)
         });
-        ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, CanGc::from_cx(cx));
-            DomRoot::upcast(obj)
-        })
     );
 
     match name.local {
@@ -207,11 +203,7 @@ fn create_html_element(
                             // Substep 2. Set result to the result of creating an element internal given document,
                             // HTMLUnknownElement, localName, the HTML namespace, prefix, "failed", null, and registry.
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
-                                local_name,
-                                prefix,
-                                document,
-                                proto,
-                                CanGc::from_cx(cx),
+                                cx, local_name, prefix, document, proto,
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
                             element.set_custom_element_registry(registry);
@@ -227,11 +219,7 @@ fn create_html_element(
                     // custom element definition set to null, is value set to null, and node document
                     // set to document.
                     let result = DomRoot::upcast::<Element>(HTMLElement::new(
-                        name.local,
-                        prefix,
-                        document,
-                        proto,
-                        CanGc::from_cx(cx),
+                        cx, name.local, prefix, document, proto,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     result.set_custom_element_registry(registry);
@@ -286,11 +274,11 @@ pub(crate) fn create_native_html_element(
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, CanGc::from_cx(cx));
+            let obj = $ctor::new(cx, name.local, prefix, document, proto);
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, CanGc::from_cx(cx));
+            let obj = $ctor::new(cx, name.local, prefix, document, proto, $($arg),+);
             DomRoot::upcast(obj)
         })
     );
@@ -462,13 +450,6 @@ pub(crate) fn create_element(
     match name.ns {
         ns!(html) => create_html_element(cx, name, prefix, is, document, creator, mode, proto),
         ns!(svg) => create_svg_element(cx, name, prefix, document, proto),
-        _ => Element::new(
-            name.local,
-            name.ns,
-            prefix,
-            document,
-            proto,
-            CanGc::from_cx(cx),
-        ),
+        _ => Element::new(cx, name.local, name.ns, prefix, document, proto),
     }
 }

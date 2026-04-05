@@ -331,20 +331,20 @@ impl Element {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         namespace: Namespace,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Element> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(Element::new_inherited(
                 local_name, namespace, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -1849,6 +1849,7 @@ impl Element {
         }
     }
 
+    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn push_new_attribute(
         &self,
@@ -1860,7 +1861,11 @@ impl Element {
         reason: AttributeMutationReason,
         can_gc: CanGc,
     ) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
         let attr = Attr::new(
+            cx,
             &self.node.owner_doc(),
             local_name,
             value,
@@ -1868,7 +1873,6 @@ impl Element {
             namespace,
             prefix,
             Some(self),
-            can_gc,
         );
         self.push_attribute(&attr, reason, can_gc);
     }
@@ -2564,15 +2568,12 @@ impl Element {
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template
-                    .Content(CanGc::from_cx(cx))
-                    .upcast::<Node>()
-                    .owner_doc()
+                template.Content(cx).upcast::<Node>().owner_doc()
             } else {
                 self.owner_document()
             }
         };
-        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
+        let fragment = DocumentFragment::new(cx, &context_document);
         // Step 4.
         for child in new_children {
             fragment.upcast::<Node>().AppendChild(cx, &child).unwrap();
@@ -2648,8 +2649,8 @@ impl Element {
         }))
     }
 
-    pub(crate) fn outer_html(&self, can_gc: CanGc) -> Fallible<DOMString> {
-        match self.GetOuterHTML(can_gc)? {
+    pub(crate) fn outer_html(&self, cx: &mut js::context::JSContext) -> Fallible<DOMString> {
+        match self.GetOuterHTML(cx)? {
             TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
             TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
         }
@@ -3426,7 +3427,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         )?;
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-            DomRoot::upcast(template.Content(CanGc::from_cx(cx)))
+            DomRoot::upcast(template.Content(cx))
         } else {
             DomRoot::from_ref(self.upcast())
         };
@@ -3437,19 +3438,22 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
-    fn GetHTML(&self, options: &GetHTMLOptions, can_gc: CanGc) -> DOMString {
+    fn GetHTML(&self, cx: &mut js::context::JSContext, options: &GetHTMLOptions) -> DOMString {
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
+            cx,
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
             options.shadowRoots.clone(),
-            can_gc,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetInnerHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
@@ -3460,7 +3464,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(ChildrenOnly(Some(qname)), false, vec![], can_gc)
+                .html_serialize(cx, ChildrenOnly(Some(qname)), false, vec![])
         } else {
             self.upcast::<Node>()
                 .xml_serialize(XmlChildrenOnly(Some(qname)))?
@@ -3488,7 +3492,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             // Step 4: If context is a template element, then set context to
             // the template element's template contents (a DocumentFragment).
-            DomRoot::upcast(template.Content(CanGc::from_cx(cx)))
+            DomRoot::upcast(template.Content(cx))
         } else {
             // Step 2: Let context be this.
             DomRoot::from_ref(self.upcast())
@@ -3516,12 +3520,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetOuterHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // FIXME: This should use the fragment serialization algorithm, which takes
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(IncludeNode, false, vec![], can_gc)
+                .html_serialize(cx, IncludeNode, false, vec![])
         } else {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)?
         };
@@ -3742,7 +3749,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         data: DOMString,
     ) -> ErrorResult {
         // Step 1.
-        let text = Text::new(data, &self.owner_document(), CanGc::from_cx(cx));
+        let text = Text::new(cx, data, &self.owner_document());
 
         // Step 2.
         let where_ = where_.parse::<AdjacentPosition>()?;

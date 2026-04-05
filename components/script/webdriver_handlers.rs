@@ -1370,10 +1370,10 @@ pub(crate) fn handle_get_computed_role(
 }
 
 pub(crate) fn handle_get_page_source(
+    cx: &mut js::context::JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: GenericSender<Result<String, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1381,10 +1381,10 @@ pub(crate) fn handle_get_page_source(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| match document.GetDocumentElement() {
-                    Some(element) => match element.outer_html(can_gc) {
+                    Some(element) => match element.outer_html(cx) {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
-                            match XMLSerializer::new(document.window(), None, can_gc)
+                            match XMLSerializer::new(document.window(), None, CanGc::from_cx(cx))
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(source.to_string()),

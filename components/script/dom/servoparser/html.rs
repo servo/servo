@@ -14,6 +14,7 @@ use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
 use html5ever::tree_builder::{QuirksMode as HTML5EverQuirksMode, TreeBuilder, TreeBuilderOpts};
 use html5ever::{QualName, local_name, ns};
 use markup5ever::TokenizerResult;
+use script_bindings::script_runtime::temp_cx;
 use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -36,7 +37,6 @@ use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 use crate::dom::shadowroot::ShadowRoot;
-use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -187,11 +187,11 @@ enum SerializationChildrenIterator<C, S> {
 
 impl SerializationIterator {
     fn new(
+        cx: &mut js::context::JSContext,
         node: &Node,
         skip_first: bool,
         serialize_shadow_roots: bool,
         shadow_roots: Vec<DomRoot<ShadowRoot>>,
-        can_gc: CanGc,
     ) -> SerializationIterator {
         let mut ret = SerializationIterator {
             stack: vec![],
@@ -199,24 +199,20 @@ impl SerializationIterator {
             shadow_roots,
         };
         if skip_first || node.is::<DocumentFragment>() || node.is::<Document>() {
-            ret.handle_node_contents(node, can_gc);
+            ret.handle_node_contents(cx, node);
         } else {
             ret.push_node(node);
         }
         ret
     }
 
-    fn handle_node_contents(&mut self, node: &Node, can_gc: CanGc) {
+    fn handle_node_contents(&mut self, cx: &mut js::context::JSContext, node: &Node) {
         if node.downcast::<Element>().is_some_and(Element::is_void) {
             return;
         }
 
         if let Some(template_element) = node.downcast::<HTMLTemplateElement>() {
-            for child in template_element
-                .Content(can_gc)
-                .upcast::<Node>()
-                .rev_children()
-            {
+            for child in template_element.Content(cx).upcast::<Node>().rev_children() {
                 self.push_node(&child);
             }
         } else {
@@ -253,7 +249,11 @@ impl SerializationIterator {
 impl Iterator for SerializationIterator {
     type Item = SerializationCommand;
 
+    #[expect(unsafe_code)]
     fn next(&mut self) -> Option<SerializationCommand> {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let res = self.stack.pop()?;
 
         match &res {
@@ -264,7 +264,7 @@ impl Iterator for SerializationIterator {
                     element.local_name().clone(),
                 );
                 self.stack.push(SerializationCommand::CloseElement(name));
-                self.handle_node_contents(element.upcast(), CanGc::note());
+                self.handle_node_contents(cx, element.upcast());
             },
             SerializationCommand::SerializeShadowRoot(shadow_root) => {
                 self.stack
@@ -273,7 +273,7 @@ impl Iterator for SerializationIterator {
                         ns!(),
                         local_name!("template"),
                     )));
-                self.handle_node_contents(shadow_root.upcast(), CanGc::note());
+                self.handle_node_contents(cx, shadow_root.upcast());
             },
             _ => {},
         }
@@ -284,19 +284,19 @@ impl Iterator for SerializationIterator {
 
 /// <https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm>
 pub(crate) fn serialize_html_fragment<S: Serializer>(
+    cx: &mut js::context::JSContext,
     node: &Node,
     serializer: &mut S,
     traversal_scope: TraversalScope,
     serialize_shadow_roots: bool,
     shadow_roots: Vec<DomRoot<ShadowRoot>>,
-    can_gc: CanGc,
 ) -> io::Result<()> {
     let iter = SerializationIterator::new(
+        cx,
         node,
         traversal_scope != IncludeNode,
         serialize_shadow_roots,
         shadow_roots,
-        can_gc,
     );
 
     for cmd in iter {
@@ -383,17 +383,14 @@ impl<'a> HtmlSerialize<'a> {
 }
 
 impl Serialize for HtmlSerialize<'_> {
+    #[expect(unsafe_code)]
     fn serialize<S>(&self, serializer: &mut S, traversal_scope: TraversalScope) -> io::Result<()>
     where
         S: Serializer,
     {
-        serialize_html_fragment(
-            self.node,
-            serializer,
-            traversal_scope,
-            false,
-            vec![],
-            CanGc::note(),
-        )
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        serialize_html_fragment(cx, self.node, serializer, traversal_scope, false, vec![])
     }
 }
