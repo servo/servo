@@ -103,14 +103,18 @@ pub struct IDBObjectStore {
     db_name: DOMString,
 }
 
+pub(crate) struct IDBObjectStoreAbortState {
+    pub(crate) newly_created_during_transaction: bool,
+    pub(crate) rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
+    pub(crate) key_generator_current_number: Option<i32>,
+}
+
 impl IDBObjectStore {
     pub fn new_inherited(
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        newly_created_during_transaction: bool,
-        rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
-        key_generator_current_number: Option<i32>,
+        abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -123,6 +127,11 @@ impl IDBObjectStore {
             None => None,
         };
         let has_key_generator = options.is_some_and(|options| options.autoIncrement);
+        let IDBObjectStoreAbortState {
+            newly_created_during_transaction,
+            rollback_indexes_on_abort,
+            key_generator_current_number,
+        } = abort_state;
         let key_generator_current_number = if has_key_generator {
             Some(key_generator_current_number.unwrap_or(1))
         } else {
@@ -149,9 +158,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
-        newly_created_during_transaction: bool,
-        rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
-        key_generator_current_number: Option<i32>,
+        abort_state: IDBObjectStoreAbortState,
         can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
@@ -160,9 +167,7 @@ impl IDBObjectStore {
                 db_name,
                 name,
                 options,
-                newly_created_during_transaction,
-                rollback_indexes_on_abort,
-                key_generator_current_number,
+                abort_state,
                 transaction,
             )),
             global,
@@ -186,16 +191,16 @@ impl IDBObjectStore {
 
         // Step 5.2. Set handle’s index set to the set of indexes that reference
         // its object store.
-        let rollback_indexes = self.rollback_indexes_on_abort.borrow().clone();
+        let rollback_indexes = self.rollback_indexes_on_abort.borrow();
         self.index_set.borrow_mut().clear();
-        for index in rollback_indexes {
+        for index in rollback_indexes.iter() {
             self.add_index(
-                index.name.into(),
+                index.name.clone().into(),
                 &IDBIndexParameters {
                     multiEntry: index.multi_entry,
                     unique: index.unique,
                 },
-                index.key_path.into(),
+                index.key_path.clone().into(),
                 can_gc,
             );
         }

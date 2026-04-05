@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
+use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
 use crate::indexeddb::is_valid_key_path;
@@ -305,9 +305,11 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             self.name.clone(),
             name.clone(),
             Some(options),
-            true,
-            vec![],
-            if auto_increment { Some(1) } else { None },
+            IDBObjectStoreAbortState {
+                newly_created_during_transaction: true,
+                rollback_indexes_on_abort: vec![],
+                key_generator_current_number: if auto_increment { Some(1) } else { None },
+            },
             CanGc::from_cx(cx),
             &transaction,
         );

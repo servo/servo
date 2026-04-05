@@ -35,7 +35,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
-use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
+use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::script_runtime::CanGc;
 
@@ -740,14 +740,20 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             self.db.get_name(),
             name.clone(),
             parameters.as_ref().map(|(params, _, _)| params),
-            false,
-            parameters
-                .as_ref()
-                .map(|(_, indexes, _)| indexes.clone())
-                .unwrap_or_default(),
-            parameters
-                .as_ref()
-                .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
+            IDBObjectStoreAbortState {
+                newly_created_during_transaction: false,
+                rollback_indexes_on_abort: if self.mode == IDBTransactionMode::Versionchange {
+                    parameters
+                        .as_ref()
+                        .map(|(_, indexes, _)| indexes.clone())
+                        .unwrap_or_default()
+                } else {
+                    Vec::new()
+                },
+                key_generator_current_number: parameters
+                    .as_ref()
+                    .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
+            },
             can_gc,
             self,
         );
