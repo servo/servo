@@ -633,6 +633,21 @@ impl KvsEngine for SqliteEngine {
             .and_then(|current_number| (current_number != 0).then_some(current_number))
     }
 
+    fn set_key_generator_current_number(
+        &self,
+        store_name: &str,
+        current_number: i32,
+    ) -> Result<(), Self::Error> {
+        let rows_affected = self.connection.execute(
+            "UPDATE object_store SET auto_increment = ? WHERE name = ?",
+            params![current_number, store_name.to_string()],
+        )?;
+        if rows_affected == 0 {
+            return Err(Error::QueryReturnedNoRows);
+        }
+        Ok(())
+    }
+
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")

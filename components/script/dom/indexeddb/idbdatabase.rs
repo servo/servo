@@ -97,22 +97,29 @@ impl IDBDatabase {
     }
 
     pub(crate) fn object_store_names_snapshot(&self) -> Vec<DOMString> {
-        // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
         // or the empty set if database was newly created.
         self.object_store_names.borrow().clone()
     }
 
     pub(crate) fn set_object_store_names_from_backend(&self, names: Vec<String>) {
-        // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
         *self.object_store_names.borrow_mut() = names.into_iter().map(Into::into).collect();
     }
 
     pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {
-        // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
         *self.object_store_names.borrow_mut() = names;
+    }
+
+    pub(crate) fn rename_object_store_name(&self, old_name: &DOMString, new_name: DOMString) {
+        let mut object_store_names = self.object_store_names.borrow_mut();
+        if let Some(position) = object_store_names.iter().position(|name| name == old_name) {
+            object_store_names[position] = new_name;
+        }
     }
 
     pub(crate) fn object_store_exists(&self, name: &DOMString) -> bool {
@@ -298,6 +305,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             self.name.clone(),
             name.clone(),
             Some(options),
+            true,
+            vec![],
             if auto_increment { Some(1) } else { None },
             CanGc::from_cx(cx),
             &transaction,
@@ -334,6 +343,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         };
 
         self.object_store_names.borrow_mut().push(name);
+        transaction.register_object_store_handle(&object_store.get_name(), &object_store);
 
         // Step 10. Return a new object store handle associated with store and transaction.
         Ok(object_store)

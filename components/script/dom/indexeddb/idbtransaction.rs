@@ -59,7 +59,7 @@ pub struct IDBTransaction {
     committing: Cell<bool>,
     commit_started: Cell<bool>,
     version_change_old_version: Cell<Option<u64>>,
-    // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
     version_change_old_object_store_names: DomRefCell<Option<Vec<DOMString>>>,
     // https://w3c.github.io/IndexedDB/#transaction-concept
@@ -251,6 +251,33 @@ impl IDBTransaction {
         self.version_change_old_version.set(Some(version));
     }
 
+    pub(crate) fn register_object_store_handle(&self, name: &DOMString, store: &IDBObjectStore) {
+        self.store_handles
+            .borrow_mut()
+            .insert(name.to_string(), Dom::from_ref(store));
+    }
+
+    pub(crate) fn rename_object_store_handle_cache(
+        &self,
+        old_name: &DOMString,
+        new_name: &DOMString,
+        store: &IDBObjectStore,
+    ) {
+        let mut store_handles = self.store_handles.borrow_mut();
+        store_handles.remove(&old_name.to_string());
+        store_handles.insert(new_name.to_string(), Dom::from_ref(store));
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
+    fn restore_associated_object_store_handles_after_abort(&self, can_gc: CanGc) {
+        // Step 5. For each object store handle handle associated with transaction,
+        // including those for object stores that were created or deleted during
+        // transaction:
+        for store in self.store_handles.borrow().values() {
+            store.restore_metadata_after_abort(can_gc);
+        }
+    }
+
     fn attempt_commit(&self) -> bool {
         if self.commit_started.get() {
             return true;
@@ -433,7 +460,7 @@ impl IDBTransaction {
             return;
         }
         if self.mode == IDBTransactionMode::Versionchange {
-            // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+            // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
             // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
             // or the empty set if database was newly created.
             if let Some(names) = self
@@ -444,6 +471,7 @@ impl IDBTransaction {
             {
                 self.db.restore_object_store_names(names);
             }
+            self.restore_associated_object_store_handles_after_abort(can_gc);
         }
         self.abort_initiated.set(true);
         // https://w3c.github.io/IndexedDB/#transaction-concept
@@ -706,6 +734,11 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             self.db.get_name(),
             name.clone(),
             parameters.as_ref().map(|(params, _, _)| params),
+            false,
+            parameters
+                .as_ref()
+                .map(|(_, indexes, _)| indexes.clone())
+                .unwrap_or_default(),
             parameters
                 .as_ref()
                 .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
@@ -725,9 +758,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
                 );
             }
         }
-        self.store_handles
-            .borrow_mut()
-            .insert(name.to_string(), Dom::from_ref(&*store));
+        self.register_object_store_handle(&name, &store);
         Ok(store)
     }
 

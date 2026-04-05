@@ -90,6 +90,10 @@ pub struct IDBObjectStore {
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
     index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
+    newly_created_during_transaction: bool,
+    rollback_name_on_abort: DomRefCell<Option<DOMString>>,
+    #[no_trace]
+    rollback_indexes_on_abort: DomRefCell<Vec<indexeddb::IndexedDBIndex>>,
     transaction: Dom<IDBTransaction>,
     has_key_generator: bool,
     key_generator_current_number: Cell<Option<i32>>,
@@ -104,6 +108,8 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        newly_created_during_transaction: bool,
+        rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
         key_generator_current_number: Option<i32>,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
@@ -128,6 +134,9 @@ impl IDBObjectStore {
             name: DomRefCell::new(name),
             key_path,
             index_set: DomRefCell::new(HashMap::new()),
+            newly_created_during_transaction,
+            rollback_name_on_abort: DomRefCell::new(None),
+            rollback_indexes_on_abort: DomRefCell::new(rollback_indexes_on_abort),
             transaction: Dom::from_ref(transaction),
             has_key_generator,
             key_generator_current_number: Cell::new(key_generator_current_number),
@@ -140,6 +149,8 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        newly_created_during_transaction: bool,
+        rollback_indexes_on_abort: Vec<indexeddb::IndexedDBIndex>,
         key_generator_current_number: Option<i32>,
         can_gc: CanGc,
         transaction: &IDBTransaction,
@@ -149,6 +160,8 @@ impl IDBObjectStore {
                 db_name,
                 name,
                 options,
+                newly_created_during_transaction,
+                rollback_indexes_on_abort,
                 key_generator_current_number,
                 transaction,
             )),
@@ -159,6 +172,33 @@ impl IDBObjectStore {
 
     pub fn get_name(&self) -> DOMString {
         self.name.borrow().clone()
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction>
+    pub(crate) fn restore_metadata_after_abort(&self, can_gc: CanGc) {
+        // Step 5.1. If handle’s object store was not newly created during transaction,
+        // set handle’s name to its object store’s name.
+        if !self.newly_created_during_transaction {
+            if let Some(name) = self.rollback_name_on_abort.borrow_mut().take() {
+                *self.name.borrow_mut() = name;
+            }
+        }
+
+        // Step 5.2. Set handle’s index set to the set of indexes that reference
+        // its object store.
+        let rollback_indexes = self.rollback_indexes_on_abort.borrow().clone();
+        self.index_set.borrow_mut().clear();
+        for index in rollback_indexes {
+            self.add_index(
+                index.name.into(),
+                &IDBIndexParameters {
+                    multiEntry: index.multi_entry,
+                    unique: index.unique,
+                },
+                index.key_path.into(),
+                can_gc,
+            );
+        }
     }
 
     pub(crate) fn transaction(&self) -> DomRoot<IDBTransaction> {
@@ -839,9 +879,19 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             return Err(Error::Constraint(None));
         }
 
+        let old_name = self.name.borrow().clone();
+        if !self.newly_created_during_transaction && self.rollback_name_on_abort.borrow().is_none()
+        {
+            *self.rollback_name_on_abort.borrow_mut() = Some(old_name.clone());
+        }
+
         // Step 9. Set store’s name to name.
+        transaction
+            .Db()
+            .rename_object_store_name(&old_name, name.clone());
         // Step 10. Set this’s name to name.
-        *self.name.borrow_mut() = name;
+        *self.name.borrow_mut() = name.clone();
+        transaction.rename_object_store_handle_cache(&old_name, &name, self);
         Ok(())
     }
 
