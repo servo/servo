@@ -180,6 +180,7 @@ fn html_constructor(
                 ))
             } else {
                 create_native_html_element(
+                    cx,
                     name,
                     None,
                     &document,
