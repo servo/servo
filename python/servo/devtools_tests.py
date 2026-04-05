@@ -978,6 +978,17 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         result = self.evaluate_and_capture_console_log_output("log_booleans();")
         self.assertEquals(result["arguments"], [True, False, True, False])
 
+    def test_console_log_sprintf_substitutions(self):
+        script_tag = (
+            "<script>let log_sprintf = () => "
+            "console.log('String %s Int %d Int %i Float %f', 'string', 32, 46, Math.PI);"
+            "</script>"
+        )
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_sprintf();")
+        self.assertEquals(result["arguments"], ["String string Int 32 Int 46 Float 3.141592653589793"])
+
     def test_inspector_event_listeners(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/inspector/event_listeners.html")
         with Devtools.connect() as devtools:
