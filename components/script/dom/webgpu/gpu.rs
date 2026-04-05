@@ -104,9 +104,9 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
 impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: WebGPUAdapterResponse,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
             Some(Ok(adapter)) => {
@@ -122,17 +122,17 @@ impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
                     adapter.limits,
                     adapter.adapter_info,
                     adapter.adapter_id,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
-                promise.resolve_native(&adapter, can_gc);
+                promise.resolve_native(&adapter, CanGc::from_cx(cx));
             },
             Some(Err(e)) => {
                 warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native(&None::<GPUAdapter>, can_gc);
+                promise.resolve_native(&None::<GPUAdapter>, CanGc::from_cx(cx));
             },
             None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native(&None::<GPUAdapter>, can_gc);
+                promise.resolve_native(&None::<GPUAdapter>, CanGc::from_cx(cx));
             },
         }
     }

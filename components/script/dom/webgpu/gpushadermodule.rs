@@ -159,11 +159,11 @@ impl GPUShaderModuleMethods<crate::DomTypeHolder> for GPUShaderModule {
 impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: Option<ShaderCompilationInfo>,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
-        let info = GPUCompilationInfo::from(&self.global(), response, can_gc);
-        promise.resolve_native(&info, can_gc);
+        let info = GPUCompilationInfo::from(&self.global(), response, CanGc::from_cx(cx));
+        promise.resolve_native(&info, CanGc::from_cx(cx));
     }
 }
