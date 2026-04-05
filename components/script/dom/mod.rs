@@ -240,8 +240,6 @@ pub(crate) mod cookiestore;
 mod create;
 pub(crate) mod credentialmanagement;
 pub(crate) use self::credentialmanagement::*;
-pub(crate) mod crypto;
-pub(crate) mod cryptokey;
 pub(crate) mod css;
 pub(crate) use self::css::*;
 pub(crate) mod customelementregistry;
@@ -354,7 +352,6 @@ pub(crate) mod staticrange;
 pub(crate) mod storage;
 pub(crate) mod stream;
 pub(crate) use self::stream::*;
-pub(crate) mod subtlecrypto;
 pub(crate) mod svg;
 pub(crate) use self::svg::*;
 #[cfg(feature = "testbinding")]
@@ -393,6 +390,8 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
+pub(crate) mod webcrypto;
+pub(crate) use self::webcrypto::*;
 pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
