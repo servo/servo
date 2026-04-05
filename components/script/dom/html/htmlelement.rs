@@ -108,17 +108,17 @@ impl HTMLElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -618,11 +618,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
         if fragment.upcast::<Node>().children_count() == 0 {
-            let text_node = Text::new(
-                DOMString::from("".to_owned()),
-                &document,
-                CanGc::from_cx(cx),
-            );
+            let text_node = Text::new(cx, DOMString::from("".to_owned()), &document);
 
             fragment
                 .upcast::<Node>()
@@ -820,7 +816,7 @@ fn append_text_node_to_fragment(
     fragment: &DocumentFragment,
     text: String,
 ) {
-    let text = Text::new(DOMString::from(text), document, CanGc::from_cx(cx));
+    let text = Text::new(cx, DOMString::from(text), document);
     fragment
         .upcast::<Node>()
         .AppendChild(cx, text.upcast())
@@ -1058,7 +1054,7 @@ impl HTMLElement {
     ) -> DomRoot<DocumentFragment> {
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = self.owner_document();
-        let fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));
+        let fragment = DocumentFragment::new(cx, &document);
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
         // of input.

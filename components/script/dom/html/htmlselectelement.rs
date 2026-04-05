@@ -159,19 +159,19 @@ impl HTMLSelectElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLSelectElement> {
         let n = Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLSelectElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -319,7 +319,7 @@ impl HTMLSelectElement {
             .AppendChild(cx, text_container.upcast::<Node>())
             .unwrap();
 
-        let text = Text::new(DOMString::new(), &document, CanGc::from_cx(cx));
+        let text = Text::new(cx, DOMString::new(), &document);
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             selected_option: text.as_traced(),
         });

@@ -460,23 +460,26 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-gethtml>
-    fn GetHTML(&self, options: &GetHTMLOptions, can_gc: CanGc) -> DOMString {
+    fn GetHTML(&self, cx: &mut js::context::JSContext, options: &GetHTMLOptions) -> DOMString {
         // > ShadowRoot's getHTML(options) method steps are to return the result of HTML fragment serialization
         // >  algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
+            cx,
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
             options.shadowRoots.clone(),
-            can_gc,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetInnerHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // ShadowRoot's innerHTML getter steps are to return the result of running fragment serializing
         // algorithm steps with this and true.
         self.upcast::<Node>()
-            .fragment_serialization_algorithm(true, can_gc)
+            .fragment_serialization_algorithm(cx, true)
             .map(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString)
     }
 

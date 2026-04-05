@@ -54,17 +54,17 @@ impl SVGElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGElement::new_inherited(tag_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 

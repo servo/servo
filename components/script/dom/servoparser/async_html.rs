@@ -476,10 +476,7 @@ impl Tokenizer {
                 let template = target
                     .downcast::<HTMLTemplateElement>()
                     .expect("Tried to extract contents from non-template element while parsing");
-                self.insert_node(
-                    contents,
-                    Dom::from_ref(template.Content(CanGc::from_cx(cx)).upcast()),
-                );
+                self.insert_node(contents, Dom::from_ref(template.Content(cx).upcast()));
             },
             ParseOperation::CreateElement {
                 node,
@@ -506,8 +503,7 @@ impl Tokenizer {
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },
             ParseOperation::CreateComment { text, node } => {
-                let comment =
-                    Comment::new(DOMString::from(text), document, None, CanGc::from_cx(cx));
+                let comment = Comment::new(cx, DOMString::from(text), document, None);
                 self.insert_node(node, Dom::from_ref(comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {
@@ -533,11 +529,11 @@ impl Tokenizer {
                 system_id,
             } => {
                 let doctype = DocumentType::new(
+                    cx,
                     DOMString::from(name),
                     Some(DOMString::from(public_id)),
                     Some(DOMString::from(system_id)),
                     document,
-                    CanGc::from_cx(cx),
                 );
 
                 document
@@ -612,10 +608,10 @@ impl Tokenizer {
             },
             ParseOperation::CreatePI { node, target, data } => {
                 let pi = ProcessingInstruction::new(
+                    cx,
                     DOMString::from(target),
                     DOMString::from(data),
                     document,
-                    CanGc::from_cx(cx),
                 );
                 self.insert_node(node, Dom::from_ref(pi.upcast()));
             },

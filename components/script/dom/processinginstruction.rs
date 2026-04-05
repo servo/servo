@@ -10,7 +10,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 /// An HTML processing instruction node.
 #[dom_struct]
@@ -32,15 +31,15 @@ impl ProcessingInstruction {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         target: DOMString,
         data: DOMString,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<ProcessingInstruction> {
         Node::reflect_node(
+            cx,
             Box::new(ProcessingInstruction::new_inherited(target, data, document)),
             document,
-            can_gc,
         )
     }
 }

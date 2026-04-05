@@ -60,10 +60,10 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype>
     fn CreateDocumentType(
         &self,
+        cx: &mut js::context::JSContext,
         qualified_name: DOMString,
         pubid: DOMString,
         sysid: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentType>> {
         // Step 1. If name is not a valid doctype name, then throw an
         //      "InvalidCharacterError" DOMException.
@@ -73,11 +73,11 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         }
 
         Ok(DocumentType::new(
+            cx,
             qualified_name,
             Some(pubid),
             Some(sysid),
             &self.document,
-            can_gc,
         ))
     }
 
@@ -198,13 +198,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         {
             // Step 3. Append a new doctype, with "html" as its name and with its node document set to doc, to doc.
             let doc_node = doc.upcast::<Node>();
-            let doc_type = DocumentType::new(
-                DOMString::from("html"),
-                None,
-                None,
-                &doc,
-                CanGc::from_cx(cx),
-            );
+            let doc_type = DocumentType::new(cx, DOMString::from("html"), None, None, &doc);
             doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
         }
 
@@ -256,7 +250,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
                     // Step 6.2. Append a new Text node, with its data set to title (which could be the empty string)
                     // and its node document set to doc, to the title element created earlier.
-                    let title_text = Text::new(title_str, &doc, CanGc::from_cx(cx));
+                    let title_text = Text::new(cx, title_str, &doc);
                     doc_title.AppendChild(cx, title_text.upcast()).unwrap();
                 }
             }

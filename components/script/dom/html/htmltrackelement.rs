@@ -51,11 +51,11 @@ impl HTMLTrackElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLTrackElement> {
         let track = TextTrack::new(
             document.window(),
@@ -65,15 +65,15 @@ impl HTMLTrackElement {
             Default::default(),
             Default::default(),
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLTrackElement::new_inherited(
                 local_name, prefix, document, &track,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 }

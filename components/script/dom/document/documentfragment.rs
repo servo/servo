@@ -47,20 +47,23 @@ impl DocumentFragment {
         }
     }
 
-    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
-        Self::new_with_proto(document, None, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        document: &Document,
+    ) -> DomRoot<DocumentFragment> {
+        Self::new_with_proto(cx, document, None)
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<DocumentFragment> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(DocumentFragment::new_inherited(document, None)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -101,13 +104,13 @@ impl<'dom> LayoutDocumentFragmentHelpers<'dom> for LayoutDom<'dom, DocumentFragm
 impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     /// <https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         let document = window.Document();
 
-        Ok(DocumentFragment::new_with_proto(&document, proto, can_gc))
+        Ok(DocumentFragment::new_with_proto(cx, &document, proto))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
