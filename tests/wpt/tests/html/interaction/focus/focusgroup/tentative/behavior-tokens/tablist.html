@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - tablist behavior token defaults</title>
+<meta name="assert" content="tablist implies inline axis, wrap. Explicit block overrides axis; nowrap suppresses wrapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="tablist">
+  <button id=tl1>tl1</button>
+  <button id=tl2>tl2</button>
+  <button id=tl3>tl3</button>
+</div>
+
+<!-- tablist block: explicit block overrides default inline -->
+<div focusgroup="tablist block">
+  <button id=tlb1>tlb1</button>
+  <button id=tlb2>tlb2</button>
+  <button id=tlb3>tlb3</button>
+</div>
+
+<!-- tablist nowrap: suppresses default wrap -->
+<div focusgroup="tablist nowrap">
+  <button id=tlnw1>tlnw1</button>
+  <button id=tlnw2>tlnw2</button>
+  <button id=tlnw3>tlnw3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tl2');
+  }, "tablist: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tl1');
+  }, "tablist: ArrowLeft navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tl1');
+  }, "tablist: ArrowDown blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'tl1');
+  }, "tablist: ArrowUp blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tl1');
+  }, "tablist: ArrowRight wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tl3');
+  }, "tablist: ArrowLeft wraps at start");
+
+  // --- tablist block: explicit block overrides default inline ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tlb2');
+  }, "tablist block: ArrowDown navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb2'), kArrowUp);
+    assert_equals(document.activeElement.id, 'tlb1');
+  }, "tablist block: ArrowUp navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tlb1');
+  }, "tablist block: ArrowRight blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tlb1');
+  }, "tablist block: ArrowLeft blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tlb1');
+  }, "tablist block: ArrowDown wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'tlb3');
+  }, "tablist block: ArrowUp wraps at start");
+
+  // --- tablist nowrap: suppresses default wrap ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlnw1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tlnw2');
+  }, "tablist nowrap: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlnw2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tlnw1');
+  }, "tablist nowrap: ArrowLeft navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlnw3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tlnw3');
+  }, "tablist nowrap: ArrowRight does not wrap at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlnw1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tlnw1');
+  }, "tablist nowrap: ArrowLeft does not wrap at start");
+
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - https://creativecommons.org/publicdomain/zero/1.0/ -->
+<title>CSS Container Queries With Multiple Conditions - Reference</title>
+<link rel="author" title="Emily McDonough" href="mailto:emcdonough@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<style>
+.container{
+    container-type: inline-size;
+}
+.container > div{
+    border: thick double black;
+    width: 100%;
+    height: 20px;
+    margin: 1px;
+}
+</style>
+<div class="container" style="width: 50px"><div style="background-color: cyan">A</div></div>
+<div class="container" style="width: 100px"><div style="background-color: pink">B</div></div>
+<div class="container" style="width: 175px"><div style="background-color: cyan">C</div></div>
+<div class="container" style="width: 200px"><div style="background-color: pink">D</div></div>

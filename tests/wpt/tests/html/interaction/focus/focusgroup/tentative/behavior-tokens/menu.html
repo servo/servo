@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - menu behavior token defaults</title>
+<meta name="assert" content="menu implies block axis, wrap. Explicit inline overrides axis; nowrap suppresses wrapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="menu">
+  <button id=m1>m1</button>
+  <button id=m2>m2</button>
+  <button id=m3>m3</button>
+</div>
+
+<!-- menu inline: explicit inline overrides default block -->
+<div focusgroup="menu inline">
+  <button id=mi1>mi1</button>
+  <button id=mi2>mi2</button>
+  <button id=mi3>mi3</button>
+</div>
+
+<!-- menu nowrap: suppresses default block-axis wrap -->
+<div focusgroup="menu nowrap">
+  <button id=mnw1>mnw1</button>
+  <button id=mnw2>mnw2</button>
+  <button id=mnw3>mnw3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'm2');
+  }, "menu: ArrowDown navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m2'), kArrowUp);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: ArrowUp navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: ArrowRight blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: ArrowLeft blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: ArrowDown wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'm3');
+  }, "menu: ArrowUp wraps at start");
+
+  // --- menu inline: explicit inline overrides default block ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mi2');
+  }, "menu inline: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: ArrowLeft navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: ArrowDown blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: ArrowUp blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: ArrowRight wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'mi3');
+  }, "menu inline: ArrowLeft wraps at start");
+
+  // --- menu nowrap: suppresses default block-axis wrap ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mnw1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'mnw2');
+  }, "menu nowrap: ArrowDown navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mnw3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'mnw3');
+  }, "menu nowrap: ArrowDown does not wrap at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mnw1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'mnw1');
+  }, "menu nowrap: ArrowUp does not wrap at start");
+
+</script>

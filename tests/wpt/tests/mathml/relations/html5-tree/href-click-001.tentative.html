@@ -10,8 +10,14 @@
 <script type="text/javascript">
   function test()
   {
+    // Click the <a href=> tag, it should scroll to the green target.
     var event = new MouseEvent('click', {bubbles: true, cancelable: true});
     document.getElementById('link').dispatchEvent(event);
+
+    // Click the <mrow href=> tag, it should not scroll to the target.
+    var event2 = new MouseEvent('click', {bubbles: true, cancelable: true});
+    document.getElementById('notALink').dispatchEvent(event2);
+
     document.documentElement.className = "";
   }
 </script>
@@ -22,13 +28,18 @@
 
   <div style="width: 150px; height: 150px; overflow: hidden">
     <math>
-      <mrow id="link" href="#target">
+      <a id="link" href="#target">
         <mspace id="space" width="150px" height="150px" style="background: red"/>
-      </mrow>
+      </a>
+      <mrow id="notALink" href="#badTarget"></mrow>
     </math>
     <div style="height: 500px;"></div>
     <math id="target">
       <mspace width="150px" height="154px" style="background: green"/>
+    </math>
+    <div style="height: 500px;"></div>
+    <math id="badTarget">
+      <mspace width="150px" height="154px" style="background: red"/>
     </math>
   </div>
 

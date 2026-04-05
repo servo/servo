@@ -7,7 +7,6 @@
 <script>
 
 const connectToSharedWorker = async (options) => {
-  await window.pageShowPromise;
   window.worker = new SharedWorker(
     '/workers/tentative/resources/shared-worker-memory.js', options);
   worker.port.start();

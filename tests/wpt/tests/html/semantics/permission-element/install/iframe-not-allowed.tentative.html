@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Install element: not allowed in iframes</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async_test((t) => {
+    const iframe = document.createElement("iframe");
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <install id="install-element"></install>
+    `;
+    iframe.onload = t.step_func_done(() => {
+      const install = iframe.contentDocument.getElementById("install-element");
+      assert_false(install.isValid,
+        "Install element should not be valid inside an iframe");
+      assert_equals(install.invalidReason, "illegal_subframe",
+        "invalidReason should be 'illegal_subframe'");
+    });
+    document.body.appendChild(iframe);
+  }, "Install element is not allowed in a same-origin iframe");
+
+  async_test((t) => {
+    const iframe = document.createElement("iframe");
+    iframe.allow = "web-app-installation *";
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <install id="install-element"></install>
+    `;
+    iframe.onload = t.step_func_done(() => {
+      const install = iframe.contentDocument.getElementById("install-element");
+      assert_false(install.isValid,
+        "Install element should not be valid inside an iframe even with permissions policy");
+      assert_equals(install.invalidReason, "illegal_subframe",
+        "invalidReason should be 'illegal_subframe'");
+    });
+    document.body.appendChild(iframe);
+  }, "Install element is not allowed in an iframe even with permissions policy");
+</script>
+</body>

@@ -191,17 +191,21 @@ def test_with_none_values(session, rect):
     assert_success(response, original)
 
 
-@pytest.mark.parametrize("rect", [
-    {"width": 200},
-    {"height": 200},
-    {"x": 200},
-    {"y": 200},
-    {"width": 200, "x": 200},
-    {"height": 200, "x": 200},
-    {"width": 200, "y": 200},
-    {"height": 200, "y": 200},
-])
-def test_partial_input(session, is_wayland_headful, rect):
+@pytest.mark.parametrize(
+    "rect",
+    [
+        {"width": 650},
+        {"height": 550},
+        {"x": 250},
+        {"y": 150},
+        {"width": 650, "x": 250},
+        {"height": 550, "x": 250},
+        {"width": 650, "y": 150},
+        {"height": 550, "y": 150},
+    ],
+    ids=["width", "height", "x", "y", "width_x", "height_x", "width_y", "height_y"],
+)
+def test_partial_input(session, rect, is_wayland_headful):
     original = session.window.rect
     response = set_window_rect(session, rect)
     value = assert_success(response, session.window.rect)

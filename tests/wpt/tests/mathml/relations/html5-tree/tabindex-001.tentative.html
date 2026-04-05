@@ -16,11 +16,6 @@
   <math>
   </math>
   <script>
-    const htmlLinkableElements =
-      new Set([
-        'mi', 'mo', 'mn', 'ms', 'mtext', 'mrow'
-      ]);
-
     Object.keys(MathMLFragments).forEach(elName => {
         const mathEl = document.querySelector('math');
 
@@ -32,7 +27,7 @@
         const el = mathEl.querySelector('#el');
         const elLink = mathEl.querySelector('#el-link');
 
-        const expectedDefault = (htmlLinkableElements.has(elName)) ? 0 : -1;
+        const expectedDefault = elName == 'a' ? 0 : -1;
 
         test(() => {
             assert_equals(el.tabIndex, expectedDefault, "no attribute");

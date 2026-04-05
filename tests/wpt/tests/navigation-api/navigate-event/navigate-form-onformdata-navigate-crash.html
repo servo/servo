@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/496425575">
+
+<form onformdata="navigation.navigate('.')" method="POST"></form>
+
+<script>
+window.onload = () => {
+  document.querySelector('form').requestSubmit();
+};
+</script>

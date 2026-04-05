@@ -35,7 +35,7 @@
       "Focus is allowed with user activation");
 
     focusable_span.focus();
-    actions = new test_driver.Actions()
+    const actions = new test_driver.Actions()
        .pointerMove(1, 1, {origin: valid_usermedia_element})
        .pointerDown()
        .addTick();

@@ -13,6 +13,7 @@ const hrefs = {
     ttf: '/fonts/Ahem.ttf',
     script: 'resources/dummy.js',
     css: 'resources/dummy.css',
+    text: '/common/text-plain.txt',
     track: '/media/foo.vtt',
     json: '/common/dummy.json',
 }
@@ -74,5 +75,12 @@ test_type_with_destination('text/json', 'json', 'json', 'timeout');
 test_type_with_destination('application/geo+json', 'json', 'json', 'timeout');
 test_type_with_destination('text/plain', 'json', 'json', 'timeout');
 test_type_with_destination('application/javascript', 'json', 'json', 'timeout');
+
+test_type_with_destination('', 'text', 'text', 'timeout');
+test_type_with_destination('text/plain', 'text', 'text', 'timeout');
+test_type_with_destination('application/json', 'text', 'text', 'timeout');
+test_type_with_destination('application/javascript', 'text', 'text', 'timeout');
+test_type_with_destination('image/png', 'text', 'text', 'timeout');
+test_type_with_destination('not-a-mime-type', 'text', 'text', 'timeout');
 
 </script>

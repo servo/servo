@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLUserMediaElement Test: error attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+setup(() => {
+  // This test requires the UserMediaElement feature to be enabled.
+  if (!window.HTMLUserMediaElement) {
+    assert_unreached("HTMLUserMediaElement is not supported.");
+  }
+});
+
+test(() => {
+  const usermedia = document.createElement('usermedia');
+  assert_true('error' in usermedia, "usermedia element has 'error' attribute");
+  assert_equals(usermedia.error, null, "usermedia.error is null by default");
+}, "HTMLUserMediaElement 'error' attribute presence and default value.");
+
+// TODO(crbug.com/494488702): Verify OverconstraintError is assigned to error attr
+</script>
+</body>

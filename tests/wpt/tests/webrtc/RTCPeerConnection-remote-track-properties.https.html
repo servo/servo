@@ -58,6 +58,9 @@ promise_test(async t => {
   testStreamId(localStream, remoteStream, "audio");
 }, 'Remote audio track and stream');
 
+}
+if (interop2026) {
+
 promise_test(async t => {
   const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "audio");
   const remoteTrackIds = new Set();
@@ -80,6 +83,6 @@ promise_test(async t => {
   assert_greater_than(remoteTrackIds.size, 1, "Remote tracks should have their own id");
 }, 'Remote video track ID is different on different PCs');
 
-} // rest
+} // interop2026
 
 </script>

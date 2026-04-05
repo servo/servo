@@ -11,6 +11,8 @@ const kArrowLeft = '\uE012';
 const kArrowUp = '\uE013';
 const kArrowRight = '\uE014';
 const kArrowDown = '\uE015';
+const kHome = '\uE011';
+const kEnd = '\uE010';
 const kTab = '\uE004';
 const kShift = '\uE008';
 

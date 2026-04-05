@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<style>
+  .containing-block {
+    border: 1px solid black;
+
+    width: 500px;
+    height: 200px;
+
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .box {
+    width: 50px;
+    height: 50px;
+  }
+
+  #box1 { background-color: #cce7cc; }
+  #box2 { background-color: #99cf99; }
+  #box3 { background-color: #66b866; }
+  #box4 { background-color: #33a033; }
+  #box5 { background-color: #008000; }
+</style>
+
+<p>You should see a row of five boxes in increasing gradient.</p>
+
+<div class="containing-block">
+  <div class="box" id="box1"></div>
+  <div class="box" id="box2"></div>
+  <div class="box" id="box3"></div>
+  <div class="box" id="box4"></div>
+  <div class="box" id="box5"></div>
+</div>

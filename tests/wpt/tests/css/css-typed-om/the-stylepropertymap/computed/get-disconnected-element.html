@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Computed StylePropertyMap.get on disconnected element</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-getall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+'use strict';
+
+test(() => {
+  const el = document.createElement("div");
+  assert_equals(el.computedStyleMap().get("width"), undefined);
+}, "get() returns undefined on disconnected element");
+
+</script>

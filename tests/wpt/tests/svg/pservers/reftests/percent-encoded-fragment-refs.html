@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Percent-encoded fragment identifiers in SVG clip-path, filter, and mask references</title>
+<link rel="help" href="https://url.spec.whatwg.org/#fragment-percent-encode-set">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=306387">
+<meta name="assert" content="Percent-encoded characters in SVG URL fragment references should be decoded before element ID lookup. For clip-path, filter, and mask, the computed style falls back to 'none' when the reference fails, providing a reliable signal.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="200" height="60">
+  <defs>
+    <clipPath id="my clip">
+      <rect width="200" height="200"/>
+    </clipPath>
+    <filter id="f1">
+      <feFlood flood-color="green" result="green"/>
+      <feMerge><feMergeNode in="green"/></feMerge>
+    </filter>
+    <mask id="m1">
+      <rect width="200" height="200" fill="white"/>
+    </mask>
+  </defs>
+
+  <!-- clip-path: %6d%79%20%63%6c%69%70 = "my clip" -->
+  <rect id="r1" x="0" y="0" width="40" height="40" fill="green"
+        clip-path="url(#%6d%79%20%63%6c%69%70)"/>
+
+  <!-- filter: %66%31 = "f1" -->
+  <rect id="r2" x="50" y="0" width="40" height="40" filter="url(#%66%31)"/>
+
+  <!-- mask: %6d%31 = "m1" -->
+  <rect id="r3" x="100" y="0" width="40" height="40" fill="green"
+        mask="url(#%6d%31)"/>
+</svg>
+
+<script>
+test(() => {
+  const style = getComputedStyle(document.getElementById('r1'));
+  assert_not_equals(style.clipPath, 'none',
+    'clip-path should resolve percent-encoded fragment');
+  assert_true(style.clipPath.includes('url('),
+    'clip-path computed value should contain the URL reference');
+}, 'clip-path: url(#%6d%79%20%63%6c%69%70) resolves to clipPath id="my clip"');
+
+test(() => {
+  const style = getComputedStyle(document.getElementById('r2'));
+  assert_not_equals(style.filter, 'none',
+    'filter should resolve percent-encoded fragment');
+  assert_true(style.filter.includes('url('),
+    'filter computed value should contain the URL reference');
+}, 'filter: url(#%66%31) resolves to filter id="f1"');
+
+test(() => {
+  const style = getComputedStyle(document.getElementById('r3'));
+  assert_not_equals(style.mask, 'none',
+    'mask should resolve percent-encoded fragment');
+  assert_true(style.mask.includes('url('),
+    'mask computed value should contain the URL reference');
+}, 'mask: url(#%6d%31) resolves to mask id="m1"');
+</script>

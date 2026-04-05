@@ -2190,7 +2190,9 @@ if (rest) {
     await pc2.setRemoteDescription(offer);
     assert_true(pc2.getReceivers()[0].track.muted, `track is muted after SRD`);
   }, `track with ${kind} is muted after SRD`);
-
+}
+// audio is part of interop2026, video is not
+if ((kind == 'audio')? interop2026 : rest) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -2215,7 +2217,8 @@ if (rest) {
     await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
     assert_false(pc2.getReceivers()[0].track.muted, `track is unmuted`);
   }, `track with ${kind} gets unmuted when packets flow.`);
-
+}
+if (rest) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -2282,8 +2285,8 @@ if (rest) {
   }, `track with ${kind} gets unmuted when setting the transceiver direction to 'sendrecv' after 'inactive'`);
 }
 
-  // audio is part of interop2026, video is not
-  if ((kind == 'audio')? interop2026 : rest) {
+// audio is part of interop2026, video is not
+if ((kind == 'audio')? interop2026 : rest) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -2319,7 +2322,7 @@ if (rest) {
     await waitUntilTrackEventWithTimeout(pc2.getReceivers()[0].track, 'unmute', t);
     assert_true(pc2.getReceivers()[0].track.muted, `track remains muted`);
   }, `track with ${kind} stays muted when setting the transceiver direction to 'sendrecv' after 'inactive' but no packets flow`);
-  }
+}
 });
 
 </script>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Install element: not allowed in sandboxed contexts</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!-- allow-same-origin is needed so the sandboxed iframe doesn't get an opaque origin. -->
+<script>
+  function testInstallInSandbox(allow, testLabel) {
+    const testId = testLabel.replace(/\s+/g, '-');
+    promise_test(async (t) => {
+      const iframe = document.createElement("iframe");
+      iframe.sandbox = "allow-scripts allow-same-origin";
+      if (allow) iframe.allow = allow;
+      iframe.srcdoc = `
+        <!DOCTYPE html>
+        <install id="install-element"></install>
+        <script>
+          const el = document.getElementById("install-element");
+          el.onvalidationstatuschange = () => {
+            if (el.invalidReason === "unsuccessful_registration" ||
+                el.invalidReason === "intersection_changed") {
+              return;
+            }
+            window.parent.postMessage({
+              test: "${testId}",
+              isValid: el.isValid,
+              invalidReason: el.invalidReason
+            }, "*");
+          };
+        <\/script>
+      `;
+      const result = await new Promise((resolve) => {
+        window.addEventListener("message", function handler(e) {
+          if (e.data.test === testId) {
+            window.removeEventListener("message", handler);
+            resolve(e.data);
+          }
+        });
+        document.body.appendChild(iframe);
+      });
+      assert_false(result.isValid,
+        "Install element should not be valid in a sandboxed iframe");
+      assert_equals(result.invalidReason, "illegal_sandbox",
+        "invalidReason should be 'illegal_sandbox'");
+    }, testLabel);
+  }
+
+  testInstallInSandbox(null,
+    "Install element is not allowed in a sandboxed iframe");
+  testInstallInSandbox("web-app-installation *",
+    "Install element is not allowed in a sandboxed iframe even with permissions policy");
+</script>
+</body>

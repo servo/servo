@@ -9,7 +9,6 @@
 let request_id = 0;
 
 const connectToSharedWorker = async () => {
-  await window.pageShowPromise;
   window.worker = new SharedWorker(
     '/workers/tentative/resources/shared-worker-memory.js',
     {extendedLifetime: true});

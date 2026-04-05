@@ -75,7 +75,10 @@ ScoreWatcher = function() {
 
 ScoreWatcher.prototype.checkExpectation = function(expectation) {
   if (expectation.score != undefined)
-    assert_equals(this.score, expectation.score);
+    // The layout-instability cases are subject to several layers
+    // of floating point rounding, resulting in failures between platforms,
+    // so default to approximate equality.
+    assert_approx_equals(this.score, expectation.score, 1e-3);
   if (expectation.sources)
     check_sources(expectation.sources, this.lastEntry.sources);
 };

@@ -22,7 +22,6 @@ const dataUrl = "data:application/javascript," + encodeURIComponent(`
 `);
 
 const createDataWorkerAndStore = async (uuid, dataUrl) => {
-  await window.pageShowPromise;
   window.worker = new SharedWorker(dataUrl, {extendedLifetime: true});
   worker.port.start();
   await new Promise(resolve => {

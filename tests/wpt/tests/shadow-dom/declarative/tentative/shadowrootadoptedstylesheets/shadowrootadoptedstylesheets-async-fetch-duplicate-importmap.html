@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets: duplicate bare specifiers via import map</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "my-styles": "data:text/css,span { color: green }"
+  }
+}
+</script>
+
+<body>
+<script>
+  test(function (t) {
+    const { shadowRoot, testElement } = createStylesheetHost(
+      "my-styles my-styles");
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Duplicate bare specifiers via import map should be deduplicated.");
+    assertSheetRule(shadowRoot, 0, "span { color: green; }", "Import-mapped");
+    assert_equals(
+      getComputedStyle(testElement).color,
+      "rgb(0, 128, 0)",
+      "Green styles from the import-mapped specifier should be applied.");
+  }, "Duplicate bare specifiers via import map are deduplicated and applied.");
+</script>
+</body>

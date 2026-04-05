@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets shared specifier across shadow roots</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Create two shadow roots that reference the same CSS module specifier.
+    // After the module is fetched, both should have the styles applied.
+    const cssUrl = "./support/styles.css?shared";
+    document.body.setHTMLUnsafe(
+      "<div id='host1'>" +
+        "<template shadowrootmode='open' " +
+          `shadowrootadoptedstylesheets='${cssUrl}'>` +
+          "<span id='test1'>Test 1</span>" +
+        "</template>" +
+      "</div>" +
+      "<div id='host2'>" +
+        "<template shadowrootmode='open' " +
+          `shadowrootadoptedstylesheets='${cssUrl}'>` +
+          "<span id='test2'>Test 2</span>" +
+        "</template>" +
+      "</div>"
+    );
+
+    const shadowRoot1 = document.getElementById("host1").shadowRoot;
+    const shadowRoot2 = document.getElementById("host2").shadowRoot;
+
+    assert_equals(shadowRoot1.adoptedStyleSheets.length, 1,
+      "First shadow root: expected 1 placeholder(s).");
+    assert_equals(shadowRoot1.adoptedStyleSheets[0].cssRules.length, 0,
+      "First shadow root: placeholder at index 0 should be empty.");
+    assert_equals(shadowRoot2.adoptedStyleSheets.length, 1,
+      "Second shadow root: expected 1 placeholder(s).");
+    assert_equals(shadowRoot2.adoptedStyleSheets[0].cssRules.length, 0,
+      "Second shadow root: placeholder at index 0 should be empty.");
+
+    await fetchAndWait(cssUrl);
+
+    assert_equals(getComputedStyle(shadowRoot1.getElementById("test1")).color,
+      "rgb(0, 0, 255)", "First shadow root's element should have blue styles.");
+    assert_equals(getComputedStyle(shadowRoot2.getElementById("test2")).color,
+      "rgb(0, 0, 255)", "Second shadow root's element should have blue styles.");
+    assertSheetRule(shadowRoot1, 0, "span { color: blue; }", "First root");
+    assertSheetRule(shadowRoot2, 0, "span { color: blue; }", "Second root");
+    assert_equals(shadowRoot1.adoptedStyleSheets[0],
+      shadowRoot2.adoptedStyleSheets[0],
+      "Both shadow roots should share the same CSSStyleSheet instance.");
+  }, "Shared CSS module specifier across shadow roots produces the same CSSStyleSheet.");
+</script>
+</body>

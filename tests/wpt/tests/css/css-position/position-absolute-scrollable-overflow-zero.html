@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta name="viewport" content="initial-scale=1.0, width=device-width">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2025540">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  overflow: hidden;
+  background: red;
+}
+
+.abspos {
+  position: absolute;
+  inset: 0;
+  height: 0;
+  margin: 0;
+}
+
+.abspos-child {
+  position: absolute;
+  width: 100px;
+  left: 100px;
+  transform: translateX(-100px);
+  top: 1px;
+}
+
+.good {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id=s class=container>
+  <div class=abspos>
+    <div class=abspos-child></div>
+  </div>
+  <div class=good></div>
+</div>
+<script>
+s.scrollLeft = 100;
+</script>
