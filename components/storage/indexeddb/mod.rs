@@ -72,10 +72,25 @@ pub struct IndexedDBDescription {
 }
 
 #[derive(MallocSizeOf)]
+struct KeyGeneratorSnapshot {
+    // Mirrors IndexedDB's "key generator current number" for rollback on abort.
+    // https://w3c.github.io/IndexedDB/#key-generator-current-number
+    // Backed by i64 so we can represent the IndexedDB-mandated range.
+    store_name: String,
+    current_number: i64,
+}
+
+#[derive(MallocSizeOf)]
+struct TxnScopeStore {
+    name: String,
+    key_generator_snapshot: Option<KeyGeneratorSnapshot>,
+}
+
+#[derive(MallocSizeOf)]
 struct TxnInfo {
     created_seq: u64,
     mode: IndexedDBTxnMode,
-    scope: HashSet<String>,
+    scope: Vec<TxnScopeStore>,
     live: bool,
 }
 
@@ -125,6 +140,25 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         if self.txn_info.contains_key(&txn) {
             return;
         }
+        let scope: HashSet<String> = scope.into_iter().collect();
+        let scope: Vec<TxnScopeStore> = scope
+            .into_iter()
+            .map(|store_name| {
+                let key_generator_snapshot = if mode == IndexedDBTxnMode::Readwrite {
+                    self.key_generator_current_number(&store_name)
+                        .map(|current_number| KeyGeneratorSnapshot {
+                            store_name: store_name.clone(),
+                            current_number,
+                        })
+                } else {
+                    None
+                };
+                TxnScopeStore {
+                    name: store_name,
+                    key_generator_snapshot,
+                }
+            })
+            .collect();
         let created_seq = self.next_created_seq;
         self.next_created_seq += 1;
         self.txn_info.insert(
@@ -132,7 +166,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             TxnInfo {
                 created_seq,
                 mode: mode.clone(),
-                scope: scope.into_iter().collect(),
+                scope,
                 live: true,
             },
         );
@@ -145,7 +179,9 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn scopes_overlap(a: &TxnInfo, b: &TxnInfo) -> bool {
-        a.scope.iter().any(|store| b.scope.contains(store))
+        a.scope
+            .iter()
+            .any(|store| b.scope.iter().any(|other| other.name == store.name))
     }
 
     fn earlier_overlapping_live_exists<F>(&self, txn: u64, predicate: F) -> bool
@@ -472,6 +508,28 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn abort_transaction(&mut self, txn: u64) {
+        let key_generator_snapshots = self
+            .txn_info
+            .get(&txn)
+            .filter(|info| info.mode == IndexedDBTxnMode::Readwrite)
+            .map(|info| {
+                info.scope
+                    .iter()
+                    .filter_map(|store| store.key_generator_snapshot.as_ref())
+                    .map(|snapshot| KeyGeneratorSnapshot {
+                        store_name: snapshot.store_name.clone(),
+                        current_number: snapshot.current_number,
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        // https://w3c.github.io/IndexedDB/#key-generator-construct
+        // Likewise, if a transaction is aborted, the current number of the
+        // key generator for each object store in the transaction’s scope is
+        // reverted to the value it had before the transaction was started.
+        let res = self.restore_key_generators_after_abort(&key_generator_snapshots);
+        debug_assert!(res.is_ok(), "Restoring key generators should not fail.");
+
         // Keep scheduling metadata until script reports TransactionFinished.
         // https://w3c.github.io/IndexedDB/#transaction-lifetime
         self.transactions.remove(&txn);
@@ -488,8 +546,52 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.pending_commit_callbacks.remove(&txn);
     }
 
-    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i64> {
         self.engine.key_generator_current_number(store_name)
+    }
+
+    fn set_key_generator_current_number(
+        &self,
+        store_name: &str,
+        current_number: i64,
+    ) -> DbResult<()> {
+        self.engine
+            .set_key_generator_current_number(store_name, current_number)
+            .map_err(|err| format!("{err:?}"))
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#key-generator-construct>
+    fn restore_key_generators_after_abort(
+        &self,
+        key_generator_snapshots: &[KeyGeneratorSnapshot],
+    ) -> DbResult<()> {
+        // Likewise, if a transaction is aborted, the current number of the key
+        // generator for each object store in the transaction’s scope is
+        // reverted to the value it had before the transaction was started.
+        for snapshot in key_generator_snapshots {
+            self.set_key_generator_current_number(&snapshot.store_name, snapshot.current_number)?;
+        }
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#key-generator-construct>
+    fn object_store(&self, store_name: &str) -> DbResult<IndexedDBObjectStore> {
+        // A key generator has a current number.
+        let key_generator_current_number = self.key_generator_current_number(store_name);
+        Ok(IndexedDBObjectStore {
+            key_path: self.key_path(store_name),
+            has_key_generator: key_generator_current_number.is_some(),
+            key_generator_current_number,
+            indexes: self.indexes(store_name)?,
+            name: store_name.to_string(),
+        })
+    }
+
+    fn object_stores(&self) -> DbResult<Vec<IndexedDBObjectStore>> {
+        self.object_store_names()?
+            .into_iter()
+            .map(|store_name| self.object_store(&store_name))
+            .collect()
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -553,6 +655,85 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.engine
             .delete_store(store_name)
             .map_err(|err| format!("{err:?}"))
+    }
+
+    /// Restores the object-store metadata snapshot captured before an aborted
+    /// upgrade: remove stores/indexes created during the aborted upgrade, create
+    /// stores/indexes that existed before it, and reset key-generator current
+    /// numbers for stores that use key generators.
+    fn restore_object_stores(&mut self, object_stores: &[IndexedDBObjectStore]) -> DbResult<()> {
+        let mut current_store_names: HashSet<String> =
+            self.object_store_names()?.into_iter().collect();
+        let expected_store_names: HashSet<String> = object_stores
+            .iter()
+            .map(|store| store.name.clone())
+            .collect();
+
+        for store_name in current_store_names.clone() {
+            if !expected_store_names.contains(&store_name) {
+                self.delete_object_store(&store_name)?;
+                current_store_names.remove(&store_name);
+            }
+        }
+
+        for store in object_stores {
+            if !current_store_names.contains(&store.name) {
+                // https://w3c.github.io/IndexedDB/#key-generator-construct
+                // The initial value of a key generator’s current number is 1,
+                // set when the associated object store is created.
+                self.create_object_store(
+                    &store.name,
+                    store.key_path.clone(),
+                    store.has_key_generator,
+                )?;
+                current_store_names.insert(store.name.clone());
+            }
+
+            if let Some(current_number) = store.key_generator_current_number {
+                // https://w3c.github.io/IndexedDB/#key-generator-construct
+                // Modifying a key generator’s current number is considered part
+                // of a database operation. This means that if the operation
+                // fails and the operation is reverted, the current number is
+                // reverted to the value it had before the operation started.
+                // Likewise, if a transaction is aborted, the current number of
+                // the key generator for each object store in the transaction’s
+                // scope is reverted to the value it had before the transaction
+                // was started.
+                self.set_key_generator_current_number(&store.name, current_number)?;
+            }
+
+            let mut current_index_names: HashSet<String> = self
+                .indexes(&store.name)?
+                .into_iter()
+                .map(|index| index.name)
+                .collect();
+            let expected_index_names: HashSet<String> = store
+                .indexes
+                .iter()
+                .map(|index| index.name.clone())
+                .collect();
+
+            for index_name in current_index_names.clone() {
+                if !expected_index_names.contains(&index_name) {
+                    self.delete_index(&store.name, index_name.clone())?;
+                    current_index_names.remove(&index_name);
+                }
+            }
+
+            for index in &store.indexes {
+                if !current_index_names.contains(&index.name) {
+                    self.create_index(
+                        &store.name,
+                        index.name.clone(),
+                        index.key_path.clone(),
+                        index.unique,
+                        index.multi_entry,
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn version(&self) -> Result<u64, E::Error> {
@@ -713,7 +894,7 @@ impl OpenRequest {
 
     /// Abort the open request,
     /// optionally returning a version to revert to.
-    fn abort(&self) -> Option<u64> {
+    fn abort(&self) -> Option<VersionUpgrade> {
         match self {
             OpenRequest::Open {
                 sender,
@@ -735,7 +916,7 @@ impl OpenRequest {
                 {
                     error!("Failed to send ConnectionMsg::Connection to script.");
                 };
-                pending_upgrade.as_ref().map(|upgrade| upgrade.old)
+                pending_upgrade.clone()
             },
             OpenRequest::Delete {
                 sender,
@@ -754,11 +935,12 @@ impl OpenRequest {
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct VersionUpgrade {
     old: u64,
     new: u64,
     transaction: u64,
+    object_stores: Vec<IndexedDBObjectStore>,
 }
 
 /// <https://w3c.github.io/IndexedDB/#connection>
@@ -1021,7 +1203,7 @@ impl IndexedDBManager {
             return;
         }
 
-        let (request_id, proxy_map, db_name) = {
+        let (request_id, proxy_map) = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
                 return debug_assert!(false, "A connection queue should exist.");
             };
@@ -1032,7 +1214,7 @@ impl IndexedDBManager {
                 pending_upgrade: Some(pending_upgrade),
                 id,
                 proxy_map,
-                db_name,
+                db_name: _,
                 ..
             } = front
             else {
@@ -1041,10 +1223,10 @@ impl IndexedDBManager {
             if pending_upgrade.transaction != txn {
                 return;
             }
-            (*id, (*proxy_map).clone(), db_name.clone())
+            (*id, (*proxy_map).clone())
         };
 
-        self.abort_pending_upgrade(name, request_id, origin, db_name, &proxy_map);
+        self.abort_pending_upgrade(name, request_id, origin, &proxy_map);
     }
 
     /// Run the next open request in the queue.
@@ -1129,25 +1311,24 @@ impl IndexedDBManager {
     fn revert_aborted_upgrade(
         &mut self,
         key: &IndexedDBDescription,
-        old_version: u64,
-        db_name: String,
+        upgrade: &VersionUpgrade,
         proxy_map: &StorageProxyMap,
     ) {
-        if old_version == 0 {
+        if upgrade.old == 0 {
             if let Some(db) = self.databases.remove(key) {
                 // Note: ensure db is dropped before deleting directory,
                 // to get around windows file locks.
                 drop(db);
                 let response = proxy_map
                     .handle
-                    .delete_database(proxy_map.bottle_id, db_name.clone())
+                    .delete_database(proxy_map.bottle_id, key.name.clone())
                     .recv();
                 if response.is_err() {
                     error!("Failed to communicate with client storage.");
                     return;
                 }
                 if response.unwrap().is_err() {
-                    error!("Failed to delete database {:?}", db_name);
+                    error!("Failed to delete database {:?}", key.name);
                 }
             }
             return;
@@ -1156,23 +1337,27 @@ impl IndexedDBManager {
         let Some(db) = self.databases.get_mut(key) else {
             return debug_assert!(false, "Db should have been created");
         };
-        let res = db.set_version(old_version);
+        let res = db.set_version(upgrade.old);
         debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+
+        // Step 4. Set connection’s object store set to the set of object stores
+        // in database if database previously existed, or the empty set if
+        // database was newly created.
+        let res = db.restore_object_stores(&upgrade.object_stores);
+        debug_assert!(res.is_ok(), "Restoring object stores should not fail.");
     }
 
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-    /// Note: this only reverts the version at this point.
     fn abort_pending_upgrade(
         &mut self,
         name: String,
         id: Uuid,
         origin: ImmutableOrigin,
-        db_name: String,
         proxy_map: &StorageProxyMap,
     ) {
         let key = IndexedDBDescription { name, origin };
-        let old = {
+        let upgrade = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
                 return debug_assert!(
                     false,
@@ -1190,8 +1375,8 @@ impl IndexedDBManager {
             }
             open_request.abort()
         };
-        if let Some(old_version) = old {
-            self.revert_aborted_upgrade(&key, old_version, db_name, proxy_map);
+        if let Some(upgrade) = upgrade {
+            self.revert_aborted_upgrade(&key, &upgrade, proxy_map);
         }
 
         self.remove_connection(&key, &id);
@@ -1209,7 +1394,7 @@ impl IndexedDBManager {
         proxy_map: StorageProxyMap,
     ) {
         for (name, ids) in pending_upgrades.into_iter() {
-            let mut version_to_revert: Option<u64> = None;
+            let mut upgrade_to_revert: Option<VersionUpgrade> = None;
             let key = IndexedDBDescription {
                 name: name.clone(),
                 origin: origin.clone(),
@@ -1224,11 +1409,11 @@ impl IndexedDBManager {
                     };
                     queue.retain_mut(|open_request| {
                         if ids.contains(&open_request.get_id()) {
-                            let old = open_request.abort();
-                            if version_to_revert.is_none() &&
-                                let Some(old) = old
-                            {
-                                version_to_revert = Some(old);
+                            let upgrade = open_request.abort();
+                            if upgrade_to_revert.is_none() {
+                                if let Some(upgrade) = upgrade {
+                                    upgrade_to_revert = Some(upgrade);
+                                }
                             }
                             false
                         } else {
@@ -1241,8 +1426,8 @@ impl IndexedDBManager {
                     self.connection_queues.remove(&key);
                 }
             }
-            if let Some(version) = version_to_revert {
-                self.revert_aborted_upgrade(&key, version, name, &proxy_map);
+            if let Some(upgrade) = upgrade_to_revert {
+                self.revert_aborted_upgrade(&key, &upgrade, &proxy_map);
             }
         }
     }
@@ -1365,6 +1550,9 @@ impl IndexedDBManager {
 
         // Step 7: Let old version be db’s version.
         let old_version = db.version().expect("DB should have a version.");
+        let object_stores = db
+            .object_stores()
+            .expect("Fetching object stores should not fail.");
 
         // Step 8: Set db’s version to version. This change is considered part of the
         // transaction, and so if the transaction is aborted, this change is reverted.
@@ -1377,6 +1565,7 @@ impl IndexedDBManager {
             old: old_version,
             new: new_version,
             transaction,
+            object_stores,
         });
 
         // Step 10: Queue a database task to run these steps.
@@ -2253,5 +2442,91 @@ impl IndexedDBManager {
             });
         });
         reports
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use servo_base::generic_channel;
+    use servo_base::threadpool::ThreadPool;
+    use servo_url::ImmutableOrigin;
+    use storage_traits::indexeddb::{IndexedDBTxnMode, KeyPath};
+    use url::Host;
+
+    use super::{IndexedDBDescription, IndexedDBEnvironment};
+    use crate::indexeddb::engines::SqliteEngine;
+
+    fn test_origin() -> ImmutableOrigin {
+        ImmutableOrigin::Tuple(
+            "test_origin".to_string(),
+            Host::Domain("localhost".to_string()),
+            80,
+        )
+    }
+
+    #[test]
+    fn test_restore_object_stores_removes_created_store_and_indexes() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = ThreadPool::global();
+        let description = IndexedDBDescription {
+            name: "test_db".to_string(),
+            origin: test_origin(),
+        };
+        let engine = SqliteEngine::new(
+            base_dir.path().to_path_buf(),
+            true,
+            &description,
+            thread_pool,
+        )
+        .unwrap();
+        let (sender, _receiver) = generic_channel::channel().unwrap();
+        let mut env = IndexedDBEnvironment::new(engine, sender);
+
+        let object_stores = env.object_stores().unwrap();
+        assert!(object_stores.is_empty());
+
+        env.create_object_store("not_books", None, false).unwrap();
+        env.create_index(
+            "not_books",
+            "not_by_author".to_string(),
+            KeyPath::String("author".to_string()),
+            false,
+            false,
+        )
+        .unwrap();
+
+        env.restore_object_stores(&object_stores).unwrap();
+
+        assert_eq!(env.object_store_names().unwrap(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_abort_transaction_restores_readwrite_key_generator_current_number() {
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let thread_pool = ThreadPool::global();
+        let description = IndexedDBDescription {
+            name: "test_db".to_string(),
+            origin: test_origin(),
+        };
+        let engine = SqliteEngine::new(
+            base_dir.path().to_path_buf(),
+            true,
+            &description,
+            thread_pool,
+        )
+        .unwrap();
+        let (sender, _receiver) = generic_channel::channel().unwrap();
+        let mut env = IndexedDBEnvironment::new(engine, sender);
+
+        env.create_object_store("books", None, true).unwrap();
+        assert_eq!(env.key_generator_current_number("books"), Some(1));
+
+        env.register_transaction(1, IndexedDBTxnMode::Readwrite, vec!["books".to_string()]);
+        env.set_key_generator_current_number("books", 345680)
+            .unwrap();
+
+        env.abort_transaction(1);
+
+        assert_eq!(env.key_generator_current_number("books"), Some(1));
     }
 }
