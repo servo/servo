@@ -647,18 +647,20 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
 impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: WebGPUPoppedErrorScopeResponse,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
             Ok(None) | Err(PopError::Lost) => {
-                promise.resolve_native(&None::<Option<GPUError>>, can_gc)
+                promise.resolve_native(&None::<Option<GPUError>>, CanGc::from_cx(cx))
             },
-            Err(PopError::Empty) => promise.reject_error(Error::Operation(None), can_gc),
+            Err(PopError::Empty) => {
+                promise.reject_error(Error::Operation(None), CanGc::from_cx(cx))
+            },
             Ok(Some(error)) => {
-                let error = GPUError::from_error(&self.global(), error, can_gc);
-                promise.resolve_native(&error, can_gc);
+                let error = GPUError::from_error(&self.global(), error, CanGc::from_cx(cx));
+                promise.resolve_native(&error, CanGc::from_cx(cx));
             },
         }
     }
@@ -667,9 +669,9 @@ impl RoutedPromiseListener<WebGPUPoppedErrorScopeResponse> for GPUDevice {
 impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: WebGPUComputePipelineResponse,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
             Ok(pipeline) => promise.resolve_native(
@@ -678,18 +680,18 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                     WebGPUComputePipeline(pipeline.id),
                     pipeline.label.into(),
                     self,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
                 &GPUPipelineError::new(
                     &self.global(),
                     msg.into(),
                     GPUPipelineErrorReason::Validation,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
                 promise.reject_native(
@@ -697,9 +699,9 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Internal,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
         }
@@ -709,9 +711,9 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
 impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: WebGPURenderPipelineResponse,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
             Ok(pipeline) => promise.resolve_native(
@@ -720,18 +722,18 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                     WebGPURenderPipeline(pipeline.id),
                     pipeline.label.into(),
                     self,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
                 &GPUPipelineError::new(
                     &self.global(),
                     msg.into(),
                     GPUPipelineErrorReason::Validation,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ),
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
                 promise.reject_native(
@@ -739,9 +741,9 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Internal,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
         }

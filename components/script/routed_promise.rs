@@ -4,6 +4,7 @@
 
 use std::rc::Rc;
 
+use js::context::JSContext;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use servo_base::generic_channel::GenericCallback;
@@ -11,11 +12,10 @@ use servo_base::generic_channel::GenericCallback;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::promise::Promise;
-use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 pub(crate) trait RoutedPromiseListener<R: Serialize + DeserializeOwned + Send> {
-    fn handle_response(&self, response: R, promise: &Rc<Promise>, can_gc: CanGc);
+    fn handle_response(&self, cx: &mut JSContext, response: R, promise: &Rc<Promise>);
 }
 
 pub(crate) struct RoutedPromiseContext<
@@ -30,11 +30,9 @@ pub(crate) struct RoutedPromiseContext<
 impl<R: Serialize + DeserializeOwned + Send, T: RoutedPromiseListener<R> + DomObject>
     RoutedPromiseContext<R, T>
 {
-    fn response(self, response: R, can_gc: CanGc) {
+    fn response(self, cx: &mut JSContext, response: R) {
         let promise = self.trusted.root();
-        self.receiver
-            .root()
-            .handle_response(response, &promise, can_gc);
+        self.receiver.root().handle_response(cx, response, &promise);
     }
 }
 
@@ -62,8 +60,8 @@ pub(crate) fn callback_promise<
             receiver: trusted_receiver.clone(),
             _phantom: Default::default(),
         };
-        task_source.queue(task!(routed_promise_task: move|| {
-            context.response(message.unwrap(), CanGc::note());
+        task_source.queue(task!(routed_promise_task: move|cx| {
+            context.response(cx, message.unwrap());
         }));
     })
     .expect("Could not create callback in script.")

@@ -275,9 +275,9 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
     /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: WebGPUDeviceResponse,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
             // 3.1 Let device be a new device with the capabilities described by descriptor.
@@ -292,10 +292,10 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     device_id,
                     queue_id,
                     descriptor.label.unwrap_or_default(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 self.global().add_gpu_device(&device);
-                promise.resolve_native(&device, can_gc);
+                promise.resolve_native(&device, CanGc::from_cx(cx));
             },
             // 1. If features are not supported reject promise with a TypeError.
             (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
@@ -303,7 +303,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     "{}",
                     wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f)
                 )),
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             // 2. If limits are not supported reject promise with an OperationError.
             (_, _, Err(RequestDeviceError::LimitsExceeded(l))) => {
@@ -311,7 +311,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     "{}",
                     wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
                 );
-                promise.reject_error(Error::Operation(None), can_gc)
+                promise.reject_error(Error::Operation(None), CanGc::from_cx(cx))
             },
             // 3. user agent otherwise cannot fulfill the request
             (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
@@ -326,11 +326,11 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     device_id,
                     queue_id,
                     String::new(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // 2. Lose the device(device, "unknown").
                 device.lose(GPUDeviceLostReason::Unknown, e);
-                promise.resolve_native(&device, can_gc);
+                promise.resolve_native(&device, CanGc::from_cx(cx));
             },
         }
     }

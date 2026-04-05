@@ -432,13 +432,13 @@ impl GPUBuffer {
 impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: Result<Mapping, BufferAccessError>,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         match response {
-            Ok(mapping) => self.map_success(promise, mapping, can_gc),
-            Err(_) => self.map_failure(promise, can_gc),
+            Ok(mapping) => self.map_success(promise, mapping, CanGc::from_cx(cx)),
+            Err(_) => self.map_failure(promise, CanGc::from_cx(cx)),
         }
     }
 }
