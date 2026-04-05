@@ -33,6 +33,25 @@ macro_rules! time_profile {
     }};
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __profiling_span {
+    ($backend_macro:ident, $span_name:literal $(, $field:tt)*) => {{
+        #[cfg(feature = "tracing")]
+        {
+            $crate::servo_tracing::$backend_macro!(
+                $span_name,
+                servo_profiling = true
+                $(, $field)*
+            )
+        }
+        #[cfg(not(feature = "tracing"))]
+        {
+            $crate::dummy_tracing::Span()
+        }
+    }};
+}
+
 /// Provides API compatible dummies for the tracing-rs APIs we use
 /// if tracing is disabled. Hence, nothing will be traced
 pub mod dummy_tracing {
@@ -114,32 +133,25 @@ pub mod dummy_tracing {
 /// which can be used to disable the effects of this macro.
 #[macro_export]
 macro_rules! trace_span {
-    ($span_name:literal, $($field:tt)*) => {
-        {
-        #[cfg(feature = "tracing")]
-        {
-            $crate::servo_tracing::trace_span!(
-                $span_name,
-                servo_profiling = true,
-                $($field)*
-            )
-        }
-        #[cfg(not(feature = "tracing"))]
-        { $crate::dummy_tracing::Span() }
-        }
+    ($span_name:literal $(, $field:tt)*) => {
+        $crate::__profiling_span!(trace_span, $span_name $(, $field)*)
     };
-    ($span_name:literal) => {
-        {
-         #[cfg(feature = "tracing")]
-         {
-             $crate::servo_tracing::trace_span!(
-                $span_name,
-                servo_profiling = true,
-             )
-         }
-        #[cfg(not(feature = "tracing"))]
-        { $crate::dummy_tracing::Span() }
-        }
+}
+
+/// Constructs a span at the debug level
+///
+/// This macro creates a Span for the purpose of instrumenting code to measure
+/// the execution time of the span.
+/// If the `tracing` feature (of the crate using this macro) is disabled, then
+/// the Span implementation will be replaced with a dummy, that does not record
+/// anything.
+///
+/// Attention: This macro requires the user crate to have a `tracing` feature,
+/// which can be used to disable the effects of this macro.
+#[macro_export]
+macro_rules! debug_span {
+    ($span_name:literal $(, $field:tt)*) => {
+        $crate::__profiling_span!(debug_span, $span_name $(, $field)*)
     };
 }
 
@@ -155,32 +167,8 @@ macro_rules! trace_span {
 /// which can be used to disable the effects of this macro.
 #[macro_export]
 macro_rules! info_span {
-    ($span_name:literal, $($field:tt)*) => {
-        {
-        #[cfg(feature = "tracing")]
-        {
-            $crate::servo_tracing::info_span!(
-                $span_name,
-                servo_profiling = true,
-                $($field)*
-            )
-        }
-        #[cfg(not(feature = "tracing"))]
-        { $crate::dummy_tracing::Span() }
-        }
-    };
-    ($span_name:literal) => {
-        {
-         #[cfg(feature = "tracing")]
-         {
-             $crate::servo_tracing::info_span!(
-                $span_name,
-                servo_profiling = true,
-             )
-         }
-        #[cfg(not(feature = "tracing"))]
-        { $crate::dummy_tracing::Span() }
-        }
+    ($span_name:literal $(, $field:tt)*) => {
+        $crate::__profiling_span!(info_span, $span_name $(, $field)*)
     };
 }
 
