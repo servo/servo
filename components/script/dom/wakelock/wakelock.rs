@@ -5,9 +5,8 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use embedder_traits::{AllowOrDeny, EmbedderMsg};
 use js::realm::CurrentRealm;
-use servo_base::generic_channel;
+use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentVisibilityState,
@@ -61,23 +60,15 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
             return promise;
         }
 
-        // Step 4. Ask the embedder whether the wake lock can be acquired.
+        // Step 4. Notify the constellation to acquire the wake lock. The constellation
+        // tracks the aggregate lock count and only signals the embedder on the 0→1
+        // transition, so the embedder is not spammed per individual request.
         // <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
-        let window = global.as_window();
-        let (sender, receiver) =
-            generic_channel::channel::<AllowOrDeny>().expect("Failed to create wake lock channel");
-        window.send_to_embedder(EmbedderMsg::AcquireWakeLock(window.webview_id(), sender));
+        global
+            .as_window()
+            .send_to_constellation(ScriptToConstellationMessage::AcquireWakeLock);
 
-        // Step 5. If the embedder denied the request, reject with NotAllowedError.
-        match receiver.recv() {
-            Ok(AllowOrDeny::Allow) => {},
-            _ => {
-                promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
-                return promise;
-            },
-        }
-
-        // Step 6. Create a WakeLockSentinel and resolve the promise with it.
+        // Step 5. Create a WakeLockSentinel and resolve the promise with it.
         let sentinel = WakeLockSentinel::new(cx, &global, type_);
         promise.resolve_native(&sentinel, CanGc::from_cx(cx));
 

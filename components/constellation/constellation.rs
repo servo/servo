@@ -484,6 +484,10 @@ pub struct Constellation<STF, SWF> {
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
+    /// Aggregate screen wake lock count across all webviews. The embedder is notified
+    /// only when this transitions 0→1 (acquire) or N→0 (release).
+    wake_lock_count: u32,
+
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
@@ -731,6 +735,7 @@ where
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
+                    wake_lock_count: 0,
                     broken_image_icon_data: broken_image_icon_data.clone(),
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
@@ -2092,6 +2097,20 @@ where
             ScriptToConstellationMessage::TriggerGarbageCollection => {
                 for event_loop in self.event_loops() {
                     let _ = event_loop.send(ScriptThreadMessage::TriggerGarbageCollection);
+                }
+            },
+            ScriptToConstellationMessage::AcquireWakeLock => {
+                self.wake_lock_count += 1;
+                if self.wake_lock_count == 1 {
+                    self.constellation_to_embedder_proxy
+                        .send(ConstellationToEmbedderMsg::AcquireWakeLock(webview_id));
+                }
+            },
+            ScriptToConstellationMessage::ReleaseWakeLock => {
+                self.wake_lock_count = self.wake_lock_count.saturating_sub(1);
+                if self.wake_lock_count == 0 {
+                    self.constellation_to_embedder_proxy
+                        .send(ConstellationToEmbedderMsg::ReleaseWakeLock(webview_id));
                 }
             },
         }

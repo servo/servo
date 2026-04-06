@@ -726,6 +726,14 @@ pub enum ScriptToConstellationMessage {
     RespondToScreenshotReadinessRequest(ScreenshotReadinessResponse),
     /// Request the constellation to force garbage collection in all `ScriptThread`'s.
     TriggerGarbageCollection,
+    /// Request to acquire a screen wake lock. The constellation will track the aggregate
+    /// lock count and notify the embedder only when the count transitions from 0 to 1.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+    AcquireWakeLock,
+    /// Request to release a screen wake lock. The constellation will track the aggregate
+    /// lock count and notify the embedder only when the count transitions from N to 0.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
+    ReleaseWakeLock,
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

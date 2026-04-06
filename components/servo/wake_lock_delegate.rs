@@ -2,27 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use embedder_traits::AllowOrDeny;
-use servo_base::generic_channel::GenericSender;
-
 use crate::WebView;
 
 /// A delegate that is responsible for acquiring and releasing screen wake locks.
 /// Embedders should implement this trait to prevent the screen from sleeping while
 /// a wake lock is held.
 ///
+/// The Constellation tracks the aggregate lock count across all webviews and only
+/// calls [`acquire`](WakeLockDelegate::acquire) on the 0→1 transition and
+/// [`release`](WakeLockDelegate::release) on the N→0 transition, so these methods
+/// act as fire-and-forget OS-level notifications rather than per-request callbacks.
+///
 /// <https://w3c.github.io/screen-wake-lock/>
 pub trait WakeLockDelegate {
-    /// A request to acquire a screen wake lock. The embedder should respond via
-    /// `response` with [`AllowOrDeny::Allow`] to grant the lock (and prevent the
-    /// screen from sleeping until [`WakeLockDelegate::release`] is called), or
-    /// [`AllowOrDeny::Deny`] to reject the request.
-    fn acquire(&self, _webview: WebView, response: GenericSender<AllowOrDeny>) {
-        let _ = response.send(AllowOrDeny::Deny);
-    }
+    /// Notify the embedder to acquire a screen wake lock, preventing the screen
+    /// from sleeping. Called only when the aggregate lock count transitions from 0 to 1.
+    fn acquire(&self, _webview: WebView) {}
 
-    /// A request to release a previously acquired screen wake lock. The embedder
-    /// may allow the screen to sleep again.
+    /// Notify the embedder to release a previously acquired screen wake lock,
+    /// allowing the screen to sleep. Called only when the aggregate lock count
+    /// transitions from N to 0.
     fn release(&self, _webview: WebView) {}
 }
 

@@ -16,7 +16,6 @@ mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
 #[cfg(feature = "media-gstreamer")]
-mod wake_lock_delegate;
 mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;

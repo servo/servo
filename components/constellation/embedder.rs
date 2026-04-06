@@ -51,4 +51,12 @@ pub enum ConstellationToEmbedderMsg {
     /// Notifies the embedder that the AccessKit [`TreeId`] for the top-level document in this
     /// WebView has been changed (or initially set).
     DocumentAccessibilityTreeIdChanged(WebViewId, TreeId),
+    /// Notify the embedder to acquire a screen wake lock, preventing the screen from sleeping.
+    /// Sent only when the aggregate lock count transitions from 0 to 1.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+    AcquireWakeLock(WebViewId),
+    /// Notify the embedder to release a previously acquired screen wake lock.
+    /// Sent only when the aggregate lock count transitions from N to 0.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
+    ReleaseWakeLock(WebViewId),
 }

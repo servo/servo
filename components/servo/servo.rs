@@ -676,18 +676,6 @@ impl ServoInner {
                         .notify_accessibility_tree_update(webview, tree_update);
                 }
             },
-            EmbedderMsg::AcquireWakeLock(webview_id, response) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.wake_lock_delegate().acquire(webview, response);
-                } else {
-                    let _ = response.send(AllowOrDeny::Deny);
-                }
-            },
-            EmbedderMsg::ReleaseWakeLock(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.wake_lock_delegate().release(webview);
-                }
-            },
         }
     }
 
@@ -796,6 +784,16 @@ impl ServoInner {
             ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(webview_id, tree_id) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.notify_document_accessibility_tree_id(tree_id);
+                }
+            },
+            ConstellationToEmbedderMsg::AcquireWakeLock(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.wake_lock_delegate().acquire(webview);
+                }
+            },
+            ConstellationToEmbedderMsg::ReleaseWakeLock(webview_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.wake_lock_delegate().release(webview);
                 }
             },
         }
