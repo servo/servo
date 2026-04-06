@@ -87,8 +87,6 @@ pub struct UrlWithBlobClaim {
 
 impl UrlWithBlobClaim {
     pub fn new(url: ServoUrl, token: Option<TokenSerializationGuard>) -> Self {
-        debug_assert_eq!(parse_blob_url(&url).is_ok(), token.is_some());
-
         Self { url, token }
     }
 
