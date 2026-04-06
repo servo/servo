@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
@@ -150,13 +151,17 @@ impl Mode {
             Mode::Persistent => "persistent",
         }
     }
+}
+
+impl FromStr for Mode {
+    type Err = ();
 
     /// <https://storage.spec.whatwg.org/#bucket>
-    pub fn from_str(value: &str) -> Option<Self> {
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
-            "best-effort" => Some(Mode::BestEffort),
-            "persistent" => Some(Mode::Persistent),
-            _ => None,
+            "best-effort" => Ok(Mode::BestEffort),
+            "persistent" => Ok(Mode::Persistent),
+            _ => Err(()),
         }
     }
 }

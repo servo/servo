@@ -125,6 +125,7 @@ test_interfaces([
   "Response",
   "SecurityPolicyViolationEvent",
   "ServiceWorkerContainer",
+  "StorageManager",
   "TextDecoder",
   "TextDecoderStream",
   "TextEncoder",

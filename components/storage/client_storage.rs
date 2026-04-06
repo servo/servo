@@ -336,7 +336,7 @@ fn bucket_mode(bucket_id: i64, tx: &Transaction) -> rusqlite::Result<Mode> {
         [bucket_id],
         |row| row.get(0),
     )?;
-    Ok(Mode::from_str(&mode).unwrap_or_default())
+    Ok(mode.parse::<Mode>().unwrap_or_default())
 }
 
 /// <https://storage.spec.whatwg.org/#dom-storagemanager-persist>
