@@ -1060,7 +1060,7 @@ pub async fn http_fetch(
         .await;
 
         // Step 4.4. If request’s response tainting is "cors" and a CORS check for request
-        // and response returns failure, then return a network error. 
+        // and response returns failure, then return a network error.
         if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::CorsGeneral);
         }
@@ -1079,7 +1079,13 @@ pub async fn http_fetch(
     // Step 5: If either request’s response tainting or response’s type is "opaque",
     // and the cross-origin resource policy check with request’s origin, request’s client,
     // request’s destination, and internalResponse returns blocked, then return a network error.
-    
+    if (request.response_tainting == ResponseTainting::Opaque ||
+        response.response_type == ResponseType::Opaque) &&
+        cross_origin_resource_policy_check(request, &response) ==
+            CrossOriginResourcePolicy::Blocked
+    {
+        return Response::network_error(NetworkError::CrossOriginResponse);
+    }
 
     // Step 6. If internalResponse’s status is a redirect status:
     if response
