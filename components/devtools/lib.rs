@@ -482,29 +482,26 @@ impl DevtoolsInstance {
             } else {
                 WorkerType::Dedicated
             };
-            let worker_name = self.registry.new_name::<WorkerActor>();
-            let worker = WorkerActor {
-                name: worker_name.clone(),
-                console_name: console_name.clone(),
+            let worker_name = WorkerActor::register(
+                &self.registry,
+                console_name.clone(),
                 thread_name,
-                worker_id: id,
-                url: page_info.url,
-                type_: worker_type,
-                script_chan: script_sender,
-                streams: Default::default(),
-            };
+                id,
+                page_info.url,
+                worker_type,
+                script_sender,
+            );
             let root_actor = self.registry.find::<RootActor>("root");
             if page_info.is_service_worker {
                 root_actor
                     .service_workers
                     .borrow_mut()
-                    .push(worker.name.clone());
+                    .push(worker_name.clone());
             } else {
-                root_actor.workers.borrow_mut().push(worker.name.clone());
+                root_actor.workers.borrow_mut().push(worker_name.clone());
             }
 
             self.actor_workers.insert(id, worker_name.clone());
-            self.registry.register(worker);
 
             Root::DedicatedWorker(worker_name)
         } else {
