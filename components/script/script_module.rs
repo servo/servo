@@ -77,9 +77,9 @@ use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
-    HTMLScriptElement, SCRIPT_JS_MIMES, Script, substitute_with_local_script,
+    ExternalScriptKind, HTMLScriptElement, SCRIPT_JS_MIMES, Script, finish_fetching_a_script,
+    substitute_with_local_script,
 };
-use crate::dom::htmlscriptelement::finish_fetching_a_script;
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -645,7 +645,7 @@ impl Callback for QueueTaskHandler {
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
     Worker(Trusted<WorkerGlobalScope>),
-    Window(Trusted<HTMLScriptElement>),
+    Window(Trusted<HTMLScriptElement>, ExternalScriptKind, bool),
     DynamicModule(Trusted<GlobalScope>),
 }
 
@@ -653,7 +653,7 @@ impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
             ModuleOwner::Worker(scope) => scope.root().global(),
-            ModuleOwner::Window(script) => (*script.root()).global(),
+            ModuleOwner::Window(script, _, _) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
     }
@@ -666,15 +666,30 @@ impl ModuleOwner {
                     .on_complete(cx, module_tree.map(Script::Module));
             },
             ModuleOwner::DynamicModule(_) => {},
-            ModuleOwner::Window(script) => {
-                let script = script.root();
+            ModuleOwner::Window(script, kind, is_inline) => {
+                let element = script.root();
 
+                let kind = *kind;
                 let load = match module_tree {
                     Some(module_tree) => Ok(Script::Module(module_tree)),
                     None => Err(()),
                 };
 
-                finish_fetching_a_script(&script, script.get_script_kind(), load, cx);
+                element.set_result(load);
+
+                if !is_inline {
+                    return finish_fetching_a_script(&element, kind, cx);
+                }
+
+                let global = element.owner_global();
+                let trusted = Trusted::new(&*element);
+
+                let task_source = global.task_manager().networking_task_source();
+
+                task_source.queue(task!(terminate_module_fetch: move |cx| {
+                    let element = trusted.root();
+                    finish_fetching_a_script(&element, kind, cx);
+                }));
             },
         }
     }
@@ -1611,7 +1626,7 @@ pub(crate) fn fetch_a_single_module_script(
 
         let document: Option<DomRoot<Document>> = match &owner {
             ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-            ModuleOwner::Window(script) => Some(script.root().owner_document()),
+            ModuleOwner::Window(script, _, _) => Some(script.root().owner_document()),
         };
         let webview_id = document.as_ref().map(|document| document.webview_id());
 
@@ -1932,7 +1947,7 @@ fn merge_module_specifier_maps(
 
 /// <https://html.spec.whatwg.org/multipage/#parse-an-import-map-string>
 pub(crate) fn parse_an_import_map_string(
-    module_owner: ModuleOwner,
+    global: &GlobalScope,
     input: Rc<DOMString>,
     base_url: ServoUrl,
 ) -> Fallible<ImportMap> {
@@ -1961,7 +1976,7 @@ pub(crate) fn parse_an_import_map_string(
         // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
         // normalizing a module specifier map given parsed["imports"] and baseURL.
         sorted_and_normalized_imports =
-            sort_and_normalize_module_specifier_map(&module_owner.global(), imports, &base_url);
+            sort_and_normalize_module_specifier_map(global, imports, &base_url);
     }
 
     // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
@@ -1977,8 +1992,7 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
         // normalizing scopes given parsed["scopes"] and baseURL.
-        sorted_and_normalized_scopes =
-            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url)?;
+        sorted_and_normalized_scopes = sort_and_normalize_scopes(global, scopes, &base_url)?;
     }
 
     // Step 7. Let normalizedIntegrity be an empty ordered map.
@@ -1994,8 +2008,7 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 8.2 Set normalizedIntegrity to the result of normalizing
         // a module integrity map given parsed["integrity"] and baseURL.
-        normalized_integrity =
-            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url);
+        normalized_integrity = normalize_module_integrity_map(global, integrity, &base_url);
     }
 
     // Step 9. If parsed's keys contains any items besides "imports", "scopes", or "integrity",
@@ -2004,7 +2017,7 @@ pub(crate) fn parse_an_import_map_string(
     parsed.retain(|k, _| !matches!(k.as_str(), "imports" | "scopes" | "integrity"));
     if !parsed.is_empty() {
         Console::internal_warn(
-            &module_owner.global(),
+            global,
             "Invalid top-level key was present in the import map.
                 Only \"imports\", \"scopes\", and \"integrity\" are allowed."
                 .to_string(),
