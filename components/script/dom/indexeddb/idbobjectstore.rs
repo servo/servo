@@ -655,7 +655,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, Some(true));
 
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
@@ -692,7 +692,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
 
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
@@ -730,7 +730,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
 
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
