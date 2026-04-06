@@ -8,6 +8,7 @@ use std::str::FromStr;
 
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, MutableHandleValue};
 use script_bindings::record::Record;
@@ -22,15 +23,15 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>.
@@ -89,9 +90,9 @@ struct RepresentationDataPromiseRejectionHandler {
 impl Callback for RepresentationDataPromiseRejectionHandler {
     /// Substeps of 8.1.2.2 If representationDataPromise was rejected, then:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         // 1. Reject p with "NotFoundError" DOMException in realm.
-        self.promise.reject_error(Error::NotFound(None), can_gc);
+        self.promise
+            .reject_error(Error::NotFound(None), CanGc::from_cx(cx));
     }
 }
 
@@ -128,12 +129,16 @@ impl ClipboardItem {
         }
     }
 
-    fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<ClipboardItem> {
-        reflect_dom_object_with_proto(
+    fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<ClipboardItem> {
+        reflect_dom_object_with_proto_and_cx(
             Box::new(ClipboardItem::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -141,9 +146,9 @@ impl ClipboardItem {
 impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-clipboarditem>
     fn Constructor(
+        cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         items: Record<DOMString, Rc<Promise>>,
         options: &ClipboardItemOptions,
     ) -> Fallible<DomRoot<ClipboardItem>> {
@@ -156,7 +161,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         // NOTE: This is done inside bindings
 
         // Step 3 Set this's clipboard item to a new clipboard item.
-        let clipboard_item = ClipboardItem::new(global, proto, can_gc);
+        let clipboard_item = ClipboardItem::new(cx, global, proto);
 
         // Step 4 Set this's clipboard item's presentation style to options["presentationStyle"].
         *clipboard_item.presentation_style.borrow_mut() = options.presentationStyle;
@@ -220,7 +225,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-types>
-    fn Types(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn Types(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_types.get_or_init(
             || {
                 // Step 5 Let types be a list of DOMString.
@@ -245,14 +250,14 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                     });
                 types
             },
-            cx,
+            cx.into(),
             retval,
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>
-    fn GetType(&self, type_: DOMString, can_gc: CanGc) -> Fallible<Rc<Promise>> {
+    fn GetType(&self, realm: &mut CurrentRealm, type_: DOMString) -> Fallible<Rc<Promise>> {
         // Step 1 Let realm be this’s relevant realm.
         let global = self.global();
 
@@ -276,7 +281,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         let item_type_list = self.representations.borrow();
 
         // Step 7 Let p be a new promise in realm.
-        let p = Promise::new(&global, can_gc);
+        let p = Promise::new_in_realm(realm);
 
         // Step 8 For each representation in itemTypeList
         for representation in item_type_list.iter() {
@@ -292,15 +297,20 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                 });
                 let rejection_handler =
                     Box::new(RepresentationDataPromiseRejectionHandler { promise: p.clone() });
+                let in_realm_proof = realm.into();
+                let comp = InRealm::Already(&in_realm_proof);
                 let handler = PromiseNativeHandler::new(
                     &global,
                     Some(fulfillment_handler),
                     Some(rejection_handler),
-                    can_gc,
+                    CanGc::from_cx(realm),
                 );
-                let realm = enter_realm(&*global);
-                let comp = InRealm::Entered(&realm);
-                representation_data_promise.append_native_handler(&handler, comp, can_gc);
+
+                representation_data_promise.append_native_handler(
+                    &handler,
+                    comp,
+                    CanGc::from_cx(realm),
+                );
 
                 // Step 8.1.3 Return p.
                 return Ok(p);
@@ -308,7 +318,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         }
 
         // Step 9 Reject p with "NotFoundError" DOMException in realm.
-        p.reject_error(Error::NotFound(None), can_gc);
+        p.reject_error(Error::NotFound(None), CanGc::from_cx(realm));
 
         // Step 10 Return p.
         Ok(p)
