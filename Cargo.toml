@@ -101,7 +101,7 @@ hyper = "1.9"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio", "client-proxy"] }
 icu_locid = "1.5.0"
-icu_properties = "1.5.0"
+icu_properties = "2.2.0"
 icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
 imsz = "0.4"
