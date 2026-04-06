@@ -41,19 +41,19 @@ impl HTMLTemplateElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLTemplateElement> {
         let n = Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLTemplateElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -98,15 +98,15 @@ impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
     make_bool_setter!(SetShadowRootSerializable, "shadowrootserializable");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
-    fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+    fn Content(&self, cx: &mut js::context::JSContext) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
             // https://html.spec.whatwg.org/multipage/#template-contents
             // Step 1. Let document be the template element's node document's appropriate template contents owner document.
             let doc = self.owner_document();
             // Step 2. Create a DocumentFragment object whose node document is document and host is the template element.
             let document_fragment = doc
-                .appropriate_template_contents_owner_document(can_gc)
-                .CreateDocumentFragment(can_gc);
+                .appropriate_template_contents_owner_document(CanGc::from_cx(cx))
+                .CreateDocumentFragment(cx);
             document_fragment.set_host(self.upcast());
             // Step 3. Set the template element's template contents to the newly created DocumentFragment object.
             document_fragment
@@ -127,7 +127,7 @@ impl VirtualMethods for HTMLTemplateElement {
             .owner_document()
             .appropriate_template_contents_owner_document(CanGc::from_cx(cx));
         // Step 2.
-        let content = self.Content(CanGc::from_cx(cx));
+        let content = self.Content(cx);
         Node::adopt(cx, content.upcast(), &doc);
     }
 
@@ -148,9 +148,9 @@ impl VirtualMethods for HTMLTemplateElement {
         }
         let copy = copy.downcast::<HTMLTemplateElement>().unwrap();
         // Steps 2-3.
-        let copy_contents = DomRoot::upcast::<Node>(copy.Content(CanGc::from_cx(cx)));
+        let copy_contents = DomRoot::upcast::<Node>(copy.Content(cx));
         let copy_contents_doc = copy_contents.owner_doc();
-        for child in self.Content(CanGc::from_cx(cx)).upcast::<Node>().children() {
+        for child in self.Content(cx).upcast::<Node>().children() {
             let copy_child = Node::clone(
                 cx,
                 &child,

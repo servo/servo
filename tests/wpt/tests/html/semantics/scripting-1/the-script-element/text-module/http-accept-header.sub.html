@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>HTTP Accept header with text module requests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module">
+  import text from "./http-accept-header-checker.py" with { type: "text"};
+  test(t => {
+    assert_equals(
+        text, "text/plain,*/*;q=0.5",
+        "The HTTP Accept header should be set to 'text/plain' when statically importing a text module.");
+  }, "Static import of a text module should send a valid HTTP Accept header.");
+</script>
+
+<script type="module">
+promise_test(async () => {
+  const module = await import("./http-accept-header-checker.py", { with: { type: "text"} });
+  assert_equals(
+      module.default, "text/plain,*/*;q=0.5",
+      "The HTTP Accept header should be set to 'text/plain' when dynamically importing a text module.");
+  }, "Dynamic import of a text module should send a valid HTTP Accept header.");
+</script>
+</body>
+</html>

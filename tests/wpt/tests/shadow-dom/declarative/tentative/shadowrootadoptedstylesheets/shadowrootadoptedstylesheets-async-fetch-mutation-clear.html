@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets mutation: clear all placeholders before fetch</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Clear adoptedStyleSheets entirely before fetch completes.
+    const url = "./support/styles-yellow.css";
+    const { shadowRoot, testElement } = createStylesheetHost(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before clearing: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before clearing: placeholder at index 0 should be empty.");
+
+    shadowRoot.adoptedStyleSheets = [];
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "adoptedStyleSheets should be empty after clearing.");
+
+    await fetchAndWait(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 0,
+      "Cleared placeholder's fetch should not re-insert the sheet.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
+      "Yellow styles should not be applied after clearing.");
+  }, "Clearing adoptedStyleSheets before fetch prevents styles from being applied.");
+</script>
+</body>

@@ -21,7 +21,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 /// An HTML text node.
 #[dom_struct]
@@ -36,21 +35,25 @@ impl Text {
         }
     }
 
-    pub(crate) fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<Text> {
-        Self::new_with_proto(text, document, None, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        text: DOMString,
+        document: &Document,
+    ) -> DomRoot<Text> {
+        Self::new_with_proto(cx, text, document, None)
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         text: DOMString,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Text> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(Text::new_inherited(text, document)),
             document,
             proto,
-            can_gc,
         )
     }
 }
@@ -58,13 +61,13 @@ impl Text {
 impl TextMethods<crate::DomTypeHolder> for Text {
     /// <https://dom.spec.whatwg.org/#dom-text-text>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         text: DOMString,
     ) -> Fallible<DomRoot<Text>> {
         let document = window.Document();
-        Ok(Text::new_with_proto(text, &document, proto, can_gc))
+        Ok(Text::new_with_proto(cx, text, &document, proto))
     }
 
     // https://dom.spec.whatwg.org/#dom-text-splittext
@@ -84,7 +87,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         // Step 5.
         let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.CreateTextNode(new_data, CanGc::from_cx(cx));
+        let new_node = owner_doc.CreateTextNode(cx, new_data);
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {

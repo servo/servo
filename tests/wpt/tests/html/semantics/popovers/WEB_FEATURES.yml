@@ -2,12 +2,15 @@ features:
 - name: popover
   files:
   - "*"
+  # keep exclusions synced with mappings below
   - "!popover-close-request.html"
   - "!popovertarget-disabled-fieldset.html"
   - "!popover-hint-crash.html"
   - "!popover-light-dismiss-hint.html"
   - "!popover-top-layer-nesting-hints.html"
   - "!popover-types-with-hints.html"
+  - "!popover-toggle-source.html"
+# keep subsequent mappings synced with exclusions above
 - name: closewatcher
   files:
   - "popover-close-request.html"
@@ -20,3 +23,6 @@ features:
   - popover-light-dismiss-hint.html
   - popover-top-layer-nesting-hints.html
   - popover-types-with-hints.html
+- name: toggleevent-source
+  files:
+  - popover-toggle-source.html

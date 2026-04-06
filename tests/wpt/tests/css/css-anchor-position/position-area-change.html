@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" href="github.com/vmpstr">
+<meta name="assert" content="green box should be below the yellow box">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="match" href="position-area-change-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+  }
+  .spacer {
+    height: 300px;
+  }
+  #anchor {
+    anchor-name: --anchor;
+    background: yellow;
+    width: 100px;
+    height: 50px;
+  }
+  #anchored {
+    position: fixed;
+    position-anchor: --anchor;
+    position-area: top;
+    position-try: flip-block;
+    background: green;
+    width: 100px;
+    height: 50px;
+  }
+</style>
+<div class=spacer></div>
+<div id="anchored"></div>
+<div id="anchor"></div>
+<div class=spacer></div>
+<script>
+  requestAnimationFrame(() => {
+    document.documentElement.scrollTop = 400;
+    requestAnimationFrame(() => {
+      anchored.style.positionArea = "bottom";
+      takeScreenshot();
+    });
+  });
+</script>

@@ -21,7 +21,7 @@
 </div>
 
 <script>
-test(t => {
+promise_test(async t => {
   t.add_cleanup(() => { if (popover.matches(':popover-open')) popover.hidePopover(); });
 
   input.focus();
@@ -35,6 +35,7 @@ test(t => {
   assert_false(document.body.matches(':focus-within'), 'body should not match :focus-within after showPopover');
 
   popover.hidePopover();
+  await new Promise(requestAnimationFrame);
   assert_true(input.matches(':focus'), 'input should still be focused after hidePopover');
   assert_true(container.matches(':focus-within'), 'container should match :focus-within after hidePopover');
   assert_true(document.body.matches(':focus-within'), 'body should match :focus-within after hidePopover');
@@ -58,6 +59,7 @@ promise_test(async t => {
   assert_false(document.body.matches(':hover'), 'body should not match :hover after showPopover');
 
   popover.hidePopover();
+  await new Promise(requestAnimationFrame);
   assert_true(hoverTarget.matches(':hover'), 'hoverTarget should still match :hover after hidePopover');
   assert_true(container.matches(':hover'), 'container should match :hover after hidePopover');
   assert_true(document.body.matches(':hover'), 'body should match :hover after hidePopover');

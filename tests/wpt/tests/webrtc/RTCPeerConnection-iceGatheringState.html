@@ -233,7 +233,8 @@ if (rest) {
     await pc2.setRemoteDescription({type: 'rollback'});
     await pc2.setRemoteDescription(offer);
   }, 'sRD does not cause ICE gathering state changes');
-
+}
+if (interop2026) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -259,9 +260,7 @@ if (rest) {
     assert_equals(pc1.iceGatheringState, 'new');
     await pc1waiter;
   }, 'renegotiation that closes all transports should result in ICE gathering state "new"');
-}
 
-if (interop2026) {
   /*
     4.3.2.  RTCIceGatheringState Enum
       new

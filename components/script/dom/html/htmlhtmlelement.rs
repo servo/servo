@@ -11,7 +11,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLHtmlElement {
@@ -31,17 +30,17 @@ impl HTMLHtmlElement {
     }
 
     pub(crate) fn new(
-        localName: LocalName,
+        cx: &mut js::context::JSContext,
+        local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLHtmlElement> {
         let n = Node::reflect_node_with_proto(
-            Box::new(HTMLHtmlElement::new_inherited(localName, prefix, document)),
+            cx,
+            Box::new(HTMLHtmlElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();

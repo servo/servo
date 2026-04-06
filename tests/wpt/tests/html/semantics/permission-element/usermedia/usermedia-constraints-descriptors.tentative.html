@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLUserMediaElement Test: permission descriptors from constraints</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+function run_test(video, audio, expected_video, expected_audio, description) {
+  return promise_test(async (t) => {
+    const usermedia = document.createElement('usermedia');
+    document.body.appendChild(usermedia);
+
+    const stream_promise = new Promise((resolve) => {
+      usermedia.onstream = resolve;
+    });
+
+    usermedia.setConstraints({video: video, audio: audio});
+
+    const permissions = [];
+    if (video) {
+      permissions.push(test_driver.set_permission({name: 'camera'}, 'granted'));
+    }
+    if (audio) {
+      permissions.push(test_driver.set_permission({name: 'microphone'}, 'granted'));
+    }
+
+    await Promise.all(permissions);
+    await test_driver.click(usermedia);
+
+    const e = await stream_promise;
+    assert_true(e.target.stream instanceof MediaStream);
+    assert_equals(e.target.stream.getVideoTracks().length, expected_video);
+    assert_equals(e.target.stream.getAudioTracks().length, expected_audio);
+  }, description);
+}
+
+run_test(true, undefined, 1, 0, "Setting video constraints triggers video stream");
+run_test(undefined, true, 0, 1, "Setting audio constraints triggers audio stream");
+run_test(true, true, 1, 1, "Setting both video and audio constraints triggers both streams");
+run_test(true, false, 1, 0, "Setting video: true and audio: false triggers video stream");
+run_test(false, true, 0, 1, "Setting video: false and audio: true triggers audio stream");
+</script>
+</body>

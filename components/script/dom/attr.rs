@@ -62,6 +62,7 @@ impl Attr {
     }
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         document: &Document,
         local_name: LocalName,
         value: AttrValue,
@@ -69,14 +70,13 @@ impl Attr {
         namespace: Namespace,
         prefix: Option<Prefix>,
         owner: Option<&Element>,
-        can_gc: CanGc,
     ) -> DomRoot<Attr> {
         Node::reflect_node(
+            cx,
             Box::new(Attr::new_inherited(
                 document, local_name, value, name, namespace, prefix, owner,
             )),
             document,
-            can_gc,
         )
     }
 

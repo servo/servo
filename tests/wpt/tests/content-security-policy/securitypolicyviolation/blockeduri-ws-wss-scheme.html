@@ -26,28 +26,28 @@ promise_test(async test => {
   const url = get_host_info().HTTP_ORIGIN.replace("http", "ws") + "/path";
   const violation = nextCSPViolation(test);
   try { new WebSocket(url); } catch (e) {}
-  assert_equals((await violation).blockedURI, url);
+  assert_equals((await violation).blockedURI, url.replace('ws://', 'http://'));
 }, "ws");
 
 promise_test(async test => {
   const url = get_host_info().HTTP_ORIGIN.replace("http", "wss") + "/path";
   const violation = nextCSPViolation(test);
   try { new WebSocket(url); } catch (e) {}
-  assert_equals((await violation).blockedURI, url);
+  assert_equals((await violation).blockedURI, url.replace('wss://', 'https://'));
 }, "wss");
 
 promise_test(async test => {
   const url = get_host_info().HTTP_REMOTE_ORIGIN.replace("http", "wss") + "/path";
   const violation = nextCSPViolation(test);
   try { new WebSocket(url); } catch (e) {}
-  assert_equals((await violation).blockedURI, url);
+  assert_equals((await violation).blockedURI, url.replace('wss://', 'https://'));
 }, "cross-origin");
 
 promise_test(async test => {
   const url = get_host_info().HTTP_ORIGIN.replace("http", "wss") + "/path";
   const violation = nextCSPViolation(test);
   try {new WebSocket(redirector + "?location=" + url); } catch (e) {}
-  assert_equals((await violation).blockedURI, url);
+  assert_equals((await violation).blockedURI, url.replace('wss://', 'https://'));
 }, "redirect");
 
 </script>

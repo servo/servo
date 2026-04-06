@@ -11,7 +11,6 @@ use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 use style::selector_parser::PseudoElement;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -243,7 +242,7 @@ fn create_ua_widget_div_with_text_node(
         .unwrap();
     el.upcast::<Node>()
         .set_implemented_pseudo_element(implemented_pseudo);
-    let text_node = document.CreateTextNode("".into(), CanGc::from_cx(cx));
+    let text_node = document.CreateTextNode(cx, "".into());
 
     if !as_first_child {
         el.upcast::<Node>()

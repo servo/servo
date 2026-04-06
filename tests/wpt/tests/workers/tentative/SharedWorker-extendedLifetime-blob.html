@@ -7,7 +7,6 @@
 <script>
 
 const createBlobWorkerAndStore = async (uuid) => {
-  await window.pageShowPromise;
   const script = `
     let stored_data = null;
     self.onconnect = e => {

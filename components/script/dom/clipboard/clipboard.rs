@@ -179,9 +179,9 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
 impl RoutedPromiseListener<Result<String, String>> for Clipboard {
     fn handle_response(
         &self,
+        cx: &mut js::context::JSContext,
         response: Result<String, String>,
         promise: &Rc<Promise>,
-        can_gc: CanGc,
     ) {
         let global = self.global();
         let text = response.unwrap_or_default();
@@ -206,7 +206,7 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
                 &global,
                 GlobalScope::get_cx(),
                 DOMString::from(text),
-                can_gc,
+                CanGc::from_cx(cx),
             ),
         };
 
@@ -227,13 +227,13 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
             &global,
             Some(fulfillment_handler),
             Some(rejection_handler),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         representation
             .data
-            .append_native_handler(&handler, comp, can_gc);
+            .append_native_handler(&handler, comp, CanGc::from_cx(cx));
 
         // Step 3.4.2 Reject p with "NotFoundError" DOMException in realm.
         // Step 3.4.3 Return p.

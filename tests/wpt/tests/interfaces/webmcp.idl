@@ -9,8 +9,7 @@ partial interface Navigator {
 
 [Exposed=Window, SecureContext]
 interface ModelContext {
-  undefined registerTool(ModelContextTool tool);
-  undefined unregisterTool(DOMString name);
+  undefined registerTool(ModelContextTool tool, optional ModelContextRegisterToolOptions options = {});
 };
 
 dictionary ModelContextTool {
@@ -26,6 +25,10 @@ dictionary ToolAnnotations {
 };
 
 callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient client);
+
+dictionary ModelContextRegisterToolOptions {
+  AbortSignal signal;
+};
 
 [Exposed=Window, SecureContext]
 interface ModelContextClient {

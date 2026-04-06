@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - radiogroup behavior token defaults</title>
+<meta name="assert" content="radiogroup implies both axes, wrap. Explicit inline restricts axis; nowrap suppresses wrapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="radiogroup">
+  <button id=rg1>rg1</button>
+  <button id=rg2>rg2</button>
+  <button id=rg3>rg3</button>
+</div>
+
+<!-- radiogroup inline: restricts both-axes fallback to inline only -->
+<div focusgroup="radiogroup inline">
+  <button id=rgi1>rgi1</button>
+  <button id=rgi2>rgi2</button>
+  <button id=rgi3>rgi3</button>
+</div>
+
+<!-- radiogroup nowrap: suppresses default wrap in both axes -->
+<div focusgroup="radiogroup nowrap">
+  <button id=rgnw1>rgnw1</button>
+  <button id=rgnw2>rgnw2</button>
+  <button id=rgnw3>rgnw3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rg2');
+  }, "radiogroup: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'rg1');
+  }, "radiogroup: ArrowLeft navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'rg2');
+  }, "radiogroup: ArrowDown navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg2'), kArrowUp);
+    assert_equals(document.activeElement.id, 'rg1');
+  }, "radiogroup: ArrowUp navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rg1');
+  }, "radiogroup: ArrowRight wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'rg3');
+  }, "radiogroup: ArrowLeft wraps at start");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'rg1');
+  }, "radiogroup: ArrowDown wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'rg3');
+  }, "radiogroup: ArrowUp wraps at start");
+
+  // --- radiogroup inline: restricts both-axes fallback to inline only ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rgi1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rgi2');
+  }, "radiogroup inline: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rgi1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'rgi1');
+  }, "radiogroup inline: ArrowDown blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rgi3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rgi1');
+  }, "radiogroup inline: ArrowRight wraps at end");
+
+  // --- radiogroup nowrap: suppresses default wrap in both axes ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rgnw1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rgnw2');
+  }, "radiogroup nowrap: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rgnw3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rgnw3');
+  }, "radiogroup nowrap: ArrowRight does not wrap at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rgnw3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'rgnw3');
+  }, "radiogroup nowrap: ArrowDown does not wrap at end");
+
+</script>

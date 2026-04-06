@@ -138,6 +138,8 @@ pub enum Resource {
     AboutMemoryHTML,
     /// RPC script for the Debugger API on behalf of devtools.
     DebuggerJS,
+    /// A HTML page to display a pretty printed view of a json document.
+    JsonViewerHTML,
 }
 
 impl Resource {
@@ -153,6 +155,7 @@ impl Resource {
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
             Resource::DebuggerJS => "debugger.js",
+            Resource::JsonViewerHTML => "json-viewer.html",
         }
     }
 }

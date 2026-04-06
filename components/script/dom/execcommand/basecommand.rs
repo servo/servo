@@ -2,12 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use servo_arc::Arc as ServoArc;
+use style::properties::declaration_block::PropertyDeclarationBlock;
+use style::properties::generated::LonghandId;
+use style::properties::{ComputedValues, PropertyDeclarationId};
+use style_traits::ToCss;
+
+use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::Element;
 use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
 use crate::dom::execcommand::commands::delete::execute_delete_command;
+use crate::dom::execcommand::commands::fontsize::{
+    execute_fontsize_command, value_for_fontsize_command,
+};
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::selection::Selection;
+use crate::script_runtime::CanGc;
 
 #[derive(Default, Clone, Copy, MallocSizeOf)]
 pub(crate) enum DefaultSingleLineContainerName {
@@ -25,11 +39,76 @@ impl From<DefaultSingleLineContainerName> for DOMString {
     }
 }
 
+/// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
+#[derive(Clone, Copy, Eq, PartialEq)]
+#[expect(unused)] // TODO(25005): implement all commands
+pub(crate) enum CssPropertyName {
+    BackgroundColor,
+    FontSize,
+    FontWeight,
+    FontStyle,
+}
+
+impl CssPropertyName {
+    fn resolved_value_for_node(&self, style: ServoArc<ComputedValues>) -> String {
+        match self {
+            CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
+            CssPropertyName::FontSize => style.clone_font_size().to_css_string(),
+            CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
+            CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
+        }
+    }
+
+    /// Retrieves a respective css longhand value from the style declarations of an
+    /// element. Note that this is different than the computed values, since this is
+    /// only relevant when the author specified rules on the specific element.
+    pub(crate) fn value_set_for_style(
+        &self,
+        style: &PropertyDeclarationBlock,
+    ) -> Option<DOMString> {
+        let longhand_id = match self {
+            CssPropertyName::BackgroundColor => LonghandId::BackgroundColor,
+            CssPropertyName::FontSize => LonghandId::FontSize,
+            CssPropertyName::FontWeight => LonghandId::FontWeight,
+            CssPropertyName::FontStyle => LonghandId::FontStyle,
+        };
+        style
+            .get(PropertyDeclarationId::Longhand(longhand_id))
+            .and_then(|value| {
+                let mut dest = String::new();
+                value.0.to_css(&mut dest).ok()?;
+                Some(dest.into())
+            })
+    }
+
+    fn property_name(&self) -> DOMString {
+        match self {
+            CssPropertyName::BackgroundColor => "background-color",
+            CssPropertyName::FontSize => "font-size",
+            CssPropertyName::FontWeight => "font-weight",
+            CssPropertyName::FontStyle => "font-style",
+        }
+        .into()
+    }
+
+    pub(crate) fn set_for_element(
+        &self,
+        cx: &mut js::context::JSContext,
+        element: &HTMLElement,
+        new_value: DOMString,
+    ) {
+        let style = element.Style(CanGc::from_cx(cx));
+
+        let _ = style.SetProperty(cx, self.property_name(), new_value, "".into());
+    }
+}
+
 #[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq)]
 #[expect(unused)] // TODO(25005): implement all commands
 pub(crate) enum CommandName {
     BackColor,
     Bold,
+    Copy,
     CreateLink,
     Cut,
     DefaultParagraphSeparator,
@@ -37,10 +116,12 @@ pub(crate) enum CommandName {
     FontName,
     FontSize,
     ForeColor,
+    FormatBlock,
     ForwardDelete,
     HiliteColor,
     Indent,
     InsertHorizontalRule,
+    InsertHtml,
     InsertLineBreak,
     InsertOrderedList,
     InsertParagraph,
@@ -84,15 +165,109 @@ impl CommandName {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value>
-    pub(crate) fn current_value(&self, document: &Document) -> Option<DOMString> {
+    pub(crate) fn current_value(
+        &self,
+        cx: &mut js::context::JSContext,
+        document: &Document,
+    ) -> Option<DOMString> {
         Some(match self {
             CommandName::DefaultParagraphSeparator => {
                 // https://w3c.github.io/editing/docs/execCommand/#the-defaultparagraphseparator-command
                 // > Return the context object's default single-line container name.
                 document.default_single_line_container_name().into()
             },
+            CommandName::FontSize => value_for_fontsize_command(cx, document)?,
             _ => return None,
         })
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#equivalent-values>
+    pub(crate) fn are_equivalent_values(
+        &self,
+        first: Option<&DOMString>,
+        second: Option<&DOMString>,
+    ) -> bool {
+        match (first, second) {
+            // > Two quantities are equivalent values for a command if either both are null,
+            (None, None) => true,
+            (Some(first_str), Some(second_str)) => {
+                // > or both are strings and the command defines equivalent values and they match the definition.
+                match self {
+                    CommandName::Bold => {
+                        // https://w3c.github.io/editing/docs/execCommand/#the-bold-command
+                        // > Either the two strings are equal, or one is "bold" and the other is "700",
+                        // > or one is "normal" and the other is "400".
+                        first_str == second_str ||
+                            matches!(
+                                (first_str.str().as_ref(), second_str.str().as_ref()),
+                                ("bold", "700") |
+                                    ("700", "bold") |
+                                    ("normal", "400") |
+                                    ("400", "normal")
+                            )
+                    },
+                    // > or both are strings and they're equal and the command does not define any equivalent values,
+                    _ => first_str == second_str,
+                }
+            },
+            _ => false,
+        }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
+    pub(crate) fn are_loosely_equivalent_values(
+        &self,
+        first: Option<&DOMString>,
+        second: Option<&DOMString>,
+    ) -> bool {
+        // > Two quantities are loosely equivalent values for a command if either they are equivalent values for the command,
+        self.are_equivalent_values(first, second)
+        // > or if the command is the fontSize command;
+        // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
+        // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
+        // > has the corresponding value set ("1" through "7" respectively).
+        // TODO
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
+    pub(crate) fn relevant_css_property(&self) -> Option<CssPropertyName> {
+        // > This is defined for certain inline formatting commands, and is used in algorithms specific to those commands.
+        // > It is an implementation detail, and is not exposed to authors.
+        Some(match self {
+            CommandName::FontSize => CssPropertyName::FontSize,
+            CommandName::Bold => CssPropertyName::FontWeight,
+            CommandName::Italic => CssPropertyName::FontStyle,
+            // > If a command does not have a relevant CSS property specified, it defaults to null.
+            _ => return None,
+        })
+    }
+
+    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+        let property = self.relevant_css_property()?;
+        element
+            .style()
+            .map(|style| property.resolved_value_for_node(style).into())
+    }
+
+    pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {
+        matches!(
+            self,
+            CommandName::Copy |
+                CommandName::Cut |
+                CommandName::DefaultParagraphSeparator |
+                CommandName::FormatBlock |
+                CommandName::ForwardDelete |
+                CommandName::InsertHtml |
+                CommandName::InsertLineBreak |
+                CommandName::InsertParagraph |
+                CommandName::InsertText |
+                CommandName::Paste |
+                CommandName::Redo |
+                CommandName::StyleWithCss |
+                CommandName::Undo |
+                CommandName::Usecss |
+                CommandName::Delete
+        )
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#action>
@@ -108,6 +283,7 @@ impl CommandName {
                 execute_default_paragraph_separator_command(document, value)
             },
             CommandName::Delete => execute_delete_command(cx, document, selection),
+            CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
             _ => false,
         }

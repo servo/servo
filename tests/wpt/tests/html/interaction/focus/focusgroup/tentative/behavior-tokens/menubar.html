@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - menubar behavior token defaults</title>
+<meta name="assert" content="menubar implies inline axis, wrap.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="menubar">
+  <button id=mb1>mb1</button>
+  <button id=mb2>mb2</button>
+  <button id=mb3>mb3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mb2');
+  }, "menubar: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'mb1');
+  }, "menubar: ArrowLeft navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'mb1');
+  }, "menubar: ArrowDown blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'mb1');
+  }, "menubar: ArrowUp blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mb1');
+  }, "menubar: ArrowRight wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'mb3');
+  }, "menubar: ArrowLeft wraps at start");
+
+</script>

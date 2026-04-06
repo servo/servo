@@ -85,7 +85,7 @@
   test(function() {
     let min_height = getComputedStyle(el_large_min_size).minHeight;
     assert_true(min_height === "calc(30px)" || min_height === "30px", "min-height");
-    assert_not_equals(getComputedStyle(el_outside_bounds).minWidth, "1000px", "min-width");
+    assert_not_equals(getComputedStyle(el_large_min_size).minWidth, "1000px", "min-width");
   }, "'Min' properties should not be allowed to go over the maximum allowed values for 'max' properties");
 
 </script>

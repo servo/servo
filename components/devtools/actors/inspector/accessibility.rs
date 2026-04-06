@@ -112,10 +112,7 @@ impl Actor for AccessibilityActor {
             },
             "getWalker" => {
                 // TODO: Create actual accessible walker
-                let actor = registry.new_name::<AccessibleWalkerActor>();
-                registry.register(AccessibleWalkerActor {
-                    name: actor.clone(),
-                });
+                let actor = AccessibleWalkerActor::register(registry);
                 let msg = GetWalkerReply {
                     from: self.name(),
                     walker: ActorMsg { actor },
@@ -151,6 +148,15 @@ impl Actor for SimulatorActor {
 #[derive(MallocSizeOf)]
 pub(crate) struct AccessibleWalkerActor {
     name: String,
+}
+
+impl AccessibleWalkerActor {
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
+    }
 }
 
 impl Actor for AccessibleWalkerActor {

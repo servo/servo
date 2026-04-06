@@ -4,69 +4,28 @@
 <link rel='help' href='https://github.com/whatwg/html/pull/11687'>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
 <body>
 <script type="module">
-  // Create a shadow root that references a CSS module specifier that hasn't
-  // been fetched yet. An empty placeholder sheet should be added to
-  // adoptedStyleSheets immediately, and populated when the fetch completes.
-  document.body.setHTMLUnsafe(
-    "<div id='host'>" +
-      "<template shadowrootmode='open' shadowrootadoptedstylesheets='./support/styles.css'>" +
-        "<span id='test_element'>Test content</span>" +
-      "</template>" +
-    "</div>"
-  );
+  promise_test(async (t) => {
+    // Create a shadow root that references a CSS module specifier that hasn't
+    // been fetched yet. An empty placeholder sheet should be added to
+    // adoptedStyleSheets immediately, and populated when the fetch completes.
+    const cssUrl = "./support/styles.css?async_fetch";
+    const { shadowRoot, testElement } = createStylesheetHost(cssUrl);
 
-  const host = document.getElementById("host");
-  const test_element = host.shadowRoot.getElementById("test_element");
-
-  // The module hasn't been fetched yet, but a placeholder sheet should be
-  // present in adoptedStyleSheets to preserve ordering.
-  test(function (t) {
-    assert_equals(
-      host.shadowRoot.adoptedStyleSheets.length,
-      1,
-      "adoptedStyleSheets should have a placeholder entry before the module is fetched.",
-    );
-    assert_equals(
-      host.shadowRoot.adoptedStyleSheets[0].cssRules.length,
-      0,
-      "The placeholder sheet should be empty before the fetch completes.",
-    );
-  }, "A placeholder sheet is added to adoptedStyleSheets before the fetch completes.");
-
-  test(function (t) {
-    assert_equals(getComputedStyle(test_element)
-      .color, "rgb(0, 0, 0)",
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before fetch: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before fetch: placeholder at index 0 should be empty.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
       "Styles should not yet be applied from the empty placeholder.");
-  }, "The placeholder sheet does not apply styles before the fetch completes.");
 
-  // Wait for the module to be fetched. We import it imperatively to ensure
-  // the fetch completes, and then verify the shadow root's adoptedStyleSheets
-  // was populated with the fetched styles.
-  const sheet = await import("./support/styles.css", { with: { type: "css" } });
+    await fetchAndWait(cssUrl);
 
-  test(function (t) {
-    assert_equals(
-      host.shadowRoot.adoptedStyleSheets.length,
-      1,
-      "adoptedStyleSheets should still have exactly one entry after fetch.",
-    );
-    assert_equals(
-      host.shadowRoot.adoptedStyleSheets[0].cssRules.length,
-      1,
-      "The fetched sheet should have one rule.",
-    );
-    assert_true(
-      host.shadowRoot.adoptedStyleSheets[0].cssRules[0].cssText.includes("blue"),
-      "The fetched sheet should contain the blue color rule from styles.css.",
-    );
-  }, "The fetched sheet replaces the placeholder with correct content.");
-
-  test(function (t) {
-    assert_equals(getComputedStyle(test_element)
-      .color, "rgb(0, 0, 255)",
+    assertSheetRule(shadowRoot, 0, "span { color: blue; }", "After fetch");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 255)",
       "Styles were applied after async fetch.");
-  }, "Styles are applied after the module is asynchronously fetched.");
+  }, "Async-fetched CSS module replaces placeholder and applies styles.");
 </script>
 </body>

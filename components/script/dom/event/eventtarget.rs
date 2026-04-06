@@ -63,6 +63,9 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
+use crate::dom::indexeddb::idbdatabase::IDBDatabase;
+use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -72,138 +75,13 @@ use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
-/// containing the values from
-/// <https://html.spec.whatwg.org/multipage/#globaleventhandlers> and
-/// <https://html.spec.whatwg.org/multipage/#windoweventhandlers> as well as
-/// specific attributes for elements
+/// Generated from WebIDL definitions of EventHandler attributes on interfaces
+/// that inherit from Node.
 static CONTENT_EVENT_HANDLER_NAMES: LazyLock<FxHashSet<&str>> = LazyLock::new(|| {
-    FxHashSet::from_iter([
-        "onabort",
-        "onauxclick",
-        "onbeforeinput",
-        "onbeforematch",
-        "onbeforetoggle",
-        "onblur",
-        "oncancel",
-        "oncanplay",
-        "oncanplaythrough",
-        "onchange",
-        "onclick",
-        "onclose",
-        "oncommand",
-        "oncontextlost",
-        "oncontextmenu",
-        "oncontextrestored",
-        "oncopy",
-        "oncuechange",
-        "oncut",
-        "ondblclick",
-        "ondrag",
-        "ondragend",
-        "ondragenter",
-        "ondragleave",
-        "ondragover",
-        "ondragstart",
-        "ondrop",
-        "ondurationchange",
-        "onemptied",
-        "onended",
-        "onerror",
-        "onfocus",
-        "onformdata",
-        "oninput",
-        "oninvalid",
-        "onkeydown",
-        "onkeypress",
-        "onkeyup",
-        "onload",
-        "onloadeddata",
-        "onloadedmetadata",
-        "onloadstart",
-        "onmousedown",
-        "onmouseenter",
-        "onmouseleave",
-        "onmousemove",
-        "onmouseout",
-        "onmouseover",
-        "onmouseup",
-        "onpaste",
-        "onpause",
-        "onplay",
-        "onplaying",
-        "onprogress",
-        "onratechange",
-        "onreset",
-        "onresize",
-        "onscroll",
-        "onscrollend",
-        "onsecuritypolicyviolation",
-        "onseeked",
-        "onseeking",
-        "onselect",
-        "onslotchange",
-        "onstalled",
-        "onsubmit",
-        "onsuspend",
-        "ontimeupdate",
-        "ontoggle",
-        "onvolumechange",
-        "onwaiting",
-        "onwebkitanimationend",
-        "onwebkitanimationiteration",
-        "onwebkitanimationstart",
-        "onwebkittransitionend",
-        "onwheel",
-        // https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
-        "onanimationstart",
-        "onanimationiteration",
-        "onanimationend",
-        "onanimationcancel",
-        // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
-        "ontransitionrun",
-        "ontransitionend",
-        "ontransitioncancel",
-        // https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
-        "onselectstart",
-        "onselectionchange",
-        // https://w3c.github.io/pointerevents/#extensions-to-the-globaleventhandlers-interface
-        "onpointercancel",
-        "onpointerdown",
-        "onpointerup",
-        "onpointermove",
-        "onpointerout",
-        "onpointerover",
-        "onpointerenter",
-        "onpointerleave",
-        "ongotpointercapture",
-        "onlostpointercapture",
-        // https://html.spec.whatwg.org/multipage/#windoweventhandlers
-        "onafterprint",
-        "onbeforeprint",
-        "onbeforeunload",
-        "onhashchange",
-        "onlanguagechange",
-        "onmessage",
-        "onmessageerror",
-        "onoffline",
-        "ononline",
-        "onpagehide",
-        "onpagereveal",
-        "onpageshow",
-        "onpageswap",
-        "onpopstate",
-        "onrejectionhandled",
-        "onstorage",
-        "onunhandledrejection",
-        "onunload",
-        // https://w3c.github.io/encrypted-media/#attributes-3
-        "onencrypted",
-        "onwaitingforkey",
-        // https://svgwg.org/svg2-draft/interact.html#AnimationEvents
-        "onbegin",
-        "onend",
-        "onrepeat",
-    ])
+    FxHashSet::from_iter(include!(concat!(
+        env!("OUT_DIR"),
+        "/ContentEventHandlerNames.rs"
+    )))
 });
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
@@ -1072,6 +950,26 @@ impl EventTarget {
                 node.GetParentNode()
                     .map(|parent| DomRoot::from_ref(parent.upcast::<EventTarget>()))
             });
+        }
+
+        // https://w3c.github.io/IndexedDB/#events
+        // The get the parent algorithm for an IDBRequest returns the request's transaction.
+        if let Some(request) = self.downcast::<IDBRequest>() {
+            return request
+                .transaction()
+                .map(|tx| DomRoot::from_ref(tx.upcast::<EventTarget>()));
+        }
+
+        // The get the parent algorithm for an IDBTransaction returns the transaction's connection.
+        if let Some(transaction) = self.downcast::<IDBTransaction>() {
+            return Some(DomRoot::from_ref(
+                transaction.get_db().upcast::<EventTarget>(),
+            ));
+        }
+
+        // The get the parent algorithm for an IDBDatabase returns null.
+        if self.downcast::<IDBDatabase>().is_some() {
+            return None;
         }
 
         None

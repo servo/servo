@@ -85,7 +85,9 @@ use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
-use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomObject, DomObjectWrap, reflect_dom_object_with_proto_and_cx,
+};
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
 };
@@ -351,7 +353,7 @@ impl Node {
         // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
 
         let context_document = context_element.owner_document();
-        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
+        let fragment = DocumentFragment::new(cx, &context_document);
 
         // Step 3. For each node in newChildren, append node to fragment.
         for child in new_children {
@@ -2806,24 +2808,28 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 }
 
 impl Node {
-    pub(crate) fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
+    pub(crate) fn reflect_node<N>(
+        cx: &mut js::context::JSContext,
+        node: Box<N>,
+        document: &Document,
+    ) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
-        Self::reflect_node_with_proto(node, document, None, can_gc)
+        Self::reflect_node_with_proto(cx, node, document, None)
     }
 
     pub(crate) fn reflect_node_with_proto<N>(
+        cx: &mut js::context::JSContext,
         node: Box<N>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         let window = document.window();
-        reflect_dom_object_with_proto(node, window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(node, window, proto, cx)
     }
 
     pub(crate) fn new_inherited(doc: &Document) -> Node {
@@ -2919,41 +2925,58 @@ impl Node {
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
-            _ => return Err(Error::HierarchyRequest(None)),
+            _ => {
+                return Err(Error::HierarchyRequest(Some(
+                    "Parent is not a Document, DocumentFragment, or Element node".to_owned(),
+                )));
+            },
         }
 
         // Step 2. If node is a host-including inclusive ancestor of parent, then throw a "HierarchyRequestError" DOMException.
         if node.is_host_including_inclusive_ancestor(parent) {
-            return Err(Error::HierarchyRequest(None));
+            return Err(Error::HierarchyRequest(Some(
+                "Node is a host-including inclusive ancestor of parent".to_owned(),
+            )));
         }
 
         // Step 3. If child is non-null and its parent is not parent, then throw a "NotFoundError" DOMException.
         if let Some(child) = child {
             if !parent.is_parent_of(child) {
-                return Err(Error::NotFound(None));
+                return Err(Error::NotFound(Some(
+                    "Child is non-null and its parent is not parent".to_owned(),
+                )));
             }
         }
 
-        // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
             // Step 5. If either node is a Text node and parent is a document,
-            // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
+            // or node is a doctype and parent is not a document,
+            // then throw a "HierarchyRequestError" DOMException.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest(None));
+                    return Err(Error::HierarchyRequest(Some(
+                        "Node is a Text node and parent is a document".to_owned(),
+                    )));
                 }
             },
             NodeTypeId::DocumentType => {
                 if !parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest(None));
+                    return Err(Error::HierarchyRequest(Some(
+                        "Node is a doctype and parent is not a document".to_owned(),
+                    )));
                 }
             },
             NodeTypeId::DocumentFragment(_) |
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
+            // Step 4. If node is not a DocumentFragment, DocumentType, Element,
+            // or CharacterData node, then throw a "HierarchyRequestError" DOMException.
             NodeTypeId::Document(_) | NodeTypeId::Attr => {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "Node is not a DocumentFragment, DocumentType, Element, or CharacterData node"
+                        .to_owned(),
+                )));
             },
         }
 
@@ -2989,14 +3012,18 @@ impl Node {
                 NodeTypeId::Element(_) => {
                     // Step 6."Element". parent has an element child, child is a doctype, or child is non-null and a doctype is following child.
                     if parent.child_elements().next().is_some() {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent has an element child".to_owned(),
+                        )));
                     }
                     if let Some(child) = child {
                         if child
                             .inclusively_following_siblings()
-                            .any(|child| child.is_doctype())
+                            .any(|following| following.is_doctype())
                         {
-                            return Err(Error::HierarchyRequest(None));
+                            return Err(Error::HierarchyRequest(Some(
+                                "Child is a doctype, or child is non-null and a doctype is following child".to_owned(),
+                            )));
                         }
                     }
                 },
@@ -3313,7 +3340,7 @@ impl Node {
         if string.is_empty() {
             Node::replace_all(cx, None, parent);
         } else {
-            let text = Text::new(string, &parent.owner_document(), CanGc::from_cx(cx));
+            let text = Text::new(cx, string, &parent.owner_document());
             Node::replace_all(cx, Some(text.upcast::<Node>()), parent);
         };
     }
@@ -3490,17 +3517,18 @@ impl Node {
             NodeTypeId::DocumentType => {
                 let doctype = node.downcast::<DocumentType>().unwrap();
                 let doctype = DocumentType::new(
+                    cx,
                     doctype.name().clone(),
                     Some(doctype.public_id().clone()),
                     Some(doctype.system_id().clone()),
                     &document,
-                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast::<Node>(doctype)
             },
             NodeTypeId::Attr => {
                 let attr = node.downcast::<Attr>().unwrap();
                 let attr = Attr::new(
+                    cx,
                     &document,
                     attr.local_name().clone(),
                     attr.value().clone(),
@@ -3508,17 +3536,16 @@ impl Node {
                     attr.namespace().clone(),
                     attr.prefix().cloned(),
                     None,
-                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast::<Node>(attr)
             },
             NodeTypeId::DocumentFragment(_) => {
-                let doc_fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));
+                let doc_fragment = DocumentFragment::new(cx, &document);
                 DomRoot::upcast::<Node>(doc_fragment)
             },
             NodeTypeId::CharacterData(_) => {
                 let cdata = node.downcast::<CharacterData>().unwrap();
-                cdata.clone_with_data(cdata.Data(), &document, CanGc::from_cx(cx))
+                cdata.clone_with_data(cx, cdata.Data(), &document)
             },
             NodeTypeId::Document(_) => {
                 // Step 1. Set copy’s encoding, content type, URL, origin, type, mode,
@@ -3741,9 +3768,7 @@ impl Node {
         } else {
             // Step 2. If string is not the empty string, then set node to
             // a new Text node whose data is string and node document is parent’s node document.
-            Some(DomRoot::upcast(
-                self.owner_doc().CreateTextNode(value, CanGc::from_cx(cx)),
-            ))
+            Some(DomRoot::upcast(self.owner_doc().CreateTextNode(cx, value)))
         };
 
         // Step 3. Replace all with node within parent.
@@ -3805,10 +3830,10 @@ impl Node {
 
     pub(crate) fn html_serialize(
         &self,
+        cx: &mut js::context::JSContext,
         traversal_scope: html_serialize::TraversalScope,
         serialize_shadow_roots: bool,
         shadow_roots: Vec<DomRoot<ShadowRoot>>,
-        can_gc: CanGc,
     ) -> DOMString {
         let mut writer = vec![];
         let mut serializer = HtmlSerializer::new(
@@ -3820,12 +3845,12 @@ impl Node {
         );
 
         serialize_html_fragment(
+            cx,
             self,
             &mut serializer,
             traversal_scope,
             serialize_shadow_roots,
             shadow_roots,
-            can_gc,
         )
         .expect("Serializing node failed");
 
@@ -3861,8 +3886,8 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
     pub(crate) fn fragment_serialization_algorithm(
         &self,
+        cx: &mut js::context::JSContext,
         require_well_formed: bool,
-        can_gc: CanGc,
     ) -> Fallible<DOMString> {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
@@ -3871,10 +3896,10 @@ impl Node {
         // with node, false, and « ».
         if context_document.is_html_document() {
             return Ok(self.html_serialize(
+                cx,
                 html_serialize::TraversalScope::ChildrenOnly(None),
                 false,
                 vec![],
-                can_gc,
             ));
         }
 

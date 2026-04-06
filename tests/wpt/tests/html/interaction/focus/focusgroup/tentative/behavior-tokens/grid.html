@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - grid behavior token defaults</title>
+<meta name="assert" content="grid enables row/column navigation with no wrapping by default.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<table focusgroup="grid">
+  <tr>
+    <td id=g1 tabindex=0>g1</td>
+    <td id=g2 tabindex=0>g2</td>
+  </tr>
+  <tr>
+    <td id=g3 tabindex=0>g3</td>
+    <td id=g4 tabindex=0>g4</td>
+  </tr>
+</table>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'g2');
+  }, "grid: ArrowRight moves to next column");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'g1');
+  }, "grid: ArrowLeft moves to previous column");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'g3');
+  }, "grid: ArrowDown moves to same column next row");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g3'), kArrowUp);
+    assert_equals(document.activeElement.id, 'g1');
+  }, "grid: ArrowUp moves to same column previous row");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g2'), kArrowRight);
+    assert_equals(document.activeElement.id, 'g2');
+  }, "grid: ArrowRight does not wrap at row end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'g1');
+  }, "grid: ArrowLeft does not wrap at row start");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'g3');
+  }, "grid: ArrowDown does not wrap at column end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'g1');
+  }, "grid: ArrowUp does not wrap at column start");
+
+</script>

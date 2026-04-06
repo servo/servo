@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets with invalid specifier</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script>
+  // --- Scenario 1: bare specifier with no import map entry. ---
+  // "not-a-valid-specifier" cannot be resolved without an import map, so
+  // it should be silently skipped and produce no entry in adoptedStyleSheets.
+  test(function (t) {
+    const { shadowRoot, testElement } = createStylesheetHost(
+      "not-a-valid-specifier");
+
+    assert_equals(
+      shadowRoot.adoptedStyleSheets.length,
+      0,
+      "An unresolvable specifier should not create any entry in adoptedStyleSheets.",
+    );
+    assert_equals(
+      getComputedStyle(testElement).color,
+      "rgb(0, 0, 0)",
+      "No styles should be applied from an unresolvable specifier.",
+    );
+  }, "Unresolvable bare specifier produces no entry and applies no styles.");
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "valid-css": "data:text/css,span { color: blue }"
+  }
+}
+</script>
+
+<script>
+  // --- Scenario 2: mix of invalid and valid specifiers. ---
+  // The invalid specifier should be skipped; the valid one should produce an
+  // entry. Using a data URL import map so the valid specifier resolves
+  // synchronously.
+  test(function (t) {
+    const { shadowRoot, testElement } = createStylesheetHost(
+      "bad-specifier valid-css also-bad");
+
+    assert_equals(
+      shadowRoot.adoptedStyleSheets.length,
+      1,
+      "Only the resolvable specifier should create an entry.",
+    );
+    assert_equals(
+      getComputedStyle(testElement).color,
+      "rgb(0, 0, 255)",
+      "The valid specifier's styles should be applied.",
+    );
+  }, "Mixed valid/invalid specifiers: only valid ones produce entries and apply styles.");
+</script>
+</body>

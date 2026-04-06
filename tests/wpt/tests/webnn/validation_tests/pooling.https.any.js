@@ -296,6 +296,17 @@ const tests = [
       label: label,
     },
   },
+  {
+    name: 'Throw if the product of window dimensions is too large',
+    input: {dataType: 'float16', shape: [1, 1, 1, 1]},
+    options: {
+      windowDimensions: [1000092567, 1152814792],
+      padding: [500046283, 500046283, 576407395, 576407396],
+      strides: [1, 1],
+      layout: 'nhwc',
+      label: label,
+    },
+  },
 ];
 
 tests.forEach(

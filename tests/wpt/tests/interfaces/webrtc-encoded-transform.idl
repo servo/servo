@@ -28,6 +28,15 @@ dictionary SFrameTransformOptions {
     required SFrameCipherSuite cipherSuite;
 };
 
+enum SFrameType {
+    "per-frame",
+    "per-packet"
+};
+
+dictionary RTCSFrameSenderTransformOptions : SFrameTransformOptions {
+    SFrameType type = "per-frame";
+};
+
 typedef [EnforceRange] unsigned long long SmallCryptoKeyID;
 typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 
@@ -43,7 +52,7 @@ interface mixin SFrameDecrypterManager {
 
 [Exposed=Window]
 interface RTCSFrameSenderTransform {
-    constructor(optional SFrameTransformOptions options = {});
+    constructor(optional RTCSFrameSenderTransformOptions options = {});
 };
 RTCSFrameSenderTransform includes SFrameEncrypterManager;
 
@@ -138,9 +147,20 @@ interface RTCEncodedAudioFrame {
     RTCEncodedAudioFrameMetadata getMetadata();
 };
 
+enum RTCRtpScriptTransformType {
+    "sframe"
+};
+
+dictionary WorkerAndParameters {
+     required Worker worker;
+     RTCRtpScriptTransformType type;
+};
+
+typedef (Worker or WorkerAndParameters) WorkerOrWorkerAndParameters;
+
 [Exposed=Window]
 interface RTCRtpScriptTransform {
-    constructor(Worker worker, optional any options, optional sequence<object> transfer);
+    constructor(WorkerOrWorkerAndParameters workerOrWorkerAndParameters, optional any options, optional sequence<object> transfer);
 };
 
 [Exposed=DedicatedWorker]

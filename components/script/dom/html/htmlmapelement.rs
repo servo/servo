@@ -38,17 +38,17 @@ impl HTMLMapElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLMapElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -65,7 +65,7 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
     make_getter!(Name, "name");
 
     // <https://html.spec.whatwg.org/multipage/#dom-map-name>
-    make_atomic_setter!(SetName, "name");
+    make_atomic_setter!(cx, SetName, "name");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-map-areas>
     fn Areas(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {

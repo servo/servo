@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+
+@keyframes fade-in {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+option {
+  opacity: 0;
+  animation: fade-in 100s forwards;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+const select = document.querySelector('select');
+const option = document.querySelector('option');
+
+promise_test(async () => {
+  // First open: animation should start.
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  const opacityFirstOpen = Number(getComputedStyle(option).opacity);
+  assert_greater_than(opacityFirstOpen, 0,
+    'Option opacity should be greater than 0 during first open (animation running).');
+
+  // Close the picker.
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  // Second open: animation should restart.
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  const opacitySecondOpen = Number(getComputedStyle(option).opacity);
+  assert_greater_than(opacitySecondOpen, 0,
+    'Option opacity should be greater than 0 during second open (animation restarted).');
+  assert_less_than(opacitySecondOpen, 1,
+    'Option opacity should be less than 1 during second open (animation still running, not stuck at final value from first open).');
+}, 'CSS animations on option elements restart when the base-select picker reopens.');
+</script>

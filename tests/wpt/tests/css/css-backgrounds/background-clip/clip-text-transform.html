@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>background-clip:text with CSS transforms</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-transform-ref.html">
+<style>
+body {
+  font-size: 40px;
+}
+.transformed {
+  transform: translateX(0);
+}
+.t {
+  background: blue;
+  background-clip: text;
+  color: rgba(255,0,0,0.5);
+}
+</style>
+<!-- Passes if all texts are purple. -->
+<div class="t">Text1</div>
+<div class="t transformed">Transformed2</div>
+<div class="t">Text3</div>
+<div class="t transformed">Transformed4</div>

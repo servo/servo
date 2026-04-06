@@ -24,6 +24,7 @@ promise_test(_ => {
               assert_equals(
                 error.name, testcase.error,
                 `Expect exception ${testcase.error}, but got ${error}.`);
+              assert_equals(div.firstChild, null);
               return;  // Early return in order to not trigger the subsequent
                        // assertions.
             }

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>background-clip:text with various descendant types (reference)</title>
+<style>
+body {
+  font-size: 40px;
+}
+.clip-text {
+  background: blue;
+  background-clip: text;
+  color: rgba(255,0,0,0.5);
+}
+</style>
+<!-- Passes if all texts are purple. -->
+<div class="clip-text">Block</div>
+<div class="clip-text">Block transformed</div>
+<div class="clip-text">Float</div>
+<div class="clip-text">Float transformed</div>
+<table><tr><td class="clip-text">Table</td></tr></table>
+<table><tr><td class="clip-text">Table transformed</td></tr></table>
+<div class="clip-text">Inline block</div>
+<div class="clip-text">Inline block transformed</div>

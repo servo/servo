@@ -66,6 +66,12 @@ for (const id of ['fallbackbutton', 'custombutton']) {
       'Select should be closed at the start of the test.');
     assert_equals(select.value, 'one',
       'Select.value should be one at the start of the test.');
+    assert_true(optionOne.matches(':checked'),
+      'Option one should match :checked at the start of the test.');
+    assert_false(optionTwo.matches(':checked'),
+      'Option two should not match :checked at the start of the test.');
+    assert_array_equals(Array.from(select.selectedOptions), [optionOne],
+      'selectedOptions should contain option one at the start of the test.');
 
     await test_driver.click(select);
     assert_true(select.matches(':open'),
@@ -84,6 +90,12 @@ for (const id of ['fallbackbutton', 'custombutton']) {
       'Select should be closed after clicking an option.');
     assert_equals(select.value, 'two',
       'Select.value should be two after clicking the option.');
+    assert_false(optionOne.matches(':checked'),
+      'Option one should not match :checked after clicking option two.');
+    assert_true(optionTwo.matches(':checked'),
+      'Option two should match :checked after clicking option two.');
+    assert_array_equals(Array.from(select.selectedOptions), [optionTwo],
+      'selectedOptions should contain option two after clicking option two.');
     assert_true(firedInput, 'The input event should be fired when choosing an option.');
     assert_true(firedChange, 'The change event should be fired when choosing an option.');
   }, `${id}: Clicking an option in an appearance:base-select select should choose the option and close the popover.`);

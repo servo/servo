@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>background-clip:text with CSS transforms (reference)</title>
+<style>
+body {
+  font-size: 40px;
+}
+.t {
+  background: blue;
+  background-clip: text;
+  color: rgba(255,0,0,0.5);
+}
+</style>
+<!-- Passes if all texts are purple. -->
+<div class="t">Text1</div>
+<div class="t">Transformed2</div>
+<div class="t">Text3</div>
+<div class="t">Transformed4</div>

@@ -83,6 +83,8 @@ use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{FontMetrics, GlyphStore};
+use icu_locid::LanguageIdentifier;
+use icu_locid::subtags::{Language, language};
 use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use layout_api::wrapper_traits::SharedSelection;
@@ -1822,10 +1824,14 @@ impl InlineFormattingContext {
             .last()
             .expect("Should have at least one SharedInlineStyle for the root of an IFC")
             .clone();
-        let (word_break, line_break) = {
+        let (word_break, line_break, lang) = {
             let styles = shared_inline_styles.style.borrow();
             let text_style = styles.get_inherited_text();
-            (text_style.word_break, text_style.line_break)
+            (
+                text_style.word_break,
+                text_style.line_break,
+                styles.get_font()._x_lang.clone(),
+            )
         };
 
         let mut options = LineBreakOptions::default();
@@ -1844,7 +1850,15 @@ impl InlineFormattingContext {
             WordBreak::BreakAll => LineBreakWordOption::BreakAll,
             WordBreak::KeepAll => LineBreakWordOption::KeepAll,
         };
-        options.ja_zh = false; // TODO: This should be true if the writing system is Chinese or Japanese.
+        // Enable Chinese/Japanese line breaking behavior when this inline formatting context
+        // has a Japanese or Chinese language set.
+        options.ja_zh = {
+            lang.0.parse::<LanguageIdentifier>().is_ok_and(|lang_id| {
+                const JA: Language = language!("ja");
+                const ZH: Language = language!("zh");
+                matches!(lang_id.language, JA | ZH)
+            })
+        };
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
         for item in &mut builder.inline_items {

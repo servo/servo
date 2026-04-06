@@ -16,7 +16,6 @@ use crate::dom::element::AttributeMutation;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 /// <https://svgwg.org/svg2-draft/embedded.html#Placement>
 const DEFAULT_WIDTH: u32 = 300;
@@ -39,17 +38,17 @@ impl SVGImageElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGImageElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGImageElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 

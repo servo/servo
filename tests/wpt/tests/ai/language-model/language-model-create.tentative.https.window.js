@@ -23,9 +23,7 @@ promise_test(async t => {
 
   assert_equals(typeof session.contextUsage, 'number');
   assert_equals(typeof session.contextWindow, 'number');
-  assert_equals(typeof session.topK, 'undefined');  // topK is deprecated.
-  assert_equals(
-      typeof session.temperature, 'undefined');  // temperature is deprecated.
+
 
   assert_equals(typeof session.oncontextoverflow, 'object');
 }, 'LanguageModel.create() returns a valid object with default options');
@@ -37,13 +35,6 @@ promise_test(async t => {
 promise_test(async t => {
   await testCreateMonitorWithAbort(t, createLanguageModel);
 }, 'Progress events are not emitted after aborted.');
-
-promise_test(async t => {
-  let session = await createLanguageModel({ topK: 3, temperature: 0.6 });
-  assert_equals(typeof session.topK, 'undefined');
-  assert_equals(typeof session.temperature, 'undefined');
-  assert_true(!!session);
-}, 'Create with topK and temperature');
 
 promise_test(async t => {
   let session = await createLanguageModel({

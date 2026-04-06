@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>background-clip:text on composited elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-composited-descendant-with-bg-color-ref.html">
+<style>
+.green {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  display: block;
+  padding: 10px;
+  background-clip: text;
+}
+.blue {
+  width: 50px;
+  height: 50px;
+  background-color: blue;
+  display: block;
+}
+.composited {
+  will-change: transform;
+}
+</style>
+<div class="green composited">
+  <div class="blue composited"></div>
+</div>

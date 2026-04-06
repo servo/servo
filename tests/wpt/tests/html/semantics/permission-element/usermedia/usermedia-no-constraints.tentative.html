@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLUserMediaElement Test: no constraints should not trigger stream</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const usermedia = document.createElement('usermedia');
+  document.body.appendChild(usermedia);
+
+  let stream_event_fired = false;
+  usermedia.onstream = () => {
+    stream_event_fired = true;
+  };
+
+  // We need to grant some permission to ensure that the failure to trigger
+  // a stream is due to missing constraints, not missing permissions.
+  await Promise.all([
+    test_driver.set_permission({name: 'camera'}, 'granted'),
+    test_driver.set_permission({name: 'microphone'}, 'granted')
+  ]);
+
+  await test_driver.click(usermedia);
+
+  // Wait a bit to see if 'onstream' fires.
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+
+  assert_false(stream_event_fired, "onstream event should not fire when no constraints are set");
+  assert_equals(usermedia.stream, null, "stream attribute should be null when no constraints are set");
+}, "A usermedia element with no constraints set should not trigger a stream request on click");
+
+promise_test(async (t) => {
+  const usermedia = document.createElement('usermedia');
+  document.body.appendChild(usermedia);
+
+  usermedia.setConstraints({video: false, audio: false});
+
+  let stream_event_fired = false;
+  usermedia.onstream = () => {
+    stream_event_fired = true;
+  };
+
+  await Promise.all([
+    test_driver.set_permission({name: 'camera'}, 'granted'),
+    test_driver.set_permission({name: 'microphone'}, 'granted')
+  ]);
+
+  await test_driver.click(usermedia);
+
+  // Wait a bit to see if 'onstream' fires.
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+
+  assert_false(stream_event_fired, "onstream event should not fire when constraints are explicitly false");
+  assert_equals(usermedia.stream, null, "stream attribute should be null when constraints are explicitly false");
+}, "A usermedia element with both video and audio constraints set to false should not trigger a stream request on click");
+
+promise_test(async (t) => {
+  const usermedia = document.createElement('usermedia');
+  document.body.appendChild(usermedia);
+
+  usermedia.setConstraints({video: true});
+
+  const stream_promise = new Promise((resolve) => {
+    usermedia.onstream = resolve;
+  });
+
+  await test_driver.set_permission({name: 'camera'}, 'granted');
+  await test_driver.click(usermedia);
+
+  const e = await stream_promise;
+  assert_true(e.target.stream instanceof MediaStream);
+  assert_equals(e.target.stream.getVideoTracks().length, 1);
+  assert_not_equals(usermedia.stream, null, "stream attribute should not be null when video constraints are set");
+}, "A usermedia element with video constraints set should trigger a stream request on click");
+</script>
+</body>

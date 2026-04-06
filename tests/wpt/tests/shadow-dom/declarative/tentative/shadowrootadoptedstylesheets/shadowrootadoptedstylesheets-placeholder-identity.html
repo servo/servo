@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets placeholder identity changes after fetch</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // The placeholder CSSStyleSheet created before fetch should be a different
+    // object from the CSSStyleSheet that replaces it after fetch completes.
+    const url = "./support/styles-red.css";
+    const { shadowRoot, testElement } = createStylesheetHost(url);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before fetch: expected 1 placeholder(s).");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before fetch: placeholder at index 0 should be empty.");
+
+    const placeholder = shadowRoot.adoptedStyleSheets[0];
+
+    await fetchAndWait(url);
+
+    const fetchedSheet = shadowRoot.adoptedStyleSheets[0];
+
+    assert_not_equals(fetchedSheet, placeholder,
+      "The fetched sheet should be a different object from the placeholder.");
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "Fetched sheet");
+    assert_equals(placeholder.cssRules.length, 0,
+      "The original placeholder object should still be empty.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(255, 0, 0)",
+      "Red styles from the fetched sheet should be applied.");
+  }, "Placeholder CSSStyleSheet is replaced by a different object after fetch.");
+</script>
+</body>

@@ -358,15 +358,26 @@ macro_rules! make_limited_uint_setter(
     };
 );
 
+macro_rules! make_atomic_setter_inner(
+    ( $self:ident, $value:ident, $htmlname:tt, $can_gc:expr ) => (
+        use $crate::dom::bindings::inheritance::Castable;
+        use $crate::dom::element::Element;
+        use $crate::script_runtime::CanGc;
+        let element = $self.upcast::<Element>();
+        element.set_atomic_attribute(&html5ever::local_name!($htmlname), $value, $can_gc)
+    );
+);
+
 #[macro_export]
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use $crate::dom::bindings::inheritance::Castable;
-            use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
-            let element = self.upcast::<Element>();
-            element.set_atomic_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            make_atomic_setter_inner!(self, value, $htmlname, CanGc::note());
+        }
+    );
+    ( $cx:ident, $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, $cx: &mut js::context::JSContext, value: DOMString) {
+            make_atomic_setter_inner!(self, value, $htmlname, CanGc::from_cx($cx));
         }
     );
 );

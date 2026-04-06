@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Collapsed border overflow in sideways-rl RTL composited table (reference)</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapsing">
+<style>
+body { margin: 60px; }
+div { display: inline-block; }
+table {
+    writing-mode: sideways-rl;
+    direction: rtl;
+    border-collapse: collapse;
+    border: none;
+}
+td {
+    width: 40px;
+    height: 40px;
+    padding: 5px;
+}
+.thin td { border: 2px solid blue; }
+.thick td { border: 40px solid orange; }
+</style>
+<div>
+    <table>
+        <tr class="thin"><td></td><td></td></tr>
+        <tr class="thick"><td></td><td></td></tr>
+    </table>
+</div>

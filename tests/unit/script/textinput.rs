@@ -223,20 +223,20 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
 fn test_textinput_delete_char() {
     let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.modify_edit_point(2, RopeMovement::Grapheme);
-    textinput.delete_char(Direction::Backward);
+    textinput.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 
-    textinput.delete_char(Direction::Forward);
+    textinput.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward);
     assert_eq!(textinput.get_content(), "adefg");
 
     textinput.modify_selection(2, RopeMovement::Grapheme);
-    textinput.delete_char(Direction::Forward);
+    textinput.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward);
     assert_eq!(textinput.get_content(), "afg");
 
     let mut textinput = text_input(Lines::Single, "a🌠b");
     // Same as "Right" key
     textinput.modify_edit_point(1, RopeMovement::Grapheme);
-    textinput.delete_char(Direction::Forward);
+    textinput.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Forward);
     // Not splitting surrogate pairs.
     assert_eq!(textinput.get_content(), "ab");
 
@@ -246,7 +246,7 @@ fn test_textinput_delete_char() {
         Utf8CodeUnitLength(2),
         SelectionDirection::None,
     );
-    textinput.delete_char(Direction::Backward);
+    textinput.delete_unit_or_selection(RopeMovement::Grapheme, Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 }
 

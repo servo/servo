@@ -540,7 +540,7 @@ impl ShapedGlyph {
     /// TODO: This should all likely move to layout. In particular, proper tab stops
     /// are context sensitive and be based on the size of the space character in the
     /// inline formatting context.
-    fn adjust_for_character(
+    pub(crate) fn adjust_for_character(
         &mut self,
         character: char,
         shaping_options: &ShapingOptions,
@@ -561,9 +561,11 @@ impl ShapedGlyph {
         // space (U+00A0) left in the text after the white space processing rules have been
         // applied. The effect of the property on other word-separator characters is undefined."
         // We elect to only space the two required code points.
-        if character == ' ' || character == '\u{a0}' {
-            // https://drafts.csswg.org/css-text-3/#word-spacing-property
-            self.advance += shaping_options.word_spacing;
+        if let Some(word_spacing) = shaping_options.word_spacing {
+            if character == ' ' || character == '\u{a0}' {
+                // https://drafts.csswg.org/css-text-3/#word-spacing-property
+                self.advance += word_spacing;
+            }
         }
     }
 }

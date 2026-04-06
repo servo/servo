@@ -1,0 +1,269 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: monospace;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        color: #333;
+      }
+
+      #json-raw {
+        display: none;
+      }
+
+      #viewer {
+        display: none;
+        padding: 0.5em 1em;
+        line-height: 1.5;
+
+        &.active {
+          display: block;
+        }
+      }
+
+      #toolbar {
+        display: flex;
+        gap: 1em;
+        padding: 0.5em;
+        align-items: center;
+        background: #f5f5f5;
+        border-bottom: 1px solid #ddd;
+
+        & button {
+          min-width: 5em;
+
+          &.active {
+            background: #ddd;
+            font-weight: bold;
+          }
+        }
+      }
+
+      #raw-view {
+        display: none;
+        padding: 0.5em 1em;
+        white-space: pre-wrap;
+        word-break: break-all;
+
+        &.active {
+          display: block;
+        }
+      }
+
+      .json-error {
+        padding: 0.5em 1em;
+        color: #c00;
+        font-weight: bold;
+      }
+
+      /* Syntax highlighting for Json data types */
+      .json-key {
+        color: #881391;
+      }
+
+      .json-string {
+        color: #1a1aa6;
+      }
+
+      .json-number {
+        color: #1c00cf;
+      }
+
+      .json-boolean {
+        color: #0d22aa;
+      }
+
+      .json-null {
+        color: #808080;
+      }
+
+      /* Collapsible tree */
+      .toggle {
+        cursor: pointer;
+        user-select: none;
+
+        &::before {
+          content: "\25BC";
+          display: inline-block;
+          width: 1em;
+          transition: transform 0.1s;
+        }
+
+        &.collapsed::before {
+          transform: rotate(-90deg);
+        }
+      }
+
+      .collapsible {
+        margin-left: 1.5em;
+
+        &.hidden {
+          display: none;
+        }
+      }
+
+      .bracket {
+        color: #333;
+      }
+
+      .comma {
+        color: #333;
+      }
+
+      .line {
+        padding-left: 0;
+      }
+    </style>
+    <script>
+      // Shortcut to create an element with an optional class and text content.
+      function createElement(name, classes = null, textContent = null) {
+        let node = document.createElement(name);
+        if (classes) {
+          node.className = classes;
+        }
+        if (textContent) {
+          node.textContent = textContent;
+        }
+        return node;
+      }
+
+      function renderNode(value, container) {
+        if (value === null) {
+          let s = createElement("span", "json-null", "null");
+          container.append(s);
+        } else if (typeof value === "boolean") {
+          let s = createElement("span", "json-boolean", String(value));
+          container.append(s);
+        } else if (typeof value === "number") {
+          let s = createElement("span", "json-number", String(value));
+          container.append(s);
+        } else if (typeof value === "string") {
+          let s = createElement("span", "json-string", JSON.stringify(value));
+          container.append(s);
+        } else if (Array.isArray(value)) {
+          renderArray(value, container);
+        } else if (typeof value === "object") {
+          renderObject(value, container);
+        }
+      }
+
+      function renderObject(obj, container) {
+        let keys = Object.keys(obj);
+        if (keys.length === 0) {
+          container.append(createElement("span", "bracket", "{}"));
+          return;
+        }
+
+        let toggle = createElement("span", "toggle");
+        container.append(toggle);
+
+        container.append(createElement("span", "bracket", "{"));
+
+        let inner = createElement("div", "collapsible");
+        container.append(inner);
+
+        keys.forEach((key, i) => {
+          let line = createElement("div", "line");
+          line.append(createElement("span", "json-key", JSON.stringify(key)));
+          line.append(document.createTextNode(": "));
+          renderNode(obj[key], line);
+          if (i < keys.length - 1) {
+            line.append(createElement("span", "comma", ","));
+          }
+          inner.append(line);
+        });
+
+        container.append(createElement("span", "bracket", "}"));
+
+        toggle.onclick = function () {
+          toggle.classList.toggle("collapsed");
+          inner.classList.toggle("hidden");
+        };
+      }
+
+      function renderArray(arr, container) {
+        if (arr.length === 0) {
+          container.append(createElement("span", "bracket", "[]"));
+          return;
+        }
+
+        let toggle = createElement("span", "toggle");
+        container.append(toggle);
+
+        container.append(createElement("span", "bracket", "["));
+
+        let inner = createElement("div", "collapsible");
+        container.append(inner);
+
+        arr.forEach((item, i) => {
+          let line = createElement("div", "line");
+          renderNode(item, line);
+          if (i < arr.length - 1) {
+            line.append(createElement("span", "comma", ","));
+          }
+          inner.append(line);
+        });
+
+        container.append(createElement("span", "bracket", "]"));
+
+        toggle.onclick = function () {
+          toggle.classList.toggle("collapsed");
+          inner.classList.toggle("hidden");
+        };
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const viewer = document.getElementById("viewer");
+        const prettyButton = document.getElementById("pretty-toggle");
+        const rawButton = document.getElementById("raw-toggle");
+        const rawView = document.getElementById("raw-view");
+        const rawText = rawView.innerText;
+
+        let data;
+        let parseError = null;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          parseError = e;
+        }
+
+        if (parseError) {
+          let errDiv = createElement(
+            "div",
+            "json-error",
+            "Invalid JSON: " + parseError.message,
+          );
+          viewer.append(errDiv);
+          viewer.append(createElement("pre", null, rawText));
+        } else {
+          renderNode(data, viewer);
+          rawView.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Toggle buttons
+        prettyButton.onclick = function () {
+          viewer.classList.add("active");
+          rawView.classList.remove("active");
+
+          prettyButton.classList.add("active");
+          rawButton.classList.remove("active");
+        };
+        rawButton.onclick = function () {
+          rawView.classList.add("active");
+          viewer.classList.remove("active");
+
+          rawButton.classList.add("active");
+          prettyButton.classList.remove("active");
+        };
+      });
+    </script>
+  </head>
+  <body>
+    <div id="toolbar">
+      <button id="pretty-toggle" class="active">Pretty</button>
+      <button id="raw-toggle">Raw</button>
+    </div>
+    <div id="viewer" class="active"></div>
+    <pre id="raw-view">

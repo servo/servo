@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - toolbar behavior token defaults</title>
+<meta name="assert" content="toolbar implies inline axis, no wrap. Explicit wrap adds wrapping.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="toolbar">
+  <button id=tb1>tb1</button>
+  <button id=tb2>tb2</button>
+  <button id=tb3>tb3</button>
+</div>
+
+<!-- toolbar wrap: adds wrapping to non-wrapping default -->
+<div focusgroup="toolbar wrap">
+  <button id=tw1>tw1</button>
+  <button id=tw2>tw2</button>
+  <button id=tw3>tw3</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tb2');
+  }, "toolbar: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb2'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tb1');
+  }, "toolbar: ArrowLeft navigates to the previous item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tb1');
+  }, "toolbar: ArrowDown blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb1'), kArrowUp);
+    assert_equals(document.activeElement.id, 'tb1');
+  }, "toolbar: ArrowUp blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tb3');
+  }, "toolbar: ArrowRight does not wrap at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tb1');
+  }, "toolbar: ArrowLeft does not wrap at start");
+
+  // --- toolbar wrap: adds wrapping to non-wrapping default ---
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tw1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tw2');
+  }, "toolbar wrap: ArrowRight navigates to the next item");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tw3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tw1');
+  }, "toolbar wrap: ArrowRight wraps at end");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tw1'), kArrowLeft);
+    assert_equals(document.activeElement.id, 'tw3');
+  }, "toolbar wrap: ArrowLeft wraps at start");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tw1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tw1');
+  }, "toolbar wrap: ArrowDown still blocked");
+
+</script>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/metadata/resources/helper.js></script>
+<script src=/common/utils.js></script>
+<script>
+
+  promise_test(async t => {
+    const key = "text-destination" + token();
+    await import("/fetch/metadata/resources/record-header.py?file=" + key);
+    const expected = {"site": "same-origin", "user": "", "mode": "cors", "dest": "text"};
+    await validate_expectations(key, expected);
+  }, "The fetch metadata for text module");
+
+</script>
+<body></body>

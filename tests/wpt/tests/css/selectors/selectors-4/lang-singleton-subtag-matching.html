@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CSS Selectors 4 - :lang extended filtering with singleton subtags</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#the-lang-pseudo">
+<link rel="help" href="https://www.rfc-editor.org/rfc/rfc4647#section-3.4">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<div lang="fr-x"></div>
+<div lang="fr-x-xenomorph"></div>
+<div lang="fr-xenomorph"></div>
+<div lang="cocoa-1-bar"></div>
+<div lang="cocoa-a-bar"></div>
+<div lang="en-x-private"></div>
+<div lang="zh-x"></div>
+<div lang="zh-x-foobar"></div>
+
+<script>
+// Per RFC 4647 Section 3.4, singleton subtags (single-character subtags) in the
+// language tag should block *skipping* during extended filtering (step 3D), but
+// should NOT prevent *matching* when the range subtag equals the tag subtag (step 3C).
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(fr-x)').length, 2);
+}, ':lang(fr-x) matches lang="fr-x" and lang="fr-x-xenomorph" (singleton "x" matches)');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(fr-x)').length, 2);
+    var matched = document.querySelectorAll(':lang(fr-x)');
+    assert_equals(matched[0].getAttribute('lang'), 'fr-x');
+    assert_equals(matched[1].getAttribute('lang'), 'fr-x-xenomorph');
+}, ':lang(fr-x) matches the correct elements');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(fr-xenomorph)').length, 1);
+}, ':lang(fr-xenomorph) only matches lang="fr-xenomorph" (not lang="fr-x-xenomorph")');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(cocoa-1)').length, 1);
+    assert_equals(document.querySelectorAll(':lang(cocoa-1)')[0].getAttribute('lang'), 'cocoa-1-bar');
+}, ':lang(cocoa-1) matches lang="cocoa-1-bar" (singleton "1" matches)');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(cocoa-a)').length, 1);
+    assert_equals(document.querySelectorAll(':lang(cocoa-a)')[0].getAttribute('lang'), 'cocoa-a-bar');
+}, ':lang(cocoa-a) matches lang="cocoa-a-bar" (singleton "a" matches)');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(cocoa-bar)').length, 0);
+}, ':lang(cocoa-bar) does not match lang="cocoa-1-bar" (cannot skip past singleton "1")');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(en-x)').length, 1);
+    assert_equals(document.querySelectorAll(':lang(en-x)')[0].getAttribute('lang'), 'en-x-private');
+}, ':lang(en-x) matches lang="en-x-private" (private-use singleton)');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(zh-x)').length, 2);
+}, ':lang(zh-x) matches both lang="zh-x" and lang="zh-x-foobar"');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(en-private)').length, 0);
+}, ':lang(en-private) does not match lang="en-x-private" (cannot skip past singleton "x")');
+</script>
+
+<div id="log"></div>
+
+</body>
+</html>
