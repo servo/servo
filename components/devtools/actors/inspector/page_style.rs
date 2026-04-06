@@ -136,27 +136,27 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
-        let target = msg
+        let node_name = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node_actor = registry.find::<NodeActor>(target);
+        let node_actor = registry.find::<NodeActor>(node_name);
         let walker = registry.find::<WalkerActor>(&node_actor.walker);
         let browsing_context_actor = walker.browsing_context_actor(registry);
         let entries: Vec<_> = find_child(
             &node_actor.script_chan,
             node_actor.pipeline,
-            target,
+            node_name,
             registry,
             &walker.root(registry)?.actor,
             vec![],
-            |msg| msg.actor == target,
+            |msg| msg.actor == node_name,
         )
         .unwrap_or_default()
         .into_iter()
         .flat_map(|node| {
-            let inherited = (node.actor != target).then(|| node.actor.clone());
+            let inherited = (node.actor != node_name).then(|| node.actor.clone());
             let node_actor = registry.find::<NodeActor>(&node.actor);
 
             // Get the css selectors that match this node present in the currently active stylesheets.
@@ -226,12 +226,12 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
-        let target = msg
+        let node_name = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node_actor = registry.find::<NodeActor>(target);
+        let node_actor = registry.find::<NodeActor>(node_name);
         let computed = (|| match node_actor
             .style_rules
             .borrow_mut()
@@ -239,7 +239,7 @@ impl PageStyleActor {
         {
             Entry::Vacant(e) => {
                 let name = registry.new_name::<StyleRuleActor>();
-                let actor = StyleRuleActor::new(name.clone(), target.into(), None);
+                let actor = StyleRuleActor::new(name.clone(), node_name.into(), None);
                 let computed = actor.computed(registry)?;
                 registry.register(actor);
                 e.insert(name);
