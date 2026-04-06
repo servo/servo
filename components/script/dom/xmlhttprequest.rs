@@ -80,6 +80,7 @@ use crate::network_listener::{self, FetchResponseListener, ResourceTimingListene
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum XMLHttpRequestState {
@@ -218,7 +219,7 @@ pub(crate) struct XMLHttpRequest {
     #[no_trace]
     request_method: DomRefCell<Method>,
     #[no_trace]
-    request_url: DomRefCell<Option<ServoUrl>>,
+    request_url: DomRefCell<Option<UrlWithBlobClaim>>,
     #[no_trace]
     request_headers: DomRefCell<HeaderMap>,
     request_body_len: Cell<usize>,
@@ -331,8 +332,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         username: Option<USVString>,
         password: Option<USVString>,
     ) -> ErrorResult {
-        // Step 1
-        if let Some(window) = DomRoot::downcast::<Window>(self.global()) {
+        // Step 1. If this’s relevant global object is a Window object and its associated
+        // Document is not fully active, then throw an "InvalidStateError" DOMException.
+        let global = self.global();
+        if let Some(window) = global.downcast::<Window>() {
             if !window.Document().is_fully_active() {
                 return Err(Error::InvalidState(None));
             }
@@ -364,24 +367,36 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                     return Err(Error::Syntax(None));
                 }
 
-                // Step 5 and 6
-                let mut parsed_url = match self.global().encoding_parse_a_url(&url.0) {
+                // Step 5. Let parsedURL be the result of encoding-parsing a URL url, relative to this’s
+                // relevant settings object.
+                let mut parsed_url = match self
+                    .global()
+                    .encoding_parse_a_url(&url.0)
+                    .map(|url| ensure_blob_referenced_by_url_is_kept_alive(&global, url))
+                {
                     Ok(parsed) => parsed,
-                    // Step 7
-                    Err(_) => return Err(Error::Syntax(None)),
+                    Err(_) => {
+                        // Step 6. If parsedURL is failure, then throw a "SyntaxError" DOMException.
+                        return Err(Error::Syntax(None));
+                    },
                 };
 
-                // Step 9
+                // Step 8. If parsedURL’s host is non-null, then:
                 if parsed_url.host().is_some() {
+                    // Step 8.1 If the username argument is not null, set the username given parsedURL and username.
                     if let Some(user_str) = username {
                         parsed_url.set_username(&user_str.0).unwrap();
                     }
+
+                    // Step 8.2 If the password argument is not null, set the password given parsedURL and password.
                     if let Some(pass_str) = password {
                         parsed_url.set_password(Some(&pass_str.0)).unwrap();
                     }
                 }
 
-                // Step 10
+                // Step 9. If async is false, the current global object is a Window object, and
+                // either this’s timeout is not 0 or this’s response type is not the empty string,
+                // then throw an "InvalidAccessError" DOMException.
                 if !asynch {
                     // FIXME: This should only happen if the global environment is a document environment
                     if !self.timeout.get().is_zero() ||
@@ -390,7 +405,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                         return Err(Error::InvalidAccess(None));
                     }
                 }
-                // Step 11 - abort existing requests
+
+                // Step 10. Terminate this’s fetch controller.
                 self.terminate_ongoing_fetch();
 
                 // FIXME(#13767): In the WPT test: FileAPI/blob/Blob-XHR-revoke.html,
@@ -537,16 +553,18 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         data: Option<DocumentOrXMLHttpRequestBodyInit>,
     ) -> ErrorResult {
         let can_gc = CanGc::from_cx(cx);
-        // Step 1, 2
+        // Step 1. If this’s state is not opened, then throw an "InvalidStateError" DOMException.
+        // Step 2. If this’s send() flag is set, then throw an "InvalidStateError" DOMException.
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState(None));
         }
 
-        // Step 3
+        // Step 3. If this’s request method is `GET` or `HEAD`, then set body to null.
         let data = match *self.request_method.borrow() {
             Method::GET | Method::HEAD => None,
             _ => data,
         };
+
         // Step 4 (first half)
         let mut extracted_or_serialized = match data {
             Some(DocumentOrXMLHttpRequestBodyInit::Document(ref doc)) => {
@@ -624,33 +642,41 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 .map_or(0, |e| e.total_bytes.unwrap_or(0)),
         );
 
-        // Step 5
+        // Step 5. If one or more event listeners are registered on this’s upload object,
+        // then set this’s upload listener flag.
         // If we dont have data to upload, we dont want to emit events
         let has_handlers = self.upload.upcast::<EventTarget>().has_handlers();
         self.upload_listener.set(has_handlers && data.is_some());
 
         // todo preserved headers?
 
-        // Step 7
+        // Step 7. Unset this’s upload complete flag.
         self.upload_complete.set(false);
-        // Step 8
+
+        // Step 8. Unset this’s timed out flag.
         // FIXME handle the 'timed out flag'
-        // Step 9
+
+        // Step 9. If req’s body is null, then set this’s upload complete flag.
         self.upload_complete.set(extracted_or_serialized.is_none());
-        // Step 10
+
+        // Step 10. Set this’s send() flag.
         self.send_flag.set(true);
 
-        // Step 11
+        // Step 11. If this’s synchronous flag is unset, then:
         if !self.sync.get() {
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
-            // Substep 1
             let gen_id = self.generation_id.get();
+
+            // Step 11.1 Fire a progress event named loadstart at this with 0 and 0.
             self.dispatch_response_progress_event(atom!("loadstart"), can_gc);
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
-            // Substep 2
+
+            // Step 11.2 If this’s upload complete flag is unset and this’s upload listener flag is set,
+            // then fire a progress event named loadstart at this’s upload object with requestBodyTransmitted
+            // and requestBodyLength.
             if !self.upload_complete.get() && self.upload_listener.get() {
                 self.dispatch_upload_progress_event(atom!("loadstart"), Ok(Some(0)), can_gc);
                 if self.generation_id.get() != gen_id {
@@ -680,9 +706,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         let global = self.global();
         let mut request = RequestBuilder::new(
             global.webview_id(),
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(
-                self.request_url.borrow().clone().unwrap(),
-            ),
+            self.request_url.borrow().clone().unwrap(),
             self.referrer.clone(),
         )
         .method(self.request_method.borrow().clone())
