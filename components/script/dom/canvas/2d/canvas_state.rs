@@ -13,8 +13,8 @@ use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::{Vector2D, vec2};
 use fonts::{
-    FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
-    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
+    FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef, ShapingFlags,
+    ShapingOptions,
 };
 use icu_locid::subtags::Language;
 use js::context::JSContext;
@@ -2486,14 +2486,9 @@ impl UnshapedTextRun<'_> {
         debug_assert!(!self.string.is_empty() && self.font.is_some());
         let font = self.font?;
 
-        let word_spacing = Au::from_f64_px(
-            font.glyph_index(' ')
-                .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                .unwrap_or(LAST_RESORT_GLYPH_ADVANCE),
-        );
         let options = ShapingOptions {
             letter_spacing: None,
-            word_spacing,
+            word_spacing: None,
             script: self.script,
             language: self.language,
             flags: ShapingFlags::empty(),
