@@ -9,7 +9,6 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
-use js::gc::RootedTraceableBox;
 use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
@@ -20,6 +19,7 @@ use js::rust::wrappers2::{
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
+use script_bindings::trace::RootedTraceableBox;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
@@ -36,7 +36,6 @@ use crate::script_runtime::CanGc;
 use crate::unminify::unminify_js;
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ClassicScript {
     /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
@@ -76,7 +75,6 @@ pub(crate) enum RethrowErrors {
 impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-classic-script>
     #[expect(clippy::too_many_arguments)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn create_a_classic_script(
         &self,
         cx: &mut JSContext,
@@ -144,7 +142,6 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn run_a_classic_script(
         &self,
         cx: &mut JSContext,
