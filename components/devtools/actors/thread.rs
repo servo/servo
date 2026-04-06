@@ -149,10 +149,7 @@ impl Actor for ThreadActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "attach" => {
-                let pause_name = registry.new_name::<PauseActor>();
-                registry.register(PauseActor {
-                    name: pause_name.clone(),
-                });
+                let pause_name = PauseActor::register(registry);
                 let msg = ThreadAttached {
                     from: self.name(),
                     type_: "paused".to_owned(),

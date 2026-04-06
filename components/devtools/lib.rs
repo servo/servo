@@ -807,10 +807,7 @@ impl DevtoolsInstance {
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let pause_name = self.registry.new_name::<PauseActor>();
-        self.registry.register(PauseActor {
-            name: pause_name.clone(),
-        });
+        let pause_name = PauseActor::register(&self.registry);
 
         let frame_actor = self.registry.find::<FrameActor>(&frame_offset.actor);
         frame_actor.set_offset(frame_offset.column, frame_offset.line);
