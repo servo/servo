@@ -439,11 +439,11 @@ impl ResourceAvailable for WatcherActor {
 }
 
 impl WatcherActor {
-    pub fn new(
+    pub fn register(
         registry: &ActorRegistry,
         browsing_context_name: String,
         session_context: SessionContext,
-    ) -> Self {
+    ) -> String {
         let network_parent_name = NetworkParentActor::register(registry);
         let target_configuration =
             TargetConfigurationActor::new(registry.new_name::<TargetConfigurationActor>());
@@ -451,8 +451,9 @@ impl WatcherActor {
         let breakpoint_list_name =
             BreakpointListActor::register(registry, browsing_context_name.clone());
 
-        let watcher_actor = Self {
-            name: registry.new_name::<WatcherActor>(),
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             browsing_context_name,
             network_parent_name,
             target_configuration: target_configuration.name(),
@@ -463,7 +464,9 @@ impl WatcherActor {
 
         registry.register(target_configuration);
 
-        watcher_actor
+        registry.register::<Self>(actor);
+
+        name
     }
 
     pub fn emit_will_navigate<'a>(
