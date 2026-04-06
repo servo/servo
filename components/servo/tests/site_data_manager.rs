@@ -634,7 +634,7 @@ fn test_get_cookie() {
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.clone().into_url())
+        .url(url.url().into_url())
         .build();
 
     // Wait for LoadStatus::Complete to ensure the HTTP response and Set-Cookie header are processed.
@@ -644,7 +644,7 @@ fn test_get_cookie() {
     let cookies = servo_test
         .servo()
         .site_data_manager()
-        .cookies_for_url(url.into_url(), CookieSource::NonHTTP);
+        .cookies_for_url(url.url().into_url(), CookieSource::NonHTTP);
     assert_eq!(cookies.len(), 1);
     assert_eq!(cookies[0].name(), "foo");
     assert_eq!(cookies[0].value(), "bar");
@@ -667,7 +667,7 @@ fn test_set_cookie() {
             *response.body_mut() = make_body(b"<!DOCTYPE html><p>hi</p>".to_vec());
         };
     let (server, url) = make_server(handler);
-    let page_url = url.clone().into_url();
+    let page_url = url.url().into_url();
 
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let delegate_clone = delegate.clone();

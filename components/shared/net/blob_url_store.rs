@@ -78,7 +78,7 @@ pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'stati
 }
 
 /// This type upholds the variant that if the URL is a valid `blob` URL, then it has
-/// a token. Violating this invariant does not cause logic errors, just unsafety.
+/// a token. Violating this invariant causes logic errors, but no unsafety.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct UrlWithBlobClaim {
     url: ServoUrl,
@@ -169,7 +169,7 @@ impl serde::Serialize for TokenSerializationGuard {
         let result = new_token.serialize(serializer);
         if result.is_ok() {
             // This token belongs to whoever receives the serialized message, so don't free it.
-            new_token.neuter();
+            new_token.disown();
         }
         result
     }
@@ -213,10 +213,12 @@ pub struct BlobResolver<'a> {
 }
 
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+/// A reference to a blob URL that will revoke the blob when dropped,
+/// unless the `disown` method is invoked.
 pub struct BlobToken {
     pub token: Uuid,
     pub file_id: Uuid,
-    pub neutered: bool,
+    pub disowned: bool,
     pub origin: ImmutableOrigin,
     // We need a mutex here because BlobTokens are shared among threads, and accessing
     // `GenericSender<CoreResourceMsg>` from different threads is not safe.
@@ -259,13 +261,14 @@ impl BlobToken {
             token: new_token,
             file_id: self.file_id,
             communicator: self.communicator.clone(),
-            neutered: false,
+            disowned: false,
             origin: self.origin.clone(),
         }
     }
 
-    fn neuter(&mut self) {
-        self.neutered = true;
+    /// Prevents this token from revoking itself when it is dropped.
+    fn disown(&mut self) {
+        self.disowned = true;
     }
 }
 
@@ -292,7 +295,7 @@ impl<'a> BlobResolver<'a> {
                     revoke_sender: reply.revoke_sender,
                     refresh_token_sender: reply.refresh_sender,
                 })),
-                neutered: false,
+                disowned: false,
                 origin: self.origin.clone(),
             };
 
@@ -305,7 +308,7 @@ impl<'a> BlobResolver<'a> {
 
 impl Drop for BlobToken {
     fn drop(&mut self) {
-        if self.neutered {
+        if self.disowned {
             return;
         }
 
@@ -326,7 +329,7 @@ impl fmt::Debug for BlobToken {
         f.debug_struct("BlobToken")
             .field("token", &self.token)
             .field("file_id", &self.file_id)
-            .field("neutered", &self.neutered)
+            .field("disowned", &self.disowned)
             .field("origin", &self.origin)
             .finish()
     }
