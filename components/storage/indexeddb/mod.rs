@@ -1136,8 +1136,8 @@ impl IndexedDBManager {
     /// Related: <https://github.com/servo/servo/pull/42998>
     fn revert_aborted_upgrade(&mut self, key: &IndexedDBDescription, old_version: u64) {
         if old_version == 0 {
-            if let Some(db) = self.databases.remove(key) {
-                let _ = db.delete_database();
+            if let Some(_db) = self.databases.remove(key) {
+                // TODO: delete database using client storage.
             }
             return;
         }
