@@ -12,6 +12,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -143,31 +144,34 @@ pub(crate) struct FetchGroup {
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
-    let mut builder =
-        RequestBuilder::new(request.target_webview_id, request.url(), request.referrer)
-            .method(request.method)
-            .headers(request.headers)
-            .unsafe_request(request.unsafe_request)
-            .body(request.body)
-            .destination(request.destination)
-            .synchronous(request.synchronous)
-            .mode(request.mode)
-            .cache_mode(request.cache_mode)
-            .use_cors_preflight(request.use_cors_preflight)
-            .credentials_mode(request.credentials_mode)
-            .use_url_credentials(request.use_url_credentials)
-            .referrer_policy(request.referrer_policy)
-            .pipeline_id(request.pipeline_id)
-            .redirect_mode(request.redirect_mode)
-            .integrity_metadata(request.integrity_metadata)
-            .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
-            .parser_metadata(request.parser_metadata)
-            .initiator(request.initiator)
-            .client(global.request_client())
-            .insecure_requests_policy(request.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
-            .https_state(request.https_state)
-            .response_tainting(request.response_tainting);
+    let mut builder = RequestBuilder::new(
+        request.target_webview_id,
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(request.url()),
+        request.referrer,
+    )
+    .method(request.method)
+    .headers(request.headers)
+    .unsafe_request(request.unsafe_request)
+    .body(request.body)
+    .destination(request.destination)
+    .synchronous(request.synchronous)
+    .mode(request.mode)
+    .cache_mode(request.cache_mode)
+    .use_cors_preflight(request.use_cors_preflight)
+    .credentials_mode(request.credentials_mode)
+    .use_url_credentials(request.use_url_credentials)
+    .referrer_policy(request.referrer_policy)
+    .pipeline_id(request.pipeline_id)
+    .redirect_mode(request.redirect_mode)
+    .integrity_metadata(request.integrity_metadata)
+    .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
+    .parser_metadata(request.parser_metadata)
+    .initiator(request.initiator)
+    .client(global.request_client())
+    .insecure_requests_policy(request.insecure_requests_policy)
+    .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
+    .https_state(request.https_state)
+    .response_tainting(request.response_tainting);
     builder.id = request.id;
     builder
 }
@@ -276,7 +280,7 @@ pub(crate) fn Fetch(
         global: Trusted::new(global),
         locally_aborted: false,
         canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
-        url: request_init.url.clone(),
+        url: request_init.url.url(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
@@ -741,7 +745,7 @@ pub(crate) fn load_whole_resource(
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let url = request.url.clone();
+    let url = request.url.url();
     core_resource_thread
         .send(CoreResourceMsg::Fetch(
             request,
@@ -805,22 +809,26 @@ pub(crate) fn create_a_potential_cors_request(
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
 ) -> RequestBuilder {
-    RequestBuilder::new(webview_id, url, referrer)
-        // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
-        .mode(match cors_setting {
-            Some(_) => RequestMode::CorsMode,
-            // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
-            None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
-            None => RequestMode::NoCors,
-        })
-        .credentials_mode(match cors_setting {
-            // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
-            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-            // Step 3. Let credentialsMode be "include".
-            _ => CredentialsMode::Include,
-        })
-        // Step 5. Return a new request whose URL is url, destination is destination,
-        // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
-        .destination(destination)
-        .use_url_credentials(true)
+    RequestBuilder::new(
+        webview_id,
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        referrer,
+    )
+    // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
+    .mode(match cors_setting {
+        Some(_) => RequestMode::CorsMode,
+        // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
+        None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
+        None => RequestMode::NoCors,
+    })
+    .credentials_mode(match cors_setting {
+        // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
+        Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+        // Step 3. Let credentialsMode be "include".
+        _ => CredentialsMode::Include,
+    })
+    // Step 5. Return a new request whose URL is url, destination is destination,
+    // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
+    .destination(destination)
+    .use_url_credentials(true)
 }

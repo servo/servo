@@ -40,6 +40,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
@@ -961,7 +962,7 @@ async fn obtain_response(
     }
 }
 
-/// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
+/// [HTTP fetch](https://fetch.spec.whatwg.org/#concept-http-fetch)
 #[async_recursion]
 #[allow(clippy::too_many_arguments)]
 pub async fn http_fetch(
@@ -976,14 +977,13 @@ pub async fn http_fetch(
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
-    // Step 1 Let request be fetchParams’s request.
+    // Step 1. Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
 
-    // Step 2
-    // Let response and internalResponse be null.
+    // Step 2. Let response and internalResponse be null.
     let mut response: Option<Response> = None;
 
-    // Step 3
+    // Step 3. If request’s service-workers mode is "all", then
     if request.service_workers_mode == ServiceWorkersMode::All {
         // TODO: Substep 1
         // Set response to the result of invoking handle fetch for request.
@@ -1011,9 +1011,9 @@ pub async fn http_fetch(
         }
     }
 
-    // Step 4
+    // Step 4. If response is null, then:
     if response.is_none() {
-        // Substep 1
+        // Step 4.1. If makeCORSPreflight is true and one of these conditions is true:
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(request, request.method.clone());
 
@@ -1024,17 +1024,19 @@ pub async fn http_fetch(
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
-            // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(request, cache, context).await;
-                // Sub-substep 2
-                if let Some(e) = preflight_result.get_network_error() {
-                    return Response::network_error(e.clone());
+                // Step 4.1.1. Let preflightResponse be the result of running
+                // CORS-preflight fetch given request.
+                let preflight_response = cors_preflight_fetch(request, cache, context).await;
+                // Step 4.1.2. If preflightResponse is a network error, then return preflightResponse.
+                if let Some(error) = preflight_response.get_network_error() {
+                    return Response::network_error(error.clone());
                 }
             }
         }
 
-        // Substep 2
+        // Step 4.2. If request’s redirect mode is "follow",
+        // then set request’s service-workers mode to "none".
         if request.redirect_mode == RedirectMode::Follow {
             request.service_workers_mode = ServiceWorkersMode::None;
         }
@@ -1047,6 +1049,8 @@ pub async fn http_fetch(
             .lock()
             .set_attribute(ResourceAttribute::RequestStart);
 
+        // Step 4.3. Set response and internalResponse to the result of
+        // running HTTP-network-or-cache fetch given fetchParams.
         let mut fetch_result = http_network_or_cache_fetch(
             fetch_params,
             authentication_fetch_flag,
@@ -1056,11 +1060,14 @@ pub async fn http_fetch(
         )
         .await;
 
-        // Substep 4
+        // Step 4.4. If request’s response tainting is "cors" and a CORS check for request
+        // and response returns failure, then return a network error.
         if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::CorsGeneral);
         }
 
+        // TODO: Step 4.5. If the TAO check for request and response returns failure,
+        // then set request’s timing allow failed flag.
         fetch_result.return_internal = false;
         response = Some(fetch_result);
     }
@@ -1070,7 +1077,16 @@ pub async fn http_fetch(
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
 
-    // TODO: Step 5: cross-origin resource policy check
+    // Step 5: If either request’s response tainting or response’s type is "opaque",
+    // and the cross-origin resource policy check with request’s origin, request’s client,
+    // request’s destination, and internalResponse returns blocked, then return a network error.
+    if (request.response_tainting == ResponseTainting::Opaque ||
+        response.response_type == ResponseType::Opaque) &&
+        cross_origin_resource_policy_check(request, &response) ==
+            CrossOriginResourcePolicy::Blocked
+    {
+        return Response::network_error(NetworkError::CrossOriginResponse);
+    }
 
     // Step 6. If internalResponse’s status is a redirect status:
     if response
@@ -1353,7 +1369,11 @@ pub async fn http_redirect_fetch(
     // Steps 15-17 relate to timing, which is not implemented 1:1 with the spec.
 
     // Step 18: Append locationURL to request’s URL list.
-    request.url_list.push(location_url);
+    request
+        .url_list
+        .push(UrlWithBlobClaim::from_url_without_having_claimed_blob(
+            location_url,
+        ));
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
     set_requests_referrer_policy_on_redirect(request, response.actual_response());
@@ -1752,24 +1772,19 @@ async fn http_network_or_cache_fetch(
     let http_request = &mut http_fetch_params.request;
     let mut response = response.unwrap();
 
-    // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
-    // tests fail. Where should we do it instead? See also #33615
-    if http_request.response_tainting != ResponseTainting::CorsTainting &&
-        cross_origin_resource_policy_check(http_request, &response) ==
-            CrossOriginResourcePolicy::Blocked
-    {
-        return Response::network_error(NetworkError::CorsGeneral);
-    }
-
     // Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    response.url_list = http_request.url_list.clone();
+    response.url_list = http_request
+        .url_list
+        .iter()
+        .map(|claimed_url| claimed_url.url())
+        .collect();
 
     // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
     if http_request.headers.contains_key(RANGE) {
         response.range_requested = true;
     }
 
-    // Step 13 Set response’s request-includes-credentials to includeCredentials.
+    // Step 13. Set response’s request-includes-credentials to includeCredentials.
     response.request_includes_credentials = include_credentials;
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
@@ -2444,7 +2459,7 @@ async fn cors_preflight_fetch(
     // referrer policy, mode is "cors", and response tainting is "cors".
     let mut preflight = RequestBuilder::new(
         request.target_webview_id,
-        request.current_url(),
+        request.current_url_with_blob_claim(),
         request.referrer.clone(),
     )
     .method(Method::OPTIONS)

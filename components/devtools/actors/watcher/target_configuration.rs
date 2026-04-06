@@ -105,9 +105,10 @@ impl Actor for TargetConfigurationActor {
 }
 
 impl TargetConfigurationActor {
-    pub fn new(name: String) -> Self {
-        Self {
-            name,
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             configuration: HashMap::new(),
             supported_options: HashMap::from([
                 ("cacheDisabled", false),
@@ -128,7 +129,9 @@ impl TargetConfigurationActor {
                 ("tracerOptions", false),
                 ("useSimpleHighlightersForReducedMotion", false),
             ]),
-        }
+        };
+        registry.register::<Self>(actor);
+        name
     }
 }
 

@@ -32,6 +32,7 @@ use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::protocols::ProtocolRegistry;
 use net::request_interceptor::RequestInterceptor;
+use net_traits::blob_url_store::{BlobTokenCommunicator, UrlWithBlobClaim};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
@@ -83,10 +84,14 @@ fn test_fetch_response_is_not_network_error() {
 #[test]
 fn test_fetch_on_bad_port_is_network_error() {
     let url = ServoUrl::parse("http://www.example.org:6667").unwrap();
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(url.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
     let fetch_response = fetch(request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
@@ -124,10 +129,14 @@ fn test_fetch_response_body_matches_const_message() {
 #[test]
 fn test_fetch_aboutblank() {
     let url = ServoUrl::parse("about:blank").unwrap();
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(url.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
 
     let fetch_response = fetch(request, None);
     // We should see an opaque-filtered response.
@@ -187,10 +196,14 @@ fn test_fetch_blob() {
         .promote_memory(id.clone(), blob_buf, true, origin.origin());
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(origin.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+        Referrer::NoReferrer,
+    )
+    .origin(origin.origin())
+    .policy_container(Default::default())
+    .build();
 
     let (sender, receiver) = unbounded();
 
@@ -227,10 +240,14 @@ fn test_file() {
         .unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
 
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(url.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
 
     let mut context = new_fetch_context(None, None);
     let fetch_response = fetch_with_context(request, &mut context);
@@ -269,10 +286,14 @@ fn test_file() {
 #[test]
 fn test_fetch_ftp() {
     let url = ServoUrl::parse("ftp://not-supported").unwrap();
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(url.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
     let fetch_response = fetch(request, None);
     assert!(fetch_response.is_network_error());
 }
@@ -280,10 +301,14 @@ fn test_fetch_ftp() {
 #[test]
 fn test_fetch_bogus_scheme() {
     let url = ServoUrl::parse("bogus://whatever").unwrap();
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(url.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
     let fetch_response = fetch(request, None);
     assert!(fetch_response.is_network_error());
 }
@@ -699,7 +724,7 @@ fn test_fetch_with_local_urls_only() {
         };
     let (server, server_url) = make_server(handler);
 
-    let do_fetch = |url: ServoUrl| {
+    let do_fetch = |url: UrlWithBlobClaim| {
         let mut request =
             RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
                 .origin(url.origin())
@@ -712,7 +737,7 @@ fn test_fetch_with_local_urls_only() {
         fetch(request, None)
     };
 
-    let local_url = ServoUrl::parse("about:blank").unwrap();
+    let local_url = UrlWithBlobClaim::new(ServoUrl::parse("about:blank").unwrap(), None);
     let local_response = do_fetch(local_url);
     let server_response = do_fetch(server_url);
 
@@ -745,7 +770,10 @@ fn test_fetch_with_hsts() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(embedder_proxy.clone()),
+        filemanager: FileManager::new(
+            embedder_proxy.clone(),
+            BlobTokenCommunicator::stub_for_testing(),
+        ),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -808,7 +836,10 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(embedder_proxy.clone()),
+        filemanager: FileManager::new(
+            embedder_proxy.clone(),
+            BlobTokenCommunicator::stub_for_testing(),
+        ),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -876,7 +907,10 @@ fn test_fetch_self_signed() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(embedder_proxy.clone()),
+        filemanager: FileManager::new(
+            embedder_proxy.clone(),
+            BlobTokenCommunicator::stub_for_testing(),
+        ),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -1439,7 +1473,7 @@ fn test_fetch_with_devtools() {
     );
 
     let httprequest = DevtoolsHttpRequest {
-        url: url,
+        url: url.url(),
         method: Method::GET,
         headers: headers,
         body: Some(vec![].into()),
@@ -1522,7 +1556,10 @@ fn test_fetch_request_intercepted() {
         state: Arc::new(create_http_state(None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
-        filemanager: FileManager::new(embedder_proxy.clone()),
+        filemanager: FileManager::new(
+            embedder_proxy.clone(),
+            BlobTokenCommunicator::stub_for_testing(),
+        ),
         file_token: FileTokenCheck::NotRequired,
         request_interceptor: Arc::new(TokioMutex::new(RequestInterceptor::new(embedder_proxy))),
         cancellation_listener: Arc::new(Default::default()),
@@ -1538,10 +1575,14 @@ fn test_fetch_request_intercepted() {
     };
 
     let url = ServoUrl::parse("http://www.example.org").unwrap();
-    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
-        .origin(url.origin())
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        Some(TEST_WEBVIEW_ID),
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .origin(url.origin())
+    .policy_container(Default::default())
+    .build();
     let response = fetch_with_context(request, &mut context);
 
     assert!(

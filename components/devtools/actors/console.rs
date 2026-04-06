@@ -288,7 +288,7 @@ impl ConsoleActor {
                 .script_chan(),
             Root::DedicatedWorker(worker_name) => registry
                 .find::<WorkerActor>(worker_name)
-                .script_chan
+                .script_sender
                 .clone(),
         }
     }

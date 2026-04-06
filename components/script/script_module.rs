@@ -14,7 +14,6 @@ use std::{mem, ptr};
 
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
@@ -42,6 +41,7 @@ use js::rust::{
     transform_str_to_source_text,
 };
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -62,9 +62,7 @@ use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::DomTypeHolder;
-use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
@@ -77,11 +75,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
     HTMLScriptElement, SCRIPT_JS_MIMES, Script, substitute_with_local_script,
 };
+use crate::dom::htmlscriptelement::finish_fetching_a_script;
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -651,24 +649,13 @@ impl ModuleOwner {
             ModuleOwner::DynamicModule(_) => {},
             ModuleOwner::Window(script) => {
                 let script = script.root();
-                let document = script.owner_document();
 
                 let load = match module_tree {
                     Some(module_tree) => Ok(Script::Module(module_tree)),
                     None => Err(()),
                 };
 
-                let asynch = script
-                    .upcast::<Element>()
-                    .has_attribute(&local_name!("async"));
-
-                if !asynch && script.get_parser_inserted() {
-                    document.deferred_script_loaded(cx, &script, load);
-                } else if !asynch && !script.get_non_blocking() {
-                    document.asap_in_order_script_loaded(cx, &script, load);
-                } else {
-                    document.asap_script_loaded(cx, &script, load);
-                };
+                finish_fetching_a_script(&script, script.get_script_kind(), load, cx);
             },
         }
     }
@@ -777,14 +764,7 @@ impl FetchResponseListener for ModuleContext {
         timing: ResourceFetchTiming,
     ) {
         let global = self.owner.global();
-        let (url, module_type) = &self.module_request;
-
-        if let ModuleOwner::Window(_) = self.owner {
-            let window = global.downcast::<Window>().unwrap();
-            window
-                .Document()
-                .finish_load(LoadType::Script(url.clone()), cx);
-        }
+        let (_url, module_type) = &self.module_request;
 
         network_listener::submit_timing(cx, &self, &response, &timing);
 
@@ -989,6 +969,10 @@ pub(crate) struct ScriptFetchOptions {
     pub(crate) parser_metadata: ParserMetadata,
     #[no_trace]
     pub(crate) referrer_policy: ReferrerPolicy,
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-fetch-options-render-blocking>
+    /// The boolean value of render-blocking used for the initial fetch and for fetching any imported modules.
+    /// Unless otherwise stated, its value is false.
+    pub(crate) render_blocking: bool,
 }
 
 impl ScriptFetchOptions {
@@ -1000,6 +984,7 @@ impl ScriptFetchOptions {
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             referrer_policy: ReferrerPolicy::EmptyString,
+            render_blocking: false,
         }
     }
 
@@ -1021,6 +1006,7 @@ impl ScriptFetchOptions {
             credentials_mode: self.credentials_mode,
             parser_metadata: self.parser_metadata,
             referrer_policy: self.referrer_policy,
+            render_blocking: self.render_blocking,
         }
     }
 }
@@ -1232,6 +1218,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         cryptographic_nonce: "".into(),
         parser_metadata: ParserMetadata::NotParserInserted,
         referrer_policy: ReferrerPolicy::EmptyString,
+        render_blocking: false,
     };
 
     // Step 2. Fetch a single module script given url, fetchClient, destination, options,
@@ -1606,21 +1593,25 @@ pub(crate) fn fetch_a_single_module_script(
         // TODO Step 11. Set request's initiator type to "script".
 
         // Step 12. Set up the module script request given request and options.
-        let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-            .destination(destination)
-            .parser_metadata(options.parser_metadata)
-            .integrity_metadata(options.integrity_metadata.clone())
-            .credentials_mode(options.credentials_mode)
-            .referrer_policy(options.referrer_policy)
-            .mode(mode)
-            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-            .insecure_requests_policy(fetch_client.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
-            .policy_container(fetch_client.policy_container)
-            .client(fetch_client.client)
-            .pipeline_id(Some(fetch_client.pipeline_id))
-            .origin(fetch_client.origin)
-            .https_state(fetch_client.https_state);
+        let request = RequestBuilder::new(
+            webview_id,
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            referrer,
+        )
+        .destination(destination)
+        .parser_metadata(options.parser_metadata)
+        .integrity_metadata(options.integrity_metadata.clone())
+        .credentials_mode(options.credentials_mode)
+        .referrer_policy(options.referrer_policy)
+        .mode(mode)
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
+        .insecure_requests_policy(fetch_client.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
+        .policy_container(fetch_client.policy_container)
+        .client(fetch_client.client)
+        .pipeline_id(Some(fetch_client.pipeline_id))
+        .origin(fetch_client.origin)
+        .https_state(fetch_client.https_state);
 
         let context = ModuleContext {
             owner,
@@ -1639,11 +1630,9 @@ pub(crate) fn fetch_a_single_module_script(
         );
         match document {
             Some(document) => {
-                document.loader_mut().fetch_async_with_callback(
-                    LoadType::Script(url),
-                    request,
-                    network_listener.into_callback(),
-                );
+                document
+                    .loader_mut()
+                    .fetch_async_background(request, network_listener.into_callback());
             },
             None => global.fetch_with_network_listener(request, network_listener),
         };

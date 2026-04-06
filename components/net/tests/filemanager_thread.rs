@@ -13,7 +13,7 @@ use ipc_channel::ipc;
 use net::async_runtime::init_async_runtime;
 use net::embedder::NetToEmbedderMsg;
 use net::filemanager_thread::FileManager;
-use net_traits::blob_url_store::BlobURLStoreError;
+use net_traits::blob_url_store::{BlobTokenCommunicator, BlobURLStoreError};
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
@@ -32,7 +32,7 @@ fn test_filemanager() {
     servo_config::prefs::set(preferences);
 
     let (embedder_proxy, embedder_receiver) = create_generic_embedder_proxy_and_receiver();
-    let filemanager = FileManager::new(embedder_proxy);
+    let filemanager = FileManager::new(embedder_proxy, BlobTokenCommunicator::stub_for_testing());
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
     let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");

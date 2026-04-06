@@ -154,6 +154,7 @@ impl TokenSink for PrefetchSink {
                             cryptographic_nonce,
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
+                            render_blocking: false,
                         },
                         self.referrer.clone(),
                     )

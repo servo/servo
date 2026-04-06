@@ -237,7 +237,7 @@ impl BrowsingContextActor {
         let thread_name =
             ThreadActor::register(registry, script_sender.clone(), Some(name.clone()));
 
-        let watcher_actor = WatcherActor::new(
+        let watcher_name = WatcherActor::register(
             registry,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
@@ -263,10 +263,9 @@ impl BrowsingContextActor {
             style_sheets_name,
             _tab: tab_descriptor_name,
             thread_name,
-            watcher_name: watcher_actor.name(),
+            watcher_name,
         };
 
-        registry.register(watcher_actor);
         registry.register::<Self>(actor);
 
         name

@@ -894,7 +894,7 @@ impl Notification {
         let request_id = request.id;
 
         let cache_result = global.image_cache().get_cached_image_status(
-            request.url.clone(),
+            request.url.url(),
             global.origin().immutable().clone(),
             None, // TODO: check which CORS should be used
         );
@@ -1021,7 +1021,7 @@ impl Notification {
             pending_image_id,
             image_cache: global.image_cache(),
             notification: Trusted::new(self),
-            url: request.url.clone(),
+            url: request.url.url(),
             status: Ok(()),
         };
 
