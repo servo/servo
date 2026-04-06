@@ -2925,41 +2925,58 @@ impl Node {
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
-            _ => return Err(Error::HierarchyRequest(None)),
+            _ => {
+                return Err(Error::HierarchyRequest(Some(
+                    "Parent is not a Document, DocumentFragment, or Element node".to_owned(),
+                )));
+            },
         }
 
         // Step 2. If node is a host-including inclusive ancestor of parent, then throw a "HierarchyRequestError" DOMException.
         if node.is_host_including_inclusive_ancestor(parent) {
-            return Err(Error::HierarchyRequest(None));
+            return Err(Error::HierarchyRequest(Some(
+                "Node is a host-including inclusive ancestor of parent".to_owned(),
+            )));
         }
 
         // Step 3. If child is non-null and its parent is not parent, then throw a "NotFoundError" DOMException.
         if let Some(child) = child {
             if !parent.is_parent_of(child) {
-                return Err(Error::NotFound(None));
+                return Err(Error::NotFound(Some(
+                    "Child is non-null and its parent is not parent".to_owned(),
+                )));
             }
         }
 
-        // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
             // Step 5. If either node is a Text node and parent is a document,
-            // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
+            // or node is a doctype and parent is not a document,
+            // then throw a "HierarchyRequestError" DOMException.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest(None));
+                    return Err(Error::HierarchyRequest(Some(
+                        "Node is a Text node and parent is a document".to_owned(),
+                    )));
                 }
             },
             NodeTypeId::DocumentType => {
                 if !parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest(None));
+                    return Err(Error::HierarchyRequest(Some(
+                        "Node is a doctype and parent is not a document".to_owned(),
+                    )));
                 }
             },
             NodeTypeId::DocumentFragment(_) |
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
+            // Step 4. If node is not a DocumentFragment, DocumentType, Element,
+            // or CharacterData node, then throw a "HierarchyRequestError" DOMException.
             NodeTypeId::Document(_) | NodeTypeId::Attr => {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "Node is not a DocumentFragment, DocumentType, Element, or CharacterData node"
+                        .to_owned(),
+                )));
             },
         }
 
@@ -2995,14 +3012,18 @@ impl Node {
                 NodeTypeId::Element(_) => {
                     // Step 6."Element". parent has an element child, child is a doctype, or child is non-null and a doctype is following child.
                     if parent.child_elements().next().is_some() {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent has an element child".to_owned(),
+                        )));
                     }
                     if let Some(child) = child {
                         if child
                             .inclusively_following_siblings()
-                            .any(|child| child.is_doctype())
+                            .any(|following| following.is_doctype())
                         {
-                            return Err(Error::HierarchyRequest(None));
+                            return Err(Error::HierarchyRequest(Some(
+                                "Child is a doctype, or child is non-null and a doctype is following child".to_owned(),
+                            )));
                         }
                     }
                 },

@@ -5,6 +5,7 @@
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -12,6 +13,9 @@ use crate::dom::document::Document;
 use crate::dom::event::Event;
 use crate::dom::event::inputevent::InputEvent;
 use crate::dom::execcommand::basecommand::CommandName;
+use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
@@ -61,6 +65,13 @@ fn mapped_value_of_command(command: CommandName) -> DOMString {
     .into()
 }
 
+impl Node {
+    fn is_in_plaintext_only_state(&self) -> bool {
+        self.downcast::<HTMLElement>()
+            .is_some_and(|el| el.ContentEditable().str() == "plaintext-only")
+    }
+}
+
 impl Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#enabled>
     fn selection_if_command_is_enabled(
@@ -79,20 +90,25 @@ impl Document {
         // > The other commands defined here are enabled if the active range is not null,
         let range = selection.active_range()?;
         // > its start node is either editable or an editing host,
-        if !range.start_container().is_editable_or_editing_host() {
-            return None;
-        }
+        let start_container_editing_host = range.start_container().editing_host_of()?;
         // > the editing host of its start node is not an EditContext editing host,
         // TODO
         // > its end node is either editable or an editing host,
-        if !range.end_container().is_editable_or_editing_host() {
-            return None;
-        }
+        let end_container_editing_host = range.end_container().editing_host_of()?;
         // > the editing host of its end node is not an EditContext editing host,
         // TODO
         // > and there is some editing host that is an inclusive ancestor of both its start node and its end node.
         // TODO
-        Some(selection)
+
+        // Some commands are only enabled if the editing host is *not* in plaintext-only state.
+        if !command_name.is_enabled_in_plaintext_only_state() &&
+            (start_container_editing_host.is_in_plaintext_only_state() ||
+                end_container_editing_host.is_in_plaintext_only_state())
+        {
+            None
+        } else {
+            Some(selection)
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#supported>
@@ -102,6 +118,7 @@ impl Document {
         Some(match &*command_id.str().to_lowercase() {
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
+            "fontsize" => CommandName::FontSize,
             "stylewithcss" => CommandName::StyleWithCss,
             _ => return None,
         })
@@ -112,7 +129,11 @@ pub(crate) trait DocumentExecCommandSupport {
     fn is_command_supported(&self, command_id: DOMString) -> bool;
     fn is_command_indeterminate(&self, command_id: DOMString) -> bool;
     fn command_state_for_command(&self, command_id: DOMString) -> bool;
-    fn command_value_for_command(&self, command_id: DOMString) -> DOMString;
+    fn command_value_for_command(
+        &self,
+        cx: &mut js::context::JSContext,
+        command_id: DOMString,
+    ) -> DOMString;
     fn check_support_and_enabled(
         &self,
         cx: &mut js::context::JSContext,
@@ -155,24 +176,34 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
-    fn command_value_for_command(&self, command_id: DOMString) -> DOMString {
+    fn command_value_for_command(
+        &self,
+        cx: &mut js::context::JSContext,
+        command_id: DOMString,
+    ) -> DOMString {
         // Step 1. If command is not supported or has no value, return the empty string.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
             return DOMString::new();
         };
-        let Some(value) = command.current_value(self) else {
+        let Some(value) = command.current_value(cx, self) else {
             return DOMString::new();
         };
-        // Step 2. If command is "fontSize" and its value override is set,
-        // convert the value override to an integer number of pixels and return the legacy font size for the result.
-        // TODO
-
         // Step 3. If the value override for command is set, return it.
-        if let Some(value_override) = self.value_override(&command) {
-            return value_override;
-        }
-        // Step 4. Return command's value.
-        value
+        self.value_override(&command)
+            .map(|value_override| {
+                // Step 2. If command is "fontSize" and its value override is set,
+                // convert the value override to an integer number of pixels and return the legacy font size for the result.
+                if command == CommandName::FontSize {
+                    value_override
+                        .parse()
+                        .map(|parsed| legacy_font_size_for(parsed, self))
+                        .unwrap_or(value_override)
+                } else {
+                    value_override
+                }
+            })
+            // Step 4. Return command's value.
+            .unwrap_or(value)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
