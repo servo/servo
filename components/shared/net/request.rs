@@ -491,7 +491,7 @@ pub struct RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
     pub cryptographic_nonce_metadata: String,
 
-    // to keep track of redirects
+    /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
     pub url_list: Vec<ServoUrl>,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
@@ -632,6 +632,12 @@ impl RequestBuilder {
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer-policy>
     pub fn referrer_policy(mut self, referrer_policy: ReferrerPolicy) -> RequestBuilder {
         self.referrer_policy = referrer_policy;
+        self
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
+    pub fn url_list(mut self, url_list: Vec<ServoUrl>) -> RequestBuilder {
+        self.url_list = url_list;
         self
     }
 
@@ -836,8 +842,6 @@ pub struct Request {
     pub integrity_metadata: String,
     /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
     pub cryptographic_nonce_metadata: String,
-    // Use the last method on url_list to act as spec current url field, and
-    // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
     pub url_list: Vec<UrlWithBlobClaim>,
     /// <https://fetch.spec.whatwg.org/#concept-request-redirect-count>
