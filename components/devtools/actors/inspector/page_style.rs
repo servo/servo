@@ -264,12 +264,12 @@ impl PageStyleActor {
         msg: &Map<String, Value>,
         registry: &ActorRegistry,
     ) -> Result<(), ActorError> {
-        let target = msg
+        let node_name = msg
             .get("node")
             .ok_or(ActorError::MissingParameter)?
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
-        let node_actor = registry.find::<NodeActor>(target);
+        let node_actor = registry.find::<NodeActor>(node_name);
         let walker = registry.find::<WalkerActor>(&node_actor.walker);
         let browsing_context_actor = walker.browsing_context_actor(registry);
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
@@ -277,7 +277,7 @@ impl PageStyleActor {
             .script_chan()
             .send(GetLayout(
                 browsing_context_actor.pipeline_id(),
-                registry.actor_to_script(target.to_owned()),
+                registry.actor_to_script(node_name.to_owned()),
                 tx,
             ))
             .map_err(|_| ActorError::Internal)?;
