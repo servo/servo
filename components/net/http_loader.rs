@@ -1767,7 +1767,11 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    response.url_list = http_request.url_list.clone();
+    response.url_list = http_request
+        .url_list
+        .iter()
+        .map(|claimed_url| claimed_url.url())
+        .collect();
 
     // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
     if http_request.headers.contains_key(RANGE) {
