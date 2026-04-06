@@ -248,12 +248,12 @@ impl Actor for RootActor {
                     .borrow()
                     .iter()
                     .map(|worker_name| {
-                        let worker = registry.find::<WorkerActor>(worker_name);
-                        let url = worker.url.to_string();
+                        let worker_actor = registry.find::<WorkerActor>(worker_name);
+                        let url = worker_actor.url.to_string();
                         // Find correct scope url in the service worker
                         let scope = url.clone();
                         ServiceWorkerRegistrationMsg {
-                            actor: worker.name(),
+                            actor: worker_actor.name(),
                             scope,
                             url: url.clone(),
                             registration_state: "".to_string(),
@@ -263,11 +263,11 @@ impl Actor for RootActor {
                             installing_worker: None,
                             waiting_worker: None,
                             active_worker: Some(ServiceWorkerInfo {
-                                actor: worker.name(),
+                                actor: worker_actor.name(),
                                 url,
                                 state: 4, // activated
                                 state_text: "activated".to_string(),
-                                id: worker.worker_id.to_string(),
+                                id: worker_actor.worker_id.to_string(),
                                 fetch: false,
                                 traits: HashMap::new(),
                             }),
