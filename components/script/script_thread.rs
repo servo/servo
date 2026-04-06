@@ -468,6 +468,7 @@ impl ScriptThreadFactory for ScriptThread {
         let script_thread_id = state.id;
         thread::Builder::new()
             .name(format!("Script#{script_thread_id}"))
+            .stack_size(8 * 1024 * 1024) // 8 MiB stack to be consistent with other browsers.
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
