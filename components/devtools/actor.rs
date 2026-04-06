@@ -160,7 +160,15 @@ impl ActorRegistry {
     /// create new names without registering an actor.
     pub fn new_name<T: Actor>(&self) -> String {
         let suffix = self.next.fetch_add(1, Ordering::Relaxed);
-        format!("{}{}", Self::base_name::<T>(), suffix)
+        let base = Self::base_name::<T>();
+
+        // Firefox DevTools client requires "/workerTarget" in actor name to recognize workers
+        // <https://searchfox.org/firefox-main/source/devtools/client/fronts/watcher.js#65>
+        if base.contains("WorkerTarget") {
+            format!("/workerTarget{}", suffix)
+        } else {
+            format!("{}{}", base, suffix)
+        }
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
