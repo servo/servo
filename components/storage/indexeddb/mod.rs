@@ -556,13 +556,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .map_err(|err| format!("{err:?}"))
     }
 
-    fn delete_database(self) -> BackendResult<()> {
-        let result = self.engine.delete_database();
-        result
-            .map_err(|err| format!("{err:?}"))
-            .map_err(BackendError::from)
-    }
-
     fn version(&self) -> Result<u64, E::Error> {
         self.engine.version()
     }
@@ -615,6 +608,7 @@ enum OpenRequest {
 
         id: Uuid,
 
+        /// <https://storage.spec.whatwg.org/#storage-proxy-map>
         proxy_map: StorageProxyMap,
     },
     Delete {
@@ -625,12 +619,15 @@ enum OpenRequest {
 
         /// The name of the database.
         /// Note: will be used when the full spec is implemented.
-        _db_name: String,
+        db_name: String,
 
         /// <https://w3c.github.io/IndexedDB/#request-processed-flag>
         processed: bool,
 
         id: Uuid,
+
+        /// <https://storage.spec.whatwg.org/#storage-proxy-map>
+        proxy_map: StorageProxyMap,
     },
 }
 
@@ -651,8 +648,9 @@ impl OpenRequest {
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
-                _db_name: _,
+                db_name: _,
                 processed: _,
+                proxy_map: _,
                 id,
             } => id,
         };
@@ -675,8 +673,9 @@ impl OpenRequest {
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
-                _db_name: _,
+                db_name: _,
                 processed: _,
+                proxy_map: _,
                 id: _,
             } => false,
         }
@@ -705,9 +704,10 @@ impl OpenRequest {
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
-                _db_name: _,
+                db_name: _,
                 processed,
                 id: _,
+                proxy_map: _,
             } => !processed,
         }
     }
@@ -741,9 +741,10 @@ impl OpenRequest {
             OpenRequest::Delete {
                 sender,
                 _origin: _,
-                _db_name: _,
+                db_name: _,
                 processed: _,
                 id: _,
+                proxy_map: _,
             } => {
                 if sender.send(Err(BackendError::DbNotFound)).is_err() {
                     error!("Failed to send result of database delete to script.");
@@ -1513,9 +1514,9 @@ impl IndexedDBManager {
                     if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
                         id: *id,
                         name: db_name.clone(),
-                        error: BackendError::DbErr(format!(
-                            "Failed to communicate with client storage."
-                        )),
+                        error: BackendError::DbErr(
+                            "Failed to communicate with client storage.".to_string(),
+                        ),
                     }) {
                         debug!("Script exit during indexeddb database open {:?}", e);
                     }
@@ -1695,13 +1696,15 @@ impl IndexedDBManager {
         &mut self,
         key: IndexedDBDescription,
         id: Uuid,
+        proxy_map: StorageProxyMap,
         sender: GenericCallback<BackendResult<u64>>,
     ) {
         let open_request = OpenRequest::Delete {
             sender,
             _origin: key.origin.clone(),
-            _db_name: key.name.clone(),
+            db_name: key.name.clone(),
             processed: false,
+            proxy_map,
             id,
         };
 
@@ -1732,9 +1735,10 @@ impl IndexedDBManager {
         let OpenRequest::Delete {
             sender,
             _origin: _,
-            _db_name: _,
+            db_name,
             processed,
             id: _,
+            proxy_map,
         } = open_request
         else {
             return debug_assert!(
@@ -1743,7 +1747,7 @@ impl IndexedDBManager {
             );
         };
 
-        // Step4: Let db be the database named name in storageKey, if one exists. Otherwise, return 0 (zero).
+        // Step 4: Let db be the database named name in storageKey, if one exists. Otherwise, return 0 (zero).
         let version = if let Some(db) = self.databases.remove(&key) {
             // Step 5: Let openConnections be the set of all connections associated with db.
             // Step6: For each entry of openConnections that does not have its close pending flag set to true,
@@ -1774,17 +1778,32 @@ impl IndexedDBManager {
             // Step 11: Delete db.
             // If this fails for any reason,
             // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
-            if let Err(err) = db.delete_database() {
-                *processed = true;
+            let Ok(response) = proxy_map
+                .handle
+                .delete_database(proxy_map.bottle_id, db_name.clone())
+                .recv()
+            else {
                 if sender
-                    .send(BackendResult::Err(BackendError::DbErr(err.to_string())))
+                    .send(BackendResult::Err(BackendError::DbErr(
+                        "Failed to communicate with client storage.".to_string(),
+                    )))
                     .is_err()
                 {
                     debug!("Script went away during pending database delete.");
                 }
                 return;
             };
-
+            if let Err(err) = response {
+                if sender
+                    .send(BackendResult::Err(BackendError::DbErr(format!(
+                        "Client storage error: {err:?}"
+                    ))))
+                    .is_err()
+                {
+                    debug!("Script went away during pending database delete.");
+                }
+                return;
+            }
             version
         } else {
             0
@@ -1940,12 +1959,12 @@ impl IndexedDBManager {
             SyncOperation::AbortPendingUpgrade { name, id, origin } => {
                 self.abort_pending_upgrade(name, id, origin);
             },
-            SyncOperation::DeleteDatabase(callback, origin, db_name, id) => {
+            SyncOperation::DeleteDatabase(callback, origin, db_name, proxy_map, id) => {
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
-                self.start_delete_database(idb_description, id, callback);
+                self.start_delete_database(idb_description, id, proxy_map, callback);
             },
             SyncOperation::GetObjectStore(sender, origin, db_name, store_name) => {
                 // FIXME:(arihant2math) Should we error out more aggressively here?

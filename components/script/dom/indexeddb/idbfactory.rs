@@ -533,6 +533,31 @@ impl IDBFactory {
             error!("Failed to send SyncOperation::AbortPendingUpgrade");
         }
     }
+
+    /// The indexeddb call into
+    /// <https://storage.spec.whatwg.org/#obtain-a-local-storage-bottle-map>
+    fn obtain_a_local_storage_bottle_map(
+        &self,
+        global: &GlobalScope,
+        origin: ImmutableOrigin,
+    ) -> Result<StorageProxyMap, Error> {
+        let handle = global.storage_threads().client_storage_handle();
+        let message = handle
+            .obtain_a_storage_bottle_map(
+                StorageType::Local,
+                global.webview_id(),
+                StorageIdentifier::IndexedDB,
+                origin,
+            )
+            .recv();
+        let Ok(response) = message else {
+            return Err(Error::Operation(None));
+        };
+        let Ok(proxy_map) = response else {
+            return Err(Error::Operation(None));
+        };
+        Ok(proxy_map)
+    }
 }
 
 impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
@@ -554,21 +579,10 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Security(None));
         };
 
-        let handle = global.storage_threads().client_storage_handle();
-        let message = handle
-            .obtain_a_storage_bottle_map(
-                StorageType::Local,
-                global.webview_id(),
-                StorageIdentifier::IndexedDB,
-                origin.immutable().clone(),
-            )
-            .recv();
-        let Ok(response) = message else {
-            return Err(Error::Operation(None));
-        };
-        let Ok(proxy_map) = response else {
-            return Err(Error::Operation(None));
-        };
+        // Note: switching to obtaining a storage bottle map,
+        // as per https://github.com/w3c/IndexedDB/pull/334/
+        let proxy_map =
+            self.obtain_a_local_storage_bottle_map(&global, origin.immutable().clone())?;
 
         // Step 4: Let request be a new open request.
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
@@ -596,12 +610,17 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Security(None));
         };
 
+        // Note: switching to obtaining a storage bottle map,
+        // as per https://github.com/w3c/IndexedDB/pull/334/
+        let proxy_map =
+            self.obtain_a_local_storage_bottle_map(&global, origin.immutable().clone())?;
+
         // Step 3: Let request be a new open request
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 4: Runs in parallel
         if request
-            .delete_database(storage_key, name.to_string())
+            .delete_database(storage_key, name.to_string(), proxy_map)
             .is_err()
         {
             return Err(Error::Operation(None));

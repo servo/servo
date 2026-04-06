@@ -8,7 +8,11 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::generic_channel::GenericSend;
+<<<<<<< HEAD
 use servo_url::origin::ImmutableOrigin;
+=======
+use storage_traits::client_storage::StorageProxyMap;
+>>>>>>> 1086c68a498 (use proxy map when deleting db)
 use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -212,8 +216,13 @@ impl IDBOpenDBRequest {
 
     pub(crate) fn delete_database(
         &self,
+<<<<<<< HEAD
         storage_key: ImmutableOrigin,
         name: String,
+=======
+        name: String,
+        proxy_map: StorageProxyMap,
+>>>>>>> 1086c68a498 (use proxy map when deleting db)
     ) -> Result<(), ()> {
         let global = self.global();
 
@@ -232,8 +241,18 @@ impl IDBOpenDBRequest {
         })
         .expect("Could not create delete database callback");
 
+<<<<<<< HEAD
         let delete_operation =
             SyncOperation::DeleteDatabase(callback, storage_key, name, self.get_id());
+=======
+        let delete_operation = SyncOperation::DeleteDatabase(
+            callback,
+            global.origin().immutable().clone(),
+            name,
+            proxy_map,
+            self.get_id(),
+        );
+>>>>>>> 1086c68a498 (use proxy map when deleting db)
 
         if global
             .storage_threads()

@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use log::{error, info, warn};
+use log::{info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -380,17 +380,6 @@ impl KvsEngine for SqliteEngine {
 
     fn close_store(&self, _store_name: &str) -> Result<(), Self::Error> {
         // TODO: do something
-        Ok(())
-    }
-
-    fn delete_database(self) -> Result<(), Self::Error> {
-        // attempt to close the connection first
-        let _ = self.connection.close();
-        if self.db_path.exists() {
-            if let Err(e) = std::fs::remove_dir_all(self.db_path.parent().unwrap()) {
-                error!("Failed to delete database: {:?}", e);
-            }
-        }
         Ok(())
     }
 

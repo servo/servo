@@ -587,7 +587,10 @@ pub enum SyncOperation {
     DeleteDatabase(
         GenericCallback<BackendResult<u64>>,
         ImmutableOrigin,
-        String, // Database
+        // Database name.
+        String,
+        // The Storage proxy map.
+        StorageProxyMap,
         Uuid,
     ),
 
