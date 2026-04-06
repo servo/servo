@@ -468,9 +468,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#h-navigator-clipboard>
-    fn Clipboard(&self) -> DomRoot<Clipboard> {
+    fn Clipboard(&self, cx: &mut js::context::JSContext) -> DomRoot<Clipboard> {
         self.clipboard
-            .or_init(|| Clipboard::new(&self.global(), CanGc::note()))
+            .or_init(|| Clipboard::new(cx, &self.global()))
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>
