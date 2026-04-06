@@ -169,7 +169,6 @@ class MachCommands(CommandBase):
     def test_unit(
         self,
         build_type: BuildType,
-        test_name: list[str] | None = None,
         params: list[str] | None = None,
         package: str | None = None,
         bench: bool = False,
@@ -179,8 +178,8 @@ class MachCommands(CommandBase):
         nextest_profile: str | None = None,
         **kwargs: Any,
     ) -> int:
-        if test_name is None:
-            test_name = []
+        if params is None:
+            params = []
 
         self.ensure_bootstrapped()
 
@@ -190,7 +189,7 @@ class MachCommands(CommandBase):
             packages = set()
 
         test_patterns = []
-        for test in test_name:
+        for test in params:
             # add package if 'tests/unit/<package>'
             match = re.search("tests/unit/(\\w+)/?$", test)
             if match:
@@ -238,18 +237,6 @@ class MachCommands(CommandBase):
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set([".DS_Store"])
             packages |= set(self_contained_tests)
 
-            if params:
-                # We have added all the unit test packages, now we need to remove the ones that were specified as file paths in params.
-                # This is needed incase we want to run a single test file that is not in the default test suite, or if we want to run a single test function in a test file.
-                for i in range(len(params)):
-                    single_file_test = params[i]
-                    # Split by '/' and take the last part
-                    last_part = single_file_test.split("/")[-1]
-                    # Remove file extension if present (assuming .rs)
-                    if last_part.endswith(".rs"):
-                        last_part = last_part[:-3]
-                    params[i] = last_part
-
         in_crate_packages = []
         for crate in self_contained_tests:
             try:
@@ -262,7 +249,7 @@ class MachCommands(CommandBase):
         if len(packages) == 0 and len(in_crate_packages) == 0:
             return 0
 
-        args: list[str] = params or []
+        args: list[str] = []
 
         if build_type.is_release():
             args += ["--release"]
