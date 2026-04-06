@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::ffi::CStr;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -178,8 +179,8 @@ impl GlobalScope {
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
                     rooted!(&in(cx) let mut rval = UndefinedValue());
-                    let script_ptr = compiled_script.get();
-                    assert!(!script_ptr.is_null(), "Compiled script must not be null");
+                    let script_ptr = NonNull::new(compiled_script.get())
+                        .expect("Compiled script must not be null");
                     result = evaluate_script(
                         cx,
                         script_ptr,
@@ -353,12 +354,12 @@ pub(crate) fn compile_script(
 #[expect(unsafe_code)]
 pub(crate) fn evaluate_script(
     cx: &mut JSContext,
-    compiled_script: *mut JSScript,
+    compiled_script: NonNull<JSScript>,
     url: ServoUrl,
     fetch_options: ScriptFetchOptions,
     rval: MutableHandleValue,
 ) -> bool {
-    rooted!(&in(cx) let record = compiled_script);
+    rooted!(&in(cx) let record = compiled_script.as_ptr());
     rooted!(&in(cx) let mut script_private = UndefinedValue());
 
     unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };

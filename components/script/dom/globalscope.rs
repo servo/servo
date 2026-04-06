@@ -9,6 +9,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::mem;
 use std::ops::{Deref, Index};
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -2902,10 +2903,12 @@ impl GlobalScope {
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             }
 
+            let script = NonNull::new(*compiled_script).expect("Can't be null");
+
             rooted!(&in(cx) let mut value = UndefinedValue());
             let rval = rval.unwrap_or_else(|| value.handle_mut());
 
-            if !evaluate_script(cx, *compiled_script, url, fetch_options, rval) {
+            if !evaluate_script(cx, script, url, fetch_options, rval) {
                 let error_info = take_and_report_pending_exception_for_api(cx);
                 return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }
