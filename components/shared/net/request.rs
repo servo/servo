@@ -22,6 +22,7 @@ use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;
 use uuid::Uuid;
 
+use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
 use crate::response::{HttpsState, RedirectTaint, Response};
@@ -149,7 +150,7 @@ pub struct PreloadKey {
 impl PreloadKey {
     pub fn new(request: &RequestBuilder) -> Self {
         Self {
-            url: request.url.clone(),
+            url: request.url.url(),
             destination: request.destination,
             mode: request.mode.clone(),
             credentials_mode: request.credentials_mode,
@@ -429,7 +430,7 @@ pub struct RequestBuilder {
     pub method: Method,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
-    pub url: ServoUrl,
+    pub url: UrlWithBlobClaim,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[serde(
@@ -505,7 +506,11 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
+    pub fn new(
+        webview_id: Option<WebViewId>,
+        url: UrlWithBlobClaim,
+        referrer: Referrer,
+    ) -> RequestBuilder {
         RequestBuilder {
             id: RequestId::default(),
             preload_id: None,
@@ -744,7 +749,11 @@ impl RequestBuilder {
         request.cache_mode = self.cache_mode;
         request.referrer_policy = self.referrer_policy;
         request.redirect_mode = self.redirect_mode;
-        let mut url_list = self.url_list;
+        let mut url_list: Vec<_> = self
+            .url_list
+            .into_iter()
+            .map(UrlWithBlobClaim::from_url_without_having_claimed_blob)
+            .collect();
         if url_list.is_empty() {
             url_list.push(self.url);
         }
@@ -830,7 +839,7 @@ pub struct Request {
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
-    pub url_list: Vec<ServoUrl>,
+    pub url_list: Vec<UrlWithBlobClaim>,
     /// <https://fetch.spec.whatwg.org/#concept-request-redirect-count>
     pub redirect_count: u32,
     /// <https://fetch.spec.whatwg.org/#concept-request-response-tainting>
@@ -850,7 +859,7 @@ pub struct Request {
 impl Request {
     pub fn new(
         id: RequestId,
-        url: ServoUrl,
+        url: UrlWithBlobClaim,
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
@@ -899,7 +908,7 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url>
     pub fn url(&self) -> ServoUrl {
-        self.url_list.first().unwrap().clone()
+        self.url_list.first().unwrap().url()
     }
 
     pub fn original_url(&self) -> ServoUrl {
@@ -914,6 +923,11 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
     pub fn current_url(&self) -> ServoUrl {
+        self.current_url_with_blob_claim().url()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-current-url>
+    pub fn current_url_with_blob_claim(&self) -> UrlWithBlobClaim {
         self.url_list.last().unwrap().clone()
     }
 

@@ -40,6 +40,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
@@ -1368,7 +1369,11 @@ pub async fn http_redirect_fetch(
     // Steps 15-17 relate to timing, which is not implemented 1:1 with the spec.
 
     // Step 18: Append locationURL to request’s URL list.
-    request.url_list.push(location_url);
+    request
+        .url_list
+        .push(UrlWithBlobClaim::from_url_without_having_claimed_blob(
+            location_url,
+        ));
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
     set_requests_referrer_policy_on_redirect(request, response.actual_response());
@@ -1768,7 +1773,11 @@ async fn http_network_or_cache_fetch(
     let mut response = response.unwrap();
 
     // Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    response.url_list = http_request.url_list.clone();
+    response.url_list = http_request
+        .url_list
+        .iter()
+        .map(|claimed_url| claimed_url.url())
+        .collect();
 
     // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
     if http_request.headers.contains_key(RANGE) {
@@ -2450,7 +2459,7 @@ async fn cors_preflight_fetch(
     // referrer policy, mode is "cors", and response tainting is "cors".
     let mut preflight = RequestBuilder::new(
         request.target_webview_id,
-        request.current_url(),
+        request.current_url_with_blob_claim(),
         request.referrer.clone(),
     )
     .method(Method::OPTIONS)

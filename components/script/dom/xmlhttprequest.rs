@@ -25,6 +25,7 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
@@ -679,7 +680,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         let global = self.global();
         let mut request = RequestBuilder::new(
             global.webview_id(),
-            self.request_url.borrow().clone().unwrap(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(
+                self.request_url.borrow().clone().unwrap(),
+            ),
             self.referrer.clone(),
         )
         .method(self.request_method.borrow().clone())
@@ -1585,7 +1588,7 @@ impl XMLHttpRequest {
             xhr,
             gen_id: self.generation_id.get(),
             sync_status: sync_status.clone(),
-            url: request_builder.url.clone(),
+            url: request_builder.url.url(),
         };
 
         let (task_source, script_port) = if self.sync.get() {

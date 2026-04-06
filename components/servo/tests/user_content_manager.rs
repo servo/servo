@@ -47,7 +47,7 @@ fn test_user_content_manager_user_script() {
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .user_content_manager(user_content_manager.clone())
-        .url(url.into_url())
+        .url(url.as_url().clone())
         .build();
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");

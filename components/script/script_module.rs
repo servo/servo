@@ -41,6 +41,7 @@ use js::rust::{
     transform_str_to_source_text,
 };
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -1592,21 +1593,25 @@ pub(crate) fn fetch_a_single_module_script(
         // TODO Step 11. Set request's initiator type to "script".
 
         // Step 12. Set up the module script request given request and options.
-        let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-            .destination(destination)
-            .parser_metadata(options.parser_metadata)
-            .integrity_metadata(options.integrity_metadata.clone())
-            .credentials_mode(options.credentials_mode)
-            .referrer_policy(options.referrer_policy)
-            .mode(mode)
-            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-            .insecure_requests_policy(fetch_client.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
-            .policy_container(fetch_client.policy_container)
-            .client(fetch_client.client)
-            .pipeline_id(Some(fetch_client.pipeline_id))
-            .origin(fetch_client.origin)
-            .https_state(fetch_client.https_state);
+        let request = RequestBuilder::new(
+            webview_id,
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            referrer,
+        )
+        .destination(destination)
+        .parser_metadata(options.parser_metadata)
+        .integrity_metadata(options.integrity_metadata.clone())
+        .credentials_mode(options.credentials_mode)
+        .referrer_policy(options.referrer_policy)
+        .mode(mode)
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
+        .insecure_requests_policy(fetch_client.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
+        .policy_container(fetch_client.policy_container)
+        .client(fetch_client.client)
+        .pipeline_id(Some(fetch_client.pipeline_id))
+        .origin(fetch_client.origin)
+        .https_state(fetch_client.https_state);
 
         let context = ModuleContext {
             owner,

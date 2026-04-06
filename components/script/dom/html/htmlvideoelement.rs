@@ -10,6 +10,7 @@ use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId,
@@ -232,7 +233,7 @@ impl HTMLVideoElement {
         let global = self.owner_global();
         let request = RequestBuilder::new(
             Some(document.webview_id()),
-            poster_url.clone(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(poster_url.clone()),
             global.get_referrer(),
         )
         .destination(Destination::Image)

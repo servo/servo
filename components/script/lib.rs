@@ -37,6 +37,7 @@ pub(crate) mod fetch;
 pub(crate) mod indexeddb;
 mod init;
 mod layout_image;
+mod url;
 
 pub(crate) mod document_collection;
 pub(crate) mod iframe_collection;

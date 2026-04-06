@@ -33,6 +33,7 @@ use servo_base::generic_channel::{
 };
 use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use uuid::Uuid;
 
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManagerThreadMsg;
@@ -703,6 +704,20 @@ pub enum CoreResourceMsg {
     /// and exit
     Exit(GenericOneshotSender<()>),
     CollectMemoryReport(ReportsChan),
+    RevokeTokenForFile(BlobTokenRevocationRequest),
+    RefreshTokenForFile(BlobTokenRefreshRequest),
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct BlobTokenRevocationRequest {
+    pub blob_id: Uuid,
+    pub token: Uuid,
+}
+
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct BlobTokenRefreshRequest {
+    pub blob_id: Uuid,
+    pub new_token_sender: GenericSender<Uuid>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
