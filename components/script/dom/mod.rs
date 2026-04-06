@@ -350,6 +350,7 @@ pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
 pub(crate) mod staticrange;
 pub(crate) mod storage;
+pub(crate) mod storagemanager;
 pub(crate) mod stream;
 pub(crate) use self::stream::*;
 pub(crate) mod svg;

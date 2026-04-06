@@ -229,3 +229,71 @@ fn test_repeated_session_obtain_reuses_same_logical_rows() {
     assert_eq!(bucket_count, 1);
     assert_eq!(bottle_count, 1);
 }
+
+#[test]
+fn test_local_persistence_and_estimate() {
+    install_test_namespace();
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let handle: ClientStorageThreadHandle =
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+
+    let origin = ServoUrl::parse("https://example.com").unwrap().origin();
+    let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
+    let storage_proxy_map = obtain_bottle_map(
+        &handle,
+        StorageType::Local,
+        webview,
+        StorageIdentifier::IndexedDB,
+        origin.clone(),
+    );
+
+    assert!(!handle.persisted(origin.clone()).recv().unwrap().unwrap());
+    assert!(
+        !handle
+            .persist(origin.clone(), false)
+            .recv()
+            .unwrap()
+            .unwrap()
+    );
+    assert!(!handle.persisted(origin.clone()).recv().unwrap().unwrap());
+    assert!(
+        handle
+            .persist(origin.clone(), true)
+            .recv()
+            .unwrap()
+            .unwrap()
+    );
+    assert!(handle.persisted(origin.clone()).recv().unwrap().unwrap());
+
+    let path = handle
+        .create_database(storage_proxy_map.bottle_id, "estimate".to_string())
+        .recv()
+        .unwrap()
+        .unwrap();
+    let payload = vec![0x5a; 8192];
+    std::fs::write(path.join("payload.bin"), &payload).unwrap();
+
+    let (usage, quota) = handle.estimate(origin).recv().unwrap().unwrap();
+    assert!(usage >= payload.len() as u64);
+    assert!(quota > usage);
+}
+
+#[test]
+fn test_storage_manager_operations_fail_for_opaque_origins() {
+    install_test_namespace();
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let handle: ClientStorageThreadHandle =
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+
+    let origin = ServoUrl::parse("data:text/plain,hello").unwrap().origin();
+
+    assert!(handle.persisted(origin.clone()).recv().unwrap().is_err());
+    assert!(
+        handle
+            .persist(origin.clone(), true)
+            .recv()
+            .unwrap()
+            .is_err()
+    );
+    assert!(handle.estimate(origin).recv().unwrap().is_err());
+}

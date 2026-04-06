@@ -56,6 +56,7 @@ use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::servointernals::ServoInternals;
+use crate::dom::storagemanager::StorageManager;
 use crate::dom::types::UserActivation;
 use crate::dom::wakelock::WakeLock;
 #[cfg(feature = "webgpu")]
@@ -127,6 +128,7 @@ pub(crate) struct Navigator {
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     clipboard: MutNullableDom<Clipboard>,
+    storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
@@ -155,6 +157,7 @@ impl Navigator {
             permissions: Default::default(),
             mediasession: Default::default(),
             clipboard: Default::default(),
+            storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
             #[cfg(feature = "gamepad")]
@@ -476,6 +479,12 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     fn Clipboard(&self, cx: &mut js::context::JSContext) -> DomRoot<Clipboard> {
         self.clipboard
             .or_init(|| Clipboard::new(cx, &self.global()))
+    }
+
+    /// <https://storage.spec.whatwg.org/#api>
+    fn Storage(&self) -> DomRoot<StorageManager> {
+        self.storage
+            .or_init(|| StorageManager::new(&self.global(), CanGc::note()))
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>

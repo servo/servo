@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 use servo_base::id::WebViewId;
 use servo_url::ImmutableOrigin;
 
@@ -67,6 +67,35 @@ impl ClientStorageThreadHandle {
         self.sender.send(message).unwrap();
         receiver
     }
+
+    pub fn persisted(&self, origin: ImmutableOrigin) -> GenericReceiver<Result<bool, String>> {
+        let (sender, receiver) = GenericCallback::new_blocking().unwrap();
+        let message = ClientStorageThreadMessage::Persisted { origin, sender };
+        self.sender.send(message).unwrap();
+        receiver
+    }
+
+    pub fn persist(
+        &self,
+        origin: ImmutableOrigin,
+        permission_granted: bool,
+    ) -> GenericReceiver<Result<bool, String>> {
+        let (sender, receiver) = GenericCallback::new_blocking().unwrap();
+        let message = ClientStorageThreadMessage::Persist {
+            origin,
+            permission_granted,
+            sender,
+        };
+        self.sender.send(message).unwrap();
+        receiver
+    }
+
+    pub fn estimate(&self, origin: ImmutableOrigin) -> GenericReceiver<Result<(u64, u64), String>> {
+        let (sender, receiver) = GenericCallback::new_blocking().unwrap();
+        let message = ClientStorageThreadMessage::Estimate { origin, sender };
+        self.sender.send(message).unwrap();
+        receiver
+    }
 }
 
 impl From<ClientStorageThreadHandle> for GenericSender<ClientStorageThreadMessage> {
@@ -106,7 +135,7 @@ impl StorageType {
 }
 
 /// <https://storage.spec.whatwg.org/#bucket-mode>
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Mode {
     /// It is initially "best-effort".
     #[default]
@@ -119,6 +148,15 @@ impl Mode {
         match self {
             Mode::BestEffort => "best-effort",
             Mode::Persistent => "persistent",
+        }
+    }
+
+    /// <https://storage.spec.whatwg.org/#bucket>
+    pub fn from_str(value: &str) -> Option<Self> {
+        match value {
+            "best-effort" => Some(Mode::BestEffort),
+            "persistent" => Some(Mode::Persistent),
+            _ => None,
         }
     }
 }
@@ -200,6 +238,18 @@ pub enum ClientStorageThreadMessage {
         name: String,
         sender: GenericSender<Result<(), String>>,
     },
-    /// Send a reply when done cleaning up thread resources and then shut it down
+    Persisted {
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<bool, String>>,
+    },
+    Persist {
+        origin: ImmutableOrigin,
+        permission_granted: bool,
+        sender: GenericCallback<Result<bool, String>>,
+    },
+    Estimate {
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<(u64, u64), String>>,
+    },
     Exit(GenericSender<()>),
 }
