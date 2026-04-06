@@ -1087,7 +1087,7 @@ impl InlineFormattingContextLayout<'_> {
             let mut block_end_position = block_start_position + resolved_block_advance;
             if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
                 if !is_phantom_line {
-                    sequential_layout_state.collapse_margins();
+                    sequential_layout_state.commit_margin();
                 }
 
                 // This amount includes both the block size of the line and any extra space
