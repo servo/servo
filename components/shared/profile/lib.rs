@@ -36,13 +36,13 @@ macro_rules! time_profile {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __profiling_span {
-    ($backend_macro:ident, $span_name:literal $(, $field:tt)*) => {{
+    ($backend_macro:ident, $span_name:literal $(, $($fields:tt)+)?) => {{
         #[cfg(feature = "tracing")]
         {
             $crate::servo_tracing::$backend_macro!(
                 $span_name,
                 servo_profiling = true
-                $(, $field)*
+                $(, $($fields)+)?
             )
         }
         #[cfg(not(feature = "tracing"))]
@@ -133,8 +133,8 @@ pub mod dummy_tracing {
 /// which can be used to disable the effects of this macro.
 #[macro_export]
 macro_rules! trace_span {
-    ($span_name:literal $(, $field:tt)*) => {
-        $crate::__profiling_span!(trace_span, $span_name $(, $field)*)
+    ($span_name:literal $(, $($fields:tt)+)?) => {
+        $crate::__profiling_span!(trace_span, $span_name $(, $($fields)+)?)
     };
 }
 
@@ -150,8 +150,8 @@ macro_rules! trace_span {
 /// which can be used to disable the effects of this macro.
 #[macro_export]
 macro_rules! debug_span {
-    ($span_name:literal $(, $field:tt)*) => {
-        $crate::__profiling_span!(debug_span, $span_name $(, $field)*)
+    ($span_name:literal $(, $($fields:tt)+)?) => {
+        $crate::__profiling_span!(debug_span, $span_name $(, $($fields)+)?)
     };
 }
 
@@ -167,8 +167,8 @@ macro_rules! debug_span {
 /// which can be used to disable the effects of this macro.
 #[macro_export]
 macro_rules! info_span {
-    ($span_name:literal $(, $field:tt)*) => {
-        $crate::__profiling_span!(info_span, $span_name $(, $field)*)
+    ($span_name:literal $(, $($fields:tt)+)?) => {
+        $crate::__profiling_span!(info_span, $span_name $(, $($fields)+)?)
     };
 }
 
