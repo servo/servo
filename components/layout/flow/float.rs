@@ -991,12 +991,12 @@ impl SequentialLayoutState {
         self.bfc_relative_block_position + self.current_margin.solve()
     }
 
-    /// Collapses margins, moving the block position down by the collapsed value of `current_margin`
+    /// Commits margins, moving the block position down by the collapsed value of `current_margin`
     /// and resetting `current_margin` to zero.
     ///
     /// Call this method before laying out children when it is known that the start margin of the
     /// current fragment can't collapse with the margins of any of its children.
-    pub(crate) fn collapse_margins(&mut self) {
+    pub(crate) fn commit_margin(&mut self) {
         self.advance_block_position(self.current_margin.solve());
         self.current_margin = CollapsedMargin::zero();
     }

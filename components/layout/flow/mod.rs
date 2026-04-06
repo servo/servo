@@ -1052,11 +1052,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             // Introduce clearance if necessary.
             clearance = sequential_layout_state.calculate_clearance(clear, &block_start_margin);
             if clearance.is_some() {
-                sequential_layout_state.collapse_margins();
+                sequential_layout_state.commit_margin();
             }
             sequential_layout_state.adjoin_assign(&block_start_margin);
             if !start_margin_can_collapse_with_children {
-                sequential_layout_state.collapse_margins();
+                sequential_layout_state.commit_margin();
             }
 
             // NB: This will be a no-op if we're collapsing margins with our children since that
@@ -1200,7 +1200,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         );
 
         if !end_margin_can_collapse_with_children {
-            sequential_layout_state.collapse_margins();
+            sequential_layout_state.commit_margin();
         }
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
     }
@@ -1666,12 +1666,12 @@ impl IndependentFormattingContext {
         // Clearance prevents margin collapse between this block and previous ones,
         // so in that case collapse margins before adjoining them below.
         if clearance.is_some() {
-            sequential_layout_state.collapse_margins();
+            sequential_layout_state.commit_margin();
         }
         sequential_layout_state.adjoin_assign(&collapsed_margin_block_start);
 
         // Margins can never collapse into independent formatting contexts.
-        sequential_layout_state.collapse_margins();
+        sequential_layout_state.commit_margin();
         sequential_layout_state.advance_block_position(
             pbm.padding_border_sums.block + content_size.block + clearance.unwrap_or_else(Au::zero),
         );
