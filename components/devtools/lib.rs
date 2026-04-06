@@ -845,22 +845,22 @@ impl DevtoolsInstance {
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);
-        let thread = self
+        let thread_actor = self
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let source = match thread
+        let source_name = match thread_actor
             .source_manager
             .find_source(&self.registry, &frame.url)
         {
-            Some(source) => source.name(),
+            Some(source_actor) => source_actor.name(),
             None => {
                 warn!("No source actor found for URL: {}", frame.url);
                 return;
             },
         };
 
-        let frame_name = FrameActor::register(&self.registry, source, frame);
+        let frame_name = FrameActor::register(&self.registry, source_name, frame);
 
         let _ = result_sender.send(frame_name);
     }
