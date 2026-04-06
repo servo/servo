@@ -6,7 +6,11 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use paint_api::SerializableImageData;
 use pixels::Snapshot;
+use servo_base::Epoch;
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageDescriptor, ImageFormat, ImageKey};
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::cell::DomRefCell;
@@ -17,7 +21,9 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagebitmap::ImageBitmap;
+use crate::dom::node::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#imagebitmaprenderingcontext>
@@ -32,6 +38,11 @@ pub(crate) struct ImageBitmapRenderingContext {
     #[no_trace]
     bitmap: DomRefCell<Option<Snapshot>>,
     origin_clean: Cell<bool>,
+    #[no_trace]
+    image_key: Cell<Option<ImageKey>>,
+    /// Whether the image has been added to WebRender (first render uses add_image,
+    /// subsequent renders use update_image).
+    image_added: Cell<bool>,
 }
 
 impl ImageBitmapRenderingContext {
@@ -43,6 +54,8 @@ impl ImageBitmapRenderingContext {
             canvas,
             bitmap: DomRefCell::new(None),
             origin_clean: Cell::new(true),
+            image_key: Cell::new(None),
+            image_added: Cell::new(false),
         }
     }
 
@@ -58,6 +71,49 @@ impl ImageBitmapRenderingContext {
             global,
             can_gc,
         )
+    }
+
+    pub(crate) fn set_image_key(&self, image_key: ImageKey) {
+        self.image_key.set(Some(image_key));
+    }
+
+    pub(crate) fn update_rendering(&self, epoch: Epoch) -> bool {
+        let Some(image_key) = self.image_key.get() else {
+            return false;
+        };
+
+        let Some(snapshot) = self.bitmap.borrow().as_ref().cloned() else {
+            return false;
+        };
+
+        let size = snapshot.size();
+        let format = match snapshot.format() {
+            pixels::SnapshotPixelFormat::RGBA => ImageFormat::RGBA8,
+            pixels::SnapshotPixelFormat::BGRA => ImageFormat::BGRA8,
+        };
+        let shared = snapshot.to_shared();
+        let descriptor = ImageDescriptor {
+            format,
+            size: DeviceIntSize::new(size.width as i32, size.height as i32),
+            stride: None,
+            offset: 0,
+            flags: webrender_api::ImageDescriptorFlags::empty(),
+        };
+        let data = SerializableImageData::Raw(shared.shared_memory());
+
+        // Here we get the paint API from the canvas element's window.
+        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) = self.canvas {
+            let canvas: &HTMLCanvasElement = canvas;
+            let doc = canvas.owner_document();
+            let paint_api = doc.window().paint_api();
+            if self.image_added.get() {
+                paint_api.update_image(image_key, descriptor, data, Some(epoch));
+            } else {
+                paint_api.add_image(image_key, descriptor, data, false);
+                self.image_added.set(true);
+            }
+        }
+        false
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-an-imagebitmaprenderingcontext's-output-bitmap>
@@ -147,7 +203,9 @@ impl CanvasContext for ImageBitmapRenderingContext {
             .map_or_else(|| self.canvas.size(), |bitmap| bitmap.size())
     }
 
-    fn mark_as_dirty(&self) {}
+    fn mark_as_dirty(&self) {
+        self.canvas.mark_as_dirty();
+    }
 }
 
 impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRenderingContext {
@@ -164,6 +222,7 @@ impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRen
             // bitmapContext as the context argument and no bitmap argument,
             // then return.
             self.set_bitmap(None);
+            self.mark_as_dirty();
 
             return Ok(());
         };
@@ -180,6 +239,7 @@ impl ImageBitmapRenderingContextMethods<crate::DomTypeHolder> for ImageBitmapRen
         // bitmapContext, and the bitmap argument referring to bitmap's
         // underlying bitmap data.
         self.set_bitmap(Some(image_bitmap));
+        self.mark_as_dirty();
 
         // Step 5. Set the value of bitmap's [[Detached]] internal slot
         // to true.
