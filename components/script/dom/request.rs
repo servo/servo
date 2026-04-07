@@ -12,7 +12,6 @@ use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
@@ -43,6 +42,7 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::fetch::RequestWithGlobalScope;
 use crate::script_runtime::CanGc;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
 pub(crate) struct Request {
@@ -574,9 +574,10 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
+    let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
     RequestBuilder::new(
         global.webview_id(),
-        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        url,
         global.get_referrer(),
     )
     .with_global_scope(global)

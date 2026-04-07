@@ -915,6 +915,10 @@ impl Request {
         self.url_list.first().unwrap().url()
     }
 
+    pub fn url_with_blob_claim(&self) -> UrlWithBlobClaim {
+        self.url_list.first().unwrap().clone()
+    }
+
     pub fn original_url(&self) -> ServoUrl {
         match self.mode {
             RequestMode::WebSocket {
