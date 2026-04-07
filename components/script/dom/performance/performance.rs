@@ -470,7 +470,7 @@ impl Performance {
         }
     }
 
-    /// <https://w3c.github.io/user-timing/#convert-a-mark-to-a-timestamp>
+    /// <https://w3c.github.io/user-timing/#convert-a-name-to-a-timestamp>
     fn convert_a_name_to_a_timestamp(&self, name: &str) -> Fallible<CrossProcessInstant> {
         // Step 1. If the global object is not a Window object, throw a TypeError.
         let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
