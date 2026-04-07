@@ -1360,6 +1360,7 @@ pub(crate) fn fetch_inline_module_script(
     url: ServoUrl,
     options: ScriptFetchOptions,
     line_number: u32,
+    introduction_type: Option<&'static CStr>,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
@@ -1369,7 +1370,7 @@ pub(crate) fn fetch_inline_module_script(
         options,
         false,
         line_number,
-        Some(IntroductionType::INLINE_SCRIPT),
+        introduction_type,
         CanGc::from_cx(cx),
     ));
     let fetch_client = ModuleFetchClient::from_global_scope(&owner.global());
