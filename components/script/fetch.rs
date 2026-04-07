@@ -146,7 +146,7 @@ pub(crate) struct FetchGroup {
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
     let mut builder = RequestBuilder::new(
         request.target_webview_id,
-        UrlWithBlobClaim::from_url_without_having_claimed_blob(request.url()),
+        request.url_with_blob_claim(),
         request.referrer,
     )
     .method(request.method)
