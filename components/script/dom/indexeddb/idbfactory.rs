@@ -520,11 +520,10 @@ impl IDBFactory {
             })
             .collect();
         let origin = global.origin().immutable().clone();
-        let Ok(proxy_map) =
-            self.obtain_a_local_storage_bottle_map(&global, origin.clone()) else {
-                debug_assert!(false, "Failed to obtain a proxy map.");
-                return;
-            };
+        let Ok(proxy_map) = self.obtain_a_local_storage_bottle_map(&global, origin.clone()) else {
+            debug_assert!(false, "Failed to obtain a proxy map.");
+            return;
+        };
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(

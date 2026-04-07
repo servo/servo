@@ -308,8 +308,8 @@ impl RegistryEngine for SqliteEngine {
         let database_id: i64 = tx
             .query_row(
                 "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
-                 ON CONFLICT(bottle_id, name) DO UPDATE SET name = excluded.name
-                RETURNING id;",
+             ON CONFLICT(bottle_id, name) DO UPDATE SET name = excluded.name
+            RETURNING id;",
                 (bottle_id, name),
                 |row| row.get(0),
             )
@@ -325,6 +325,7 @@ impl RegistryEngine for SqliteEngine {
             .map_err(ClientStorageErrorr::Internal)?;
 
         if let Some(p) = existing_path {
+            // If it exists, we don't need the transaction anymore
             return Ok((PathBuf::from(p), false));
         }
 
@@ -347,6 +348,8 @@ impl RegistryEngine for SqliteEngine {
             (database_id, path_str),
         )
         .map_err(ClientStorageErrorr::Internal)?;
+
+        tx.commit().map_err(ClientStorageErrorr::Internal)?;
 
         std::fs::create_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryCreationFailed)?;
 
@@ -466,10 +469,13 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
     fn new(config_dir: Option<PathBuf>) -> ClientStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
 
+        let mut temp_dir: Option<tempfile::TempDir> = None;
         let storage_dir = config_dir
             .unwrap_or_else(|| {
                 let tmp_dir = tempfile::tempdir().unwrap();
-                tmp_dir.path().to_path_buf()
+                let path = tmp_dir.path().to_path_buf();
+                temp_dir = Some(tmp_dir);
+                path
             })
             .join("clientstorage");
         std::fs::create_dir_all(&storage_dir)
@@ -478,6 +484,8 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
+                // Keep temp_dir alive while the thread runs.
+                let _ = temp_dir;
                 let engine = SqliteEngine::new(storage_dir).unwrap_or_else(|error| {
                     warn!("Failed to initialize ClientStorage engine into storage dir: {error:?}");
                     SqliteEngine::memory().unwrap()

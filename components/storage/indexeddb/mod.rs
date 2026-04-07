@@ -1136,13 +1136,19 @@ impl IndexedDBManager {
     /// placeholder backing store entirely.
     ///
     /// Related: <https://github.com/servo/servo/pull/42998>
-    fn revert_aborted_upgrade(&mut self, key: &IndexedDBDescription, old_version: u64, db_name: String, proxy_map: &StorageProxyMap) {
+    fn revert_aborted_upgrade(
+        &mut self,
+        key: &IndexedDBDescription,
+        old_version: u64,
+        db_name: String,
+        proxy_map: &StorageProxyMap,
+    ) {
         if old_version == 0 {
             if let Some(_db) = self.databases.remove(key) {
                 let response = proxy_map
-                .handle
-                .delete_database(proxy_map.bottle_id, db_name.clone())
-                .recv();
+                    .handle
+                    .delete_database(proxy_map.bottle_id, db_name.clone())
+                    .recv();
                 if response.is_err() {
                     error!("Failed to communicate with client storage.");
                     return;
@@ -1164,7 +1170,14 @@ impl IndexedDBManager {
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
-    fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin, db_name: String, proxy_map: &StorageProxyMap) {
+    fn abort_pending_upgrade(
+        &mut self,
+        name: String,
+        id: Uuid,
+        origin: ImmutableOrigin,
+        db_name: String,
+        proxy_map: &StorageProxyMap,
+    ) {
         let key = IndexedDBDescription { name, origin };
         let old = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
