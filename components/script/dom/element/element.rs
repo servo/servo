@@ -699,7 +699,9 @@ impl Element {
         // non-shadow-tree children of `self` no longer have layout boxes as they are no
         // longer in the flat tree.
         let node = self.upcast::<Node>();
-        node.remove_layout_boxes_from_subtree();
+        if node.is_connected() {
+            node.remove_layout_boxes_from_subtree();
+        }
 
         // Step 6. Set shadow's delegates focus to delegatesFocus
         shadow_root.set_delegates_focus(delegates_focus);
