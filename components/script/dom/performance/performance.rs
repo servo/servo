@@ -505,8 +505,7 @@ impl Performance {
 }
 
 impl PerformanceMethods<crate::DomTypeHolder> for Performance {
-    // FIXME(avada): this should be deprecated in the future, but some sites still use it
-    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute>
+    /// <https://w3c.github.io/navigation-timing/#dom-performance-timing>
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
         let entries = self.GetEntriesByType(DOMString::from("navigation"));
         if !entries.is_empty() {
@@ -524,7 +523,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         PerformanceNavigation::new(&self.global(), CanGc::note())
     }
 
-    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now>
+    /// <https://w3c.github.io/hr-time/#dom-performance-now>
     fn Now(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(CrossProcessInstant::now())
     }
