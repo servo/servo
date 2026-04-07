@@ -4,12 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="org.servo.servoshell.SettingsActivity">
+    tools:context="org.servo.servoshell.HistoryActivity">
 
     <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/settings_container"
+        android:id="@+id/history_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:name="org.servo.servoshell.SettingsFragment" />
+        android:name="org.servo.servoshell.HistoryFragment" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

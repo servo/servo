@@ -2,4 +2,26 @@
   <string name="app_name">Servo</string>
   <string name="media_channel_name">ServoMedia</string>
   <string name="media_channel_description">Notication channel for multimedia activity</string>
+  <string name="history_back">Back</string>
+  <string name="history_forward">Forward</string>
+  <string name="options">Options</string>
+  <string name="url_or_search">URL or Search</string>
+  <string name="refresh">Refresh</string>
+  <string name="idle">idle</string>
+  <string name="cancel">Cancel</string>
+  
+  <!-- Settings -->
+  <string name="settings_title">Settings</string>
+  <string name="settings_section_features">Features</string>
+  <string name="settings_experimental_title">Experimental features</string>
+  <string name="settings_experimental_summary">Enable experimental web platform features</string>
+  <string name="settings_animating_title">Idle/animating indicator</string>
+  <string name="settings_animating_summary">Show visual indicator for rendering state</string>
+  <string name="loop">LOOP</string>
+  
+  <!-- History -->
+  <string name="history_title">History</string>
+  <string name="history_placeholder_title">History</string>
+  <string name="history_placeholder_message">Your browsing history is empty</string>
+  <string name="clear_history">Clear History</string>
 </resources>

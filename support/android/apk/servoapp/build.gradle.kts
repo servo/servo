@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    compileSdk = 33
+    compileSdk = 34
     buildToolsVersion = "34.0.0"
 
     namespace = "org.servo.servoshell"
@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "org.servo.servoshell"
         minSdk = 30
-        targetSdk = 33
+        targetSdk = 34
         versionCode = generatedVersionCode
         versionName = "0.1.0"
     }
@@ -168,9 +168,8 @@ dependencies {
     } else {
         implementation(project(":servoview"))
     }
-
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.3")
     implementation("androidx.preference:preference-ktx:1.2.0")
 }
