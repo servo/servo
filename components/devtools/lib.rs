@@ -53,7 +53,7 @@ use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
 use crate::actors::thread::{ThreadActor, ThreadInterruptedReply};
 use crate::actors::watcher::WatcherActor;
-use crate::actors::worker::{WorkerActor, WorkerType};
+use crate::actors::worker::{WorkerTargetActor, WorkerType};
 use crate::id::IdMap;
 use crate::network_handler::handle_network_event;
 use crate::protocol::{DevtoolsConnection, JsonPacketStream};
@@ -482,7 +482,7 @@ impl DevtoolsInstance {
             } else {
                 WorkerType::Dedicated
             };
-            let worker_name = WorkerActor::register(
+            let worker_name = WorkerTargetActor::register(
                 &self.registry,
                 console_name.clone(),
                 thread_name,
@@ -620,7 +620,7 @@ impl DevtoolsInstance {
             let worker_name = self.actor_workers.get(&worker_id)?;
             Some(
                 self.registry
-                    .find::<WorkerActor>(worker_name)
+                    .find::<WorkerTargetActor>(worker_name)
                     .console_name
                     .clone(),
             )
@@ -716,14 +716,14 @@ impl DevtoolsInstance {
 
             let thread_actor_name = self
                 .registry
-                .find::<WorkerActor>(worker_name)
+                .find::<WorkerTargetActor>(worker_name)
                 .thread_name
                 .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
             thread_actor.source_manager.add_source(&source_actor);
 
-            let worker_actor = self.registry.find::<WorkerActor>(worker_name);
+            let worker_actor = self.registry.find::<WorkerTargetActor>(worker_name);
 
             for stream in self.connections.lock().unwrap().values_mut() {
                 worker_actor.resource_array(
