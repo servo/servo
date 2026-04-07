@@ -168,7 +168,7 @@ def wait_until_published(package: WorkspacePackage) -> None:
         if remaining <= 0:
             raise RuntimeError(f"timed out waiting for {package.name} {package.version} to appear on crates.io")
 
-        time.sleep(min(VERIFY_PUBLISHED_INTERVAL_SECONDS, remaining))
+        time.sleep(min(float(VERIFY_PUBLISHED_INTERVAL_SECONDS), remaining))
 
 
 def publish_package(
