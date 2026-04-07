@@ -652,9 +652,10 @@ pub async fn main_fetch(
 
     // Step 14. If response is not a network error and response is not a filtered response, then:
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
-        // Substep 1.
+        // Step 14.1 If request’s response tainting is "cors", then:
         if request.response_tainting == ResponseTainting::CorsTainting {
-            // Subsubstep 1.
+            // Step 14.1.1 Let headerNames be the result of extracting header list values given
+            // `Access-Control-Expose-Headers` and response’s header list.
             let header_names: Option<Vec<HeaderName>> = response
                 .headers
                 .typed_get::<AccessControlExposeHeaders>()
@@ -680,7 +681,8 @@ pub async fn main_fetch(
             }
         }
 
-        // Substep 2.
+        // Step 14.2 Set response to the following filtered response with response as its internal response,
+        // depending on request’s response tainting:
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
