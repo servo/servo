@@ -42,7 +42,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::CallbackSetter;
 use servo_base::id::PipelineId;
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
@@ -1363,15 +1363,10 @@ pub enum MixedSecurityProhibited {
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
 fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
     if let Origin::Origin(ref origin) = request.origin {
-        // Workers created from a data: url are secure if they were created from secure contexts
-        let is_origin_data_url_worker = matches!(
-            *origin,
-            ImmutableOrigin::Opaque(servo_url::OpaqueOrigin::SecureWorkerFromDataUrl(_))
-        );
-
         // Step 1. If settings’ origin is a potentially trustworthy origin,
         // then return "Prohibits Mixed Security Contexts".
-        if origin.is_potentially_trustworthy() || is_origin_data_url_worker {
+        // NOTE: Workers created from a data: url are secure if they were created from secure contexts
+        if origin.is_potentially_trustworthy() || origin.is_for_data_worker_from_secure_context() {
             return MixedSecurityProhibited::Prohibited;
         }
     }

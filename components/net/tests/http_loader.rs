@@ -1639,7 +1639,7 @@ fn test_fetch_compressed_response_update_count() {
 fn test_origin_serialization_compatibility() {
     let ensure_serialiations_match = |url_string| {
         let url = Url::parse(url_string).unwrap();
-        let origin = ImmutableOrigin::new(url.origin());
+        let origin = ImmutableOrigin::new(&url);
         let serialized = format!("{}", serialize_origin(&origin));
         assert_eq!(serialized, origin.ascii_serialization());
     };
