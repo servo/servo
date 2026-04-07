@@ -1445,7 +1445,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // with this's relevant settings object and "sessionStorage".
         // Step 3. If map is failure, then throw a "SecurityError" DOMException.
         if !self.origin().is_tuple() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(
+                "Cannot access sessionStorage from opaque origin.".to_string(),
+            )));
         }
 
         // Step 4. Let storage be a new Storage object whose map is map.
@@ -1470,7 +1472,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // with this's relevant settings object and "localStorage".
         // Step 3. If map is failure, then throw a "SecurityError" DOMException.
         if !self.origin().is_tuple() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some(
+                "Cannot access localStorage from opaque origin.".to_string(),
+            )));
         }
 
         // Step 4. Let storage be a new Storage object whose map is map.
