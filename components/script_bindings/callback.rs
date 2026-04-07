@@ -5,7 +5,7 @@
 //! Base classes to work with IDL callbacks.
 
 use std::default::Default;
-use std::ffi::CString;
+use std::ffi::CStr;
 use std::rc::Rc;
 
 use js::jsapi::{
@@ -210,19 +210,18 @@ impl<D: DomTypes> CallbackInterface<D> {
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: JSContext, name: &str) -> Fallible<JSVal> {
+    pub fn get_callable_property(&self, cx: JSContext, name: &CStr) -> Fallible<JSVal> {
         rooted!(in(*cx) let mut callable = UndefinedValue());
         rooted!(in(*cx) let obj = self.callback_holder().get());
         unsafe {
-            let c_name = CString::new(name).unwrap();
-            if !JS_GetProperty(*cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
+            if !JS_GetProperty(*cx, obj.handle(), name.as_ptr(), callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
             if !callable.is_object() || !IsCallable(callable.to_object()) {
                 return Err(Error::Type(cformat!(
                     "The value of the {} property is not callable",
-                    name
+                    name.to_string_lossy()
                 )));
             }
         }

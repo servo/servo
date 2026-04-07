@@ -8894,7 +8894,7 @@ class CallbackOperationBase(CallbackMethod):
         return "if isCallable { aThisObj.get() } else { ObjectValue(self.callback()) }"
 
     def getCallableDecl(self) -> str:
-        getCallableFromProp = f'self.parent.get_callable_property(cx, "{self.methodName}")?'
+        getCallableFromProp = f'self.parent.get_callable_property(cx, c"{self.methodName}")?'
         if not self.singleOperation:
             return f'rooted!(&in(cx) let callable =\n{getCallableFromProp});\n'
         callable = CGIndenter(
