@@ -27,7 +27,7 @@ pub enum WorkerType {
 }
 
 #[derive(MallocSizeOf)]
-pub(crate) struct WorkerActor {
+pub(crate) struct WorkerTargetActor {
     pub name: String,
     pub console_name: String,
     pub thread_name: String,
@@ -38,13 +38,13 @@ pub(crate) struct WorkerActor {
     pub streams: AtomicRefCell<FxHashSet<StreamId>>,
 }
 
-impl ResourceAvailable for WorkerActor {
+impl ResourceAvailable for WorkerTargetActor {
     fn actor_name(&self) -> String {
         self.name.clone()
     }
 }
 
-impl WorkerActor {
+impl WorkerTargetActor {
     pub fn register(
         registry: &ActorRegistry,
         console_name: String,
@@ -70,7 +70,7 @@ impl WorkerActor {
     }
 }
 
-impl Actor for WorkerActor {
+impl Actor for WorkerTargetActor {
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -182,7 +182,7 @@ struct WorkerTraits {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct WorkerActorMsg {
+pub(crate) struct WorkerTargetActorMsg {
     actor: String,
     console_actor: String,
     thread_actor: String,
@@ -195,9 +195,9 @@ pub(crate) struct WorkerActorMsg {
     target_type: String,
 }
 
-impl ActorEncode<WorkerActorMsg> for WorkerActor {
-    fn encode(&self, _: &ActorRegistry) -> WorkerActorMsg {
-        WorkerActorMsg {
+impl ActorEncode<WorkerTargetActorMsg> for WorkerTargetActor {
+    fn encode(&self, _: &ActorRegistry) -> WorkerTargetActorMsg {
+        WorkerTargetActorMsg {
             actor: self.name(),
             console_actor: self.console_name.clone(),
             thread_actor: self.thread_name.clone(),

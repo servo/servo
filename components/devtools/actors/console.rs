@@ -24,7 +24,7 @@ use uuid::Uuid;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor, debugger_value_to_json};
-use crate::actors::worker::WorkerActor;
+use crate::actors::worker::WorkerTargetActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId};
@@ -287,7 +287,7 @@ impl ConsoleActor {
                 .find::<BrowsingContextActor>(browsing_context_name)
                 .script_chan(),
             Root::DedicatedWorker(worker_name) => registry
-                .find::<WorkerActor>(worker_name)
+                .find::<WorkerTargetActor>(worker_name)
                 .script_sender
                 .clone(),
         }
@@ -301,7 +301,7 @@ impl ConsoleActor {
                     .pipeline_id(),
             ),
             Root::DedicatedWorker(worker_name) => {
-                UniqueId::Worker(registry.find::<WorkerActor>(worker_name).worker_id)
+                UniqueId::Worker(registry.find::<WorkerTargetActor>(worker_name).worker_id)
             },
         }
     }
