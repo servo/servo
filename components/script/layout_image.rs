@@ -8,6 +8,7 @@
 
 use std::sync::Arc;
 
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
@@ -102,9 +103,13 @@ pub(crate) fn fetch_image_for_layout(
     };
 
     let global = node.owner_global();
-    let request = RequestBuilder::new(Some(document.webview_id()), url, global.get_referrer())
-        .destination(Destination::Image)
-        .with_global_scope(&global);
+    let request = RequestBuilder::new(
+        Some(document.webview_id()),
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        global.get_referrer(),
+    )
+    .destination(Destination::Image)
+    .with_global_scope(&global);
 
     // Layout image loads do not delay the document load event.
     document.fetch_background(request, context);

@@ -23,7 +23,7 @@ use servo_url::ServoUrl;
 use self::network_parent::NetworkParentActor;
 use super::breakpoint::BreakpointListActor;
 use super::thread::ThreadActor;
-use super::worker::WorkerActorMsg;
+use super::worker::WorkerTargetActorMsg;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::console::ConsoleActor;
@@ -34,7 +34,7 @@ use crate::actors::watcher::target_configuration::{
 use crate::actors::watcher::thread_configuration::ThreadConfigurationActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{ActorMsg, EmptyReplyMsg, IdMap, StreamId, WorkerActor};
+use crate::{ActorMsg, EmptyReplyMsg, IdMap, StreamId, WorkerTargetActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -110,7 +110,7 @@ pub enum SessionContextType {
 #[serde(untagged)]
 enum TargetActorMsg {
     BrowsingContext(BrowsingContextActorMsg),
-    Worker(WorkerActorMsg),
+    Worker(WorkerTargetActorMsg),
 }
 
 #[derive(Serialize)]
@@ -184,7 +184,7 @@ pub(crate) struct WatcherActor {
     name: String,
     pub browsing_context_name: String,
     network_parent_name: String,
-    target_configuration: String,
+    target_configuration_name: String,
     thread_configuration_name: String,
     breakpoint_list_name: String,
     session_context: SessionContext,
@@ -266,7 +266,7 @@ impl Actor for WatcherActor {
                             from: self.name(),
                             type_: "target-available-form".into(),
                             target: TargetActorMsg::Worker(
-                                registry.encode::<WorkerActor, _>(worker_name),
+                                registry.encode::<WorkerTargetActor, _>(worker_name),
                             ),
                         };
                         let _ = request.write_json_packet(&worker_msg);
@@ -277,7 +277,7 @@ impl Actor for WatcherActor {
                             from: self.name(),
                             type_: "target-available-form".into(),
                             target: TargetActorMsg::Worker(
-                                registry.encode::<WorkerActor, _>(worker_name),
+                                registry.encode::<WorkerTargetActor, _>(worker_name),
                             ),
                         };
                         let _ = request.write_json_packet(&worker_msg);
@@ -341,7 +341,7 @@ impl Actor for WatcherActor {
                             );
 
                             for worker_name in &*root_actor.workers.borrow() {
-                                let worker_actor = registry.find::<WorkerActor>(worker_name);
+                                let worker_actor = registry.find::<WorkerTargetActor>(worker_name);
                                 let thread_actor =
                                     registry.find::<ThreadActor>(&worker_actor.thread_name);
 
@@ -365,7 +365,7 @@ impl Actor for WatcherActor {
                             );
 
                             for worker_name in &*root_actor.workers.borrow() {
-                                let worker_actor = registry.find::<WorkerActor>(worker_name);
+                                let worker_actor = registry.find::<WorkerTargetActor>(worker_name);
                                 let console_actor =
                                     registry.find::<ConsoleActor>(&worker_actor.console_name);
 
@@ -406,7 +406,7 @@ impl Actor for WatcherActor {
                 let msg = GetTargetConfigurationActorReply {
                     from: self.name(),
                     configuration: registry
-                        .encode::<TargetConfigurationActor, _>(&self.target_configuration),
+                        .encode::<TargetConfigurationActor, _>(&self.target_configuration_name),
                 };
                 request.reply_final(&msg)?
             },
@@ -439,31 +439,31 @@ impl ResourceAvailable for WatcherActor {
 }
 
 impl WatcherActor {
-    pub fn new(
+    pub fn register(
         registry: &ActorRegistry,
         browsing_context_name: String,
         session_context: SessionContext,
-    ) -> Self {
+    ) -> String {
         let network_parent_name = NetworkParentActor::register(registry);
-        let target_configuration =
-            TargetConfigurationActor::new(registry.new_name::<TargetConfigurationActor>());
+        let target_configuration_name = TargetConfigurationActor::register(registry);
         let thread_configuration_name = ThreadConfigurationActor::register(registry);
         let breakpoint_list_name =
             BreakpointListActor::register(registry, browsing_context_name.clone());
 
-        let watcher_actor = Self {
-            name: registry.new_name::<WatcherActor>(),
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             browsing_context_name,
             network_parent_name,
-            target_configuration: target_configuration.name(),
+            target_configuration_name,
             thread_configuration_name,
             breakpoint_list_name,
             session_context,
         };
 
-        registry.register(target_configuration);
+        registry.register::<Self>(actor);
 
-        watcher_actor
+        name
     }
 
     pub fn emit_will_navigate<'a>(

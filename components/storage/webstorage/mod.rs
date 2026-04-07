@@ -344,38 +344,51 @@ impl WebStorageManager {
         }
     }
 
-    fn add_new_environment(&mut self, origin: &ImmutableOrigin) {
+    fn add_new_environment(&mut self, origin: &ImmutableOrigin) -> Result<(), rusqlite::Error> {
         let origin_location = self.get_origin_location(origin);
 
-        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone()).unwrap();
+        let engine = SqliteEngine::new(&origin_location, self.thread_pool.clone())?;
         let environment = WebStorageEnvironment::new(engine);
         self.environments.insert(origin.clone(), environment);
+        Ok(())
     }
 
     fn get_environment(
         &mut self,
         origin: &ImmutableOrigin,
-    ) -> &WebStorageEnvironment<SqliteEngine> {
+    ) -> Result<&WebStorageEnvironment<SqliteEngine>, rusqlite::Error> {
         if self.environments.contains_key(origin) {
-            return self.environments.get(origin).unwrap();
+            return Ok(self
+                .environments
+                .get(origin)
+                .expect("environment should exist after contains_key check"));
         }
 
-        self.add_new_environment(origin);
+        self.add_new_environment(origin)?;
 
-        self.environments.get(origin).unwrap()
+        Ok(self
+            .environments
+            .get(origin)
+            .expect("environment should exist after add_new_environment"))
     }
 
     fn get_environment_mut(
         &mut self,
         origin: &ImmutableOrigin,
-    ) -> &mut WebStorageEnvironment<SqliteEngine> {
+    ) -> Result<&mut WebStorageEnvironment<SqliteEngine>, rusqlite::Error> {
         if self.environments.contains_key(origin) {
-            return self.environments.get_mut(origin).unwrap();
+            return Ok(self
+                .environments
+                .get_mut(origin)
+                .expect("environment should exist after contains_key check"));
         }
 
-        self.add_new_environment(origin);
+        self.add_new_environment(origin)?;
 
-        self.environments.get_mut(origin).unwrap()
+        Ok(self
+            .environments
+            .get_mut(origin)
+            .expect("environment should exist after add_new_environment"))
     }
 
     fn select_data(
@@ -397,7 +410,13 @@ impl WebStorageManager {
                 if self.local_storage_origins.ensure_origin_descriptor(&origin) {
                     self.save_local_storage_origins();
                 }
-                Some(&self.get_environment(&origin).data)
+                match self.get_environment(&origin) {
+                    Ok(env) => Some(&env.data),
+                    Err(e) => {
+                        warn!("Failed to get storage environment: {:?}", e);
+                        None
+                    },
+                }
             },
         }
     }
@@ -421,7 +440,13 @@ impl WebStorageManager {
                 if self.local_storage_origins.ensure_origin_descriptor(&origin) {
                     self.save_local_storage_origins();
                 }
-                Some(&mut self.get_environment_mut(&origin).data)
+                match self.get_environment_mut(&origin) {
+                    Ok(env) => Some(&mut env.data),
+                    Err(e) => {
+                        warn!("Failed to get storage environment: {:?}", e);
+                        None
+                    },
+                }
             },
         }
     }
@@ -431,22 +456,30 @@ impl WebStorageManager {
         storage_type: WebStorageType,
         webview_id: WebViewId,
         origin: ImmutableOrigin,
-    ) -> &mut OriginEntry {
+    ) -> Option<&mut OriginEntry> {
         match storage_type {
             WebStorageType::Session => {
                 self.session_storage_origins
                     .ensure_origin_descriptor(&origin);
-                self.session_data
-                    .entry(webview_id)
-                    .or_default()
-                    .entry(origin)
-                    .or_default()
+                Some(
+                    self.session_data
+                        .entry(webview_id)
+                        .or_default()
+                        .entry(origin)
+                        .or_default(),
+                )
             },
             WebStorageType::Local => {
                 if self.local_storage_origins.ensure_origin_descriptor(&origin) {
                     self.save_local_storage_origins();
                 }
-                &mut self.get_environment_mut(&origin).data
+                match self.get_environment_mut(&origin) {
+                    Ok(env) => Some(&mut env.data),
+                    Err(e) => {
+                        warn!("Failed to get storage environment: {:?}", e);
+                        None
+                    },
+                }
             },
         }
     }
@@ -505,7 +538,10 @@ impl WebStorageManager {
         name: String,
         value: String,
     ) {
-        let entry = self.ensure_data_mut(storage_type, webview_id, url.origin());
+        let Some(entry) = self.ensure_data_mut(storage_type, webview_id, url.origin()) else {
+            sender.send(Err(())).unwrap();
+            return;
+        };
         let total_size = entry.size();
 
         let mut new_total_size = total_size + value.len();
@@ -529,8 +565,9 @@ impl WebStorageManager {
                         }
                     });
             if storage_type == WebStorageType::Local {
-                let env = self.get_environment_mut(&url.origin());
-                env.set(&name, &value);
+                if let Ok(env) = self.get_environment_mut(&url.origin()) {
+                    env.set(&name, &value);
+                }
             }
             result
         };
@@ -564,8 +601,9 @@ impl WebStorageManager {
         let old_value = data.and_then(|entry| entry.remove(&name));
         sender.send(old_value).unwrap();
         if storage_type == WebStorageType::Local {
-            let env = self.get_environment_mut(&url.origin());
-            env.delete(&name);
+            if let Ok(env) = self.get_environment_mut(&url.origin()) {
+                env.delete(&name);
+            }
         }
     }
 
@@ -588,8 +626,9 @@ impl WebStorageManager {
             }))
             .unwrap();
         if storage_type == WebStorageType::Local {
-            let env = self.get_environment_mut(&url.origin());
-            env.clear();
+            if let Ok(env) = self.get_environment_mut(&url.origin()) {
+                env.clear();
+            }
         }
     }
 

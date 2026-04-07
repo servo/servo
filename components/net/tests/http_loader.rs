@@ -34,6 +34,7 @@ use net::fetch::methods::{self};
 use net::http_loader::{determine_requests_referrer, serialize_origin};
 use net::resource_thread::AuthCacheEntry;
 use net::test::DECODER_BUFFER_SIZE;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CredentialsMode, Destination, Referrer, Request, RequestBuilder, RequestMode,
@@ -387,7 +388,7 @@ fn test_request_and_response_data_with_network_messages() {
     );
 
     let httprequest = DevtoolsHttpRequest {
-        url: url,
+        url: url.url(),
         method: Method::GET,
         headers: headers,
         body: Some(vec![].into()),
@@ -501,7 +502,7 @@ fn test_redirected_request_to_devtools() {
     let first_response = expect_response(&mut events);
 
     assert_eq!(first_request.method, Method::POST);
-    assert_eq!(first_request.url, pre_url);
+    assert_eq!(first_request.url, pre_url.url());
     assert_eq!(
         first_response.status,
         HttpStatus::from(StatusCode::MOVED_PERMANENTLY)
@@ -514,7 +515,7 @@ fn test_redirected_request_to_devtools() {
     let second_response = expect_response(&mut events);
 
     assert_eq!(second_request.method, Method::GET);
-    assert_eq!(second_request.url, post_url);
+    assert_eq!(second_request.url, post_url.url());
     assert_eq!(second_response.status, HttpStatus::default());
     assert_eq!(second_request.method, second_request_update.method);
     assert_eq!(second_request.url, second_request_update.url);
@@ -1194,7 +1195,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         };
     let (server_b, url_b) = make_server(handler_b);
 
-    *url_b_for_a.lock() = Some(url_b.clone());
+    *url_b_for_a.lock() = Some(url_b.url());
 
     let request = RequestBuilder::new(None, url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
@@ -1248,7 +1249,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
         };
     let (server_b, url_b) = make_server(handler_b);
 
-    *url_b_for_a.lock() = Some(url_b.clone());
+    *url_b_for_a.lock() = Some(url_b.url());
 
     let request = RequestBuilder::new(None, url_a.clone(), Referrer::NoReferrer)
         .method(Method::GET)
@@ -1264,7 +1265,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
     let _ = server_b.close();
 
     let response = response.to_actual();
-    assert_eq!(response.url_list, [url_a.clone(), url_b, url_a]);
+    assert_eq!(response.url_list, [url_a.url(), url_b.url(), url_a.url()]);
     assert_eq!(
         *response.body.lock(),
         ResponseBody::Done(b"Success".to_vec())
@@ -1380,14 +1381,18 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         cookie_jar.push(cookie_y, &url_y, CookieSource::HTTP);
     }
 
-    let request = RequestBuilder::new(None, url_x.clone(), Referrer::NoReferrer)
-        .method(Method::GET)
-        .destination(Destination::Document)
-        .origin(mock_origin())
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .credentials_mode(CredentialsMode::Include)
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url_x.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .method(Method::GET)
+    .destination(Destination::Document)
+    .origin(mock_origin())
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .credentials_mode(CredentialsMode::Include)
+    .policy_container(Default::default())
+    .build();
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1432,14 +1437,18 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     let url = url.join("/initial/").unwrap();
 
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
-        .method(Method::GET)
-        .destination(Destination::Document)
-        .origin(mock_origin())
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .credentials_mode(CredentialsMode::Include)
-        .policy_container(Default::default())
-        .build();
+    let request = RequestBuilder::new(
+        None,
+        UrlWithBlobClaim::new(url.clone(), None),
+        Referrer::NoReferrer,
+    )
+    .method(Method::GET)
+    .destination(Destination::Document)
+    .origin(mock_origin())
+    .pipeline_id(Some(TEST_PIPELINE_ID))
+    .credentials_mode(CredentialsMode::Include)
+    .policy_container(Default::default())
+    .build();
 
     let response = fetch(request, None);
 

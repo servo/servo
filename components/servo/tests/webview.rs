@@ -96,7 +96,7 @@ fn test_create_webview_http() {
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.into_url())
+        .url(url.as_url().clone())
         .build();
 
     servo_test.spin(move || !delegate.url_changed.get());
@@ -957,7 +957,7 @@ fn test_webview_load_with_headers() {
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.clone().into_url())
+        .url(url.url().into_url())
         .build();
 
     {
@@ -965,7 +965,7 @@ fn test_webview_load_with_headers() {
         servo_test.spin(move || !delegate.url_changed.get());
     }
 
-    let urlrequest = UrlRequest::new(url.into_url()).headers(headers);
+    let urlrequest = UrlRequest::new(url.url().into_url()).headers(headers);
     webview.load_request(urlrequest);
     {
         let request_count = request_count.clone();

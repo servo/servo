@@ -77,7 +77,7 @@ fn test_font_can_do_fast_shaping() {
     // Fast shaping requires a font with a kern table and no GPOS or GSUB tables.
     let shaping_options = ShapingOptions {
         letter_spacing: None,
-        word_spacing: Au::zero(),
+        word_spacing: None,
         script: Script::Latin,
         language: Language::UND,
         flags: ShapingFlags::empty(),
@@ -88,7 +88,7 @@ fn test_font_can_do_fast_shaping() {
     // Non-Latin script should never have fast shaping.
     let shaping_options = ShapingOptions {
         letter_spacing: None,
-        word_spacing: Au::zero(),
+        word_spacing: None,
         script: Script::Cherokee,
         language: Language::UND,
         flags: ShapingFlags::empty(),
@@ -99,7 +99,7 @@ fn test_font_can_do_fast_shaping() {
     // Right-to-left text should never use fast shaping.
     let shaping_options = ShapingOptions {
         letter_spacing: None,
-        word_spacing: Au::zero(),
+        word_spacing: None,
         script: Script::Latin,
         language: Language::UND,
         flags: ShapingFlags::RTL_FLAG,

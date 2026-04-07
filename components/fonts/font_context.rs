@@ -16,6 +16,7 @@ use fonts_traits::{
 };
 use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Referrer, RequestBuilder, RequestClient,
@@ -986,7 +987,7 @@ impl RemoteWebFontDownloader {
 
         let request = RequestBuilder::new(
             state.webview_id,
-            url.clone().into(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone().into()),
             Referrer::ReferrerUrl(document_context.document_url.clone()),
         )
         .destination(Destination::Font)

@@ -540,12 +540,12 @@ pub async fn main_fetch(
         .await;
 
     let mut response = match response {
-        Some(res) => res,
+        Some(response) => response,
         None => {
             // Step 12. If response is null, then set response to the result
             // of running the steps corresponding to the first matching statement:
             let same_origin = if let Origin::Origin(ref origin) = request.origin {
-                *origin == current_url.origin()
+                *origin == request.current_url_with_blob_claim().origin()
             } else {
                 false
             };
@@ -726,7 +726,11 @@ pub async fn main_fetch(
 
         // Step 16. If internalResponse’s URL list is empty, then set it to a clone of request’s URL list.
         if internal_response.url_list.is_empty() {
-            internal_response.url_list.clone_from(&request.url_list)
+            internal_response.url_list = request
+                .url_list
+                .iter()
+                .map(|locked_url| locked_url.url())
+                .collect();
         }
 
         // Step 17. Set internalResponse’s redirect taint to request’s redirect-taint.
@@ -1056,18 +1060,22 @@ async fn scheme_fetch(
 
     // Step 2: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
-    let url = request.current_url();
+    let url_and_blob_lock = request.current_url_with_blob_claim();
 
-    let scheme = url.scheme();
+    let scheme = url_and_blob_lock.scheme();
     match scheme {
-        "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
-        "about" if url.path() == "memory" => create_about_memory(url, request.timing_type()),
+        "about" if url_and_blob_lock.path() == "blank" => {
+            create_blank_reply(url_and_blob_lock.url(), request.timing_type())
+        },
+        "about" if url_and_blob_lock.path() == "memory" => {
+            create_about_memory(url_and_blob_lock.url(), request.timing_type())
+        },
 
-        "chrome" if url.path() == "allowcert" => {
+        "chrome" if url_and_blob_lock.path() == "allowcert" => {
             if let Err(error) = handle_allowcert_request(request, context) {
                 warn!("Could not handle allowcert request: {error}");
             }
-            create_blank_reply(url, request.timing_type())
+            create_blank_reply(url_and_blob_lock.url(), request.timing_type())
         },
 
         "http" | "https" => {

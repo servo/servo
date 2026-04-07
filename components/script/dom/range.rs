@@ -142,7 +142,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#contained>
-    fn contains(&self, node: &Node) -> bool {
+    pub(crate) fn contains(&self, node: &Node) -> bool {
         // > A node node is contained in a live range range if node’s root is range’s root,
         // > and (node, 0) is after range’s start, and (node, node’s length) is before range’s end.
         matches!(

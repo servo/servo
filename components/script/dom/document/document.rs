@@ -4638,8 +4638,12 @@ impl Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
-    pub(crate) fn set_state_override(&self, command_name: CommandName, state: bool) {
-        self.state_override.borrow_mut().insert(command_name, state);
+    pub(crate) fn set_state_override(&self, command_name: CommandName, state: Option<bool>) {
+        if let Some(state) = state {
+            self.state_override.borrow_mut().insert(command_name, state);
+        } else {
+            self.value_override.borrow_mut().remove(&command_name);
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
@@ -6181,8 +6185,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
-    fn QueryCommandValue(&self, command_id: DOMString) -> DOMString {
-        self.command_value_for_command(command_id)
+    fn QueryCommandValue(
+        &self,
+        cx: &mut js::context::JSContext,
+        command_id: DOMString,
+    ) -> DOMString {
+        self.command_value_for_command(cx, command_id)
     }
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror

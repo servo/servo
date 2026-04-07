@@ -18,7 +18,9 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
+use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, DomSlice};
@@ -26,7 +28,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
-use crate::dom::execcommand::basecommand::CommandName;
+use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -199,21 +201,130 @@ impl HTMLBRElement {
 }
 
 impl Document {
-    fn create_br_element(&self, cx: &mut js::context::JSContext) -> DomRoot<Element> {
+    pub(crate) fn create_element(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: &str,
+    ) -> DomRoot<Element> {
         let element_options =
             StringOrElementCreationOptions::ElementCreationOptions(ElementCreationOptions {
                 is: None,
             });
-        match self.CreateElement(cx, "br".into(), element_options) {
-            Err(_) => unreachable!("Must always be able to create br"),
-            Ok(br) => br,
-        }
+        self.CreateElement(cx, name.into(), element_options)
+            .expect("Must always be able to create element")
     }
 }
 
 impl HTMLElement {
     fn local_name(&self) -> &str {
         self.upcast::<Element>().local_name()
+    }
+}
+
+impl Element {
+    /// <https://w3c.github.io/editing/docs/execCommand/#clear-the-value>
+    fn clear_the_value(&self) {
+        // Step 1. Let command be the current command.
+        // TODO
+        // Step 2. If element is not editable, return the empty list.
+        // TODO
+        // Step 3. If element's specified command value for command is null,
+        // return the empty list.
+        // TODO
+        // Step 4. If element is a simple modifiable element:
+        // TODO
+        // Step 5. If command is "strikethrough", and element has a style attribute
+        // that sets "text-decoration" to some value containing "line-through",
+        // delete "line-through" from the value.
+        // TODO
+        // Step 6. If command is "underline", and element has a style attribute that
+        // sets "text-decoration" to some value containing "underline", delete "underline" from the value.
+        // TODO
+        // Step 7. If the relevant CSS property for command is not null,
+        // unset that property of element.
+        // TODO
+        // Step 8. If element is a font element:
+        // TODO
+        // Step 9. If element is an a element and command is "createLink" or "unlink",
+        // unset the href property of element.
+        // TODO
+        // Step 10. If element's specified command value for command is null,
+        // return the empty list.
+        // TODO
+        // Step 11. Set the tag name of element to "span",
+        // and return the one-node list consisting of the result.
+        // TODO
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#specified-command-value>
+    pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<DOMString> {
+        match command {
+            // Step 1. If command is "backColor" or "hiliteColor" and the Element's display property does not have resolved value "inline", return null.
+            CommandName::BackColor | CommandName::HiliteColor => {
+                // TODO
+            },
+            // Step 2. If command is "createLink" or "unlink":
+            CommandName::CreateLink | CommandName::Unlink => {
+                // TODO
+            },
+            // Step 3. If command is "subscript" or "superscript":
+            CommandName::Subscript | CommandName::Superscript => {
+                // TODO
+            },
+            CommandName::Strikethrough => {
+                // Step 4. If command is "strikethrough", and element has a style attribute set, and that attribute sets "text-decoration":
+                // TODO
+                // Step 5. If command is "strikethrough" and element is an s or strike element, return "line-through".
+                // TODO
+            },
+            CommandName::Underline => {
+                // Step 6. If command is "underline", and element has a style attribute set, and that attribute sets "text-decoration":
+                // TODO
+                // Step 7. If command is "underline" and element is a u element, return "underline".
+                // TODO
+            },
+            _ => {},
+        };
+        // Step 8. Let property be the relevant CSS property for command.
+        // Step 9. If property is null, return null.
+        let property = command.relevant_css_property()?;
+        // Step 10. If element has a style attribute set, and that attribute has the effect of setting property,
+        // return the value that it sets property to.
+        if let Some(value) = self
+            .style_attribute()
+            .borrow()
+            .as_ref()
+            .and_then(|declarations| {
+                let document = self.owner_document();
+                let shared_lock = document.style_shared_lock();
+                let read_lock = shared_lock.read();
+                let declarations = declarations.read_with(&read_lock);
+                property.value_set_for_style(declarations)
+            })
+        {
+            return Some(value);
+        }
+        // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
+        // return the value that the hint sets property to. (For a size of 7, this will be the non-CSS value "xxx-large".)
+        // TODO
+
+        // Step 12. If element is in the following list, and property is equal to the CSS property name listed for it,
+        // return the string listed for it.
+        let element_name = self.local_name();
+        match property {
+            CssPropertyName::FontWeight
+                if element_name == &local_name!("b") || element_name == &local_name!("strong") =>
+            {
+                Some("bold".into())
+            },
+            CssPropertyName::FontStyle
+                if element_name == &local_name!("i") || element_name == &local_name!("em") =>
+            {
+                Some("italic".into())
+            },
+            // Step 13. Return null.
+            _ => None,
+        }
     }
 }
 
@@ -527,7 +638,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
         if precedes_line_break {
             if let Some(last) = node_list.last() {
                 if !last.precedes_a_line_break() {
-                    let br = context_object.create_br_element(cx);
+                    let br = context_object.create_element(cx, "br");
                     if last
                         .GetParentNode()
                         .expect("Must always have a parent")
@@ -595,7 +706,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
     if follows_line_break {
         if let Some(first) = node_list.first() {
             if !first.follows_a_line_break() {
-                let br = context_object.create_br_element(cx);
+                let br = context_object.create_element(cx, "br");
                 if first
                     .GetParentNode()
                     .expect("Must always have a parent")
@@ -632,7 +743,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
         if precedes_line_break {
             if let Some(last) = node_list.last() {
                 if !last.precedes_a_line_break() {
-                    let br = context_object.create_br_element(cx);
+                    let br = context_object.create_element(cx, "br");
                     if last
                         .GetParentNode()
                         .expect("Must always have a parent")
@@ -659,9 +770,434 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
     }
 }
 
+/// <https://w3c.github.io/editing/docs/execCommand/#wrap>
+fn wrap_node_list<'a, SiblingCriteria, NewParentInstructions>(
+    cx: &mut js::context::JSContext,
+    node_list: &'a [&'a Node],
+    sibling_criteria: SiblingCriteria,
+    new_parent_instructions: NewParentInstructions,
+) -> Option<DomRoot<Node>>
+where
+    SiblingCriteria: Fn(&Node) -> bool,
+    NewParentInstructions: Fn() -> Option<DomRoot<Node>>,
+{
+    // Step 1. If every member of node list is invisible,
+    // and none is a br, return null and abort these steps.
+    // TODO
+    // Step 2. If node list's first member's parent is null, return null and abort these steps.
+    // TODO
+    // Step 3. If node list's last member is an inline node that's not a br,
+    // and node list's last member's nextSibling is a br, append that br to node list.
+    // TODO
+    // Step 4. While node list's first member's previousSibling is invisible, prepend it to node list.
+    // TODO
+    // Step 5. While node list's last member's nextSibling is invisible, append it to node list.
+    // TODO
+    // Step 6. If the previousSibling of the first member of node list is editable
+    // and running sibling criteria on it returns true,
+    // let new parent be the previousSibling of the first member of node list.
+    let new_parent = node_list
+        .first()
+        .and_then(|first| first.GetPreviousSibling())
+        .filter(|previous_of_first| {
+            previous_of_first.is_editable() && sibling_criteria(previous_of_first)
+        });
+    // Step 7. Otherwise, if the nextSibling of the last member of node list is editable
+    // and running sibling criteria on it returns true,
+    // let new parent be the nextSibling of the last member of node list.
+    let new_parent = new_parent.or_else(|| {
+        node_list
+            .last()
+            .and_then(|first| first.GetNextSibling())
+            .filter(|next_of_last| next_of_last.is_editable() && sibling_criteria(next_of_last))
+    });
+    // Step 8. Otherwise, run new parent instructions, and let new parent be the result.
+    // Step 9. If new parent is null, abort these steps and return null.
+    let new_parent = new_parent.or_else(new_parent_instructions)?;
+    // Step 11. Let original parent be the parent of the first member of node list.
+    let first_in_node_list = node_list
+        .first()
+        .expect("Must always have at least one node");
+    let original_parent = first_in_node_list
+        .GetParentNode()
+        .expect("First node must have a parent");
+    // Step 10. If new parent's parent is null:
+    if new_parent.GetParentNode().is_none() {
+        // Step 10.1. Insert new parent into the parent of the first member
+        // of node list immediately before the first member of node list.
+        if original_parent
+            .InsertBefore(cx, &new_parent, Some(first_in_node_list))
+            .is_err()
+        {
+            unreachable!("Must always be able to insert");
+        }
+        // Step 10.2. If any range has a boundary point with node equal
+        // to the parent of new parent and offset equal to the index of new parent,
+        // add one to that boundary point's offset.
+        // TODO
+    }
+    // Step 12. If new parent is before the first member of node list in tree order:
+    if new_parent.is_before(first_in_node_list) {
+        // Step 12.1. If new parent is not an inline node, but the last visible child of new parent
+        // and the first visible member of node list are both inline nodes,
+        // and the last child of new parent is not a br,
+        // call createElement("br") on the ownerDocument of new parent
+        // and append the result as the last child of new parent.
+        // TODO
+        // Step 12.2. For each node in node list, append node as the last child of new parent, preserving ranges.
+        for node in node_list {
+            if new_parent.AppendChild(cx, node).is_err() {
+                unreachable!("Must always be able to append");
+            }
+        }
+    } else {
+        // Step 13. Otherwise:
+        // Step 13.1. If new parent is not an inline node, but the first visible child of new parent
+        // and the last visible member of node list are both inline nodes,
+        // and the last member of node list is not a br,
+        // call createElement("br") on the ownerDocument of new parent
+        // and insert the result as the first child of new parent.
+        // TODO
+        // Step 13.2. For each node in node list, in reverse order,
+        // insert node as the first child of new parent, preserving ranges.
+        let mut before = new_parent.GetFirstChild();
+        for node in node_list.iter().rev() {
+            if let Err(err) = new_parent.InsertBefore(cx, node, before.as_deref()) {
+                unreachable!("Must always be able to append: {:?}", err);
+            }
+            before = Some(DomRoot::from_ref(node));
+        }
+    }
+    // Step 14. If original parent is editable and has no children, remove it from its parent.
+    if original_parent.is_editable() && original_parent.children_count() == 0 {
+        original_parent.remove_self(cx);
+    }
+    // Step 15. If new parent's nextSibling is editable and running sibling criteria on it returns true:
+    // TODO
+    // Step 16. Remove extraneous line breaks from new parent.
+    new_parent.remove_extraneous_line_breaks_from(cx);
+    // Step 17. Return new parent.
+    Some(new_parent)
+}
+
 impl Node {
     fn resolved_display_value(&self) -> Option<DisplayOutside> {
         self.style().map(|style| style.get_box().display.outside())
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#push-down-values>
+    fn push_down_values(
+        &self,
+        cx: &mut js::context::JSContext,
+        command: &CommandName,
+        new_value: Option<DOMString>,
+    ) {
+        // Step 1. Let command be the current command.
+        //
+        // Passed in as argument
+
+        // Step 4. Let current ancestor be node's parent.
+        let mut current_ancestor = self.GetParentElement();
+        // Step 2. If node's parent is not an Element, abort this algorithm.
+        if current_ancestor.is_none() {
+            return;
+        };
+        // Step 3. If the effective command value of command is loosely equivalent to new value on node,
+        // abort this algorithm.
+        if command.are_loosely_equivalent_values(
+            self.effective_command_value(command).as_ref(),
+            new_value.as_ref(),
+        ) {
+            return;
+        }
+        // Step 5. Let ancestor list be a list of nodes, initially empty.
+        rooted_vec!(let mut ancestor_list);
+        // Step 6. While current ancestor is an editable Element and
+        // the effective command value of command is not loosely equivalent to new value on it,
+        // append current ancestor to ancestor list, then set current ancestor to its parent.
+        while let Some(ancestor) = current_ancestor {
+            let ancestor_node = ancestor.upcast::<Node>();
+            if ancestor_node.is_editable() &&
+                !command.are_loosely_equivalent_values(
+                    ancestor_node.effective_command_value(command).as_ref(),
+                    new_value.as_ref(),
+                )
+            {
+                ancestor_list.push(ancestor.clone());
+                current_ancestor = ancestor_node.GetParentElement();
+                continue;
+            }
+            break;
+        }
+        let Some(last_ancestor) = ancestor_list.last() else {
+            // Step 7. If ancestor list is empty, abort this algorithm.
+            return;
+        };
+        // Step 8. Let propagated value be the specified command value of command on the last member of ancestor list.
+        let mut propagated_value = last_ancestor.specified_command_value(command);
+        // Step 9. If propagated value is null and is not equal to new value, abort this algorithm.
+        if propagated_value.is_none() && new_value.is_some() {
+            return;
+        }
+        // Step 10. If the effective command value of command is not loosely equivalent to new value on the parent
+        // of the last member of ancestor list, and new value is not null, abort this algorithm.
+        if new_value.is_some() &&
+            !last_ancestor
+                .upcast::<Node>()
+                .GetParentNode()
+                .is_some_and(|last_ancestor| {
+                    command.are_loosely_equivalent_values(
+                        last_ancestor.effective_command_value(command).as_ref(),
+                        new_value.as_ref(),
+                    )
+                })
+        {
+            return;
+        }
+        // Step 11. While ancestor list is not empty:
+        let mut ancestor_list_iter = ancestor_list.iter().rev().peekable();
+        while let Some(current_ancestor) = ancestor_list_iter.next() {
+            let current_ancestor_node = current_ancestor.upcast::<Node>();
+            // Step 11.1. Let current ancestor be the last member of ancestor list.
+            // Step 11.2. Remove the last member from ancestor list.
+            //
+            // Both of these steps done by iterating and reversing the iterator
+
+            // Step 11.3. If the specified command value of current ancestor for command is not null, set propagated value to that value.
+            let command_value = current_ancestor.specified_command_value(command);
+            let has_command_value = command_value.is_some();
+            propagated_value = command_value.or(propagated_value);
+            // Step 11.4. Let children be the children of current ancestor.
+            let children = current_ancestor_node.children();
+            // Step 11.5. If the specified command value of current ancestor for command is not null, clear the value of current ancestor.
+            if has_command_value {
+                current_ancestor.clear_the_value();
+            }
+            // Step 11.6. For every child in children:
+            for child in children {
+                // Step 11.6.1. If child is node, continue with the next child.
+                if *child == *self {
+                    continue;
+                }
+                // Step 11.6.2. If child is an Element whose specified command value for command is neither null
+                // nor equivalent to propagated value, continue with the next child.
+                // TODO
+
+                // Step 11.6.3. If child is the last member of ancestor list, continue with the next child.
+                //
+                // Since we had to remove the last member in step 11.2, if we now peek at the next possible
+                // value, we essentially have the "last member after removal"
+                if ancestor_list_iter
+                    .peek()
+                    .is_some_and(|ancestor| *ancestor.upcast::<Node>() == *child)
+                {
+                    continue;
+                }
+                // step 11.6.4. Force the value of child, with command as in this algorithm and new value equal to propagated value.
+                child.force_the_value(cx, command, propagated_value.as_ref());
+            }
+        }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#force-the-value>
+    pub(crate) fn force_the_value(
+        &self,
+        cx: &mut js::context::JSContext,
+        command: &CommandName,
+        new_value: Option<&DOMString>,
+    ) {
+        // Step 1. Let command be the current command.
+        //
+        // That's command
+
+        // Step 2. If node's parent is null, abort this algorithm.
+        let Some(parent_node) = self.GetParentNode() else {
+            return;
+        };
+        // Step 3. If new value is null, abort this algorithm.
+        let Some(new_value) = new_value else {
+            return;
+        };
+        // Step 4. If node is an allowed child of "span":
+        if is_allowed_child(
+            NodeOrString::String("span".to_owned()),
+            NodeOrString::Node(DomRoot::from_ref(self)),
+        ) {
+            // Step 4.1. Reorder modifiable descendants of node's previousSibling.
+            // TODO
+            // Step 4.2. Reorder modifiable descendants of node's nextSibling.
+            // TODO
+            // Step 4.3. Wrap the one-node list consisting of node,
+            // with sibling criteria returning true for a simple modifiable element whose
+            // specified command value is equivalent to new value and whose effective command value
+            // is loosely equivalent to new value and false otherwise,
+            // and with new parent instructions returning null.
+            wrap_node_list(
+                cx,
+                &[self],
+                |sibling| {
+                    // TODO: Check for simple modifiable
+                    sibling
+                        .downcast::<Element>()
+                        .is_some_and(|sibling_element| {
+                            command.are_equivalent_values(
+                                sibling_element.specified_command_value(command).as_ref(),
+                                Some(new_value),
+                            ) && command.are_loosely_equivalent_values(
+                                sibling.effective_command_value(command).as_ref(),
+                                Some(new_value),
+                            )
+                        })
+                },
+                || None,
+            );
+        }
+        // Step 5. If node is invisible, abort this algorithm.
+        if self.is_invisible() {
+            return;
+        }
+        // Step 6. If the effective command value of command is loosely equivalent to new value on node, abort this algorithm.
+        if command.are_loosely_equivalent_values(
+            self.effective_command_value(command).as_ref(),
+            Some(new_value),
+        ) {
+            return;
+        }
+        // Step 7. If node is not an allowed child of "span":
+        // TODO
+        // Step 8. If the effective command value of command is loosely equivalent to new value on node, abort this algorithm.
+        if command.are_loosely_equivalent_values(
+            self.effective_command_value(command).as_ref(),
+            Some(new_value),
+        ) {
+            return;
+        }
+        // Step 9. Let new parent be null.
+        let mut new_parent = None;
+        let document = self.owner_document();
+        let css_styling_flag = document.css_styling_flag();
+        // Step 10. If the CSS styling flag is false:
+        // TODO
+        match command {
+            // Step 11. If command is "createLink" or "unlink":
+            // TODO
+            // Step 12. If command is "fontSize"; and new value is one of
+            // "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
+            // and either the CSS styling flag is false, or new value is "xxx-large":
+            // let new parent be the result of calling createElement("font") on the ownerDocument of node,
+            // then set the size attribute of new parent to the number from the following table based on new value:
+            CommandName::FontSize => {
+                if !css_styling_flag || new_value == "xxx-large" {
+                    let size = match &*new_value.str() {
+                        "x-small" => 1,
+                        "small" => 2,
+                        "medium" => 3,
+                        "large" => 4,
+                        "x-large" => 5,
+                        "xx-large" => 6,
+                        "xxx-large" => 7,
+                        _ => 0,
+                    };
+
+                    if size > 0 {
+                        let new_font_element = document.create_element(cx, "font");
+                        new_font_element.set_int_attribute(
+                            &local_name!("size"),
+                            size,
+                            CanGc::from_cx(cx),
+                        );
+                        new_parent = Some(new_font_element);
+                    }
+                }
+            },
+            CommandName::Subscript | CommandName::Superscript => {
+                // Step 13. If command is "subscript" or "superscript" and new value is "subscript",
+                // let new parent be the result of calling createElement("sub") on the ownerDocument of node.
+                if new_value == "subscript" {
+                    new_parent = Some(document.create_element(cx, "sub"));
+                }
+                // Step 14. If command is "subscript" or "superscript" and new value is "superscript",
+                // let new parent be the result of calling createElement("sup") on the ownerDocument of node.
+                if new_value == "superscript" {
+                    new_parent = Some(document.create_element(cx, "sup"));
+                }
+            },
+            _ => {},
+        }
+        // Step 15. If new parent is null, let new parent be the result of calling createElement("span") on the ownerDocument of node.
+        let new_parent = new_parent.unwrap_or_else(|| document.create_element(cx, "span"));
+        // Step 16. Insert new parent in node's parent before node.
+        if parent_node
+            .InsertBefore(cx, new_parent.upcast(), Some(self))
+            .is_err()
+        {
+            unreachable!("Must always be able to insert");
+        }
+        // Step 17. If the effective command value of command for new parent is not loosely equivalent to new value,
+        // and the relevant CSS property for command is not null,
+        // set that CSS property of new parent to new value (if the new value would be valid).
+        if !command.are_loosely_equivalent_values(
+            self.effective_command_value(command).as_ref(),
+            Some(new_value),
+        ) {
+            if let Some(css_property) = command.relevant_css_property() {
+                css_property.set_for_element(
+                    cx,
+                    new_parent
+                        .downcast::<HTMLElement>()
+                        .expect("Must always create a HTML element"),
+                    new_value.clone(),
+                );
+            }
+        }
+        // Step 18. If command is "strikethrough", and new value is "line-through",
+        // and the effective command value of "strikethrough" for new parent is not "line-through",
+        // set the "text-decoration" property of new parent to "line-through".
+        // TODO
+        // Step 19. If command is "underline", and new value is "underline",
+        // and the effective command value of "underline" for new parent is not "underline",
+        // set the "text-decoration" property of new parent to "underline".
+        // TODO
+        // Step 20. Append node to new parent as its last child, preserving ranges.
+        let new_parent = new_parent.upcast::<Node>();
+        if new_parent.AppendChild(cx, self).is_err() {
+            unreachable!("Must always be able to append");
+        }
+        // Step 21. If node is an Element and the effective command value of command for node is not loosely equivalent to new value:
+        if self.is::<Element>() &&
+            !command.are_loosely_equivalent_values(
+                self.effective_command_value(command).as_ref(),
+                Some(new_value),
+            )
+        {
+            // Step 21.1. Insert node into the parent of new parent before new parent, preserving ranges.
+            let parent_of_new_parent = new_parent.GetParentNode().expect("Must have a parent");
+            if parent_of_new_parent
+                .InsertBefore(cx, self, Some(new_parent))
+                .is_err()
+            {
+                unreachable!("Must always be able to insert");
+            }
+            // Step 21.2. Remove new parent from its parent.
+            new_parent.remove_self(cx);
+            // Step 21.3. Let children be all children of node,
+            // omitting any that are Elements whose specified command value for command is neither null nor equivalent to new value.
+            for child in self.children() {
+                if child.downcast::<Element>().is_some_and(|child_element| {
+                    let specified_command_value = child_element.specified_command_value(command);
+                    specified_command_value.is_some() &&
+                        !command.are_equivalent_values(
+                            specified_command_value.as_ref(),
+                            Some(new_value),
+                        )
+                }) {
+                    continue;
+                }
+                // Step 21.4. Force the value of each node in children,
+                // with command and new value as in this invocation of the algorithm.
+                child.force_the_value(cx, command, Some(new_value));
+            }
+        }
     }
 }
 
@@ -687,8 +1223,9 @@ pub(crate) trait NodeExecCommandSupport {
     fn canonicalize_whitespace(&self, offset: u32, fix_collapsed_space: bool);
     fn remove_extraneous_line_breaks_before(&self, cx: &mut js::context::JSContext);
     fn remove_extraneous_line_breaks_at_the_end_of(&self, cx: &mut js::context::JSContext);
+    fn remove_extraneous_line_breaks_from(&self, cx: &mut js::context::JSContext);
     fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext);
-    fn effective_command_value(&self, command_name: CommandName) -> Option<DOMString>;
+    fn effective_command_value(&self, command: &CommandName) -> Option<DOMString>;
 }
 
 impl NodeExecCommandSupport for Node {
@@ -1293,6 +1830,14 @@ impl NodeExecCommandSupport for Node {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#remove-extraneous-line-breaks-from>
+    fn remove_extraneous_line_breaks_from(&self, cx: &mut js::context::JSContext) {
+        // > To remove extraneous line breaks from a node, first remove extraneous line breaks before it,
+        // > then remove extraneous line breaks at the end of it.
+        self.remove_extraneous_line_breaks_before(cx);
+        self.remove_extraneous_line_breaks_at_the_end_of(cx);
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#preserving-its-descendants>
     fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext) {
         // > To remove a node node while preserving its descendants,
@@ -1308,17 +1853,15 @@ impl NodeExecCommandSupport for Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#effective-command-value>
-    fn effective_command_value(&self, command_name: CommandName) -> Option<DOMString> {
+    fn effective_command_value(&self, command: &CommandName) -> Option<DOMString> {
         // Step 1. If neither node nor its parent is an Element, return null.
         // Step 2. If node is not an Element, return the effective command value of its parent for command.
-        if !self.is::<Element>() {
-            return self.GetParentElement().and_then(|parent| {
-                parent
-                    .upcast::<Node>()
-                    .effective_command_value(command_name)
-            });
-        }
-        match command_name {
+        let Some(element) = self.downcast::<Element>() else {
+            return self
+                .GetParentElement()
+                .and_then(|parent| parent.upcast::<Node>().effective_command_value(command));
+        };
+        match command {
             // Step 3. If command is "createLink" or "unlink":
             CommandName::CreateLink | CommandName::Unlink => {
                 // Step 3.1. While node is not null, and is not an a element that has an href attribute, set node to its parent.
@@ -1360,14 +1903,12 @@ impl NodeExecCommandSupport for Node {
                     if !node.is_inline_node() {
                         break;
                     }
-                    if let Some(element) = node.downcast::<Element>() {
-                        // Step 5.2.1. If node is a sub, set affected by subscript to true.
-                        if *element.local_name() == local_name!("sub") {
-                            affected_by_subscript = true;
-                        } else if *element.local_name() == local_name!("sup") {
-                            // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
-                            affected_by_superscript = true;
-                        }
+                    // Step 5.2.1. If node is a sub, set affected by subscript to true.
+                    if *element.local_name() == local_name!("sub") {
+                        affected_by_subscript = true;
+                    } else if *element.local_name() == local_name!("sup") {
+                        // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
+                        affected_by_superscript = true;
                     }
                     // Step 5.2.3. Set node to its parent.
                     current_node = node.GetParentNode();
@@ -1395,8 +1936,7 @@ impl NodeExecCommandSupport for Node {
             // TODO
             CommandName::Underline => None,
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
-            // TODO
-            _ => None,
+            _ => command.resolved_value_for_node(element),
         }
     }
 }
@@ -1629,15 +2169,24 @@ impl From<bool> for BoolOrOptionalString {
 }
 
 struct RecordedStateOfNode {
-    name: CommandName,
+    command: CommandName,
     value: BoolOrOptionalString,
+}
+
+impl RecordedStateOfNode {
+    fn for_command_node(command: CommandName, node: &Node) -> Self {
+        let value = node.effective_command_value(&command).into();
+        Self { command, value }
+    }
 }
 
 impl Range {
     /// <https://w3c.github.io/editing/docs/execCommand/#effectively-contained>
     fn is_effectively_contained_node(&self, node: &Node) -> bool {
-        assert!(!self.collapsed());
         // > A node node is effectively contained in a range range if range is not collapsed,
+        if self.collapsed() {
+            return false;
+        }
         // > and at least one of the following holds:
         // > node is range's start node, it is a Text node, and its length is different from range's start offset.
         let start_container = self.start_container();
@@ -1650,9 +2199,9 @@ impl Range {
             return true;
         }
         // > node is contained in range.
-        //
-        // Already checked by caller
-
+        if self.contains(node) {
+            return true;
+        }
         // > node has at least one child; and all its children are effectively contained in range;
         node.children_count() > 0 && node.children().all(|child| self.is_effectively_contained_node(&child))
         // > and either range's start node is not a descendant of node or is not a Text node or range's start offset is zero;
@@ -1661,34 +2210,29 @@ impl Range {
         && (!node.is_ancestor_of(&end_container) || !end_container.is::<Text>() || self.end_offset() == end_container.len())
     }
 
-    fn first_formattable_contained_node(&self) -> Option<DomRoot<Node>> {
+    pub(crate) fn first_formattable_contained_node(&self) -> Option<DomRoot<Node>> {
         if self.collapsed() {
             return None;
         }
-        let Ok(contained_children) = self.contained_children() else {
-            unreachable!("Must always be able to obtain contained children");
-        };
-        contained_children
-            .first_partially_contained_child
-            .as_ref()
-            .filter(|child| child.is_formattable() && self.is_effectively_contained_node(child))
-            .or_else(|| {
-                // We don't call `is_effectively_contained_node` here, since nodes are considered
-                // effectively contained if they are in `contained_children`
-                contained_children
-                    .contained_children
-                    .iter()
-                    .find(|child| child.is_formattable())
-            })
-            .or_else(|| {
-                contained_children
-                    .last_partially_contained_child
-                    .as_ref()
-                    .filter(|child| {
-                        child.is_formattable() && self.is_effectively_contained_node(child)
-                    })
-            })
-            .cloned()
+
+        self.CommonAncestorContainer()
+            .traverse_preorder(ShadowIncluding::No)
+            .find(|child| child.is_formattable() && self.is_effectively_contained_node(child))
+    }
+
+    fn for_each_effectively_contained_child<Callback: FnMut(&Node)>(&self, mut callback: Callback) {
+        if self.collapsed() {
+            return;
+        }
+
+        for child in self
+            .CommonAncestorContainer()
+            .traverse_preorder(ShadowIncluding::No)
+        {
+            if self.is_effectively_contained_node(&child) {
+                callback(&child);
+            }
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#record-current-states-and-values>
@@ -1706,10 +2250,7 @@ impl Range {
         // Step 8. Return overrides.
         vec![
             // Step 4. Add ("createLink", node's effective command value for "createLink") to overrides.
-            RecordedStateOfNode {
-                name: CommandName::CreateLink,
-                value: node.effective_command_value(CommandName::CreateLink).into(),
-            },
+            RecordedStateOfNode::for_command_node(CommandName::CreateLink, &node),
             // Step 5. For each command in the list
             // "bold", "italic", "strikethrough", "subscript", "superscript", "underline", in order:
             // if node's effective command value for command is one of its inline command activated values,
@@ -1721,10 +2262,7 @@ impl Range {
             // TODO
 
             // Step 7. Add ("fontSize", node's effective command value for "fontSize") to overrides.
-            RecordedStateOfNode {
-                name: CommandName::FontSize,
-                value: node.effective_command_value(CommandName::FontSize).into(),
-            },
+            RecordedStateOfNode::for_command_node(CommandName::FontSize, &node),
         ]
     }
 
@@ -1742,11 +2280,11 @@ impl Range {
                 // Step 3.1. If override is a boolean, set the state override for command to override.
                 match override_state.value {
                     BoolOrOptionalString::Bool(bool_) => {
-                        context_object.set_state_override(override_state.name, bool_)
+                        context_object.set_state_override(override_state.command, Some(bool_))
                     },
                     // Step 3.2. If override is a string, set the value override for command to override.
                     BoolOrOptionalString::OptionalString(optional_string) => {
-                        context_object.set_value_override(override_state.name, optional_string)
+                        context_object.set_value_override(override_state.command, optional_string)
                     },
                 }
             }
@@ -1813,6 +2351,13 @@ pub(crate) trait SelectionExecCommandSupport {
         block_merging: SelectionDeletionBlockMerging,
         strip_wrappers: SelectionDeletionStripWrappers,
         direction: SelectionDeleteDirection,
+    );
+    fn set_the_selection_value(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_value: Option<DOMString>,
+        command: CommandName,
+        context_object: &Document,
     );
 }
 
@@ -2070,7 +2615,7 @@ impl SelectionExecCommandSupport for Selection {
                 .is_some_and(|block_node| block_node.children().all(|child| child.is_invisible())) &&
                 parent.is_editable_or_editing_host()
             {
-                let br = context_object.create_br_element(cx);
+                let br = context_object.create_element(cx, "br");
                 if parent.AppendChild(cx, br.upcast()).is_err() {
                     unreachable!("Must always be able to append");
                 }
@@ -2220,7 +2765,7 @@ impl SelectionExecCommandSupport for Selection {
                 {
                     if let Some(next_of_end_block) = end_block.GetNextSibling() {
                         if next_of_end_block.is_inline_node() {
-                            let br = context_object.create_br_element(cx);
+                            let br = context_object.create_element(cx, "br");
                             let parent = end_block
                                 .GetParentNode()
                                 .expect("Must always have a parent");
@@ -2448,7 +2993,7 @@ impl SelectionExecCommandSupport for Selection {
         // Step 39. If start block has no children, call createElement("br") on the context object and
         // append the result as the last child of start block.
         if start_block.children_count() == 0 {
-            let br = context_object.create_br_element(cx);
+            let br = context_object.create_element(cx, "br");
             if start_block.AppendChild(cx, br.upcast()).is_err() {
                 unreachable!("Must always be able to append");
             }
@@ -2459,5 +3004,94 @@ impl SelectionExecCommandSupport for Selection {
 
         // Step 41. Restore states and values from overrides.
         active_range.restore_states_and_values(context_object, overrides);
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#set-the-selection%27s-value>
+    fn set_the_selection_value(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_value: Option<DOMString>,
+        command: CommandName,
+        context_object: &Document,
+    ) {
+        let active_range = self
+            .active_range()
+            .expect("Must always have an active range");
+
+        // Step 1. Let command be the current command.
+        //
+        // Passed as argument
+
+        // Step 2. If there is no formattable node effectively contained in the active range:
+        if active_range.first_formattable_contained_node().is_none() {
+            // Step 2.1. If command has inline command activated values, set the state override to true if new value is among them and false if it's not.
+            // TODO
+
+            // Step 2.2. If command is "subscript", unset the state override for "superscript".
+            if command == CommandName::Subscript {
+                context_object.set_state_override(CommandName::Superscript, None);
+            }
+            // Step 2.3. If command is "superscript", unset the state override for "subscript".
+            if command == CommandName::Superscript {
+                context_object.set_state_override(CommandName::Subscript, None);
+            }
+            // Step 2.4. If new value is null, unset the value override (if any).
+            // Step 2.5. Otherwise, if command is "createLink" or it has a value specified, set the value override to new value.
+            context_object.set_value_override(command, new_value);
+            // Step 2.6. Abort these steps.
+            return;
+        }
+        // Step 3. If the active range's start node is an editable Text node,
+        // and its start offset is neither zero nor its start node's length,
+        // call splitText() on the active range's start node,
+        // with argument equal to the active range's start offset.
+        // Then set the active range's start node to the result, and its start offset to zero.
+        let start_node = active_range.start_container();
+        let start_offset = active_range.start_offset();
+        if start_node.is_editable() && start_offset != 0 && start_offset != start_node.len() {
+            if let Some(start_text) = start_node.downcast::<Text>() {
+                let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
+                    unreachable!("Must always be able to split");
+                };
+                active_range.set_start(start_text.upcast(), 0);
+            }
+        }
+        // Step 4. If the active range's end node is an editable Text node,
+        // and its end offset is neither zero nor its end node's length,
+        // call splitText() on the active range's end node,
+        // with argument equal to the active range's end offset.
+        let end_node = active_range.end_container();
+        let end_offset = active_range.end_offset();
+        if end_node.is_editable() && end_offset != 0 && end_offset != end_node.len() {
+            if let Some(end_text) = end_node.downcast::<Text>() {
+                if end_text.SplitText(cx, end_offset).is_err() {
+                    unreachable!("Must always be able to split");
+                };
+            }
+        }
+        // Step 5. Let element list be all editable Elements effectively contained in the active range.
+        // Step 6. For each element in element list, clear the value of element.
+        active_range.for_each_effectively_contained_child(|child| {
+            if child.upcast::<Node>().is_editable() {
+                if let Some(element_child) = child.downcast::<Element>() {
+                    element_child.clear_the_value();
+                }
+            }
+        });
+        // Step 7. Let node list be all editable nodes effectively contained in the active range.
+        // Step 8. For each node in node list:
+        active_range.for_each_effectively_contained_child(|child| {
+            if child.is_editable() {
+                // Step 8.1. Push down values on node.
+                child.push_down_values(cx, &command, new_value.clone());
+                // Step 8.2. If node is an allowed child of "span", force the value of node.
+                if is_allowed_child(
+                    NodeOrString::String("span".to_owned()),
+                    NodeOrString::Node(DomRoot::from_ref(child)),
+                ) {
+                    child.force_the_value(cx, &command, new_value.as_ref());
+                }
+            }
+        });
     }
 }

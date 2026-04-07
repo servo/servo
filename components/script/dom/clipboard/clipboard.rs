@@ -8,6 +8,7 @@ use std::str::FromStr;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
 use servo_constellation_traits::BlobImpl;
@@ -18,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
@@ -27,7 +28,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
@@ -87,19 +88,19 @@ impl Clipboard {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Clipboard> {
-        reflect_dom_object(Box::new(Clipboard::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Clipboard> {
+        reflect_dom_object_with_cx(Box::new(Clipboard::new_inherited()), global, cx)
     }
 }
 
 impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>
-    fn ReadText(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn ReadText(&self, realm: &mut CurrentRealm) -> Rc<Promise> {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
 
         // Step 2 Let p be a new promise in realm.
-        let p = Promise::new(&global, can_gc);
+        let p = Promise::new_in_realm(realm);
 
         // Step 3 Run the following steps in parallel:
 
@@ -122,10 +123,11 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-writetext>
-    fn WriteText(&self, data: DOMString, can_gc: CanGc) -> Rc<Promise> {
+    fn WriteText(&self, realm: &mut CurrentRealm, data: DOMString) -> Rc<Promise> {
         // Step 1 Let realm be this's relevant realm.
+        let global = self.global();
         // Step 2 Let p be a new promise in realm.
-        let p = Promise::new(&self.global(), can_gc);
+        let p = Promise::new_in_realm(realm);
 
         // Step 3 Run the following steps in parallel:
 
@@ -141,8 +143,8 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
 
         // Step 3.3 Queue a global task on the clipboard task source,
         // given realm’s global object, to perform the below steps:
-        self.global().task_manager().clipboard_task_source().queue(
-            task!(write_to_system_clipboard: move || {
+        global.task_manager().clipboard_task_source().queue(
+            task!(write_to_system_clipboard: move |cx| {
                 let promise = trusted_promise.root();
                 let global = promise.global();
 
@@ -154,7 +156,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
                 let text_blob = Blob::new(
                     &global,
                     BlobImpl::new_from_bytes(bytes, "text/plain;charset=utf-8".into()),
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 );
 
                 // Step 3.3.3 Add textBlob to itemList.
@@ -167,7 +169,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
                 write_blobs_and_option_to_the_clipboard(global.as_window(), item_list, option);
 
                 // Step 3.3.6 Resolve p.
-                promise.resolve_native(&(), CanGc::note());
+                promise.resolve_native(&(), CanGc::from_cx(cx));
             }),
         );
 
@@ -229,8 +231,10 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
             Some(rejection_handler),
             CanGc::from_cx(cx),
         );
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
         representation
             .data
             .append_native_handler(&handler, comp, CanGc::from_cx(cx));

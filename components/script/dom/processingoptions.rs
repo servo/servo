@@ -306,7 +306,7 @@ impl LinkProcessingOptions {
         // Step 9. Let controller be null.
         // Step 10. Let reportTiming given a Document document be to report timing for controller
         // given document's relevant global object.
-        let url = request.url.clone();
+        let url = request.url.url();
         let fetch_context = LinkFetchContext {
             url,
             link,

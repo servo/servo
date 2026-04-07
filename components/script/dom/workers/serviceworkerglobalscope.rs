@@ -14,6 +14,7 @@ use fonts::FontContext;
 use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
 use net_traits::CustomResponseMediator;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
@@ -409,17 +410,21 @@ impl ServiceWorkerGlobalScope {
                     .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global_scope.get_referrer());
 
-                let request = RequestBuilder::new(None, script_url, referrer)
-                    .destination(Destination::ServiceWorker)
-                    .credentials_mode(CredentialsMode::Include)
-                    .parser_metadata(ParserMetadata::NotParserInserted)
-                    .use_url_credentials(true)
-                    .pipeline_id(Some(pipeline_id))
-                    .referrer_policy(referrer_policy)
-                    .insecure_requests_policy(worker_scope.insecure_requests_policy())
-                    // TODO: Use policy container from ScopeThings
-                    .policy_container(global_scope.policy_container())
-                    .origin(origin);
+                let request = RequestBuilder::new(
+                    None,
+                    UrlWithBlobClaim::from_url_without_having_claimed_blob(script_url),
+                    referrer,
+                )
+                .destination(Destination::ServiceWorker)
+                .credentials_mode(CredentialsMode::Include)
+                .parser_metadata(ParserMetadata::NotParserInserted)
+                .use_url_credentials(true)
+                .pipeline_id(Some(pipeline_id))
+                .referrer_policy(referrer_policy)
+                .insecure_requests_policy(worker_scope.insecure_requests_policy())
+                // TODO: Use policy container from ScopeThings
+                .policy_container(global_scope.policy_container())
+                .origin(origin);
 
                 let (url, source) = match load_whole_resource(
                     request,

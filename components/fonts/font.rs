@@ -389,7 +389,7 @@ pub struct ShapingOptions {
     /// determine the amount of spacing to apply.
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: Au,
+    pub word_spacing: Option<Au>,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
@@ -478,26 +478,22 @@ impl Font {
                 continue;
             };
 
-            let mut advance = advance_for_shaped_glyph(
-                Au::from_f64_px(self.glyph_h_advance(glyph_id)),
-                character,
-                options,
-            );
+            let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
             let offset = prev_glyph_id.map(|prev| {
                 let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
                 advance += h_kerning;
                 Point2D::new(h_kerning, Au::zero())
             });
 
-            glyph_store.add_glyph(
-                character,
-                &ShapedGlyph {
-                    glyph_id,
-                    string_byte_offset,
-                    advance,
-                    offset,
-                },
-            );
+            let mut glyph = ShapedGlyph {
+                glyph_id,
+                string_byte_offset,
+                advance,
+                offset,
+            };
+            glyph.adjust_for_character(character, options, self);
+
+            glyph_store.add_glyph(character, &glyph);
             prev_glyph_id = Some(glyph_id);
         }
         glyph_store
@@ -981,26 +977,4 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
-}
-
-/// Computes the total advance for a glyph, taking `letter-spacing` and `word-spacing` into account.
-pub(super) fn advance_for_shaped_glyph(
-    mut advance: Au,
-    character: char,
-    options: &ShapingOptions,
-) -> Au {
-    if let Some(letter_spacing) = options.letter_spacing_for_character(character) {
-        advance += letter_spacing;
-    };
-
-    // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
-    // space (U+00A0) left in the text after the white space processing rules have been
-    // applied. The effect of the property on other word-separator characters is undefined."
-    // We elect to only space the two required code points.
-    if character == ' ' || character == '\u{a0}' {
-        // https://drafts.csswg.org/css-text-3/#word-spacing-property
-        advance += options.word_spacing;
-    }
-
-    advance
 }

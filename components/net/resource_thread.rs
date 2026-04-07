@@ -19,7 +19,7 @@ use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, trace, warn};
-use net_traits::blob_url_store::parse_blob_url;
+use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
@@ -140,7 +140,13 @@ pub fn new_core_resource_thread(
     let (public_setup_chan, public_setup_port) = generic_channel::channel().unwrap();
     let (private_setup_chan, private_setup_port) = generic_channel::channel().unwrap();
     let (report_chan, report_port) = generic_channel::channel().unwrap();
+    let (revoke_sender, revoke_receiver) = generic_channel::channel().unwrap();
+    let (refresh_sender, refresh_receiver) = generic_channel::channel().unwrap();
 
+    let blob_token_communicator = Arc::new(Mutex::new(BlobTokenCommunicator {
+        revoke_sender,
+        refresh_token_sender: refresh_sender,
+    }));
     thread::Builder::new()
         .name("ResourceManager".to_owned())
         .spawn(move || {
@@ -150,6 +156,7 @@ pub fn new_core_resource_thread(
                 embedder_proxy.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
+                blob_token_communicator,
             );
 
             let mut channel_manager = ResourceChannelManager {
@@ -167,6 +174,8 @@ pub fn new_core_resource_thread(
                         public_setup_port,
                         private_setup_port,
                         report_port,
+                        revoke_receiver,
+                        refresh_receiver,
                         protocols,
                         embedder_proxy,
                     )
@@ -241,11 +250,14 @@ fn create_http_states(
 }
 
 impl ResourceChannelManager {
+    #[expect(clippy::too_many_arguments)]
     fn start(
         &mut self,
         public_receiver: GenericReceiver<CoreResourceMsg>,
         private_receiver: GenericReceiver<CoreResourceMsg>,
         memory_reporter: GenericReceiver<CoreResourceMsg>,
+        revoke_receiver: GenericReceiver<CoreResourceMsg>,
+        refresh_receiver: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     ) {
@@ -260,6 +272,8 @@ impl ResourceChannelManager {
         let private_id = rx_set.add(private_receiver);
         let public_id = rx_set.add(public_receiver);
         let reporter_id = rx_set.add(memory_reporter);
+        let revoker_id = rx_set.add(revoke_receiver);
+        let refresh_id = rx_set.add(refresh_receiver);
 
         loop {
             for received in rx_set.select().into_iter() {
@@ -270,7 +284,31 @@ impl ResourceChannelManager {
                         log::error!("Found selection error: {error}")
                     },
                     GenericSelectionResult::MessageReceived(id, msg) => {
-                        if id == reporter_id {
+                        if id == revoker_id {
+                            let CoreResourceMsg::RevokeTokenForFile(revocation_request) = msg
+                            else {
+                                log::error!("Blob revocation channel received unexpected message");
+                                continue;
+                            };
+                            self.resource_manager.filemanager.invalidate_token(
+                                &FileTokenCheck::Required(revocation_request.token),
+                                &revocation_request.blob_id,
+                            )
+                        } else if id == refresh_id {
+                            let CoreResourceMsg::RefreshTokenForFile(refresh_request) = msg else {
+                                log::error!("Blob revocation channel received unexpected message");
+                                continue;
+                            };
+
+                            let FileTokenCheck::Required(refreshed_token) = self
+                                .resource_manager
+                                .filemanager
+                                .get_token_for_file(&refresh_request.blob_id, true)
+                            else {
+                                unreachable!();
+                            };
+                            let _ = refresh_request.new_token_sender.send(refreshed_token);
+                        } else if id == reporter_id {
                             if let CoreResourceMsg::CollectMemoryReport(report_chan) = msg {
                                 self.process_report(
                                     report_chan,
@@ -607,8 +645,10 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
                 return false;
             },
-            // Ignore this message as we handle it only in the reporter chan
-            CoreResourceMsg::CollectMemoryReport(_) => {},
+            // Ignore these messages as they are only sent on very specific channels.
+            CoreResourceMsg::CollectMemoryReport(_) |
+            CoreResourceMsg::RevokeTokenForFile(..) |
+            CoreResourceMsg::RefreshTokenForFile(..) => {},
         }
         true
     }
@@ -654,11 +694,12 @@ impl CoreResourceManager {
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
         ignore_certificate_errors: bool,
+        blob_token_communicator: Arc<Mutex<BlobTokenCommunicator>>,
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
             sw_managers: Default::default(),
-            filemanager: FileManager::new(embedder_proxy.clone()),
+            filemanager: FileManager::new(embedder_proxy.clone(), blob_token_communicator),
             request_interceptor: RequestInterceptor::new(embedder_proxy),
             ca_certificates,
             ignore_certificate_errors,
@@ -717,17 +758,18 @@ impl CoreResourceManager {
         // In the case of a valid blob URL, acquiring a token granting access to a file,
         // regardless if the URL is revoked after token acquisition.
         //
-        // TODO: to make more tests pass, acquire this token earlier,
-        // probably in a separate message flow.
-        //
-        // In such a setup, the token would not be acquired here,
-        // but could instead be contained in the actual CoreResourceMsg::Fetch message.
-        //
-        // See https://github.com/servo/servo/issues/25226
+        // Ideally all callers should have claimed the blob entry themselves, but we're not there
+        // yet.
         let (file_token, blob_url_file_id) = match url.scheme() {
             "blob" => {
-                if let Ok((id, _)) = parse_blob_url(&url) {
-                    (self.filemanager.get_token_for_file(&id), Some(id))
+                if let Some(token) = request.current_url_with_blob_claim().token() {
+                    (FileTokenCheck::Required(token.token), Some(token.file_id))
+                } else if let Ok((id, _)) = parse_blob_url(&url) {
+                    // See https://github.com/servo/servo/issues/25226
+                    log::warn!(
+                        "Failed to claim blob URL entry of valid blob URL before passing it to `net`. This causes race conditions."
+                    );
+                    (self.filemanager.get_token_for_file(&id, false), Some(id))
                 } else {
                     (FileTokenCheck::ShouldFail, None)
                 }

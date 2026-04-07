@@ -442,6 +442,7 @@ impl DOMString {
             .push_str(string_to_push);
     }
 
+    /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>
     pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
         if self.is_empty() {
             return;
@@ -463,7 +464,7 @@ impl DOMString {
         string.replace_range(0..first_non_whitespace, "");
     }
 
-    /// This is a dom spec
+    /// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
     pub fn is_valid_floating_point_number_string(&self) -> bool {
         static RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap()

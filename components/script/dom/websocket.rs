@@ -13,6 +13,7 @@ use js::jsval::UndefinedValue;
 use js::realm::AutoRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CacheMode, CredentialsMode, RedirectMode, Referrer, RequestBuilder, RequestMode,
     ServiceWorkersMode,
@@ -278,7 +279,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         // "include", cache mode is "no-store" , and redirect mode is "error"
         let request = RequestBuilder::new(
             global.webview_id(),
-            url_record.clone(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url_record.clone()),
             Referrer::NoReferrer,
         )
         .with_global_scope(global)

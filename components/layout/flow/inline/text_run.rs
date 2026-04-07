@@ -398,9 +398,7 @@ impl TextRun {
             flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
         }
-
-        let specified_word_spacing = &inherited_text_style.word_spacing;
-        let style_word_spacing: Option<Au> = specified_word_spacing.to_length().map(|l| l.into());
+        let word_spacing = inherited_text_style.word_spacing.to_length().map(Au::from);
 
         let segments = self
             .segment_text_by_font(
@@ -411,14 +409,16 @@ impl TextRun {
             )
             .into_iter()
             .map(|mut segment| {
-                let word_spacing = style_word_spacing.unwrap_or_else(|| {
+                let word_spacing = word_spacing.unwrap_or_else(|| {
                     let space_width = segment
                         .info
                         .font
                         .glyph_index(' ')
                         .map(|glyph_id| segment.info.font.glyph_h_advance(glyph_id))
                         .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
-                    specified_word_spacing.to_used_value(Au::from_f64_px(space_width))
+                    inherited_text_style
+                        .word_spacing
+                        .to_used_value(Au::from_f64_px(space_width))
                 });
 
                 let mut flags = flags;
@@ -440,7 +440,7 @@ impl TextRun {
 
                 let shaping_options = ShapingOptions {
                     letter_spacing,
-                    word_spacing,
+                    word_spacing: Some(word_spacing),
                     script: segment.info.script,
                     language,
                     flags,
