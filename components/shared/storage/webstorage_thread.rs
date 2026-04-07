@@ -7,7 +7,7 @@ use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
-use servo_url::{ImmutableOrigin};
+use servo_url::ImmutableOrigin;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]
 pub enum WebStorageType {
@@ -30,7 +30,12 @@ impl OriginDescriptor {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebStorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(GenericSender<usize>, WebStorageType, WebViewId, ImmutableOrigin),
+    Length(
+        GenericSender<usize>,
+        WebStorageType,
+        WebViewId,
+        ImmutableOrigin,
+    ),
 
     /// gets the name of the key at the specified index in the associated storage data
     Key(
@@ -78,7 +83,12 @@ pub enum WebStorageThreadMsg {
     ),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(GenericSender<bool>, WebStorageType, WebViewId, ImmutableOrigin),
+    Clear(
+        GenericSender<bool>,
+        WebStorageType,
+        WebViewId,
+        ImmutableOrigin,
+    ),
 
     /// clones all storage data of the given top-level browsing context for a new browsing context.
     /// should only be used for sessionStorage.
