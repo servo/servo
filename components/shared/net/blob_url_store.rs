@@ -68,8 +68,7 @@ pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'stati
     let origin = Url::parse(url.path())
         .ok()
         .filter(|url| matches!(url.scheme(), "http" | "https" | "file"))
-        .map(|url| url.origin())
-        .map(ImmutableOrigin::new)
+        .map(|url| ImmutableOrigin::new(&url))
         .unwrap_or(ImmutableOrigin::new_opaque());
 
     let id = Uuid::from_str(uuid).map_err(|_| "Failed to parse UUID from path segment")?;

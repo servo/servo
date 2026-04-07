@@ -42,7 +42,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::CallbackSetter;
 use servo_base::id::PipelineId;
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
@@ -652,9 +652,10 @@ pub async fn main_fetch(
 
     // Step 14. If response is not a network error and response is not a filtered response, then:
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
-        // Substep 1.
+        // Step 14.1 If request’s response tainting is "cors", then:
         if request.response_tainting == ResponseTainting::CorsTainting {
-            // Subsubstep 1.
+            // Step 14.1.1 Let headerNames be the result of extracting header list values given
+            // `Access-Control-Expose-Headers` and response’s header list.
             let header_names: Option<Vec<HeaderName>> = response
                 .headers
                 .typed_get::<AccessControlExposeHeaders>()
@@ -680,7 +681,8 @@ pub async fn main_fetch(
             }
         }
 
-        // Substep 2.
+        // Step 14.2 Set response to the following filtered response with response as its internal response,
+        // depending on request’s response tainting:
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
@@ -1363,15 +1365,10 @@ pub enum MixedSecurityProhibited {
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
 fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
     if let Origin::Origin(ref origin) = request.origin {
-        // Workers created from a data: url are secure if they were created from secure contexts
-        let is_origin_data_url_worker = matches!(
-            *origin,
-            ImmutableOrigin::Opaque(servo_url::OpaqueOrigin::SecureWorkerFromDataUrl(_))
-        );
-
         // Step 1. If settings’ origin is a potentially trustworthy origin,
         // then return "Prohibits Mixed Security Contexts".
-        if origin.is_potentially_trustworthy() || is_origin_data_url_worker {
+        // NOTE: Workers created from a data: url are secure if they were created from secure contexts
+        if origin.is_potentially_trustworthy() || origin.is_for_data_worker_from_secure_context() {
             return MixedSecurityProhibited::Prohibited;
         }
     }
