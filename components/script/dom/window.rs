@@ -1434,15 +1434,57 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>
-    fn SessionStorage(&self) -> DomRoot<Storage> {
-        self.session_storage
-            .or_init(|| Storage::new(self, WebStorageType::Session, CanGc::note()))
+    fn GetSessionStorage(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Storage>> {
+        // Step 1. If this's associated Document's session storage holder is non-null,
+        // then return this's associated Document's session storage holder.
+        if let Some(storage) = self.session_storage.get() {
+            return Ok(storage);
+        }
+
+        // Step 2. Let map be the result of running obtain a session storage bottle map
+        // with this's relevant settings object and "sessionStorage".
+        // Step 3. If map is failure, then throw a "SecurityError" DOMException.
+        if !self.origin().is_tuple() {
+            return Err(Error::Security(Some(
+                "Cannot access sessionStorage from opaque origin.".to_string(),
+            )));
+        }
+
+        // Step 4. Let storage be a new Storage object whose map is map.
+        let storage = Storage::new(self, WebStorageType::Session, CanGc::from_cx(cx));
+
+        // Step 5. Set this's associated Document's session storage holder to storage.
+        self.session_storage.set(Some(&storage));
+
+        // Step 6. Return storage.
+        Ok(storage)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-localstorage>
-    fn LocalStorage(&self) -> DomRoot<Storage> {
-        self.local_storage
-            .or_init(|| Storage::new(self, WebStorageType::Local, CanGc::note()))
+    fn GetLocalStorage(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Storage>> {
+        // Step 1. If this's associated Document's local storage holder is non-null,
+        // then return this's associated Document's local storage holder.
+        if let Some(storage) = self.local_storage.get() {
+            return Ok(storage);
+        }
+
+        // Step 2. Let map be the result of running obtain a local storage bottle map
+        // with this's relevant settings object and "localStorage".
+        // Step 3. If map is failure, then throw a "SecurityError" DOMException.
+        if !self.origin().is_tuple() {
+            return Err(Error::Security(Some(
+                "Cannot access localStorage from opaque origin.".to_string(),
+            )));
+        }
+
+        // Step 4. Let storage be a new Storage object whose map is map.
+        let storage = Storage::new(self, WebStorageType::Local, CanGc::from_cx(cx));
+
+        // Step 5. Set this's associated Document's local storage holder to storage.
+        self.local_storage.set(Some(&storage));
+
+        // Step 6. Return storage.
+        Ok(storage)
     }
 
     /// <https://cookiestore.spec.whatwg.org/#Window>
