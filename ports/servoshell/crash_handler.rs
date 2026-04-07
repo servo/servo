@@ -11,9 +11,11 @@ pub fn install() {
     use std::sync::atomic;
     use std::thread;
 
+    use libc::siginfo_t;
+
     use crate::backtrace;
 
-    fn handler(siginfo: &libc::siginfo_t) {
+    fn handler(siginfo: &siginfo_t) {
         // Only print crash message and backtrace the first time, to avoid
         // infinite recursion if the printing causes another signal.
         static BEEN_HERE_BEFORE: atomic::AtomicBool = atomic::AtomicBool::new(false);
@@ -45,13 +47,13 @@ pub fn install() {
 
     unsafe {
         signal_hook_registry::register_unchecked(libc::SIGSEGV, handler)
-            .expect("Could not register signal"); // handle segfaults
+            .expect("Could not register SIGSEGV handler");
         signal_hook_registry::register_unchecked(libc::SIGILL, handler)
-            .expect("Could not register signal"); // handle stack overflow and unsupported CPUs
+            .expect("Could not register SIGILL handler");
         signal_hook_registry::register_unchecked(libc::SIGIOT, handler)
-            .expect("Could not register signal"); // handle double panics
+            .expect("Could not register SIGIOT handler");
         signal_hook_registry::register_unchecked(libc::SIGBUS, handler)
-            .expect("Could not register signal"); // handle invalid memory access
+            .expect("Could not register SIGBUS handler");
     }
 }
 
