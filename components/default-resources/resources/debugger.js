@@ -410,7 +410,9 @@ function makeSteppingHooks(steppingType, startFrame) {
             this.reportedPop = true;
             suspendedFrame = startFrame;
             if (steppingType !== "finish") {
-                return handlePauseAndRespond(startFrame, completion);
+                // TODO: completion contains the return value, we have to send it back
+                // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1026>
+                return handlePauseAndRespond(startFrame, { type_: steppingType });
             }
             attachSteppingHooks("next", startFrame);
         },
