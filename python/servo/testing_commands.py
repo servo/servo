@@ -155,7 +155,12 @@ class MachCommands(CommandBase):
         return call(cmd, env=env, cwd=path.join("etc", "ci", "performance"))
 
     @Command("test-unit", description="Run unit tests", category="testing")
-    @CommandArgument("test_name", nargs=argparse.REMAINDER, help="Only run tests that match this pattern or file path")
+    @CommandArgument(
+        "--test-name",
+        nargs=argparse.ZERO_OR_MORE,
+        default=None,
+        help="Only run tests that match this pattern or file path",
+    )
     @CommandArgument("--package", "-p", default=None, help="Specific package to test")
     @CommandArgument("--bench", default=False, action="store_true", help="Run in bench mode")
     @CommandArgument(
@@ -169,6 +174,7 @@ class MachCommands(CommandBase):
     def test_unit(
         self,
         build_type: BuildType,
+        test_name: list[str] | None = None,
         params: list[str] | None = None,
         package: str | None = None,
         bench: bool = False,
@@ -178,8 +184,8 @@ class MachCommands(CommandBase):
         nextest_profile: str | None = None,
         **kwargs: Any,
     ) -> int:
-        if params is None:
-            params = []
+        if test_name is None:
+            test_name = []
 
         self.ensure_bootstrapped()
 
@@ -189,7 +195,7 @@ class MachCommands(CommandBase):
             packages = set()
 
         test_patterns = []
-        for test in params:
+        for test in test_name:
             # add package if 'tests/unit/<package>'
             match = re.search("tests/unit/(\\w+)/?$", test)
             if match:
@@ -249,7 +255,7 @@ class MachCommands(CommandBase):
         if len(packages) == 0 and len(in_crate_packages) == 0:
             return 0
 
-        args: list[str] = []
+        args: list[str] = params or []
 
         if build_type.is_release():
             args += ["--release"]
