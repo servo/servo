@@ -56,14 +56,14 @@ impl WebStorageTest {
         self.threads.clone()
     }
 
-    pub(crate) fn length(&self, storage_type: WebStorageType, url: &ImmutableOrigin) -> usize {
+    pub(crate) fn length(&self, storage_type: WebStorageType, origin: &ImmutableOrigin) -> usize {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Length(
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
             ))
             .unwrap();
         receiver.recv().unwrap()
@@ -72,7 +72,7 @@ impl WebStorageTest {
     pub(crate) fn key(
         &self,
         storage_type: WebStorageType,
-        url: &ImmutableOrigin,
+        origin: &ImmutableOrigin,
         index: u32,
     ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -81,21 +81,25 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 index,
             ))
             .unwrap();
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn keys(&self, storage_type: WebStorageType, url: &ImmutableOrigin) -> Vec<String> {
+    pub(crate) fn keys(
+        &self,
+        storage_type: WebStorageType,
+        origin: &ImmutableOrigin,
+    ) -> Vec<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Keys(
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
             ))
             .unwrap();
         receiver.recv().unwrap()
@@ -104,7 +108,7 @@ impl WebStorageTest {
     pub(crate) fn get_item(
         &self,
         storage_type: WebStorageType,
-        url: &ImmutableOrigin,
+        origin: &ImmutableOrigin,
         key: &str,
     ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -113,7 +117,7 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 key.into(),
             ))
             .unwrap();
@@ -123,7 +127,7 @@ impl WebStorageTest {
     pub(crate) fn set_item(
         &self,
         storage_type: WebStorageType,
-        url: &ImmutableOrigin,
+        origin: &ImmutableOrigin,
         key: &str,
         value: &str,
     ) -> Result<(bool, Option<String>), ()> {
@@ -133,7 +137,7 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 key.into(),
                 value.into(),
             ))
@@ -144,7 +148,7 @@ impl WebStorageTest {
     pub(crate) fn remove_item(
         &self,
         storage_type: WebStorageType,
-        url: &ImmutableOrigin,
+        origin: &ImmutableOrigin,
         key: &str,
     ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -153,21 +157,21 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 key.into(),
             ))
             .unwrap();
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn clear(&self, storage_type: WebStorageType, url: &ImmutableOrigin) -> bool {
+    pub(crate) fn clear(&self, storage_type: WebStorageType, origin: &ImmutableOrigin) -> bool {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Clear(
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
             ))
             .unwrap();
         receiver.recv().unwrap()

@@ -489,9 +489,9 @@ impl WebStorageManager {
         sender: GenericSender<usize>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
     ) {
-        let data = self.select_data(storage_type, webview_id, url);
+        let data = self.select_data(storage_type, webview_id, origin);
         sender
             .send(data.map_or(0, |entry| entry.inner().len()))
             .unwrap();
@@ -502,10 +502,10 @@ impl WebStorageManager {
         sender: GenericSender<Option<String>>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
         index: u32,
     ) {
-        let data = self.select_data(storage_type, webview_id, url);
+        let data = self.select_data(storage_type, webview_id, origin);
         let key = data
             .and_then(|entry| entry.inner().keys().nth(index as usize))
             .cloned();
@@ -517,9 +517,9 @@ impl WebStorageManager {
         sender: GenericSender<Vec<String>>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
     ) {
-        let data = self.select_data(storage_type, webview_id, url);
+        let data = self.select_data(storage_type, webview_id, origin);
         let keys = data.map_or(vec![], |entry| entry.inner().keys().cloned().collect());
 
         sender.send(keys).unwrap();
@@ -534,11 +534,11 @@ impl WebStorageManager {
         sender: GenericSender<Result<(bool, Option<String>), ()>>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
         name: String,
         value: String,
     ) {
-        let Some(entry) = self.ensure_data_mut(storage_type, webview_id, url.clone()) else {
+        let Some(entry) = self.ensure_data_mut(storage_type, webview_id, origin.clone()) else {
             sender.send(Err(())).unwrap();
             return;
         };
@@ -565,7 +565,7 @@ impl WebStorageManager {
                         }
                     });
             if storage_type == WebStorageType::Local {
-                if let Ok(env) = self.get_environment_mut(&url) {
+                if let Ok(env) = self.get_environment_mut(&origin) {
                     env.set(&name, &value);
                 }
             }
@@ -579,10 +579,10 @@ impl WebStorageManager {
         sender: GenericSender<Option<String>>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
         name: String,
     ) {
-        let data = self.select_data(storage_type, webview_id, url);
+        let data = self.select_data(storage_type, webview_id, origin);
         sender
             .send(data.and_then(|entry| entry.inner().get(&name)).cloned())
             .unwrap();
@@ -594,14 +594,14 @@ impl WebStorageManager {
         sender: GenericSender<Option<String>>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
         name: String,
     ) {
-        let data = self.select_data_mut(storage_type, webview_id, url.clone());
+        let data = self.select_data_mut(storage_type, webview_id, origin.clone());
         let old_value = data.and_then(|entry| entry.remove(&name));
         sender.send(old_value).unwrap();
         if storage_type == WebStorageType::Local {
-            if let Ok(env) = self.get_environment_mut(&url) {
+            if let Ok(env) = self.get_environment_mut(&origin) {
                 env.delete(&name);
             }
         }
@@ -612,9 +612,9 @@ impl WebStorageManager {
         sender: GenericSender<bool>,
         storage_type: WebStorageType,
         webview_id: WebViewId,
-        url: ImmutableOrigin,
+        origin: ImmutableOrigin,
     ) {
-        let data = self.select_data_mut(storage_type, webview_id, url.clone());
+        let data = self.select_data_mut(storage_type, webview_id, origin.clone());
         sender
             .send(data.is_some_and(|entry| {
                 if !entry.inner().is_empty() {
@@ -626,7 +626,7 @@ impl WebStorageManager {
             }))
             .unwrap();
         if storage_type == WebStorageType::Local {
-            if let Ok(env) = self.get_environment_mut(&url) {
+            if let Ok(env) = self.get_environment_mut(&origin) {
                 env.clear();
             }
         }
