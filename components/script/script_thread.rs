@@ -1825,18 +1825,21 @@ impl ScriptThread {
             ScriptThreadMessage::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
-            ScriptThreadMessage::FocusIFrame(parent_pipeline_id, frame_id, sequence) => self
-                .handle_focus_iframe_msg(
-                    parent_pipeline_id,
-                    frame_id,
-                    sequence,
-                    CanGc::from_cx(cx),
-                ),
-            ScriptThreadMessage::FocusDocument(pipeline_id, sequence) => {
-                self.handle_focus_document_msg(pipeline_id, sequence, CanGc::from_cx(cx))
+            ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
+                pipeline_id,
+                sequence,
+                iframe_browsing_context_id,
+            ) => self.handle_focus_document_as_part_of_focusing_steps(
+                cx,
+                pipeline_id,
+                sequence,
+                iframe_browsing_context_id,
+            ),
+            ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(pipeline_id, sequence) => {
+                self.handle_unfocus_document_as_part_of_focusing_steps(cx, pipeline_id, sequence);
             },
-            ScriptThreadMessage::Unfocus(pipeline_id, sequence) => {
-                self.handle_unfocus_msg(pipeline_id, sequence, CanGc::from_cx(cx))
+            ScriptThreadMessage::FocusDocument(pipeline_id) => {
+                self.handle_focus_document(cx, pipeline_id);
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
@@ -2845,101 +2848,87 @@ impl ScriptThread {
         warn!("change of activity sent to nonexistent pipeline");
     }
 
-    fn handle_focus_iframe_msg(
+    fn handle_focus_document_as_part_of_focusing_steps(
         &self,
-        parent_pipeline_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
         sequence: FocusSequenceNumber,
-        can_gc: CanGc,
+        browsing_context_id: Option<BrowsingContextId>,
     ) {
-        let document = self
-            .documents
-            .borrow()
-            .find_document(parent_pipeline_id)
-            .unwrap();
-
-        let Some(iframe_element) = ({
-            // Enclose `iframes()` call and create a new root to avoid retaining
-            // borrow.
-            let iframes = document.iframes();
-            iframes
-                .get(browsing_context_id)
-                .map(|iframe| DomRoot::from_ref(iframe.element.upcast::<Node>()))
-        }) else {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Unknown {pipeline_id:?} for FocusDocumentAsPartOfFocusingSteps message.");
             return;
         };
 
-        if document.focus_handler().focus_sequence() > sequence {
+        let focus_handler = document.focus_handler();
+        if focus_handler.focus_sequence() > sequence {
             debug!(
-                "Disregarding the FocusIFrame message because the contained sequence number is \
-                too old ({:?} < {:?})",
-                sequence,
-                document.focus_handler().focus_sequence()
+                "Disregarding the FocusDocumentAsPartOfFocusingSteps message because \
+                the contained sequence number is too old ({sequence:?} < {:?})",
+                focus_handler.focus_sequence()
             );
             return;
         }
 
-        if let Some(focusable_area) = iframe_element.get_the_focusable_area() {
-            iframe_element.owner_document().focus_handler().focus(
-                FocusOperation::Focus(focusable_area),
-                FocusInitiator::Remote,
-                can_gc,
-            );
-        }
+        let focusable_area = browsing_context_id
+            .and_then(|browsing_context_id| {
+                document
+                    .iframes()
+                    .get(browsing_context_id)
+                    .map(|iframe| FocusableArea::Node {
+                        node: DomRoot::from_ref(iframe.element.upcast()),
+                        kind: Default::default(),
+                    })
+            })
+            .unwrap_or(FocusableArea::Viewport);
+
+        focus_handler.focus(
+            FocusOperation::Focus(focusable_area),
+            FocusInitiator::Remote,
+            CanGc::from_cx(cx),
+        );
     }
 
-    fn handle_focus_document_msg(
-        &self,
-        pipeline_id: PipelineId,
-        sequence: FocusSequenceNumber,
-        can_gc: CanGc,
-    ) {
-        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            let focus_handler = document.focus_handler();
-            if focus_handler.focus_sequence() > sequence {
-                debug!(
-                    "Disregarding the FocusDocument message because the contained sequence number is \
-                    too old ({:?} < {:?})",
-                    sequence,
-                    focus_handler.focus_sequence()
-                );
-                return;
-            }
-            focus_handler.focus(
-                FocusOperation::Focus(FocusableArea::Viewport),
-                FocusInitiator::Remote,
-                can_gc,
-            );
-        } else {
-            warn!(
-                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_focus_document_msg."
-            );
-        }
+    fn handle_focus_document(&self, cx: &mut js::context::JSContext, pipeline_id: PipelineId) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Unknown {pipeline_id:?} for FocusDocument message.");
+            return;
+        };
+        document.window().Focus(cx);
     }
 
-    fn handle_unfocus_msg(
+    fn handle_unfocus_document_as_part_of_focusing_steps(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         sequence: FocusSequenceNumber,
-        can_gc: CanGc,
     ) {
-        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            let focus_handler = document.focus_handler();
-            if focus_handler.focus_sequence() > sequence {
-                debug!(
-                    "Disregarding the Unfocus message because the contained sequence number is \
-                    too old ({:?} < {:?})",
-                    sequence,
-                    focus_handler.focus_sequence()
-                );
-                return;
-            }
-            focus_handler.handle_container_unfocus(can_gc);
-        } else {
-            warn!(
-                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_unfocus_msg."
-            );
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Unknown {pipeline_id:?} for UnfocusDocumentAsPartOfFocusingSteps");
+            return;
+        };
+
+        // We ignore unfocus requests for top-level `Document`s as they *always* have focus.
+        // Note that this does not take into account system focus.
+        if document.window().is_top_level() {
+            return;
         }
+
+        let focus_handler = document.focus_handler();
+        if focus_handler.focus_sequence() > sequence {
+            debug!(
+                "Disregarding the Unfocus message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                focus_handler.focus_sequence()
+            );
+            return;
+        }
+        focus_handler.focus(
+            FocusOperation::Unfocus,
+            FocusInitiator::Remote,
+            CanGc::from_cx(cx),
+        );
     }
 
     #[expect(clippy::too_many_arguments)]

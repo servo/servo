@@ -144,8 +144,10 @@ mod from_script {
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),
-                Self::Focus(..) => target!("Focus"),
-                Self::FocusRemoteDocument(..) => target!("FocusRemoteDocument"),
+                Self::FocusAncestorBrowsingContextsForFocusingSteps(..) => {
+                    target!("FocusAncestorBrowsingContextsForFocusingSteps")
+                },
+                Self::FocusRemoteBrowsingContext(..) => target!("FocusRemoteBrowsingContext"),
                 Self::GetTopForBrowsingContext(..) => target!("GetTopForBrowsingContext"),
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
                 Self::GetDocumentOrigin(..) => target!("GetDocumentOrigin"),

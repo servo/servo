@@ -171,17 +171,6 @@ impl DocumentFocusHandler {
         self.focus_sequence.get()
     }
 
-    /// Update the local focus state accordingly after being notified that the
-    /// document's container is removed from the top-level browsing context's
-    /// focus chain (not considering system focus).
-    pub(crate) fn handle_container_unfocus(&self, can_gc: CanGc) {
-        if self.window.parent_info().is_none() {
-            warn!("Top-level document cannot be unfocused");
-            return;
-        }
-        self.focus(FocusOperation::Unfocus, FocusInitiator::Remote, can_gc);
-    }
-
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     pub(crate) fn focus(
@@ -336,11 +325,12 @@ impl DocumentFocusHandler {
                         .unwrap_or(&"(none)"),
                 );
 
-                self.window
-                    .send_to_constellation(ScriptToConstellationMessage::Focus(
+                self.window.send_to_constellation(
+                    ScriptToConstellationMessage::FocusAncestorBrowsingContextsForFocusingSteps(
                         child_browsing_context_id,
                         sequence,
-                    ));
+                    ),
+                );
             },
             (false, false) => {
                 // Our `Document` doesn't have focus, and we intend to keep it

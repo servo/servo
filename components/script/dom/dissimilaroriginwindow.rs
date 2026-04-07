@@ -189,7 +189,14 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
     fn Focus(&self) {
-        self.window_proxy().focus();
+        let browsing_context_id = self.window_proxy.browsing_context_id();
+        debug!("Initiating a focus operation for {browsing_context_id:?}");
+        self.globalscope
+            .script_to_constellation_chan()
+            .send(ScriptToConstellationMessage::FocusRemoteBrowsingContext(
+                browsing_context_id,
+            ))
+            .unwrap();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
