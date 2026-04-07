@@ -57,7 +57,7 @@ impl Storage {
     }
 
     fn get_immutable_origin(&self) -> ImmutableOrigin {
-        self.global().get_url().origin()
+        self.global().origin().immutable().clone()
     }
 
     fn send_storage_msg(&self, msg: WebStorageThreadMsg) -> SendResult {
