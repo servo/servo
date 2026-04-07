@@ -837,6 +837,11 @@ class CommandBase(object):
         if not self.target.is_cross_build():
             return
 
+        if shutil.which("rustup") is None:
+            print("Warning: rustup not found. Skipping automatic target installation for cross-compilation.")
+            print(f"  You may need to manually ensure the '{self.target.triple()}' target is installed.")
+            return
+
         installed_targets = check_output(["rustup", "target", "list", "--installed"], cwd=self.context.topdir)
         if isinstance(installed_targets, bytes):
             installed_targets = installed_targets.decode("utf-8")

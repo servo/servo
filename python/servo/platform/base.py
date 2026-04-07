@@ -71,6 +71,13 @@ class Base:
             print("Dependencies were already installed!")
 
     def install_rust_toolchain(self) -> None:
+        if shutil.which("rustup") is None:
+            if shutil.which("rustc") is None or shutil.which("cargo") is None:
+                print(" * Warning: rustup, rustc, or cargo not found.")
+                print("   Please install rustup or make sure rustc and cargo are in PATH.")
+            else:
+                print(" * rustup not found. Skipping Rust toolchain installation.")
+            return
         # rustup 1.28.0, and rustup 1.28.1+ with RUSTUP_AUTO_INSTALL=0, require us to explicitly
         # install the Rust toolchain before trying to use it.
         print(" * Installing Rust toolchain...")
