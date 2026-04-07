@@ -575,13 +575,9 @@ impl Request {
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
     let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
-    RequestBuilder::new(
-        global.webview_id(),
-        url,
-        global.get_referrer(),
-    )
-    .with_global_scope(global)
-    .build()
+    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
+        .with_global_scope(global)
+        .build()
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-method-normalize>
