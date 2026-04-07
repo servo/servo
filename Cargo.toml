@@ -109,7 +109,7 @@ indexmap = { version = "2.11.4", features = ["std"] }
 inventory = { version = "0.3.24" }
 ipc-channel = "0.21"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.7", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.8", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
@@ -370,8 +370,8 @@ codegen-units = 1
 #
 # Or for mozjs:
 #
-# mozjs = { path = "../mozjs/mozjs" }
-# mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git="https://github.com/simonwuelker/mozjs", branch="jitspew-from-source" }
+mozjs_sys = { git="https://github.com/simonwuelker/mozjs", branch="jitspew-from-source" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }
