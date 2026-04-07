@@ -254,8 +254,8 @@ impl InProgressLoad {
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)
         .crash(self.load_data.crash.clone())
-        .client(request_client);
-        request_builder.url_list = self.url_list.clone();
+        .client(request_client)
+        .url_list(self.url_list.clone());
 
         if !request_builder.headers.contains_key(header::ACCEPT) {
             request_builder
