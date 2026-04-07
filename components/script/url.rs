@@ -15,7 +15,7 @@ pub(crate) fn ensure_blob_referenced_by_url_is_kept_alive(
         Ok(lock) => lock,
         Err(url) => {
             let token = BlobResolver {
-                origin: global.api_base_url().origin(),
+                origin: global.origin().immutable().clone(),
                 resource_threads: global.resource_threads(),
             }
             .acquire_blob_token_for(&url);
