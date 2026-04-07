@@ -1031,7 +1031,7 @@ impl IndexedDBManager {
             return;
         }
 
-        let request_id = {
+        let (request_id, proxy_map, db_name) = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
                 return debug_assert!(false, "A connection queue should exist.");
             };
@@ -1041,6 +1041,8 @@ impl IndexedDBManager {
             let OpenRequest::Open {
                 pending_upgrade: Some(pending_upgrade),
                 id,
+                proxy_map,
+                db_name,
                 ..
             } = front
             else {
@@ -1049,10 +1051,10 @@ impl IndexedDBManager {
             if pending_upgrade.transaction != txn {
                 return;
             }
-            *id
+            (*id, (*proxy_map).clone(), db_name.clone())
         };
 
-        self.abort_pending_upgrade(name, request_id, origin);
+        self.abort_pending_upgrade(name, request_id, origin, db_name, &proxy_map);
     }
 
     /// Run the next open request in the queue.
@@ -1134,10 +1136,20 @@ impl IndexedDBManager {
     /// placeholder backing store entirely.
     ///
     /// Related: <https://github.com/servo/servo/pull/42998>
-    fn revert_aborted_upgrade(&mut self, key: &IndexedDBDescription, old_version: u64) {
+    fn revert_aborted_upgrade(&mut self, key: &IndexedDBDescription, old_version: u64, db_name: String, proxy_map: &StorageProxyMap) {
         if old_version == 0 {
             if let Some(_db) = self.databases.remove(key) {
-                // TODO: delete database using client storage.
+                let response = proxy_map
+                .handle
+                .delete_database(proxy_map.bottle_id, db_name.clone())
+                .recv();
+                if response.is_err() {
+                    error!("Failed to communicate with client storage.");
+                    return;
+                }
+                if response.unwrap().is_err() {
+                    error!("Failed to delete database {:?}", db_name);
+                }
             }
             return;
         }
@@ -1152,7 +1164,7 @@ impl IndexedDBManager {
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
-    fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin) {
+    fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin, db_name: String, proxy_map: &StorageProxyMap) {
         let key = IndexedDBDescription { name, origin };
         let old = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -1173,7 +1185,7 @@ impl IndexedDBManager {
             open_request.abort()
         };
         if let Some(old_version) = old {
-            self.revert_aborted_upgrade(&key, old_version);
+            self.revert_aborted_upgrade(&key, old_version, db_name, proxy_map);
         }
 
         self.remove_connection(&key, &id);
@@ -1188,11 +1200,12 @@ impl IndexedDBManager {
         &mut self,
         pending_upgrades: HashMap<String, HashSet<Uuid>>,
         origin: ImmutableOrigin,
+        proxy_map: StorageProxyMap,
     ) {
         for (name, ids) in pending_upgrades.into_iter() {
             let mut version_to_revert: Option<u64> = None;
             let key = IndexedDBDescription {
-                name,
+                name: name.clone(),
                 origin: origin.clone(),
             };
             for id in ids.iter() {
@@ -1223,7 +1236,7 @@ impl IndexedDBManager {
                 }
             }
             if let Some(version) = version_to_revert {
-                self.revert_aborted_upgrade(&key, version);
+                self.revert_aborted_upgrade(&key, version, name, &proxy_map);
             }
         }
     }
@@ -1953,11 +1966,9 @@ impl IndexedDBManager {
             SyncOperation::AbortPendingUpgrades {
                 pending_upgrades,
                 origin,
+                proxy_map,
             } => {
-                self.abort_pending_upgrades(pending_upgrades, origin);
-            },
-            SyncOperation::AbortPendingUpgrade { name, id, origin } => {
-                self.abort_pending_upgrade(name, id, origin);
+                self.abort_pending_upgrades(pending_upgrades, origin, proxy_map);
             },
             SyncOperation::DeleteDatabase(callback, origin, db_name, proxy_map, id) => {
                 let idb_description = IndexedDBDescription {

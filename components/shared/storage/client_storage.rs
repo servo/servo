@@ -183,7 +183,7 @@ impl<T> From<T> for ClientStorageErrorr<T> {
 }
 
 /// <https://storage.spec.whatwg.org/#storage-proxy-map>
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct StorageProxyMap {
     pub bottle_id: i64,
     pub handle: ClientStorageThreadHandle,

@@ -605,13 +605,7 @@ pub enum SyncOperation {
     AbortPendingUpgrades {
         pending_upgrades: HashMap<String, HashSet<Uuid>>,
         origin: ImmutableOrigin,
-    },
-
-    /// Abort the current pending upgrade.
-    AbortPendingUpgrade {
-        name: String,
-        id: Uuid,
-        origin: ImmutableOrigin,
+        proxy_map: StorageProxyMap,
     },
 
     NotifyEndOfVersionChange {
