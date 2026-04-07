@@ -6,11 +6,10 @@
 //! properties applied, including the attributes and layout of each element.
 
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::iter::once;
 
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
-use devtools_traits::{AutoMargins, ComputedNodeLayout};
+use devtools_traits::{AutoMargins, ComputedNodeLayout, MatchedRule};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -177,28 +176,32 @@ impl PageStyleActor {
             // For each selector (plus an empty one that represents the style attribute)
             // get all of the rules associated with it.
 
-            once(("".into(), usize::MAX))
-                .chain(selectors)
-                .filter_map(move |selector| {
-                    let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
-                        Entry::Vacant(e) => {
-                            let name = registry.new_name::<StyleRuleActor>();
-                            let actor = StyleRuleActor::new(
-                                name.clone(),
-                                node_actor.name(),
-                                (!e.key().0.is_empty()).then_some(e.key().clone()),
-                            );
-                            let rule = actor.applied(registry)?;
+            let style_attribute_rule = MatchedRule {
+                selector: "".into(),
+                stylesheet_index: usize::MAX,
+                block_id: 0,
+                ancestor_data: vec![],
+            };
 
-                            registry.register(actor);
-                            e.insert(name);
-                            rule
-                        },
-                        Entry::Occupied(e) => {
-                            let actor = registry.find::<StyleRuleActor>(e.get());
-                            actor.applied(registry)?
-                        },
-                    };
+            once(style_attribute_rule)
+                .chain(selectors)
+                .filter_map(move |matched_rule| {
+                    let style_rule_name = node_actor
+                        .style_rules
+                        .borrow_mut()
+                        .entry(matched_rule.clone())
+                        .or_insert_with(|| {
+                            StyleRuleActor::register(
+                                registry,
+                                node_actor.name(),
+                                (matched_rule.stylesheet_index != usize::MAX)
+                                    .then_some(matched_rule.clone()),
+                            )
+                        })
+                        .clone();
+
+                    let actor = registry.find::<StyleRuleActor>(&style_rule_name);
+                    let rule = actor.applied(registry)?;
                     if inherited.is_some() && rule.declarations.is_empty() {
                         return None;
                     }
@@ -232,27 +235,27 @@ impl PageStyleActor {
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
         let node_actor = registry.find::<NodeActor>(node_name);
-        let computed = (|| match node_actor
-            .style_rules
-            .borrow_mut()
-            .entry(("".into(), usize::MAX))
-        {
-            Entry::Vacant(e) => {
-                let name = registry.new_name::<StyleRuleActor>();
-                let actor = StyleRuleActor::new(name.clone(), node_name.into(), None);
-                let computed = actor.computed(registry)?;
-                registry.register(actor);
-                e.insert(name);
-                Some(computed)
-            },
-            Entry::Occupied(e) => {
-                let actor = registry.find::<StyleRuleActor>(e.get());
-                Some(actor.computed(registry)?)
-            },
-        })()
-        .unwrap_or_default();
+        let style_attribute_rule = devtools_traits::MatchedRule {
+            selector: "".into(),
+            stylesheet_index: usize::MAX,
+            block_id: 0,
+            ancestor_data: vec![],
+        };
+
+        let computed = {
+            let style_rule_name = node_actor
+                .style_rules
+                .borrow_mut()
+                .entry(style_attribute_rule)
+                .or_insert_with(|| StyleRuleActor::register(registry, node_name.into(), None))
+                .clone();
+
+            let actor = registry.find::<StyleRuleActor>(&style_rule_name);
+            actor.computed(registry)
+        };
+
         let msg = GetComputedReply {
-            computed,
+            computed: computed.unwrap_or_default(),
             from: self.name(),
         };
         request.reply_final(&msg)

@@ -271,6 +271,24 @@ pub struct NodeStyle {
     pub priority: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf, PartialEq, Eq, Hash)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum AncestorData {
+    Layer {
+        actor_id: Option<String>,
+        value: Option<String>,
+    },
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchedRule {
+    pub selector: String,
+    pub stylesheet_index: usize,
+    pub block_id: usize,
+    pub ancestor_data: Vec<AncestorData>,
+}
+
 /// The properties of a DOM node as computed by layout.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -323,17 +341,12 @@ pub enum DevtoolScriptControlMsg {
     GetStylesheetStyle(
         PipelineId,
         String,
-        String,
-        usize,
+        MatchedRule,
         GenericSender<Option<Vec<NodeStyle>>>,
     ),
     /// Retrieves the CSS selectors for the given node. A selector is comprised of the text
     /// of the selector and the id of the stylesheet that contains it.
-    GetSelectors(
-        PipelineId,
-        String,
-        GenericSender<Option<Vec<(String, usize)>>>,
-    ),
+    GetSelectors(PipelineId, String, GenericSender<Option<Vec<MatchedRule>>>),
     /// Retrieve the computed CSS style properties for the given node.
     GetComputedStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
     /// Get information about event listeners on a node.
