@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish as latest (success)
-        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        if: ${{ !contains(needs.*.result, 'failure') && (!contains(needs.*.result, 'cancelled') && !cancelled()) }}
         run: |
           gh api \
             --method PATCH \
@@ -77,7 +77,7 @@ jobs:
             /repos/${RELEASE_REPO}/releases/${RELEASE_ID} \
             -F draft=false
       - name: Publish as latest (failure)
-        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        if: ${{ contains(needs.*.result, 'failure') || (contains(needs.*.result, 'cancelled') || cancelled()) }}
         run: |
           gh api \
             --method PATCH \
