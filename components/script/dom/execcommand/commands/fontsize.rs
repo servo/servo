@@ -7,6 +7,7 @@ use script_bindings::inheritance::Castable;
 use style::attr::parse_integer;
 
 use crate::dom::ShadowIncluding;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -23,15 +24,13 @@ use crate::script_runtime::CanGc;
 
 impl HTMLFontElement {
     fn font_size_if_size_matches(&self, should_match_size: i32) -> Option<i32> {
-        if should_match_size !=
-            self.upcast::<Element>()
-                .get_int_attribute(&local_name!("size"), 0)
-        {
-            return None;
-        }
-        self.upcast::<Node>()
-            .style()
-            .map(|style| style.clone_font().font_size.computed_size().px() as i32)
+        let attribute = self
+            .upcast::<Element>()
+            .get_attribute(&local_name!("size"))?;
+        let value = attribute.Value();
+        let size = value.parse::<i32>().ok()?;
+
+        Some(size).filter(|size| *size == should_match_size)
     }
 }
 
@@ -165,4 +164,26 @@ pub(crate) fn value_for_fontsize_command(
     let pixel_size = command_value.parse::<i32>().ok()?;
     // Step 3. Return the legacy font size for pixel size.
     Some(legacy_font_size_for(pixel_size, document))
+}
+
+fn normalize_font_string(str_: &str) -> &str {
+    match str_ {
+        "1" => "x-small",
+        "2" => "small",
+        "3" => "medium",
+        "4" => "large",
+        "5" => "x-large",
+        "6" => "xx-large",
+        "7" => "xxx-large",
+        _ => str_,
+    }
+}
+
+/// Handles fontsize command part of
+/// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
+pub(crate) fn font_size_loosely_equivalent(first: &DOMString, second: &DOMString) -> bool {
+    // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
+    // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
+    // > has the corresponding value set ("1" through "7" respectively).
+    normalize_font_string(&first.str()) == second || first == normalize_font_string(&second.str())
 }
