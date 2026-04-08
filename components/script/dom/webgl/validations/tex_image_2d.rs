@@ -630,7 +630,12 @@ impl WebGLValidator for CompressedTexSubImage2DValidator<'_> {
             compression,
         } = self.compression_validator.validate()?;
 
-        let tex_info = texture.image_info_for_target(&target, level).unwrap();
+        // GL_INVALID_OPERATION is generated if no base image has been defined
+        // for this texture target and level via compressedTexImage2D.
+        let Some(tex_info) = texture.image_info_for_target(&target, level) else {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::TextureFormatMismatch);
+        };
 
         // GL_INVALID_VALUE is generated if:
         //   - xoffset or yoffset is less than 0
