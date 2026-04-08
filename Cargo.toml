@@ -278,6 +278,7 @@ servo-media-gstreamer = { version = "0.1.0", path = "components/media/backends/g
 servo-media-gstreamer-render = { version = "0.1.0", path = "components/media/backends/gstreamer/render" }
 servo-media-gstreamer-render-android = { version = "0.1.0", path = "components/media/backends/gstreamer/render-android" }
 servo-media-gstreamer-render-unix = { version = "0.1.0", path = "components/media/backends/gstreamer/render-unix" }
+servo-media-ohos = { version = "0.1.0", path = "components/media/backends/ohos" }
 servo-media-player = { version = "0.1.0", path = "components/media/player" }
 servo-media-streams = { version = "0.1.0", path = "components/media/streams" }
 servo-media-traits = { version = "0.1.0", path = "components/media/traits" }

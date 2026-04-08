@@ -159,6 +159,9 @@ gaol = "0.2.1"
 [target.'cfg(target_os = "windows")'.dependencies]
 webxr = { workspace = true, features = ["glwindow", "headless", "openxr-api"] }
 
+[target.'cfg(target_env = "ohos")'.dependencies]
+servo-media-ohos = { workspace = true }
+
 [dev-dependencies]
 accesskit_consumer = "0.35.0"
 http = { workspace = true }

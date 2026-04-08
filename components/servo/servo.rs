@@ -121,7 +121,17 @@ mod media_platform {
     }
 }
 
-#[cfg(not(feature = "media-gstreamer"))]
+#[cfg(all(not(feature = "media-gstreamer"), target_env = "ohos"))]
+mod media_platform {
+    use servo_media_ohos::OhosBackend;
+
+    use super::ServoMedia;
+    pub fn init() {
+        ServoMedia::init::<OhosBackend>();
+    }
+}
+
+#[cfg(all(not(feature = "media-gstreamer"), not(target_env = "ohos")))]
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {

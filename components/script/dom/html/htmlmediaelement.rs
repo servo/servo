@@ -116,6 +116,11 @@ static MEDIA_CONTROL_CSS: &str = include_str!("../../resources/media-controls.cs
 /// A JS file to control the media controls.
 static MEDIA_CONTROL_JS: &str = include_str!("../../resources/media-controls.js");
 
+/// The media engine may report a seek-done position that differs slightly from the
+/// requested position (e.g. snapping to the nearest keyframe), so we use a threshold
+/// instead of strict equality. (Unit is second)
+const SEEK_POSITION_THRESHOLD: f64 = 0.5;
+
 #[derive(MallocSizeOf, PartialEq)]
 enum FrameStatus {
     Locked,
@@ -2737,7 +2742,8 @@ impl HTMLMediaElement {
     fn playback_seek_done(&self, position: f64) {
         // If the seek was initiated by script or by the user agent itself continue with the
         // following steps, otherwise abort.
-        if !self.seeking.get() || position != self.current_seek_position.get() {
+        let delta = (position - self.current_seek_position.get()).abs();
+        if !self.seeking.get() || delta > SEEK_POSITION_THRESHOLD {
             return;
         }
 
