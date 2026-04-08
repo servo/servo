@@ -38,6 +38,10 @@ class WorkspacePackage:
     dependencies: tuple[str, ...]
 
 
+def log(message: str) -> None:
+    print(message, file=sys.stderr, flush=True)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
@@ -159,10 +163,10 @@ def wait_until_published(package: WorkspacePackage) -> None:
     while True:
         try:
             if crates_io_version_exists(package.name, package.version):
-                print(f"verified {package.name} {package.version} on crates.io")
+                log(f"verified {package.name} {package.version} on crates.io")
                 return
         except RuntimeError as runtime_error:
-            print(runtime_error, file=sys.stderr)
+            log(str(runtime_error))
 
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -179,19 +183,19 @@ def publish_package(
     if args.no_verify:
         command.append("--no-verify")
 
-    print(f"publishing {package.name} {package.version}")
+    log(f"publishing {package.name} {package.version}")
     subprocess.run(command, cwd=WORKSPACE_ROOT, check=True)
 
 
 def publish_packages(args: argparse.Namespace, packages: Iterable[WorkspacePackage]) -> None:
     for package in packages:
         if crates_io_version_exists(package.name, package.version):
-            print(f"skipping {package.name} {package.version}; already on crates.io")
+            log(f"skipping {package.name} {package.version}; already on crates.io")
             continue
 
         publish_package(args, package)
         duration_seconds = SLEEP_AFTER_PUBLISH_SECONDS
-        print(f"published {package.name} {package.version}. Waiting for {duration_seconds}s")
+        log(f"published {package.name} {package.version}. Waiting for {duration_seconds}s")
         # To distribute load on crates.io, we sleep for a bit after each publish.
         time.sleep(duration_seconds)
         # And in case crates.io is under heavy load and publishing takes longer than usual,
@@ -207,13 +211,13 @@ def main() -> int:
     ordered_packages = topological_publish_order(packages)
 
     if not ordered_packages:
-        print("no local crates publish to crates.io")
+        log("no local crates publish to crates.io")
         return 0
 
-    print("publish order:")
+    log("publish order:")
     for package in ordered_packages:
         dependency_list = ", ".join(package.dependencies) if package.dependencies else "none"
-        print(f"  {package.name} {package.version} (deps: {dependency_list})")
+        log(f"  {package.name} {package.version} (deps: {dependency_list})")
 
     if args.dry_run:
         return 0
