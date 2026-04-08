@@ -114,16 +114,22 @@ fn system_heap_info() -> SystemHeapInfo {
     // usage gets high enough. So don't report anything in that case. In the non-overflow case
     // we cast the two values to usize before adding them to make sure the sum also doesn't
     // overflow.
-    if info.hblkhd < 0 || info.uordblks < 0 {
-        SystemHeapInfo {
-            allocated: None,
-            reserved: None,
-        }
+    let allocated;
+    if info.hblkhd >= 0 && info.uordblks >= 0 {
+        allocated = Some(info.hblkhd as usize + info.uordblks as usize);
     } else {
-        SystemHeapInfo {
-            allocated: Some(info.hblkhd as usize + info.uordblks as usize),
-            reserved: Some(info.arena as usize + info.hblkhd as usize),
-        }
+        allocated = None;
+    }
+
+    let reserved;
+    if info.arena >= 0 && info.hblkhd >= 0 {
+        reserved = Some(info.arena as usize + info.hblkhd as usize);
+    } else {
+        reserved = None;
+    }
+    SystemHeapInfo {
+        allocated,
+        reserved,
     }
 }
 
