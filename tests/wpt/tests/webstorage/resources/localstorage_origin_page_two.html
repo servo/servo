@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>localStorage: origin test page two</title>
+<iframe id="iframe" srcdoc="
+  <script src='/common/get-host-info.sub.js'></script>
+  <script>
+    const value = window.localStorage.getItem('test');
+    const pageURL = get_host_info().HTTP_REMOTE_ORIGIN + '/webstorage/localstorage-share-data-unrelated-origins.html';
+    window.parent.parent.postMessage(value, pageURL);
+  </script>
+"></iframe>
+<body>
+</body>
+<script>
+</script>

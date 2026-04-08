@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>localStorage: origin sharing test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='/common/get-host-info.sub.js'></script>
+<iframe id="iframe" srcdoc="
+  <script>
+    window.localStorage.setItem('test', 'user')
+  </script>
+"></iframe>
+
+<body>
+  <div id="testDiv"></div>
+  <script>
+    // Here's the set-up for this test:
+    // Step 1. (iframe) has the URI about:srcdoc and sets a localstorage key.
+    // Step 2. (window) an onload handler for the iframe runs a JavaScript function that 
+    //          creates a new iframe with cross-origin URL to page two.
+    // Step 3. (page two iframe) has the URI about:src. 
+    //          It retrieves the value from localStorage set by the iframe in step 1.
+    //          And sends the value using postMessage to window.parent.parent
+    // Step 4. (window) Uses an `onmessage` handler to recieve the value from the dispatched event.
+    //          A test inside the handler uses assert_not_equals to verify that 
+    //          the two origins do not share the same localStorage
+    const iframe = document.getElementById("iframe")
+    const pageURL = get_host_info().HTTP_REMOTE_ORIGIN + "/webstorage/resources/localstorage_origin_page_two.html";
+
+    iframe.addEventListener("load", (event) => {
+      const iframe_page_two = document.createElement("iframe");
+      var t = async_test("Ensure two about:srcdoc origins cannot share localstorage")
+      iframe_page_two.src = pageURL;
+      testDiv.appendChild(iframe_page_two);
+      window.onmessage = t.step_func_done(function(e) {
+        assert_not_equals(e.data, 'user');
+      }) 
+    })
+  </script>
