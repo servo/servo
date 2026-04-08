@@ -515,6 +515,7 @@ impl Dialog {
                                 selected_options.iter().position(|id| *id == option.id)
                             {
                                 selected_options.remove(pos);
+                            }
                             if let Some(position) =
                                 selected_options.iter().position(|id| *id == option.id)
                             {
