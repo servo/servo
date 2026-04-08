@@ -13,16 +13,18 @@ import argparse
 import threading
 import time
 import csv
-from dataclasses import dataclass, field
+from typing import List, Optional, Self, Type
+from dataclasses import dataclass, field, fields
 import subprocess
-from typing import List, Optional
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import datetime as dt
 from pathlib import Path
 from selenium import webdriver
 import sys
-from hdc_py.hdc import HarmonyDeviceConnector
+from hdc_py.hdc import HarmonyDeviceConnector  # type: ignore[import-untyped]
 from enum import Enum
+from types import TracebackType
 
 PACKAGE_NAME = "org.servo.servo"
 SERVO_PROCESS_NAME = "servoshell"
@@ -38,20 +40,21 @@ class HostOptions(str, Enum):
 @dataclass
 class MemoryLoggingOptions:
     verbose: bool = False
-    frequency: int = 2
-    pid: int = None
+    frequency: float = 2
+    pid: Optional[int] = None
     log_to_file: bool = False
     plot: bool = False
     file_name: str = "memory_usage_plotter"
-    pre_time: int = 0
-    post_time: int = 0
+    test_name: Optional[str] = None
+    pre_time: float = 0
+    post_time: float = 0
     set_minimal_history: bool = False
-    from_dump: str = None
+    from_dump: Optional[str] = None
     mode: str = "collect"
-    reset_tab: str = None
+    reset_tab: Optional[str | bool] = None
     create_own_webdriver: bool = False
-    host: HostOptions = HostOptions.LINUX
-    url: str = None
+    host: HostOptions | str = HostOptions.LINUX
+    url: Optional[str] = None
 
 
 @dataclass
@@ -85,9 +88,9 @@ class MemoryInfo:
     __repr__ = __str__
 
 
-def get_memory_info(pid: int, host: HostOptions) -> Optional[MemoryInfo]:
+def get_memory_info(pid: int, host: HostOptions | str) -> Optional[MemoryInfo]:
     result = None
-    cmd = "echo error"
+    cmd = ["echo error"]
     if host == HostOptions.OHOS:
         cmd = ["hdc", "shell", "cat", f"/proc/{pid}/status"]
     if host == HostOptions.MACOS:
@@ -192,10 +195,10 @@ class MemorySample:
 class MemoryLog:
     samples: List[MemorySample] = field(default_factory=list)
 
-    def add(self, sample: MemorySample):
+    def add(self, sample: MemorySample) -> None:
         self.samples.append(sample)
 
-    def clear(self):
+    def clear(self) -> None:
         self.samples.clear()
 
 
@@ -225,14 +228,22 @@ class WebDriverIsNotSet(Exception):
 
 
 class NonBlockingMemoryLogging:
-    def set_webdriver(self, webdriver: webdriver):
-        self.driver = webdriver
+    def set_webdriver(self, driver: webdriver.Remote) -> None:
+        self.driver: Optional[webdriver.Remote] = driver
 
-    def from_dump(self):
-        self.log = load_memory_log(self.options.from_dump)
-        self.plot_memory_log()
+    def from_dump(self) -> None:
+        if self.options.from_dump is not None:
+            self.log = load_memory_log(self.options.from_dump)
+            self.plot_memory_log()
+        else:
+            print("Dump file was not set")
 
-    def __init__(self, options: MemoryLoggingOptions = None, host: HostOptions = None, webdriver: webdriver = None):
+    def __init__(
+        self,
+        options: Optional[MemoryLoggingOptions] = None,
+        host: Optional[HostOptions] = None,
+        driver: Optional[webdriver.Remote] = None,
+    ) -> None:
         # Defaults:
         self.driver = None
         self.hdc = None
@@ -240,21 +251,17 @@ class NonBlockingMemoryLogging:
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
+            if options.from_dump is not None:
+                raise_if_input_invalid(options.from_dump)
+                self.from_dump()
+                sys.exit(0)
         if host is not None:
             self.options.host = host
-        if webdriver is not None:
-            self.driver = webdriver
+        if driver is not None:
+            self.driver = driver
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
 
-        # check for the `file` mode
-        if options.mode is None:
-            print("No mode has been specified. Exiting")
-            sys.exit(1)
-        if options.mode == "plot" and options.from_dump is not None:
-            raise_if_input_invalid(options.from_dump)
-            self.from_dump()
-            sys.exit(0)
         self.log = MemoryLog()
         if self.options.log_to_file:
             self.csv_file = open(self.options.file_name + ".csv", "w", newline="", encoding="utf-8")
@@ -266,20 +273,24 @@ class NonBlockingMemoryLogging:
             daemon=True,
         )
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self.start()
         self.csv_file = None
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.stop()
         if self.csv_file:
             self.csv_file.close()
         if self.driver is not None:
             self.driver.quit()
-        return False
 
-    def start(self):
+    def start(self) -> None:
         if self.options.pid is None:
             try:
                 if self.options.host == HostOptions.OHOS:
@@ -296,7 +307,7 @@ class NonBlockingMemoryLogging:
             time.sleep(abs(self.options.pre_time))
         self.event("start")
 
-    def stop(self):
+    def stop(self) -> None:
         self.event("stop")
         if self.options.post_time is not None:
             self.verbose_print(f"post-logging for {self.options.post_time}s...")
@@ -320,26 +331,28 @@ class NonBlockingMemoryLogging:
             if self.options.plot:
                 self.plot_memory_log()
 
-    def _run(self):
+    def _run(self) -> None:
         while not self._stop_event.is_set():
             self.event()
             time.sleep(1 / self.options.frequency)
 
-    def event(self, event_name: str = None):
-        memory_point = get_memory_info(self.options.pid, self.options.host)
-        if self.options.verbose:
-            print(f"memory_point: {memory_point}")
-        sample = MemorySample(
-            timestamp=time.time(),
-            RSS_MB=memory_point.vm_rss_kb / 1024,
-            Swap_MB=memory_point.vm_swap_kb / 1024,
-            event_name=event_name,
-        )
-        if self.options.log_to_file:
-            self.writer.writerow([sample.timestamp, sample.RSS_MB, sample.Swap_MB, event_name])
-            if self.csv_file:
-                self.csv_file.flush()
-        self.log.add(sample)
+    def event(self, event_name: Optional[str] = None) -> None:
+        if self.options.pid is not None:
+            memory_point = get_memory_info(self.options.pid, self.options.host)
+            if memory_point is not None:
+                if self.options.verbose:
+                    print(f"memory_point: {memory_point}")
+                sample = MemorySample(
+                    timestamp=time.time(),
+                    RSS_MB=memory_point.vm_rss_kb / 1024,
+                    Swap_MB=memory_point.vm_swap_kb / 1024,
+                    event_name=event_name,
+                )
+                if self.options.log_to_file:
+                    self.writer.writerow([sample.timestamp, sample.RSS_MB, sample.Swap_MB, event_name])
+                    if self.csv_file:
+                        self.csv_file.flush()
+                self.log.add(sample)
 
     def verbose_print(self, to_print: str) -> None:
         if self.options.verbose:
@@ -349,8 +362,14 @@ class NonBlockingMemoryLogging:
         if not self.log.samples:
             raise ValueError("MemoryLog is empty")
 
+        plot_path = Path(self.options.file_name)
+        plot_stem = plot_path.stem if plot_path.suffix else plot_path.name
+        if self.options.test_name:
+            plot_stem = f"{plot_stem}_{self.options.test_name}"
+        plot_output_path = plot_path.with_name(f"{plot_stem}.jpg")
+
         # Extract data
-        times = [dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples]
+        times = mdates.date2num([dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples])
         rss = [s.RSS_MB for s in self.log.samples]
         swap = [s.Swap_MB for s in self.log.samples]
         total = [r + s for r, s in zip(rss, swap)]
@@ -392,11 +411,14 @@ class NonBlockingMemoryLogging:
             plt.title(self.options.file_name)
         else:
             plt.title("Memory Usage Over Time")
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b %H:%M:%S"))
+        plt.gcf().autofmt_xdate()
         plt.ylim(bottom=0)
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(self.options.file_name, dpi=150)
+        plt.savefig(plot_output_path, dpi=150)
 
 
 class MoreThanOneInstanceOfServo(Exception):
@@ -406,7 +428,7 @@ class MoreThanOneInstanceOfServo(Exception):
 def get_servo_pid(process_name: str, hdc: Optional[HarmonyDeviceConnector] = None) -> int | None:
     pids = pidof(process_name, hdc)
     if not pids:
-        raise ProcessLookupError(f"No running instances of {process_name}\n!!! Or host=HostOption.XXX is not set")
+        raise ProcessLookupError(f"No running instances of {process_name}, or host=HostOption.XXX is not set")
     if len(pids) > 1:
         raise MoreThanOneInstanceOfServo(f"Expected only 1 instance of {process_name}, found {len(pids)}")
     return pids[0]
@@ -422,82 +444,24 @@ if __name__ == "__main__":
         help="print each time sample is taken",
     )
 
-    subparsers = parser.add_subparsers(dest="mode", required=True)
-
-    collect = subparsers.add_parser("collect", help="collect data from phone")
-    collect.add_argument(
-        "-l",
-        "--log-to-file",
-        action="store_true",
-        help="store log data in csv",
-    )
-    collect.add_argument(
-        "-p",
-        "--plot",
-        action="store_true",
-        help="create plot after collection",
-    )
-    collect.add_argument(
-        "-r",
-        "--reset-tab",
-        nargs="?",
-        const="about:blank",
-        default=None,
-        help="on stop event, reset the tab to `about:blank` or to specified str value",
-    )
-    collect.add_argument(
-        "-m",
-        "--set-reset-to-memory",
-        action="store_true",
-        help="when doing reset-tab, reset the tab to `about:memory` instead of `about:blank`",
-    )
-
-    collect.add_argument(
-        "--pre-time",
-        type=int,
-        default=default_options.pre_time,
-        help="time in positive seconds of sampling before starting the test",
-    )
-    collect.add_argument(
-        "--post-time",
-        type=int,
-        default=default_options.post_time,
-    )
-    collect.add_argument(
-        "--file-name",
-        type=str,
-        default=default_options.file_name,
-    )
-    collect.add_argument(
-        "--frequency",
-        type=int,
-        default=default_options.frequency,
-    )
-    collect.add_argument("--pid", type=int)
-    collect.add_argument("--url", type=str, help="custom url if servo is remote or non 7000 port")
-    collect.add_argument(
-        "--host",
-        type=HostOptions,
-        choices=list(HostOptions),
-        default=HostOptions.LINUX,
-        help="target host to collect data from",
-    )
-
-    plot = subparsers.add_parser("plot", help="plot from csv dump")
-    plot.add_argument(
+    parser.add_argument(
         "from_dump",
-        metavar="from-dump",
+        metavar="dump-file",
         type=str,
         help="csv file to analyze",
     )
-    plot.add_argument(
+    parser.add_argument(
         "--file-name",
         type=str,
         default=default_options.file_name,
     )
 
     args = parser.parse_args()
-    args.create_own_webdriver = True
-    with NonBlockingMemoryLogging(args) as worker:
+    options_kwargs = {
+        field.name: getattr(args, field.name) for field in fields(MemoryLoggingOptions) if hasattr(args, field.name)
+    }
+    options = MemoryLoggingOptions(**options_kwargs)
+    options.create_own_webdriver = True
+    with NonBlockingMemoryLogging(options) as worker:
         time.sleep(2)
         print("Exiting memory_usage_plotter.py")

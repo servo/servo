@@ -19,7 +19,7 @@ from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
 from selenium import webdriver
 
 
-def operator(driver: webdriver, memory_logging: NonBlockingMemoryLogging):
+def operator(driver: webdriver, memory_logging: NonBlockingMemoryLogging) -> None:
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
     memory_logging.event("load mossel")

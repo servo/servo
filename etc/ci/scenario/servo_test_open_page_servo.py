@@ -15,7 +15,7 @@ import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 
 
-def operator():
+def operator() -> None:
     IMPLICIT_WAIT_TIME = 6
     PAGE_URL = "https://servo.org"
     driver = common_function_for_servo_test.create_driver()

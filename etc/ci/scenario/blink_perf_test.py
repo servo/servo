@@ -18,6 +18,7 @@ import re
 import json
 import argparse
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from types import TracebackType
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -27,7 +28,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from dataclasses import dataclass
 import threading
 import csv
-from typing import Dict
+from typing import Any, Dict, Optional, Type
 from common_function_for_servo_test import create_driver, setup_hdc_forward, stop_servo, close_usb_popup
 
 
@@ -71,7 +72,7 @@ tests_that_hang_memory_report = [
 ]
 
 ### `tests_that_take_extra_time_to_load` tests take several seconds to load instead of default 0.05s - 2s
-# can be overriden using `--page_loading_timeout` (in seconds)
+# can be overriden using `--page-loading-timeout` (in seconds)
 tests_that_take_extra_time_to_load = [
     ("subtree-detaching.html", 20),
     ("abspos.html", 5),
@@ -108,15 +109,15 @@ class AbortReason(Enum):
 
 
 class LocalFileServe:
-    def __init__(self, port: int, *args, **kwargs):
-        self.local_server = None
+    def __init__(self, port: int) -> None:
+        self.local_server: Optional[ThreadingHTTPServer] = None
         self.port = port
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         print(f"Serving local test files on port {self.port}")
 
         class StaticHandler(SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args, directory=DIRECTORY, **kwargs)
 
         self.local_server = ThreadingHTTPServer(
@@ -127,7 +128,12 @@ class LocalFileServe:
         thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
         thread.start()
 
-    def __exit__(self, *args):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         if self.local_server is not None:
             self.local_server.server_close()
 
@@ -137,7 +143,7 @@ def get_serve_path_for_file(root: str, file: str) -> str:
 
 
 def run_single_test(
-    test_file_name: str, driver: webdriver.Remote, port: int, serve_path, cli_args
+    test_file_name: str, driver: webdriver.Remote, port: int, serve_path: str, cli_args: argparse.Namespace
 ) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
@@ -164,7 +170,7 @@ def run_single_test(
         print(f">>> Page loading took {(after_get - before_get):.2f}s")
 
         avg_line, min_line, max_line = None, None, None
-        start_time, latest_time = time.perf_counter(), 0
+        start_time, latest_time = time.perf_counter(), 0.0
         while latest_time - start_time < 60:
             try:
                 element = driver.find_element(By.ID, "log")
@@ -192,12 +198,12 @@ def run_single_test(
     return AbortReason.NotFound
 
 
-def oswalk_error(error: OSError):
+def oswalk_error(error: OSError) -> None:
     print(error)
     sys.exit(1)
 
 
-def write_file(results):
+def write_file(results: dict[str, dict[str, Any]]) -> None:
     with open("results.json", "w") as f:
         json.dump(results, f)
 
@@ -322,13 +328,14 @@ def memory_report_to_bencher_metrics(
     }
 
 
-def verbose_print(str_to_print: str, is_verbose: bool = False):
+def verbose_print(str_to_print: str, is_verbose: bool = False) -> None:
     if is_verbose:
         print(str_to_print)
 
 
-def run_tests(port, cli_args):
+def run_tests(port: int, cli_args: argparse.Namespace) -> None:
     skip_until = cli_args.skip_until
+    ran_single_test = False
 
     final_result = {}
     csv_file, csv_writer = None, None
@@ -348,11 +355,11 @@ def run_tests(port, cli_args):
                     if filePath in skipped_tests:
                         continue
                     print("Starting new servo instance...")
-                    cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver --psn=--pref=session_history_max_length=1"
+                    cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver={WEBDRIVER_PORT} --psn=--pref=session_history_max_length=1"
                     hdc.cmd(cmd_str, timeout=10)
                     with HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60):
                         close_usb_popup(hdc)
-                        webdriver = create_driver(timeout=1)
+                        webdriver = create_driver(timeout=1, servo_url=SERVO_URL)
                         if webdriver is None:
                             continue
 
@@ -405,9 +412,14 @@ def run_tests(port, cli_args):
                                     csv_writer.writerow([filePath, result.value])
                         finally:
                             webdriver.quit()
-                        if csv_writer:
+                        if csv_writer and csv_file is not None:
                             csv_file.flush()
                     stop_servo()
+                    if cli_args.single_test:
+                        ran_single_test = True
+                        break
+            if ran_single_test:
+                break
         print(f"final_result {final_result}")
     finally:
         if csv_file:
@@ -436,7 +448,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-m",
-        "--memory_report",
+        "--memory-report",
         action="store_true",
         help="Include memory report in results.json",
     )
@@ -447,22 +459,27 @@ if __name__ == "__main__":
         help="Add more prints",
     )
     parser.add_argument(
-        "-e", "--extra_csv", action="store_true", help="Creates output.csv that contains skipper and failed tests"
+        "-e",
+        "--extra-csv",
+        action="store_true",
+        help="Creates output.csv that contains skipped and failed tests",
     )
     parser.add_argument(
         "-s",
-        "--single_test",
+        "--single-test",
         action="store_true",
         help="Executes only first test. Can be used with --skip-until to run only one specific test",
     )
     parser.add_argument(
-        "--skip_until",
+        "--skip-until",
+        metavar="TEST",
         type=str,
         default=None,
-        help="Skips all test until specified one, and if --single_test is not set, continues until the end.",
+        help="Skips all tests until the specified one, and if --single-test is not set, continues until the end.",
     )
     parser.add_argument(
-        "--page_loading_timeout",
+        "--page-loading-timeout",
+        metavar="SECONDS",
         type=int,
         default=None,
         help="Pages should load very fast, but if takes longer (than default 2s or specified), the result parsing is skipped",

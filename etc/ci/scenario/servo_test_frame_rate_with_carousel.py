@@ -12,7 +12,7 @@
 import time
 import subprocess
 
-from selenium.common import NoSuchWindowException, NoSuchElementException
+from selenium.common import NoSuchWindowException, NoSuchElementException, TimeoutException
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -20,7 +20,7 @@ import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 
 
-def operator():
+def operator() -> None:
     driver = common_function_for_servo_test.create_driver()
 
     popup_css_selector = (
@@ -29,15 +29,18 @@ def operator():
         "> uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid "
         "> uni-view > uni-view > uni-button:nth-child(1)"
     )
-    print("Waiting for popup to appear ...")
-    WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
-        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
-    )
+    try:
+        print("Waiting for popup to appear ...")
+        WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
+            expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
+        )
 
-    # Step 2. Click to close the pop-up
-    popup = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
-    popup.click()
-    print("Closed the popup.")
+        # Step 2. Click to close the pop-up
+        popup = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
+        popup.click()
+        print("Closed the popup.")
+    except TimeoutException:
+        print("Popup not found; continuing without closing it.")
 
     driver.implicitly_wait(10)
     time.sleep(5)
@@ -100,4 +103,6 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_frame_rate_with_carousel", "https://m.huaweimossel.com")
+    common_function_for_servo_test.run_test(
+        operator, "mossel_frame_rate_with_carousel", url="https://m.huaweimossel.com"
+    )

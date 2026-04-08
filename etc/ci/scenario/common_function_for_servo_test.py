@@ -10,6 +10,7 @@
 # except according to those terms.
 
 import enum
+import inspect
 import os
 import pathlib
 import random
@@ -19,9 +20,10 @@ import sys
 import time
 from decimal import Decimal
 from enum import Enum
+from types import TracebackType
+from typing import Any, Callable, Optional, Self, Type
 
-from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
-from PIL import Image
+from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode  # type: ignore[import-untyped]
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
 from selenium.webdriver.remote.webelement import WebElement
@@ -51,13 +53,13 @@ class MitmProxyRunType(enum.Enum):
 
 
 class MitmProxy:
-    def __init__(self, use_proxy: MitmProxyRunType, dump_file, port: int):
-        self.mitmproxy = None
+    def __init__(self, use_proxy: MitmProxyRunType, dump_file: pathlib.Path, port: int) -> None:
+        self.mitmproxy: subprocess.Popen[bytes] | None = None
         self.use_proxy = use_proxy
         self.dump_file = dump_file
         self.port = port
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         # for record the external recorder will record
         # make sure mitmproxy is installed
         if self.use_proxy == MitmProxyRunType.REPLAY:
@@ -93,14 +95,19 @@ class MitmProxy:
             )
         return self
 
-    def __exit__(self, exception_type, exception_value, exception_traceback):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         if self.mitmproxy:
             print("Killing mitmproxy")
             self.mitmproxy.kill()
             time.sleep(2)
 
 
-def calculate_frame_rate():
+def calculate_frame_rate() -> float:
     """
     Pull trace from device and calculate frame rate through trace
     calculate frame rate: When there are elements moving on the page, H: EndCommands will be printed
@@ -122,7 +129,7 @@ def calculate_frame_rate():
     print(f"Pull trace file to {file_name} success.")
 
     trace_key = "H:ReceiveVsync"
-    check_list = []
+    check_list: list[str] = []
     with open(file_name, "r") as f:
         lines = f.readlines()
         if "TouchHandler::FlingStart" not in lines:
@@ -151,13 +158,13 @@ def calculate_frame_rate():
     return min(framerate, 120.00)
 
 
-def create_driver(timeout: int = 10, servo_url: str = None) -> webdriver.Remote:
+def create_driver(timeout: int = 10, servo_url: Optional[str] = None) -> webdriver.Remote:
     if servo_url is None:
         servo_url = SERVO_URL
     print("Trying to create driver")
     options = ArgOptions()
     options.set_capability("browserName", "servo")
-    driver = None
+    driver: Optional[webdriver.Remote] = None
     start_time = time.time()
     while driver is None and time.time() - start_time < timeout:
         try:
@@ -168,7 +175,7 @@ def create_driver(timeout: int = 10, servo_url: str = None) -> webdriver.Remote:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
             time.sleep(1)
     if driver is None:
-        print(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
+        raise RuntimeError(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
     else:
         print(
             f"Established Webdriver connection in {time.time() - start_time}s",
@@ -210,7 +217,9 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
     return PortMapResult.SUCCESSFUL
 
 
-def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, host_service_port: int = MITMPROXY_PORT):
+def setup_hdc_forward(
+    timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, host_service_port: int = MITMPROXY_PORT
+) -> None:
     """
     set hdc forward
     :return: If successful, return driver; If failed, return False
@@ -236,7 +245,7 @@ def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, ho
     raise TimeoutError("HDC port forwarding timed out")
 
 
-def stop_servo():
+def stop_servo() -> None:
     """stop servo application"""
     print("Prepare to stop Test Application...")
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
@@ -244,7 +253,7 @@ def stop_servo():
     print("Stop Test Application successful!")
 
 
-def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement):
+def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement) -> Any:
     """
     This scrolls element into view, and return the DOMRect tuple:
     [left, top, right, bottom]
@@ -277,24 +286,6 @@ def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElem
     return physical_rect
 
 
-def element_screenshot(element: WebElement, filename: str):
-    if not (filename.lower().endswith(".jpg") or filename.lower().endswith(".jpeg")):
-        raise ValueError(f"Invalid file type: {filename}. Expected a .jpg/.jpeg file.")
-
-    try:
-        print(f"Scrolling {element}")
-        region = element_scroll_into_view_and_rect(element)
-        time.sleep(2)
-        hdc = HarmonyDeviceConnector()
-        hdc.screenshot(filename)
-
-        region = Image.open(filename).crop(region)
-        save_path = filename + ".png"
-        region.save(save_path)
-    except Exception as e:
-        print(f"Element Screenshot failed with error: {e}")
-
-
 def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
     completed_process = hdc.cmd("hidumper -s WindowManagerService -a '-a'", capture_output=True, encoding="utf-8")
     output = str(completed_process.stdout)
@@ -319,7 +310,7 @@ def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
     return focused_window == servo_window_id
 
 
-def close_usb_popup(hdc: HarmonyDeviceConnector):
+def close_usb_popup(hdc: HarmonyDeviceConnector) -> None:
     """
     When connecting an OpenHarmony device, a system pop-up will be opened on the device,
     asking the user to confirm which USB mode should be used for the connection.
@@ -336,20 +327,92 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
         print(f"Internal error trying to close the USB pop-up overlay: {e}. Ignoring...")
 
 
+def _invoke_test_fn(
+    test_fn: Callable,
+    driver: Optional[webdriver.Remote] = None,
+    memory_logging: Optional[NonBlockingMemoryLogging] = None,
+) -> None:
+    parameters = inspect.signature(test_fn).parameters
+    kwargs: dict[str, Any] = {}
+    if driver is not None and "driver" in parameters:
+        kwargs["driver"] = driver
+    if memory_logging is not None and "memory_logging" in parameters:
+        kwargs["memory_logging"] = memory_logging
+
+    test_fn(**kwargs)
+
+
+def _resolve_target_os(target_os_arg: Optional[HostOptions]) -> HostOptions:
+    target_os_env = os.environ.get("TARGET_OS")
+    if target_os_env:
+        try:
+            return HostOptions(target_os_env)
+        except ValueError as exc:
+            raise ValueError(f"Unsupported TARGET_OS value: {target_os_env!r}") from exc
+
+    if target_os_arg is not None:
+        return target_os_arg
+    return HostOptions.OHOS
+
+
+def _create_memory_logging_options(
+    use_memory_logging: Optional[MemoryLoggingOptions] | bool,
+    target_os: HostOptions,
+    test_name: str,
+) -> Optional[MemoryLoggingOptions]:
+    if isinstance(use_memory_logging, MemoryLoggingOptions):
+        options = use_memory_logging
+    elif use_memory_logging or os.environ.get("PLOT"):
+        options = MemoryLoggingOptions(log_to_file=True, pre_time=0.2, plot=True)
+    else:
+        return None
+
+    if os.environ.get("PLOT"):
+        options.log_to_file = True
+        options.plot = True
+
+    options.host = target_os
+    options.test_name = test_name
+    return options
+
+
+def _run_test_with_memory_logging(
+    test_fn: Callable,
+    memory_logging_options: MemoryLoggingOptions,
+    driver_factory: Callable[[], webdriver.Remote],
+    driver_setup: Optional[Callable[[webdriver.Remote], None]] = None,
+) -> None:
+    parameters = inspect.signature(test_fn).parameters
+    needs_driver = "driver" in parameters
+    needs_shared_driver = needs_driver or bool(getattr(memory_logging_options, "reset_tab", None))
+
+    if needs_shared_driver:
+        driver = driver_factory()
+        if driver_setup is not None:
+            driver_setup(driver)
+        with NonBlockingMemoryLogging(options=memory_logging_options, driver=driver) as logger:
+            _invoke_test_fn(test_fn, driver=driver, memory_logging=logger)
+        return
+
+    with NonBlockingMemoryLogging(options=memory_logging_options) as logger:
+        _invoke_test_fn(test_fn, memory_logging=logger)
+
+
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
 def run_test(
-    test_fn,
+    test_fn: Callable,
     test_name: str,
+    target_os_arg: Optional[HostOptions] = None,
     use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
-    use_memory_logging: MemoryLoggingOptions | bool = None,
-    host: HostOptions = None,
-):
-    if os.environ.get("HOST_OS"):
-        print(f"Using env var ({os.environ.get('HOST_OS')})")
-        host = os.environ.get("HOST_OS")
-    if host is None:
-        host = "ohos"
+    use_memory_logging: Optional[MemoryLoggingOptions] | bool = None,
+    url: Optional[str] = None,
+) -> None:
+    target_os_env = os.environ.get("TARGET_OS")
+    if target_os_env:
+        print(f"Using env var ({target_os_env})")
+
+    target_os = _resolve_target_os(target_os_arg)
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
         print("Setting mitmproxy replay")
@@ -357,22 +420,14 @@ def run_test(
 
     dump_file = pathlib.Path("/tmp/mitmproxy-dump")
     if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
-        print(f"Dump file {dump_file} did not exist. We will abort")
+        raise FileNotFoundError(f"Dump file {dump_file} does not exist for replay mode")
 
-    if (
-        use_memory_logging is not None
-        and isinstance(use_memory_logging, bool)
-        and use_memory_logging
-        or os.environ.get("PLOT")
-    ):
-        use_memory_logging = MemoryLoggingOptions(log_to_file=True, pre_time=0.2, plot=True)
-    session_history_max_length = 20
-    if use_memory_logging is not None:
-        use_memory_logging.host = host
-        if use_memory_logging.reset_tab:
-            session_history_max_length = 0
+    memory_logging_options = _create_memory_logging_options(use_memory_logging, target_os, test_name)
+    session_history_max_length = 0 if memory_logging_options is not None and memory_logging_options.reset_tab else 20
 
-    if host is None or host == "ohos":
+    url = url if url is not None else ABOUT_BLANK
+
+    if target_os == HostOptions.OHOS:
         hdc = HarmonyDeviceConnector()
         try:
             print("Stopping potential old servo instance ...")
@@ -382,7 +437,7 @@ def run_test(
             with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
                 print("Starting new servo instance...")
                 time.sleep(5)
-                cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver={WEBDRIVER_PORT} --psn=--pref=session_history_max_length={session_history_max_length}"
+                cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {url} --psn=--webdriver={WEBDRIVER_PORT} --psn=--pref=session_history_max_length={session_history_max_length}"
                 if use_mitmproxy.should_servo_proxy():
                     cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors "
                 hdc.cmd(
@@ -391,55 +446,51 @@ def run_test(
                 )
                 with HarmonyDevicePerfMode():
                     close_usb_popup(hdc)
-                    if use_memory_logging is not None:
-                        if os.environ.get("PLOT"):
-                            # If the PLOT=1 env is passed, then the plotting is enabled with limited functionality
-                            # designed for existing scenarios with the operators
-                            with NonBlockingMemoryLogging(options=use_memory_logging) as logger:
-                                test_fn()
-                        else:
-                            # If instead scenario has custom events and needs to plot after tab reset
-                            # it would require the scenario and logger to share driver
-                            webdriver = create_driver(timeout=1, servo_url=SERVO_URL)
-                            if webdriver is None:
-                                raise RuntimeError("Failed to create webdriver for reset_tab memory logging")
-                            with NonBlockingMemoryLogging(options=use_memory_logging, webdriver=webdriver) as logger:
-                                test_fn(driver=webdriver, memory_logging=logger)
+                    if memory_logging_options is not None:
+                        _run_test_with_memory_logging(
+                            test_fn,
+                            memory_logging_options,
+                            lambda: create_driver(timeout=1, servo_url=SERVO_URL),
+                        )
                     else:
-                        test_fn()
+                        _invoke_test_fn(test_fn)
         except Exception as e:
             print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
             hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
-            stop_servo()
             sys.exit(1)
+        finally:
+            stop_servo()
         print("\033[32mTest Succeeded.\033[0m")
-        stop_servo()
-    elif host == "macos":
+    elif target_os == HostOptions.MACOS:
         kill_servo()
-        with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
-            print("Starting new servo instance...")
-            start_servo(
-                WEBDRIVER_PORT,
-                SERVO_BIN_PATH,
-                delay=2,
-                session_history_max_length=session_history_max_length,
-                use_proxy=use_mitmproxy.should_servo_proxy(),
-                mitmproxy_port=MITMPROXY_PORT,
-            )
-            if use_memory_logging is None:
-                test_fn()
-            else:
-                if os.environ.get("PLOT"):
-                    with NonBlockingMemoryLogging(options=use_memory_logging) as logger:
-                        test_fn()
+        try:
+            with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
+                print("Starting new servo instance...")
+                start_servo(
+                    WEBDRIVER_PORT,
+                    SERVO_BIN_PATH,
+                    delay=2,
+                    session_history_max_length=session_history_max_length,
+                    use_proxy=use_mitmproxy.should_servo_proxy(),
+                    mitmproxy_port=MITMPROXY_PORT,
+                )
+                if memory_logging_options is None:
+                    _invoke_test_fn(test_fn)
                 else:
-                    webdriver = create_driver(servo_url=f"http://127.0.0.1:{WEBDRIVER_PORT}")
-                    if webdriver:
-                        webdriver.implicitly_wait(30)
-                        with NonBlockingMemoryLogging(options=use_memory_logging, webdriver=webdriver) as logger:
-                            test_fn(webdriver, logger)
-            print("\033[32mTest Succeeded.\033[0m")
-        kill_servo()
+                    _run_test_with_memory_logging(
+                        test_fn,
+                        memory_logging_options,
+                        lambda: create_driver(servo_url=f"http://127.0.0.1:{WEBDRIVER_PORT}"),
+                        lambda webdriver: webdriver.implicitly_wait(30),
+                    )
+                print("\033[32mTest Succeeded.\033[0m")
+        except Exception as e:
+            print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
+            sys.exit(1)
+        finally:
+            kill_servo()
+    else:
+        raise ValueError(f"Unsupported target OS: {target_os}")
 
 
 def start_servo(
@@ -448,8 +499,9 @@ def start_servo(
     delay: int = 0,
     session_history_max_length: int = 20,
     use_proxy: bool = False,
-    mitmproxy_port: int | None = None,
-) -> webdriver.Remote | None:
+    mitmproxy_port: Optional[int] = None,
+    url: Optional[str] = None,
+) -> None:
     """Start servo and create webdriver"""
     try:
         cmd = [
@@ -465,14 +517,14 @@ def start_servo(
                     "--ignore-certificate-errors",
                 ]
             )
-        cmd.extend([f" {ABOUT_BLANK}"])
+        cmd.extend([f" {ABOUT_BLANK if url is None else url}"])
         subprocess.Popen(cmd)
     except FileNotFoundError:
         print("The servo binary does not exist")
-        return sys.exit(1)
+        sys.exit(1)
     if delay > 0:
         time.sleep(delay)
 
 
-def kill_servo():
+def kill_servo() -> None:
     subprocess.run(["killall", "servoshell"])

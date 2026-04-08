@@ -17,6 +17,7 @@
 import subprocess
 import argparse
 import time
+from typing import Callable
 
 import common_function_for_servo_test
 import servo_speedometer
@@ -31,7 +32,7 @@ class colors:
     ENDC = "\033[0m"
 
 
-def google_test():
+def google_test() -> None:
     IMPLICIT_WAIT_TIME = 6
     PAGE_URL = "https://www.google.com"
     driver = common_function_for_servo_test.create_driver()
@@ -40,10 +41,12 @@ def google_test():
     driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
 
-def run_test(name: str, f):
+def run_test(name: str, f: Callable) -> None:
     print(colors.GREEN + name + colors.ENDC)
     try:
-        common_function_for_servo_test.run_test(f, "servo", common_function_for_servo_test.MitmProxyRunType.RECORD)
+        common_function_for_servo_test.run_test(
+            f, "servo", use_mitmproxy=common_function_for_servo_test.MitmProxyRunType.RECORD
+        )
     except Exception:
         print(f"Test {name} failed")
 
