@@ -1152,6 +1152,7 @@ malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFl
 malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(http::Method);
+malloc_size_of_is_0!(icu_locid::subtags::Language);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);
@@ -1309,6 +1310,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
 malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
