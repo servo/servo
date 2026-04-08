@@ -45,7 +45,7 @@ impl FileLocaleReader {
 
 impl LocaleReaderMethods for FileLocaleReader {
     fn load_bundle(&self, bundle: &str, locale: &str) -> Option<String> {
-        let path = self.root.join(bundle).join(format!("{locale}.ftl"));
+        let path = self.root.join(locale).join(format!("{bundle}.ftl"));
         let bytes = std::fs::read(path).ok()?;
         String::from_utf8(bytes).ok()
     }
