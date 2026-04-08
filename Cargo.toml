@@ -109,7 +109,7 @@ indexmap = { version = "2.11.4", features = ["std"] }
 inventory = { version = "0.3.24" }
 ipc-channel = "0.21"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.7", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.8", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
