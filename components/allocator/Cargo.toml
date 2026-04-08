@@ -17,6 +17,7 @@ default = ["use-jemalloc"]
 allocation-tracking = ["backtrace", "dep:rustc-hash", "log"]
 use-system-allocator = []
 use-jemalloc = ["dep:tikv-jemalloc-sys", "dep:tikv-jemallocator"]
+jemalloc-stats = ["tikv-jemalloc-sys?/stats"]
 
 [dependencies]
 backtrace = { workspace = true, optional = true }

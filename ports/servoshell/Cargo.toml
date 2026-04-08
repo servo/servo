@@ -41,7 +41,7 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-default = ["baked-in-resources", "gamepad", "servo/clipboard", "servo-allocator/use-jemalloc", "js_jit", "max_log_level", "webgpu", "webxr"]
+default = ["baked-in-resources", "gamepad", "servo/clipboard", "servo-allocator/use-jemalloc", "servo-allocator/jemalloc-stats", "js_jit", "max_log_level", "webgpu", "webxr"]
 baked-in-resources = ["servo/baked-in-resources"]
 crown = ["servo/crown"]
 debugmozjs = ["servo/debugmozjs"]
