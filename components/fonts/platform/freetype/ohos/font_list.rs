@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fs::File;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io};
 
 use log::{debug, error, warn};
+use read_fonts::{FileRef, FontRef, TableProvider, FileRef::{Font as OHOS_Font, Collection}};
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -95,27 +97,16 @@ fn enumerate_font_files() -> io::Result<Vec<PathBuf>> {
     Ok(font_list)
 }
 
-fn detect_hos_font_style(font_modifiers: &[&str]) -> Option<String> {
-    if font_modifiers.contains(&"Italic") {
+fn detect_hos_font_style(font: &FontRef) -> Option<String> {
+    if font.post().expect("TODO. for now just POC").italic_angle() != (0 as i32).into() {
         Some("italic".to_string())
     } else {
         None
     }
 }
 
-// Note: The weights here are taken from the `alias` section of the fontconfig.json
-fn detect_hos_font_weight_alias(font_modifiers: &[&str]) -> Option<i32> {
-    if font_modifiers.contains(&"Light") {
-        Some(100)
-    } else if font_modifiers.contains(&"Regular") {
-        Some(400)
-    } else if font_modifiers.contains(&"Medium") {
-        Some(700)
-    } else if font_modifiers.contains(&"Bold") {
-        Some(900)
-    } else {
-        None
-    }
+fn detect_hos_font_weight_alias(font: &FontRef) -> Option<i32> {
+    Some(font.os2().expect("TODO. for now just POC").us_weight_class() as i32)
 }
 
 fn noto_weight_alias(alias: &str) -> Option<i32> {
@@ -136,8 +127,12 @@ fn noto_weight_alias(alias: &str) -> Option<i32> {
     }
 }
 
-fn detect_hos_font_width(font_modifiers: &[&str]) -> FontWidth {
-    if font_modifiers.contains(&"Condensed") {
+fn detect_hos_font_width(font: &FontRef) -> FontWidth {
+    let font_width = font.os2().expect("TODO. for now just POC").us_width_class().clone();
+
+    // According to https://learn.microsoft.com/en-us/typography/opentype/spec/os2#uswidthclass,
+    // value between 1 & 4 inclusive represents condensed type.
+    if font_width <= 1 && font_width >= 4 {
         FontWidth::Condensed
     } else {
         FontWidth::Normal
@@ -211,78 +206,66 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         })
         .collect();
 
-    let harmony_os_fonts = font_files.iter().filter_map(|file_path| {
-        let stem = file_path.file_stem()?.to_str()?;
-        let stem_no_prefix = stem.strip_prefix(harmonyos_prefix)?;
-        let name_components: Vec<&str> = stem_no_prefix.split('_').collect();
-        let style = detect_hos_font_style(&name_components);
-        let weight = detect_hos_font_weight_alias(&name_components);
-        let width = detect_hos_font_width(&name_components);
+    // let harmony_os_fonts = font_files.iter().filter_map(|file_path| {
+    //     // obtain the font data
+    //     let font_bytes = File::open(file_path).and_then(|file| unsafe { memmap2::Mmap::map(&file)}).unwrap();
 
-        let mut name_components = name_components;
-        // If we remove all the modifiers, we are left with the family name
-        name_components.retain(|component| {
-            !weight_aliases.contains(component) &&
-                !style_modifiers.contains(component) &&
-                !width_modifiers.contains(component) &&
-                !component.is_empty()
-        });
-        name_components.insert(0, "HarmonyOS Sans");
-        let family_name = name_components.join(" ");
-        let font = Font {
-            filepath: file_path.to_str()?.to_string(),
-            weight,
-            style,
-            width,
-        };
-        Some((family_name, font))
-    });
+    //     // read the font
+    //     let font = FileRef::new(&font_bytes).expect("Fontations cannot read the font file!"); // TODO: if cannot read, then continue.
+    //     match font {
+    //         OHOS_Font(f) => {
+    //             // TODO
+    //             generate_font(&f, file_path.to_str()?.to_string())
+    //         },
+    //         Collection(font_collection) => {
+    //             // TODO
+    //             // for f in font_collection.iter(){
+    //             //     generate_font(&f, file_path.to_str()?.to_string())
+    //             // }
+    //             None
+    //         },
+    //     }
+    // });
 
-    let noto_fonts = font_files.iter().filter_map(|file_path| {
-        let stem = file_path.file_stem()?.to_str()?;
-        // Filter out non-noto fonts
-        if !stem.starts_with("Noto") {
-            return None;
-        }
-        // Strip the weight alias from the filename, e.g. `-Regular` or `_Regular`.
-        // We use `rsplit_once()`, since there is e.g. `NotoSansPhags-Pa-Regular.ttf`, where the
-        // Pa is part of the font family name and not a modifier.
-        // There seem to be no more than one modifier at once per font filename.
-        let (base, weight) = if let Some((stripped_base, weight_suffix)) =
-            stem.rsplit_once("-").or_else(|| stem.rsplit_once("_"))
-        {
-            (stripped_base, noto_weight_alias(weight_suffix))
-        } else {
-            (stem, None)
-        };
-        // Do some special post-processing for `NotoSansPhags-Pa-Regular.ttf` and any friends.
-        let base = if base.contains("-") {
-            if !base.ends_with("-Pa") {
-                warn!("Unknown `-` pattern in Noto font filename: {base}");
+    // let all_families = harmony_os_fonts;
+
+    let mut all_families = Vec::new();
+
+    for font_file in font_files.iter() {
+        let font_bytes = File::open(font_file).and_then(|file| unsafe { memmap2::Mmap::map(&file)}).unwrap();
+        let font: FileRef = FileRef::new(&font_bytes).unwrap(); // TODO: if cannot read, then continue.
+
+        match font {
+            OHOS_Font(f) => {
+                let res = generate_font(&f, font_file.to_str().expect("TODO. just POC").to_string());
+                match res {
+                    Some(r) => {all_families.push(r)},
+                    _ => {} // Do nothing.
+                };
+            },
+            Collection(font_collection) => {
+                // for f in font_collection.iter(){
+                //     let res = generate_font(&(f.unwrap()), font_file.to_str().expect("TODO. just POC").to_string());
+                //     match res {
+                //         Some(r) => {all_families.push(r)},
+                //         _ => {} // Do nothing.
+                //     };
+                // }
+
+                let res = generate_font(&(font_collection.get(0).unwrap()), font_file.to_str().expect("TODO. just POC").to_string());
+                    match res {
+                        Some(r) => {
+                            if let Some((remaining, _last_word)) = r.0.rsplit_once(' '){
+                                all_families.push((remaining.to_string(), r.1));
+                            }
+                        },
+                        _ => {} // Do nothing.
+                    };
             }
-            // Note: We assume here that the following character is uppercase, so that
-            // the word splitting later functions correctly.
-            base.replace("-", "")
-        } else {
-            base.to_string()
-        };
-        // Remove suffixes `[wght]` or `[wdth,wght]`. These suffixes seem to be mutually exclusive
-        // with the weight alias suffixes from before.
-        let base_name = base
-            .strip_suffix("[wght]")
-            .or_else(|| base.strip_suffix("[wdth,wght]"))
-            .unwrap_or(base.as_str());
-        let family_name = split_noto_font_name(base_name).join(" ");
-        let font = Font {
-            filepath: file_path.to_str()?.to_string(),
-            weight,
-            ..Default::default()
-        };
-        Some((family_name, font))
-    });
+        }
+    }
 
-    let all_families = harmony_os_fonts.chain(noto_fonts);
-
+    log::error!("number of system font detected: {:?}", all_families.len());
     for (family_name, font) in all_families {
         if let Some(font_list) = families.get_mut(&family_name) {
             font_list.push(font);
@@ -295,6 +278,29 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         .into_iter()
         .map(|(name, fonts)| FontFamily { name, fonts })
         .collect()
+}
+
+fn generate_font(f: &FontRef, file_path_str: String)-> Option<(String, Font)> {
+    let style = detect_hos_font_style(&f); // maybe use the postscript (post) table. if angle is 0, then normal. else, italic.
+    let weight = detect_hos_font_weight_alias(&f); // use os2 table.
+    let width = detect_hos_font_width(&f); // use os2 table.
+
+    let family_name = f.name().expect("TODO. just a POC").name_record().iter()
+            .filter(|record| record.name_id().to_u16() == 1)
+            .find_map(|record| {
+                record
+                    .string(f.name().expect("TODO. just a POC").string_data())
+                    .ok()
+                    .map(|s| s.to_string())
+            });
+    log::error!("[font_list.rs]: family name: {:?}", family_name);
+    let font = Font {
+        filepath: file_path_str,
+        weight,
+        style,
+        width,
+    };
+    Some((family_name?, font)) // TODO: fix this mess.
 }
 
 impl FontList {
