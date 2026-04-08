@@ -6,6 +6,7 @@ use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
 
+use style::Zero;
 use app_units::Au;
 use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
@@ -459,7 +460,7 @@ impl TextRun {
         let letter_spacing = inherited_text_style
             .letter_spacing
             .0
-            .to_used_value(font_size);
+            .to_used_value(font_size.into());
         let letter_spacing = if !letter_spacing.is_zero() {
             Some(letter_spacing)
         } else {
