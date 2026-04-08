@@ -422,9 +422,7 @@ impl TextRun {
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
         let font_size = parent_style.get_font().font_size.computed_size();
-        let word_spacing = inherited_text_style
-            .word_spacing
-            .to_used_value(font_size.into());
+        let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size.into());
         let letter_spacing = inherited_text_style.letter_spacing.0.resolve(font_size);
         let letter_spacing = if letter_spacing.px() != 0. {
             Some(app_units::Au::from(letter_spacing))
