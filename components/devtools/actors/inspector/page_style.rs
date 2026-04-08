@@ -180,25 +180,21 @@ impl PageStyleActor {
             once(("".into(), usize::MAX))
                 .chain(selectors)
                 .filter_map(move |selector| {
-                    let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
-                        Entry::Vacant(e) => {
-                            let name = registry.new_name::<StyleRuleActor>();
-                            let actor = StyleRuleActor::new(
-                                name.clone(),
+                    let selector_clone = selector.clone();
+                    let style_rule_name = node_actor
+                        .style_rules
+                        .borrow_mut()
+                        .entry(selector)
+                        .or_insert_with(||
+                            StyleRuleActor::register(
+                                registry,
                                 node_actor.name(),
-                                (!e.key().0.is_empty()).then_some(e.key().clone()),
-                            );
-                            let rule = actor.applied(registry)?;
-
-                            registry.register(actor);
-                            e.insert(name);
-                            rule
-                        },
-                        Entry::Occupied(e) => {
-                            let actor = registry.find::<StyleRuleActor>(e.get());
-                            actor.applied(registry)?
-                        },
-                    };
+                                (!selector_clone.0.is_empty()).then_some(selector_clone),
+                            )
+                        )
+                        .clone();
+                    let style_rule_actor = registry.find::<StyleRuleActor>(&style_rule_name);
+                    let rule = style_rule_actor.applied(registry)?;
                     if inherited.is_some() && rule.declarations.is_empty() {
                         return None;
                     }
@@ -232,23 +228,21 @@ impl PageStyleActor {
             .as_str()
             .ok_or(ActorError::BadParameterType)?;
         let node_actor = registry.find::<NodeActor>(target);
-        let computed = (|| match node_actor
-            .style_rules
-            .borrow_mut()
-            .entry(("".into(), usize::MAX))
-        {
-            Entry::Vacant(e) => {
-                let name = registry.new_name::<StyleRuleActor>();
-                let actor = StyleRuleActor::new(name.clone(), target.into(), None);
-                let computed = actor.computed(registry)?;
-                registry.register(actor);
-                e.insert(name);
-                Some(computed)
-            },
-            Entry::Occupied(e) => {
-                let actor = registry.find::<StyleRuleActor>(e.get());
-                Some(actor.computed(registry)?)
-            },
+        let computed = (|| {
+            let style_rule_name = node_actor
+                .style_rules
+                .borrow_mut()
+                .entry(("".into(), usize::MAX))
+                .or_insert_with(||
+                    StyleRuleActor::register(
+                        registry,
+                        target.into(),
+                        None,
+                    )
+                )
+                .clone();
+            let style_rule_actor = registry.find::<StyleRuleActor>(&style_rule_name);
+            Some(style_rule_actor.computed(registry)?)
         })()
         .unwrap_or_default();
         let msg = GetComputedReply {

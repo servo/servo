@@ -142,12 +142,15 @@ impl Actor for StyleRuleActor {
 }
 
 impl StyleRuleActor {
-    pub fn new(name: String, node: String, selector: Option<(String, usize)>) -> Self {
-        Self {
-            name,
+    pub fn register(registry: &ActorRegistry, node: String, selector: Option<(String, usize)>) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
             node,
             selector,
-        }
+        };
+        registry.register(actor);
+        name
     }
 
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
