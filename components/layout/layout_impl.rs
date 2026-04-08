@@ -206,9 +206,11 @@ pub struct LayoutThread {
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
 
-    /// The accessibility tree
+    /// Layout's internal representation of its accessibility tree.
+    /// This is `None` if accessibility is not active.
     accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
+    /// See [Layout::needs_accessibility_update()].
     needs_accessibility_update: Cell<bool>,
 }
 
@@ -738,7 +740,6 @@ impl LayoutThread {
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
-            accessibility_tree: Default::default(),
             stacking_context_tree: Default::default(),
             paint_api: config.paint_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
@@ -747,6 +748,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
+            accessibility_tree: Default::default(),
             needs_accessibility_update: Cell::new(false),
         }
     }
@@ -872,10 +874,14 @@ impl LayoutThread {
     }
 
     fn handle_accessibility_tree_update(&self, root_element: &ServoLayoutNode) -> bool {
+        if !self.needs_accessibility_update() {
+            return false;
+        }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
         };
+
         let accessibility_tree = &mut *accessibility_tree;
         if let Some(tree_update) = accessibility_tree.update_tree(root_element) {
             // FIXME: Handle send error. Could have a method on accessibility tree to
@@ -946,10 +952,7 @@ impl LayoutThread {
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
         }
-        if self.accessibility_tree.borrow().is_some() &&
-            self.needs_accessibility_update() &&
-            self.handle_accessibility_tree_update(&root_element.as_node())
-        {
+        if self.handle_accessibility_tree_update(&root_element.as_node()) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
 

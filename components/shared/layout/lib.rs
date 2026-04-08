@@ -387,10 +387,23 @@ pub trait Layout {
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
     fn stylist_mut(&mut self) -> &mut Stylist;
 
+    /// Set whether the accessibility tree should be constructed for this Layout.
+    /// This should be called by the embedder when accessibility is requested by the user.
     fn set_accessibility_active(&self, enabled: bool);
 
+    /// Whether the accessibility tree needs updating. This is set to true when
+    /// - accessibility is activated; or
+    /// - a page is loaded after accesibility is activated.
+    ///
+    /// In future, this should be set to true if DOM or style have changed in a way that
+    /// impacts the accessibility tree.
+    ///
+    /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
+    /// should force a reflow, and handle_reflow() to determine whether to update the
+    /// accessibility tree during reflow.
     fn needs_accessibility_update(&self) -> bool;
 
+    /// See [Self::needs_accessibility_update()].
     fn set_needs_accessibility_update(&self);
 }
 

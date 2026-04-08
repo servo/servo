@@ -111,13 +111,10 @@ impl AccessibilityTree {
         if dom_node.is_text_node() {
             accesskit_node.set_role(Role::TextRun);
             let text_content = dom_node.text_content();
-            trace!("node text content = {:?}", text_content);
-            if accesskit_node.value().is_none() || *text_content != *accesskit_node.value().unwrap()
-            {
-                // FIXME: this should take into account editing selection units (grapheme clusters?)
-                accesskit_node.set_value(&*text_content);
-            }
-        } else if let Some(_dom_element) = dom_node.as_element() {
+            trace!("node text content = {text_content:?}");
+            // FIXME: this should take into account editing selection units (grapheme clusters?)
+            accesskit_node.set_value(&*text_content);
+        } else if dom_node.as_element().is_some() {
             accesskit_node.set_role(Role::GenericContainer);
         }
 
