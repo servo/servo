@@ -2,24 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use servo_arc::Arc as ServoArc;
-use style::properties::declaration_block::PropertyDeclarationBlock;
+use script_bindings::inheritance::Castable;
+use style::properties::PropertyDeclarationId;
 use style::properties::generated::LonghandId;
-use style::properties::{ComputedValues, PropertyDeclarationId};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
 use crate::dom::execcommand::commands::delete::execute_delete_command;
 use crate::dom::execcommand::commands::fontsize::{
-    execute_fontsize_command, value_for_fontsize_command,
+    execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlfontelement::HTMLFontElement;
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
@@ -47,30 +49,63 @@ pub(crate) enum CssPropertyName {
     FontSize,
     FontWeight,
     FontStyle,
+    TextDecorationLine,
 }
 
 impl CssPropertyName {
-    fn resolved_value_for_node(&self, style: ServoArc<ComputedValues>) -> String {
-        match self {
-            CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
-            CssPropertyName::FontSize => style.clone_font_size().to_css_string(),
-            CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
-            CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
-        }
+    fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+        let style = element.style()?;
+
+        Some(
+            match self {
+                CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
+                CssPropertyName::FontSize => {
+                    // Font size is special, in that it can't use the resolved styles to compute
+                    // values. That's because it is influenced by other factors as well, and it
+                    // should also take into account size attributes of font elements.
+                    //
+                    // Therefore, we do a manual traversal up the chain to mimic what style
+                    // resolution would have done. This also allows us to later check for
+                    // loose equivalence for font elements, since we would return the size as an
+                    // integer, without a size indicator (e.g. `px`).
+                    return element
+                        .upcast::<Node>()
+                        .inclusive_ancestors(ShadowIncluding::No)
+                        .find_map(|ancestor| {
+                            if let Some(ancestor_font) = ancestor.downcast::<HTMLFontElement>() {
+                                Some(ancestor_font.Size())
+                            } else {
+                                self.value_set_for_style(ancestor.downcast::<Element>()?)
+                            }
+                        });
+                },
+                CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
+                CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
+                CssPropertyName::TextDecorationLine => {
+                    style.clone_text_decoration_line().to_css_string()
+                },
+            }
+            .into(),
+        )
     }
 
     /// Retrieves a respective css longhand value from the style declarations of an
     /// element. Note that this is different than the computed values, since this is
     /// only relevant when the author specified rules on the specific element.
-    pub(crate) fn value_set_for_style(
-        &self,
-        style: &PropertyDeclarationBlock,
-    ) -> Option<DOMString> {
+    pub(crate) fn value_set_for_style(&self, element: &Element) -> Option<DOMString> {
+        let style_attribute = element.style_attribute().borrow();
+        let declarations = style_attribute.as_ref()?;
+        let document = element.owner_document();
+        let shared_lock = document.style_shared_lock();
+        let read_lock = shared_lock.read();
+        let style = declarations.read_with(&read_lock);
+
         let longhand_id = match self {
             CssPropertyName::BackgroundColor => LonghandId::BackgroundColor,
             CssPropertyName::FontSize => LonghandId::FontSize,
             CssPropertyName::FontWeight => LonghandId::FontWeight,
             CssPropertyName::FontStyle => LonghandId::FontStyle,
+            CssPropertyName::TextDecorationLine => LonghandId::TextDecorationLine,
         };
         style
             .get(PropertyDeclarationId::Longhand(longhand_id))
@@ -87,6 +122,7 @@ impl CssPropertyName {
             CssPropertyName::FontSize => "font-size",
             CssPropertyName::FontWeight => "font-weight",
             CssPropertyName::FontStyle => "font-style",
+            CssPropertyName::TextDecorationLine => "text-decoration-line",
         }
         .into()
     }
@@ -100,6 +136,26 @@ impl CssPropertyName {
         let style = element.Style(CanGc::from_cx(cx));
 
         let _ = style.SetProperty(cx, self.property_name(), new_value, "".into());
+    }
+
+    pub(crate) fn remove_from_element(
+        &self,
+        cx: &mut js::context::JSContext,
+        element: &HTMLElement,
+    ) {
+        let _ = element
+            .Style(CanGc::from_cx(cx))
+            .RemoveProperty(cx, self.property_name());
+    }
+
+    pub(crate) fn value_for_element(
+        &self,
+        cx: &mut js::context::JSContext,
+        element: &HTMLElement,
+    ) -> DOMString {
+        element
+            .Style(CanGc::from_cx(cx))
+            .GetPropertyValue(self.property_name())
     }
 }
 
@@ -221,12 +277,18 @@ impl CommandName {
         second: Option<&DOMString>,
     ) -> bool {
         // > Two quantities are loosely equivalent values for a command if either they are equivalent values for the command,
-        self.are_equivalent_values(first, second)
+        if self.are_equivalent_values(first, second) {
+            return true;
+        }
         // > or if the command is the fontSize command;
         // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
         // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
         // > has the corresponding value set ("1" through "7" respectively).
-        // TODO
+        if let (CommandName::FontSize, Some(first), Some(second)) = (self, first, second) {
+            font_size_loosely_equivalent(first, second)
+        } else {
+            false
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
@@ -244,9 +306,7 @@ impl CommandName {
 
     pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
         let property = self.relevant_css_property()?;
-        element
-            .style()
-            .map(|style| property.resolved_value_for_node(style).into())
+        property.resolved_value_for_node(element)
     }
 
     pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {
