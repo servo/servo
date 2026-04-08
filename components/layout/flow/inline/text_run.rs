@@ -7,9 +7,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use fonts::{
-    FontContext, FontRef, GlyphStore, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
-};
+use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -453,37 +451,28 @@ impl TextRun {
         let language = x_lang.0.parse().unwrap_or(Language::UND);
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
-
+        
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
+        let font_size = parent_style.get_font().font_size.computed_size();
+        let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size.into());
         let letter_spacing = inherited_text_style
             .letter_spacing
             .0
-            .resolve(parent_style.clone_font().font_size.computed_size());
-        let letter_spacing = if letter_spacing.px() != 0. {
-            Some(app_units::Au::from(letter_spacing))
+            .to_used_value(font_size);
+        let letter_spacing = if !letter_spacing.is_zero() {
+            Some(letter_spacing)
         } else {
             None
         };
         let text_rendering = inherited_text_style.text_rendering;
-        let word_spacing = inherited_text_style.word_spacing.to_length().map(Au::from);
 
         // The next current character index within the entire inline formatting context's text.
         let mut next_character_index = self.character_range.start;
         // The next bytes index of the charcter within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
 
-        let resolve_word_spacing_for_font = |font: &FontRef| {
-            word_spacing.unwrap_or_else(|| {
-                let space_width = font
-                    .glyph_index(' ')
-                    .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                    .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
-                inherited_text_style
-                    .word_spacing
-                    .to_used_value(Au::from_f64_px(space_width))
-            })
-        };
+        let resolve_word_spacing_for_font = |_font: &FontRef| word_spacing;
 
         for (character, next_character) in char_iterator {
             let current_character_index = next_character_index;
