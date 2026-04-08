@@ -15,7 +15,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
+use crate::dom::geometry::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 

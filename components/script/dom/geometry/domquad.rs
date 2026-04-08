@@ -16,8 +16,8 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_w
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::dompoint::DOMPoint;
-use crate::dom::domrect::DOMRect;
+use crate::dom::geometry::dompoint::DOMPoint;
+use crate::dom::geometry::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 

@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Pa
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
+use crate::dom::geometry::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 

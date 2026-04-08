@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenc
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::dompointreadonly::DOMPointReadOnly;
+use crate::dom::geometry::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;

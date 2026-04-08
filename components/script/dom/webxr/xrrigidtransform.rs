@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTra
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::dompointreadonly::DOMPointReadOnly;
+use crate::dom::geometry::dompointreadonly::DOMPointReadOnly;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::{CanGc, JSContext};
