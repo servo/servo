@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
@@ -12,11 +12,11 @@ use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use servo_constellation_traits::ScriptToConstellationMessage;
 
-use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::execcommand::contenteditable::ContentEditableRange;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
-use crate::dom::{Event, EventBubbles, EventCancelable, Node, NodeTraits};
+use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 
 pub(crate) enum FocusOperation {
     Focus(FocusableArea),
@@ -25,7 +25,7 @@ pub(crate) enum FocusOperation {
 
 /// The kind of focusable area a [`FocusableArea`] is. A [`FocusableArea`] may be click focusable,
 /// sequentially focusable, or both.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf)]
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct FocusableAreaKind(u8);
 
 bitflags! {
@@ -45,11 +45,13 @@ bitflags! {
     }
 }
 
+#[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum FocusableArea {
     Node {
         node: DomRoot<Node>,
         kind: FocusableAreaKind,
     },
+    #[default]
     Viewport,
 }
 
@@ -58,6 +60,27 @@ impl FocusableArea {
         match self {
             FocusableArea::Node { kind, .. } => *kind,
             FocusableArea::Viewport => FocusableAreaKind::Click | FocusableAreaKind::Sequential,
+        }
+    }
+
+    /// If this focusable area is a node, return it as an [`Element`] if it is possible, otherwise
+    /// return `None`. This is the [`Element`] to use for applying `:focus` state and for firing
+    /// `blur` and `focus` events if any.
+    ///
+    /// Note: This is currently in a transitional state while the code moves more toward the
+    /// specification.
+    pub(crate) fn element(&self) -> Option<&Element> {
+        match self {
+            FocusableArea::Node { node, .. } => node.downcast(),
+            FocusableArea::Viewport => None,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-anchor>
+    pub(crate) fn dom_anchor(&self, document: &Document) -> DomRoot<Node> {
+        match self {
+            FocusableArea::Node { node, .. } => node.clone(),
+            FocusableArea::Viewport => DomRoot::from_ref(document.upcast()),
         }
     }
 }
@@ -81,8 +104,10 @@ pub(crate) enum FocusInitiator {
 pub(crate) struct DocumentFocusHandler {
     /// The [`Window`] element for this [`DocumentFocusHandler`].
     window: Dom<Window>,
-    /// The element that currently has focus in the `Document`.
-    focused_element: MutNullableDom<Element>,
+    /// The focused area of the [`Document`].
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#focused-area-of-the-document>
+    focused_area: DomRefCell<FocusableArea>,
     /// The last sequence number sent to the constellation.
     #[no_trace]
     focus_sequence: Cell<FocusSequenceNumber>,
@@ -96,7 +121,7 @@ impl DocumentFocusHandler {
     pub(crate) fn new(window: &Window, has_focus: bool) -> Self {
         Self {
             window: Dom::from_ref(window),
-            focused_element: Default::default(),
+            focused_area: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_focus: Cell::new(has_focus),
         }
@@ -107,17 +132,17 @@ impl DocumentFocusHandler {
     }
 
     /// Return the element that currently has focus. If `None` is returned the viewport itself has focus.
-    pub(crate) fn focused_element(&self) -> Option<DomRoot<Element>> {
-        self.focused_element.get()
+    pub(crate) fn focused_area<'a>(&'a self) -> Ref<'a, FocusableArea> {
+        let focused_area = self.focused_area.borrow();
+        Ref::map(focused_area, |focused_area| focused_area)
     }
 
     /// Set the element that currently has focus and update the focus state for both the previously
     /// set element (if any) and the new one, as well as the new one. This will not do anything if
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
     /// events. If that is necessary the [`DocumentFocusHandler::focus`] should be used.
-    pub(crate) fn set_focused_element(&self, new_element: Option<&Element>) {
-        let previously_focused_element = self.focused_element.get();
-        if new_element == previously_focused_element.as_deref() {
+    pub(crate) fn set_focused_element(&self, new_focusable_area: FocusableArea) {
+        if new_focusable_area == *self.focused_area.borrow() {
             return;
         }
 
@@ -141,14 +166,14 @@ impl DocumentFocusHandler {
             recursively_set_focus_status(&shadow_root.Host(), new_state);
         }
 
-        if let Some(previously_focused_element) = previously_focused_element {
-            recursively_set_focus_status(&previously_focused_element, false);
+        if let Some(previously_focused_element) = self.focused_area.borrow().element() {
+            recursively_set_focus_status(previously_focused_element, false);
         }
-        if let Some(newly_focused_element) = new_element {
+        if let Some(newly_focused_element) = new_focusable_area.element() {
             recursively_set_focus_status(newly_focused_element, true);
         }
 
-        self.focused_element.set(new_element);
+        *self.focused_area.borrow_mut() = new_focusable_area;
     }
 
     /// Get the last sequence number sent to the constellation.
@@ -190,60 +215,18 @@ impl DocumentFocusHandler {
         focus_initiator: FocusInitiator,
         can_gc: CanGc,
     ) {
-        let (mut new_focused, new_focus_state) = match focus_operation {
-            FocusOperation::Focus(focusable_area) => (
-                match focusable_area {
-                    FocusableArea::Node { node, .. } => DomRoot::downcast::<Element>(node),
-                    FocusableArea::Viewport => None,
-                },
-                true,
-            ),
-            FocusOperation::Unfocus => (
-                self.focused_element.get().as_deref().map(DomRoot::from_ref),
-                false,
-            ),
+        let (new_focused, new_focus_state) = match focus_operation {
+            FocusOperation::Focus(focusable_area) => (focusable_area, true),
+            FocusOperation::Unfocus => (FocusableArea::Viewport, false),
         };
 
-        if !new_focus_state {
-            // In many browsers, a document forgets its focused area when the
-            // document is removed from the top-level BC's focus chain
-            if new_focused.take().is_some() {
-                trace!(
-                    "Forgetting the document's focused area because the \
-                    document's container was removed from the top-level BC's \
-                    focus chain"
-                );
-            }
-        }
-
-        let old_focused = self.focused_element.get();
         let old_focus_state = self.has_focus.get();
-
-        debug!(
-            "Committing focus transaction: {:?} → {:?}",
-            (&old_focused, old_focus_state),
-            (&new_focused, new_focus_state),
-        );
 
         // `*_focused_filtered` indicates the local element (if any) included in
         // the top-level BC's focus chain.
-        let old_focused_filtered = old_focused.as_ref().filter(|_| old_focus_state);
-        let new_focused_filtered = new_focused.as_ref().filter(|_| new_focus_state);
-
-        let trace_focus_chain = |name, element, doc| {
-            trace!(
-                "{} local focus chain: {}",
-                name,
-                match (element, doc) {
-                    (Some(e), _) => format!("[{:?}, document]", e),
-                    (None, true) => "[document]".to_owned(),
-                    (None, false) => "[]".to_owned(),
-                }
-            );
-        };
-
-        trace_focus_chain("Old", old_focused_filtered, old_focus_state);
-        trace_focus_chain("New", new_focused_filtered, new_focus_state);
+        let old_focused_filtered = old_focus_state.then(|| self.focused_area().clone());
+        let new_focused_filtered = new_focus_state.then(|| new_focused.clone());
+        debug!("Committing focus transaction: {old_focused_filtered:?} → {new_focused_filtered:?}",);
 
         if old_focused_filtered != new_focused_filtered {
             // Although the "focusing steps" in the HTML specification say to wait until after firing
@@ -251,14 +234,17 @@ impl DocumentFocusHandler {
             // to set it to the viewport before firing the "blur" event.
             //
             // See https://github.com/whatwg/html/issues/1569
-            self.set_focused_element(None);
+            self.set_focused_element(FocusableArea::Viewport);
 
-            if let Some(element) = &old_focused_filtered {
+            if let Some(element) = old_focused_filtered
+                .as_ref()
+                .and_then(|focusable_area| focusable_area.element())
+            {
                 if element.upcast::<Node>().is_connected() {
                     self.fire_focus_event(
                         FocusEventType::Blur,
                         element.upcast(),
-                        new_focused_filtered.map(|element| element.upcast()),
+                        new_focused_filtered.as_ref(),
                         can_gc,
                     );
                 }
@@ -269,7 +255,7 @@ impl DocumentFocusHandler {
             self.fire_focus_event(FocusEventType::Blur, self.window.upcast(), None, can_gc);
         }
 
-        self.set_focused_element(new_focused.as_deref());
+        self.set_focused_element(new_focused.clone());
         self.has_focus.set(new_focus_state);
 
         if old_focus_state != new_focus_state && new_focus_state {
@@ -277,7 +263,10 @@ impl DocumentFocusHandler {
         }
 
         if old_focused_filtered != new_focused_filtered {
-            if let Some(element) = &new_focused_filtered {
+            if let Some(element) = new_focused_filtered
+                .as_ref()
+                .and_then(|focusable_area| focusable_area.element())
+            {
                 if let Some(html_element) = element.downcast::<HTMLElement>() {
                     html_element.handle_focus_state_for_contenteditable(can_gc);
                 }
@@ -285,7 +274,7 @@ impl DocumentFocusHandler {
                 self.fire_focus_event(
                     FocusEventType::Focus,
                     element.upcast(),
-                    old_focused_filtered.map(|element| element.upcast()),
+                    old_focused_filtered.as_ref(),
                     can_gc,
                 );
             }
@@ -320,8 +309,8 @@ impl DocumentFocusHandler {
                 // >     `new focus target` to the nested browsing context's
                 // >     active document.
                 let child_browsing_context_id = new_focused
-                    .as_ref()
-                    .and_then(|elem| elem.downcast::<HTMLIFrameElement>())
+                    .element()
+                    .and_then(|element| element.downcast::<HTMLIFrameElement>())
                     .and_then(|iframe| iframe.browsing_context_id());
 
                 let sequence = self.increment_fetch_focus_sequence();
@@ -360,13 +349,15 @@ impl DocumentFocusHandler {
         &self,
         focus_event_type: FocusEventType,
         event_target: &EventTarget,
-        related_target: Option<&EventTarget>,
+        related_target: Option<&FocusableArea>,
         can_gc: CanGc,
     ) {
         let (event_name, does_bubble) = match focus_event_type {
             FocusEventType::Focus => ("focus".into(), EventBubbles::DoesNotBubble),
             FocusEventType::Blur => ("blur".into(), EventBubbles::DoesNotBubble),
         };
+        let related_target_element =
+            related_target.and_then(|focusable_area| focusable_area.element());
         let event = FocusEvent::new(
             &self.window,
             event_name,
@@ -374,7 +365,7 @@ impl DocumentFocusHandler {
             EventCancelable::NotCancelable,
             Some(&self.window),
             0i32,
-            related_target,
+            related_target_element.map(|element| element.upcast()),
             can_gc,
         );
         let event = event.upcast::<Event>();
@@ -390,9 +381,9 @@ impl DocumentFocusHandler {
     /// TODO: Handle the "focus changed during ongoing navigation" flag.
     pub(crate) fn perform_focus_fixup_rule(&self, can_gc: CanGc) {
         if self
-            .focused_element
-            .get()
-            .as_deref()
+            .focused_area
+            .borrow()
+            .element()
             .is_none_or(|focused| focused.is_focusable_area())
         {
             return;

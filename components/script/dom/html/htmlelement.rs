@@ -1342,10 +1342,13 @@ impl VirtualMethods for HTMLElement {
         let element = self.as_element();
         if document
             .focus_handler()
-            .focused_element()
-            .is_some_and(|focused_element| &*focused_element == element)
+            .focused_area()
+            .element()
+            .is_some_and(|focused_element| focused_element == element)
         {
-            document.focus_handler().set_focused_element(None);
+            document
+                .focus_handler()
+                .set_focused_element(FocusableArea::Viewport);
         }
 
         // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard

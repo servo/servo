@@ -400,6 +400,20 @@ impl DocumentEventHandler {
             }));
     }
 
+    /// When an event should be fired on the element that has focus, this returns the target. If
+    /// there is no associated element with the focused area (such as when the viewport is focused),
+    /// then the body is returned. If no body is returned then the `Window` is returned.
+    fn target_for_events_following_focus(&self) -> DomRoot<EventTarget> {
+        let document = self.window.Document();
+        match &*document.focus_handler().focused_area() {
+            FocusableArea::Node { node, .. } => DomRoot::from_ref(node.upcast()),
+            FocusableArea::Viewport => document
+                .GetBody()
+                .map(DomRoot::upcast)
+                .unwrap_or_else(|| DomRoot::from_ref(self.window.upcast())),
+        }
+    }
+
     pub(crate) fn set_cursor(&self, cursor: Option<Cursor>) {
         if cursor == self.current_cursor.get() {
             return;
@@ -1356,16 +1370,7 @@ impl DocumentEventHandler {
         keyboard_event: EmbedderKeyboardEvent,
         can_gc: CanGc,
     ) -> InputEventResult {
-        let document = self.window.Document();
-        let focused = document.focus_handler().focused_element();
-        let body = document.GetBody();
-
-        let target = match (&focused, &body) {
-            (Some(focused), _) => focused.upcast(),
-            (&None, Some(body)) => body.upcast(),
-            (&None, &None) => self.window.upcast(),
-        };
-
+        let target = &self.target_for_events_following_focus();
         let keyevent = KeyboardEvent::new_with_platform_keyboard_event(
             &self.window,
             keyboard_event.event.state.event_type().into(),
@@ -1434,10 +1439,8 @@ impl DocumentEventHandler {
         // spec: https://w3c.github.io/uievents/#compositionupdate
         // spec: https://w3c.github.io/uievents/#compositionend
         // > Event.target : focused element processing the composition
-        let focused = document.focus_handler().focused_element();
-        let target = if let Some(elem) = &focused {
-            elem.upcast()
-        } else {
+        let focused_area = document.focus_handler().focused_area();
+        let Some(focused_element) = focused_area.element() else {
             // Event is only dispatched if there is a focused element.
             return Default::default();
         };
@@ -1455,7 +1458,7 @@ impl DocumentEventHandler {
         );
 
         let event = event.upcast::<Event>();
-        event.fire(target, can_gc);
+        event.fire(focused_element.upcast(), can_gc);
         event.flags().into()
     }
 
@@ -1751,16 +1754,9 @@ impl DocumentEventHandler {
         let trusted = true;
 
         // Step 6 if the context is editable:
-        let document = self.window.Document();
-        let target = target.or(document.focus_handler().focused_element());
         let target = target
-            .map(|target| DomRoot::from_ref(target.upcast()))
-            .or_else(|| {
-                document
-                    .GetBody()
-                    .map(|body| DomRoot::from_ref(body.upcast()))
-            })
-            .unwrap_or_else(|| DomRoot::from_ref(self.window.upcast()));
+            .map(DomRoot::upcast)
+            .unwrap_or_else(|| self.target_for_events_following_focus());
 
         // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
         // Step 7
@@ -2019,8 +2015,9 @@ impl DocumentEventHandler {
             .window
             .Document()
             .focus_handler()
-            .focused_element()
-            .map(DomRoot::upcast::<Node>);
+            .focused_area()
+            .element()
+            .map(|element| DomRoot::from_ref(element.upcast::<Node>()));
 
         // > 2. If there is a sequential focus navigation starting point defined and it is inside
         // > starting point, then let starting point be the sequential focus navigation starting point
@@ -2244,8 +2241,9 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let mut scrolling_box = document
             .focus_handler()
-            .focused_element()
-            .or(self.most_recently_clicked_element.get())
+            .focused_area()
+            .element()
+            .or(self.most_recently_clicked_element.get().as_deref())
             .and_then(|element| element.scrolling_box(ScrollContainerQueryFlags::Inclusive))
             .unwrap_or_else(|| {
                 document.viewport_scrolling_box(ScrollContainerQueryFlags::Inclusive)
