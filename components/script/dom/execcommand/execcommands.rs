@@ -195,8 +195,8 @@ impl DocumentExecCommandSupport for Document {
                 // convert the value override to an integer number of pixels and return the legacy font size for the result.
                 if command == CommandName::FontSize {
                     value_override
-                        .parse()
-                        .map(|parsed| legacy_font_size_for(parsed, self))
+                        .parse::<i32>()
+                        .map(|parsed| legacy_font_size_for(parsed as f32, self))
                         .unwrap_or(value_override)
                 } else {
                     value_override

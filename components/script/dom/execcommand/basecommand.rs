@@ -68,6 +68,11 @@ impl CssPropertyName {
                     // resolution would have done. This also allows us to later check for
                     // loose equivalence for font elements, since we would return the size as an
                     // integer, without a size indicator (e.g. `px`).
+                    //
+                    // However, if no such relevant declaration exists, then we should fallback
+                    // to pixels after all. For the effective command value, this essentially means
+                    // we will overwrite it. For the value of the "fontsize" command, we would then
+                    // need to convert it using [`legacy_font_size_for`].
                     return element
                         .upcast::<Node>()
                         .inclusive_ancestors(ShadowIncluding::No)
@@ -77,6 +82,10 @@ impl CssPropertyName {
                             } else {
                                 self.value_set_for_style(ancestor.downcast::<Element>()?)
                             }
+                        })
+                        .or_else(|| {
+                            let pixels = style.clone_font().font_size.computed_size().px();
+                            Some(format!("{}px", pixels).into())
                         });
                 },
                 CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
