@@ -124,7 +124,6 @@ servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
-servo-media-ohos = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
 storage = { workspace = true }
@@ -159,6 +158,9 @@ gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 webxr = { workspace = true, features = ["glwindow", "headless", "openxr-api"] }
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+servo-media-ohos = { workspace = true }
 
 [dev-dependencies]
 accesskit_consumer = "0.35.0"
