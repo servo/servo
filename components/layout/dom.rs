@@ -23,6 +23,7 @@ use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexLevelBox;
+use crate::flow::inline::text_run::TextRun;
 use crate::flow::inline::{InlineItem, SharedInlineStyles, WeakInlineItem};
 use crate::flow::{BlockLevelBox, BlockLevelCreator};
 use crate::fragment_tree::{Fragment, FragmentFlags};
@@ -123,12 +124,13 @@ pub(super) enum LayoutBox {
     FlexLevel(ArcRefCell<FlexLevelBox>),
     TableLevelBox(TableLevelBox),
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
+    Text(ArcRefCell<TextRun>),
 }
 
 impl LayoutBox {
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> Option<T> {
         Some(match self {
-            LayoutBox::DisplayContents(..) => return None,
+            LayoutBox::DisplayContents(..) | LayoutBox::Text(..) => return None,
             LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().with_base(callback),
             LayoutBox::InlineLevel(inline_item) => inline_item.with_base(callback),
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().with_base(callback),
@@ -142,7 +144,7 @@ impl LayoutBox {
         callback: impl FnOnce(&mut LayoutBoxBase) -> T,
     ) -> Option<T> {
         Some(match self {
-            LayoutBox::DisplayContents(..) => return None,
+            LayoutBox::DisplayContents(..) | LayoutBox::Text(..) => return None,
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box.borrow_mut().with_base_mut(callback)
             },
@@ -185,6 +187,9 @@ impl LayoutBox {
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box
                 .borrow_mut()
                 .repair_style(context, node, new_style),
+            LayoutBox::Text(..) => {
+                // There is nothing to update in this case.
+            },
         }
     }
 
@@ -202,6 +207,9 @@ impl LayoutBox {
             Self::TableLevelBox(table_level_box) => table_level_box.attached_to_tree(layout_box),
             Self::TaffyItemBox(taffy_item_box) => {
                 taffy_item_box.borrow().attached_to_tree(layout_box)
+            },
+            Self::Text(..) => {
+                // This kind of box cannot have children, so no need to do anything.
             },
         }
     }
@@ -222,6 +230,7 @@ impl LayoutBox {
             Self::TaffyItemBox(taffy_item_box) => {
                 WeakLayoutBox::TaffyItemBox(taffy_item_box.downgrade())
             },
+            Self::Text(text_run) => WeakLayoutBox::Text(text_run.downgrade()),
         }
     }
 }
@@ -234,6 +243,7 @@ pub(super) enum WeakLayoutBox {
     FlexLevel(WeakRefCell<FlexLevelBox>),
     TableLevelBox(WeakTableLevelBox),
     TaffyItemBox(WeakRefCell<TaffyItemBox>),
+    Text(WeakRefCell<TextRun>),
 }
 
 impl WeakLayoutBox {
@@ -251,6 +261,7 @@ impl WeakLayoutBox {
             Self::TaffyItemBox(taffy_item_box) => {
                 LayoutBox::TaffyItemBox(taffy_item_box.upgrade()?)
             },
+            Self::Text(text_run) => LayoutBox::Text(text_run.upgrade()?),
         })
     }
 }
@@ -292,6 +303,16 @@ impl BoxSlot<'_> {
 
     pub(crate) fn take_layout_box(&self) -> Option<LayoutBox> {
         self.slot.borrow_mut().take()
+    }
+
+    /// Call [`Self::take_layout_box`] and try to unwrap it into a [`TextRun`], returning `None` if
+    /// the slot is empty or it does not contain a [`TextRun`]. Note that this will *always* clear
+    /// the [`BoxSlot`].
+    pub(crate) fn take_layout_box_as_text_run(&self) -> Option<ArcRefCell<TextRun>> {
+        match self.take_layout_box()? {
+            LayoutBox::Text(old_text_run) => Some(old_text_run),
+            _ => None,
+        }
     }
 }
 
@@ -579,6 +600,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 TableLevelBox::Cell(..) | TableLevelBox::Caption(..),
             ),
             LayoutBox::TaffyItemBox(..) => true,
+            LayoutBox::Text(..) => unreachable!("An element should never be a text node"),
         }
     }
 
@@ -748,6 +770,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 _ => false,
             },
             LayoutBox::TaffyItemBox(..) => false,
+            LayoutBox::Text(..) => unreachable!("An element should never be a text node"),
         }
     }
 }

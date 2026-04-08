@@ -422,19 +422,39 @@ impl InlineFormattingContextBuilder {
                 .inline_styles
                 .ptr_eq(&current_inline_styles)
             {
-                text_run.borrow_mut().text_range.end = new_range.end;
-                text_run.borrow_mut().character_range.end = new_character_range.end;
+                let box_slot = info.node.box_slot();
+                let old_text_run = box_slot.take_layout_box_as_text_run();
+
+                {
+                    let mut text_run = text_run.borrow_mut();
+                    text_run.text_range.end = new_range.end;
+                    text_run.character_range.end = new_character_range.end;
+
+                    // If this text node does not have a `TextRun` in the box slot, this means that
+                    // it is either new or dirty, which means that the entire `TextRun` just extended
+                    // is dirty as well. In this case, never reuse existing shaping results. Clear
+                    // all old items to ensure this.
+                    if old_text_run.is_none() {
+                        text_run.items.clear();
+                    }
+                }
+
+                box_slot.set(LayoutBox::Text(text_run.clone()));
                 return;
             }
         }
 
+        let box_slot = info.node.box_slot();
+        let text_run = ArcRefCell::new(TextRun::new(
+            info.into(),
+            current_inline_styles,
+            new_range,
+            new_character_range,
+            box_slot.take_layout_box_as_text_run(),
+        ));
         self.inline_items
-            .push(InlineItem::TextRun(ArcRefCell::new(TextRun::new(
-                info.into(),
-                current_inline_styles,
-                new_range,
-                new_character_range,
-            ))));
+            .push(InlineItem::TextRun(text_run.clone()));
+        box_slot.set(LayoutBox::Text(text_run));
     }
 
     pub(crate) fn enter_display_contents(&mut self, shared_inline_styles: SharedInlineStyles) {

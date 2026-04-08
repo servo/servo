@@ -29,6 +29,7 @@ use unicode_script::Script;
 
 use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
+use crate::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::inline::line::TextRunOffsets;
@@ -50,7 +51,7 @@ enum SegmentStartSoftWrapPolicy {
 }
 
 /// A data structure which contains information used when shaping a [`TextRunSegment`].
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub(crate) struct FontAndScriptInfo {
     /// The font used when shaping a [`TextRunSegment`].
     pub font: FontRef,
@@ -128,7 +129,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
     }
 }
 
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct TextRunSegment {
     /// Information about the font and language used in this text run. This is produced by
     /// segmenting the inline formatting context's text content by font, script, and bidi level.
@@ -243,6 +244,7 @@ impl TextRunSegment {
         parent_style: &ComputedValues,
         formatting_context_text: &str,
         linebreaker: &mut LineBreaker,
+        old_text_run_item: Option<TextRunItem>,
     ) {
         // Gather the linebreaks that apply to this segment from the inline formatting context's collection
         // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
@@ -252,11 +254,23 @@ impl TextRunSegment {
         let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
 
         let options: ShapingOptions = (&*self.info).into();
-        let mut shaped_text_slicer = ShapedTextSlicer::new(
-            self.info
-                .font
-                .shape_text(&formatting_context_text[range.clone()], &options),
-        );
+        let shaped_text = old_text_run_item
+            .and_then(|old_text_run_item| {
+                let TextRunItem::TextSegment(old_text_segment) = old_text_run_item else {
+                    return None;
+                };
+                if !self.is_compatible_with_old_shaping_result(&old_text_segment) {
+                    return None;
+                }
+                Some(old_text_segment.runs.first()?.shaped_text())
+            })
+            .unwrap_or_else(|| {
+                self.info
+                    .font
+                    .shape_text(&formatting_context_text[range.clone()], &options)
+            });
+
+        let mut shaped_text_slicer = ShapedTextSlicer::new(shaped_text);
 
         self.runs.clear();
         self.runs.reserve(linebreaks.len());
@@ -353,6 +367,10 @@ impl TextRunSegment {
             ));
         }
     }
+
+    fn is_compatible_with_old_shaping_result(&self, old_segment: &Self) -> bool {
+        *old_segment.info == *self.info && self.byte_range == old_segment.byte_range
+    }
 }
 
 /// A single item in a [`TextRun`].
@@ -409,14 +427,19 @@ impl TextRun {
         inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
         character_range: Range<usize>,
+        old_text_run: Option<ArcRefCell<TextRun>>,
     ) -> Self {
+        // If there was a previous box tree layout of this text run, try to preserve the old shaped text.
+        let items = old_text_run
+            .map(|old_text_run| std::mem::take(&mut old_text_run.borrow_mut().items))
+            .unwrap_or_default();
         Self {
             base_fragment_info,
             parent_box: None,
             inline_styles,
             text_range,
             character_range,
-            items: Vec::new(),
+            items,
         }
     }
 
@@ -428,15 +451,25 @@ impl TextRun {
         bidi_info: &BidiInfo,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
-        self.items = self.segment_text_by_font(
+        let items = self.segment_text_by_font(
             layout_context,
             formatting_context_text,
             bidi_info,
             &parent_style,
         );
+
+        // If a previous box tree layout seeded this [`TextRun`] with old shaping results, use those
+        // to try to prevent re-shaping.
+        let mut old_text_run_items = std::mem::replace(&mut self.items, items).into_iter();
         for item in self.items.iter_mut() {
+            let old_text_run_item = old_text_run_items.next();
             if let TextRunItem::TextSegment(text_segment) = item {
-                text_segment.shape_text(&parent_style, formatting_context_text, linebreaker)
+                text_segment.shape_text(
+                    &parent_style,
+                    formatting_context_text,
+                    linebreaker,
+                    old_text_run_item,
+                );
             }
         }
     }

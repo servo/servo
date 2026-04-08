@@ -568,6 +568,12 @@ pub struct ShapedTextSlice {
 }
 
 impl ShapedTextSlice {
+    /// Return the [`ShapedText`] that backs this [`ShapedTextSlice`].
+    #[inline]
+    pub fn shaped_text(&self) -> Arc<ShapedText> {
+        self.shaped_text.clone()
+    }
+
     /// Return the number of glyphs represented by this [`ShapedTextSlice`].
     #[inline]
     pub fn glyph_count(&self) -> usize {

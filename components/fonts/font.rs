@@ -581,6 +581,12 @@ impl Font {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct FontRef(#[conditional_malloc_size_of] pub(crate) Arc<Font>);
 
+impl PartialEq for FontRef {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(self, other)
+    }
+}
+
 impl Deref for FontRef {
     type Target = Arc<Font>;
     fn deref(&self) -> &Self::Target {

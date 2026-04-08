@@ -886,6 +886,10 @@ impl Node {
 
         match self.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
+                // This drops the cached `TextRun` that is stored here, ultimately meaning that
+                // shaped text will no longer be reused for this text node.
+                *self.layout_data.borrow_mut() = None;
+
                 // For content changes in text nodes, we should accurately use
                 // [`NodeDamage::ContentOrHeritage`] to mark the parent node, thereby
                 // reducing the scope of incremental box tree construction.
