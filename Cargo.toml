@@ -255,7 +255,7 @@ script = { package = "servo-script", version = "0.1.0", path = "components/scrip
 script_bindings = { package = "servo-script-bindings", version = "0.1.0", path = "components/script_bindings" }
 script_traits = { package = "servo-script-traits", version = "0.1.0", path = "components/shared/script" }
 servo = { version = "0.1.0", path = "components/servo", default-features = false }
-servo-allocator = { version = "0.1.0", path = "components/allocator" }
+servo-allocator = { version = "0.1.0", path = "components/allocator", default-features = false }
 servo-background-hang-monitor = { version = "0.1.0", path = "components/background_hang_monitor" }
 servo-background-hang-monitor-api = { version = "0.1.0", path = "components/shared/background_hang_monitor" }
 servo-base = { version = "0.1.0", path = "components/shared/base" }
