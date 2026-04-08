@@ -166,8 +166,8 @@ pub struct FunctionPreview {
     pub name: Option<String>,
     pub display_name: Option<String>,
     pub parameter_names: Vec<String>,
-    pub is_async: bool,
-    pub is_generator: bool,
+    pub is_async: Option<bool>,
+    pub is_generator: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

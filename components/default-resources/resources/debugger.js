@@ -165,18 +165,20 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
 previewers.Function.push(function FunctionPreviewer(obj) {
+    let function_details = {
+        name: obj.name,
+        displayName: obj.displayName,
+        parameterNames: obj.parameterNames ? obj.parameterNames: [],
+        isAsync: obj.isAsyncFunction,
+        isGenerator: obj.isGeneratorFunction,
+    }
+
     const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
     return {
         kind: "Object",
         ownProperties,
         ownPropertiesLength,
-        function: {
-            name: obj.name,
-            displayName: obj.displayName,
-            parameterNames: obj.parameterNames,
-            isAsync: obj.isAsyncFunction,
-            isGenerator: obj.isGeneratorFunction,
-        }
+        function: function_details
     };
 });
 

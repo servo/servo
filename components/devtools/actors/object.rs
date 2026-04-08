@@ -298,8 +298,12 @@ impl ActorEncode<Value> for ObjectActor {
                         .collect(),
                 ),
             );
-            m.insert("isAsync".to_owned(), Value::Bool(function.is_async));
-            m.insert("isGenerator".to_owned(), Value::Bool(function.is_generator));
+            if let Some(is_async) = function.is_async {
+                m.insert("isAsync".to_owned(), Value::Bool(is_async));
+            }
+            if let Some(is_generator) = function.is_generator {
+                m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
+            }
         }
 
         m.insert("preview".to_owned(), Value::Object(preview_map));
