@@ -79,8 +79,11 @@ pub fn key_type_to_jsval(
             // Step 3.2. Let buffer be the result of executing the ECMAScript
             // ArrayBuffer constructor with len.
             rooted!(&in(cx) let mut buffer = ptr::null_mut::<js::jsapi::JSObject>());
-            ArrayBuffer::create(cx.raw_cx(), CreateWith::Length(len), buffer.handle_mut())
-                .expect("Failed to convert IndexedDB binary key into an ArrayBuffer");
+            assert!(
+                ArrayBuffer::create(cx.raw_cx(), CreateWith::Length(len), buffer.handle_mut())
+                    .is_ok(),
+                "Failed to convert IndexedDB binary key into an ArrayBuffer"
+            );
 
             // Step 3.3. Assert: buffer is not an abrupt completion.
 
@@ -120,17 +123,24 @@ pub fn key_type_to_jsval(
                 key_type_to_jsval(cx, &a[index], entry.handle_mut());
 
                 // Step 3.5.2. Let status be CreateDataProperty(array, index, entry).
-                let index_property = CString::new(index.to_string())
-                    .expect("Failed to convert IndexedDB array index to CString");
-                define_dictionary_property(
+                let index_property = CString::new(index.to_string());
+                assert!(
+                    index_property.is_ok(),
+                    "Failed to convert IndexedDB array index to CString"
+                );
+                let index_property = index_property.unwrap();
+                let status = define_dictionary_property(
                     cx.into(),
                     array.handle(),
                     index_property.as_c_str(),
                     entry.handle(),
-                )
-                .expect("CreateDataProperty on a fresh JS array should not fail");
+                );
 
                 // Step 3.5.3. Assert: status is true.
+                assert!(
+                    status.is_ok(),
+                    "CreateDataProperty on a fresh JS array should not fail"
+                );
 
                 // Step 3.5.4. Increase index by 1.
                 index += 1;
