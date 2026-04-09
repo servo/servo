@@ -93,6 +93,16 @@ function createValueGrip(value, depth = 0) {
         case "boolean":
             return { valueType: "boolean", booleanValue: value };
         case "number":
+            if (value === Infinity) {
+                return { valueType: "Infinity" };
+            } else if (value === -Infinity) {
+                return { valueType: "-Infinity" };
+            } else if (Number.isNaN(value)) {
+                return { valueType: "NaN" };
+            } else if (!value && 1 / value === -Infinity) {
+                return { valueType: "-0" };
+            }
+
             return { valueType: "number", numberValue: value };
         case "string":
             return { valueType: "string", stringValue: value };
