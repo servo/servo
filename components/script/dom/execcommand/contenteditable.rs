@@ -111,7 +111,10 @@ impl Text {
         let mut resolved_ancestor = ancestor.clone();
         for parent in ancestor.ancestors() {
             // Step 5. If the "display" property of some ancestor of node has resolved value "none", return true.
-            if parent.is_display_none() {
+            if parent
+                .downcast::<Element>()
+                .is_some_and(Element::is_display_none)
+            {
                 return true;
             }
             // Step 6. While ancestor is not a block node and its parent is not null, set ancestor to its parent.
@@ -174,7 +177,7 @@ impl Text {
         let has_preserve_space = self
             .upcast::<Node>()
             .GetParentNode()
-            .and_then(|parent| parent.style())
+            .and_then(|parent_node| parent_node.downcast::<Element>().and_then(Element::style))
             .is_some_and(|style| {
                 // Note that for "pre" and "pre-wrap", the longhand "white-space-collapse: preserve" applies
                 // https://www.w3.org/TR/css-text-4/#white-space-property
@@ -324,6 +327,10 @@ impl HTMLElement {
 }
 
 impl Element {
+    fn resolved_display_value(&self) -> Option<DisplayOutside> {
+        self.style().map(|style| style.get_box().display.outside())
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#specified-command-value>
     pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<DOMString> {
         match command {
@@ -1220,10 +1227,6 @@ where
 }
 
 impl Node {
-    fn resolved_display_value(&self) -> Option<DisplayOutside> {
-        self.style().map(|style| style.get_box().display.outside())
-    }
-
     /// <https://w3c.github.io/editing/docs/execCommand/#push-down-values>
     fn push_down_values(
         &self,
@@ -1612,8 +1615,10 @@ impl NodeExecCommandSupport for Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#block-node>
     fn is_block_node(&self) -> bool {
         // > A block node is either an Element whose "display" property does not have resolved value "inline" or "inline-block" or "inline-table" or "none",
-        if self.is::<Element>() &&
-            self.resolved_display_value().is_some_and(|display| {
+        if self
+            .downcast::<Element>()
+            .and_then(Element::resolved_display_value)
+            .is_some_and(|display| {
                 display != DisplayOutside::Inline && display != DisplayOutside::None
             })
         {
@@ -1651,10 +1656,10 @@ impl NodeExecCommandSupport for Node {
     fn is_visible(&self) -> bool {
         for parent in self.inclusive_ancestors(ShadowIncluding::No) {
             // > excluding any node with an inclusive ancestor Element whose "display" property has resolved value "none".
-            if parent.is::<Element>() &&
-                parent
-                    .resolved_display_value()
-                    .is_some_and(|display| display == DisplayOutside::None)
+            if parent
+                .downcast::<Element>()
+                .and_then(Element::resolved_display_value)
+                .is_some_and(|display| display == DisplayOutside::None)
             {
                 return false;
             }

@@ -14,7 +14,7 @@ use layout_api::wrapper_traits::{
 };
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
-    SVGElementData, StyleData, TrustedNodeAddress,
+    SVGElementData, TrustedNodeAddress,
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -64,8 +64,8 @@ unsafe impl Sync for ServoLayoutNode<'_> {}
 
 impl fmt::Debug for ServoLayoutNode<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(el) = self.as_element() {
-            el.fmt(f)
+        if let Some(element) = self.as_element() {
+            element.fmt(f)
         } else if self.is_text_node() {
             write!(f, "<text node> ({:#x})", self.opaque().0)
         } else {
@@ -224,6 +224,7 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
 
 impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'dom>;
+    type ConcreteLayoutElement = ServoLayoutElement<'dom>;
 
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode {
         ServoThreadSafeLayoutNode::new(*self)
@@ -233,22 +234,8 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         NodeTypeIdWrapper(self.script_type_id()).into()
     }
 
-    unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
-        let inner = self.to_layout_dom();
-        if inner.style_data().is_none() {
-            unsafe { inner.initialize_style_data() };
-        }
-        if inner.layout_data().is_none() {
-            unsafe { inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default()) };
-        }
-    }
-
     fn is_connected(&self) -> bool {
         unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
-    }
-
-    fn style_data(&self) -> Option<&'dom StyleData> {
-        self.to_layout_dom().style_data()
     }
 
     fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
@@ -323,7 +310,7 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
             return self.parent_style(context);
         };
 
-        let style_data = &element.style_data().styles;
+        let style_data = &element.element_data().styles;
         let get_selected_style = || {
             // This is a workaround for handling the `::selection` pseudos where it would not
             // propagate to the children and Shadow DOM elements. For this case, UA widget
@@ -405,9 +392,10 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
 
     fn as_element(&self) -> Option<ServoThreadSafeLayoutElement<'dom>> {
         self.node
-            .as_element()
-            .map(|el| ServoThreadSafeLayoutElement {
-                element: el,
+            .node
+            .downcast()
+            .map(|element| ServoThreadSafeLayoutElement {
+                element: ServoLayoutElement::from_layout_dom(element),
                 pseudo_element_chain: self.pseudo_element_chain,
             })
     }
@@ -415,10 +403,6 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
     fn as_html_element(&self) -> Option<ServoThreadSafeLayoutElement<'dom>> {
         self.as_element()
             .filter(|element| element.element.is_html_element())
-    }
-
-    fn style_data(&self) -> Option<&'dom StyleData> {
-        self.node.style_data()
     }
 
     fn layout_data(&self) -> Option<&'dom GenericLayoutData> {

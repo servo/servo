@@ -7,7 +7,9 @@ use std::sync::Arc;
 
 use bitflags::Flags;
 use layout_api::LayoutDamage;
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use layout_api::wrapper_traits::{
+    LayoutElement, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
@@ -36,7 +38,7 @@ impl<'a> RecalcStyle<'a> {
 #[expect(unsafe_code)]
 impl<'dom, E> DomTraversal<E> for RecalcStyle<'_>
 where
-    E: TElement,
+    E: LayoutElement<'dom> + TElement,
     E::ConcreteNode: 'dom + LayoutNode<'dom>,
 {
     fn process_preorder<F>(
@@ -52,14 +54,14 @@ where
             return;
         }
 
-        let had_style_data = node.style_data().is_some();
+        let element = node.as_element().unwrap();
+        let had_style_data = element.style_data().is_some();
+
         unsafe {
-            node.initialize_style_and_layout_data::<DOMLayoutData>();
+            element.initialize_style_and_layout_data::<DOMLayoutData>();
         }
 
-        let element = node.as_element().unwrap();
         let mut element_data = element.mutate_data().unwrap();
-
         if !had_style_data {
             element_data.damage = RestyleDamage::reconstruct();
         }
@@ -179,12 +181,14 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     node: ServoThreadSafeLayoutNode<'_>,
     damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
-    let element_data = &node
-        .style_data()
-        .expect("Should not run `compute_damage` before styling.")
-        .element_data;
+    // Don't do any kind of damage propagation or box tree constuction for non-Element nodes,
+    // such as text and comments.
+    let Some(element) = node.as_element() else {
+        return damage_from_parent;
+    };
+
     let (element_damage, is_display_none) = {
-        let mut element_data = element_data.borrow_mut();
+        let mut element_data = element.element_data_mut();
         (
             std::mem::take(&mut element_data.damage),
             element_data.styles.is_display_none(),

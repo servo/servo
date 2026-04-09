@@ -715,12 +715,11 @@ impl Document {
             },
         };
 
-        if parent.is::<Element>() {
-            if !parent.is_styled() {
+        if let Some(parent_element) = parent.downcast::<Element>() {
+            if !parent_element.is_styled() {
                 return;
             }
-
-            if parent.is_display_none() {
+            if parent_element.is_display_none() {
                 return;
             }
         }
