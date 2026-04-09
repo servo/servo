@@ -238,7 +238,7 @@ h6 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; font-weight: 
 
 
 dir, dd, dl, dt, menu, ol, ul { display: block; }
-li { display: list-item; }
+li { display: list-item; text-align: match-parent; }
 
 dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
 
