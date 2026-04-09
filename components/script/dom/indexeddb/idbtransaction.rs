@@ -18,7 +18,9 @@ use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
-use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
+use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{
+    IDBObjectStoreParameters, IDBTransactionDurability,
+};
 use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBIndexParameters;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
@@ -44,6 +46,7 @@ pub struct IDBTransaction {
     eventtarget: EventTarget,
     object_store_names: Dom<DOMStringList>,
     mode: IDBTransactionMode,
+    durability: IDBTransactionDurability,
     db: Dom<IDBDatabase>,
     error: MutNullableDom<DOMException>,
 
@@ -86,6 +89,7 @@ impl IDBTransaction {
     fn new_inherited(
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
+        durability: IDBTransactionDurability,
         scope: &DOMStringList,
         serial_number: u64,
     ) -> IDBTransaction {
@@ -93,6 +97,7 @@ impl IDBTransaction {
             eventtarget: EventTarget::new_inherited(),
             object_store_names: Dom::from_ref(scope),
             mode,
+            durability,
             db: Dom::from_ref(connection),
             error: Default::default(),
 
@@ -124,18 +129,28 @@ impl IDBTransaction {
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
+        durability: IDBTransactionDurability,
         scope: &DOMStringList,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         let serial_number =
             IDBTransaction::create_transaction(global, connection.get_name(), mode, scope);
-        IDBTransaction::new_with_serial(global, connection, mode, scope, serial_number, can_gc)
+        IDBTransaction::new_with_serial(
+            global,
+            connection,
+            mode,
+            durability,
+            scope,
+            serial_number,
+            can_gc,
+        )
     }
 
     pub(crate) fn new_with_serial(
         global: &GlobalScope,
         connection: &IDBDatabase,
         mode: IDBTransactionMode,
+        durability: IDBTransactionDurability,
         scope: &DOMStringList,
         serial_number: u64,
         can_gc: CanGc,
@@ -144,6 +159,7 @@ impl IDBTransaction {
             Box::new(IDBTransaction::new_inherited(
                 connection,
                 mode,
+                durability,
                 scope,
                 serial_number,
             )),
@@ -772,11 +788,10 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         self.mode
     }
 
-    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode
-    // fn Durability(&self) -> IDBTransactionDurability {
-    //     // FIXME:(arihant2math) Durability is not implemented at all
-    //     unimplemented!();
-    // }
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-durability>
+    fn Durability(&self) -> IDBTransactionDurability {
+        self.durability
+    }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
