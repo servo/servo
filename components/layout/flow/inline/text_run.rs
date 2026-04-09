@@ -14,6 +14,7 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::text::is_bidi_control;
+use style::Zero;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
@@ -425,9 +426,12 @@ impl TextRun {
         let word_spacing = inherited_text_style
             .word_spacing
             .to_used_value(font_size.into());
-        let letter_spacing = inherited_text_style.letter_spacing.0.resolve(font_size);
-        let letter_spacing = if letter_spacing.px() != 0. {
-            Some(app_units::Au::from(letter_spacing))
+        let letter_spacing = inherited_text_style
+            .letter_spacing
+            .0
+            .to_used_value(font_size.into());
+        let letter_spacing = if !letter_spacing.is_zero() {
+            Some(letter_spacing)
         } else {
             None
         };
