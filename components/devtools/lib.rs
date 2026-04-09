@@ -22,9 +22,9 @@ use std::thread;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, EnvironmentInfo,
-    FrameInfo, FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
-    SourceInfo, WorkerId, get_time_stamp,
+    DebuggerValue, DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation,
+    EnvironmentInfo, FrameInfo, FrameOffset, NavigationState, NetworkEvent, PauseReason,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -345,7 +345,7 @@ impl DevtoolsInstance {
                             column_number: css_error.column,
                             time_stamp: get_time_stamp(),
                         },
-                        arguments: vec![css_error.msg.into()],
+                        arguments: vec![DebuggerValue::StringValue(css_error.msg)],
                         stacktrace: None,
                     };
                     let console_message =

@@ -456,40 +456,9 @@ pub struct ConsoleMessageFields {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ConsoleArgument {
-    String(String),
-    Integer(i32),
-    Number(f64),
-    Boolean(bool),
-    Object(ConsoleArgumentObject),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ConsoleArgumentObject {
-    pub class: String,
-    pub own_properties: Vec<ConsoleArgumentPropertyValue>,
-}
-
-/// A property on a JS object passed as a console argument.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ConsoleArgumentPropertyValue {
-    pub key: String,
-    pub configurable: bool,
-    pub enumerable: bool,
-    pub writable: bool,
-    pub value: ConsoleArgument,
-}
-
-impl From<String> for ConsoleArgument {
-    fn from(value: String) -> Self {
-        Self::String(value)
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsoleMessage {
     pub fields: ConsoleMessageFields,
-    pub arguments: Vec<ConsoleArgument>,
+    pub arguments: Vec<DebuggerValue>,
     pub stacktrace: Option<Vec<StackFrame>>,
 }
 

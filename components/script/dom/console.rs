@@ -7,8 +7,9 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleArgument, ConsoleArgumentObject, ConsoleArgumentPropertyValue, ConsoleLogLevel,
-    ConsoleMessage, ConsoleMessageFields, ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
+    ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields, DebuggerValue, ObjectPreview,
+    PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg, StackFrame,
+    get_time_stamp,
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
@@ -46,7 +47,7 @@ impl Console {
     #[expect(unsafe_code)]
     fn build_message(
         level: ConsoleLogLevel,
-        arguments: Vec<ConsoleArgument>,
+        arguments: Vec<DebuggerValue>,
         stacktrace: Option<Vec<StackFrame>>,
     ) -> ConsoleMessage {
         let cx = GlobalScope::get_cx();
@@ -72,7 +73,8 @@ impl Console {
 
         Self::send_to_embedder(global, level.clone(), formatted_message);
 
-        let console_message = Self::build_message(level, vec![message.into()], None);
+        let console_message =
+            Self::build_message(level, vec![DebuggerValue::StringValue(message)], None);
 
         Self::send_to_devtools(global, console_message);
     }
@@ -92,8 +94,8 @@ impl Console {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
             let remaining = &messages[consumed..];
 
-            let mut arguments: Vec<ConsoleArgument> =
-                vec![ConsoleArgument::String(formatted.clone())];
+            let mut arguments: Vec<DebuggerValue> =
+                vec![DebuggerValue::StringValue(formatted.clone())];
             for msg in remaining {
                 arguments.push(console_argument_from_handle_value(
                     cx,
@@ -170,39 +172,34 @@ fn console_argument_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
-) -> ConsoleArgument {
+) -> DebuggerValue {
     #[expect(unsafe_code)]
     fn inner(
         cx: JSContext,
         handle_value: HandleValue,
         seen: &mut Vec<u64>,
-    ) -> Result<ConsoleArgument, ()> {
+    ) -> Result<DebuggerValue, ()> {
         if handle_value.is_string() {
             let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
             let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
-            return Ok(ConsoleArgument::String(dom_string));
-        }
-
-        if handle_value.is_int32() {
-            let integer = handle_value.to_int32();
-            return Ok(ConsoleArgument::Integer(integer));
+            return Ok(DebuggerValue::StringValue(dom_string));
         }
 
         if handle_value.is_number() {
             let number = handle_value.to_number();
-            return Ok(ConsoleArgument::Number(number));
+            return Ok(DebuggerValue::NumberValue(number));
         }
 
         if handle_value.is_boolean() {
             let boolean = handle_value.to_boolean();
-            return Ok(ConsoleArgument::Boolean(boolean));
+            return Ok(DebuggerValue::BooleanValue(boolean));
         }
 
         if handle_value.is_object() {
             // JS objects can create circular reference, and we want to avoid recursing infinitely
             if seen.contains(&handle_value.asBits_) {
                 // FIXME: Handle this properly
-                return Ok(ConsoleArgument::String("[circular]".into()));
+                return Ok(DebuggerValue::StringValue("[circular]".into()));
             }
 
             seen.push(handle_value.asBits_);
@@ -211,7 +208,11 @@ fn console_argument_from_handle_value(
             debug_assert_eq!(js_value, Some(handle_value.asBits_));
 
             if let Some(console_argument_object) = maybe_argument_object {
-                return Ok(ConsoleArgument::Object(console_argument_object));
+                return Ok(DebuggerValue::ObjectValue {
+                    uuid: "".to_string(),
+                    class: "Object".to_owned(),
+                    preview: Some(console_argument_object),
+                });
             }
 
             return Err(());
@@ -220,7 +221,7 @@ fn console_argument_from_handle_value(
         // FIXME: Handle more complex argument types here
         let stringified_value = stringify_handle_value(handle_value);
 
-        Ok(ConsoleArgument::String(stringified_value.into()))
+        Ok(DebuggerValue::StringValue(stringified_value.into()))
     }
 
     match inner(cx, handle_value, seen) {
@@ -228,7 +229,7 @@ fn console_argument_from_handle_value(
         Err(()) => {
             let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
             report_pending_exception(cx, InRealm::Already(&in_realm_proof), CanGc::note());
-            ConsoleArgument::String("<error>".into())
+            DebuggerValue::StringValue("<error>".into())
         },
     }
 }
@@ -238,7 +239,7 @@ fn console_object_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
-) -> Option<ConsoleArgumentObject> {
+) -> Option<ObjectPreview> {
     rooted!(in(*cx) let object = handle_value.to_object());
     let mut object_class = ESClass::Other;
     if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
@@ -299,18 +300,22 @@ fn console_object_from_handle_value(
             continue;
         };
 
-        own_properties.push(ConsoleArgumentPropertyValue {
-            key,
+        own_properties.push(DevtoolsPropertyDescriptor {
+            name: key,
+            value: console_argument_from_handle_value(cx, property.handle(), seen),
             configurable: descriptor.hasConfigurable_() && descriptor.configurable_(),
             enumerable: descriptor.hasEnumerable_() && descriptor.enumerable_(),
             writable: descriptor.hasWritable_() && descriptor.writable_(),
-            value: console_argument_from_handle_value(cx, property.handle(), seen),
+            is_accessor: false,
         });
     }
 
-    Some(ConsoleArgumentObject {
-        class: "Object".to_owned(),
-        own_properties,
+    Some(ObjectPreview {
+        kind: "Object".to_owned(),
+        own_properties_length: Some(own_properties.len() as u32),
+        own_properties: Some(own_properties),
+        function: None,
+        array_length: None,
     })
 }
 
