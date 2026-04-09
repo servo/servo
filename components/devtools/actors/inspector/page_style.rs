@@ -129,6 +129,13 @@ impl Actor for PageStyleActor {
 }
 
 impl PageStyleActor {
+    pub fn register(registry: &ActorRegistry) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self { name: name.clone() };
+        registry.register::<Self>(actor);
+        name
+    }
+
     fn get_applied(
         &self,
         request: ClientRequest,

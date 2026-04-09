@@ -116,22 +116,19 @@ impl InspectorActor {
             browsing_context_name: browsing_context_name.clone(),
         };
 
-        let page_style_actor = PageStyleActor {
-            name: registry.new_name::<PageStyleActor>(),
-        };
+        let page_style_name = PageStyleActor::register(registry);
 
         let walker_name = WalkerActor::register(registry, browsing_context_name);
 
         let inspector_actor = Self {
             name: registry.new_name::<InspectorActor>(),
             highlighter_name: highlighter_actor.name(),
-            page_style_name: page_style_actor.name(),
+            page_style_name,
             walker_name,
         };
         let inspector_name = inspector_actor.name();
 
         registry.register(highlighter_actor);
-        registry.register(page_style_actor);
         registry.register(inspector_actor);
 
         inspector_name
