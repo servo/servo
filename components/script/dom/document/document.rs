@@ -4660,6 +4660,13 @@ impl Document {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    /// and <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    pub(crate) fn clear_command_overrides(&self) {
+        self.state_override.borrow_mut().clear();
+        self.value_override.borrow_mut().clear();
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
     pub(crate) fn default_single_line_container_name(&self) -> DefaultSingleLineContainerName {
         self.default_single_line_container_name.get()

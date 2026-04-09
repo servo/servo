@@ -112,18 +112,9 @@ pub(crate) fn execute_fontsize_command(
     };
     // Step 9. If number is less than one, let number equal 1.
     // Step 10. If number is greater than seven, let number equal 7.
-    let number = number.clamp(1, 7);
+    let number = number.clamp(1, 7) as u32;
     // Step 11. Set value to the string here corresponding to number:
-    let value = match number {
-        1 => "x-small",
-        2 => "small",
-        3 => "medium",
-        4 => "large",
-        5 => "x-large",
-        6 => "xx-large",
-        7 => "xxx-large",
-        _ => unreachable!("Must be bounded by 1 and 7"),
-    };
+    let value = font_size_to_css_font(&number);
     // Step 12. Set the selection's value to value.
     selection.set_the_selection_value(cx, Some(value.into()), CommandName::FontSize, document);
     // Step 13. Return true.
@@ -147,22 +138,28 @@ pub(crate) fn value_for_fontsize_command(
         .unwrap_or_else(|| active_range.start_container())
         .effective_command_value(&CommandName::FontSize)?;
     // Step 3. Return the legacy font size for pixel size.
-    //
-    // Only in the case we have resolved to actual pixels, we need to
-    // do its conversion. In other cases, we already have the relevant
-    // font size or corresponding css value. This avoids expensive
-    // conversions of pixels to other values.
+    maybe_normalize_pixels(&command_value, document)
+}
+
+/// Only in the case we have resolved to actual pixels, we need to
+/// do its conversion. In other cases, we already have the relevant
+/// font size or corresponding css value. This avoids expensive
+/// conversions of pixels to other values.
+pub(crate) fn maybe_normalize_pixels(
+    command_value: &DOMString,
+    document: &Document,
+) -> Option<DOMString> {
     if command_value.ends_with_str("px") {
         command_value.str()[0..command_value.len() - 2]
             .parse::<f32>()
             .ok()
             .map(|value| legacy_font_size_for(value, document))
     } else {
-        Some(normalize_font_string(&command_value.str()).into())
+        Some(css_font_to_font_size(&command_value.str()).into())
     }
 }
 
-fn normalize_font_string(str_: &str) -> &str {
+fn css_font_to_font_size(str_: &str) -> &str {
     match str_ {
         "x-small" => "1",
         "small" => "2",
@@ -175,11 +172,24 @@ fn normalize_font_string(str_: &str) -> &str {
     }
 }
 
+pub(crate) fn font_size_to_css_font(value: &u32) -> &str {
+    match value {
+        1 => "x-small",
+        2 => "small",
+        3 => "medium",
+        4 => "large",
+        5 => "x-large",
+        6 => "xx-large",
+        7 => "xxx-large",
+        _ => unreachable!(),
+    }
+}
+
 /// Handles fontsize command part of
 /// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
 pub(crate) fn font_size_loosely_equivalent(first: &DOMString, second: &DOMString) -> bool {
     // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
     // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
     // > has the corresponding value set ("1" through "7" respectively).
-    normalize_font_string(&first.str()) == second || first == normalize_font_string(&second.str())
+    css_font_to_font_size(&first.str()) == second || first == css_font_to_font_size(&second.str())
 }
