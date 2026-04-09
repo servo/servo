@@ -3,6 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+#[cfg(target_os = "windows")]
+use std::fs;
+#[cfg(target_os = "windows")]
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -10,12 +14,16 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    Button, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, TopBottomPanel, Vec2,
-    WidgetInfo, WidgetType, pos2,
+    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback,
+    TopBottomPanel, Vec2, WidgetInfo, WidgetType, pos2,
 };
+#[cfg(target_os = "windows")]
+use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
+#[cfg(target_os = "windows")]
+use log::info;
 use log::warn;
 use servo::{
     DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
@@ -74,6 +82,51 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn configure_fonts() -> FontDefinitions {
+    let mut fonts = FontDefinitions::default();
+    let font_candidates = [
+        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
+        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
+    ];
+
+    let mut loaded_font_names = Vec::new();
+
+    for (path_str, font_name) in font_candidates.iter() {
+        let font_path = Path::new(path_str);
+        if font_path.exists() {
+            match fs::read(font_path) {
+                Ok(bytes) => {
+                    fonts
+                        .font_data
+                        .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
+                    loaded_font_names.push(font_name.to_string());
+                    info!("Loaded font: {}", font_name);
+                },
+                Err(error) => {
+                    info!("Failed to read font {}: {}", font_name, error);
+                },
+            }
+        }
+    }
+
+    if !loaded_font_names.is_empty() {
+        let proportional = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
+        for font_name in loaded_font_names.iter() {
+            proportional.insert(0, font_name.clone());
+        }
+    }
+
+    fonts
+}
+
+#[cfg(not(target_os = "windows"))]
+fn configure_fonts() -> FontDefinitions {
+    // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
+    // does not support CJK. Add them for Mac/Linux.
+    FontDefinitions::default()
+}
+
 impl Drop for Gui {
     fn drop(&mut self) {
         self.rendering_context
@@ -101,6 +154,9 @@ impl Gui {
             None,
             false,
         );
+
+        let font_definitions = configure_fonts();
+        context.egui_ctx.set_fonts(font_definitions);
 
         context
             .egui_winit
