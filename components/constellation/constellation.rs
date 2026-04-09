@@ -3172,6 +3172,7 @@ where
         // Forward the activation to the webview’s active pipelines (of those that represent
         // documents). For inactive pipelines (documents in bfcache), we only need to forward the
         // activation if and when they become active (see set_frame_tree_for_webview()).
+        // There are two sites like this; this is the a11y activation site.
         for pipeline_id in self.active_pipelines_for_webview(webview_id) {
             self.send_message_to_pipeline(
                 pipeline_id,
@@ -5823,6 +5824,8 @@ where
             return;
         };
         let active = webview.accessibility_active;
+        // Forward activation to layout for each active document in the WebView.
+        // There are two sites like this; this is the navigation (or bfcache traversal) site.
         for pipeline_id in self.active_pipelines_for_webview(webview_id) {
             self.send_message_to_pipeline(
                 pipeline_id,
