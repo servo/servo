@@ -84,7 +84,7 @@ impl CssPropertyName {
                             }
                         })
                         .or_else(|| {
-                            let pixels = style.clone_font().font_size.computed_size().px();
+                            let pixels = style.get_font().font_size.computed_size().px();
                             Some(format!("{}px", pixels).into())
                         });
                 },
