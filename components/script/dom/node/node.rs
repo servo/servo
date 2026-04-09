@@ -6,7 +6,6 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
-use std::cell::RefCell;
 use std::default::Default;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
@@ -269,11 +268,6 @@ pub(crate) enum ForceSlottableNodeReconciliation {
     Skip,
 }
 
-thread_local! {
-    static LOCAL_COUNTER: RefCell<u32> = RefCell::new(0);
-}
-
-
 impl Node {
     /// Adds a new child to the end of this node's list of children.
     ///
@@ -374,10 +368,6 @@ impl Node {
     /// Note that this clears layout data from all non-flat tree descendants and flat tree
     /// descendants.
     pub(crate) fn remove_layout_boxes_from_subtree(&self) {
-        LOCAL_COUNTER.with(|counter| {
-            *counter.borrow_mut() += 1;
-            println!("{}", *counter.borrow());
-        });
         for node in self.traverse_preorder(ShadowIncluding::Yes) {
             node.layout_data.borrow_mut().take();
         }
