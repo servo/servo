@@ -614,9 +614,10 @@ pub enum ScriptToConstellationMessage {
     ///
     /// The second field is a sequence number that the constellation should use
     /// when sending a focus-related message to the sender pipeline next time.
-    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
-    /// Requests the constellation to focus the specified browsing context.
-    FocusRemoteDocument(BrowsingContextId),
+    FocusAncestorBrowsingContextsForFocusingSteps(Option<BrowsingContextId>, FocusSequenceNumber),
+    /// Have the Constellation trigger a remote call to `Focus` on the `Window` of the given
+    /// [`BrowsingContextId`].
+    FocusRemoteBrowsingContext(BrowsingContextId),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(BrowsingContextId, GenericSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is

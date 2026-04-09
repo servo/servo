@@ -86,7 +86,7 @@ const previewers = {
 
 // Convert debuggee value to property descriptor value
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#116>
-function createValueGrip(value) {
+function createValueGrip(value, depth = 0) {
     switch (typeof value) {
         case "undefined":
             return { valueType: "undefined" };
@@ -105,7 +105,7 @@ function createValueGrip(value) {
             return {
                 valueType: "object",
                 objectClass: value.class,
-                preview: getPreview(value),
+                preview: getPreview(value, depth),
             };
         default:
             return { valueType: "string", stringValue: String(value) };
@@ -114,7 +114,7 @@ function createValueGrip(value) {
 
 // Extract own properties from a debuggee object
 // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
-function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
+function extractOwnProperties(obj, depth, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
     const ownProperties = [];
     let totalLength = 0;
 
@@ -138,16 +138,16 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
                     enumerable: desc.enumerable ?? false,
                     writable: desc.writable ?? false,
                     isAccessor: desc.get !== undefined || desc.set !== undefined,
-                    value: createValueGrip(undefined),
+                    value: createValueGrip(undefined, depth + 1),
                 };
 
                 if (desc.value !== undefined) {
-                    prop.value = createValueGrip(desc.value);
+                    prop.value = createValueGrip(desc.value, depth + 1);
                 } else if (desc.get) {
                     try {
                         const result = desc.get.call(obj);
                         if (result && "return" in result) {
-                            prop.value = createValueGrip(result.return);
+                            prop.value = createValueGrip(result.return, depth + 1);
                         }
                     } catch (e) { }
                 }
@@ -164,7 +164,7 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
 }
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
-previewers.Function.push(function FunctionPreviewer(obj) {
+previewers.Function.push(function FunctionPreviewer(obj, depth) {
     let function_details = {
         name: obj.name,
         displayName: obj.displayName,
@@ -173,7 +173,11 @@ previewers.Function.push(function FunctionPreviewer(obj) {
         isGenerator: obj.isGeneratorFunction,
     }
 
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
+    if (depth > 1) {
+        return { kind: "Object", function: function_details };
+    }
+
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     return {
         kind: "Object",
         ownProperties,
@@ -184,7 +188,7 @@ previewers.Function.push(function FunctionPreviewer(obj) {
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
 // TODO: Add implementation for showing Array items
-previewers.Array.push(function ArrayPreviewer(obj) {
+previewers.Array.push(function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const length = lengthDescriptor ? lengthDescriptor.value : 0;
 
@@ -196,8 +200,12 @@ previewers.Array.push(function ArrayPreviewer(obj) {
 
 // Generic fallback for object previewer
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
-previewers.Object.push(function ObjectPreviewer(obj) {
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
+previewers.Object.push(function ObjectPreviewer(obj, depth) {
+    if (depth > 1) {
+       return { kind: "Object" };
+    }
+
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     return {
         kind: "Object",
         ownProperties,
@@ -205,13 +213,13 @@ previewers.Object.push(function ObjectPreviewer(obj) {
     };
 });
 
-function getPreview(obj) {
+function getPreview(obj, depth) {
     const className = obj.class;
 
     // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object.js#295>
     const typePreviewers = previewers[className] || previewers.Object;
     for (const previewer of typePreviewers) {
-        const result = previewer(obj);
+        const result = previewer(obj, depth);
         if (result) return result;
     }
 

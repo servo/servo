@@ -32,6 +32,7 @@ use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
@@ -219,43 +220,104 @@ impl HTMLElement {
     fn local_name(&self) -> &str {
         self.upcast::<Element>().local_name()
     }
-}
 
-impl Element {
     /// <https://w3c.github.io/editing/docs/execCommand/#clear-the-value>
-    fn clear_the_value(&self) {
+    fn clear_the_value(&self, cx: &mut js::context::JSContext, command: &CommandName) {
         // Step 1. Let command be the current command.
-        // TODO
+        //
+        // Passed in as argument
+
+        let node = self.upcast::<Node>();
+        let element = self.upcast::<Element>();
+
         // Step 2. If element is not editable, return the empty list.
-        // TODO
+        if !node.is_editable() {
+            return;
+        }
         // Step 3. If element's specified command value for command is null,
         // return the empty list.
-        // TODO
+        if element.specified_command_value(command).is_none() {
+            return;
+        }
         // Step 4. If element is a simple modifiable element:
-        // TODO
-        // Step 5. If command is "strikethrough", and element has a style attribute
-        // that sets "text-decoration" to some value containing "line-through",
-        // delete "line-through" from the value.
-        // TODO
-        // Step 6. If command is "underline", and element has a style attribute that
-        // sets "text-decoration" to some value containing "underline", delete "underline" from the value.
-        // TODO
+        if element.is_simple_modifiable_element() {
+            // Step 4.1. Let children be the children of element.
+            // Step 4.2. For each child in children, insert child into element's parent immediately before element, preserving ranges.
+            let element_parent = node.GetParentNode().expect("Must always have a parent");
+            for child in node.children() {
+                if element_parent.InsertBefore(cx, &child, Some(node)).is_err() {
+                    unreachable!("Must always be able to insert");
+                }
+            }
+            // Step 4.3. Remove element from its parent.
+            node.remove_self(cx);
+            // Step 4.4. Return children.
+            return;
+        }
+        match command {
+            // Step 5. If command is "strikethrough", and element has a style attribute
+            // that sets "text-decoration" to some value containing "line-through",
+            // delete "line-through" from the value.
+            CommandName::Strikethrough => {
+                let property = CssPropertyName::TextDecorationLine;
+                if property.value_for_element(cx, self) == "line-through" {
+                    // TODO: Only remove line-through
+                    property.remove_from_element(cx, self);
+                }
+            },
+            // Step 6. If command is "underline", and element has a style attribute that
+            // sets "text-decoration" to some value containing "underline", delete "underline" from the value.
+            CommandName::Underline => {
+                let property = CssPropertyName::TextDecorationLine;
+                if property.value_for_element(cx, self) == "underline" {
+                    // TODO: Only remove underline
+                    property.remove_from_element(cx, self);
+                }
+            },
+            _ => {},
+        }
         // Step 7. If the relevant CSS property for command is not null,
         // unset that property of element.
-        // TODO
+        if let Some(property) = command.relevant_css_property() {
+            property.remove_from_element(cx, self);
+        }
         // Step 8. If element is a font element:
-        // TODO
+        if self.is::<HTMLFontElement>() {
+            match command {
+                // Step 8.1. If command is "foreColor", unset element's color attribute, if set.
+                CommandName::ForeColor => {
+                    element.remove_attribute_by_name(&local_name!("color"), CanGc::from_cx(cx));
+                },
+                // Step 8.2. If command is "fontName", unset element's face attribute, if set.
+                CommandName::FontName => {
+                    element.remove_attribute_by_name(&local_name!("face"), CanGc::from_cx(cx));
+                },
+                // Step 8.3. If command is "fontSize", unset element's size attribute, if set.
+                CommandName::FontSize => {
+                    element.remove_attribute_by_name(&local_name!("size"), CanGc::from_cx(cx));
+                },
+                _ => {},
+            }
+        }
         // Step 9. If element is an a element and command is "createLink" or "unlink",
         // unset the href property of element.
-        // TODO
+        if self.is::<HTMLAnchorElement>() &&
+            matches!(command, CommandName::CreateLink | CommandName::Unlink)
+        {
+            element.remove_attribute_by_name(&local_name!("href"), CanGc::from_cx(cx));
+        }
         // Step 10. If element's specified command value for command is null,
         // return the empty list.
-        // TODO
+        if element.specified_command_value(command).is_none() {
+            // TODO
+        }
         // Step 11. Set the tag name of element to "span",
         // and return the one-node list consisting of the result.
         // TODO
     }
+}
 
+impl Element {
     /// <https://w3c.github.io/editing/docs/execCommand/#specified-command-value>
     pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<DOMString> {
         match command {
@@ -290,18 +352,7 @@ impl Element {
         let property = command.relevant_css_property()?;
         // Step 10. If element has a style attribute set, and that attribute has the effect of setting property,
         // return the value that it sets property to.
-        if let Some(value) = self
-            .style_attribute()
-            .borrow()
-            .as_ref()
-            .and_then(|declarations| {
-                let document = self.owner_document();
-                let shared_lock = document.style_shared_lock();
-                let read_lock = shared_lock.read();
-                let declarations = declarations.read_with(&read_lock);
-                property.value_set_for_style(declarations)
-            })
-        {
+        if let Some(value) = property.value_set_for_style(self) {
             return Some(value);
         }
         // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
@@ -325,6 +376,46 @@ impl Element {
             // Step 13. Return null.
             _ => None,
         }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#simple-modifiable-element>
+    fn is_simple_modifiable_element(&self) -> bool {
+        // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element with no attributes.
+        // TODO
+
+        // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element
+        // > with exactly one attribute, which is style,
+        // > which sets no CSS properties (including invalid or unrecognized properties).
+        // TODO
+
+        // > It is an a element with exactly one attribute, which is href.
+        // TODO
+
+        // > It is a font element with exactly one attribute, which is either color, face, or size.
+        // TODO
+
+        // > It is a b or strong element with exactly one attribute, which is style,
+        // > and the style attribute sets exactly one CSS property
+        // > (including invalid or unrecognized properties), which is "font-weight".
+        // TODO
+
+        // > It is an i or em element with exactly one attribute, which is style,
+        // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
+        // > which is "font-style".
+        // TODO
+
+        // > It is an a, font, or span element with exactly one attribute, which is style,
+        // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
+        // > and that property is not "text-decoration".
+        // TODO
+
+        // > It is an a, font, s, span, strike, or u element with exactly one attribute,
+        // > which is style, and the style attribute sets exactly one CSS property
+        // > (including invalid or unrecognized properties), which is "text-decoration",
+        // > which is set to "line-through" or "underline" or "overline" or "none".
+        // TODO
+
+        false
     }
 }
 
@@ -971,7 +1062,9 @@ impl Node {
             let children = current_ancestor_node.children();
             // Step 11.5. If the specified command value of current ancestor for command is not null, clear the value of current ancestor.
             if has_command_value {
-                current_ancestor.clear_the_value();
+                if let Some(html_element) = current_ancestor.downcast::<HTMLElement>() {
+                    html_element.clear_the_value(cx, command);
+                }
             }
             // Step 11.6. For every child in children:
             for child in children {
@@ -1011,17 +1104,17 @@ impl Node {
         // That's command
 
         // Step 2. If node's parent is null, abort this algorithm.
-        let Some(parent_node) = self.GetParentNode() else {
+        if self.GetParentNode().is_none() {
             return;
-        };
+        }
         // Step 3. If new value is null, abort this algorithm.
         let Some(new_value) = new_value else {
             return;
         };
         // Step 4. If node is an allowed child of "span":
         if is_allowed_child(
-            NodeOrString::String("span".to_owned()),
             NodeOrString::Node(DomRoot::from_ref(self)),
+            NodeOrString::String("span".to_owned()),
         ) {
             // Step 4.1. Reorder modifiable descendants of node's previousSibling.
             // TODO
@@ -1127,7 +1220,9 @@ impl Node {
         // Step 15. If new parent is null, let new parent be the result of calling createElement("span") on the ownerDocument of node.
         let new_parent = new_parent.unwrap_or_else(|| document.create_element(cx, "span"));
         // Step 16. Insert new parent in node's parent before node.
-        if parent_node
+        if self
+            .GetParentNode()
+            .expect("Must always have a parent")
             .InsertBefore(cx, new_parent.upcast(), Some(self))
             .is_err()
         {
@@ -3072,9 +3167,9 @@ impl SelectionExecCommandSupport for Selection {
         // Step 5. Let element list be all editable Elements effectively contained in the active range.
         // Step 6. For each element in element list, clear the value of element.
         active_range.for_each_effectively_contained_child(|child| {
-            if child.upcast::<Node>().is_editable() {
-                if let Some(element_child) = child.downcast::<Element>() {
-                    element_child.clear_the_value();
+            if child.is_editable() {
+                if let Some(element_child) = child.downcast::<HTMLElement>() {
+                    element_child.clear_the_value(cx, &command);
                 }
             }
         });
@@ -3086,8 +3181,8 @@ impl SelectionExecCommandSupport for Selection {
                 child.push_down_values(cx, &command, new_value.clone());
                 // Step 8.2. If node is an allowed child of "span", force the value of node.
                 if is_allowed_child(
-                    NodeOrString::String("span".to_owned()),
                     NodeOrString::Node(DomRoot::from_ref(child)),
+                    NodeOrString::String("span".to_owned()),
                 ) {
                     child.force_the_value(cx, &command, new_value.as_ref());
                 }

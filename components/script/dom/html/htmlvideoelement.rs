@@ -43,6 +43,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
 pub(crate) struct HTMLVideoElement {
@@ -165,7 +166,12 @@ impl HTMLVideoElement {
         // the poster attribute's value, relative to the element's node
         // document.
         // Step 4. If url is failure, then return. There is no poster frame.
-        let poster_url = match self.owner_document().encoding_parse_a_url(poster_url) {
+        let global = self.owner_global();
+        let poster_url = match self
+            .owner_document()
+            .encoding_parse_a_url(poster_url)
+            .map(|url| ensure_blob_referenced_by_url_is_kept_alive(&global, url))
+        {
             Ok(url) => url,
             Err(_) => {
                 self.htmlmediaelement.set_poster_frame(None);
@@ -178,7 +184,7 @@ impl HTMLVideoElement {
         let window = self.owner_window();
         let image_cache = window.image_cache();
         let cache_result = image_cache.get_cached_image_status(
-            poster_url.clone(),
+            poster_url.url(),
             window.origin().immutable().clone(),
             None,
         );
@@ -222,7 +228,7 @@ impl HTMLVideoElement {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn do_fetch_poster_frame(
         &self,
-        poster_url: ServoUrl,
+        poster_url: UrlWithBlobClaim,
         id: PendingImageId,
         cx: &mut js::context::JSContext,
     ) {
@@ -233,7 +239,7 @@ impl HTMLVideoElement {
         let global = self.owner_global();
         let request = RequestBuilder::new(
             Some(document.webview_id()),
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(poster_url.clone()),
+            poster_url.clone(),
             global.get_referrer(),
         )
         .destination(Destination::Image)
@@ -251,12 +257,12 @@ impl HTMLVideoElement {
         LoadBlocker::terminate(blocker, cx);
         *blocker.borrow_mut() = Some(LoadBlocker::new(
             &self.owner_document(),
-            LoadType::Image(poster_url.clone()),
+            LoadType::Image(poster_url.url()),
         ));
 
         let context = PosterFrameFetchContext::new(
             self,
-            poster_url,
+            poster_url.url(),
             id,
             request.id,
             self.global().core_resource_thread(),

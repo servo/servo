@@ -2,64 +2,48 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::local_name;
-use script_bindings::inheritance::Castable;
+use app_units::Au;
+use servo_config::pref;
 use style::attr::parse_integer;
+use style::values::computed::CSSPixelLength;
+use style::values::specified::FontSize;
 
-use crate::dom::ShadowIncluding;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::execcommand::contenteditable::{
     NodeExecCommandSupport, SelectionExecCommandSupport,
 };
-use crate::dom::html::htmlfontelement::HTMLFontElement;
-use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
-impl HTMLFontElement {
-    fn font_size_if_size_matches(&self, should_match_size: i32) -> Option<i32> {
-        if should_match_size !=
-            self.upcast::<Element>()
-                .get_int_attribute(&local_name!("size"), 0)
-        {
-            return None;
-        }
-        self.upcast::<Node>()
-            .style()
-            .map(|style| style.clone_font().font_size.computed_size().px() as i32)
-    }
-}
-
 /// <https://w3c.github.io/editing/docs/execCommand/#legacy-font-size-for>
-pub(crate) fn legacy_font_size_for(pixel_size: i32, document: &Document) -> DOMString {
-    let font_elements: Vec<DomRoot<HTMLFontElement>> = document
-        .upcast::<Node>()
-        .traverse_preorder(ShadowIncluding::No)
-        .filter_map(DomRoot::downcast::<HTMLFontElement>)
-        .collect();
+pub(crate) fn legacy_font_size_for(pixel_size: f32, document: &Document) -> DOMString {
+    let quirks_mode = document.quirks_mode();
+    let base_size = CSSPixelLength::from(Au::from_f32_px(pref!(fonts_default_size) as f32));
     // Step 1. Let returned size be 1.
     let mut returned_size = 1;
     // Step 2. While returned size is less than 7:
     while returned_size < 7 {
         // Step 2.1. Let lower bound be the resolved value of "font-size" in pixels
         // of a font element whose size attribute is set to returned size.
-        let lower_bound = font_elements
-            .iter()
-            .find_map(|font_element| font_element.font_size_if_size_matches(returned_size))
-            .unwrap_or_default();
+        let FontSize::Keyword(lower_keyword) = FontSize::from_html_size(returned_size) else {
+            unreachable!("Always computed as keyword");
+        };
+        let lower_bound = lower_keyword
+            .kw
+            .to_length_without_context(quirks_mode, base_size);
         // Step 2.2. Let upper bound be the resolved value of "font-size" in pixels
         // of a font element whose size attribute is set to one plus returned size.
-        let upper_bound = font_elements
-            .iter()
-            .find_map(|font_element| font_element.font_size_if_size_matches(returned_size + 1))
-            .unwrap_or_default();
+        let FontSize::Keyword(upper_keyword) = FontSize::from_html_size(returned_size + 1) else {
+            unreachable!("Always computed as keyword");
+        };
+        let upper_bound = upper_keyword
+            .kw
+            .to_length_without_context(quirks_mode, base_size);
         // Step 2.3. Let average be the average of upper bound and lower bound.
-        let average = (lower_bound + upper_bound) / 2;
+        let average = (lower_bound.0.px() + upper_bound.0.px()) / 2.0;
         // Step 2.4. If pixel size is less than average,
         // return the one-code unit string consisting of the digit returned size.
         //
@@ -162,7 +146,40 @@ pub(crate) fn value_for_fontsize_command(
         .first_formattable_contained_node()
         .unwrap_or_else(|| active_range.start_container())
         .effective_command_value(&CommandName::FontSize)?;
-    let pixel_size = command_value.parse::<i32>().ok()?;
     // Step 3. Return the legacy font size for pixel size.
-    Some(legacy_font_size_for(pixel_size, document))
+    //
+    // Only in the case we have resolved to actual pixels, we need to
+    // do its conversion. In other cases, we already have the relevant
+    // font size or corresponding css value. This avoids expensive
+    // conversions of pixels to other values.
+    if command_value.ends_with_str("px") {
+        command_value.str()[0..command_value.len() - 2]
+            .parse::<f32>()
+            .ok()
+            .map(|value| legacy_font_size_for(value, document))
+    } else {
+        Some(normalize_font_string(&command_value.str()).into())
+    }
+}
+
+fn normalize_font_string(str_: &str) -> &str {
+    match str_ {
+        "x-small" => "1",
+        "small" => "2",
+        "medium" => "3",
+        "large" => "4",
+        "x-large" => "5",
+        "xx-large" => "6",
+        "xxx-large" => "7",
+        _ => str_,
+    }
+}
+
+/// Handles fontsize command part of
+/// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
+pub(crate) fn font_size_loosely_equivalent(first: &DOMString, second: &DOMString) -> bool {
+    // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
+    // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
+    // > has the corresponding value set ("1" through "7" respectively).
+    normalize_font_string(&first.str()) == second || first == normalize_font_string(&second.str())
 }
