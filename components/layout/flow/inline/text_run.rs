@@ -500,7 +500,7 @@ impl TextRun {
                 &layout_context.font_context,
                 character,
                 next_character,
-                x_lang.clone(),
+                language,
             ) else {
                 continue;
             };

@@ -97,6 +97,16 @@ impl Actor for HighlighterActor {
 }
 
 impl HighlighterActor {
+    pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
+            browsing_context_name,
+        };
+        registry.register::<Self>(actor);
+        name
+    }
+
     fn instruct_script_thread_to_highlight_node(
         &self,
         node_name: Option<String>,
