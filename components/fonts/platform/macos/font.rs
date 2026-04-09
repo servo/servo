@@ -472,17 +472,17 @@ impl Font {
         // the value stored in the HTML lang attribute is a BCP 47 language tag. These two
         // formats are generally compatible, but we may need to make refinements here in
         // the future.
-        let language = CFString::from_str(&options.lang.0);
+        let language = if !options.language.is_empty() {
+            Some(&*CFString::from_str(options.language.as_str()))
+        } else {
+            None
+        };
         let string = CFString::from_str(&options.character.to_string());
         let font = unsafe {
             self.handle.ctfont.for_string_with_language(
                 &string,
                 CFRange::new(0, string.length()),
-                if !options.lang.0.is_empty() {
-                    Some(&*language)
-                } else {
-                    None
-                },
+                language,
             )
         };
 

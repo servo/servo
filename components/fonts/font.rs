@@ -32,7 +32,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
-use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight, XLang};
+use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
@@ -596,7 +596,7 @@ impl Deref for FontRef {
 pub struct FallbackKey {
     script: Script,
     unicode_block: Option<UnicodeBlock>,
-    lang: XLang,
+    language: Language,
 }
 
 impl FallbackKey {
@@ -604,7 +604,7 @@ impl FallbackKey {
         Self {
             script: Script::from(options.character),
             unicode_block: options.character.block(),
-            lang: options.lang.clone(),
+            language: options.language,
         }
     }
 }
@@ -652,7 +652,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
-        lang: XLang,
+        language: Language,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -662,7 +662,7 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, lang);
+        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, language);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
