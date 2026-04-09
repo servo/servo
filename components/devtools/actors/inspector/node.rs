@@ -258,6 +258,26 @@ impl Actor for NodeActor {
     }
 }
 
+impl NodeActor {
+    pub fn register(
+        registry: &ActorRegistry,
+        script_chan: GenericSender<DevtoolScriptControlMsg>,
+        pipeline: PipelineId,
+        walker: String,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
+            script_chan,
+            pipeline,
+            walker,
+            style_rules: AtomicRefCell::new(HashMap::new()),
+        };
+
+        registry.register(actor);
+        name
+    }
+}
 pub trait NodeInfoToProtocol {
     fn encode(
         self,
@@ -278,17 +298,9 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let get_or_register_node_actor = |id: &str| {
             if !registry.script_actor_registered(id.to_string()) {
-                let node_name = registry.new_name::<NodeActor>();
+                let node_name =
+                    NodeActor::register(registry, script_chan.clone(), pipeline, walker.clone());
                 registry.register_script_actor(id.to_string(), node_name.clone());
-
-                let node_actor = NodeActor {
-                    name: node_name.clone(),
-                    script_chan: script_chan.clone(),
-                    pipeline,
-                    walker: walker.clone(),
-                    style_rules: AtomicRefCell::new(HashMap::new()),
-                };
-                registry.register(node_actor);
                 node_name
             } else {
                 registry.script_to_actor(id.to_string())
