@@ -111,8 +111,7 @@ impl Actor for InspectorActor {
 
 impl InspectorActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let highlighter_name =
-            HighlighterActor::register(registry, browsing_context_name.clone());
+        let highlighter_name = HighlighterActor::register(registry, browsing_context_name.clone());
 
         let page_style_actor = PageStyleActor {
             name: registry.new_name::<PageStyleActor>(),
