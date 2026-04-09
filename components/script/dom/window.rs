@@ -145,6 +145,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::CustomElementRegistry;
+use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
 use crate::dom::document::{
     AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
 };
@@ -1274,23 +1275,34 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
-    fn Focus(&self) {
-        // > 1. Let `current` be this `Window` object's browsing context.
-        // >
-        // > 2. If `current` is null, then return.
-        let current = match self.undiscarded_window_proxy() {
-            Some(proxy) => proxy,
-            None => return,
-        };
+    fn Focus(&self, cx: &mut js::context::JSContext) {
+        // Step 1. Let current be this's navigable.
+        // Note: We don't necessarily have access to the navigable, because it might
+        // be in another process.
 
-        // > 3. Run the focusing steps with `current`.
-        current.focus();
-
-        // > 4. If current is a top-level browsing context, user agents are
-        // >    encouraged to trigger some sort of notification to indicate to
-        // >    the user that the page is attempting to gain focus.
+        // Step 2. If current is null, then return.
         //
-        // TODO: Step 4
+        // Note: This is equivalent to there being an active `Document` and the WindowProxy
+        // not being discarded due to the parent <iframe> being removed from its `Document`.
+        let document = self.Document();
+        if !document.is_active() || self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 3. If the allow focus steps given current's active document return false, then return.
+        // TODO: Implement this.
+
+        // Step 4. Run the focusing steps with current.
+        document.focus_handler().focus(
+            FocusOperation::Focus(FocusableArea::Viewport),
+            FocusInitiator::Local,
+            CanGc::from_cx(cx),
+        );
+
+        // Step 5. If current is a top-level traversable, user agents are encouraged to trigger some
+        // sort of notification to indicate to the user that the page is attempting to gain focus.
+        //
+        // Note: We currently don't do this. Most browsers don't.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-blur>
