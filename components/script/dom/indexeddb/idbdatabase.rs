@@ -175,47 +175,62 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         &self,
         store_names: StringOrStringSequence,
         mode: IDBTransactionMode,
-        _options: &IDBTransactionOptions,
+        options: &IDBTransactionOptions,
     ) -> Fallible<DomRoot<IDBTransaction>> {
-        // FIXIME:(arihant2math) use options
-        // Step 1: Check if upgrade transaction is running
-        // FIXME:(rasviitanen)
+        // Step 1. If a live upgrade transaction is associated with the connection,
+        // throw an "InvalidStateError" DOMException.
+        if self.upgrade_transaction.get().is_some() {
+            return Err(Error::InvalidState(None));
+        }
 
-        // Step 2: if close pending flag is set, throw error
+        // Step 2. If this’s close pending flag is true, then throw an
+        // "InvalidStateError" DOMException.
         if self.close_pending.get() {
             return Err(Error::InvalidState(None));
         }
 
-        // Step 3
-        let transaction = match store_names {
-            StringOrStringSequence::String(name) => IDBTransaction::new(
-                &self.global(),
-                self,
-                mode,
-                &DOMStringList::new(&self.global(), vec![name], CanGc::note()),
-                CanGc::note(),
-            ),
-            StringOrStringSequence::StringSequence(sequence) => {
-                // FIXME:(rasviitanen) Remove eventual duplicated names
-                // from the sequence
-                IDBTransaction::new(
-                    &self.global(),
-                    self,
-                    mode,
-                    &DOMStringList::new(&self.global(), sequence, CanGc::note()),
-                    CanGc::note(),
-                )
-            },
+        // Step 3. Let scope be the set of unique strings in storeNames if it is
+        // a sequence, or a set containing one string equal to storeNames otherwise.
+        let mut scope = match store_names {
+            StringOrStringSequence::String(name) => vec![name],
+            StringOrStringSequence::StringSequence(sequence) => sequence,
         };
+        scope.sort_unstable_by(|left, right| {
+            left.str().encode_utf16().cmp(right.str().encode_utf16())
+        });
+        scope.dedup();
 
-        // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
-        // Step 6: If mode is not "readonly" or "readwrite", throw a TypeError.
+        // Step 4. If any string in scope is not the name of an object store in
+        // the connected database, throw a "NotFoundError" DOMException.
+        if scope.iter().any(|name| !self.object_store_exists(name)) {
+            return Err(Error::NotFound(None));
+        }
+
+        // Step 5. If scope is empty, throw an "InvalidAccessError" DOMException.
+        if scope.is_empty() {
+            return Err(Error::InvalidAccess(None));
+        }
+
+        // Step 6. If mode is not "readonly" or "readwrite", throw a TypeError.
         if mode != IDBTransactionMode::Readonly && mode != IDBTransactionMode::Readwrite {
             return Err(Error::Type(c"Invalid transaction mode".to_owned()));
         }
 
-        // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
-        // Step 8: Set transaction’s cleanup event loop to the current event loop.
+        // Step 7. Let transaction be a newly created transaction with this
+        // connection, mode, options’ durability member, and the set of object
+        // stores named in scope.
+        let durability = options.durability;
+        let scope = DOMStringList::new(&self.global(), scope, CanGc::note());
+        let transaction = IDBTransaction::new(
+            &self.global(),
+            self,
+            mode,
+            durability,
+            &scope,
+            CanGc::note(),
+        );
+
+        // Step 8. Set transaction’s cleanup event loop to the current event loop.
         transaction.set_cleanup_event_loop();
         // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
         // NOTE: These steps are invoked by [HTML]. They ensure that transactions created
@@ -227,6 +242,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .get_indexeddb()
             .register_indexeddb_transaction(&transaction);
 
+        // Step 9. Return an IDBTransaction object representing transaction.
         Ok(transaction)
     }
 
