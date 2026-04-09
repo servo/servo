@@ -181,6 +181,7 @@ impl DiskCache {
     }
 
     /// Restores a cache entry from the disk if it exists.
+    #[servo_tracing::instrument(skip(self))]
     pub(crate) async fn get(&self, key: CacheKey) -> Option<Arc<TokioRwLock<Vec<CachedResource>>>> {
         let bytes = {
             // we lock the metadata before we update the sqlite database so that
@@ -239,6 +240,7 @@ impl DiskCache {
     }
 
     /// Stores a [`CacheEntry`]` to disk.
+    #[servo_tracing::instrument(skip(self))]
     pub(crate) async fn store(&self, key: CacheKey, entry: CacheEntry) {
         let data_to_serialize = entry.read().await;
         let Ok(data) = postcard::to_stdvec(&*data_to_serialize) else {
@@ -278,6 +280,7 @@ impl DiskCache {
     }
 
     /// Deletes data from the cache until the size is <= max_size
+    #[servo_tracing::instrument(skip(self))]
     async fn delete_until_cache_size(&self) {
         let mut inner = self.inner.lock().await;
         let mut keys_to_delete = vec![];
@@ -304,6 +307,7 @@ impl DiskCache {
     }
 
     /// Queries the current disk cache size from the sql database.
+    #[servo_tracing::instrument(skip(self))]
     fn get_disk_cache_total_size(&self, conn: &rusqlite::Connection) -> Option<usize> {
         let (size, size_values) = Query::select()
             .expr(Expr::col(DiskCacheTable::Size).sum())
@@ -322,6 +326,7 @@ impl DiskCache {
     }
 
     /// Clears the disk cache.
+    #[servo_tracing::instrument(skip(self))]
     pub(crate) fn clear(&self) {
         let mut inner = self.inner.blocking_lock();
         let (query, params) = Query::delete()

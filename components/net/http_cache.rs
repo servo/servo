@@ -940,6 +940,7 @@ impl HttpCache {
 
     /// If the value exist in the cache, return it. If the value does not exist, return a guard you can use to insert values in the cache.
     /// If the guard is alive, all other accesses to this function will block.
+    #[servo_tracing::instrument(skip(self))]
     pub async fn get_or_guard(&self, entry_key: CacheKey) -> CachedResourcesOrGuard<'_> {
         let guard_or_value = self.entries.get_value_or_guard_async(&entry_key).await;
         if let Ok(value) = guard_or_value {
@@ -966,6 +967,7 @@ impl HttpCache {
 
     /// Stores the http cache to disk if enabled.
     /// This will consume the in memory cache.
+    #[servo_tracing::instrument(skip(self))]
     pub fn store_to_disk(&self) {
         if let Some(disk_cache) = &self.disk_cache {
             disk_cache.store_cache_to_disk(self.entries.drain())
