@@ -978,6 +978,16 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         result = self.evaluate_and_capture_console_log_output("log_booleans();")
         self.assertEquals(result["arguments"], [True, False, True, False])
 
+    def test_console_log_numbers(self):
+        script_tag = "<script>let log_numbers = () => console.log(1/0, -1/0, 0/0, -0, 1);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_numbers();")
+
+        self.assertEquals(
+            result["arguments"], [{"type": "Infinity"}, {"type": "-Infinity"}, {"type": "NaN"}, {"type": "-0"}, 1.0]
+        )
+
     def test_console_log_sprintf_substitutions(self):
         script_tag = (
             "<script>let log_sprintf = () => "
