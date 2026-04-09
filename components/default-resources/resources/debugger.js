@@ -178,7 +178,7 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
     let function_details = {
         name: obj.name,
         displayName: obj.displayName,
-        parameterNames: obj.parameterNames,
+        parameterNames: obj.parameterNames ? obj.parameterNames: [],
         isAsync: obj.isAsyncFunction,
         isGenerator: obj.isGeneratorFunction,
     }
@@ -192,7 +192,7 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
         kind: "Object",
         ownProperties,
         ownPropertiesLength,
-        function: funtion_details
+        function: function_details
     };
 });
 
