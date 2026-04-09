@@ -3160,6 +3160,8 @@ where
         };
 
         webview.accessibility_active = active;
+        // Notify libservo of the updated TreeId, so it can update the WebView-to-pipeline graft node.
+        // There are three sites like this; this is the a11y activation site.
         self.constellation_to_embedder_proxy.send(
             ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
                 webview_id,
@@ -5801,6 +5803,8 @@ where
             if let Some(webview) = self.webviews.get_mut(&webview_id) {
                 if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
                     webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
+                    // Notify libservo of the updated TreeId, so it can update the WebView-to-pipeline graft node.
+                    // There are three sites like this; this is the navigation (or bfcache traversal) site.
                     self.constellation_to_embedder_proxy.send(
                         ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
                             webview_id,

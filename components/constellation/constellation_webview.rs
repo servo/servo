@@ -67,6 +67,8 @@ impl ConstellationWebView {
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
+        // Notify libservo of the updated TreeId, so it can update the WebView-to-pipeline graft node.
+        // There are three sites like this; this is the WebView creation site.
         embedder_proxy.send(
             ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
                 webview_id,
