@@ -563,7 +563,7 @@ where
             start_offset -= old_index;
         }
         if end_node == old_parent && (end_offset == old_index || end_offset == old_index + 1) {
-            end_node = new_parent.clone();
+            end_node = new_parent;
             end_offset += new_index;
             end_offset -= old_index;
         }
