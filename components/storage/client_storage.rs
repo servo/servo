@@ -305,6 +305,7 @@ impl RegistryEngine for SqliteEngine {
     ) -> Result<(PathBuf, bool), ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
 
+        // TODO: combine this into a single query (utilizing WITH and a join).
         let database_id: i64 = tx
             .query_row(
                 "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
@@ -416,7 +417,7 @@ impl RegistryEngine for SqliteEngine {
                 // Step 3.1: Assert: type is "session".
                 let Some(webview) = webview else {
                     debug_assert!(false, "Session storage is only available on Window.");
-                    return Err(ClientStorageErrorr::WrongStorageType);
+                    return Err(ClientStorageErrorr::SessionStorageRequiresWindow);
                 };
 
                 // Step 3.2: Set shed to environment’s global object’s associated Document’s

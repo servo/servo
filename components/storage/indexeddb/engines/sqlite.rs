@@ -111,7 +111,6 @@ impl SqliteEngine {
     }
 
     fn init_db(path: &Path, db_info: &IndexedDBDescription) -> Result<Connection, Error> {
-        println!("Opening connection at path: {:?}", path);
         let connection = Connection::open(path)?;
         if connection.table_exists(None, "database")? {
             // Database already exists, no need to initialize
@@ -811,7 +810,6 @@ mod tests {
             .recv()
             .unwrap()
             .unwrap();
-        println!("PAth: {:?}", path);
         (tmp_dir, path, created, storage_proxy_map, handle)
     }
 

@@ -172,7 +172,7 @@ pub enum ClientStorageErrorr<T> {
     DatabaseDoesNotExist,
     DirectoryCreationFailed,
     DirectoryDeletionFailed,
-    WrongStorageType,
+    SessionStorageRequiresWindow,
     Internal(T),
 }
 
