@@ -75,7 +75,7 @@ futures-util = { version = "0.3", default-features = false }
 gleam = "0.15"
 glib = "0.22"
 glib-sys = "0.22"
-glow = "0.16.0"
+glow = "0.17.0"
 gstreamer = { version = "0.25", features = ["v1_18"] }
 gstreamer-app = "0.25"
 gstreamer-audio = "0.25"
@@ -180,7 +180,7 @@ stylo_dom = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c41
 stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
 stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
 stylo_traits = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
-surfman = { version = "0.11.0", features = ["chains"] }
+surfman = { version = "0.12.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.10", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
@@ -376,12 +376,6 @@ codegen-units = 1
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }
-#
-# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
-# This is only used in servoshell.
-# TODO: When these are no longer needed remove the exception in deny.toml as well.
-egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
 #
 # Or for Stylo:
 #

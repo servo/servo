@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::Path;
-use std::sync::Arc;
 
 use egui::{
     Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2, pos2,
 };
-use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
+use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog, Filter};
 use euclid::Length;
 use log::{error, warn};
 use servo::{
@@ -64,18 +63,16 @@ impl Dialog {
         let mut dialog = EguiFileDialog::new();
         if !file_picker.filter_patterns().is_empty() {
             let filter_patterns = file_picker.filter_patterns().to_owned();
+            let filter = Filter::new(move |path: &Path| {
+                path.extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|ext| {
+                        let ext = ext.to_lowercase();
+                        filter_patterns.iter().any(|pattern| ext == pattern.0)
+                    })
+            });
             dialog = dialog
-                .add_file_filter(
-                    "All Supported Types",
-                    Arc::new(move |path: &Path| {
-                        path.extension()
-                            .and_then(|e| e.to_str())
-                            .is_some_and(|ext| {
-                                let ext = ext.to_lowercase();
-                                filter_patterns.iter().any(|pattern| ext == pattern.0)
-                            })
-                    }),
-                )
+                .add_file_filter("All Supported Types", filter)
                 .default_file_filter("All Supported Types");
         }
 

@@ -223,13 +223,20 @@ skip = [
     "cfg-expr",
     "system-deps",
     "target-lexicon",
+
+    # Duplicated by wgpu/egui+dependencies
+    "font-types",
+    "glow",
+    "objc2-ui-kit",
+    "peniko",
+    "read-fonts",
+    "skrifa",
+    "vello_common",
+    "vello_cpu",
 ]
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
 github = [
     "servo",
-
-    # Temporarily needed by servoshell: see root Cargo.toml
-    "emilk",
 ]
