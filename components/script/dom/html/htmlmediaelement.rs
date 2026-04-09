@@ -2808,8 +2808,15 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self, cx: &mut JSContext) {
-        if self.upcast::<Element>().is_shadow_host() {
-            // Bail out if we are already showing the controls.
+        if let Some(id) = self.media_controls_id.borrow().as_ref() {
+            // The shadow tree for these elements was already created, but we still need to re-register
+            // it with the document
+            let Some(shadow_root) = self.upcast::<Element>().shadow_root() else {
+                unreachable!("Should never have a media ID without an existing shadow root");
+            };
+
+            self.owner_document()
+                .register_media_controls(&id, &shadow_root);
             return;
         }
 
@@ -2871,7 +2878,7 @@ impl HTMLMediaElement {
     }
 
     fn remove_controls(&self) {
-        if let Some(id) = self.media_controls_id.borrow_mut().take() {
+        if let Some(id) = self.media_controls_id.borrow().as_ref() {
             self.owner_document().unregister_media_controls(&id);
         }
     }
