@@ -884,6 +884,7 @@ impl LayoutThread {
 
         let accessibility_tree = &mut *accessibility_tree;
         if let Some(tree_update) = accessibility_tree.update_tree(root_element) {
+            // TODO(#4344): send directly to embedder over the pipeline_to_embedder_sender cloned from ScriptThread.
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.
