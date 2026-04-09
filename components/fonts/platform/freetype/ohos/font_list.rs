@@ -10,7 +10,8 @@ use std::sync::LazyLock;
 use std::{fs, io};
 
 use log::{debug, error, warn};
-use read_fonts::{FileRef, FontRef, TableProvider, FileRef::{Font as OHOS_Font, Collection}};
+use read_fonts::FileRef::{Collection, Font as OHOS_Font};
+use read_fonts::{FileRef, FontRef, TableProvider};
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -97,8 +98,20 @@ fn enumerate_font_files() -> io::Result<Vec<PathBuf>> {
     Ok(font_list)
 }
 
-fn detect_hos_font_style(font: &FontRef) -> Option<String> {
-    if font.post().expect("TODO. for now just POC").italic_angle() != (0 as i32).into() {
+fn detect_hos_font_style(font: &FontRef, file_path: &str) -> Option<String> {
+    // This implementation uses the postscript (post) table, which is one of the mandatory tables
+    // according to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html).
+    // Therefore, raise an error if Fontations fails to read this table for some reason.
+
+    // If angle is 0, then the font style is normal. otherwise, italic.
+    if font
+        .post()
+        .unwrap_or_else(|_| {
+            panic!("Failed to read {:?}'s postscript table!", file_path);
+        })
+        .italic_angle() !=
+        (0 as i32).into()
+    {
         Some("italic".to_string())
     } else {
         None
@@ -106,89 +119,38 @@ fn detect_hos_font_style(font: &FontRef) -> Option<String> {
 }
 
 fn detect_hos_font_weight_alias(font: &FontRef) -> Option<i32> {
-    Some(font.os2().expect("TODO. for now just POC").us_weight_class() as i32)
-}
-
-fn noto_weight_alias(alias: &str) -> Option<i32> {
-    match alias.to_ascii_lowercase().as_str() {
-        "thin" => Some(100),
-        "extralight" => Some(200),
-        "light" => Some(300),
-        "regular" => Some(400),
-        "medium" => Some(500),
-        "semibold" => Some(600),
-        "bold" => Some(700),
-        "extrabold" => Some(800),
-        "black" => Some(900),
-        _unknown_alias => {
-            warn!("Unknown weight alias `{alias}` encountered.");
-            None
-        },
+    // According to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html),
+    // os2 is an optional table. Therefore, if Fontations fails to read this table, we don't treat this as an error
+    // and we simply return `None`.
+    match font.os2() {
+        Ok(result) => Some(result.us_weight_class() as i32),
+        Err(_) => None,
     }
 }
 
 fn detect_hos_font_width(font: &FontRef) -> FontWidth {
-    let font_width = font.os2().expect("TODO. for now just POC").us_width_class().clone();
-
-    // According to https://learn.microsoft.com/en-us/typography/opentype/spec/os2#uswidthclass,
-    // value between 1 & 4 inclusive represents condensed type.
-    if font_width <= 1 && font_width >= 4 {
-        FontWidth::Condensed
-    } else {
-        FontWidth::Normal
-    }
-}
-
-/// Split a Noto font filename into the family name with spaces
-///
-/// E.g. `NotoSansTeluguUI` -> `Noto Sans Telugu UI`
-/// Or for older OH 4.1 fonts: `NotoSans_JP_Bold` -> `Noto Sans JP Bold`
-fn split_noto_font_name(name: &str) -> Vec<String> {
-    let mut name_components = vec![];
-    let mut current_word = String::new();
-    let mut chars = name.chars();
-    // To not split acronyms like `UI` or `CJK`, we only start a new word if the previous
-    // char was not uppercase.
-    let mut previous_char_was_uppercase = true;
-    if let Some(first) = chars.next() {
-        current_word.push(first);
-        for c in chars {
-            if c.is_uppercase() {
-                if !previous_char_was_uppercase {
-                    name_components.push(current_word.clone());
-                    current_word = String::new();
-                }
-                previous_char_was_uppercase = true;
-                current_word.push(c)
-            } else if c == '_' {
-                name_components.push(current_word.clone());
-                current_word = String::new();
-                previous_char_was_uppercase = true;
-                // Skip the underscore itself
+    // According to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html),
+    // os2 is an optional table. Therefore, if Fontations fails to read this table, we don't treat this as an error
+    // and we simply return `FontWidth::Normal` as a default.
+    match font.os2() {
+        Ok(result) => {
+            let font_width = result.us_width_class().clone();
+            // According to https://learn.microsoft.com/en-us/typography/opentype/spec/os2#uswidthclass,
+            // value between 1 & 4 inclusive represents condensed type.
+            if font_width >= 1 && font_width <= 4 {
+                FontWidth::Condensed
             } else {
-                previous_char_was_uppercase = false;
-                current_word.push(c)
+                FontWidth::Normal
             }
-        }
+        },
+        Err(_) => FontWidth::Normal,
     }
-    if !current_word.is_empty() {
-        name_components.push(current_word);
-    }
-    name_components
 }
 
-/// Parse the font file names to determine the available FontFamilies
-///
-/// Note: For OH 5.0+ this function is intended to only be a fallback path, if parsing the
-/// `fontconfig.json` fails for some reason. Beta 1 of OH 5.0 still has a bug in the fontconfig.json
-/// though, so the "normal path" is currently unimplemented.
-fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
-    let harmonyos_prefix = "HarmonyOS_Sans";
-
-    let weight_aliases = ["Light", "Regular", "Medium", "Bold"];
-    let style_modifiers = ["Italic"];
-    let width_modifiers = ["Condensed"];
-
+/// This function generates list of `FontFamily` based on font files with the extension `.otf`, `.ttc`, or `.otf`.
+/// If a font file's extension is .ttc, then all the font within it will be processed one by one.
+#[servo_tracing::instrument(skip_all)]
+fn get_system_font_families(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
     let mut families: HashMap<String, Vec<Font>> = HashMap::new();
 
     let font_files: Vec<PathBuf> = font_files
@@ -206,66 +168,37 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         })
         .collect();
 
-    // let harmony_os_fonts = font_files.iter().filter_map(|file_path| {
-    //     // obtain the font data
-    //     let font_bytes = File::open(file_path).and_then(|file| unsafe { memmap2::Mmap::map(&file)}).unwrap();
-
-    //     // read the font
-    //     let font = FileRef::new(&font_bytes).expect("Fontations cannot read the font file!"); // TODO: if cannot read, then continue.
-    //     match font {
-    //         OHOS_Font(f) => {
-    //             // TODO
-    //             generate_font(&f, file_path.to_str()?.to_string())
-    //         },
-    //         Collection(font_collection) => {
-    //             // TODO
-    //             // for f in font_collection.iter(){
-    //             //     generate_font(&f, file_path.to_str()?.to_string())
-    //             // }
-    //             None
-    //         },
-    //     }
-    // });
-
-    // let all_families = harmony_os_fonts;
-
     let mut all_families = Vec::new();
 
     for font_file in font_files.iter() {
-        let font_bytes = File::open(font_file).and_then(|file| unsafe { memmap2::Mmap::map(&file)}).unwrap();
-        let font: FileRef = FileRef::new(&font_bytes).unwrap(); // TODO: if cannot read, then continue.
+        let Ok(font_bytes) =
+            File::open(font_file).and_then(|file| unsafe { memmap2::Mmap::map(&file) })
+        else {
+            continue;
+        };
+        let Ok(file_ref) = FileRef::new(&font_bytes) else {
+            continue;
+        };
 
-        match font {
-            OHOS_Font(f) => {
-                let res = generate_font(&f, font_file.to_str().expect("TODO. just POC").to_string());
-                match res {
-                    Some(r) => {all_families.push(r)},
-                    _ => {} // Do nothing.
-                };
+        match file_ref {
+            OHOS_Font(font) => {
+                if let Some(result) = get_family_name_and_generate_font_struct(&font, &font_file) {
+                    all_families.push(result);
+                }
             },
             Collection(font_collection) => {
-                // for f in font_collection.iter(){
-                //     let res = generate_font(&(f.unwrap()), font_file.to_str().expect("TODO. just POC").to_string());
-                //     match res {
-                //         Some(r) => {all_families.push(r)},
-                //         _ => {} // Do nothing.
-                //     };
-                // }
-
-                let res = generate_font(&(font_collection.get(0).unwrap()), font_file.to_str().expect("TODO. just POC").to_string());
-                    match res {
-                        Some(r) => {
-                            if let Some((remaining, _last_word)) = r.0.rsplit_once(' '){
-                                all_families.push((remaining.to_string(), r.1));
-                            }
-                        },
-                        _ => {} // Do nothing.
+                // Process all the font files within the collection one by one.
+                for f in font_collection.iter() {
+                    if let Some(result) =
+                        get_family_name_and_generate_font_struct(&(f.unwrap()), &font_file)
+                    {
+                        all_families.push(result);
                     };
-            }
+                }
+            },
         }
     }
 
-    log::error!("number of system font detected: {:?}", all_families.len());
     for (family_name, font) in all_families {
         if let Some(font_list) = families.get_mut(&family_name) {
             font_list.push(font);
@@ -280,27 +213,47 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         .collect()
 }
 
-fn generate_font(f: &FontRef, file_path_str: String)-> Option<(String, Font)> {
-    let style = detect_hos_font_style(&f); // maybe use the postscript (post) table. if angle is 0, then normal. else, italic.
-    let weight = detect_hos_font_weight_alias(&f); // use os2 table.
-    let width = detect_hos_font_width(&f); // use os2 table.
+fn get_family_name_and_generate_font_struct(
+    font_ref: &FontRef,
+    file_path: &PathBuf,
+) -> Option<(String, Font)> {
+    // Parse the file path to string. If this fails, then skip this font.
+    let Some(file_path_string_slice) = file_path.to_str() else {
+        return None;
+    };
+    let file_path_str = file_path_string_slice.to_string();
 
-    let family_name = f.name().expect("TODO. just a POC").name_record().iter()
-            .filter(|record| record.name_id().to_u16() == 1)
-            .find_map(|record| {
-                record
-                    .string(f.name().expect("TODO. just a POC").string_data())
-                    .ok()
-                    .map(|s| s.to_string())
-            });
-    log::error!("[font_list.rs]: family name: {:?}", family_name);
+    // Obtain the font's styling
+    let style = detect_hos_font_style(font_ref, file_path_string_slice);
+    let weight = detect_hos_font_weight_alias(font_ref);
+    let width = detect_hos_font_width(font_ref);
+
+    // Get the family name via the name table. According to TrueType's reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html),
+    // the name table is a mandatory table. Therefore, if Fontations fails to read this table for whatever reason, return `None` to skip this font altogether.
+    let Ok(font_name_table) = font_ref.name() else {
+        return None;
+    };
+    let Some(family_name) = font_name_table
+        .name_record()
+        .iter()
+        .filter(|record| record.name_id().to_u16() == 1) // According to the reference manual, name identifier code (nameID) `1` is the font family name.
+        .find_map(|record| {
+            record
+                .string(font_name_table.string_data())
+                .ok()
+                .map(|s| s.to_string())
+        })
+    else {
+        return None;
+    };
+
     let font = Font {
         filepath: file_path_str,
         weight,
         style,
         width,
     };
-    Some((family_name?, font)) // TODO: fix this mess.
+    Some((family_name, font))
 }
 
 impl FontList {
@@ -315,7 +268,7 @@ impl FontList {
     fn detect_installed_font_families() -> Vec<FontFamily> {
         let mut families = enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
-            .map(parse_font_filenames)
+            .map(get_system_font_families)
             .unwrap_or_else(|_| FontList::fallback_font_families());
         families.extend(Self::hardcoded_font_families());
         families
@@ -549,20 +502,23 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             UnicodeBlock::HangulJamoExtendedA |
             UnicodeBlock::HangulJamoExtendedB |
             UnicodeBlock::HangulSyllables => {
-                families.push("Noto Sans CJK");
-                families.push("Noto Serif CJK");
+                families.push("Noto Sans CJK KR");
+                families.push("Noto Sans Mono CJK KR");
+                families.push("Noto Serif CJK KR");
                 families.push("Noto Sans KR");
             },
             UnicodeBlock::Hiragana |
             UnicodeBlock::Katakana |
             UnicodeBlock::KatakanaPhoneticExtensions => {
-                families.push("Noto Sans CJK");
-                families.push("Noto Serif CJK");
+                families.push("Noto Sans CJK JP");
+                families.push("Noto Sans Mono CJK JP");
+                families.push("Noto Serif CJK JP");
                 families.push("Noto Sans JP");
             },
             UnicodeBlock::HalfwidthandFullwidthForms => {
                 families.push("HarmonyOS Sans SC");
-                families.push("Noto Sans CJK");
+                families.push("Noto Sans CJK SC");
+                families.push("Noto Sans Mono CJK SC");
             },
             _ => {},
         }
@@ -596,31 +552,14 @@ mod test {
     use std::path::PathBuf;
 
     #[test]
-    fn split_noto_font_name_test() {
-        use super::split_noto_font_name;
-        assert_eq!(
-            split_noto_font_name("NotoSansSinhala"),
-            vec!["Noto", "Sans", "Sinhala"]
-        );
-        assert_eq!(
-            split_noto_font_name("NotoSansTamilUI"),
-            vec!["Noto", "Sans", "Tamil", "UI"]
-        );
-        assert_eq!(
-            split_noto_font_name("NotoSerifCJK"),
-            vec!["Noto", "Serif", "CJK"]
-        );
-    }
-
-    #[test]
-    fn test_parse_font_filenames() {
-        use super::parse_font_filenames;
-        let families = parse_font_filenames(vec![PathBuf::from("NotoSansCJK-Regular.ttc")]);
+    fn test_get_system_font_families() {
+        use super::get_system_font_families;
+        let families = get_system_font_families(vec![PathBuf::from("NotoSansCJK-Regular.ttc")]);
         assert_eq!(families.len(), 1);
         let family = families.first().unwrap();
         assert_eq!(family.name, "Noto Sans CJK".to_string());
 
-        let families = parse_font_filenames(vec![
+        let families = get_system_font_families(vec![
             PathBuf::from("NotoSerifGeorgian[wdth,wght].ttf"),
             PathBuf::from("HarmonyOS_Sans_Naskh_Arabic_UI.ttf"),
             PathBuf::from("HarmonyOS_Sans_Condensed.ttf"),
@@ -631,34 +570,6 @@ mod test {
             PathBuf::from("NotoSansDevanagariUI-SemiBold.ttf"),
         ]);
         assert_eq!(families.len(), 4);
-    }
-
-    #[test]
-    fn test_parse_noto_sans_phags_pa() {
-        use super::parse_font_filenames;
-
-        let families = parse_font_filenames(vec![PathBuf::from("NotoSansPhags-Pa-Regular.ttf")]);
-        let family = families.first().unwrap();
-        assert_eq!(family.name, "Noto Sans Phags Pa");
-    }
-
-    #[test]
-    fn test_old_noto_sans() {
-        use super::parse_font_filenames;
-
-        let families = parse_font_filenames(vec![
-            PathBuf::from("NotoSans_JP_Regular.otf"),
-            PathBuf::from("NotoSans_KR_Regular.otf"),
-            PathBuf::from("NotoSans_JP_Bold.otf"),
-        ]);
-        assert_eq!(families.len(), 2, "actual families: {families:?}");
-        let first_family = families.first().unwrap();
-        let second_family = families.last().unwrap();
-        // We don't have a requirement on the order of the family names,
-        // we just want to test existence.
-        let names = [first_family.name.as_str(), second_family.name.as_str()];
-        assert!(names.contains(&"Noto Sans JP"));
-        assert!(names.contains(&"Noto Sans KR"));
     }
 
     #[test]
