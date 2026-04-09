@@ -188,6 +188,7 @@ impl DiskCache {
             // the database and metadata are consistent when this lock is released.
             let mut inner = self.inner.lock().await;
             let (bytes, new_size) = {
+                let _span = profile_traits::trace_span!("query disk cache").entered();
                 let (query, query_values) = Query::select()
                     .columns([DiskCacheTable::Data])
                     .from(DiskCacheTable::Table)
@@ -232,7 +233,7 @@ impl DiskCache {
             }
             bytes
         };
-
+        let _span = profile_traits::trace_span!("deserialize cache request").entered();
         let value: Vec<CachedResource> = postcard::from_bytes(&bytes).unwrap();
         let deserialized_vec_cached_response = std::sync::Arc::new(TokioRwLock::new(value));
 
