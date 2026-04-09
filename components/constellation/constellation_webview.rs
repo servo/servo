@@ -69,6 +69,9 @@ impl ConstellationWebView {
     ) -> Self {
         // Notify libservo of the updated TreeId, so it can update the WebView-to-pipeline graft node.
         // There are three sites like this; this is the WebView creation site.
+        // TODO(#4344): this seems necessary to avoid flaky failures in test_accessibility_after_navigate_and_back()
+        // and maybe test_navigate_creates_new_accessibility_update(), but we’re not sure why. On the other hand, it
+        // seems to cause duplicate webview graft updates in test_basic_accessibility_update().
         embedder_proxy.send(
             ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
                 webview_id,

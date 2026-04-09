@@ -838,7 +838,8 @@ impl WebView {
             .inner_mut()
             .grafted_accesskit_tree_id
             .replace(grafted_tree_id);
-        // TODO(accessibility): try to avoid duplicate notifications in the first place?
+        // TODO(#4344): try to avoid duplicate notifications in the first place?
+        // (see ConstellationWebView::new for more details)
         if old_grafted_tree_id == Some(grafted_tree_id) {
             return;
         }
