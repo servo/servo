@@ -158,6 +158,7 @@ impl DiskCache {
     /// It is filled with all
     /// the responses except `number_of_responses` which were read from the
     /// [`DiskCache`] and then removed and returned for adding to the memory cache.
+    #[expect(clippy::type_complexity)]
     pub(crate) fn maybe_from_disk(
         _number_of_responses: usize,
     ) -> (
@@ -316,7 +317,6 @@ impl DiskCache {
             .build_rusqlite(SqliteQueryBuilder);
         let mut st = conn.prepare(size.as_str()).unwrap();
 
-        error!("Size Query {}", size.to_string());
         let query_result = st.query_one(&*size_values.as_params(), |row| Ok(row.get_unwrap(0)));
         if let Err(query_result) = query_result {
             error!("Could nto get new sum size {}", query_result);
