@@ -678,6 +678,8 @@ impl RunningAppState {
 
         for window in self.windows().values() {
             for (_, webview) in window.webviews() {
+                // Activate accessibility in the WebView.
+                // There are two sites like this; this is the a11y activation site.
                 webview.set_accessibility_active(active);
             }
         }
