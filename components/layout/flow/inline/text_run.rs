@@ -6,7 +6,6 @@ use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
 
-use style::Zero;
 use app_units::Au;
 use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
@@ -421,78 +420,15 @@ impl TextRun {
         bidi_info: &BidiInfo,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
-        let inherited_text_style = parent_style.get_inherited_text().clone();
-        let font_size = parent_style.get_font().font_size.computed_size();
-        let word_spacing = inherited_text_style
-            .word_spacing
-            .to_used_value(font_size.into());
-        let letter_spacing = inherited_text_style
-            .letter_spacing
-            .0
-            .to_used_value(font_size.into());
-        let letter_spacing = if !letter_spacing.is_zero() {
-            Some(letter_spacing)
-        } else {
-            None
-        };
-        let language = parent_style
-            .get_font()
-            ._x_lang
-            .0
-            .parse()
-            .unwrap_or(Language::UND);
-
-        let mut flags = ShapingFlags::empty();
-        if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-            flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+        let mut segments = self.segment_text_by_font(
+            layout_context,
+            formatting_context_text,
+            bidi_info,
+            &parent_style,
+        );
+        for segment in segments.iter_mut() {
+            segment.shape_text(&parent_style, formatting_context_text, linebreaker);
         }
-
-        let segments = self
-            .segment_text_by_font(
-                layout_context,
-                formatting_context_text,
-                bidi_info,
-                &parent_style,
-            )
-            .into_iter()
-            .map(|mut segment| {
-                let mut flags = flags;
-                if segment.info.bidi_level.is_rtl() {
-                    flags.insert(ShapingFlags::RTL_FLAG);
-                }
-
-                // From https://www.w3.org/TR/css-text-3/#cursive-script:
-                // Cursive scripts do not admit gaps between their letters for either
-                // justification or letter-spacing.
-                let letter_spacing = if is_cursive_script(segment.info.script) {
-                    None
-                } else {
-                    letter_spacing
-                };
-                if letter_spacing.is_some() {
-                    flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-                };
-
-                let shaping_options = ShapingOptions {
-                    letter_spacing,
-                    word_spacing: Some(word_spacing),
-                    script: segment.info.script,
-                    language,
-                    flags,
-                };
-
-                segment.shape_text(
-                    &parent_style,
-                    formatting_context_text,
-                    linebreaker,
-                    &shaping_options,
-                );
-
-                segment
-            })
-            .collect();
-
         let _ = std::mem::replace(&mut self.shaped_text, segments);
     }
 
@@ -516,15 +452,15 @@ impl TextRun {
         let language = x_lang.0.parse().unwrap_or(Language::UND);
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
-        
+
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
-        let font_size = parent_style.get_font().font_size.computed_size();
-        let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size.into());
+        let font_size = parent_style.get_font().font_size.computed_size().into();
+        let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size);
         let letter_spacing = inherited_text_style
             .letter_spacing
             .0
-            .to_used_value(font_size.into());
+            .to_used_value(font_size);
         let letter_spacing = if !letter_spacing.is_zero() {
             Some(letter_spacing)
         } else {
