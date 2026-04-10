@@ -13,7 +13,7 @@ use crate::dom::document::Document;
 use crate::dom::event::Event;
 use crate::dom::event::inputevent::InputEvent;
 use crate::dom::execcommand::basecommand::CommandName;
-use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
+use crate::dom::execcommand::commands::fontsize::maybe_normalize_pixels;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::selection::Selection;
@@ -194,10 +194,7 @@ impl DocumentExecCommandSupport for Document {
                 // Step 2. If command is "fontSize" and its value override is set,
                 // convert the value override to an integer number of pixels and return the legacy font size for the result.
                 if command == CommandName::FontSize {
-                    value_override
-                        .parse::<i32>()
-                        .map(|parsed| legacy_font_size_for(parsed as f32, self))
-                        .unwrap_or(value_override)
+                    maybe_normalize_pixels(&value_override, self).unwrap_or(value_override)
                 } else {
                     value_override
                 }

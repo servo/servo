@@ -7,8 +7,12 @@ use std::ops::Deref;
 
 use html5ever::local_name;
 use script_bindings::inheritance::Castable;
+use style::attr::AttrValue;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::properties::PropertyDeclarationId;
+use style::properties::generated::{LonghandId, PropertyDeclaration};
 use style::values::specified::box_::DisplayOutside;
+use style::values::specified::text::TextDecorationLine;
 
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::cell::Ref;
@@ -30,6 +34,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
+use crate::dom::execcommand::commands::fontsize::{font_size_to_css_font, legacy_font_size_for};
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -358,7 +363,13 @@ impl Element {
         }
         // Step 11. If element is a font element that has an attribute whose effect is to create a presentational hint for property,
         // return the value that the hint sets property to. (For a size of 7, this will be the non-CSS value "xxx-large".)
-        // TODO
+        if self.is::<HTMLFontElement>() {
+            if let Some(font_size) = self.get_attribute(&local_name!("size")) {
+                if let AttrValue::UInt(_, value) = *font_size.value() {
+                    return Some(font_size_to_css_font(&value).into());
+                }
+            }
+        }
 
         // Step 12. If element is in the following list, and property is equal to the CSS property name listed for it,
         // return the string listed for it.
@@ -381,19 +392,74 @@ impl Element {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#simple-modifiable-element>
     fn is_simple_modifiable_element(&self) -> bool {
-        // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element with no attributes.
-        // TODO
+        let attrs = self.attrs();
+        let attr_count = attrs.len();
+        let type_id = self.upcast::<Node>().type_id();
 
-        // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element
-        // > with exactly one attribute, which is style,
-        // > which sets no CSS properties (including invalid or unrecognized properties).
-        // TODO
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLFontElement,
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSpanElement,
+            ))
+        ) {
+            // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element with no attributes.
+            //
+            // TODO: All elements that are HTMLElement rather than a specific one
+            if attr_count == 0 {
+                return true;
+            }
+
+            // > It is an a, b, em, font, i, s, span, strike, strong, sub, sup, or u element
+            // > with exactly one attribute, which is style,
+            // > which sets no CSS properties (including invalid or unrecognized properties).
+            if attr_count == 1 &&
+                self.attrs().first().expect("Size is 1").local_name() == &local_name!("style")
+            {
+                let style_attribute = self.style_attribute().borrow();
+                if style_attribute.as_ref().is_some_and(|declarations| {
+                    let document = self.owner_document();
+                    let shared_lock = document.style_shared_lock();
+                    let read_lock = shared_lock.read();
+                    let style = declarations.read_with(&read_lock);
+
+                    style.is_empty()
+                }) {
+                    return true;
+                }
+            }
+        }
+
+        if attr_count != 1 {
+            return false;
+        }
+
+        let only_attribute = attrs.first().expect("Size is 1").local_name();
 
         // > It is an a element with exactly one attribute, which is href.
-        // TODO
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            ))
+        ) {
+            return only_attribute == &local_name!("href");
+        }
 
         // > It is a font element with exactly one attribute, which is either color, face, or size.
-        // TODO
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLFontElement,
+            ))
+        ) {
+            return only_attribute == &local_name!("color") ||
+                only_attribute == &local_name!("face") ||
+                only_attribute == &local_name!("size");
+        }
 
         // > It is a b or strong element with exactly one attribute, which is style,
         // > and the style attribute sets exactly one CSS property
@@ -408,13 +474,55 @@ impl Element {
         // > It is an a, font, or span element with exactly one attribute, which is style,
         // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
         // > and that property is not "text-decoration".
-        // TODO
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLFontElement,
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSpanElement,
+            ))
+        ) {
+            if only_attribute != &local_name!("style") {
+                return false;
+            }
+            let style_attribute = self.style_attribute().borrow();
+            let Some(declarations) = style_attribute.as_ref() else {
+                return false;
+            };
+            let document = self.owner_document();
+            let shared_lock = document.style_shared_lock();
+            let read_lock = shared_lock.read();
+            let style = declarations.read_with(&read_lock);
 
-        // > It is an a, font, s, span, strike, or u element with exactly one attribute,
-        // > which is style, and the style attribute sets exactly one CSS property
-        // > (including invalid or unrecognized properties), which is "text-decoration",
-        // > which is set to "line-through" or "underline" or "overline" or "none".
-        // TODO
+            if style.len() == 1 {
+                if let Some((text_decoration, _)) = style.get(PropertyDeclarationId::Longhand(
+                    LonghandId::TextDecorationLine,
+                )) {
+                    // > It is an a, font, s, span, strike, or u element with exactly one attribute,
+                    // > which is style, and the style attribute sets exactly one CSS property
+                    // > (including invalid or unrecognized properties), which is "text-decoration",
+                    // > which is set to "line-through" or "underline" or "overline" or "none".
+                    //
+                    // TODO: Also the other element types
+                    return matches!(
+                        text_decoration,
+                        PropertyDeclaration::TextDecorationLine(
+                            TextDecorationLine::LINE_THROUGH |
+                                TextDecorationLine::UNDERLINE |
+                                TextDecorationLine::OVERLINE |
+                                TextDecorationLine::NONE
+                        )
+                    );
+                } else {
+                    // > It is an a, font, or span element with exactly one attribute, which is style,
+                    // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
+                    // > and that property is not "text-decoration".
+                    return true;
+                }
+            }
+        }
 
         false
     }
@@ -926,9 +1034,9 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#wrap>
-fn wrap_node_list<'a, SiblingCriteria, NewParentInstructions>(
+fn wrap_node_list<SiblingCriteria, NewParentInstructions>(
     cx: &mut js::context::JSContext,
-    node_list: &'a [&'a Node],
+    node_list: Vec<DomRoot<Node>>,
     sibling_criteria: SiblingCriteria,
     new_parent_instructions: NewParentInstructions,
 ) -> Option<DomRoot<Node>>
@@ -938,16 +1046,43 @@ where
 {
     // Step 1. If every member of node list is invisible,
     // and none is a br, return null and abort these steps.
-    // TODO
+    if node_list
+        .iter()
+        .all(|node| node.is_invisible() && !node.is::<HTMLBRElement>())
+    {
+        return None;
+    }
     // Step 2. If node list's first member's parent is null, return null and abort these steps.
-    // TODO
+    node_list.first().and_then(|first| first.GetParentNode())?;
     // Step 3. If node list's last member is an inline node that's not a br,
     // and node list's last member's nextSibling is a br, append that br to node list.
-    // TODO
+    let mut node_list = node_list;
+    if let Some(last) = node_list.last() {
+        if last.is_inline_node() && !last.is::<HTMLBRElement>() {
+            if let Some(next_of_last) = last.GetNextSibling() {
+                if next_of_last.is::<HTMLBRElement>() {
+                    node_list.push(next_of_last);
+                }
+            }
+        }
+    }
     // Step 4. While node list's first member's previousSibling is invisible, prepend it to node list.
-    // TODO
+    while let Some(previous_of_first) = node_list.first().and_then(|last| last.GetPreviousSibling())
+    {
+        if previous_of_first.is_invisible() {
+            node_list.insert(0, previous_of_first);
+            continue;
+        }
+        break;
+    }
     // Step 5. While node list's last member's nextSibling is invisible, append it to node list.
-    // TODO
+    while let Some(next_of_last) = node_list.last().and_then(|last| last.GetNextSibling()) {
+        if next_of_last.is_invisible() {
+            node_list.push(next_of_last);
+            continue;
+        }
+        break;
+    }
     // Step 6. If the previousSibling of the first member of node list is editable
     // and running sibling criteria on it returns true,
     // let new parent be the previousSibling of the first member of node list.
@@ -989,7 +1124,26 @@ where
         // Step 10.2. If any range has a boundary point with node equal
         // to the parent of new parent and offset equal to the index of new parent,
         // add one to that boundary point's offset.
-        // TODO
+        if let Some(range) = first_in_node_list
+            .owner_document()
+            .GetSelection(CanGc::from_cx(cx))
+            .and_then(|selection| selection.active_range())
+        {
+            let parent_of_new_parent = new_parent.GetParentNode().expect("Must have a parent");
+            let start_container = range.start_container();
+            let start_offset = range.start_offset();
+
+            if start_container == parent_of_new_parent && start_offset == new_parent.index() {
+                range.set_start(&start_container, start_offset + 1);
+            }
+
+            let end_container = range.end_container();
+            let end_offset = range.end_offset();
+
+            if end_container == parent_of_new_parent && end_offset == new_parent.index() {
+                range.set_start(&end_container, end_offset + 1);
+            }
+        }
     }
     // Step 12. If new parent is before the first member of node list in tree order:
     if new_parent.is_before(first_in_node_list) {
@@ -1001,7 +1155,7 @@ where
         // TODO
         // Step 12.2. For each node in node list, append node as the last child of new parent, preserving ranges.
         for node in node_list {
-            move_preserving_ranges(cx, node, |cx| new_parent.AppendChild(cx, node));
+            move_preserving_ranges(cx, &node, |cx| new_parent.AppendChild(cx, &node));
         }
     } else {
         // Step 13. Otherwise:
@@ -1026,7 +1180,39 @@ where
         original_parent.remove_self(cx);
     }
     // Step 15. If new parent's nextSibling is editable and running sibling criteria on it returns true:
-    // TODO
+    if let Some(next_of_new_parent) = new_parent.GetNextSibling() {
+        if next_of_new_parent.is_editable() && sibling_criteria(&next_of_new_parent) {
+            // Step 15.1. If new parent is not an inline node,
+            // but new parent's last child and new parent's nextSibling's first child are both inline nodes,
+            // and new parent's last child is not a br, call createElement("br") on the ownerDocument
+            // of new parent and append the result as the last child of new parent.
+            if !new_parent.is_inline_node() {
+                if let Some(last_child_of_new_parent) = new_parent.children().last() {
+                    if last_child_of_new_parent.is_inline_node() &&
+                        !last_child_of_new_parent.is::<HTMLBRElement>() &&
+                        next_of_new_parent
+                            .children()
+                            .next()
+                            .is_some_and(|first| first.is_inline_node())
+                    {
+                        let new_br_element = new_parent.owner_document().create_element(cx, "br");
+                        if new_parent.AppendChild(cx, new_br_element.upcast()).is_err() {
+                            unreachable!("Must always be able to append");
+                        }
+                    }
+                }
+            }
+            // Step 15.2. While new parent's nextSibling has children,
+            // append its first child as the last child of new parent, preserving ranges.
+            while let Some(first_of_next) = next_of_new_parent.children().next() {
+                move_preserving_ranges(cx, &first_of_next, |cx| {
+                    new_parent.AppendChild(cx, &first_of_next)
+                });
+            }
+            // Step 15.3. Remove new parent's nextSibling from its parent.
+            next_of_new_parent.remove_self(cx);
+        }
+    }
     // Step 16. Remove extraneous line breaks from new parent.
     new_parent.remove_extraneous_line_breaks_from(cx);
     // Step 17. Return new parent.
@@ -1136,7 +1322,17 @@ impl Node {
                 }
                 // Step 11.6.2. If child is an Element whose specified command value for command is neither null
                 // nor equivalent to propagated value, continue with the next child.
-                // TODO
+                if let Some(child_element) = child.downcast::<Element>() {
+                    let specified_value = child_element.specified_command_value(command);
+                    if specified_value.is_some() &&
+                        !command.are_equivalent_values(
+                            specified_value.as_ref(),
+                            propagated_value.as_ref(),
+                        )
+                    {
+                        continue;
+                    }
+                }
 
                 // Step 11.6.3. If child is the last member of ancestor list, continue with the next child.
                 //
@@ -1189,19 +1385,20 @@ impl Node {
             // and with new parent instructions returning null.
             wrap_node_list(
                 cx,
-                &[self],
+                vec![DomRoot::from_ref(self)],
                 |sibling| {
-                    // TODO: Check for simple modifiable
                     sibling
                         .downcast::<Element>()
                         .is_some_and(|sibling_element| {
-                            command.are_equivalent_values(
-                                sibling_element.specified_command_value(command).as_ref(),
-                                Some(new_value),
-                            ) && command.are_loosely_equivalent_values(
-                                sibling.effective_command_value(command).as_ref(),
-                                Some(new_value),
-                            )
+                            sibling_element.is_simple_modifiable_element() &&
+                                command.are_equivalent_values(
+                                    sibling_element.specified_command_value(command).as_ref(),
+                                    Some(new_value),
+                                ) &&
+                                command.are_loosely_equivalent_values(
+                                    sibling.effective_command_value(command).as_ref(),
+                                    Some(new_value),
+                                )
                         })
                 },
                 || None,
@@ -1219,7 +1416,28 @@ impl Node {
             return;
         }
         // Step 7. If node is not an allowed child of "span":
-        // TODO
+        if !is_allowed_child(
+            NodeOrString::Node(DomRoot::from_ref(self)),
+            NodeOrString::String("span".to_owned()),
+        ) {
+            for child in self.children() {
+                // Step 7.1. Let children be all children of node, omitting any that are Elements whose
+                // specified command value for command is neither null nor equivalent to new value.
+                if let Some(child_element) = child.downcast::<Element>() {
+                    let specified_value = child_element.specified_command_value(command);
+                    if specified_value.is_some() &&
+                        !command.are_equivalent_values(specified_value.as_ref(), Some(new_value))
+                    {
+                        continue;
+                    }
+                }
+                // Step 7.2. Force the value of each node in children,
+                // with command and new value as in this invocation of the algorithm.
+                child.force_the_value(cx, command, Some(new_value));
+            }
+            // Step 7.3. Abort this algorithm.
+            return;
+        }
         // Step 8. If the effective command value of command is loosely equivalent to new value on node, abort this algorithm.
         if command.are_loosely_equivalent_values(
             self.effective_command_value(command).as_ref(),
@@ -1294,7 +1512,10 @@ impl Node {
         // and the relevant CSS property for command is not null,
         // set that CSS property of new parent to new value (if the new value would be valid).
         if !command.are_loosely_equivalent_values(
-            self.effective_command_value(command).as_ref(),
+            new_parent
+                .upcast::<Node>()
+                .effective_command_value(command)
+                .as_ref(),
             Some(new_value),
         ) {
             if let Some(css_property) = command.relevant_css_property() {
@@ -2421,14 +2642,109 @@ impl Range {
     /// <https://w3c.github.io/editing/docs/execCommand/#restore-states-and-values>
     fn restore_states_and_values(
         &self,
+        cx: &mut js::context::JSContext,
+        selection: &Selection,
         context_object: &Document,
         overrides: Vec<RecordedStateOfNode>,
     ) {
         // Step 1. Let node be the first formattable node effectively contained in the active range,
         // or null if there is none.
-        let Some(_node) = self.first_formattable_contained_node() else {
-            // Step 3. Otherwise, for each (command, override) pair in overrides, in order:
-            for override_state in overrides {
+        let mut first_formattable_contained_node = self.first_formattable_contained_node();
+        for override_state in overrides {
+            // Step 2. If node is not null, then for each (command, override) pair in overrides, in order:
+            if let Some(ref node) = first_formattable_contained_node {
+                match override_state.value {
+                    // Step 2.1. If override is a boolean, and queryCommandState(command)
+                    // returns something different from override, take the action for command,
+                    // with value equal to the empty string.
+                    BoolOrOptionalString::Bool(bool_)
+                        if override_state
+                            .command
+                            .current_state(context_object)
+                            .is_some_and(|value| value != bool_) =>
+                    {
+                        override_state
+                            .command
+                            .execute(cx, context_object, selection, "".into());
+                    },
+                    BoolOrOptionalString::OptionalString(optional_string) => {
+                        match override_state.command {
+                            // Step 2.3. Otherwise, if override is a string; and command is "createLink";
+                            // and either there is a value override for "createLink" that is not equal to override,
+                            // or there is no value override for "createLink" and node's effective command value
+                            // for "createLink" is not equal to override: take the action for "createLink", with value equal to override.
+                            CommandName::CreateLink => {
+                                let value_override =
+                                    context_object.value_override(&CommandName::CreateLink);
+                                if value_override != optional_string {
+                                    CommandName::CreateLink.execute(
+                                        cx,
+                                        context_object,
+                                        selection,
+                                        optional_string.unwrap_or_default(),
+                                    );
+                                }
+                            },
+                            // Step 2.4. Otherwise, if override is a string; and command is "fontSize";
+                            // and either there is a value override for "fontSize" that is not equal to override,
+                            // or there is no value override for "fontSize" and node's effective command value for "fontSize"
+                            // is not loosely equivalent to override:
+                            CommandName::FontSize => {
+                                let value_override =
+                                    context_object.value_override(&CommandName::FontSize);
+                                if value_override != optional_string ||
+                                    (value_override.is_none() &&
+                                        !CommandName::FontSize.are_loosely_equivalent_values(
+                                            node.effective_command_value(&CommandName::FontSize)
+                                                .as_ref(),
+                                            optional_string.as_ref(),
+                                        ))
+                                {
+                                    // Step 2.5. Convert override to an integer number of pixels,
+                                    // and set override to the legacy font size for the result.
+                                    let pixels = optional_string
+                                        .and_then(|value| value.parse::<i32>().ok())
+                                        .map(|value| {
+                                            legacy_font_size_for(value as f32, context_object)
+                                        })
+                                        .unwrap_or("7".into());
+                                    // Step 2.6. Take the action for "fontSize", with value equal to override.
+                                    CommandName::FontSize.execute(
+                                        cx,
+                                        context_object,
+                                        selection,
+                                        pixels,
+                                    );
+                                }
+                            },
+                            // Step 2.2. Otherwise, if override is a string, and command is neither "createLink" nor "fontSize",
+                            // and queryCommandValue(command) returns something not equivalent to override,
+                            // take the action for command, with value equal to override.
+                            command
+                                if command.current_value(cx, context_object) != optional_string =>
+                            {
+                                command.execute(
+                                    cx,
+                                    context_object,
+                                    selection,
+                                    optional_string.unwrap_or_default(),
+                                );
+                            },
+                            // Step 2.5. Otherwise, continue this loop from the beginning.
+                            _ => {
+                                continue;
+                            },
+                        }
+                    },
+                    // Step 2.5. Otherwise, continue this loop from the beginning.
+                    _ => {
+                        continue;
+                    },
+                }
+                // Step 2.6. Set node to the first formattable node effectively contained in the active range, if there is one.
+                first_formattable_contained_node = self.first_formattable_contained_node();
+            } else {
+                // Step 3. Otherwise, for each (command, override) pair in overrides, in order:
                 // Step 3.1. If override is a boolean, set the state override for command to override.
                 match override_state.value {
                     BoolOrOptionalString::Bool(bool_) => {
@@ -2440,38 +2756,7 @@ impl Range {
                     },
                 }
             }
-            return;
-        };
-        // Step 2. If node is not null, then for each (command, override) pair in overrides, in order:
-        // TODO
-
-        // Step 2.1. If override is a boolean, and queryCommandState(command)
-        // returns something different from override, take the action for command,
-        // with value equal to the empty string.
-        // TODO
-
-        // Step 2.2. Otherwise, if override is a string, and command is neither "createLink" nor "fontSize",
-        // and queryCommandValue(command) returns something not equivalent to override,
-        // take the action for command, with value equal to override.
-        // TODO
-
-        // Step 2.3. Otherwise, if override is a string; and command is "createLink";
-        // and either there is a value override for "createLink" that is not equal to override,
-        // or there is no value override for "createLink" and node's effective command value
-        // for "createLink" is not equal to override: take the action for "createLink", with value equal to override.
-        // TODO
-
-        // Step 2.4. Otherwise, if override is a string; and command is "fontSize";
-        // and either there is a value override for "fontSize" that is not equal to override,
-        // or there is no value override for "fontSize" and node's effective command value for "fontSize"
-        // is not loosely equivalent to override:
-        // TODO
-
-        // Step 2.5. Otherwise, continue this loop from the beginning.
-        // TODO
-
-        // Step 2.6. Set node to the first formattable node effectively contained in the active range, if there is one.
-        // TODO
+        }
     }
 }
 
@@ -2701,7 +2986,7 @@ impl SelectionExecCommandSupport for Selection {
                     }
                 }
                 // Step 21.5. Restore states and values from overrides.
-                active_range.restore_states_and_values(context_object, overrides);
+                active_range.restore_states_and_values(cx, self, context_object, overrides);
 
                 // Step 21.6. Abort these steps.
                 return;
@@ -2841,7 +3126,7 @@ impl SelectionExecCommandSupport for Selection {
                 }
             }
             // Step 30.3. Restore states and values from overrides.
-            active_range.restore_states_and_values(context_object, overrides);
+            active_range.restore_states_and_values(cx, self, context_object, overrides);
 
             // Step 30.4. Abort these steps.
             return;
@@ -2936,7 +3221,7 @@ impl SelectionExecCommandSupport for Selection {
                     end_block.remove_self(cx);
                 }
                 // Step 32.4.4. Restore states and values from overrides.
-                active_range.restore_states_and_values(context_object, overrides);
+                active_range.restore_states_and_values(cx, self, context_object, overrides);
 
                 // Step 32.4.5. Abort these steps.
                 return;
@@ -3151,7 +3436,7 @@ impl SelectionExecCommandSupport for Selection {
         start_block.remove_extraneous_line_breaks_at_the_end_of(cx);
 
         // Step 41. Restore states and values from overrides.
-        active_range.restore_states_and_values(context_object, overrides);
+        active_range.restore_states_and_values(cx, self, context_object, overrides);
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#set-the-selection%27s-value>
