@@ -5,18 +5,6 @@
 use std::default::Default;
 use std::iter;
 
-use dom_struct::dom_struct;
-use embedder_traits::EmbedderControlRequest;
-use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
-use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use js::context::JSContext;
-use js::rust::HandleObject;
-use style::attr::AttrValue;
-use stylo_dom::ElementState;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::document_embedder_controls::ControlElement;
-use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
-use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -28,17 +16,21 @@ use crate::dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLO
 use crate::dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::GenericBindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
+use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     HTMLElementOrLong, HTMLOptionElementOrHTMLOptGroupElement,
 };
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
+use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::Event;
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlcollection::{CollectionFilter, CollectionSource, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
@@ -51,10 +43,18 @@ use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, ShadowIn
 use crate::dom::nodelist::NodeList;
 use crate::dom::text::Text;
 use crate::dom::types::FocusEvent;
-use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
+use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
+use dom_struct::dom_struct;
+use embedder_traits::{EmbedderControlRequest, SelectElementRequest};
+use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
+use html5ever::{local_name, ns, LocalName, Prefix, QualName};
+use js::context::JSContext;
+use js::rust::HandleObject;
+use style::attr::AttrValue;
+use stylo_dom::ElementState;
 
 const DEFAULT_SELECT_SIZE: u32 = 0;
 
@@ -365,14 +365,23 @@ impl HTMLSelectElement {
     pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext) {
         let shadow_tree = self.shadow_tree(cx);
 
-        let selected_option_text = self
-            .selected_option()
-            .or_else(|| self.list_of_options().next())
-            .map(|option| option.displayed_label())
-            .unwrap_or_default();
+        let selected_options = self.selected_options();
+        let selected_options_count = selected_options.len();
 
-        // Replace newlines with whitespace, then collapse and trim whitespace
-        let displayed_text = itertools::join(selected_option_text.str().split_whitespace(), " ");
+        let displayed_text = if selected_options_count == 1 {
+            let first_selected_option = self
+                .selected_option()
+                .or_else(|| self.list_of_options().next());
+
+            let first_selected_option_text = first_selected_option
+                .map(|option| option.displayed_label())
+                .unwrap_or_default();
+
+            // Replace newlines with whitespace, then collapse and trim whitespace
+            itertools::join(first_selected_option_text.str().split_whitespace(), " ")
+        } else {
+            format!("{selected_options_count} selected")
+        };
 
         shadow_tree
             .selected_option
@@ -384,6 +393,12 @@ impl HTMLSelectElement {
         self.list_of_options()
             .find(|opt_elem| opt_elem.Selected())
             .or_else(|| self.list_of_options().next())
+    }
+
+    pub(crate) fn selected_options(&self) -> Vec<DomRoot<HTMLOptionElement>> {
+        self.list_of_options()
+            .filter(|opt_elem| opt_elem.Selected())
+            .collect()
     }
 
     pub(crate) fn show_menu(&self) {
@@ -422,26 +437,84 @@ impl HTMLSelectElement {
             })
             .collect();
 
-        let selected_index = self.list_of_options().position(|option| option.Selected());
+        let selected_options = self
+            .list_of_options()
+            .enumerate()
+            .filter(|(_, option)| option.Selected())
+            .map(|(index, _)| index)
+            .collect();
 
         self.owner_document()
             .embedder_controls()
             .show_embedder_control(
                 ControlElement::Select(DomRoot::from_ref(self)),
-                EmbedderControlRequest::SelectElement(options, selected_index),
+                EmbedderControlRequest::SelectElement(SelectElementRequest {
+                    options,
+                    selected_options,
+                    allow_select_multiple: self.Multiple(),
+                }),
                 None,
             );
         self.upcast::<Element>().set_open_state(true);
     }
 
-    pub(crate) fn handle_menu_response(&self, cx: &mut JSContext, response: Option<usize>) {
+    pub(crate) fn handle_embedder_response(&self, cx: &mut JSContext, selected_values: Vec<usize>) {
         self.upcast::<Element>().set_open_state(false);
-        let Some(selected_value) = response else {
-            return;
+
+        let selected_values = if self.Multiple() {
+            selected_values
+        } else {
+            selected_values.into_iter().take(1).collect()
         };
 
-        self.SetSelectedIndex(cx, selected_value as i32);
-        self.send_update_notifications();
+        let mut selection_did_change = false;
+        for (index, option) in self.list_of_options().enumerate() {
+            let should_be_selected = selected_values.contains(&index);
+            let option_selected_did_change = option.Selected() != should_be_selected;
+
+            if option_selected_did_change {
+                selection_did_change = true;
+            }
+
+            option.set_selectedness(should_be_selected);
+
+            if option_selected_did_change {
+                option.set_dirtiness(true);
+            }
+        }
+
+        if selection_did_change {
+            self.update_shadow_tree(cx);
+            self.send_update_notifications();
+        }
+    }
+
+    fn multiple_attribute_mutated(&self, cx: &mut JSContext, mutation: AttributeMutation) {
+        if mutation.is_removal() {
+            let mut first_enabled: Option<DomRoot<HTMLOptionElement>> = None;
+            let mut first_selected: Option<DomRoot<HTMLOptionElement>> = None;
+
+            for option in self.list_of_options() {
+                if first_selected.is_none() && option.Selected() {
+                    first_selected = Some(DomRoot::from_ref(&option));
+                }
+                option.set_selectedness(false);
+                let element = option.upcast::<Element>();
+                if first_enabled.is_none() && !element.disabled_state() {
+                    first_enabled = Some(DomRoot::from_ref(&option));
+                }
+            }
+
+            if let Some(first_selected) = first_selected {
+                first_selected.set_selectedness(true);
+            } else if self.display_size() == 1 {
+                if let Some(first_enabled) = first_enabled {
+                    first_enabled.set_selectedness(true);
+                }
+            }
+
+            self.update_shadow_tree(cx);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#send-select-update-notifications>
@@ -738,6 +811,9 @@ impl VirtualMethods for HTMLSelectElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
+            local_name!("multiple") => {
+                self.multiple_attribute_mutated(cx, mutation);
+            },
             local_name!("required") => {
                 self.validity_state(CanGc::from_cx(cx))
                     .perform_validation_and_update(
