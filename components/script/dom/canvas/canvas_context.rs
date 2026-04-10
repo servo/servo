@@ -182,9 +182,7 @@ impl RenderingContext {
                 unreachable!("Should never set an `ImageKey` on a Placeholder")
             },
             RenderingContext::Context2d(context) => context.set_image_key(image_key),
-            RenderingContext::BitmapRenderer(_) => {
-                unreachable!("Should never set an `ImageKey` on a ImageBitmapRenderingContext")
-            },
+            RenderingContext::BitmapRenderer(context) => context.set_image_key(image_key),
             RenderingContext::WebGL(context) => context.set_image_key(image_key),
             RenderingContext::WebGL2(context) => context.set_image_key(image_key),
             #[cfg(feature = "webgpu")]

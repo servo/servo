@@ -199,7 +199,7 @@ impl HTMLCanvasElement {
         let image_key = match rendering_context {
             RenderingContext::Placeholder(..) => None,
             RenderingContext::Context2d(..) => get_image_key(),
-            RenderingContext::BitmapRenderer(_) => None,
+            RenderingContext::BitmapRenderer(..) => get_image_key(),
             RenderingContext::WebGL(..) => get_image_key(),
             RenderingContext::WebGL2(..) => get_image_key(),
             #[cfg(feature = "webgpu")]
@@ -404,16 +404,20 @@ impl HTMLCanvasElement {
     pub(crate) fn update_rendering(&self, epoch: Epoch) -> Option<ImageKey> {
         let context = self.context()?;
         let image_key = self.image_key.get()?;
-        match &*context {
+        let pending = match &*context {
             RenderingContext::Placeholder(..) => false,
             RenderingContext::Context2d(context) => context.update_rendering(epoch),
-            RenderingContext::BitmapRenderer(..) => false,
+            RenderingContext::BitmapRenderer(context) => context.update_rendering(epoch),
             RenderingContext::WebGL(context) => context.update_rendering(epoch),
             RenderingContext::WebGL2(context) => context.base_context().update_rendering(epoch),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(context) => context.update_rendering(epoch),
+        };
+
+        if pending {
+            return Some(image_key);
         }
-        .then_some(image_key)
+        None
     }
 }
 
