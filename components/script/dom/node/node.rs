@@ -365,7 +365,7 @@ impl Node {
     }
 
     /// Clear this [`Node`]'s layout data and also clear the layout data of all children.
-    /// Note that clears layout data from all non-flat tree descendants and flat tree
+    /// Note that this clears layout data from all non-flat tree descendants and flat tree
     /// descendants.
     pub(crate) fn remove_layout_boxes_from_subtree(&self) {
         for node in self.traverse_preorder(ShadowIncluding::Yes) {
