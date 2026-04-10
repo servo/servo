@@ -19,8 +19,10 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
+use log::debug;
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
+use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
@@ -106,6 +108,7 @@ pub(crate) struct WebViewInner {
     /// [`TreeId`] of the web contents of this [`WebView`]’s active top-level pipeline,
     /// which is grafted into the tree for this [`WebView`].
     pub(crate) grafted_accesskit_tree_id: Option<TreeId>,
+    active_top_level_pipeline_epoch: Option<Epoch>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -156,6 +159,7 @@ impl WebView {
                 .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
             accesskit_tree_id: None,
             grafted_accesskit_tree_id: None,
+            active_top_level_pipeline_epoch: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -862,6 +866,30 @@ impl WebView {
                 focus: root_node_id,
             },
         );
+    }
+
+    pub(crate) fn process_accessibility_tree_update(&self, tree_update: TreeUpdate, epoch: Epoch) {
+        if self
+            .inner()
+            .active_top_level_pipeline_epoch
+            .is_some_and(|current| epoch < current)
+        {
+            // We expect this to happen occasionally when the constellation navigates, because
+            // deactivating accessibility happens asynchronously, so the script thread of the
+            // previously active document may continue sending updates for a short period of time.
+            debug!("Ignoring stale tree update for {:?}", tree_update.tree_id);
+            return;
+        }
+        if self
+            .inner()
+            .active_top_level_pipeline_epoch
+            .is_none_or(|current| epoch > current)
+        {
+            self.notify_document_accessibility_tree_id(tree_update.tree_id);
+            self.inner_mut().active_top_level_pipeline_epoch = Some(epoch);
+        }
+        self.delegate()
+            .notify_accessibility_tree_update(self.clone(), tree_update);
     }
 }
 

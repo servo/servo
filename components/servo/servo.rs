@@ -669,11 +669,9 @@ impl ServoInner {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
-            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update) => {
+            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update, epoch) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_accessibility_tree_update(webview, tree_update);
+                    webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
         }
@@ -779,11 +777,6 @@ impl ServoInner {
                     webview
                         .delegate()
                         .notify_media_session_event(webview, media_session_event);
-                }
-            },
-            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(webview_id, tree_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.notify_document_accessibility_tree_id(tree_id);
                 }
             },
         }

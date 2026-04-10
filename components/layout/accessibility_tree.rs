@@ -7,6 +7,7 @@ use layout_api::LayoutNode;
 use log::trace;
 use rustc_hash::FxHashMap;
 use script::layout_dom::ServoLayoutNode;
+use servo_base::Epoch;
 use style::dom::{NodeInfo, OpaqueNode};
 
 struct AccessibilityUpdate {
@@ -24,6 +25,7 @@ pub struct AccessibilityTree {
     nodes: FxHashMap<accesskit::NodeId, AccessibilityNode>,
     accesskit_tree: accesskit::Tree,
     tree_id: accesskit::TreeId,
+    epoch: Epoch,
 }
 
 impl AccessibilityUpdate {
@@ -48,7 +50,7 @@ impl AccessibilityUpdate {
 impl AccessibilityTree {
     const ROOT_NODE_ID: accesskit::NodeId = accesskit::NodeId(0);
 
-    pub(super) fn new(tree_id: accesskit::TreeId) -> Self {
+    pub(super) fn new(tree_id: accesskit::TreeId, epoch: Epoch) -> Self {
         // The root node doesn't correspond to a DOM node, but contains the root DOM node.
         let mut root_node = AccessibilityNode::new(AccessibilityTree::ROOT_NODE_ID);
         root_node
@@ -62,6 +64,7 @@ impl AccessibilityTree {
             nodes: Default::default(),
             accesskit_tree: accesskit::Tree::new(root_node.id),
             tree_id,
+            epoch,
         };
         tree.nodes.insert(root_node.id, root_node);
 
@@ -135,6 +138,10 @@ impl AccessibilityTree {
 
     fn to_accesskit_id(opaque: &OpaqueNode) -> accesskit::NodeId {
         accesskit::NodeId(opaque.0 as u64)
+    }
+
+    pub(crate) fn epoch(&self) -> Epoch {
+        self.epoch
     }
 }
 

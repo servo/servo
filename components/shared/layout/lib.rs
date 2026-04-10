@@ -389,7 +389,7 @@ pub trait Layout {
 
     /// Set whether the accessibility tree should be constructed for this Layout.
     /// This should be called by the embedder when accessibility is requested by the user.
-    fn set_accessibility_active(&self, enabled: bool);
+    fn set_accessibility_active(&self, enabled: bool, epoch: Epoch);
 
     /// Whether the accessibility tree needs updating. This is set to true when
     /// - accessibility is activated; or

@@ -80,12 +80,12 @@ use script_traits::{
 };
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
 };
+use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
@@ -1969,16 +1969,16 @@ impl ScriptThread {
                     .borrow_mut()
                     .remove(&user_content_manager_id);
             },
-            ScriptThreadMessage::AccessibilityTreeUpdate(webview_id, tree_update) => {
+            ScriptThreadMessage::AccessibilityTreeUpdate(webview_id, tree_update, epoch) => {
                 let _ = self.senders.pipeline_to_embedder_sender.send(
-                    EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update),
+                    EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update, epoch),
                 );
             },
             ScriptThreadMessage::UpdatePinchZoomInfos(id, pinch_zoom_infos) => {
                 self.handle_update_pinch_zoom_infos(id, pinch_zoom_infos, CanGc::from_cx(cx));
             },
-            ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active) => {
-                self.set_accessibility_active(pipeline_id, active);
+            ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch) => {
+                self.set_accessibility_active(pipeline_id, active, epoch);
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(*GlobalScope::get_cx(), GCReason::API);
@@ -3703,7 +3703,7 @@ impl ScriptThread {
     }
 
     /// See the docs for [`ScriptThreadMessage::SetAccessibilityActive`].
-    fn set_accessibility_active(&self, pipeline_id: PipelineId, active: bool) {
+    fn set_accessibility_active(&self, pipeline_id: PipelineId, active: bool, epoch: Epoch) {
         if !(pref!(accessibility_enabled)) {
             return;
         }
@@ -3713,7 +3713,10 @@ impl ScriptThread {
             .borrow()
             .find_document(pipeline_id)
             .expect("Got pipeline_id from self.documents");
-        document.window().layout().set_accessibility_active(active);
+        document
+            .window()
+            .layout()
+            .set_accessibility_active(active, epoch);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

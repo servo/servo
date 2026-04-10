@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use accesskit::TreeId;
 use embedder_traits::{
     InputEventOutcome, JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId,
     MediaSessionEvent, NewWebViewDetails, TraversalId,
@@ -48,7 +47,4 @@ pub enum ConstellationToEmbedderMsg {
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
-    /// Notifies the embedder that the AccessKit [`TreeId`] for the top-level document in this
-    /// WebView has been changed (or initially set).
-    DocumentAccessibilityTreeIdChanged(WebViewId, TreeId),
 }

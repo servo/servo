@@ -42,6 +42,7 @@ use script::layout_dom::{
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
+use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::opts::{self, DiagnosticsLogging};
@@ -673,7 +674,7 @@ impl Layout for LayoutThread {
         &mut self.stylist
     }
 
-    fn set_accessibility_active(&self, active: bool) {
+    fn set_accessibility_active(&self, active: bool, epoch: Epoch) {
         if !active {
             self.accessibility_tree.replace(None);
             return;
@@ -683,7 +684,7 @@ impl Layout for LayoutThread {
         if accessibility_tree.is_some() {
             return;
         }
-        *accessibility_tree = Some(AccessibilityTree::new(self.id.into()));
+        *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
     }
 
     fn needs_accessibility_update(&self) -> bool {
@@ -893,6 +894,7 @@ impl LayoutThread {
                 .send(ScriptThreadMessage::AccessibilityTreeUpdate(
                     self.webview_id,
                     tree_update,
+                    accessibility_tree.epoch(),
                 ));
         }
         self.needs_accessibility_update.set(false);
