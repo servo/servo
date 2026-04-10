@@ -745,6 +745,12 @@ fn test_parse_pref_from_command_line() {
     let preferences = test_parse_pref("layout_threads=42");
     assert_eq!(preferences.layout_threads, 42);
 
+    // Test with unsigned numbers
+    let preferences = test_parse_pref("network_http_cache_size=50");
+    assert_eq!(preferences.network_http_cache_size, 50);
+    let preferences = test_parse_pref("network_connection_timeout=30");
+    assert_eq!(preferences.network_connection_timeout, 30);
+
     // Test string.
     let preferences = test_parse_pref("fonts_default=Lucida");
     assert_eq!(preferences.fonts_default, "Lucida");
