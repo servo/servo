@@ -7,12 +7,13 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use embedder_traits::UntrustedNodeAddress;
+use euclid::default::Size2D;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use layout_api::wrapper_traits::{
     LayoutNode, PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use layout_api::{LayoutDamage, LayoutNodeType, StyleData};
+use layout_api::{BoxAreaType, LayoutDamage, LayoutNodeType, StyleData};
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
@@ -553,11 +554,20 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         self.element.namespace()
     }
 
-    fn query_container_size(
-        &self,
-        _display: &Display,
-    ) -> euclid::default::Size2D<Option<app_units::Au>> {
-        todo!();
+    fn query_container_size(&self, display: &Display) -> Size2D<Option<app_units::Au>> {
+        if display.is_contents() {
+            return Size2D::new(None, None);
+        }
+
+        let rect = self
+            .as_node()
+            .layout_data()
+            .map(|data| data.query_box_area(BoxAreaType::Padding));
+
+        match rect {
+            Some(rect) => Size2D::new(Some(rect.width()), Some(rect.height())),
+            _ => Size2D::new(None, None),
+        }
     }
 
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
