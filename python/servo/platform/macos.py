@@ -49,16 +49,25 @@ class MacOS(Base):
             print("Could not run homebrew. Is it installed?")
             raise e
         target = BuildTarget.from_triple(None)
-        installed_something |= self._platform_bootstrap_gstreamer(target, False)
+        installed_something |= self._platform_bootstrap_gstreamer(target, False, yes)
         return installed_something
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
         if not force and self.is_gstreamer_installed(target):
             return False
 
         with tempfile.TemporaryDirectory() as temp_dir:
             libs_pkg = os.path.join(temp_dir, GSTREAMER_URL.rsplit("/", maxsplit=1)[-1])
             devel_pkg = os.path.join(temp_dir, GSTREAMER_DEVEL_URL.rsplit("/", maxsplit=1)[-1])
+            install_command = f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{devel_pkg}' -target /"
+
+            if not (yes or force):
+                print("Warning: GStreamer was not installed since it requires elevated permissions.\n")
+                print("To install GStreamer, either: ")
+                print("1. Run mach bootstrap again with --yes")
+                print("2. Manually run:")
+                print("sudo " + install_command + "\n")
+                return False
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
             util.download_file("GStreamer development support", GSTREAMER_DEVEL_URL, devel_pkg)
@@ -69,7 +78,7 @@ class MacOS(Base):
                     "sudo",
                     "sh",
                     "-c",
-                    f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{devel_pkg}' -target /",
+                    install_command,
                 ]
             )
 
