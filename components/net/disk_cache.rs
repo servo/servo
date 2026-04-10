@@ -7,7 +7,6 @@ use std::sync::Arc;
 
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
-use quick_cache::Lifecycle;
 use rusqlite::Row;
 use sea_query::{Expr, ExprTrait, Iden, Query, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
@@ -15,7 +14,7 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
 
-use crate::http_cache::{CacheEntry, CacheKey, CachedResource};
+use crate::http_cache::{CacheEntry, CacheKey, CachedResource, MemoryCacheLifecycle};
 
 #[derive(MallocSizeOf)]
 pub(crate) struct DiskCacheMetadata {
@@ -30,32 +29,6 @@ impl From<&Row<'_>> for DiskCacheMetadata {
         Self {
             key: CacheKey::from_url(ServoUrl::parse(&s).unwrap()),
             size: row.get_unwrap("size"),
-        }
-    }
-}
-
-#[derive(Clone)]
-/// The lifecycle hooks of the HttpCache.
-/// Responsible for moving data to the disk.
-pub struct DiskLifecycle {
-    disk_cache: Option<Arc<DiskCache>>,
-}
-
-impl DiskLifecycle {
-    fn empty() -> DiskLifecycle {
-        DiskLifecycle { disk_cache: None }
-    }
-}
-
-impl Lifecycle<CacheKey, CacheEntry> for DiskLifecycle {
-    type RequestState = ();
-
-    fn begin_request(&self) -> Self::RequestState {}
-
-    fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
-        if let Some(disk_cache_data) = &self.disk_cache {
-            let disk_cache_data = disk_cache_data.clone();
-            tokio::spawn(async move { disk_cache_data.store(key, value).await });
         }
     }
 }
@@ -89,20 +62,23 @@ enum DiskCacheTable {
 impl DiskCache {
     /// Creates a new [`DiskCache`] if the preference if set.
     /// Creates the sqlite table if it does not exist and starts the db connection.
-    fn new() -> (Option<Arc<DiskCache>>, DiskLifecycle) {
+    /// TODO: Implement WAL and other sqlite pragma.
+    fn new() -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
         let disk_cache_path = pref!(network_http_disk_cache);
         if disk_cache_path.is_empty() {
-            (None, DiskLifecycle::empty())
+            (None, MemoryCacheLifecycle::empty())
         } else {
-            let max_disk_cache_size = pref!(network_http_disk_cache_size).try_into().unwrap();
+            let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
+                return (None, MemoryCacheLifecycle::empty());
+            };
 
             let Ok(db) = rusqlite::Connection::open(&disk_cache_path) else {
                 error!("Could not open disk cache database");
-                return (None, DiskLifecycle::empty());
+                return (None, MemoryCacheLifecycle::empty());
             };
 
             let Ok(table_exists) = db.table_exists(None, "disk_cache_table") else {
-                return (None, DiskLifecycle::empty());
+                return (None, MemoryCacheLifecycle::empty());
             };
 
             if !table_exists {
@@ -114,7 +90,7 @@ impl DiskCache {
                     [],
                 ) {
                     error!("Could not create table. DB Error {:?}", e);
-                    return (None, DiskLifecycle::empty());
+                    return (None, MemoryCacheLifecycle::empty());
                 }
             }
 
@@ -126,7 +102,7 @@ impl DiskCache {
             let (entries, size) = {
                 let Ok(mut st) = db.prepare(query.as_str()) else {
                     error!("Could not get disk data");
-                    return (None, DiskLifecycle::empty());
+                    return (None, MemoryCacheLifecycle::empty());
                 };
 
                 let entries = st
@@ -147,7 +123,7 @@ impl DiskCache {
 
             (
                 Some(disk_cache_data.clone()),
-                DiskLifecycle {
+                MemoryCacheLifecycle {
                     disk_cache: Some(disk_cache_data),
                 },
             )
@@ -158,12 +134,13 @@ impl DiskCache {
     /// It is filled with all
     /// the responses except `number_of_responses` which were read from the
     /// [`DiskCache`] and then removed and returned for adding to the memory cache.
+    /// Currently unimplemented.
     #[expect(clippy::type_complexity)]
     pub(crate) fn maybe_from_disk(
         _number_of_responses: usize,
     ) -> (
         Option<Arc<DiskCache>>,
-        DiskLifecycle,
+        MemoryCacheLifecycle,
         Vec<(CacheKey, Vec<CachedResource>)>,
     ) {
         let (disk_cache, lifecycle) = DiskCache::new();
@@ -173,15 +150,18 @@ impl DiskCache {
     }
 
     /// Stores the given responses to the disk cache, assuming the cache will not be used afterwards.
+    /// Currently not implemented
     pub(crate) fn store_cache_to_disk<
         T: Iterator<Item = (CacheKey, Arc<TokioRwLock<Vec<CachedResource>>>)>,
     >(
         &self,
         _resources: T,
     ) {
+        error!("Currently not implemented");
     }
 
     /// Restores a cache entry from the disk if it exists.
+    /// Deletes the entry from the disk cache
     #[servo_tracing::instrument(skip(self))]
     pub(crate) async fn get(&self, key: CacheKey) -> Option<Arc<TokioRwLock<Vec<CachedResource>>>> {
         let bytes = {
@@ -235,7 +215,10 @@ impl DiskCache {
             bytes
         };
         let _span = profile_traits::trace_span!("deserialize cache request").entered();
-        let value: Vec<CachedResource> = postcard::from_bytes(&bytes).unwrap();
+        let Ok(value) = postcard::from_bytes(&bytes) else {
+            error!("Could not deserialize cached resource");
+            return None;
+        };
         let deserialized_vec_cached_response = std::sync::Arc::new(TokioRwLock::new(value));
 
         Some(deserialized_vec_cached_response)
@@ -267,13 +250,10 @@ impl DiskCache {
             if let Err(e) = inner.db.execute(query.as_str(), &*params.as_params()) {
                 error!("Could not insert cache data. Error {}", e);
             }
-            if let Some(key_position) = inner
-                .entries
-                .iter()
-                .position(|metadata| metadata.key == key)
-            {
-                inner.entries.remove(key_position);
-            }
+            inner.entries.push_back(DiskCacheMetadata {
+                key,
+                size: data_size,
+            });
             if let Some(new_cache_size) = self.get_disk_cache_total_size(&inner.db) {
                 inner.size = new_cache_size;
             }
@@ -315,18 +295,23 @@ impl DiskCache {
             .expr(Expr::col(DiskCacheTable::Size).sum())
             .from(DiskCacheTable::Table)
             .build_rusqlite(SqliteQueryBuilder);
-        let mut st = conn.prepare(size.as_str()).unwrap();
+        let Ok(mut st) = conn.prepare(size.as_str()) else {
+            return None;
+        };
 
-        let query_result = st.query_one(&*size_values.as_params(), |row| Ok(row.get_unwrap(0)));
+        // According to the sqlite documentation we will return NULL on an empty table.
+        let query_result =
+            st.query_one(&*size_values.as_params(), |row| Ok(row.get(0).unwrap_or(0)));
         if let Err(query_result) = query_result {
             error!("Could nto get new sum size {}", query_result);
-            None
+            Some(0)
         } else {
             query_result.ok()
         }
     }
 
     /// Clears the disk cache.
+    /// Should only be called in sync context.
     #[servo_tracing::instrument(skip(self))]
     pub(crate) fn clear(&self) {
         let mut inner = self.inner.blocking_lock();

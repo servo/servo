@@ -308,7 +308,7 @@ pub struct Preferences {
     /// The path to a disk cache file. Empty string disables the disk cache.
     pub network_http_disk_cache: String,
     /// Maximum size of the disk cache file in bytes.
-    pub network_http_disk_cache_size: u64,
+    pub network_http_disk_cache_size: i64,
     /// A url for a http proxy. We treat an empty string as no proxy.
     pub network_http_proxy_uri: String,
     /// A url for a https proxy. We treat an empty string as no proxy.

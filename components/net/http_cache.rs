@@ -25,7 +25,7 @@ use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, PlaceholderGuard};
-use quick_cache::{DefaultHashBuilder, UnitWeighter};
+use quick_cache::{DefaultHashBuilder, Lifecycle, UnitWeighter};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
 use servo_config::pref;
@@ -33,7 +33,7 @@ use servo_url::ServoUrl;
 use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
 use tokio::sync::{OwnedRwLockWriteGuard, RwLock as TokioRwLock};
 
-use crate::disk_cache::{DiskCache, DiskLifecycle};
+use crate::disk_cache::DiskCache;
 use crate::fetch::methods::{Data, DoneChannel};
 
 /// The key used to differentiate requests in the cache.
@@ -164,9 +164,16 @@ pub(crate) struct CachedResponse {
 }
 
 pub(crate) type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
-type QuickCache = Cache<CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, DiskLifecycle>;
-type QuickCachePlaceeholderGuard<'a> =
-    PlaceholderGuard<'a, CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, DiskLifecycle>;
+type QuickCache =
+    Cache<CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, MemoryCacheLifecycle>;
+type QuickCachePlaceeholderGuard<'a> = PlaceholderGuard<
+    'a,
+    CacheKey,
+    CacheEntry,
+    UnitWeighter,
+    DefaultHashBuilder,
+    MemoryCacheLifecycle,
+>;
 
 /// A simple memory cache.
 /// Elements will be evicted based on the cache heuristic. We weight elements
@@ -213,6 +220,32 @@ impl Default for HttpCache {
         Self {
             entries: memory_cache,
             disk_cache,
+        }
+    }
+}
+
+#[derive(Clone)]
+/// The lifecycle hooks of the HttpCache.
+/// Responsible for moving data to the disk.
+pub struct MemoryCacheLifecycle {
+    pub(crate) disk_cache: Option<std::sync::Arc<DiskCache>>,
+}
+
+impl MemoryCacheLifecycle {
+    pub(crate) fn empty() -> MemoryCacheLifecycle {
+        MemoryCacheLifecycle { disk_cache: None }
+    }
+}
+
+impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
+    type RequestState = ();
+
+    fn begin_request(&self) -> Self::RequestState {}
+
+    fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
+        if let Some(disk_cache_data) = &self.disk_cache {
+            let disk_cache_data = disk_cache_data.clone();
+            tokio::spawn(async move { disk_cache_data.store(key, value).await });
         }
     }
 }
