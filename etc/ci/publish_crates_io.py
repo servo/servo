@@ -211,7 +211,7 @@ def main() -> int:
     ordered_packages = topological_publish_order(packages)
 
     if not ordered_packages:
-        log("no local crates publish to crates.io")
+        log("no local crates to publish to crates.io")
         return 0
 
     log("publish order:")
