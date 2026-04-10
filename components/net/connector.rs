@@ -50,7 +50,11 @@ impl ServoHttpConnector {
         let mut inner = HyperHttpConnector::new();
         inner.enforce_http(false);
         inner.set_happy_eyeballs_timeout(None);
-        inner.set_connect_timeout(Some(Duration::from_secs(pref!(network_connection_timeout))));
+        inner.set_connect_timeout(Some(Duration::from_secs(
+            pref!(network_connection_timeout)
+                .try_into()
+                .expect("Could not convert network_connectioN_timeout to unsigned"),
+        )));
         ServoHttpConnector { inner }
     }
 }

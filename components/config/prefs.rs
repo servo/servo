@@ -283,7 +283,7 @@ pub struct Preferences {
     /// if for the entire process of connecting to an address. For instance, if a particular host is
     /// associated with multiple IP addresses, this timeout will be divided equally among
     /// each IP address.
-    pub network_connection_timeout: u64,
+    pub network_connection_timeout: i64,
     pub network_enforce_tls_enabled: bool,
     pub network_enforce_tls_localhost: bool,
     pub network_enforce_tls_onion: bool,
@@ -298,7 +298,7 @@ pub struct Preferences {
     pub network_http_no_proxy: String,
     /// The weight of the http memory cache
     /// Notice that this is not equal to the number of different urls in the cache.
-    pub network_http_cache_size: u64,
+    pub network_http_cache_size: i64,
     pub network_local_directory_listing_enabled: bool,
     /// Force the use of `rust-webpki` verification for CA roots. If this is false (the
     /// default), then `rustls-platform-verifier` will be used, except on Android where

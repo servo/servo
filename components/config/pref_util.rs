@@ -10,7 +10,6 @@ use serde_json::Value;
 pub enum PrefValue {
     Float(f64),
     Int(i64),
-    UInt(u64),
     Str(String),
     Bool(bool),
     Array(Vec<PrefValue>),
@@ -89,7 +88,6 @@ macro_rules! impl_from_pref {
 impl_pref_from! {
     f64 => PrefValue::Float,
     i64 => PrefValue::Int,
-    u64 => PrefValue::UInt,
     String => PrefValue::Str,
     &str => PrefValue::Str,
     bool => PrefValue::Bool,
@@ -98,7 +96,6 @@ impl_pref_from! {
 impl_from_pref! {
     PrefValue::Float => f64,
     PrefValue::Int => i64,
-    PrefValue::UInt => u64,
     PrefValue::Str => String,
     PrefValue::Bool => bool,
 }
