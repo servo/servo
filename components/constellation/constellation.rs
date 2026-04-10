@@ -168,6 +168,7 @@ use servo_constellation_traits::{
     WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_wakelock::WakeLockProvider;
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
@@ -484,9 +485,12 @@ pub struct Constellation<STF, SWF> {
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
-    /// Aggregate screen wake lock count across all webviews. The embedder is notified
+    /// Aggregate screen wake lock count across all webviews. The provider is notified
     /// only when this transitions 0→1 (acquire) or N→0 (release).
     wake_lock_count: u32,
+
+    /// Provider for OS-level screen wake lock acquisition and release.
+    wake_lock_provider: Arc<dyn WakeLockProvider>,
 
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
@@ -585,6 +589,9 @@ pub struct InitialConstellationState {
 
     /// The async runtime.
     pub async_runtime: Box<dyn AsyncRuntime>,
+
+    /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
+    pub wake_lock_provider: Arc<dyn WakeLockProvider>,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not. A normal exit
@@ -736,6 +743,7 @@ where
                     hard_fail,
                     active_media_session: None,
                     wake_lock_count: 0,
+                    wake_lock_provider: state.wake_lock_provider,
                     broken_image_icon_data: broken_image_icon_data.clone(),
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
                     async_runtime: state.async_runtime,
@@ -2102,15 +2110,13 @@ where
             ScriptToConstellationMessage::AcquireWakeLock => {
                 self.wake_lock_count += 1;
                 if self.wake_lock_count == 1 {
-                    self.constellation_to_embedder_proxy
-                        .send(ConstellationToEmbedderMsg::AcquireWakeLock(webview_id));
+                    self.wake_lock_provider.acquire();
                 }
             },
             ScriptToConstellationMessage::ReleaseWakeLock => {
                 self.wake_lock_count = self.wake_lock_count.saturating_sub(1);
                 if self.wake_lock_count == 0 {
-                    self.constellation_to_embedder_proxy
-                        .send(ConstellationToEmbedderMsg::ReleaseWakeLock(webview_id));
+                    self.wake_lock_provider.release();
                 }
             },
         }

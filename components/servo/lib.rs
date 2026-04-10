@@ -25,7 +25,6 @@ mod servo;
 mod servo_delegate;
 mod site_data_manager;
 mod user_content_manager;
-mod wake_lock_delegate;
 mod webview;
 mod webview_delegate;
 
@@ -76,7 +75,6 @@ pub use crate::servo::{Servo, ServoBuilder, run_content_process};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
 pub use crate::user_content_manager::UserContentManager;
-pub use crate::wake_lock_delegate::WakeLockDelegate;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,

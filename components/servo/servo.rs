@@ -63,6 +63,7 @@ use servo_constellation::{
     Constellation, ConstellationToEmbedderMsg, FromEmbedderLogger, FromScriptLogger,
     InitialConstellationState, NewScriptEventLoopProcessInfo, UnprivilegedContent,
 };
+use servo_wakelock::NoOpWakeLockProvider;
 use servo_constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use servo_geometry::{
     DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
@@ -786,16 +787,6 @@ impl ServoInner {
                     webview.notify_document_accessibility_tree_id(tree_id);
                 }
             },
-            ConstellationToEmbedderMsg::AcquireWakeLock(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.wake_lock_delegate().acquire(webview);
-                }
-            },
-            ConstellationToEmbedderMsg::ReleaseWakeLock(webview_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.wake_lock_delegate().release(webview);
-                }
-            },
         }
     }
 }
@@ -1178,6 +1169,7 @@ fn create_constellation(
         wgpu_image_map: paint.webgpu_image_map(),
         async_runtime,
         privileged_urls,
+        wake_lock_provider: Arc::new(NoOpWakeLockProvider),
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

@@ -36,7 +36,6 @@ use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::responders::IpcResponder;
 use crate::servo::PendingHandledInputEvent;
-use crate::wake_lock_delegate::{DefaultWakeLockDelegate, WakeLockDelegate};
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
@@ -98,8 +97,6 @@ pub(crate) struct WebViewInner {
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     #[cfg(feature = "gamepad")]
     pub(crate) gamepad_delegate: Rc<dyn GamepadDelegate>,
-    pub(crate) wake_lock_delegate: Rc<dyn WakeLockDelegate>,
-
     /// AccessKit subtree id for this [`WebView`], if accessibility is active.
     ///
     /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via
@@ -156,9 +153,6 @@ impl WebView {
             gamepad_delegate: builder
                 .gamepad_delegate
                 .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
-            wake_lock_delegate: builder
-                .wake_lock_delegate
-                .unwrap_or_else(|| Rc::new(DefaultWakeLockDelegate)),
             accesskit_tree_id: None,
             grafted_accesskit_tree_id: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
@@ -275,10 +269,6 @@ impl WebView {
     #[cfg(feature = "gamepad")]
     pub fn gamepad_delegate(&self) -> Rc<dyn GamepadDelegate> {
         self.inner().gamepad_delegate.clone()
-    }
-
-    pub fn wake_lock_delegate(&self) -> Rc<dyn WakeLockDelegate> {
-        self.inner().wake_lock_delegate.clone()
     }
 
     pub fn id(&self) -> WebViewId {
@@ -908,7 +898,6 @@ pub struct WebViewBuilder {
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
     #[cfg(feature = "gamepad")]
     gamepad_delegate: Option<Rc<dyn GamepadDelegate>>,
-    wake_lock_delegate: Option<Rc<dyn WakeLockDelegate>>,
 }
 
 impl WebViewBuilder {
@@ -924,7 +913,6 @@ impl WebViewBuilder {
             clipboard_delegate: None,
             #[cfg(feature = "gamepad")]
             gamepad_delegate: None,
-            wake_lock_delegate: None,
         }
     }
 
@@ -976,13 +964,6 @@ impl WebViewBuilder {
     #[cfg(feature = "gamepad")]
     pub fn gamepad_delegate(mut self, gamepad_delegate: Rc<dyn GamepadDelegate>) -> Self {
         self.gamepad_delegate = Some(gamepad_delegate);
-        self
-    }
-
-    /// Set the [`WakeLockDelegate`] for the `WebView` being created. The same
-    /// [`WakeLockDelegate`] can be shared among multiple `WebView`s.
-    pub fn wake_lock_delegate(mut self, wake_lock_delegate: Rc<dyn WakeLockDelegate>) -> Self {
-        self.wake_lock_delegate = Some(wake_lock_delegate);
         self
     }
 
