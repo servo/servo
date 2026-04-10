@@ -14,8 +14,8 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback,
-    TopBottomPanel, Vec2, WidgetInfo, WidgetType, pos2,
+    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
+    WidgetInfo, WidgetType, pos2,
 };
 #[cfg(target_os = "windows")]
 use egui::{FontData, FontFamily};
@@ -347,7 +347,7 @@ impl Gui {
                 let frame = egui::Frame::default()
                     .fill(ctx.style().visuals.window_fill)
                     .inner_margin(4.0);
-                TopBottomPanel::top("toolbar").frame(frame).show(ctx, |ui| {
+                Panel::top("toolbar").frame(frame).show_inside(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
@@ -481,7 +481,7 @@ impl Gui {
                 });
 
                 // A simple Tab header strip
-                TopBottomPanel::top("tabs").show(ctx, |ui| {
+                let outer = Panel::top("tabs").show_inside(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
@@ -518,12 +518,11 @@ impl Gui {
                         },
                     );
                 });
-            };
 
-            // The toolbar height is where the Context’s available rect starts.
-            // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
-            // point, but the Context is correct and the TopBottomPanel is wrong.
-            *toolbar_height = Length::new(ctx.available_rect().min.y);
+                *toolbar_height = Length::new(outer.response.rect.max.y);
+            } else {
+                *toolbar_height = Length::default();
+            }
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
@@ -532,7 +531,7 @@ impl Gui {
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
-            let rect = ctx.available_rect();
+            let rect = ctx.content_rect();
 
             // Build a graft node for each WebView.
             for (webview_id, webview) in window.webviews() {
@@ -558,7 +557,7 @@ impl Gui {
                     ctx.clone(),
                     LayerId::new(Order::Tooltip, Id::new("tooltip")),
                     "tooltip layer".into(),
-                    pos2(0.0, ctx.available_rect().max.y),
+                    pos2(0.0, ctx.content_rect().max.y),
                 )
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
                 window.set_needs_repaint();
@@ -567,8 +566,12 @@ impl Gui {
             window.repaint_webviews();
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
+                let rect = egui::Rect::from_two_pos(
+                    (0.0, toolbar_height.0).into(),
+                    ctx.content_rect().max,
+                );
                 ctx.layer_painter(LayerId::background()).add(PaintCallback {
-                    rect: ctx.available_rect(),
+                    rect,
                     callback: Arc::new(CallbackFn::new(move |info, painter| {
                         let clip = info.viewport_in_pixels();
                         let rect_in_parent = Rect::new(
