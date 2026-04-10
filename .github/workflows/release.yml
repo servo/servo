@@ -46,7 +46,7 @@ jobs:
           TEMP_TAG=$(basename "$RELEASE_URL")
           RELEASE_ID=$( \
             gh api -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
             "/repos/${RELEASE_REPO}/releases/tags/${TEMP_TAG}" \
             | jq '.id' \
           )
@@ -67,24 +67,29 @@ jobs:
     name: Publish GH Release
     runs-on: ubuntu-latest
     steps:
-      - name: Publish as latest (success)
+      - name: Publish release (success)
         if: ${{ !contains(needs.*.result, 'failure') && (!contains(needs.*.result, 'cancelled') && !cancelled()) }}
+        env:
+          MAKE_LATEST: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
         run: |
           gh api \
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
             /repos/${RELEASE_REPO}/releases/${RELEASE_ID} \
-            -F draft=false
-      - name: Publish as latest (failure)
+            -F draft=false \
+            -f make_latest="${MAKE_LATEST}"
+      - name: Publish release (failure)
         if: ${{ contains(needs.*.result, 'failure') || (contains(needs.*.result, 'cancelled') || cancelled()) }}
         run: |
           gh api \
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
             /repos/${RELEASE_REPO}/releases/${RELEASE_ID} \
-            -F prerelease=true -F draft=false
+            -F prerelease=true \
+            -F draft=false \
+            -f make_latest=false
     env:
       GITHUB_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
       RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
