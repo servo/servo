@@ -562,6 +562,14 @@ impl ResourceThreads {
             .collect()
     }
 
+    pub fn clear_session_cookies(&self) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::DeleteSessionCookies(sender));
+        let _ = receiver.recv();
+    }
+
     pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
         let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
             url,
@@ -717,6 +725,8 @@ pub enum CoreResourceMsg {
     /// This currently is used by unit tests and WebDriver only.
     /// When url is `None`, this clears cookies across all origins.
     DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
+    /// Delete all session cookies (cookies without an expiry or max-age).
+    DeleteSessionCookies(GenericSender<()>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(
