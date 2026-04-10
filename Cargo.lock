@@ -7584,6 +7584,7 @@ dependencies = [
  "servo-storage-traits",
  "servo-tracing",
  "servo-url",
+ "servo-wakelock",
  "servo-webgl",
  "servo-webgpu",
  "servo-webxr",
@@ -8940,6 +8941,10 @@ dependencies = [
  "url",
  "uuid",
 ]
+
+[[package]]
+name = "servo-wakelock"
+version = "0.1.0"
 
 [[package]]
 name = "servo-webdriver-server"
