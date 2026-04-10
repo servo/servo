@@ -456,7 +456,7 @@ impl TextRun {
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
         let font_size = parent_style.get_font().font_size.computed_size().into();
-        let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size);
+        let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
         let letter_spacing = inherited_text_style
             .letter_spacing
             .0
@@ -512,7 +512,6 @@ impl TextRun {
                 letter_spacing
             };
 
-            let word_spacing = Some(word_spacing);
             let info = FontAndScriptInfo {
                 font,
                 script,
@@ -544,7 +543,6 @@ impl TextRun {
         // of those cases, just use the first font.
         if current.is_none() {
             current = font_group.first(&layout_context.font_context).map(|font| {
-                let word_spacing = Some(word_spacing);
                 TextRunSegment::new(
                     Arc::new(FontAndScriptInfo {
                         font,
