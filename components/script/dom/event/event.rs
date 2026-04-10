@@ -641,7 +641,7 @@ impl Event {
         // https://w3c.github.io/uievents/#default-action
         // https://dom.spec.whatwg.org/#action-versus-occurance
         if !self.DefaultPrevented() {
-            if self.downcast::<KeyboardEvent>().is_some() {
+            if self.is::<KeyboardEvent>() {
                 // For keyboard events, use the original dispatch target rather than
                 // event.GetTarget(). Composed keyboard events may retarget across
                 // shadow boundaries, but the default action (character input, Tab
