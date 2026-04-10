@@ -5,7 +5,7 @@
   <script src='/common/get-host-info.sub.js'></script>
   <script>
     const value = window.localStorage.getItem('test');
-    const pageURL = get_host_info().HTTP_REMOTE_ORIGIN + '/webstorage/localstorage-share-data-unrelated-origins.html';
+    const pageURL = get_host_info().HTTP_ORIGIN;
     window.parent.parent.postMessage(value, pageURL);
   </script>
 "></iframe>
