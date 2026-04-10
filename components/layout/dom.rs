@@ -5,10 +5,11 @@
 use std::marker::PhantomData;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use euclid::Rect;
 use html5ever::{local_name, ns};
 use layout_api::wrapper_traits::{LayoutDataTrait, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    BoxAreaType, GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
     SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
@@ -267,6 +268,28 @@ impl LayoutDataTrait for DOMLayoutData {}
 impl GenericLayoutDataTrait for DOMLayoutData {
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+
+    fn query_box_area(&self, area: BoxAreaType) -> Rect<app_units::Au, style_traits::CSSPixel> {
+        let layout_data = self
+            .as_any()
+            .downcast_ref::<DOMLayoutData>()
+            .unwrap()
+            .0
+            .borrow();
+        let fragments = layout_data.fragments();
+        let mut rects = fragments
+            .iter()
+            .filter(|fragment| {
+                fragment
+                    .retrieve_box_fragment()
+                    .is_none_or(|fragment| !fragment.borrow().is_inline_box())
+            })
+            .filter_map(|node| node.cumulative_box_area_rect(area))
+            .peekable();
+
+        rects.peek();
+        rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect))
     }
 }
 

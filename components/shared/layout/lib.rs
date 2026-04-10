@@ -64,6 +64,8 @@ use webrender_api::{ExternalScrollId, ImageKey};
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;
+
+    fn query_box_area(&self, area: BoxAreaType) -> Rect<Au, CSSPixel>;
 }
 
 pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
