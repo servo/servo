@@ -594,6 +594,7 @@ pub enum PermissionFeature {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
+    ScreenWakeLock,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
