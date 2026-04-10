@@ -10,8 +10,8 @@ use style::shared_lock::{
 use style::stylist::Stylist;
 
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::document::{Document, LayoutDocumentHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::dom::document::Document;
+use crate::dom::node::{Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode, ServoShadowRoot};
 
 // A wrapper around documents that ensures ayout can only ever access safe properties.

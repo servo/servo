@@ -38,8 +38,8 @@ use super::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
+use crate::dom::element::Element;
+use crate::dom::node::{Node, NodeFlags, NodeTypeIdWrapper};
 
 /// A wrapper around a `LayoutDom<Node>` which provides a safe interface that
 /// can be used during layout. This implements the `LayoutNode` trait as well as

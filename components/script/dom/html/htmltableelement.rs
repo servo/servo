@@ -20,9 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
-};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablecaptionelement::HTMLTableCaptionElement;
@@ -489,36 +487,27 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     make_getter!(CellSpacing, "cellspacing");
 }
 
-pub(crate) trait HTMLTableElementLayoutHelpers {
-    fn get_background_color(self) -> Option<AbsoluteColor>;
-    fn get_border(self) -> Option<u32>;
-    fn get_cellpadding(self) -> Option<u32>;
-    fn get_cellspacing(self) -> Option<u32>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-}
-
-impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
-    fn get_background_color(self) -> Option<AbsoluteColor> {
+impl LayoutDom<'_, HTMLTableElement> {
+    pub(crate) fn get_background_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_border(self) -> Option<u32> {
+    pub(crate) fn get_border(self) -> Option<u32> {
         (self.unsafe_get()).border.get()
     }
 
-    fn get_cellpadding(self) -> Option<u32> {
+    pub(crate) fn get_cellpadding(self) -> Option<u32> {
         (self.unsafe_get()).cellpadding.get()
     }
 
-    fn get_cellspacing(self) -> Option<u32> {
+    pub(crate) fn get_cellspacing(self) -> Option<u32> {
         (self.unsafe_get()).cellspacing.get()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -526,7 +515,7 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

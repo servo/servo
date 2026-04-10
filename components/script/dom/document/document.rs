@@ -3362,35 +3362,25 @@ pub(crate) enum DocumentSource {
     NotFromParser,
 }
 
-pub(crate) trait LayoutDocumentHelpers<'dom> {
-    fn is_html_document_for_layout(&self) -> bool;
-    fn quirks_mode(self) -> QuirksMode;
-    fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
-    fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
-    fn shadow_roots_styles_changed(self) -> bool;
-    fn flush_shadow_roots_stylesheets(self);
-    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>];
-}
-
 #[expect(unsafe_code)]
-impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
+impl<'dom> LayoutDom<'dom, Document> {
     #[inline]
-    fn is_html_document_for_layout(&self) -> bool {
+    pub(crate) fn is_html_document_for_layout(&self) -> bool {
         self.unsafe_get().is_html_document
     }
 
     #[inline]
-    fn quirks_mode(self) -> QuirksMode {
+    pub(crate) fn quirks_mode(self) -> QuirksMode {
         self.unsafe_get().quirks_mode.get()
     }
 
     #[inline]
-    fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
+    pub(crate) fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
         self.unsafe_get().style_shared_lock()
     }
 
     #[inline]
-    fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
+    pub(crate) fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
         // FIXME(nox): We should just return a
         // &'dom HashSet<LayoutDom<'dom, ShadowRoot>> here but not until
         // I rework the ToLayout trait as mentioned in
@@ -3406,16 +3396,16 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    fn shadow_roots_styles_changed(self) -> bool {
+    pub(crate) fn shadow_roots_styles_changed(self) -> bool {
         self.unsafe_get().shadow_roots_styles_changed.get()
     }
 
     #[inline]
-    fn flush_shadow_roots_stylesheets(self) {
+    pub(crate) fn flush_shadow_roots_stylesheets(self) {
         (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 
-    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
+    pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
         let id_map = unsafe { self.unsafe_get().id_map.borrow_for_layout() };
         let matching_elements = id_map.get(id).map(Vec::as_slice).unwrap_or_default();
         unsafe { LayoutDom::to_layout_slice(matching_elements) }

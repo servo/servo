@@ -20,7 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -143,28 +143,22 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
-pub(crate) trait HTMLFontElementLayoutHelpers {
-    fn get_color(self) -> Option<AbsoluteColor>;
-    fn get_face(self) -> Option<Atom>;
-    fn get_size(self) -> Option<u32>;
-}
-
-impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
-    fn get_color(self) -> Option<AbsoluteColor> {
+impl LayoutDom<'_, HTMLFontElement> {
+    pub(crate) fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_face(self) -> Option<Atom> {
+    pub(crate) fn get_face(self) -> Option<Atom> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("face"))
             .map(AttrValue::as_atom)
             .cloned()
     }
 
-    fn get_size(self) -> Option<u32> {
+    pub(crate) fn get_size(self) -> Option<u32> {
         let size = self
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("size"));

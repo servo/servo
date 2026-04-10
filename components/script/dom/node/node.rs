@@ -92,7 +92,7 @@ use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
 };
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
+use crate::dom::characterdata::CharacterData;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::StyleSheetListOwner;
 use crate::dom::customelementregistry::{
@@ -107,19 +107,17 @@ use crate::dom::element::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
-use crate::dom::html::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
-use crate::dom::html::htmltextareaelement::{
-    HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers,
-};
-use crate::dom::html::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
-use crate::dom::html::input_element::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::node::nodelist::NodeList;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
@@ -128,8 +126,8 @@ use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
 use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::{ServoParser, serialize_html_fragment};
-use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
-use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
+use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
+use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent};
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -2109,111 +2107,30 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
     DomRoot::from_ref(node)
 }
 
-#[expect(unsafe_code)]
-pub(crate) trait LayoutNodeHelpers<'dom> {
-    fn type_id_for_layout(self) -> NodeTypeId;
-
-    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
-    fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
-
-    fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
-    fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
-    fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>>;
-
-    fn is_element_for_layout(&self) -> bool;
-    fn is_text_node_for_layout(&self) -> bool;
-    unsafe fn get_flag(self, flag: NodeFlags) -> bool;
-    unsafe fn set_flag(self, flag: NodeFlags, value: bool);
-
-    fn style_data(self) -> Option<&'dom StyleData>;
-    fn layout_data(self) -> Option<&'dom GenericLayoutData>;
-
-    /// Initialize the style data of this node.
-    ///
-    /// # Safety
-    ///
-    /// This method is unsafe because it modifies the given node during
-    /// layout. Callers should ensure that no other layout thread is
-    /// attempting to read or modify the opaque layout data of this node.
-    unsafe fn initialize_style_data(self);
-
-    /// Initialize the opaque layout data of this node.
-    ///
-    /// # Safety
-    ///
-    /// This method is unsafe because it modifies the given node during
-    /// layout. Callers should ensure that no other layout thread is
-    /// attempting to read or modify the opaque layout data of this node.
-    unsafe fn initialize_layout_data(self, data: Box<GenericLayoutData>);
-
-    /// Clear the style and opaque layout data of this node.
-    ///
-    /// # Safety
-    ///
-    /// This method is unsafe because it modifies the given node during
-    /// layout. Callers should ensure that no other layout thread is
-    /// attempting to read or modify the opaque layout data of this node.
-    unsafe fn clear_style_and_layout_data(self);
-
-    /// Whether this element serve as a container of editable text for a text input
-    /// that is implemented as an UA widget.
-    fn is_single_line_text_inner_editor(&self) -> bool;
-
-    /// Whether this element serve as a container of any text inside a text input
-    /// that is implemented as an UA widget.
-    fn is_text_container_of_single_line_input(&self) -> bool;
-    fn text_content(self) -> Cow<'dom, str>;
-    fn selection(self) -> Option<SharedSelection>;
-    fn image_url(self) -> Option<ServoUrl>;
-    fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)>;
-    fn showing_broken_image_icon(self) -> bool;
-    fn canvas_data(self) -> Option<HTMLCanvasData>;
-    fn media_data(self) -> Option<HTMLMediaData>;
-    fn svg_data(self) -> Option<SVGElementData<'dom>>;
-    fn iframe_browsing_context_id(self) -> Option<BrowsingContextId>;
-    fn iframe_pipeline_id(self) -> Option<PipelineId>;
-    fn opaque(self) -> OpaqueNode;
-    fn implemented_pseudo_element(&self) -> Option<PseudoElement>;
-    fn is_in_ua_widget(&self) -> bool;
-}
-
 impl<'dom> LayoutDom<'dom, Node> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
     }
-}
 
-impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
-    fn type_id_for_layout(self) -> NodeTypeId {
+    pub(crate) fn type_id_for_layout(self) -> NodeTypeId {
         self.unsafe_get().type_id()
     }
 
     #[inline]
-    fn is_element_for_layout(&self) -> bool {
+    pub(crate) fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
     }
 
-    fn is_text_node_for_layout(&self) -> bool {
+    pub(crate) fn is_text_node_for_layout(&self) -> bool {
         self.type_id_for_layout() ==
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text))
     }
 
     #[inline]
-    #[expect(unsafe_code)]
-    fn parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
-        unsafe { self.unsafe_get().parent_node.get_inner_as_layout() }
-    }
-
-    #[inline]
-    fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn composed_parent_node_ref(self) -> Option<LayoutDom<'dom, Node>> {
         let parent = self.parent_node_ref();
         if let Some(parent) = parent {
             if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
@@ -2225,37 +2142,37 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[expect(unsafe_code)]
-    fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn first_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().first_child.get_inner_as_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn last_child_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().last_child.get_inner_as_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().prev_sibling.get_inner_as_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
+    pub(crate) fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().next_sibling.get_inner_as_layout() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
+    pub(crate) fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document> {
         unsafe { self.unsafe_get().owner_doc.get_inner_as_layout().unwrap() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+    pub(crate) fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         unsafe {
             self.unsafe_get()
                 .rare_data
@@ -2269,7 +2186,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[expect(unsafe_code)]
-    fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
+    pub(crate) fn assigned_slot_for_layout(self) -> Option<LayoutDom<'dom, HTMLSlotElement>> {
         unsafe {
             self.unsafe_get()
                 .rare_data
@@ -2288,13 +2205,13 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn get_flag(self, flag: NodeFlags) -> bool {
+    pub(crate) unsafe fn get_flag(self, flag: NodeFlags) -> bool {
         (self.unsafe_get()).flags.get().contains(flag)
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn set_flag(self, flag: NodeFlags, value: bool) {
+    pub(crate) unsafe fn set_flag(self, flag: NodeFlags, value: bool) {
         let this = self.unsafe_get();
         let mut flags = (this).flags.get();
 
@@ -2311,49 +2228,74 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     // revisited so we can do that more cleanly and safely in layout 2020.
     #[inline]
     #[expect(unsafe_code)]
-    fn style_data(self) -> Option<&'dom StyleData> {
+    pub(crate) fn style_data(self) -> Option<&'dom StyleData> {
         unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn layout_data(self) -> Option<&'dom GenericLayoutData> {
+    pub(crate) fn layout_data(self) -> Option<&'dom GenericLayoutData> {
         unsafe { self.unsafe_get().layout_data.borrow_for_layout().as_deref() }
     }
 
+    /// Initialize the style data of this node.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn initialize_style_data(self) {
+    pub(crate) unsafe fn initialize_style_data(self) {
         let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(Box::default());
     }
 
+    /// Initialize the opaque layout data of this node.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
+    pub(crate) unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
         let data = unsafe { self.unsafe_get().layout_data.borrow_mut_for_layout() };
         debug_assert!(data.is_none());
         *data = Some(new_data);
     }
 
+    /// Clear the style and opaque layout data of this node.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn clear_style_and_layout_data(self) {
+    pub(crate) unsafe fn clear_style_and_layout_data(self) {
         unsafe {
             self.unsafe_get().style_data.borrow_mut_for_layout().take();
             self.unsafe_get().layout_data.borrow_mut_for_layout().take();
         }
     }
 
-    fn is_single_line_text_inner_editor(&self) -> bool {
+    /// Whether this element serve as a container of editable text for a text input
+    /// that is implemented as an UA widget.
+    pub(crate) fn is_single_line_text_inner_editor(&self) -> bool {
         matches!(
             self.implemented_pseudo_element(),
             Some(PseudoElement::ServoTextControlInnerEditor)
         )
     }
 
-    fn is_text_container_of_single_line_input(&self) -> bool {
+    /// Whether this element serve as a container of any text inside a text input
+    /// that is implemented as an UA widget.
+    pub(crate) fn is_text_container_of_single_line_input(&self) -> bool {
         let is_single_line_text_inner_placeholder = matches!(
             self.implemented_pseudo_element(),
             Some(PseudoElement::Placeholder)
@@ -2370,7 +2312,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         self.is_single_line_text_inner_editor() || is_single_line_text_inner_placeholder
     }
 
-    fn text_content(self) -> Cow<'dom, str> {
+    pub(crate) fn text_content(self) -> Cow<'dom, str> {
         self.downcast::<Text>()
             .expect("Called LayoutDom::text_content on non-Text node!")
             .upcast()
@@ -2384,7 +2326,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     ///
     /// As we want to expose the selection on the inner text node of the widget's shadow
     /// DOM, we must find the shadow root and then access the containing element itself.
-    fn selection(self) -> Option<SharedSelection> {
+    pub(crate) fn selection(self) -> Option<SharedSelection> {
         if let Some(input) = self.downcast::<HTMLInputElement>() {
             return input.selection_for_layout();
         }
@@ -2403,59 +2345,59 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             .map(|textarea| textarea.selection_for_layout())
     }
 
-    fn image_url(self) -> Option<ServoUrl> {
+    pub(crate) fn image_url(self) -> Option<ServoUrl> {
         self.downcast::<HTMLImageElement>()
             .expect("not an image!")
             .image_url()
     }
 
-    fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
+    pub(crate) fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
     }
 
-    fn image_density(self) -> Option<f64> {
+    pub(crate) fn image_density(self) -> Option<f64> {
         self.downcast::<HTMLImageElement>()
             .expect("not an image!")
             .image_density()
     }
 
-    fn showing_broken_image_icon(self) -> bool {
+    pub(crate) fn showing_broken_image_icon(self) -> bool {
         self.downcast::<HTMLImageElement>()
             .map(|image_element| image_element.showing_broken_image_icon())
             .unwrap_or_default()
     }
 
-    fn canvas_data(self) -> Option<HTMLCanvasData> {
+    pub(crate) fn canvas_data(self) -> Option<HTMLCanvasData> {
         self.downcast::<HTMLCanvasElement>()
             .map(|canvas| canvas.data())
     }
 
-    fn media_data(self) -> Option<HTMLMediaData> {
+    pub(crate) fn media_data(self) -> Option<HTMLMediaData> {
         self.downcast::<HTMLVideoElement>()
             .map(|media| media.data())
     }
 
-    fn svg_data(self) -> Option<SVGElementData<'dom>> {
+    pub(crate) fn svg_data(self) -> Option<SVGElementData<'dom>> {
         self.downcast::<SVGSVGElement>().map(|svg| svg.data())
     }
 
-    fn iframe_browsing_context_id(self) -> Option<BrowsingContextId> {
+    pub(crate) fn iframe_browsing_context_id(self) -> Option<BrowsingContextId> {
         self.downcast::<HTMLIFrameElement>()
             .and_then(|iframe_element| iframe_element.browsing_context_id())
     }
 
-    fn iframe_pipeline_id(self) -> Option<PipelineId> {
+    pub(crate) fn iframe_pipeline_id(self) -> Option<PipelineId> {
         self.downcast::<HTMLIFrameElement>()
             .and_then(|iframe_element| iframe_element.pipeline_id())
     }
 
     #[expect(unsafe_code)]
-    fn opaque(self) -> OpaqueNode {
+    pub(crate) fn opaque(self) -> OpaqueNode {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
     }
 
     #[expect(unsafe_code)]
-    fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
+    pub(crate) fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
         unsafe {
             self.unsafe_get()
                 .rare_data
@@ -2465,7 +2407,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
-    fn is_in_ua_widget(&self) -> bool {
+    pub(crate) fn is_in_ua_widget(&self) -> bool {
         self.unsafe_get().is_in_ua_widget()
     }
 }

@@ -9,7 +9,7 @@ use style::shared_lock::SharedRwLockReadGuard as StyleSharedRwLockReadGuard;
 use style::stylist::{CascadeData, Stylist};
 
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 
 #[derive(Clone, Copy, PartialEq)]

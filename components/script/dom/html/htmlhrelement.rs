@@ -20,7 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -99,21 +99,15 @@ pub(crate) enum SizePresentationalHint {
     SetBottomBorderWidthToZero,
 }
 
-pub(crate) trait HTMLHRLayoutHelpers {
-    fn get_color(self) -> Option<AbsoluteColor>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_size_info(self) -> Option<SizePresentationalHint>;
-}
-
-impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
-    fn get_color(self) -> Option<AbsoluteColor> {
+impl LayoutDom<'_, HTMLHRElement> {
+    pub(crate) fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -121,7 +115,7 @@ impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_size_info(self) -> Option<SizePresentationalHint> {
+    pub(crate) fn get_size_info(self) -> Option<SizePresentationalHint> {
         // https://html.spec.whatwg.org/multipage/#the-hr-element-2
         let element = self.upcast::<Element>();
         let size_value = element
