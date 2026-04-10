@@ -283,8 +283,6 @@ fn obtain_a_storage_shelf(
 ) -> rusqlite::Result<i64> {
     // Step 1: Let key be the result of running obtain a storage key with environment.
     // Step 2: If key is failure, then return failure.
-    // Note: for now just using the origin as the key.
-    // TODO: implement https://storage.spec.whatwg.org/#obtain-a-storage-key
 
     // Step 3: If shed[key] does not exist,
     // then set shed[key] to the result of running create a storage shelf with type.

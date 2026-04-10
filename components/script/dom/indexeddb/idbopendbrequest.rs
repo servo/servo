@@ -8,6 +8,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::generic_channel::GenericSend;
+use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -15,7 +16,7 @@ use uuid::Uuid;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBTransactionDurability;
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, ErrorToJsval};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
@@ -82,13 +83,8 @@ impl OpenRequestListener {
                 // set request’s done flag to true,
                 // and fire an event named error at request
                 // with its bubbles and cancelable attributes initialized to true.
-
-                // TODO: transform backend error into jsval.
                 let error = map_backend_error_to_dom_error(err);
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                error.to_jsval(cx, &global, rval.handle_mut(), can_gc);
-                open_request.set_result(rval.handle());
+                open_request.set_error(Some(error), can_gc);
                 let event = Event::new(
                     &global,
                     Atom::from("error"),
@@ -214,7 +210,11 @@ impl IDBOpenDBRequest {
         }
     }
 
-    pub(crate) fn delete_database(&self, name: String) -> Result<(), ()> {
+    pub(crate) fn delete_database(
+        &self,
+        storage_key: ImmutableOrigin,
+        name: String,
+    ) -> Result<(), ()> {
         let global = self.global();
 
         let task_source = global
@@ -232,12 +232,8 @@ impl IDBOpenDBRequest {
         })
         .expect("Could not create delete database callback");
 
-        let delete_operation = SyncOperation::DeleteDatabase(
-            callback,
-            global.origin().immutable().clone(),
-            name,
-            self.get_id(),
-        );
+        let delete_operation =
+            SyncOperation::DeleteDatabase(callback, storage_key, name, self.get_id());
 
         if global
             .storage_threads()
