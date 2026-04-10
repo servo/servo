@@ -58,6 +58,8 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 webrender_api = { workspace = true }
+serde_json.workspace = true
+ohos-deviceinfo-sys = "0.1.6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
