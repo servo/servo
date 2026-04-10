@@ -7,14 +7,13 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use fonts::{
-    FontContext, FontRef, GlyphStore, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
-};
+use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::text::is_bidi_control;
+use style::Zero;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
@@ -456,34 +455,23 @@ impl TextRun {
 
         let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
+        let font_size = parent_style.get_font().font_size.computed_size().into();
+        let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
         let letter_spacing = inherited_text_style
             .letter_spacing
             .0
-            .resolve(parent_style.clone_font().font_size.computed_size());
-        let letter_spacing = if letter_spacing.px() != 0. {
-            Some(app_units::Au::from(letter_spacing))
+            .to_used_value(font_size);
+        let letter_spacing = if !letter_spacing.is_zero() {
+            Some(letter_spacing)
         } else {
             None
         };
         let text_rendering = inherited_text_style.text_rendering;
-        let word_spacing = inherited_text_style.word_spacing.to_length().map(Au::from);
 
         // The next current character index within the entire inline formatting context's text.
         let mut next_character_index = self.character_range.start;
         // The next bytes index of the charcter within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
-
-        let resolve_word_spacing_for_font = |font: &FontRef| {
-            word_spacing.unwrap_or_else(|| {
-                let space_width = font
-                    .glyph_index(' ')
-                    .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                    .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
-                inherited_text_style
-                    .word_spacing
-                    .to_used_value(Au::from_f64_px(space_width))
-            })
-        };
 
         for (character, next_character) in char_iterator {
             let current_character_index = next_character_index;
@@ -524,7 +512,6 @@ impl TextRun {
                 letter_spacing
             };
 
-            let word_spacing = Some(resolve_word_spacing_for_font(&font));
             let info = FontAndScriptInfo {
                 font,
                 script,
@@ -556,7 +543,6 @@ impl TextRun {
         // of those cases, just use the first font.
         if current.is_none() {
             current = font_group.first(&layout_context.font_context).map(|font| {
-                let word_spacing = Some(resolve_word_spacing_for_font(&font));
                 TextRunSegment::new(
                     Arc::new(FontAndScriptInfo {
                         font,
