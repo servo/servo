@@ -11,7 +11,7 @@ use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
+use layout_api::{ScriptSelection, SharedSelection};
 use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;

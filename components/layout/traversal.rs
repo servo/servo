@@ -6,11 +6,10 @@ use std::cell::Cell;
 use std::sync::Arc;
 
 use bitflags::Flags;
-use layout_api::LayoutDamage;
-use layout_api::wrapper_traits::{
-    LayoutElement, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+use layout_api::{
+    DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement, LayoutNode,
 };
-use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
+use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
@@ -35,11 +34,10 @@ impl<'a> RecalcStyle<'a> {
     }
 }
 
-#[expect(unsafe_code)]
 impl<'dom, E> DomTraversal<E> for RecalcStyle<'_>
 where
-    E: LayoutElement<'dom> + TElement,
-    E::ConcreteNode: 'dom + LayoutNode<'dom>,
+    E: DangerousStyleElement<'dom> + TElement,
+    E::ConcreteNode: 'dom + DangerousStyleNode<'dom>,
 {
     fn process_preorder<F>(
         &self,
@@ -50,18 +48,15 @@ where
     ) where
         F: FnMut(E::ConcreteNode),
     {
-        if node.is_text_node() {
+        let Some(dangerous_style_element) = node.as_element() else {
             return;
-        }
+        };
 
-        let element = node.as_element().unwrap();
-        let had_style_data = element.style_data().is_some();
+        let layout_element = dangerous_style_element.layout_element();
+        let had_style_data = layout_element.style_data().is_some();
+        layout_element.initialize_style_and_layout_data::<DOMLayoutData>();
 
-        unsafe {
-            element.initialize_style_and_layout_data::<DOMLayoutData>();
-        }
-
-        let mut element_data = element.mutate_data().unwrap();
+        let mut element_data = dangerous_style_element.mutate_data().unwrap();
         if !had_style_data {
             element_data.damage = RestyleDamage::reconstruct();
         }
@@ -70,13 +65,14 @@ where
             self,
             traversal_data,
             context,
-            element,
+            dangerous_style_element,
             &mut element_data,
             note_child,
         );
 
+        #[expect(unsafe_code)]
         unsafe {
-            element.unset_dirty_descendants();
+            dangerous_style_element.unset_dirty_descendants();
         }
     }
 
@@ -90,7 +86,7 @@ where
     }
 
     fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
-        node.layout_data().is_none() || !parent_data.damage.is_empty()
+        node.layout_node().layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext<'_> {
@@ -98,6 +94,7 @@ where
     }
 }
 
+#[expect(unsafe_code)]
 #[servo_tracing::instrument(skip_all)]
 pub(crate) fn compute_damage_and_rebuild_box_tree(
     box_tree: &mut Option<Arc<BoxTree>>,
@@ -108,7 +105,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
 ) -> RestyleDamage {
     let restyle_damage = compute_damage_and_rebuild_box_tree_inner(
         layout_context,
-        dirty_root.to_threadsafe(),
+        dirty_root,
         damage_from_environment,
     );
 
@@ -134,14 +131,12 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
     let mut needs_box_tree_rebuild = layout_damage.needs_new_box();
 
     let mut damage_for_ancestors = LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES;
-    let mut maybe_parent_node = dirty_root.traversal_parent();
-    while let Some(parent_node) = maybe_parent_node {
-        let threadsafe_parent_node = parent_node.as_node().to_threadsafe();
 
+    let mut maybe_parent_node = unsafe { dirty_root.dangerous_flat_tree_parent() };
+    while let Some(parent_node) = maybe_parent_node {
         // If we need box tree reconstruction, try it here.
         if needs_box_tree_rebuild &&
-            threadsafe_parent_node
-                .rebuild_box_tree_from_independent_formatting_context(layout_context)
+            parent_node.rebuild_box_tree_from_independent_formatting_context(layout_context)
         {
             needs_box_tree_rebuild = false;
         }
@@ -150,12 +145,12 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
             // We have not yet found a place to run box tree reconstruction, so clear this
             // node's boxes to ensure that they are invalidated for the reconstruction we
             // will run later.
-            threadsafe_parent_node.unset_all_boxes();
+            parent_node.unset_all_boxes();
         } else {
             // Reconstruction has already run or was not necessary, so we just need to
             // ensure that fragment tree layout does not reuse any cached fragments.
             let new_damage_for_ancestors = Cell::new(LayoutDamage::empty());
-            threadsafe_parent_node.with_layout_box_base_including_pseudos(|base| {
+            parent_node.with_layout_box_base_including_pseudos(|base| {
                 new_damage_for_ancestors.set(
                     new_damage_for_ancestors.get() |
                         base.add_damage(Default::default(), damage_for_ancestors),
@@ -164,7 +159,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
             damage_for_ancestors = new_damage_for_ancestors.get();
         }
 
-        maybe_parent_node = parent_node.traversal_parent();
+        maybe_parent_node = unsafe { parent_node.dangerous_flat_tree_parent() };
     }
 
     // We could not find a place in the middle of the tree to run box tree reconstruction,
@@ -178,7 +173,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
 
 pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     layout_context: &LayoutContext,
-    node: ServoThreadSafeLayoutNode<'_>,
+    node: ServoLayoutNode<'_>,
     damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
     // Don't do any kind of damage propagation or box tree constuction for non-Element nodes,
@@ -224,7 +219,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     }
 
     let mut damage_from_children = RestyleDamage::empty();
-    for child in node.children() {
+    for child in node.flat_tree_children() {
         if child.is_element() {
             damage_from_children |= compute_damage_and_rebuild_box_tree_inner(
                 layout_context,

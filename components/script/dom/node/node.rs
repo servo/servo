@@ -26,11 +26,10 @@ use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
-use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData,
     HTMLMediaData, LayoutElementType, LayoutNodeType, PhysicalSides, SVGElementData,
-    TrustedNodeAddress, with_layout_state,
+    SharedSelection, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -131,7 +130,7 @@ use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent};
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
-use crate::layout_dom::ServoLayoutNode;
+use crate::layout_dom::ServoDangerousStyleNode;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -1542,12 +1541,12 @@ impl Node {
 
         let first_matching_element = with_layout_state(|| {
             let layout_node = unsafe { traced_node.to_layout() };
-            ServoLayoutNode::from_layout_dom(layout_node)
+            ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
         })?;
 
         Ok(first_matching_element
-            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_dom().as_ref() })))
+            .map(|element| DomRoot::from_ref(unsafe { element.layout_dom().as_ref() })))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
@@ -1562,12 +1561,12 @@ impl Node {
         let traced_node = Dom::from_ref(self);
         let matching_elements = with_layout_state(|| {
             let layout_node = unsafe { traced_node.to_layout() };
-            ServoLayoutNode::from_layout_dom(layout_node)
+            ServoDangerousStyleNode::from(layout_node)
                 .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
         })?;
         let iter = matching_elements
             .into_iter()
-            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_dom().as_ref() }))
+            .map(|element| DomRoot::from_ref(unsafe { element.layout_dom().as_ref() }))
             .map(DomRoot::upcast::<Node>);
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
@@ -2110,6 +2109,18 @@ impl<'dom> LayoutDom<'dom, Node> {
             }
         }
         parent
+    }
+
+    #[inline]
+    pub(crate) fn traversal_parent(self) -> Option<LayoutDom<'dom, Element>> {
+        if let Some(assigned_slot) = self.assigned_slot_for_layout() {
+            return Some(assigned_slot.upcast());
+        }
+        let parent = self.parent_node_ref()?;
+        if let Some(shadow) = parent.downcast::<ShadowRoot>() {
+            return Some(shadow.get_host_for_layout());
+        };
+        parent.downcast()
     }
 
     #[inline]

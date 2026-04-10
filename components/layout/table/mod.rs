@@ -76,7 +76,7 @@ pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::{ServoLayoutElement, ServoThreadSafeLayoutNode};
+use script::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -203,11 +203,13 @@ impl Table {
         new_style: &Arc<ComputedValues>,
     ) {
         self.style = new_style.clone();
-        self.grid_style = context.stylist.style_for_anonymous::<ServoLayoutElement>(
-            &context.guards,
-            &PseudoElement::ServoTableGrid,
-            new_style,
-        );
+        self.grid_style = context
+            .stylist
+            .style_for_anonymous::<ServoDangerousStyleElement>(
+                &context.guards,
+                &PseudoElement::ServoTableGrid,
+                new_style,
+            );
     }
 }
 
@@ -420,7 +422,7 @@ impl TableLevelBox {
     pub(crate) fn repair_style(
         &self,
         context: &SharedStyleContext<'_>,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         match self {

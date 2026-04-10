@@ -1054,6 +1054,27 @@ pub(crate) fn get_attr_for_layout<'dom>(
 }
 
 impl<'dom> LayoutDom<'dom, Element> {
+    #[inline]
+    pub(crate) fn is_root(&self) -> bool {
+        self.upcast::<Node>()
+            .parent_node_ref()
+            .is_some_and(|parent| matches!(parent.type_id_for_layout(), NodeTypeId::Document(_)))
+    }
+
+    /// Returns true if this element is the body child of an html element root element.
+    pub(crate) fn is_body_element_of_html_element_root(&self) -> bool {
+        if self.local_name() != &local_name!("body") {
+            return false;
+        }
+        let Some(parent_node) = self.upcast::<Node>().parent_node_ref() else {
+            return false;
+        };
+        let Some(parent_element) = parent_node.downcast::<Element>() else {
+            return false;
+        };
+        parent_element.local_name() == &local_name!("html")
+    }
+
     #[expect(unsafe_code)]
     #[inline]
     pub(crate) fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {

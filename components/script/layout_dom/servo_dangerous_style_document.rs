@@ -2,31 +2,45 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_docs)]
+
+use layout_api::DangerousStyleElement;
 use selectors::matching::QuirksMode;
 use style::dom::{TDocument, TNode};
 use style::shared_lock::{
     SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard as StyleSharedRwLockReadGuard,
 };
 use style::stylist::Stylist;
+use style::values::AtomIdent;
 
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::document::Document;
 use crate::dom::node::{Node, NodeFlags};
-use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode, ServoShadowRoot};
+use crate::layout_dom::{
+    ServoDangerousStyleElement, ServoDangerousStyleNode, ServoDangerousStyleShadowRoot,
+    ServoLayoutElement,
+};
 
-// A wrapper around documents that ensures ayout can only ever access safe properties.
+/// A wrapper around documents that ensures layout can only ever access safe properties.
+///
+/// TODO: This should become a trait like `LayoutNode`.
 #[derive(Clone, Copy)]
-pub struct ServoLayoutDocument<'dom> {
+pub struct ServoDangerousStyleDocument<'dom> {
     /// The wrapped private DOM Document
     document: LayoutDom<'dom, Document>,
 }
 
-use style::values::AtomIdent;
-impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
-    type ConcreteNode = ServoLayoutNode<'ld>;
+impl<'dom> From<LayoutDom<'dom, Document>> for ServoDangerousStyleDocument<'dom> {
+    fn from(document: LayoutDom<'dom, Document>) -> Self {
+        Self { document }
+    }
+}
 
-    fn as_node(&self) -> Self::ConcreteNode {
-        ServoLayoutNode::from_layout_dom(self.document.upcast())
+impl<'dom> ::style::dom::TDocument for ServoDangerousStyleDocument<'dom> {
+    type ConcreteNode = ServoDangerousStyleNode<'dom>;
+
+    fn as_node(&self) -> ServoDangerousStyleNode<'dom> {
+        self.document.upcast().into()
     }
 
     fn quirks_mode(&self) -> QuirksMode {
@@ -41,16 +55,21 @@ impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
         self.document.style_shared_lock()
     }
 
-    fn elements_with_id<'a>(&self, id: &AtomIdent) -> Result<&'a [ServoLayoutElement<'ld>], ()>
+    fn elements_with_id<'a>(
+        &self,
+        id: &AtomIdent,
+    ) -> Result<&'a [ServoDangerousStyleElement<'dom>], ()>
     where
         Self: 'a,
     {
         let elements_with_id = self.document.elements_with_id(&id.0);
 
-        // SAFETY: ServoLayoutElement is known to have the same layout and alignment as LayoutDom<Element>
+        // SAFETY: ServoDangerousStyleElement is known to have the same layout and alignment as
+        // LayoutDom<Element>.
+        #[expect(unsafe_code)]
         let result = unsafe {
             std::slice::from_raw_parts(
-                elements_with_id.as_ptr() as *const ServoLayoutElement<'ld>,
+                elements_with_id.as_ptr() as *const ServoDangerousStyleElement<'dom>,
                 elements_with_id.len(),
             )
         };
@@ -58,36 +77,46 @@ impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
     }
 }
 
-impl<'ld> ServoLayoutDocument<'ld> {
-    pub fn root_element(&self) -> Option<ServoLayoutElement<'ld>> {
+impl<'dom> ServoDangerousStyleDocument<'dom> {
+    /// Get the root node for this [`ServoDangerousStyleDocument`].
+    pub fn root_element(&self) -> Option<ServoLayoutElement<'dom>> {
         self.as_node()
             .dom_children()
             .flat_map(|n| n.as_element())
             .next()
+            .map(|element| element.layout_element())
     }
 
+    /// Get the shared style lock for styling with Stylo for this [`ServoDangerousStyleDocument`].
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         self.document.style_shared_lock()
     }
 
-    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot<'_>> {
+    fn shadow_roots(&self) -> Vec<ServoDangerousStyleShadowRoot<'_>> {
+        #[expect(unsafe_code)]
         unsafe {
             self.document
                 .shadow_roots()
                 .iter()
-                .map(|sr| {
-                    debug_assert!(sr.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
-                    ServoShadowRoot::from_layout_dom(*sr)
+                .map(|shadow_root| {
+                    debug_assert!(
+                        shadow_root
+                            .upcast::<Node>()
+                            .get_flag(NodeFlags::IS_CONNECTED)
+                    );
+                    (*shadow_root).into()
                 })
                 .collect()
         }
     }
 
+    /// Flush the the stylesheets of all descendant shadow roots.
     pub fn flush_shadow_roots_stylesheets(
         &self,
         stylist: &mut Stylist,
         guard: &StyleSharedRwLockReadGuard,
     ) {
+        #[expect(unsafe_code)]
         unsafe {
             if !self.document.shadow_roots_styles_changed() {
                 return;
@@ -97,9 +126,5 @@ impl<'ld> ServoLayoutDocument<'ld> {
                 shadow_root.flush_stylesheets(stylist, guard);
             }
         }
-    }
-
-    pub(crate) fn from_layout_dom(document: LayoutDom<'ld, Document>) -> Self {
-        ServoLayoutDocument { document }
     }
 }

@@ -18,12 +18,12 @@ use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
-use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig,
-    LayoutFactory, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleNode, IFrameSizes, Layout,
+    LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, OffsetParentResponse, PhysicalSides,
+    QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
+    ReflowStatistics, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    with_layout_state,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -37,7 +37,9 @@ use profile_traits::time::{
 };
 use profile_traits::{path, time_profile};
 use rustc_hash::FxHashMap;
-use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
+use script::layout_dom::{
+    ServoDangerousStyleDocument, ServoDangerousStyleElement, ServoLayoutElement, ServoLayoutNode,
+};
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSender;
@@ -318,7 +320,7 @@ impl Layout for LayoutThread {
             }
 
             let node = unsafe { ServoLayoutNode::new(&node) };
-            process_padding_request(node.to_threadsafe())
+            process_padding_request(node)
         })
     }
 
@@ -348,7 +350,7 @@ impl Layout for LayoutThread {
                 .expect("Should always have a StackingContextTree for box area queries");
             process_box_area_request(
                 stacking_context_tree,
-                node.to_threadsafe(),
+                node,
                 area,
                 exclude_transform_and_inline,
             )
@@ -373,7 +375,7 @@ impl Layout for LayoutThread {
             let stacking_context_tree = stacking_context_tree
                 .as_ref()
                 .expect("Should always have a StackingContextTree for box area queries");
-            process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
+            process_box_areas_request(stacking_context_tree, node, area)
         })
     }
 
@@ -381,7 +383,7 @@ impl Layout for LayoutThread {
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel> {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
-            process_client_rect_request(node.to_threadsafe())
+            process_client_rect_request(node)
         })
     }
 
@@ -442,7 +444,7 @@ impl Layout for LayoutThread {
     ) -> String {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
-            let document = node.owner_doc();
+            let document = unsafe { node.dangerous_style_node() }.owner_doc();
             let document_shared_lock = document.style_shared_lock();
             let guards = StylesheetGuards {
                 author: &document_shared_lock.read(),
@@ -472,7 +474,7 @@ impl Layout for LayoutThread {
     ) -> Option<ServoArc<Font>> {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
-            let document = node.owner_doc();
+            let document = unsafe { node.dangerous_style_node() }.owner_doc();
             let document_shared_lock = document.style_shared_lock();
             let guards = StylesheetGuards {
                 author: &document_shared_lock.read(),
@@ -500,7 +502,7 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
         with_layout_state(|| {
-            let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
+            let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
             process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
         })
     }
@@ -512,7 +514,7 @@ impl Layout for LayoutThread {
         point_in_node: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
         with_layout_state(|| {
-            let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+            let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow_mut();
             let stacking_context_tree = stacking_context_tree.as_ref()?;
             find_character_offset_in_fragment_descendants(
@@ -541,7 +543,7 @@ impl Layout for LayoutThread {
     #[servo_tracing::instrument(skip_all)]
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow> {
         with_layout_state(|| {
-            let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+            let node = unsafe { ServoLayoutNode::new(&node) };
             process_effective_overflow_query(node)
         })
     }
@@ -865,7 +867,9 @@ impl LayoutThread {
         }
 
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
-        let document = document.as_document().unwrap();
+        let document = unsafe { document.dangerous_style_node() }
+            .as_document()
+            .unwrap();
         let Some(root_element) = document.root_element() else {
             debug!("layout: No root node: bailing");
             return None;
@@ -922,7 +926,7 @@ impl LayoutThread {
     fn prepare_stylist_for_reflow<'dom>(
         &mut self,
         reflow_request: &ReflowRequest,
-        document: ServoLayoutDocument<'dom>,
+        document: ServoDangerousStyleDocument<'dom>,
         guards: &StylesheetGuards,
         ua_stylesheets: &UserAgentStylesheets,
     ) -> StylesheetInvalidationSet {
@@ -976,7 +980,7 @@ impl LayoutThread {
     fn restyle_and_build_trees(
         &mut self,
         reflow_request: &mut ReflowRequest,
-        document: ServoLayoutDocument<'_>,
+        document: ServoDangerousStyleDocument<'_>,
         root_element: ServoLayoutElement<'_>,
         image_resolver: &Arc<ImageResolver>,
     ) -> (ReflowPhasesRun, IFrameSizes) {
@@ -999,6 +1003,7 @@ impl LayoutThread {
         let rayon_pool = rayon_pool.as_ref();
 
         let device_has_changed = std::mem::replace(&mut self.device_has_changed, false);
+        let dangerous_root_element = unsafe { root_element.dangerous_style_element() };
         if device_has_changed {
             let sheet_origins_affected_by_device_change = self
                 .stylist
@@ -1006,13 +1011,13 @@ impl LayoutThread {
             self.stylist
                 .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
 
-            if let Some(mut data) = root_element.mutate_data() {
+            if let Some(mut data) = dangerous_root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
             }
         }
 
         self.prepare_stylist_for_reflow(reflow_request, document, &guards, ua_stylesheets)
-            .process_style(root_element, Some(&snapshot_map));
+            .process_style(dangerous_root_element, Some(&snapshot_map));
 
         if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
             // Need to manually force layout to build a new display list regardless of whether the box tree
@@ -1052,12 +1057,14 @@ impl LayoutThread {
                 ServoLayoutNode::new(&restyle.dirty_root.unwrap())
                     .as_element()
                     .unwrap()
+                    .dangerous_style_element()
             };
 
             recalc_style_traversal = RecalcStyle::new(&layout_context);
             let token = {
-                let shared =
-                    DomTraversal::<ServoLayoutElement>::shared_context(&recalc_style_traversal);
+                let shared = DomTraversal::<ServoDangerousStyleElement>::shared_context(
+                    &recalc_style_traversal,
+                );
                 RecalcStyle::pre_traverse(original_dirty_root, shared)
             };
 
@@ -1083,7 +1090,7 @@ impl LayoutThread {
                 compute_damage_and_rebuild_box_tree(
                     box_tree,
                     &layout_context,
-                    dirty_root,
+                    dirty_root.layout_node(),
                     root_node,
                     damage_from_environment,
                 )
@@ -1129,7 +1136,7 @@ impl LayoutThread {
         if self.debug.style_tree {
             println!(
                 "{:?}",
-                ShowSubtreeDataAndPrimaryValues(root_element.as_node())
+                ShowSubtreeDataAndPrimaryValues(dangerous_root_element.as_node())
             );
         }
         if self.debug.rule_tree {
@@ -1577,14 +1584,17 @@ impl SnapshotSetter<'_> {
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
-            let Some(mut style_data) = element.mutate_data() else {
-                unsafe { element.unset_snapshot_flags() };
+            let Some(mut style_data) = element
+                .style_data()
+                .map(|data| data.element_data.borrow_mut())
+            else {
+                element.unset_snapshot_flags();
                 continue;
             };
 
             debug!("Noting restyle for {:?}: {:?}", element, style_data);
             if let Some(s) = restyle.snapshot {
-                unsafe { element.set_has_snapshot() };
+                element.set_has_snapshot();
                 snapshot_map.insert(element.as_node().opaque(), s);
             }
 
@@ -1601,7 +1611,7 @@ impl SnapshotSetter<'_> {
 impl Drop for SnapshotSetter<'_> {
     fn drop(&mut self) {
         for element in &self.elements_with_snapshot {
-            unsafe { element.unset_snapshot_flags() }
+            element.unset_snapshot_flags();
         }
     }
 }

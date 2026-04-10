@@ -19,7 +19,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
-use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
+use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
