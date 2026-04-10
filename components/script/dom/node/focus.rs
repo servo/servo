@@ -90,27 +90,28 @@ impl Node {
         // TODO: Implement this.
 
         // > ↪ If focus target is a shadow host whose shadow root's delegates focus is true
-        // >   Step 1. Let focusedElement be the currently focused area of a top-level
-        // >           traversable's DOM anchor.
         if self
             .downcast::<Element>()
             .and_then(Element::shadow_root)
             .is_some_and(|shadow_root| shadow_root.DelegatesFocus())
         {
-            if let Some(focused_element) = self.owner_document().focus_handler().focused_element() {
-                // >   Step 2. If focus target is a shadow-including inclusive ancestor of
-                // >           focusedElement, then return focusedElement.
-                if self
-                    .upcast::<Node>()
-                    .is_shadow_including_inclusive_ancestor_of(focused_element.upcast())
-                {
-                    let kind = focused_element.focusable_area_kind();
-                    return Some(FocusableArea::Node {
-                        node: DomRoot::upcast(focused_element),
-                        kind,
-                    });
-                }
+            // >   Step 1. Let focusedElement be the currently focused area of a top-level
+            // >           traversable's DOM anchor.
+            //
+            // Note: This is a bit of a misnomer, because it might be a Node and not an Element.
+            let document = self.owner_document();
+            let focused_area = document.focus_handler().focused_area();
+            let focused_element = focused_area.dom_anchor(&document);
+
+            // >   Step 2. If focus target is a shadow-including inclusive ancestor of
+            // >           focusedElement, then return focusedElement.
+            if self
+                .upcast::<Node>()
+                .is_shadow_including_inclusive_ancestor_of(&focused_element)
+            {
+                return Some(focused_area.clone());
             }
+
             // >   Step 3. Return the focus delegate for focus target given focus trigger.
             return self.focus_delegate();
         }
