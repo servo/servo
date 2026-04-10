@@ -158,8 +158,8 @@ rustc-hash = "2.1.2"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
-sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
-sea-query-rusqlite = { version = "0.8.0-rc.15" }
+sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
+sea-query-rusqlite = { version = "=0.8.0-rc.15" }
 sec1 = "0.7"
 selectors = "0.36.1"
 serde = "1.0.228"
