@@ -42,16 +42,14 @@ use style::values::{AtomIdent, AtomString};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
-use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId,
     NodeTypeId, TextTypeId,
 };
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::characterdata::LayoutCharacterDataHelpers;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::Element;
 use crate::dom::html::htmlslotelement::HTMLSlotElement;
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
+use crate::dom::node::{Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.

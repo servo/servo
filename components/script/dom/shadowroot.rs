@@ -39,7 +39,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::document::Document;
-use crate::dom::documentfragment::{DocumentFragment, LayoutDocumentFragmentHelpers};
+use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
 };
@@ -638,31 +638,23 @@ impl VirtualMethods for ShadowRoot {
     }
 }
 
-#[expect(unsafe_code)]
-pub(crate) trait LayoutShadowRootHelpers<'dom> {
-    fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
-    fn get_style_data_for_layout(self) -> &'dom CascadeData;
-    fn is_ua_widget(&self) -> bool;
-    unsafe fn flush_stylesheets(self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard);
-}
-
-impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
+impl<'dom> LayoutDom<'dom, ShadowRoot> {
     #[inline]
-    fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
+    pub(crate) fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
         self.upcast::<DocumentFragment>()
             .shadowroot_host_for_layout()
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn get_style_data_for_layout(self) -> &'dom CascadeData {
+    pub(crate) fn get_style_data_for_layout(self) -> &'dom CascadeData {
         fn is_sync<T: Sync>() {}
         let _ = is_sync::<CascadeData>;
         unsafe { &self.unsafe_get().author_styles.borrow_for_layout().data }
     }
 
     #[inline]
-    fn is_ua_widget(&self) -> bool {
+    pub(crate) fn is_ua_widget(&self) -> bool {
         self.unsafe_get().is_user_agent_widget()
     }
 
@@ -670,7 +662,11 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     // probably be revisited.
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn flush_stylesheets(self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard) {
+    pub(crate) unsafe fn flush_stylesheets(
+        self,
+        stylist: &mut Stylist,
+        guard: &SharedRwLockReadGuard,
+    ) {
         let author_styles = unsafe { self.unsafe_get().author_styles.borrow_mut_for_layout() };
         if author_styles.stylesheets.dirty() {
             author_styles.flush(stylist, guard);

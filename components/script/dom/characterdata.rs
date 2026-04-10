@@ -287,14 +287,10 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 }
 
-pub(crate) trait LayoutCharacterDataHelpers<'dom> {
-    fn data_for_layout(self) -> &'dom str;
-}
-
-impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
+impl<'dom> LayoutDom<'dom, CharacterData> {
     #[expect(unsafe_code)]
     #[inline]
-    fn data_for_layout(self) -> &'dom str {
+    pub(crate) fn data_for_layout(self) -> &'dom str {
         unsafe { self.unsafe_get().data.borrow_for_layout() }
     }
 }

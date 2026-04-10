@@ -41,9 +41,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{
-    AttributeMutation, Element, LayoutElementHelpers, reflect_referrer_policy_attribute,
-};
+use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_attribute};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -918,25 +916,18 @@ impl HTMLIFrameElement {
     }
 }
 
-pub(crate) trait HTMLIFrameElementLayoutMethods {
-    fn pipeline_id(self) -> Option<PipelineId>;
-    fn browsing_context_id(self) -> Option<BrowsingContextId>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-}
-
-impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
+impl LayoutDom<'_, HTMLIFrameElement> {
     #[inline]
-    fn pipeline_id(self) -> Option<PipelineId> {
+    pub(crate) fn pipeline_id(self) -> Option<PipelineId> {
         (self.unsafe_get()).pipeline_id.get()
     }
 
     #[inline]
-    fn browsing_context_id(self) -> Option<BrowsingContextId> {
+    pub(crate) fn browsing_context_id(self) -> Option<BrowsingContextId> {
         (self.unsafe_get()).browsing_context_id.get()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -944,7 +935,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

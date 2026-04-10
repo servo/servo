@@ -46,7 +46,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -164,12 +164,8 @@ impl HTMLCanvasElement {
     }
 }
 
-pub(crate) trait LayoutHTMLCanvasElementHelpers {
-    fn data(self) -> HTMLCanvasData;
-}
-
-impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
-    fn data(self) -> HTMLCanvasData {
+impl LayoutDom<'_, HTMLCanvasElement> {
+    pub(crate) fn data(self) -> HTMLCanvasData {
         let width_attr = self
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"));
