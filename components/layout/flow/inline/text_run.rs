@@ -473,8 +473,6 @@ impl TextRun {
         // The next bytes index of the charcter within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
 
-        let resolve_word_spacing_for_font = |_font: &FontRef| word_spacing;
-
         for (character, next_character) in char_iterator {
             let current_character_index = next_character_index;
             next_character_index += 1;
@@ -514,7 +512,7 @@ impl TextRun {
                 letter_spacing
             };
 
-            let word_spacing = Some(resolve_word_spacing_for_font(&font));
+            let word_spacing = Some(word_spacing);
             let info = FontAndScriptInfo {
                 font,
                 script,
@@ -546,7 +544,7 @@ impl TextRun {
         // of those cases, just use the first font.
         if current.is_none() {
             current = font_group.first(&layout_context.font_context).map(|font| {
-                let word_spacing = Some(resolve_word_spacing_for_font(&font));
+                let word_spacing = Some(word_spacing);
                 TextRunSegment::new(
                     Arc::new(FontAndScriptInfo {
                         font,
