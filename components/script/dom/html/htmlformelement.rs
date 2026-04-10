@@ -436,7 +436,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-length>
     fn Length(&self) -> u32 {
-        self.Elements(CanGc::note()).Length()
+        self.Elements(CanGc::deprecated_note()).Length()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-item>

@@ -214,7 +214,8 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
 
     /// <https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload>
     fn NavigationPreload(&self) -> DomRoot<NavigationPreloadManager> {
-        self.navigation_preload
-            .or_init(|| NavigationPreloadManager::new(&self.global(), self, CanGc::note()))
+        self.navigation_preload.or_init(|| {
+            NavigationPreloadManager::new(&self.global(), self, CanGc::deprecated_note())
+        })
     }
 }

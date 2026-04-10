@@ -91,8 +91,10 @@ pub(crate) trait Validatable {
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn validation_message(&self) -> DOMString {
         if self.is_instance_validatable() {
-            let flags = self.validity_state(CanGc::note()).invalid_flags();
-            validation_message_for_flags(&self.validity_state(CanGc::note()), flags)
+            let flags = self
+                .validity_state(CanGc::deprecated_note())
+                .invalid_flags();
+            validation_message_for_flags(&self.validity_state(CanGc::deprecated_note()), flags)
         } else {
             DOMString::new()
         }

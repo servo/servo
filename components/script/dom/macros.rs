@@ -41,7 +41,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::note());
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note());
             Ok(())
         }
     );
@@ -113,7 +113,7 @@ macro_rules! make_url_setter(
             use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             element.set_url_attribute(&html5ever::local_name!($htmlname),
-                                         value, CanGc::note());
+                                         value, CanGc::deprecated_note());
         }
     );
 );
@@ -149,7 +149,7 @@ macro_rules! make_labels_getter(
             self.$memo.or_init(|| NodeList::new_labels_list(
                 self.upcast::<Node>().owner_doc().window(),
                 self.upcast::<HTMLElement>(),
-                CanGc::note()
+                CanGc::deprecated_note()
                 )
             )
         }
@@ -273,7 +273,7 @@ macro_rules! make_setter(
             use $crate::dom::element::Element;
             use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
-            element.set_string_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_string_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
 );
@@ -286,7 +286,7 @@ macro_rules! make_bool_setter(
             use $crate::dom::element::Element;
             use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
-            element.set_bool_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_bool_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
 );
@@ -305,7 +305,7 @@ macro_rules! make_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -328,7 +328,7 @@ macro_rules! make_clamped_uint_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
 );
@@ -349,7 +349,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note());
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note());
             Ok(())
         }
     );
@@ -372,7 +372,7 @@ macro_rules! make_atomic_setter_inner(
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            make_atomic_setter_inner!(self, value, $htmlname, CanGc::note());
+            make_atomic_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
@@ -392,7 +392,7 @@ macro_rules! make_legacy_color_setter(
             use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
 );
@@ -406,7 +406,7 @@ macro_rules! make_dimension_setter(
             use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
 );
@@ -420,7 +420,7 @@ macro_rules! make_nonzero_dimension_setter(
             use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
 );
@@ -467,7 +467,7 @@ macro_rules! make_dimension_uint_setter(
                 value
             };
             let value = AttrValue::from_dimension(value.to_string());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -499,7 +499,7 @@ macro_rules! define_event_handler(
             use crate::dom::eventtarget::EventTarget;
             use crate::script_runtime::CanGc;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::note())
+            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::deprecated_note())
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
@@ -797,7 +797,7 @@ macro_rules! impl_performance_entry_struct(
                        start_time: CrossProcessInstant,
                        duration: Duration) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
-                reflect_dom_object(Box::new(entry), global, CanGc::note())
+                reflect_dom_object(Box::new(entry), global, CanGc::deprecated_note())
             }
         }
     );

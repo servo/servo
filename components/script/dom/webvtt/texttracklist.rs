@@ -86,10 +86,10 @@ impl TextTrackList {
                             &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
                                 DomRoot::from_ref(&track)
                             )),
-                            CanGc::note()
+                            CanGc::deprecated_note()
                         );
 
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
                     }
                 }));
             track.add_track_list(self);

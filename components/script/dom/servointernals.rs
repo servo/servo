@@ -120,7 +120,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
             return Err(Error::NotFound(None));
         }
         let pref = Preferences::default().get_value(&name);
-        pref_to_jsval(&pref, cx, rval, CanGc::note());
+        pref_to_jsval(&pref, cx, rval, CanGc::deprecated_note());
         Ok(())
     }
 
@@ -135,7 +135,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
             return Err(Error::NotFound(None));
         }
         let pref = prefs::get().get_value(&name);
-        pref_to_jsval(&pref, cx, rval, CanGc::note());
+        pref_to_jsval(&pref, cx, rval, CanGc::deprecated_note());
         Ok(())
     }
 

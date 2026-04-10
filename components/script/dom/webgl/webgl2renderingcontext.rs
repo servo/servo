@@ -698,10 +698,10 @@ impl WebGL2RenderingContext {
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
             match fb.attachment(attachment) {
                 Some(Renderbuffer(rb)) => {
-                    rb.safe_to_jsval(cx, rval, CanGc::note());
+                    rb.safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 },
                 Some(Texture(texture)) => {
-                    texture.safe_to_jsval(cx, rval, CanGc::note());
+                    texture.safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 },
                 _ => rval.set(NullValue()),
             }
@@ -1042,11 +1042,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     fn GetParameter(&self, cx: JSContext, parameter: u32, mut rval: MutableHandleValue) {
         match parameter {
             constants::VERSION => {
-                "WebGL 2.0".safe_to_jsval(cx, rval, CanGc::note());
+                "WebGL 2.0".safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::SHADING_LANGUAGE_VERSION => {
-                "WebGL GLSL ES 3.00".safe_to_jsval(cx, rval, CanGc::note());
+                "WebGL GLSL ES 3.00".safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
@@ -1065,68 +1065,79 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
-                sampler.safe_to_jsval(cx, rval, CanGc::note());
+                sampler.safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::COPY_READ_BUFFER_BINDING => {
                 self.bound_copy_read_buffer
                     .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                    .safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::COPY_WRITE_BUFFER_BINDING => {
-                self.bound_copy_write_buffer
-                    .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                self.bound_copy_write_buffer.get().safe_to_jsval(
+                    cx,
+                    rval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::PIXEL_PACK_BUFFER_BINDING => {
-                self.bound_pixel_pack_buffer
-                    .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                self.bound_pixel_pack_buffer.get().safe_to_jsval(
+                    cx,
+                    rval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::PIXEL_UNPACK_BUFFER_BINDING => {
-                self.bound_pixel_unpack_buffer
-                    .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                self.bound_pixel_unpack_buffer.get().safe_to_jsval(
+                    cx,
+                    rval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => {
-                self.bound_transform_feedback_buffer
-                    .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                self.bound_transform_feedback_buffer.get().safe_to_jsval(
+                    cx,
+                    rval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::UNIFORM_BUFFER_BINDING => {
                 self.bound_uniform_buffer
                     .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                    .safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::TRANSFORM_FEEDBACK_BINDING => {
-                self.current_transform_feedback
-                    .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                self.current_transform_feedback.get().safe_to_jsval(
+                    cx,
+                    rval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => {
                 let buffer = self.current_vao().element_array_buffer().get();
-                buffer.safe_to_jsval(cx, rval, CanGc::note());
+                buffer.safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             constants::VERTEX_ARRAY_BINDING => {
                 let vao = self.current_vao();
                 let vao = vao.id().map(|_| &*vao);
-                vao.safe_to_jsval(cx, rval, CanGc::note());
+                vao.safe_to_jsval(cx, rval, CanGc::deprecated_note());
                 return;
             },
             // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
             constants::READ_FRAMEBUFFER_BINDING => {
-                self.base
-                    .get_read_framebuffer_slot()
-                    .get()
-                    .safe_to_jsval(cx, rval, CanGc::note());
+                self.base.get_read_framebuffer_slot().get().safe_to_jsval(
+                    cx,
+                    rval,
+                    CanGc::deprecated_note(),
+                );
                 return;
             },
             constants::READ_BUFFER => {
@@ -2086,7 +2097,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 binding
                     .buffer
                     .get()
-                    .safe_to_jsval(cx, retval, CanGc::note())
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note())
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_START | constants::UNIFORM_BUFFER_START => {
                 retval.set(Int32Value(binding.start.get() as _))
@@ -3801,7 +3812,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     fn CreateQuery(&self) -> Option<DomRoot<WebGLQuery>> {
-        Some(WebGLQuery::new(&self.base, CanGc::note()))
+        Some(WebGLQuery::new(&self.base, CanGc::deprecated_note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
@@ -3842,7 +3853,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn CreateSampler(&self) -> Option<DomRoot<WebGLSampler>> {
-        Some(WebGLSampler::new(&self.base, CanGc::note()))
+        Some(WebGLSampler::new(&self.base, CanGc::deprecated_note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
@@ -3982,7 +3993,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return None;
         }
 
-        Some(WebGLSync::new(&self.base, CanGc::note()))
+        Some(WebGLSync::new(&self.base, CanGc::deprecated_note()))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
@@ -4174,7 +4185,10 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn CreateTransformFeedback(&self) -> Option<DomRoot<WebGLTransformFeedback>> {
-        Some(WebGLTransformFeedback::new(&self.base, CanGc::note()))
+        Some(WebGLTransformFeedback::new(
+            &self.base,
+            CanGc::deprecated_note(),
+        ))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
@@ -4401,7 +4415,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             size,
             ty,
             DOMString::from(name),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -4572,11 +4586,11 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             constants::UNIFORM_OFFSET |
             constants::UNIFORM_ARRAY_STRIDE |
             constants::UNIFORM_MATRIX_STRIDE => {
-                values.safe_to_jsval(cx, rval, CanGc::note());
+                values.safe_to_jsval(cx, rval, CanGc::deprecated_note());
             },
             constants::UNIFORM_IS_ROW_MAJOR => {
                 let values = values.iter().map(|&v| v != 0).collect::<Vec<_>>();
-                values.safe_to_jsval(cx, rval, CanGc::note());
+                values.safe_to_jsval(cx, rval, CanGc::deprecated_note());
             },
             _ => unreachable!(),
         }

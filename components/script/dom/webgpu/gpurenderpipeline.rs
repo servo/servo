@@ -152,7 +152,7 @@ impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
             self.droppable.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 }

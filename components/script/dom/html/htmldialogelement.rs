@@ -261,10 +261,10 @@ impl HTMLDialogElement {
                     DOMString::from(old_state),
                     DOMString::from(new_state),
                     source,
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let event = event.upcast::<Event>();
-                event.fire(this.upcast::<EventTarget>(), CanGc::note());
+                event.fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
 
                 // TODO: Step 2.2. Set element's dialog toggle task tracker to null.
             }));

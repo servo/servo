@@ -254,7 +254,7 @@ impl HTMLStyleElement {
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 )
             })
         })

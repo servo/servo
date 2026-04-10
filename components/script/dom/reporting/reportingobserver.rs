@@ -151,7 +151,7 @@ impl ReportingObserver {
                 reports,
                 observer,
                 ExceptionHandling::Report,
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
         }
     }

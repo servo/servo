@@ -204,7 +204,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             &self.owner_window(),
             self.upcast(),
             Box::new(filter),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -327,7 +327,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                         element.local_name() == &local_name!("tbody") &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         })
     }

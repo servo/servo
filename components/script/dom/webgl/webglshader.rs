@@ -73,7 +73,7 @@ impl WebGLShader {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLShader::new(context, id, shader_type, CanGc::note()))
+            .map(|id| WebGLShader::new(context, id, shader_type, CanGc::deprecated_note()))
     }
 
     pub(crate) fn new(

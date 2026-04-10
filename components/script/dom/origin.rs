@@ -112,7 +112,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-from>
     fn From(cx: JSContext, global: &GlobalScope, value: HandleValue) -> Fallible<DomRoot<Origin>> {
-        let can_gc = CanGc::note();
+        let can_gc = CanGc::deprecated_note();
 
         // Step 1. If value is a platform object:
         //   1. Let origin be the result of executing value's extract an origin operation.

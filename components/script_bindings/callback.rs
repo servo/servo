@@ -283,7 +283,7 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
                 <D as DomHelpers<D>>::report_pending_exception(
                     cx,
                     InRealm::Entered(&ar),
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
             }
             result

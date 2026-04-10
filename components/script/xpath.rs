@@ -278,7 +278,7 @@ impl xpath::NamespaceResolver for XPathWrapper<Rc<XPathNSResolver>> {
             .LookupNamespaceURI__(
                 Some(DOMString::from(prefix)),
                 ExceptionHandling::Report,
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
             .ok()
             .flatten()

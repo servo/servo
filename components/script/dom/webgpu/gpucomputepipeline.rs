@@ -163,7 +163,7 @@ impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
             self.droppable.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 }

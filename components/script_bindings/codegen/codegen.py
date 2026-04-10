@@ -4228,7 +4228,7 @@ class CGCallGenerator(CGThing):
             if nativeMethodName in descriptor.inRealmMethods:
                 args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx.raw_cx())))"))
             if nativeMethodName in descriptor.canGcMethods:
-                args.append(CGGeneric("CanGc::note()"))
+                args.append(CGGeneric("CanGc::deprecated_note()"))
         if rootType:
             args.append(CGGeneric("retval.handle_mut()"))
 
@@ -4270,7 +4270,7 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                f"        <D as DomHelpers<D>>::throw_dom_exception(SafeJSContext::from_ptr(cx.raw_cx()), {glob}, e, CanGc::note());\n"
+                f"        <D as DomHelpers<D>>::throw_dom_exception(SafeJSContext::from_ptr(cx.raw_cx()), {glob}, e, CanGc::deprecated_note());\n"
                 f"        return{errorResult};\n"
                 "    },\n"
                 "};"))
@@ -4580,7 +4580,7 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
             if ok {
               return true;
             }
-            return exception_to_promise(cx, (*args).rval(), CanGc::note());
+            return exception_to_promise(cx, (*args).rval(), CanGc::deprecated_note());
             """,
             methodName=self.method.identifier.name,
             args=", ".join(arg.name for arg in self.args),
@@ -4615,7 +4615,7 @@ class CGGetterPromiseWrapper(CGAbstractExternMethod):
             if ok {
               return true;
             }
-            return exception_to_promise(cx, args.rval(), CanGc::note());
+            return exception_to_promise(cx, args.rval(), CanGc::deprecated_note());
             """,
             methodName=self.method_call,
             args=", ".join(arg.name for arg in self.args),
@@ -7788,7 +7788,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut RawJSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            f"        {selfName}::new(SafeJSContext::from_ptr(cx), value, CanGc::note())\n"
+            f"        {selfName}::new(SafeJSContext::from_ptr(cx), value, CanGc::deprecated_note())\n"
             "    }\n"
             "}\n"
             "\n"

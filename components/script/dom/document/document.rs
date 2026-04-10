@@ -902,7 +902,7 @@ impl Document {
                 // Step 4.6.2 Set document's page showing flag to true.
                 document.page_showing.set(true);
                 // Step 4.6.3 Update the visibility state of document to "visible".
-                document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::note());
+                document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::deprecated_note());
                 // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                 // global object with true.
                 let event = PageTransitionEvent::new(
@@ -911,11 +911,11 @@ impl Document {
                     false, // bubbles
                     false, // cancelable
                     true, // persisted
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let event = event.upcast::<Event>();
                 event.set_trusted(true);
-                window.dispatch_event_with_target_override(event, CanGc::note());
+                window.dispatch_event_with_target_override(event, CanGc::deprecated_note());
             }))
     }
 
@@ -1941,10 +1941,10 @@ impl Document {
                             false,
                             old_url,
                             new_url,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                         )
                         .upcast::<Event>()
-                        .fire(window.upcast(), CanGc::note());
+                        .fire(window.upcast(), CanGc::deprecated_note());
                 }));
         }
     }
@@ -2224,7 +2224,7 @@ impl Document {
                 }
 
                 // Step 9.1. Update the current document readiness to "complete".
-                document.set_ready_state(DocumentReadyState::Complete, CanGc::note());
+                document.set_ready_state(DocumentReadyState::Complete, CanGc::deprecated_note());
 
                 // Step 9.2. If the Document object's browsing context is null, then abort these steps.
                 if document.browsing_context().is_none() {
@@ -2240,11 +2240,11 @@ impl Document {
                     atom!("load"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
-                window.dispatch_event_with_target_override(&load_event, CanGc::note());
+                window.dispatch_event_with_target_override(&load_event, CanGc::deprecated_note());
 
                 // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
                 // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID
@@ -2270,11 +2270,11 @@ impl Document {
                     false, // bubbles
                     false, // cancelable
                     false, // persisted
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let page_show_event = page_show_event.upcast::<Event>();
                 page_show_event.set_trusted(true);
-                page_show_event.fire(window.upcast(), CanGc::note());
+                page_show_event.fire(window.upcast(), CanGc::deprecated_note());
 
                 // Step 9.12. Completely finish loading the Document.
                 document.completely_finish_loading();
@@ -2283,7 +2283,7 @@ impl Document {
                 // TODO
 
                 if let Some(fragment) = document.url().fragment() {
-                    document.scroll_to_the_fragment(fragment, CanGc::note());
+                    document.scroll_to_the_fragment(fragment, CanGc::deprecated_note());
                 }
             }));
 
@@ -2476,7 +2476,7 @@ impl Document {
 
                 // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
                 // attribute initialized to true.
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
+                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::deprecated_note());
 
                 // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
                 // high resolution time given the Document's relevant global object.
@@ -3220,7 +3220,7 @@ impl Document {
             .task_manager()
             .intersection_observer_task_source()
             .queue(task!(notify_intersection_observers: move || {
-                document.root().notify_intersection_observers(CanGc::note());
+                document.root().notify_intersection_observers(CanGc::deprecated_note());
             }));
     }
 

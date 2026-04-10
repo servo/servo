@@ -112,7 +112,7 @@ impl WebGLRenderbuffer {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLRenderbuffer::new(context, id, CanGc::note()))
+            .map(|id| WebGLRenderbuffer::new(context, id, CanGc::deprecated_note()))
     }
 
     pub(crate) fn new(

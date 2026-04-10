@@ -298,7 +298,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
         let _ = self.sender.send(MockDeviceMsg::AddInputSource(init));
 
         let controller =
-            FakeXRInputController::new(&global, self.sender.clone(), id, CanGc::note());
+            FakeXRInputController::new(&global, self.sender.clone(), id, CanGc::deprecated_note());
 
         Ok(controller)
     }

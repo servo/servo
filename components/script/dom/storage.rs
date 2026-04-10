@@ -253,9 +253,9 @@ impl Storage {
                     new_value.map(DOMString::from),
                     DOMString::from(url.into_string()),
                     Some(&this),
-                    CanGc::note()
+                    CanGc::deprecated_note()
                 );
-                event.upcast::<Event>().fire(global.upcast(), CanGc::note());
+                event.upcast::<Event>().fire(global.upcast(), CanGc::deprecated_note());
             }),
         );
     }

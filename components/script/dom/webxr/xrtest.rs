@@ -54,7 +54,7 @@ impl XRTest {
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
-            let device = FakeXRDevice::new(&self.global(), sender, CanGc::note());
+            let device = FakeXRDevice::new(&self.global(), sender, CanGc::deprecated_note());
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
@@ -164,7 +164,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
                 task_source.queue(task!(request_session: move || {
-                    this.root().device_obtained(message, trusted, CanGc::note());
+                    this.root().device_obtained(message, trusted, CanGc::deprecated_note());
                 }));
             })
             .expect("Could not create callback");

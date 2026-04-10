@@ -476,10 +476,10 @@ impl VirtualMethods for HTMLDetailsElement {
                             DOMString::from(old_state),
                             DOMString::from(new_state),
                             None,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                         );
                         let event = event.upcast::<Event>();
-                        event.fire(this.upcast::<EventTarget>(), CanGc::note());
+                        event.fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
                     }
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);

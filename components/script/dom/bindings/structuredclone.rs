@@ -252,7 +252,7 @@ unsafe extern "C" fn read_callback(
         for serializable in SerializableInterface::iter() {
             if tag == StructuredCloneTags::from(serializable) as u32 {
                 let reader = reader_for_type(serializable);
-                return reader(&global, r, sc_reader, CanGc::note());
+                return reader(&global, r, sc_reader, CanGc::deprecated_note());
             }
         }
     }
@@ -716,7 +716,7 @@ pub(crate) fn write(
     unsafe {
         rooted!(in(*cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            transfer.safe_to_jsval(cx, val.handle_mut(), CanGc::note());
+            transfer.safe_to_jsval(cx, val.handle_mut(), CanGc::deprecated_note());
         }
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;

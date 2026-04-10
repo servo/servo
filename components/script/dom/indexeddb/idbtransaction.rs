@@ -294,7 +294,7 @@ impl IDBTransaction {
                         }
                         Err(_err) => {
                              // TODO: Map backend commit/rollback failure to an appropriate DOMException
-                            this.initiate_abort(Error::Operation(None), CanGc::note());
+                            this.initiate_abort(Error::Operation(None), CanGc::deprecated_note());
 
                             this.finalize_abort();
                         }
@@ -353,7 +353,7 @@ impl IDBTransaction {
             // We failed to initiate the commit algorithm (backend task could not be queued),
             // so the transaction cannot progress to a successful "complete".
             // Choose the most appropriate DOMException mapping for Servo here.
-            self.initiate_abort(Error::InvalidState(None), CanGc::note());
+            self.initiate_abort(Error::InvalidState(None), CanGc::deprecated_note());
             self.finalize_abort();
         }
     }
@@ -547,9 +547,9 @@ impl IDBTransaction {
                     Atom::from("abort"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
-                event.fire(this.upcast(), CanGc::note());
+                event.fire(this.upcast(), CanGc::deprecated_note());
                 if this.mode == IDBTransactionMode::Versionchange {
                     this.global()
                         .get_indexeddb()
@@ -617,9 +617,9 @@ impl IDBTransaction {
                     Atom::from("complete"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::note()
+                    CanGc::deprecated_note()
                 );
-                event.fire(this.upcast(), CanGc::note());
+                event.fire(this.upcast(), CanGc::deprecated_note());
                 if this.mode == IDBTransactionMode::Versionchange {
                     this.global()
                         .get_indexeddb()
@@ -768,7 +768,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             return Err(Error::InvalidState(None));
         }
         self.active.set(false);
-        self.initiate_abort(Error::Abort(None), CanGc::note());
+        self.initiate_abort(Error::Abort(None), CanGc::deprecated_note());
         self.request_backend_abort();
 
         Ok(())

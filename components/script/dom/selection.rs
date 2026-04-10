@@ -97,7 +97,7 @@ impl Selection {
                 task!(selectionchange_task_steps: move || {
                     let this = this.root();
                     this.task_queued.set(false);
-                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
+                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::deprecated_note());
                 })
             );
         self.task_queued.set(true);

@@ -1156,11 +1156,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                     data.map(DOMString::from),
                     is_composing.into(),
                     input_type.as_str().into(),
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let event = event.upcast::<Event>();
                 event.set_composed(true);
-                event.fire(&target, CanGc::note());
+                event.fire(&target, CanGc::deprecated_note());
             }),
         );
     }

@@ -594,7 +594,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 };
 
                 let Some(mut snapshot) = result else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
+                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::deprecated_note());
                     return;
                 };
 
@@ -611,14 +611,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::note());
+                       blob = Blob::new(&this.global(), blob_impl, CanGc::deprecated_note());
                        Some(&*blob)
                    }
                    Err(..) => None,
                 };
 
                 // Step 4.2.2: Invoke callback with « result » and "report".
-                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::note());
+                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::deprecated_note());
             }));
 
         Ok(())
