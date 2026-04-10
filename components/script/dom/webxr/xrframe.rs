@@ -197,7 +197,14 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| XRHitTestResult::new(self.global().as_window(), *r, self, CanGc::note()))
+            .map(|r| {
+                XRHitTestResult::new(
+                    self.global().as_window(),
+                    *r,
+                    self,
+                    CanGc::deprecated_note(),
+                )
+            })
             .collect()
     }
 

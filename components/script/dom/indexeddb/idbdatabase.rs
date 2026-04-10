@@ -92,7 +92,7 @@ impl IDBDatabase {
         DOMStringList::new(
             &self.global(),
             self.object_store_names.borrow().clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -220,14 +220,14 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // connection, mode, options’ durability member, and the set of object
         // stores named in scope.
         let durability = options.durability;
-        let scope = DOMStringList::new(&self.global(), scope, CanGc::note());
+        let scope = DOMStringList::new(&self.global(), scope, CanGc::deprecated_note());
         let transaction = IDBTransaction::new(
             &self.global(),
             self,
             mode,
             durability,
             &scope,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
 
         // Step 8. Set transaction’s cleanup event loop to the current event loop.

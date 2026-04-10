@@ -1470,7 +1470,7 @@ impl FormControl for HTMLElement {
     fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
         debug_assert!(self.is_form_associated_custom_element());
         self.element
-            .ensure_element_internals(CanGc::note())
+            .ensure_element_internals(CanGc::deprecated_note())
             .set_form_owner(form);
     }
 

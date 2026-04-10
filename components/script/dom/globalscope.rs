@@ -611,7 +611,7 @@ impl MessageListener {
                 self.task_source
                     .queue(task!(try_complete_disentanglement: move || {
                         let global = context.root();
-                        global.try_complete_disentanglement(port_id, CanGc::note());
+                        global.try_complete_disentanglement(port_id, CanGc::deprecated_note());
                     }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
@@ -652,7 +652,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::deprecated_note());
                         });
                         self.task_source.queue(task);
 
@@ -674,7 +674,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::deprecated_note());
                         });
 
                         self.task_source.queue(task);
@@ -702,7 +702,7 @@ impl FileListener {
                     FileListenerTarget::Stream(trusted_stream) => {
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted_stream.root();
-                            stream_handle_eof(&stream, CanGc::note());
+                            stream_handle_eof(&stream, CanGc::deprecated_note());
                         });
 
                         self.task_source.queue(task);
@@ -728,7 +728,7 @@ impl FileListener {
                         FileListenerTarget::Stream(trusted_stream) => {
                             self.task_source.queue(task!(error_stream: move || {
                                 let stream = trusted_stream.root();
-                                stream_handle_incoming(&stream, error, CanGc::note());
+                                stream_handle_incoming(&stream, error, CanGc::deprecated_note());
                             }));
                         },
                     }
@@ -1358,7 +1358,7 @@ impl GlobalScope {
                                 rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::note()) {
+                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::deprecated_note()) {
                                     // Step 10.4, Fire an event named message at destination.
                                     MessageEvent::dispatch_jsval(
                                         destination.upcast(),
@@ -1367,11 +1367,11 @@ impl GlobalScope {
                                         Some(&origin.ascii_serialization()),
                                         None,
                                         ports,
-                                        CanGc::note()
+                                        CanGc::deprecated_note()
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::note());
+                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::deprecated_note());
                                 }
                             })
                         );
@@ -3003,7 +3003,7 @@ impl GlobalScope {
     /// Returns the idb factory for this global.
     pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
         self.indexeddb
-            .or_init(|| IDBFactory::new(self, CanGc::note()))
+            .or_init(|| IDBFactory::new(self, CanGc::deprecated_note()))
     }
 
     pub(crate) fn get_existing_indexeddb(&self) -> Option<DomRoot<IDBFactory>> {

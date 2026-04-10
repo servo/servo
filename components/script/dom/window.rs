@@ -1426,7 +1426,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history>
     fn History(&self) -> DomRoot<History> {
-        self.history.or_init(|| History::new(self, CanGc::note()))
+        self.history
+            .or_init(|| History::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
@@ -1437,7 +1438,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-customelements>
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(self, CanGc::note()))
+            .or_init(|| CustomElementRegistry::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
@@ -1506,7 +1507,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto(CanGc::note())
+        self.as_global_scope().crypto(CanGc::deprecated_note())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-frameelement>
@@ -1542,7 +1543,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
     fn Navigator(&self) -> DomRoot<Navigator> {
         self.navigator
-            .or_init(|| Navigator::new(self, CanGc::note()))
+            .or_init(|| Navigator::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-clientinformation>
@@ -1711,7 +1712,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Performance::new(
                 self.as_global_scope(),
                 self.navigation_start.get(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         })
     }
@@ -1938,7 +1939,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             pseudo,
             CSSModificationAccess::Readonly,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -2142,7 +2143,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
         let media_query_list = MediaList::parse_media_list(&query.str(), self);
         let document = self.Document();
-        let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
+        let mql = MediaQueryList::new(&document, media_query_list, CanGc::deprecated_note());
         self.media_query_lists.track(&*mql);
         mql
     }
@@ -2170,7 +2171,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     #[cfg(feature = "bluetooth")]
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner
-            .or_init(|| TestRunner::new(self.upcast(), CanGc::note()))
+            .or_init(|| TestRunner::new(self.upcast(), CanGc::deprecated_note()))
     }
 
     fn RunningAnimationCount(&self) -> u32 {
@@ -2203,7 +2204,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
         self.document
             .get()
-            .and_then(|d| d.GetSelection(CanGc::note()))
+            .and_then(|d| d.GetSelection(CanGc::deprecated_note()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
@@ -2212,7 +2213,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             event
                 .reflector()
                 .get_jsobject()
-                .safe_to_jsval(cx, rval, CanGc::note());
+                .safe_to_jsval(cx, rval, CanGc::deprecated_note());
         }
     }
 
@@ -2304,7 +2305,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -2447,7 +2448,7 @@ impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub(crate) fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet
-            .or_init(|| self.new_paint_worklet(CanGc::note()))
+            .or_init(|| self.new_paint_worklet(CanGc::deprecated_note()))
     }
 
     pub(crate) fn has_document(&self) -> bool {
@@ -3860,7 +3861,7 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::note()) {
+            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::deprecated_note()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),
@@ -3869,14 +3870,14 @@ impl Window {
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     ports,
-                    CanGc::note()
+                    CanGc::deprecated_note()
                 );
             } else {
                 // Step 4, fire messageerror.
                 MessageEvent::dispatch_error(
                     this.upcast(),
                     this.upcast(),
-                    CanGc::note()
+                    CanGc::deprecated_note()
                 );
             }
         });

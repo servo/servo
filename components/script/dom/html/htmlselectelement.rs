@@ -538,13 +538,13 @@ impl HTMLSelectElement {
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
                         EventComposed::Composed,
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     );
 
                 // Step 3. Fire an event named change at the select element, with the bubbles attribute initialized
                 // to true.
                 this.upcast::<EventTarget>()
-                    .fire_bubbling_event(atom!("change"), CanGc::note());
+                    .fire_bubbling_event(atom!("change"), CanGc::deprecated_note());
             }));
     }
 
@@ -635,7 +635,12 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     fn Options(&self) -> DomRoot<HTMLOptionsCollection> {
         self.options.or_init(|| {
             let window = self.owner_window();
-            HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter), CanGc::note())
+            HTMLOptionsCollection::new(
+                &window,
+                self,
+                Box::new(OptionsFilter),
+                CanGc::deprecated_note(),
+            )
         })
     }
 
@@ -647,7 +652,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
                 &window,
                 self.upcast(),
                 Box::new(SelectedOptionsSource),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         })
     }

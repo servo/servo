@@ -214,12 +214,14 @@ impl MutationObserver {
                         name,
                         namespace,
                         mapped_old_value,
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     )
                 },
-                Mutation::CharacterData { .. } => {
-                    MutationRecord::character_data_mutated(target, mapped_old_value, CanGc::note())
-                },
+                Mutation::CharacterData { .. } => MutationRecord::character_data_mutated(
+                    target,
+                    mapped_old_value,
+                    CanGc::deprecated_note(),
+                ),
                 Mutation::ChildList {
                     ref added,
                     ref removed,
@@ -231,7 +233,7 @@ impl MutationObserver {
                     *removed,
                     *next,
                     *prev,
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 ),
             };
             // Step 4.2 Enqueue record to observer’s record queue.

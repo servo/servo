@@ -715,12 +715,12 @@ impl DedicatedWorkerGlobalScope {
                 error_info.lineno,
                 error_info.column,
                 HandleValue::null(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
 
             // Step 7.2.3. If notHandled is true, then report exception for workerObject's relevant global object with omitError set to true.
-            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
-                global.report_an_error(error_info, HandleValue::null(), CanGc::note());
+            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::deprecated_note()) {
+                global.report_an_error(error_info, HandleValue::null(), CanGc::deprecated_note());
             }
         }));
         self.parent_event_loop_sender

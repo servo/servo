@@ -144,8 +144,12 @@ impl XRWebGLLayer {
 
         // TODO: Cache this texture
         let color_texture_id = WebGLTextureId::new(sub_images.sub_image.as_ref()?.color_texture?);
-        let color_texture =
-            WebGLTexture::new_webxr(&context, color_texture_id, session, CanGc::note());
+        let color_texture = WebGLTexture::new_webxr(
+            &context,
+            color_texture_id,
+            session,
+            CanGc::deprecated_note(),
+        );
         let target = self.texture_target();
 
         // Save the current bindings
@@ -179,8 +183,12 @@ impl XRWebGLLayer {
         if let Some(id) = sub_images.sub_image.as_ref()?.depth_stencil_texture {
             // TODO: Cache this texture
             let depth_stencil_texture_id = WebGLTextureId::new(id);
-            let depth_stencil_texture =
-                WebGLTexture::new_webxr(&context, depth_stencil_texture_id, session, CanGc::note());
+            let depth_stencil_texture = WebGLTexture::new_webxr(
+                &context,
+                depth_stencil_texture_id,
+                session,
+                CanGc::deprecated_note(),
+            );
             framebuffer
                 .texture2d_even_if_opaque(
                     constants::DEPTH_STENCIL_ATTACHMENT,
@@ -357,6 +365,10 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
         // don't seem to do this for stereoscopic immersive sessions.
         // Revisit if Servo gets support for handheld AR/VR via ARCore/ARKit
 
-        Some(XRViewport::new(&self.global(), viewport, CanGc::note()))
+        Some(XRViewport::new(
+            &self.global(),
+            viewport,
+            CanGc::deprecated_note(),
+        ))
     }
 }

@@ -1100,7 +1100,10 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
-        if self.RelList(CanGc::note()).Contains("noreferrer".into()) {
+        if self
+            .RelList(CanGc::deprecated_note())
+            .Contains("noreferrer".into())
+        {
             return ReferrerPolicy::NoReferrer;
         }
 
@@ -1108,7 +1111,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::note()) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::deprecated_note()) {
             stylesheet.set_origin_clean(origin_clean);
         }
     }

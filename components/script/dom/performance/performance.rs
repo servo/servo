@@ -367,7 +367,7 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify(CanGc::note());
+            o.notify(CanGc::deprecated_note());
         }
     }
 
@@ -448,7 +448,7 @@ impl Performance {
                 .task_manager()
                 .performance_timeline_task_source()
                 .queue(task!(fire_a_buffer_full_event: move || {
-                    performance.root().fire_buffer_full_event(CanGc::note());
+                    performance.root().fire_buffer_full_event(CanGc::deprecated_note());
                 }));
         }
 
@@ -520,7 +520,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global(), CanGc::note())
+        PerformanceNavigation::new(&self.global(), CanGc::deprecated_note())
     }
 
     /// <https://w3c.github.io/hr-time/#dom-performance-now>

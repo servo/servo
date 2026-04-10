@@ -256,7 +256,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
                     return;
                 };
                 task_source.queue(task!(request_session: move || {
-                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::note());
+                    this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::deprecated_note());
                 }));
             }),
         );
@@ -269,7 +269,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn Test(&self) -> DomRoot<XRTest> {
         self.test
-            .or_init(|| XRTest::new(&self.global(), CanGc::note()))
+            .or_init(|| XRTest::new(&self.global(), CanGc::deprecated_note()))
     }
 }
 
@@ -298,7 +298,7 @@ impl XRSystem {
             session,
             mode,
             frame_receiver,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
@@ -324,7 +324,7 @@ impl XRSystem {
                     // The sessionavailable event indicates user intent to enter an XR session
                     let xr = xr.root();
                         let _guard = ScriptThread::user_interacting_guard();
-                        xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
+                        xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::deprecated_note());
                 })
             );
     }

@@ -58,7 +58,7 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     fn Media(&self) -> DomRoot<MediaList> {
         self.downcast::<CSSStyleSheet>()
             .unwrap()
-            .medialist(CanGc::note())
+            .medialist(CanGc::deprecated_note())
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-title>

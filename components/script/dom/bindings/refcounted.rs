@@ -139,7 +139,7 @@ impl TrustedPromise {
         let this = self;
         task!(reject_promise: move || {
             debug!("Rejecting promise.");
-            this.root().reject_error(error, CanGc::note());
+            this.root().reject_error(error, CanGc::deprecated_note());
         })
     }
 
@@ -151,7 +151,7 @@ impl TrustedPromise {
         let this = self;
         task!(resolve_promise: move || {
             debug!("Resolving promise.");
-            this.root().resolve_native(&value, CanGc::note());
+            this.root().resolve_native(&value, CanGc::deprecated_note());
         })
     }
 }

@@ -1583,7 +1583,7 @@ impl Node {
         Ok(NodeList::new_simple_list(
             &self.owner_window(),
             iter,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -1857,7 +1857,7 @@ impl Node {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_cssom_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet(CanGc::note())
+            node.get_cssom_stylesheet(CanGc::deprecated_note())
         } else {
             None
         }

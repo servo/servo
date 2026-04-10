@@ -153,7 +153,7 @@ impl PaintWorkletGlobalScope {
                     let map = StylePropertyMapReadOnly::from_iter(
                         self.upcast(),
                         properties.iter().cloned(),
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     );
                     let result =
                         self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
@@ -179,7 +179,7 @@ impl PaintWorkletGlobalScope {
                     let map = StylePropertyMapReadOnly::from_iter(
                         self.upcast(),
                         properties.iter().cloned(),
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     );
                     let result =
                         self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
@@ -219,7 +219,7 @@ impl PaintWorkletGlobalScope {
             device_pixel_ratio,
             properties,
             arguments,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -555,7 +555,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         }
 
         // Step 19.
-        let Some(context) = PaintRenderingContext2D::new(self, CanGc::note()) else {
+        let Some(context) = PaintRenderingContext2D::new(self, CanGc::deprecated_note()) else {
             return Err(Error::Operation(None));
         };
         let definition = PaintDefinition::new(

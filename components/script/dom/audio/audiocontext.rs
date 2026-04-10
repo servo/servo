@@ -167,7 +167,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                         let base_context = base_context.root();
                         let context = context.root();
                         let promise = trusted_promise.root();
-                        promise.resolve_native(&(), CanGc::note());
+                        promise.resolve_native(&(), CanGc::deprecated_note());
                         if base_context.State() != AudioContextState::Suspended {
                             base_context.set_state_attribute(AudioContextState::Suspended);
                             context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
@@ -186,7 +186,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move || {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::note());
+                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::deprecated_note());
                     }));
             },
         };
@@ -223,7 +223,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                         let base_context = base_context.root();
                         let context = context.root();
                         let promise = trusted_promise.root();
-                        promise.resolve_native(&(), CanGc::note());
+                        promise.resolve_native(&(), CanGc::deprecated_note());
                         if base_context.State() != AudioContextState::Closed {
                             base_context.set_state_attribute(AudioContextState::Closed);
                             context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
@@ -242,7 +242,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move || {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::note());
+                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::deprecated_note());
                     }));
             },
         };

@@ -239,7 +239,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             texture_view,
             self,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 

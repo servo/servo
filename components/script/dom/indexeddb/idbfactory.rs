@@ -221,7 +221,7 @@ impl IDBFactory {
             };
             task_source.queue(task!(set_request_result_to_database: move || {
                 let factory = response_listener.root();
-                factory.handle_connection_message(response, CanGc::note())
+                factory.handle_connection_message(response, CanGc::deprecated_note())
             }));
         })
         .expect("Could not create open database callback");
@@ -525,7 +525,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         }
 
         // Step 4: Let request be a new open request.
-        let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
+        let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 5: Runs in parallel
         if self.open_database(name, version, &request).is_err() {
@@ -554,7 +554,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         }
 
         // Step 3: Let request be a new open request
-        let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
+        let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 4: Runs in parallel
         if request.delete_database(name.to_string()).is_err() {

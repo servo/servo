@@ -228,7 +228,11 @@ fn console_argument_from_handle_value(
         Ok(arg) => arg,
         Err(()) => {
             let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-            report_pending_exception(cx, InRealm::Already(&in_realm_proof), CanGc::note());
+            report_pending_exception(
+                cx,
+                InRealm::Already(&in_realm_proof),
+                CanGc::deprecated_note(),
+            );
             DebuggerValue::StringValue("<error>".into())
         },
     }

@@ -816,7 +816,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().pop();
 
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
-        self.reset(CanGc::note());
+        self.reset(CanGc::deprecated_note());
     }
 }
 

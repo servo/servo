@@ -648,7 +648,7 @@ pub(crate) fn evaluate_key_path_on_value(
                         object.handle(),
                         identifier_name.as_c_str(),
                         current_value.handle_mut(),
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     ) {
                         Ok(true) => {},
                         Ok(false) => return Ok(EvaluationResult::Failure),
@@ -733,7 +733,7 @@ pub(crate) fn can_inject_key_into_value(
                 current_object.handle(),
                 identifier_name.as_c_str(),
                 current_value.handle_mut(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         } {
             Ok(true) => {},
@@ -813,7 +813,7 @@ pub(crate) fn inject_key_into_value(
                 current_object.handle(),
                 identifier_name.as_c_str(),
                 current_value.handle_mut(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         } {
             Ok(true) => {},

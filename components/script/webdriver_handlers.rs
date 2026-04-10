@@ -334,13 +334,13 @@ fn object_has_to_json_property(
         rooted!(in(*cx) let mut value = UndefinedValue());
         let result = unsafe { JS_GetProperty(*cx, object, name.as_ptr(), value.handle_mut()) };
         if !result {
-            throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::note());
+            throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::deprecated_note());
             false
         } else {
             result && unsafe { JS_TypeOfValue(*cx, value.handle()) } == JSType::JSTYPE_FUNCTION
         }
     } else if unsafe { JS_IsExceptionPending(*cx) } {
-        throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::note());
+        throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::deprecated_note());
         false
     } else {
         false
@@ -475,7 +475,7 @@ fn jsval_to_webdriver_inner(
                     seen,
                 )?)
             } else {
-                throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::note());
+                throw_dom_exception(cx, global_scope, Error::JSFailed, CanGc::deprecated_note());
                 Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ))
@@ -526,7 +526,7 @@ fn clone_an_object(
                 },
             },
             Err(error) => {
-                throw_dom_exception(cx, global_scope, error, CanGc::note());
+                throw_dom_exception(cx, global_scope, error, CanGc::deprecated_note());
                 return Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                 ));
@@ -548,7 +548,7 @@ fn clone_an_object(
                     }
                 },
                 Err(error) => {
-                    throw_dom_exception(cx, global_scope, error, CanGc::note());
+                    throw_dom_exception(cx, global_scope, error, CanGc::deprecated_note());
                     return Err(JavaScriptEvaluationError::SerializationError(
                         JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,
                     ));

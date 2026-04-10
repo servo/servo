@@ -227,7 +227,7 @@ impl IDBOpenDBRequest {
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
             let response_listener = response_listener.clone();
             task_source.queue(task!(request_callback: move || {
-                response_listener.handle_delete_db(message.unwrap(), CanGc::note());
+                response_listener.handle_delete_db(message.unwrap(), CanGc::deprecated_note());
             }))
         })
         .expect("Could not create delete database callback");
@@ -284,7 +284,7 @@ impl IDBOpenDBRequest {
 
         let _ac = enter_realm(&*result);
         rooted!(in(*cx) let mut result_val = UndefinedValue());
-        result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::note());
+        result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::deprecated_note());
         self.set_result(result_val.handle());
 
         let event = Event::new(
@@ -292,9 +292,9 @@ impl IDBOpenDBRequest {
             Atom::from("success"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
-        event.fire(self.upcast(), CanGc::note());
+        event.fire(self.upcast(), CanGc::deprecated_note());
     }
 
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbopendbrequest-blocked>

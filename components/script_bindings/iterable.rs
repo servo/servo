@@ -108,7 +108,11 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
             index: Cell::new(0),
             _marker: NoTrace(PhantomData),
         });
-        <D as DomHelpers<D>>::reflect_dom_object(iterator, &*iterable.global_(realm), CanGc::note())
+        <D as DomHelpers<D>>::reflect_dom_object(
+            iterator,
+            &*iterable.global_(realm),
+            CanGc::deprecated_note(),
+        )
     }
 
     /// Return the next value from the iterable object.

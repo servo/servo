@@ -47,7 +47,7 @@ impl HapticEffectListener {
         self.task_source
             .queue(task!(handle_haptic_effect_completed: move || {
                 let actuator = context.root();
-                actuator.handle_haptic_effect_completed(completed_successfully, CanGc::note());
+                actuator.handle_haptic_effect_completed(completed_successfully, CanGc::deprecated_note());
             }));
     }
 }
@@ -202,7 +202,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message, CanGc::note());
+                    promise.resolve_native(&message, CanGc::deprecated_note());
                 }),
             );
         }
@@ -266,7 +266,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 task!(preempt_promise: move || {
                     let promise = trusted_promise.root();
                     let message = DOMString::from("preempted");
-                    promise.resolve_native(&message, CanGc::note());
+                    promise.resolve_native(&message, CanGc::deprecated_note());
                 }),
             );
         }
@@ -337,7 +337,7 @@ impl GamepadHapticActuator {
                     }
                     let promise = trusted_promise.root();
                     let message = DOMString::from("complete");
-                    promise.resolve_native(&message, CanGc::note());
+                    promise.resolve_native(&message, CanGc::deprecated_note());
                 })
             );
         }
@@ -357,7 +357,7 @@ impl GamepadHapticActuator {
                     return;
                 };
                 let message = DOMString::from("preempted");
-                promise.resolve_native(&message, CanGc::note());
+                promise.resolve_native(&message, CanGc::deprecated_note());
             }),
         );
 

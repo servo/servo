@@ -1395,7 +1395,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move || {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native(&(), CanGc::note());
+                    trusted_promise.root().resolve_native(&(), CanGc::deprecated_note());
                 }
             }));
     }
@@ -1422,7 +1422,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move || {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::note());
+                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::deprecated_note());
                 }
             }));
     }

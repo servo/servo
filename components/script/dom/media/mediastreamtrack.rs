@@ -72,6 +72,6 @@ impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone>
     fn Clone(&self) -> DomRoot<MediaStreamTrack> {
-        MediaStreamTrack::new(&self.global(), self.id, self.ty, CanGc::note())
+        MediaStreamTrack::new(&self.global(), self.id, self.ty, CanGc::deprecated_note())
     }
 }

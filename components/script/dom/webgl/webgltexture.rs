@@ -106,7 +106,7 @@ impl WebGLTexture {
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLTexture::new(context, id, CanGc::note()))
+            .map(|id| WebGLTexture::new(context, id, CanGc::deprecated_note()))
     }
 
     pub(crate) fn new(

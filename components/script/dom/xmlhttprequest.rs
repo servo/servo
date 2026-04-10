@@ -426,7 +426,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
                 // Step 13
                 if self.ready_state.get() != XMLHttpRequestState::Opened {
-                    self.change_ready_state(XMLHttpRequestState::Opened, CanGc::note());
+                    self.change_ready_state(XMLHttpRequestState::Opened, CanGc::deprecated_note());
                 }
                 Ok(())
             },

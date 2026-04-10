@@ -215,7 +215,7 @@ impl TransmitBodyConnectHandler {
                     // TODO: Step 2, If body is null.
 
                     // Step 3, get a reader for stream.
-                    rooted_stream.acquire_default_reader(CanGc::note())
+                    rooted_stream.acquire_default_reader(CanGc::deprecated_note())
                         .expect("Couldn't acquire a reader for the body stream.");
 
                     // Note: this algorithm continues when the first chunk is requested by `net`.

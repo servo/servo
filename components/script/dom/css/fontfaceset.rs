@@ -181,7 +181,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 // TODO: Step 4.2. Resolve promise with the result of waiting for all of the
                 // [[FontStatusPromise]]s of each font face in the font face list, in order.
                 let matched_fonts = Vec::<&FontFace>::new();
-                promise.resolve_native(&matched_fonts, CanGc::note());
+                promise.resolve_native(&matched_fonts, CanGc::deprecated_note());
             }));
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.

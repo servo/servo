@@ -112,13 +112,14 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
+        self.gpu
+            .or_init(|| GPU::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

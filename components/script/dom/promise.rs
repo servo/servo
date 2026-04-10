@@ -425,7 +425,7 @@ impl FromJSValConvertibleRc for Promise {
         let global_scope =
             unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
 
-        let promise = Promise::new_resolved(&global_scope, cx, value, CanGc::note());
+        let promise = Promise::new_resolved(&global_scope, cx, value, CanGc::deprecated_note());
         Ok(ConversionResult::Success(promise))
     }
 }
