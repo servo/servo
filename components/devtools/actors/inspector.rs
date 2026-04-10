@@ -111,10 +111,7 @@ impl Actor for InspectorActor {
 
 impl InspectorActor {
     pub fn register(registry: &ActorRegistry, browsing_context_name: String) -> String {
-        let highlighter_actor = HighlighterActor {
-            name: registry.new_name::<HighlighterActor>(),
-            browsing_context_name: browsing_context_name.clone(),
-        };
+        let highlighter_name = HighlighterActor::register(registry, browsing_context_name.clone());
 
         let page_style_name = PageStyleActor::register(registry);
 
@@ -122,13 +119,12 @@ impl InspectorActor {
 
         let inspector_actor = Self {
             name: registry.new_name::<InspectorActor>(),
-            highlighter_name: highlighter_actor.name(),
+            highlighter_name,
             page_style_name,
             walker_name,
         };
         let inspector_name = inspector_actor.name();
 
-        registry.register(highlighter_actor);
         registry.register(inspector_actor);
 
         inspector_name

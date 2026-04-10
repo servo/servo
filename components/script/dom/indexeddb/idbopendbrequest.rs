@@ -12,6 +12,7 @@ use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
+use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBTransactionDurability;
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -160,6 +161,7 @@ impl IDBOpenDBRequest {
             &global,
             connection,
             IDBTransactionMode::Versionchange,
+            IDBTransactionDurability::Default,
             &connection.object_stores(),
             transaction,
             can_gc,

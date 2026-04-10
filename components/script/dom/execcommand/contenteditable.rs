@@ -22,6 +22,7 @@ use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
@@ -510,6 +511,77 @@ fn is_element_with_inline_contents(element: &Node) -> bool {
     NAME_OF_AN_ELEMENT_WITH_INLINE_CONTENTS.contains(&html_element.local_name())
 }
 
+/// <https://w3c.github.io/editing/docs/execCommand/#preserving-ranges>
+fn move_preserving_ranges<Move>(cx: &mut js::context::JSContext, node: &Node, mut move_: Move)
+where
+    Move: FnMut(&mut js::context::JSContext) -> Fallible<DomRoot<Node>>,
+{
+    // Step 1. Let node be the moved node, old parent and old index be the old parent
+    // (which may be null) and index, and new parent and new index be the new parent and index.
+    let old_parent = node.GetParentNode();
+    let old_index = node.index();
+
+    if move_(cx).is_err() {
+        unreachable!("Must always be able to move");
+    }
+
+    let Some(selection) = node.owner_document().GetSelection(CanGc::from_cx(cx)) else {
+        return;
+    };
+    let Some(active_range) = selection.active_range() else {
+        return;
+    };
+
+    let new_parent = node.GetParentNode().expect("Must always have a new parent");
+    let new_index = node.index();
+
+    let mut start_node = active_range.start_container();
+    let mut start_offset = active_range.start_offset();
+    let mut end_node = active_range.end_container();
+    let mut end_offset = active_range.end_offset();
+
+    // Step 2. If a boundary point's node is the same as or a descendant of node, leave it unchanged, so it moves to the new location.
+    //
+    // From the spec:
+    // > This is actually implicit, but I state it anyway for completeness.
+
+    // Step 3. If a boundary point's node is new parent and its offset is greater than new index, add one to its offset.
+    if start_node == new_parent && start_offset > new_index {
+        start_offset += 1;
+    }
+    if end_node == new_parent && end_offset > new_index {
+        end_offset += 1;
+    }
+
+    if let Some(old_parent) = old_parent {
+        // Step 4. If a boundary point's node is old parent and its offset is old index or old index + 1,
+        // set its node to new parent and add new index − old index to its offset.
+        if start_node == old_parent && (start_offset == old_index || start_offset == old_index + 1)
+        {
+            start_node = new_parent.clone();
+            start_offset += new_index;
+            start_offset -= old_index;
+        }
+        if end_node == old_parent && (end_offset == old_index || end_offset == old_index + 1) {
+            end_node = new_parent;
+            end_offset += new_index;
+            end_offset -= old_index;
+        }
+
+        // Step 5. If a boundary point's node is old parent and its offset is greater than old index + 1,
+        // subtract one from its offset.
+        if start_node == old_parent && (start_offset > old_index + 1) {
+            start_offset -= 1;
+        }
+        if end_node == old_parent && (end_offset > old_index + 1) {
+            end_offset -= 1;
+        }
+    }
+
+    active_range.set_start(&start_node, start_offset);
+    active_range.set_end(&end_node, end_offset);
+}
+
 /// <https://w3c.github.io/editing/docs/execCommand/#allowed-child>
 fn is_allowed_child(child: NodeOrString, parent: NodeOrString) -> bool {
     // Step 1. If parent is "colgroup", "table", "tbody", "tfoot", "thead", "tr",
@@ -715,14 +787,11 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
     if !first_child_is_in_node_list && last_child_is_in_node_list {
         // Step 6.1. For each node in node list, in reverse order,
         // insert node into the parent of original parent immediately after original parent, preserving ranges.
+        let next_of_original_parent = original_parent.GetNextSibling();
         for node in node_list.iter().rev() {
-            // TODO: Preserving ranges
-            if parent_of_original_parent
-                .InsertBefore(cx, node, original_parent.GetNextSibling().as_deref())
-                .is_err()
-            {
-                unreachable!("Must always have a parent");
-            }
+            move_preserving_ranges(cx, node, |cx| {
+                parent_of_original_parent.InsertBefore(cx, node, next_of_original_parent.as_deref())
+            });
         }
         // Step 6.2. If precedes line break is true, and the last member of node list does not precede a line break,
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
@@ -772,10 +841,9 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
                 .is_some()
             {
                 if let Some(first_of_original) = original_parent.children().next() {
-                    // TODO: Preserving ranges
-                    if cloned_parent.AppendChild(cx, &first_of_original).is_err() {
-                        unreachable!("Must always have a parent");
-                    }
+                    move_preserving_ranges(cx, &first_of_original, |cx| {
+                        cloned_parent.AppendChild(cx, &first_of_original)
+                    });
                     continue;
                 }
             }
@@ -784,13 +852,9 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
     }
     // Step 8. For each node in node list, insert node into the parent of original parent immediately before original parent, preserving ranges.
     for node in node_list.iter() {
-        // TODO: Preserving ranges
-        if parent_of_original_parent
-            .InsertBefore(cx, node, Some(&original_parent))
-            .is_err()
-        {
-            unreachable!("Must always have a parent");
-        }
+        move_preserving_ranges(cx, node, |cx| {
+            parent_of_original_parent.InsertBefore(cx, node, Some(&original_parent))
+        });
     }
     // Step 9. If follows line break is true, and the first member of node list does not follow a line break,
     // call createElement("br") on the context object and insert the result immediately before the first member of node list.
@@ -937,9 +1001,7 @@ where
         // TODO
         // Step 12.2. For each node in node list, append node as the last child of new parent, preserving ranges.
         for node in node_list {
-            if new_parent.AppendChild(cx, node).is_err() {
-                unreachable!("Must always be able to append");
-            }
+            move_preserving_ranges(cx, node, |cx| new_parent.AppendChild(cx, node));
         }
     } else {
         // Step 13. Otherwise:
@@ -953,9 +1015,9 @@ where
         // insert node as the first child of new parent, preserving ranges.
         let mut before = new_parent.GetFirstChild();
         for node in node_list.iter().rev() {
-            if let Err(err) = new_parent.InsertBefore(cx, node, before.as_deref()) {
-                unreachable!("Must always be able to append: {:?}", err);
-            }
+            move_preserving_ranges(cx, node, |cx| {
+                new_parent.InsertBefore(cx, node, before.as_deref())
+            });
             before = Some(DomRoot::from_ref(node));
         }
     }
@@ -1255,9 +1317,7 @@ impl Node {
         // TODO
         // Step 20. Append node to new parent as its last child, preserving ranges.
         let new_parent = new_parent.upcast::<Node>();
-        if new_parent.AppendChild(cx, self).is_err() {
-            unreachable!("Must always be able to append");
-        }
+        move_preserving_ranges(cx, self, |cx| new_parent.AppendChild(cx, self));
         // Step 21. If node is an Element and the effective command value of command for node is not loosely equivalent to new value:
         if self.is::<Element>() &&
             !command.are_loosely_equivalent_values(
@@ -1267,12 +1327,9 @@ impl Node {
         {
             // Step 21.1. Insert node into the parent of new parent before new parent, preserving ranges.
             let parent_of_new_parent = new_parent.GetParentNode().expect("Must have a parent");
-            if parent_of_new_parent
-                .InsertBefore(cx, self, Some(new_parent))
-                .is_err()
-            {
-                unreachable!("Must always be able to insert");
-            }
+            move_preserving_ranges(cx, self, |cx| {
+                parent_of_new_parent.InsertBefore(cx, self, Some(new_parent))
+            });
             // Step 21.2. Remove new parent from its parent.
             new_parent.remove_self(cx);
             // Step 21.3. Let children be all children of node,
@@ -3009,10 +3066,7 @@ impl SelectionExecCommandSupport for Selection {
             // Step 33.9. For each node in nodes to move,
             // append node as the last child of start block, preserving ranges.
             for node in nodes_to_move.iter() {
-                // TODO: Preserve ranges
-                if start_block.AppendChild(cx, node).is_err() {
-                    unreachable!("Must always be able to append");
-                }
+                move_preserving_ranges(cx, node, |cx| start_block.AppendChild(cx, node));
             }
         // Step 34. Otherwise:
         } else {
@@ -3045,10 +3099,9 @@ impl SelectionExecCommandSupport for Selection {
             // append the first child of end block to start block, preserving ranges.
             loop {
                 if let Some(first_child) = end_block.children().nth(0) {
-                    // TODO: Preserve ranges
-                    if start_block.AppendChild(cx, &first_child).is_err() {
-                        unreachable!("Must always be able to append");
-                    }
+                    move_preserving_ranges(cx, &first_child, |cx| {
+                        start_block.AppendChild(cx, &first_child)
+                    });
                     continue;
                 }
                 break;

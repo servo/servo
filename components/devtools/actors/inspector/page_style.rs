@@ -135,6 +135,7 @@ impl PageStyleActor {
         registry.register::<Self>(actor);
         name
     }
+
     fn get_applied(
         &self,
         request: ClientRequest,

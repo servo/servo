@@ -542,6 +542,10 @@ impl DOMString {
         self.str().starts_with(needle)
     }
 
+    pub fn ends_with_str(&self, needle: &str) -> bool {
+        self.str().ends_with(needle)
+    }
+
     pub fn contains(&self, needle: &str) -> bool {
         self.str().contains(needle)
     }

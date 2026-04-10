@@ -11,19 +11,19 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{
-    ConsoleArgument, ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError,
-    StackFrame, get_time_stamp,
+    ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError, StackFrame,
+    get_time_stamp,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{self, Map, Number, Value};
+use serde_json::{self, Map, Value};
 use servo_base::generic_channel::{self, GenericSender};
 use servo_base::id::TEST_PIPELINE_ID;
 use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::{ObjectActor, ObjectPropertyDescriptor, debugger_value_to_json};
+use crate::actors::object::debugger_value_to_json;
 use crate::actors::worker::WorkerTargetActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
@@ -50,85 +50,10 @@ impl DevtoolsConsoleMessage {
             arguments: message
                 .arguments
                 .into_iter()
-                .map(|argument| console_argument_to_value(argument, registry))
+                .map(|argument| debugger_value_to_json(registry, argument))
                 .collect(),
             stacktrace: message.stacktrace,
         }
-    }
-}
-
-fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry) -> Value {
-    match argument {
-        ConsoleArgument::String(value) => Value::String(value),
-        ConsoleArgument::Integer(value) => Value::Number(value.into()),
-        ConsoleArgument::Number(value) => {
-            Number::from_f64(value).map(Value::from).unwrap_or_default()
-        },
-        ConsoleArgument::Boolean(value) => Value::Bool(value),
-        ConsoleArgument::Object(object) => {
-            // Create a new actor for the object.
-            // These are currently never cleaned up, and we make no attempt at re-using the same actor
-            // if the same object is logged repeatedly.
-            let object_name = ObjectActor::register(registry, None, object.class.clone(), None);
-
-            // TODO: Replace these with ObjectActor::encode
-            #[derive(Serialize)]
-            #[serde(rename_all = "camelCase")]
-            struct DevtoolsConsoleObjectArgument {
-                r#type: String,
-                actor: String,
-                class: String,
-                own_property_length: usize,
-                extensible: bool,
-                frozen: bool,
-                sealed: bool,
-                is_error: bool,
-                preview: DevtoolsConsoleObjectArgumentPreview,
-            }
-
-            #[derive(Serialize)]
-            #[serde(rename_all = "camelCase")]
-            struct DevtoolsConsoleObjectArgumentPreview {
-                kind: String,
-                own_properties: HashMap<String, ObjectPropertyDescriptor>,
-                own_properties_length: usize,
-            }
-
-            let own_properties: HashMap<String, ObjectPropertyDescriptor> = object
-                .own_properties
-                .into_iter()
-                .map(|property| {
-                    let property_descriptor = ObjectPropertyDescriptor {
-                        configurable: property.configurable,
-                        enumerable: property.enumerable,
-                        writable: property.writable,
-                        value: console_argument_to_value(property.value, registry),
-                    };
-
-                    (property.key, property_descriptor)
-                })
-                .collect();
-
-            let argument = DevtoolsConsoleObjectArgument {
-                r#type: "object".to_owned(),
-                actor: object_name,
-                class: object.class,
-                own_property_length: own_properties.len(),
-                extensible: true,
-                frozen: false,
-                sealed: false,
-                is_error: false,
-                preview: DevtoolsConsoleObjectArgumentPreview {
-                    kind: "Object".to_string(),
-                    own_properties_length: own_properties.len(),
-                    own_properties,
-                },
-            };
-
-            // to_value can fail if the implementation of Serialize fails or there are non-string map keys.
-            // Neither should be possible here
-            serde_json::to_value(argument).unwrap()
-        },
     }
 }
 

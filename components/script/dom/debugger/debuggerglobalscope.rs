@@ -652,6 +652,10 @@ fn parse_debugger_value(
         "undefined" => VoidValue,
         "null" => NullValue,
         "boolean" => BooleanValue(value.booleanValue.unwrap_or(false)),
+        "Infinity" => NumberValue(f64::INFINITY),
+        "-Infinity" => NumberValue(f64::NEG_INFINITY),
+        "NaN" => NumberValue(f64::NAN),
+        "-0" => NumberValue(-0.0),
         "number" => {
             let num = value.numberValue.map(|f| *f).unwrap_or(0.0);
             NumberValue(num)

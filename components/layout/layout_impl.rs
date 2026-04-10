@@ -17,6 +17,7 @@ use embedder_traits::{Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
+use icu_locid::subtags::Language;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig,
@@ -68,7 +69,7 @@ use style::stylist::Stylist;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
-use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength, XLang};
+use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
 use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
@@ -1514,7 +1515,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '0', None, XLang::get_initial_value())?
+                    .find_by_codepoint(font_context, '0', None, Language::UND)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1524,7 +1525,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '\u{6C34}', None, XLang::get_initial_value())?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UND)?
                     .metrics
                     .ic_horizontal_advance
             })

@@ -54,6 +54,6 @@ dictionary FunctionPreview {
     DOMString name;
     DOMString displayName;
     required sequence<DOMString> parameterNames;
-    required boolean isAsync;
-    required boolean isGenerator;
+    boolean isAsync;
+    boolean isGenerator;
 };

@@ -226,17 +226,19 @@ pub enum ScriptThreadMessage {
     UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
     /// Removes inaccesible history states.
     RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
-    /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    FocusIFrame(PipelineId, BrowsingContextId, FocusSequenceNumber),
-    /// Focus the document. Used when the container gains focus.
-    FocusDocument(PipelineId, FocusSequenceNumber),
-    /// Notifies that the document's container (e.g., an iframe) is not included
-    /// in the top-level browsing context's focus chain (not considering system
-    /// focus) anymore.
-    ///
-    /// Obviously, this message is invalid for a top-level document.
-    Unfocus(PipelineId, FocusSequenceNumber),
+    /// Focus a `Document` as part of the focusing steps which focuses all parent `Document`s of a
+    /// newly focused `<iframe>`. Note that this is not used for the `Document` and `Element` that
+    /// is gaining focus as that is handled locally in the originating `ScriptThread`.
+    FocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber, Option<BrowsingContextId>),
+    /// Unfocus a `Document` as part of the focusing steps which unfocuses all parent `Document`s of an
+    /// `<iframe>` losing focus. This does not do anything for a top-level `Document`, which can never
+    /// lose focus (apart from losing system focus, which is a separate concept).
+    UnfocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber),
+    /// Focus a `Document` and run the focusing steps. This is used when calling the DOM `focus()`
+    /// API on a remote `Window` as well as from WebDriver. The difference between this and
+    /// `FocusDocumentAsPartOfFocusingSteps` is that this version actually does run the focusing
+    /// steps and may result in blur and focus events firing up the frame tree.
+    FocusDocument(PipelineId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done

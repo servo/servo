@@ -93,6 +93,16 @@ function createValueGrip(value, depth = 0) {
         case "boolean":
             return { valueType: "boolean", booleanValue: value };
         case "number":
+            if (value === Infinity) {
+                return { valueType: "Infinity" };
+            } else if (value === -Infinity) {
+                return { valueType: "-Infinity" };
+            } else if (Number.isNaN(value)) {
+                return { valueType: "NaN" };
+            } else if (!value && 1 / value === -Infinity) {
+                return { valueType: "-0" };
+            }
+
             return { valueType: "number", numberValue: value };
         case "string":
             return { valueType: "string", stringValue: value };
@@ -168,7 +178,7 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
     let function_details = {
         name: obj.name,
         displayName: obj.displayName,
-        parameterNames: obj.parameterNames,
+        parameterNames: obj.parameterNames ? obj.parameterNames: [],
         isAsync: obj.isAsyncFunction,
         isGenerator: obj.isGeneratorFunction,
     }
@@ -182,7 +192,7 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
         kind: "Object",
         ownProperties,
         ownPropertiesLength,
-        function: funtion_details
+        function: function_details
     };
 });
 
