@@ -13,6 +13,10 @@ on:
         description: '`true` to create a release on this repo, false to release to the nightly-releases repo'
         type: boolean
         default: false
+      crates_io:
+        description: '`true` to publish to crates.io'
+        type: boolean
+        default: false
       release_tag:
         required: true
         type: string
@@ -102,6 +106,31 @@ jobs:
       - upload-mac-arm64-nightly
       - upload-android-nightly
       - upload-ohos-nightly
+
+  publish-crates-io:
+    name: 'Publish to crates.io'
+    if: github.repository == 'servo/servo' && (inputs.crates_io || false)
+    environment:
+      name: publish_crates_io
+      deployment: false
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          SERVO_CRATES_IO_SLEEP_AFTER_PUBLISH_SECONDS: "30"
+          SERVO_CRATES_IO_VERIFY_PUBLISHED_TIMEOUT_SECONDS: "300"
+          SERVO_CRATES_IO_VERIFY_PUBLISHED_INTERVAL_SECONDS: "10"
+        # Verification requires building, which is incredibly slow and also increases our attack surface.
+        # If we decide for an extra verification, we should add a seperate job before this one, which
+        # does a `dry-run` publish without any elevated permissions.
+        run: |
+          python3 etc/ci/publish_crates_io.py --no-verify
 
   build-win:
     # This job is only useful when run on upstream servo.
