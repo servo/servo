@@ -374,7 +374,6 @@ impl Node {
     }
 
     pub(crate) fn clean_up_style_and_layout_data(&self) {
-        self.owner_doc().cancel_animations_for_node(self);
         self.style_data.borrow_mut().take();
         self.layout_data.borrow_mut().take();
     }
@@ -411,6 +410,7 @@ impl Node {
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
         let cleanup_node = |node: &Node| {
+            node.owner_doc().cancel_animations_for_node(node);
             node.clean_up_style_and_layout_data();
 
             // Step 11 & 14.1. Run the removing steps.
@@ -466,8 +466,7 @@ impl Node {
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
         let cleanup_node = |node: &Node| {
-            node.style_data.borrow_mut().take();
-            node.layout_data.borrow_mut().take();
+            node.clean_up_style_and_layout_data();
         };
 
         for node in root.traverse_preorder(ShadowIncluding::No) {
