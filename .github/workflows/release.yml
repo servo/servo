@@ -100,12 +100,8 @@ jobs:
     needs:
       - create-draft-release
       - upload-vendored-source
-      - upload-linux-nightly
-      - upload-win-nightly
-      - upload-mac-nightly
-      - upload-mac-arm64-nightly
-      - upload-android-nightly
-      - upload-ohos-nightly
+      - upload-artifacts-nightly
+      - upload-artifacts-release
 
   publish-crates-io:
     name: 'Publish to crates.io'
@@ -175,45 +171,98 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
 
-  upload-win-nightly:
+  upload-artifacts-nightly:
     # Only run scheduled nightly builds on upstream servo.
     if: |
       (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
         && (inputs.regular_release || false) == false
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       attestations: write
-    needs:
+    needs: &upload-artifacts-needs
       - create-draft-release
       - build-win
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
-      artifact_platform: windows-msvc
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+      - build-mac
+      - build-mac-arm64
+      - build-linux
+      - build-android
+      - build-ohos
+    strategy: &upload-artifacts-strategy
+      fail-fast: false
+      matrix:
+        include:
+          - artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
+            artifact_platform: windows-msvc
+          - artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
+            artifact_platform: mac
+          - artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
+            artifact_platform: mac-arm64
+          - artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
+            artifact_platform: linux
+          - artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
+            artifact_platform: android
+          - artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
+            artifact_platform: ohos
+    env:
+      ARTIFACT_IDS: ${{ matrix.artifact_ids }}
+      ARTIFACT_PLATFORM: ${{ matrix.artifact_platform }}
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      RELEASE_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: &upload-artifacts-steps
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github
+            etc/ci
+          fetch-depth: '1'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Validate artifact IDs
+        run: |
+          if [[ -z "${ARTIFACT_IDS}" ]]; then
+            echo "Error: No artifact IDs provided."
+            echo "Help: Check the build job's outputs.artifact_ids value."
+            echo "If you recently renamed the build job without updating the corresponding output reference,"
+            echo "that is likely the cause of this error."
+            exit 1
+          fi
+      - uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ env.ARTIFACT_IDS }}
+          merge-multiple: true
+          path: release-artifacts
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: 'release-artifacts/*'
+      - name: Upload release artifacts
+        run: |
+          ./etc/ci/upload_nightly.py "${ARTIFACT_PLATFORM}" \
+            --secret-from-environment \
+            --github-release-id "${GITHUB_RELEASE_ID}" \
+            release-artifacts/*
 
-  upload-win-release:
+  upload-artifacts-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       attestations: write
       # Necessary for the github token to upload artifacts to the release.
       contents: write
-    needs:
-      - create-draft-release
-      - build-win
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-win.outputs.artifact_ids }}
-      artifact_platform: windows-msvc
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
+    needs: *upload-artifacts-needs
+    strategy: *upload-artifacts-strategy
+    env:
+      ARTIFACT_IDS: ${{ matrix.artifact_ids }}
+      ARTIFACT_PLATFORM: ${{ matrix.artifact_platform }}
+      GITHUB_RELEASE_ID: ${{ needs.create-draft-release.outputs.release-id }}
+      RELEASE_REPO: ${{ github.repository_owner }}/servo
+      RELEASE_REPO_TOKEN: ${{ github.token }}
+      S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
+    steps: *upload-artifacts-steps
 
 
   build-mac:
@@ -225,46 +274,6 @@ jobs:
       profile: "production"
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
-  upload-mac-nightly:
-    # Only run scheduled nightly builds on upstream servo.
-    if: |
-      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
-        && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
-    needs:
-      - create-draft-release
-      - build-mac
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
-      artifact_platform: mac
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
-  upload-mac-release:
-    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
-    needs:
-      - create-draft-release
-      - build-mac
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac.outputs.artifact_ids }}
-      artifact_platform: mac
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo:  ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
   build-mac-arm64:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
@@ -273,46 +282,6 @@ jobs:
     with:
       profile: "production"
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
-
-  upload-mac-arm64-nightly:
-    # Only run scheduled nightly builds on upstream servo.
-    if: |
-      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
-        && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
-    needs:
-      - create-draft-release
-      - build-mac-arm64
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
-      artifact_platform: mac-arm64
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
-  upload-mac-arm64-release:
-    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
-    needs:
-      - create-draft-release
-      - build-mac-arm64
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-mac-arm64.outputs.artifact_ids }}
-      artifact_platform: mac-arm64
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
 
   build-linux:
     # This job is only useful when run on upstream servo.
@@ -323,46 +292,6 @@ jobs:
       profile: "production"
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
 
-  upload-linux-nightly:
-    # Only run scheduled nightly builds on upstream servo.
-    if: |
-      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
-        && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
-    needs:
-      - create-draft-release
-      - build-linux
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
-      artifact_platform: linux
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
-  upload-linux-release:
-    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
-    needs:
-      - create-draft-release
-      - build-linux
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
-      artifact_platform: linux
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
   build-android:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
@@ -371,47 +300,6 @@ jobs:
     with:
       profile: "release"
     secrets: inherit
-
-  upload-android-nightly:
-    # Only run scheduled nightly builds on upstream servo.
-    if: |
-      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
-        && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
-    needs:
-      - create-draft-release
-      - build-android
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
-      artifact_platform: android
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
-  upload-android-release:
-    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
-    needs:
-      - create-draft-release
-      - build-android
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
-      artifact_platform: android
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
 
   build-ohos:
     # This job is only useful when run on upstream servo.
@@ -422,43 +310,3 @@ jobs:
       profile: "production"
       upload_library: true
     secrets: inherit
-
-  upload-ohos-nightly:
-    # Only run scheduled nightly builds on upstream servo.
-    if: |
-      (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
-        && (inputs.regular_release || false) == false
-    permissions:
-      id-token: write
-      attestations: write
-    needs:
-      - create-draft-release
-      - build-ohos
-    secrets:
-      github_upload_token: ${{ secrets.NIGHTLY_REPO_TOKEN }}
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
-      artifact_platform: ohos
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
-
-  upload-ohos-release:
-    if: github.event_name == 'workflow_dispatch' && inputs.regular_release
-    permissions:
-      id-token: write
-      attestations: write
-      # Necessary for the github token to upload artifacts to the release.
-      contents: write
-    needs:
-      - create-draft-release
-      - build-ohos
-    secrets:
-      s3_upload_token: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
-    uses: ./.github/workflows/upload_release.yml
-    with:
-      artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
-      artifact_platform: ohos
-      github_release_id: ${{ needs.create-draft-release.outputs.release-id }}
-      target_repo: ${{ github.repository_owner }}/${{ inputs.regular_release && 'servo' || 'servo-nightly-builds' }}
