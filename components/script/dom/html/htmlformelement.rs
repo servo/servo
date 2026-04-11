@@ -1407,7 +1407,18 @@ impl HTMLFormElement {
             let root = self.upcast::<Element>().root_element();
             let root = root.upcast::<Node>();
             let mut controls = self.controls.borrow_mut();
-            controls.insert_pre_order(control.to_element(), root);
+
+            // https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token
+            // associates form control elements with a form before they are bound to the tree.
+            //
+            // In that case we can't use insert_pre_order, because the position of a element not in
+            // the tree can't be compared to anything in the DOM tree.
+            let control_element = control.to_element();
+            if control_element.upcast::<Node>().has_parent() {
+                controls.insert_pre_order(control_element, root);
+            } else {
+                controls.push(Dom::from_ref(control_element));
+            }
         }
         self.update_validity(can_gc);
     }
