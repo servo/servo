@@ -7,7 +7,7 @@ use servo_base::generic_channel as base_channel;
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::TEST_WEBVIEW_ID;
 use servo_default_resources as _;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use tempfile::TempDir;
@@ -56,14 +56,14 @@ impl WebStorageTest {
         self.threads.clone()
     }
 
-    pub(crate) fn length(&self, storage_type: WebStorageType, url: &ServoUrl) -> usize {
+    pub(crate) fn length(&self, storage_type: WebStorageType, origin: &ImmutableOrigin) -> usize {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Length(
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
             ))
             .unwrap();
         receiver.recv().unwrap()
@@ -72,7 +72,7 @@ impl WebStorageTest {
     pub(crate) fn key(
         &self,
         storage_type: WebStorageType,
-        url: &ServoUrl,
+        origin: &ImmutableOrigin,
         index: u32,
     ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -81,21 +81,25 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 index,
             ))
             .unwrap();
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn keys(&self, storage_type: WebStorageType, url: &ServoUrl) -> Vec<String> {
+    pub(crate) fn keys(
+        &self,
+        storage_type: WebStorageType,
+        origin: &ImmutableOrigin,
+    ) -> Vec<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Keys(
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
             ))
             .unwrap();
         receiver.recv().unwrap()
@@ -104,7 +108,7 @@ impl WebStorageTest {
     pub(crate) fn get_item(
         &self,
         storage_type: WebStorageType,
-        url: &ServoUrl,
+        origin: &ImmutableOrigin,
         key: &str,
     ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -113,7 +117,7 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 key.into(),
             ))
             .unwrap();
@@ -123,7 +127,7 @@ impl WebStorageTest {
     pub(crate) fn set_item(
         &self,
         storage_type: WebStorageType,
-        url: &ServoUrl,
+        origin: &ImmutableOrigin,
         key: &str,
         value: &str,
     ) -> Result<(bool, Option<String>), ()> {
@@ -133,7 +137,7 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 key.into(),
                 value.into(),
             ))
@@ -144,7 +148,7 @@ impl WebStorageTest {
     pub(crate) fn remove_item(
         &self,
         storage_type: WebStorageType,
-        url: &ServoUrl,
+        origin: &ImmutableOrigin,
         key: &str,
     ) -> Option<String> {
         let (sender, receiver) = base_channel::channel().unwrap();
@@ -153,21 +157,21 @@ impl WebStorageTest {
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
                 key.into(),
             ))
             .unwrap();
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn clear(&self, storage_type: WebStorageType, url: &ServoUrl) -> bool {
+    pub(crate) fn clear(&self, storage_type: WebStorageType, origin: &ImmutableOrigin) -> bool {
         let (sender, receiver) = base_channel::channel().unwrap();
         self.threads
             .send(WebStorageThreadMsg::Clear(
                 sender,
                 storage_type,
                 TEST_WEBVIEW_ID,
-                url.clone(),
+                origin.clone(),
             ))
             .unwrap();
         receiver.recv().unwrap()
@@ -196,11 +200,11 @@ fn set_and_get_item() {
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let result = test.set_item(WebStorageType::Local, &url, "foo", "bar");
+    let result = test.set_item(WebStorageType::Local, &url.origin(), "foo", "bar");
     assert_eq!(result, Ok((true, None)));
 
     // Retrieve the value.
-    let result = test.get_item(WebStorageType::Local, &url, "foo");
+    let result = test.get_item(WebStorageType::Local, &url.origin(), "foo");
     assert_eq!(result, Some("bar".into()));
 }
 
@@ -210,11 +214,11 @@ fn set_and_get_item_in_memory() {
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let result = test.set_item(WebStorageType::Local, &url, "foo", "bar");
+    let result = test.set_item(WebStorageType::Local, &url.origin(), "foo", "bar");
     assert_eq!(result, Ok((true, None)));
 
     // Retrieve the value.
-    let result = test.get_item(WebStorageType::Local, &url, "foo");
+    let result = test.get_item(WebStorageType::Local, &url.origin(), "foo");
     assert_eq!(result, Some("bar".into()));
 }
 
@@ -225,20 +229,20 @@ fn length_key_and_keys() {
 
     // Insert two items.
     for (k, v) in [("foo", "v1"), ("bar", "v2")] {
-        let _ = test.set_item(WebStorageType::Local, &url, k, v);
+        let _ = test.set_item(WebStorageType::Local, &url.origin(), k, v);
     }
 
     // Verify length.
-    let result = test.length(WebStorageType::Local, &url);
+    let result = test.length(WebStorageType::Local, &url.origin());
     assert_eq!(result, 2);
 
     // Verify key(0) returns one of the inserted keys.
-    let result = test.key(WebStorageType::Local, &url, 0);
+    let result = test.key(WebStorageType::Local, &url.origin(), 0);
     let key0 = result.unwrap();
     assert!(key0 == "foo" || key0 == "bar");
 
     // Verify keys vector contains both keys.
-    let result = test.keys(WebStorageType::Local, &url);
+    let result = test.keys(WebStorageType::Local, &url.origin());
     assert_eq!(result.len(), 2);
     assert!(result.contains(&"foo".to_string()));
     assert!(result.contains(&"bar".to_string()));
@@ -251,23 +255,23 @@ fn remove_item_and_clear() {
 
     // Insert items.
     for (k, v) in [("foo", "v1"), ("bar", "v2")] {
-        let _ = test.set_item(WebStorageType::Local, &url, k, v);
+        let _ = test.set_item(WebStorageType::Local, &url.origin(), k, v);
     }
 
     // Remove one item and verify old value is returned.
-    let result = test.remove_item(WebStorageType::Local, &url, "foo");
+    let result = test.remove_item(WebStorageType::Local, &url.origin(), "foo");
     assert_eq!(result, Some("v1".into()));
 
     // Removing again should return None.
-    let result = test.remove_item(WebStorageType::Local, &url, "foo");
+    let result = test.remove_item(WebStorageType::Local, &url.origin(), "foo");
     assert_eq!(result, None);
 
     // Clear storage and verify it reported change.
-    let result = test.clear(WebStorageType::Local, &url);
+    let result = test.clear(WebStorageType::Local, &url.origin());
     assert!(result);
 
     // Length should now be zero.
-    let result = test.length(WebStorageType::Local, &url);
+    let result = test.length(WebStorageType::Local, &url.origin());
     assert_eq!(result, 0);
 }
 
@@ -280,7 +284,7 @@ fn test_origin_descriptors(
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let _ = test.set_item(storage_type, &url, "foo", "bar");
+    let _ = test.set_item(storage_type, &url.origin(), "foo", "bar");
 
     // Verify descriptors.
     let descriptors = threads.webstorage_origins(storage_type);
@@ -326,10 +330,10 @@ fn test_clear_data_for_sites(test: WebStorageTest, storage_type: WebStorageType)
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
-    let _ = test.set_item(storage_type, &url, "foo", "bar");
+    let _ = test.set_item(storage_type, &url.origin(), "foo", "bar");
 
     // Verify length.
-    let result = test.length(storage_type, &url);
+    let result = test.length(storage_type, &url.origin());
     assert_eq!(result, 1);
 
     // Verify descriptors.
@@ -340,7 +344,7 @@ fn test_clear_data_for_sites(test: WebStorageTest, storage_type: WebStorageType)
     threads.clear_webstorage_for_sites(storage_type, &["example.com"]);
 
     // Length should now be zero.
-    let result = test.length(storage_type, &url);
+    let result = test.length(storage_type, &url.origin());
     assert_eq!(result, 0);
 
     // There should now be no descriptors.
@@ -360,7 +364,7 @@ fn test_clear_data_for_sites(test: WebStorageTest, storage_type: WebStorageType)
     let threads = test.threads();
 
     // Length should still be zero.
-    let result = test.length(storage_type, &url);
+    let result = test.length(storage_type, &url.origin());
     assert_eq!(result, 0);
 
     // There should still be no descriptors.
@@ -376,10 +380,10 @@ fn test_clear_data_for_sites(test: WebStorageTest, storage_type: WebStorageType)
     }
 
     // Set a different value.
-    let _ = test.set_item(storage_type, &url, "foo2", "bar2");
+    let _ = test.set_item(storage_type, &url.origin(), "foo2", "bar2");
 
     // Verify the original value doesn't exist.
-    let result = test.get_item(storage_type, &url, "foo");
+    let result = test.get_item(storage_type, &url.origin(), "foo");
     assert_eq!(result, None);
 }
 
@@ -408,7 +412,7 @@ fn no_storage_type_conflict() {
     let url = ServoUrl::parse("https://example.com").unwrap();
     test.set_item(
         WebStorageType::Local,
-        &url,
+        &url.origin(),
         "key".into(),
         "local_value".into(),
     )
@@ -416,16 +420,16 @@ fn no_storage_type_conflict() {
     // Set session storage item.
     test.set_item(
         WebStorageType::Session,
-        &url,
+        &url.origin(),
         "key".into(),
         "session_value".into(),
     )
     .unwrap();
     // Shutdown threads to ensure data is cleared from session storage and local storage is loaded from disk
     test = test.restart();
-    let result = test.get_item(WebStorageType::Local, &url, "key".into());
+    let result = test.get_item(WebStorageType::Local, &url.origin(), "key".into());
     assert_eq!(result, Some("local_value".into()));
     // Get session storage item.
-    let result = test.get_item(WebStorageType::Session, &url, "key".into());
+    let result = test.get_item(WebStorageType::Session, &url.origin(), "key".into());
     assert_eq!(result, None);
 }
