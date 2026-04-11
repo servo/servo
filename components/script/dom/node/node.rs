@@ -6,6 +6,7 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
+use std::cmp::Ordering;
 use std::default::Default;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
@@ -3845,6 +3846,63 @@ impl Node {
     fn get_first_child_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
         self.first_child.get_unrooted(no_gc)
     }
+
+    /// Compares `other` with `self` in [tree order](https://dom.spec.whatwg.org/#concept-tree-order).
+    fn compare_dom_tree_position(&self, other: &Node, common_ancestor: &Node) -> Ordering {
+        if self == other {
+            return Ordering::Equal;
+        }
+
+        let my_ancestors: Vec<_> = self
+            .inclusive_ancestors(ShadowIncluding::No)
+            .take_while(|ancestor| &**ancestor != common_ancestor)
+            .collect();
+        let other_ancestors: Vec<_> = other
+            .inclusive_ancestors(ShadowIncluding::No)
+            .take_while(|ancestor| &**ancestor != common_ancestor)
+            .collect();
+
+        // Consume any ancestors that are shared between a and b
+        let mut i = my_ancestors.len() - 1;
+        let mut j = other_ancestors.len() - 1;
+
+        loop {
+            if my_ancestors[i] != other_ancestors[j] {
+                break;
+            }
+
+            if i == 0 {
+                // self is an ancestor of other
+                debug_assert_ne!(j, 0, "Equal inclusive ancestors but nodes are not equal?");
+                return Ordering::Less;
+            }
+            if j == 0 {
+                // other is an ancestor of self
+                return Ordering::Greater;
+            }
+
+            i -= 1;
+            j -= 1;
+        }
+
+        // Now a_ancestors[i] and b_ancestors[j] have a common parent, but are not themselves equal
+        // => They are siblings.
+        if my_ancestors[i]
+            .preceding_siblings()
+            .any(|sibling| sibling == other_ancestors[j])
+        {
+            // other is a preceding sibling of self
+            Ordering::Greater
+        } else {
+            // self is a preceding sibling of other
+            debug_assert!(
+                other_ancestors[j]
+                    .preceding_siblings()
+                    .any(|sibling| sibling == my_ancestors[i])
+            );
+            Ordering::Less
+        }
+    }
 }
 
 impl NodeMethods<crate::DomTypeHolder> for Node {
@@ -4402,16 +4460,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-comparedocumentposition>
     fn CompareDocumentPosition(&self, other: &Node) -> u16 {
-        // step 1.
+        // Step 1. If this is other, then return zero.
         if self == other {
             return 0;
         }
 
-        // step 2
+        // Step 2. Let node1 be other and node2 be this.
         let mut node1 = Some(other);
         let mut node2 = Some(self);
 
-        // step 3
+        // Step 3. Let attr1 and attr2 be null.
         let mut attr1: Option<&Attr> = None;
         let mut attr2: Option<&Attr> = None;
 
@@ -5182,28 +5240,17 @@ where
     /// * any elements inserted in this vector share the same tree root
     /// * any time an element is removed from the tree root, it is also removed from this array
     /// * any time an element is moved within the tree, it is removed from this array and re-inserted
-    ///
-    /// Under these assumptions, an element's tree-order position in this array can be determined by
-    /// performing a [preorder traversal](https://dom.spec.whatwg.org/#concept-tree-order) of the tree root's children,
-    /// and increasing the destination index in the array every time a node in the array is encountered during
-    /// the traversal.
-    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node) {
-        if self.is_empty() {
-            self.push(Dom::from_ref(elem));
+    fn insert_pre_order(&mut self, node: &T, tree_root: &Node) {
+        let Err(insertion_index) = self.binary_search_by(|candidate| {
+            candidate
+                .upcast()
+                .compare_dom_tree_position(node.upcast(), tree_root)
+        }) else {
+            // The element is already in the vector. We assume that users of this method generally
+            // expect no duplicates, so there's nothing more to do.
             return;
-        }
+        };
 
-        let elem_node = elem.upcast::<Node>();
-        let mut head: usize = 0;
-        for node in tree_root.traverse_preorder(ShadowIncluding::No) {
-            let head_node = DomRoot::upcast::<Node>(DomRoot::from_ref(&*self[head]));
-            if head_node == node {
-                head += 1;
-            }
-            if elem_node == &*node || head == self.len() {
-                break;
-            }
-        }
-        self.insert(head, Dom::from_ref(elem));
+        self.insert(insertion_index, Dom::from_ref(node));
     }
 }
