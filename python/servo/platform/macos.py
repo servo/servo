@@ -49,7 +49,7 @@ class MacOS(Base):
             print("Could not run homebrew. Is it installed?")
             raise e
         target = BuildTarget.from_triple(None)
-        installed_something |= self._platform_bootstrap_gstreamer(target, False, yes)
+        installed_something |= self._platform_bootstrap_gstreamer(target, force, yes)
         return installed_something
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
