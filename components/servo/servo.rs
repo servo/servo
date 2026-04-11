@@ -159,7 +159,7 @@ struct ServoInner {
     net_embedder_receiver: Receiver<NetToEmbedderMsg>,
     constellation_embedder_receiver: Receiver<ConstellationToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
-    site_data_manager: Rc<SiteDataManager>,
+    site_data_manager: SiteDataManager,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -940,12 +940,12 @@ impl Servo {
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
             ))),
-            site_data_manager: Rc::new(SiteDataManager::new(
+            site_data_manager: SiteDataManager::new(
                 public_resource_threads,
                 private_resource_threads,
                 public_storage_threads,
                 private_storage_threads,
-            )),
+            ),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),
