@@ -63,13 +63,13 @@ use servo_constellation::{
     Constellation, ConstellationToEmbedderMsg, FromEmbedderLogger, FromScriptLogger,
     InitialConstellationState, NewScriptEventLoopProcessInfo, UnprivilegedContent,
 };
-use servo_wakelock::NoOpWakeLockProvider;
 use servo_constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationSender};
 use servo_geometry::{
     DeviceIndependentIntRect, convert_rect_to_css_pixel, convert_size_to_css_pixel,
 };
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
+use servo_wakelock::NoOpWakeLockProvider;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
