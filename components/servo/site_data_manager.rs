@@ -6,12 +6,14 @@ use bitflags::bitflags;
 use cookie::Cookie;
 use log::warn;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{CookieSource, ResourceThreads, SiteDescriptor};
+use net_traits::{ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
 use url::Url;
+
+use crate::CookieSource;
 
 bitflags! {
     /// Identifies categories of site data associated with a site.
