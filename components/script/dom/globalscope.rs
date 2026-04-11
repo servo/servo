@@ -130,7 +130,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
+use crate::dom::types::{AbortSignal, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
@@ -229,9 +229,6 @@ pub(crate) struct GlobalScope {
             FxBuildHasher,
         >,
     >,
-
-    /// <https://cookiestore.spec.whatwg.org/#globals>
-    cookie_store: MutNullableDom<CookieStore>,
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
     indexeddb: MutNullableDom<IDBFactory>,
@@ -780,7 +777,6 @@ impl GlobalScope {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            cookie_store: Default::default(),
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
@@ -2416,10 +2412,6 @@ impl GlobalScope {
 
     pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
         self.crypto.or_init(|| Crypto::new(self, can_gc))
-    }
-
-    pub(crate) fn cookie_store(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
-        self.cookie_store.or_init(|| CookieStore::new(self, can_gc))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
