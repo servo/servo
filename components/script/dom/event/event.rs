@@ -327,6 +327,10 @@ impl Event {
 
         let mut target = DomRoot::from_ref(target);
 
+        // Save the original dispatch target. Keyboard default actions need the
+        // element the event was originally fired on, not the retargeted host.
+        let original_target = target.clone();
+
         // Step 1. Set event’s dispatch flag.
         self.set_flags(EventFlags::Dispatch);
 
@@ -637,7 +641,16 @@ impl Event {
         // https://w3c.github.io/uievents/#default-action
         // https://dom.spec.whatwg.org/#action-versus-occurance
         if !self.DefaultPrevented() {
-            if let Some(target) = self.GetTarget() {
+            if self.is::<KeyboardEvent>() {
+                // For keyboard events, use the original dispatch target rather than
+                // event.GetTarget(). Composed keyboard events may retarget across
+                // shadow boundaries, but the default action (character input, Tab
+                // navigation) should use the element the event was originally fired on.
+                if let Some(node) = original_target.downcast::<Node>() {
+                    let vtable = vtable_for(node);
+                    vtable.handle_event(self, can_gc);
+                }
+            } else if let Some(target) = self.GetTarget() {
                 if let Some(node) = target.downcast::<Node>() {
                     let vtable = vtable_for(node);
                     vtable.handle_event(self, can_gc);
