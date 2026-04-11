@@ -19,7 +19,7 @@ use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
-use style::data::ElementDataRef;
+use style::data::{ElementDataMut, ElementDataRef};
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
@@ -39,22 +39,12 @@ pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'sta
 /// or some other mechanism to ensure thread safety.
 pub trait LayoutNode<'dom>: Copy + Debug + TNode + Send + Sync {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>;
+    type ConcreteLayoutElement: LayoutElement<'dom>;
+
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
     /// Returns the type ID of this node.
     fn type_id(&self) -> LayoutNodeType;
-
-    /// Initialize this node with empty style and opaque layout data.
-    ///
-    /// # Safety
-    ///
-    /// This method is unsafe because it modifies the given node during
-    /// layout. Callers should ensure that no other layout thread is
-    /// attempting to read or modify the opaque layout data of this node.
-    unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self);
-
-    /// Get the [`StyleData`] for this node. Returns None if the node is unstyled.
-    fn style_data(&self) -> Option<&'dom StyleData>;
 
     /// Get the layout data of this node, attempting to downcast it to the desired type.
     /// Returns None if there is no layout data or it isn't of the desired type.
@@ -122,6 +112,20 @@ where
     }
 }
 
+pub trait LayoutElement<'dom>: Copy + Debug + Send + Sync {
+    /// Initialize this node with empty style and opaque layout data.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
+    unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self);
+
+    /// Get the [`StyleData`] for this [`LayoutElement`].
+    fn style_data(self) -> Option<&'dom StyleData>;
+}
+
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialEq + Sized {
@@ -168,9 +172,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     /// Returns a ThreadSafeLayoutElement if this is an element in an HTML namespace, None otherwise.
     fn as_html_element(&self) -> Option<Self::ConcreteThreadSafeLayoutElement>;
-
-    /// Get the [`StyleData`] for this node. Returns None if the node is unstyled.
-    fn style_data(&self) -> Option<&'dom StyleData>;
 
     /// Get the layout data of this node, attempting to downcast it to the desired type.
     /// Returns None if there is no layout data or it isn't of the desired type.
@@ -306,7 +307,26 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
-    fn style_data(&self) -> ElementDataRef<'_>;
+    /// Get the [`StyleData`] for this node. Returns None if the node is unstyled.
+    fn style_data(&self) -> Option<&'dom StyleData>;
+
+    /// Get a reference to the inner [`ElementDataRef`] for this element's [`StyleData`]. This will
+    /// panic if the element is unstyled.
+    fn element_data(&self) -> ElementDataRef<'dom> {
+        self.style_data()
+            .expect("Unstyled layout node?")
+            .element_data
+            .borrow()
+    }
+
+    /// Get a mutable reference to the inner [`ElementDataRef`] for this element's [`StyleData`].
+    /// This will panic if the element is unstyled.
+    fn element_data_mut(&self) -> ElementDataMut<'dom> {
+        self.style_data()
+            .expect("Unstyled layout node?")
+            .element_data
+            .borrow_mut()
+    }
 
     fn pseudo_element_chain(&self) -> PseudoElementChain;
 
@@ -317,18 +337,16 @@ pub trait ThreadSafeLayoutElement<'dom>:
     #[inline]
     fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         let get_style_for_pseudo_element =
-            |base_style: &Arc<ComputedValues>, pseudo_element: PseudoElement| {
+            |data: &ElementDataRef<'_>,
+             base_style: &Arc<ComputedValues>,
+             pseudo_element: PseudoElement| {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
                 match pseudo_element.cascade_type() {
                     // Already computed during the cascade.
-                    PseudoElementCascadeType::Eager => self
-                        .style_data()
-                        .styles
-                        .pseudos
-                        .get(&pseudo_element)
-                        .unwrap()
-                        .clone(),
+                    PseudoElementCascadeType::Eager => {
+                        data.styles.pseudos.get(&pseudo_element).unwrap().clone()
+                    },
                     PseudoElementCascadeType::Precomputed => context
                         .stylist
                         .precomputed_values_for_pseudo::<Self::ConcreteElement>(
@@ -353,17 +371,19 @@ pub trait ThreadSafeLayoutElement<'dom>:
                 }
             };
 
-        let data = self.style_data();
+        let data = self.element_data();
         let element_style = data.styles.primary();
         let pseudo_element_chain = self.pseudo_element_chain();
 
         let primary_pseudo_style = match pseudo_element_chain.primary {
-            Some(pseudo_element) => get_style_for_pseudo_element(element_style, pseudo_element),
+            Some(pseudo_element) => {
+                get_style_for_pseudo_element(&data, element_style, pseudo_element)
+            },
             None => return element_style.clone(),
         };
         match pseudo_element_chain.secondary {
             Some(pseudo_element) => {
-                get_style_for_pseudo_element(&primary_pseudo_style, pseudo_element)
+                get_style_for_pseudo_element(&data, &primary_pseudo_style, pseudo_element)
             },
             None => primary_pseudo_style,
         }

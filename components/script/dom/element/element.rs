@@ -25,7 +25,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, ScrollContainerQueryFlags};
+use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
 use selectors::Element as SelectorsElement;
@@ -33,7 +33,7 @@ use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstrain
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -192,7 +192,7 @@ pub struct Element {
     is: DomRefCell<Option<LocalName>>,
     #[conditional_malloc_size_of]
     #[no_trace]
-    style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
+    style_attribute: DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
     #[no_trace]
@@ -201,6 +201,11 @@ pub struct Element {
     /// operations may require restyling this element or its descendants.
     selector_flags: AtomicUsize,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
+
+    /// Style data for this node. This is accessed and mutated by style
+    /// passes and is used to lay out this node and populate layout data.
+    #[no_trace]
+    style_data: DomRefCell<Option<Box<StyleData>>>,
 }
 
 impl fmt::Debug for Element {
@@ -313,6 +318,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Default::default(),
             rare_data: Default::default(),
+            style_data: Default::default(),
         }
     }
 
@@ -352,6 +358,10 @@ impl Element {
             *rare_data = Some(Default::default());
         }
         RefMut::map(rare_data, |rare_data| rare_data.as_mut().unwrap())
+    }
+
+    pub(crate) fn clean_up_style_data(&self) {
+        self.style_data.borrow_mut().take();
     }
 
     pub(crate) fn restyle(&self, damage: NodeDamage) {
@@ -477,12 +487,6 @@ impl Element {
 
             reactions.clear();
         }
-    }
-
-    /// style will be `None` for elements in a `display: none` subtree. otherwise, the element has a
-    /// layout box iff it doesn't have `display: none`.
-    pub(crate) fn style(&self) -> Option<Arc<ComputedValues>> {
-        self.upcast::<Node>().style()
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -977,6 +981,30 @@ impl Element {
         // Steps 3 and 4 are shared with other scroll targets.
         document.finish_handle_scroll_event(self.upcast());
     }
+
+    pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
+        self.owner_window().layout_reflow(QueryMsg::StyleQuery);
+        self.style_data
+            .borrow()
+            .as_ref()
+            .map(|data| data.element_data.borrow().styles.primary().clone())
+    }
+
+    pub(crate) fn is_styled(&self) -> bool {
+        self.style_data.borrow().is_some()
+    }
+
+    pub(crate) fn is_display_none(&self) -> bool {
+        self.style_data.borrow().as_ref().is_none_or(|data| {
+            data.element_data
+                .borrow()
+                .styles
+                .primary()
+                .get_box()
+                .display
+                .is_none()
+        })
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -1053,6 +1081,28 @@ impl<'dom> LayoutDom<'dom, Element> {
 
     pub(crate) fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("part")).map(|attr| attr.as_tokens())
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) fn style_data(self) -> Option<&'dom StyleData> {
+        unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn initialize_style_data(self) {
+        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
+        debug_assert!(data.is_none());
+        *data = Some(Box::default());
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn clear_style_data(self) {
+        unsafe {
+            self.unsafe_get().style_data.borrow_mut_for_layout().take();
+        }
     }
 
     pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
@@ -1398,7 +1448,7 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         let shared_lock = document.style_shared_lock();
         hints.push(ApplicableDeclarationBlock::from_declarations(
-            Arc::new(shared_lock.wrap(property_declaration_block)),
+            ServoArc::new(shared_lock.wrap(property_declaration_block)),
             CascadeLevel::new(CascadeOrigin::PresHints),
             LayerOrder::root(),
         ));
@@ -1433,7 +1483,9 @@ impl<'dom> LayoutDom<'dom, Element> {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    pub(crate) fn style_attribute(
+        self,
+    ) -> *const Option<ServoArc<Locked<PropertyDeclarationBlock>>> {
         unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
     }
 
@@ -1671,7 +1723,7 @@ impl Element {
 
     pub(crate) fn style_attribute(
         &self,
-    ) -> &DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
+    ) -> &DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -2246,7 +2298,7 @@ impl Element {
                     {
                         return;
                     }
-                    Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
+                    ServoArc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                         source,
                         &UrlExtraData(doc.base_url().get_arc()),
                         Some(win.css_error_reporter()),

@@ -10,7 +10,8 @@ use embedder_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use layout_api::wrapper_traits::{
-    LayoutNode, PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutDataTrait, LayoutElement, LayoutNode, PseudoElementChain, ThreadSafeLayoutElement,
+    ThreadSafeLayoutNode,
 };
 use layout_api::{LayoutDamage, LayoutNodeType, StyleData};
 use selectors::Element as _;
@@ -60,6 +61,15 @@ pub struct ServoLayoutElement<'dom> {
     element: LayoutDom<'dom, Element>,
 }
 
+/// Those are supposed to be sound, but they aren't because the entire system
+/// between script and layout so far has been designed to work around their
+/// absence. Switching the entire thing to the inert crate infra will help.
+///
+/// FIXME(mrobinson): These are required because Layout 2020 sends non-threadsafe
+/// nodes to different threads. This should be adressed in a comprehensive way.
+unsafe impl Send for ServoLayoutElement<'_> {}
+unsafe impl Sync for ServoLayoutElement<'_> {}
+
 impl fmt::Debug for ServoLayoutElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}", self.element.local_name())?;
@@ -67,6 +77,24 @@ impl fmt::Debug for ServoLayoutElement<'_> {
             write!(f, " id={}", id)?;
         }
         write!(f, "> ({:#x})", self.as_node().opaque().0)
+    }
+}
+
+impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
+    unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
+        let inner = self.to_layout_dom();
+        if inner.style_data().is_none() {
+            unsafe { inner.initialize_style_data() };
+        }
+
+        let node = self.element.upcast::<Node>();
+        if node.layout_data().is_none() {
+            unsafe { node.initialize_layout_data(Box::<RequestedLayoutDataType>::default()) };
+        }
+    }
+
+    fn style_data(self) -> Option<&'dom StyleData> {
+        self.to_layout_dom().style_data()
     }
 }
 
@@ -95,10 +123,6 @@ impl<'dom> ServoLayoutElement<'dom> {
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str> {
         self.element.get_attr_val_for_layout(namespace, name)
-    }
-
-    fn get_style_data(&self) -> Option<&StyleData> {
-        self.as_node().style_data()
     }
 
     /// Unset the snapshot flags on the underlying DOM object for this element.
@@ -409,14 +433,14 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     fn store_children_to_process(&self, n: isize) {
-        let data = self.get_style_data().unwrap();
+        let data = self.style_data().unwrap();
         data.parallel
             .children_to_process
             .store(n, Ordering::Relaxed);
     }
 
     fn did_process_child(&self) -> isize {
-        let data = self.get_style_data().unwrap();
+        let data = self.style_data().unwrap();
         let old_value = data
             .parallel
             .children_to_process
@@ -426,30 +450,28 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     unsafe fn clear_data(&self) {
-        unsafe { self.as_node().to_layout_dom().clear_style_and_layout_data() }
+        unsafe { self.element.clear_style_data() };
+        unsafe { self.as_node().to_layout_dom().clear_layout_data() }
     }
 
     unsafe fn ensure_data(&self) -> ElementDataMut<'_> {
-        unsafe {
-            self.as_node().to_layout_dom().initialize_style_data();
-        };
+        unsafe { self.element.initialize_style_data() };
         self.mutate_data().unwrap()
     }
 
     /// Whether there is an ElementData container.
     fn has_data(&self) -> bool {
-        self.get_style_data().is_some()
+        self.style_data().is_some()
     }
 
     /// Immutably borrows the ElementData.
     fn borrow_data(&self) -> Option<ElementDataRef<'_>> {
-        self.get_style_data().map(|data| data.element_data.borrow())
+        self.style_data().map(|data| data.element_data.borrow())
     }
 
     /// Mutably borrows the ElementData.
     fn mutate_data(&self) -> Option<ElementDataMut<'_>> {
-        self.get_style_data()
-            .map(|data| data.element_data.borrow_mut())
+        self.style_data().map(|data| data.element_data.borrow_mut())
     }
 
     fn skip_item_display_fixup(&self) -> bool {
@@ -1063,7 +1085,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 
     fn with_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
         if pseudo_element.is_eager() &&
-            self.style_data()
+            self.element_data()
                 .styles
                 .pseudos
                 .get(&pseudo_element)
@@ -1112,8 +1134,8 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         self.element.get_attr(namespace, name)
     }
 
-    fn style_data(&self) -> ElementDataRef<'_> {
-        self.element.borrow_data().expect("Unstyled layout node?")
+    fn style_data(&self) -> Option<&'dom StyleData> {
+        self.element.style_data()
     }
 
     fn is_shadow_host(&self) -> bool {

@@ -517,17 +517,17 @@ pub(crate) fn handle_get_layout(
         None => return reply.send(None).unwrap(),
         Some(found_node) => found_node,
     };
-    let auto_margins = determine_auto_margins(&node);
 
-    let elem = node
+    let element = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
-    let rect = elem.GetBoundingClientRect(CanGc::from_cx(cx));
+
+    let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
     let window = node.owner_window();
-    let computed_style = window.GetComputedStyle(elem, None);
+    let computed_style = window.GetComputedStyle(element, None);
     let computed_layout = ComputedNodeLayout {
         display: computed_style.Display().into(),
         position: computed_style.Position().into(),
@@ -549,6 +549,7 @@ pub(crate) fn handle_get_layout(
         height,
     };
 
+    let auto_margins = element.determine_auto_margins();
     reply.send(Some((computed_layout, auto_margins))).unwrap();
 }
 
@@ -709,15 +710,17 @@ pub(crate) fn handle_highlight_dom_node(
     }
 }
 
-fn determine_auto_margins(node: &Node) -> AutoMargins {
-    let Some(style) = node.style() else {
-        return AutoMargins::default();
-    };
-    let margin = style.get_margin();
-    AutoMargins {
-        top: margin.margin_top.is_auto(),
-        right: margin.margin_right.is_auto(),
-        bottom: margin.margin_bottom.is_auto(),
-        left: margin.margin_left.is_auto(),
+impl Element {
+    fn determine_auto_margins(&self) -> AutoMargins {
+        let Some(style) = self.style() else {
+            return AutoMargins::default();
+        };
+        let margin = style.get_margin();
+        AutoMargins {
+            top: margin.margin_top.is_auto(),
+            right: margin.margin_right.is_auto(),
+            bottom: margin.margin_bottom.is_auto(),
+            left: margin.margin_left.is_auto(),
+        }
     }
 }

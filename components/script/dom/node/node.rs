@@ -29,8 +29,8 @@ use keyboard_types::Modifiers;
 use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData,
-    HTMLMediaData, LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData,
-    StyleData, TrustedNodeAddress, with_layout_state,
+    HTMLMediaData, LayoutElementType, LayoutNodeType, PhysicalSides, SVGElementData,
+    TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -49,7 +49,6 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
-use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
@@ -175,11 +174,6 @@ pub struct Node {
 
     /// The maximum version of any inclusive descendant of this node.
     inclusive_descendants_version: Cell<u64>,
-
-    /// Style data for this node. This is accessed and mutated by style
-    /// passes and is used to lay out this node and populate layout data.
-    #[no_trace]
-    style_data: DomRefCell<Option<Box<StyleData>>>,
 
     /// Layout data for this node. This is populated during layout and can
     /// be used for incremental relayout and script queries.
@@ -371,9 +365,11 @@ impl Node {
         }
     }
 
-    pub(crate) fn clean_up_style_and_layout_data(&self) {
-        self.style_data.borrow_mut().take();
+    fn clean_up_style_and_layout_data(&self) {
         self.layout_data.borrow_mut().take();
+        if let Some(element) = self.downcast::<Element>() {
+            element.clean_up_style_data();
+        }
     }
 
     /// Clean up flags and runs steps 11-14 of remove a node.
@@ -465,15 +461,9 @@ impl Node {
             .union(NodeFlags::HAS_SNAPSHOT)
             .union(NodeFlags::HANDLED_SNAPSHOT);
 
-        // Since both the initial traversal in light dom and the inner traversal
-        // in shadow DOM share the same code, we define a closure to prevent omissions.
-        let cleanup_node = |node: &Node| {
-            node.clean_up_style_and_layout_data();
-        };
-
         for node in root.traverse_preorder(ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
-            cleanup_node(&node);
+            node.clean_up_style_and_layout_data();
 
             // Make sure that we don't accidentally initialize the rare data for this node
             // by setting it to None
@@ -492,7 +482,7 @@ impl Node {
                     .traverse_preorder(ShadowIncluding::Yes)
                 {
                     node.set_flag(RESET_FLAGS, false);
-                    cleanup_node(&node);
+                    node.clean_up_style_and_layout_data();
                 }
             }
         }
@@ -1745,10 +1735,19 @@ impl Node {
         };
 
         let window = self.owner_window();
-        let display = self
-            .downcast::<Element>()
+        let element = self.downcast::<Element>();
+        let display = element
             .map(|elem| window.GetComputedStyle(elem, None))
             .map(|style| style.Display().into());
+
+        // It is not entirely clear when this should be set to false.
+        // Firefox considers nodes with "display: contents" to be displayed.
+        // The doctype node is displayed despite being `display: none`.
+        //
+        // TODO: Should this be false if the node is in a `display: none` subtree?
+        let is_displayed =
+            element.is_none_or(|element| !element.is_display_none()) || self.is::<DocumentType>();
+        let attrs = element.map(Element::summarize).unwrap_or_default();
 
         NodeInfo {
             unique_id: self.unique_id(pipeline),
@@ -1762,14 +1761,11 @@ impl Node {
             node_name: String::from(self.NodeName()),
             node_value: self.GetNodeValue().map(|v| v.into()),
             num_children,
-            attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
+            attrs,
             is_shadow_host,
             shadow_root_mode,
             display,
-            // It is not entirely clear when this should be set to false.
-            // Firefox considers nodes with "display: contents" to be displayed.
-            // The doctype node is displayed despite being `display: none`.
-            is_displayed: !self.is_display_none() || self.is::<DocumentType>(),
+            is_displayed,
             doctype_name: self
                 .downcast::<DocumentType>()
                 .map(DocumentType::name)
@@ -1885,30 +1881,6 @@ impl Node {
         } else {
             None
         }
-    }
-
-    pub(crate) fn is_styled(&self) -> bool {
-        self.style_data.borrow().is_some()
-    }
-
-    pub(crate) fn is_display_none(&self) -> bool {
-        self.style_data.borrow().as_ref().is_none_or(|data| {
-            data.element_data
-                .borrow()
-                .styles
-                .primary()
-                .get_box()
-                .display
-                .is_none()
-        })
-    }
-
-    pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
-        self.owner_window().layout_reflow(QueryMsg::StyleQuery);
-        self.style_data
-            .borrow()
-            .as_ref()
-            .map(|data| data.element_data.borrow().styles.primary().clone())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#language>
@@ -2224,14 +2196,6 @@ impl<'dom> LayoutDom<'dom, Node> {
         (this).flags.set(flags);
     }
 
-    // FIXME(nox): How we handle style and layout data needs to be completely
-    // revisited so we can do that more cleanly and safely in layout 2020.
-    #[inline]
-    #[expect(unsafe_code)]
-    pub(crate) fn style_data(self) -> Option<&'dom StyleData> {
-        unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
-    }
-
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn layout_data(self) -> Option<&'dom GenericLayoutData> {
@@ -2239,21 +2203,6 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     /// Initialize the style data of this node.
-    ///
-    /// # Safety
-    ///
-    /// This method is unsafe because it modifies the given node during
-    /// layout. Callers should ensure that no other layout thread is
-    /// attempting to read or modify the opaque layout data of this node.
-    #[inline]
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn initialize_style_data(self) {
-        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
-        debug_assert!(data.is_none());
-        *data = Some(Box::default());
-    }
-
-    /// Initialize the opaque layout data of this node.
     ///
     /// # Safety
     ///
@@ -2277,9 +2226,8 @@ impl<'dom> LayoutDom<'dom, Node> {
     /// attempting to read or modify the opaque layout data of this node.
     #[inline]
     #[expect(unsafe_code)]
-    pub(crate) unsafe fn clear_style_and_layout_data(self) {
+    pub(crate) unsafe fn clear_layout_data(self) {
         unsafe {
-            self.unsafe_get().style_data.borrow_mut_for_layout().take();
             self.unsafe_get().layout_data.borrow_mut_for_layout().take();
         }
     }
@@ -2813,7 +2761,6 @@ impl Node {
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(),
-
             parent_node: Default::default(),
             first_child: Default::default(),
             last_child: Default::default(),
@@ -2824,7 +2771,6 @@ impl Node {
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
-            style_data: Default::default(),
             layout_data: Default::default(),
         }
     }

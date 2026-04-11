@@ -968,8 +968,8 @@ fn rendered_text_collection_steps(
 
     match node.type_id() {
         LayoutNodeType::Text => {
-            if let Some(element) = node.parent_node() {
-                match element.type_id() {
+            if let Some(parent_node) = node.parent_node() {
+                match parent_node.type_id() {
                     // Any text contained in these elements must be ignored.
                     LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
                     LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
@@ -984,7 +984,7 @@ fn rendered_text_collection_steps(
                     // Basically: a Select can only contain Options or OptGroups, while
                     // OptGroups may also contain Options. Everything else gets ignored.
                     LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) => {
-                        if let Some(element) = element.parent_node() {
+                        if let Some(element) = parent_node.parent_node() {
                             if !matches!(
                                 element.type_id(),
                                 LayoutNodeType::Element(LayoutElementType::HTMLSelectElement)
@@ -1006,7 +1006,10 @@ fn rendered_text_collection_steps(
                     return items;
                 }
 
-                let Some(style_data) = element.style_data() else {
+                let Some(parent_element) = parent_node.to_threadsafe().as_element() else {
+                    return items;
+                };
+                let Some(style_data) = parent_element.style_data() else {
                     return items;
                 };
 
@@ -1029,11 +1032,13 @@ fn rendered_text_collection_steps(
                 // property is not 'none':
                 let display = style.get_box().display;
                 if display == Display::None {
-                    match element.type_id() {
+                    match parent_element.type_id() {
                         // Even if set to Display::None, Option/OptGroup elements need to
                         // be rendered.
-                        LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) |
-                        LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) => {},
+                        Some(
+                            LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) |
+                            LayoutNodeType::Element(LayoutElementType::HTMLOptionElement),
+                        ) => {},
                         _ => {
                             return items;
                         },
@@ -1131,7 +1136,10 @@ fn rendered_text_collection_steps(
         _ => {
             // First we need to gather some infos to setup the various flags
             // before rendering the child nodes
-            let Some(style_data) = node.style_data() else {
+            let Some(element) = node.to_threadsafe().as_element() else {
+                return items;
+            };
+            let Some(style_data) = element.style_data() else {
                 return items;
             };
 
