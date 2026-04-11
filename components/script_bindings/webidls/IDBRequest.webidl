@@ -10,8 +10,8 @@
 // https://w3c.github.io/IndexedDB/#idbrequest
 [Pref="dom_indexeddb_enabled", Exposed=(Window,Worker)]
 interface IDBRequest : EventTarget {
-  readonly attribute any result;
-  readonly attribute DOMException? error;
+  [Throws] readonly attribute any result;
+  [Throws] readonly attribute DOMException? error;
   // readonly attribute (IDBObjectStore or IDBIndex or IDBCursor)? source;
   readonly attribute IDBObjectStore? source;
   readonly attribute IDBTransaction? transaction;
