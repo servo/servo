@@ -578,6 +578,10 @@ class PackageCommands(CommandBase):
             print(f"Updated occurrence in {filename}.")
         print("\r ➤  Updating license.html...")
         # cargo about generate etc/about.hbs > resources/resource_protocol/license.html
+        if shutil.which("cargo-about") is None:
+            print("Updating license.html requires cargo-about, but it is not installed.", file=sys.stderr)
+            print("Install it with: `cargo install cargo-about --locked`", file=sys.stderr)
+            return 1
         try:
             # Remove resources/resource_protocol/license.html before regenerating it
             license_html_path = path.join("resources", "resource_protocol", "license.html")
