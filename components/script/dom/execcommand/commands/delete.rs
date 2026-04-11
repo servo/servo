@@ -7,9 +7,8 @@ use script_bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::document::Document;
-use crate::dom::execcommand::contenteditable::{
-    NodeExecCommandSupport, SelectionDeleteDirection, SelectionExecCommandSupport, split_the_parent,
-};
+use crate::dom::execcommand::contenteditable::node::split_the_parent;
+use crate::dom::execcommand::contenteditable::selection::SelectionDeleteDirection;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlhrelement::HTMLHRElement;

@@ -12,9 +12,6 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
-use crate::dom::execcommand::contenteditable::{
-    NodeExecCommandSupport, SelectionExecCommandSupport,
-};
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
