@@ -32,6 +32,9 @@ jobs:
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Create Draft GH Release
     runs-on: ubuntu-latest
+    environment: &publish-environment
+      name: publish
+      deployment: false
     steps:
       - id: create-release
         run: |
@@ -70,6 +73,7 @@ jobs:
         && (inputs.regular_release || false) == false
     name: Publish GH Release
     runs-on: ubuntu-latest
+    environment: *publish-environment
     steps:
       - name: Publish as latest (success)
         if: ${{ !contains(needs.*.result, 'failure') && (!contains(needs.*.result, 'cancelled') && !cancelled()) }}
@@ -138,6 +142,7 @@ jobs:
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload vendored source archive
     runs-on: ubuntu-latest
+    environment: *publish-environment
     permissions:
       contents: write
       id-token: write
@@ -175,6 +180,7 @@ jobs:
     permissions:
       id-token: write
       attestations: write
+    environment: *publish-environment
     needs: &upload-artifacts-needs
       - create-draft-release
       - build-win
@@ -243,6 +249,7 @@ jobs:
   upload-artifacts-release:
     if: github.event_name == 'workflow_dispatch' && inputs.regular_release
     runs-on: ubuntu-latest
+    environment: *publish-environment
     permissions:
       id-token: write
       attestations: write
