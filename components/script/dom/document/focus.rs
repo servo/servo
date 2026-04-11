@@ -13,7 +13,6 @@ use script_bindings::script_runtime::CanGc;
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::execcommand::contenteditable::ContentEditableRange;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
