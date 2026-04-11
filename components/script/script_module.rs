@@ -74,7 +74,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::{
     ExternalScriptKind, HTMLScriptElement, SCRIPT_JS_MIMES, Script, finish_fetching_a_script,
@@ -89,9 +88,7 @@ use crate::dom::window::Window;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
-use crate::network_listener::{
-    self, FetchResponseListener, NetworkListener, ResourceTimingListener,
-};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::NonSendTaskBox;
@@ -294,7 +291,7 @@ impl ModuleTree {
     /// can occur as part of compiling a script.
     fn create_a_javascript_module_script(
         source: Rc<DOMString>,
-        owner: ModuleOwner,
+        global: &GlobalScope,
         url: &ServoUrl,
         options: ScriptFetchOptions,
         external: bool,
@@ -303,8 +300,9 @@ impl ModuleTree {
         _can_gc: CanGc,
     ) -> Self {
         let cx = GlobalScope::get_cx();
-        let global = owner.global();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+
+        let owner = ModuleOwner::DynamicModule(Trusted::new(global));
 
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
@@ -723,7 +721,7 @@ impl ModuleFetchClient {
 /// The context required for asynchronously loading an external module script source.
 struct ModuleContext {
     /// The owner of the module that initiated the request.
-    owner: ModuleOwner,
+    owner: Trusted<GlobalScope>,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -797,7 +795,7 @@ impl FetchResponseListener for ModuleContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let global = self.owner.global();
+        let global = self.owner.root();
         let (_url, module_type) = &self.module_request;
 
         network_listener::submit_timing(cx, &self, &response, &timing);
@@ -870,7 +868,7 @@ impl FetchResponseListener for ModuleContext {
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
                     Rc::new(DOMString::from(source_text.clone())),
-                    self.owner.clone(),
+                    &global,
                     &final_url,
                     self.options,
                     true,
@@ -900,17 +898,12 @@ impl FetchResponseListener for ModuleContext {
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        match &self.owner {
-            ModuleOwner::Worker(scope) => {
-                if let Some(scope) = scope.root().downcast::<DedicatedWorkerGlobalScope>() {
-                    scope.report_csp_violations(violations);
-                }
-            },
-            _ => {
-                let global = &self.resource_timing_global();
-                global.report_csp_violations(violations, None, None);
-            },
-        };
+        let global = self.owner.root();
+        if let Some(scope) = global.downcast::<DedicatedWorkerGlobalScope>() {
+            scope.report_csp_violations(violations);
+        } else {
+            global.report_csp_violations(violations, None, None);
+        }
     }
 }
 
@@ -922,7 +915,7 @@ impl ResourceTimingListener for ModuleContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.owner.global()
+        self.owner.root()
     }
 }
 
@@ -1243,6 +1236,8 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     referrer: Referrer,
     credentials_mode: CredentialsMode,
 ) {
+    let global = owner.global();
+
     // Step 1. Let options be a script fetch options whose cryptographic nonce
     // is the empty string, integrity metadata is the empty string, parser
     // metadata is "not-parser-inserted", credentials mode is credentialsMode,
@@ -1262,7 +1257,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         cx,
         url,
         fetch_client.clone(),
-        owner.clone(),
+        &global,
         destination,
         options,
         referrer,
@@ -1295,8 +1290,9 @@ pub(crate) fn fetch_an_external_module_script(
     owner: ModuleOwner,
     options: ScriptFetchOptions,
 ) {
-    let referrer = owner.global().get_referrer();
-    let fetch_client = ModuleFetchClient::from_global_scope(&owner.global());
+    let global = owner.global();
+    let referrer = global.get_referrer();
+    let fetch_client = ModuleFetchClient::from_global_scope(&global);
 
     // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
     // and with the following steps given result:
@@ -1304,7 +1300,7 @@ pub(crate) fn fetch_an_external_module_script(
         cx,
         url,
         fetch_client.clone(),
-        owner.clone(),
+        &global,
         Destination::Script,
         options,
         referrer,
@@ -1356,7 +1352,7 @@ pub(crate) fn fetch_a_modulepreload_module(
         cx,
         url,
         fetch_client.clone(),
-        owner.clone(),
+        global,
         destination,
         options,
         referrer,
@@ -1397,10 +1393,12 @@ pub(crate) fn fetch_inline_module_script(
     line_number: u32,
     introduction_type: Option<&'static CStr>,
 ) {
+    let global = owner.global();
+
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
         module_script_text,
-        owner.clone(),
+        &global,
         &url,
         options,
         false,
@@ -1408,7 +1406,7 @@ pub(crate) fn fetch_inline_module_script(
         introduction_type,
         CanGc::from_cx(cx),
     ));
-    let fetch_client = ModuleFetchClient::from_global_scope(&owner.global());
+    let fetch_client = ModuleFetchClient::from_global_scope(&global);
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(
@@ -1530,7 +1528,7 @@ pub(crate) fn fetch_a_single_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
     fetch_client: ModuleFetchClient,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
@@ -1539,8 +1537,6 @@ pub(crate) fn fetch_a_single_module_script(
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + 'static,
 ) {
-    let global = owner.global();
-
     // Step 1. Let moduleType be "javascript-or-wasm".
     // Step 2. If moduleRequest was given, then set moduleType to the result of running the
     // module type from module request steps given moduleRequest.
@@ -1621,14 +1617,10 @@ pub(crate) fn fetch_a_single_module_script(
         global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
         // We only need a policy container when fetching the root of a module worker.
-        let policy_container = (is_top_level && matches!(owner, ModuleOwner::Worker(_)))
+        let policy_container = (is_top_level && global.is::<WorkerGlobalScope>())
             .then(|| fetch_client.policy_container.clone());
 
-        let document: Option<DomRoot<Document>> = match &owner {
-            ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-            ModuleOwner::Window(script, _, _) => Some(script.root().owner_document()),
-        };
-        let webview_id = document.as_ref().map(|document| document.webview_id());
+        let webview_id = global.webview_id();
 
         // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
 
@@ -1672,7 +1664,7 @@ pub(crate) fn fetch_a_single_module_script(
         .https_state(fetch_client.https_state);
 
         let context = ModuleContext {
-            owner,
+            owner: Trusted::new(global),
             data: vec![],
             metadata: None,
             module_request,
@@ -1682,18 +1674,8 @@ pub(crate) fn fetch_a_single_module_script(
             policy_container,
         };
 
-        let network_listener = NetworkListener::new(
-            context,
-            global.task_manager().networking_task_source().to_sendable(),
-        );
-        match document {
-            Some(document) => {
-                document
-                    .loader_mut()
-                    .fetch_async_background(request, network_listener.into_callback());
-            },
-            None => global.fetch_with_network_listener(request, network_listener),
-        };
+        let task_source = global.task_manager().networking_task_source().to_sendable();
+        global.fetch(request, context, task_source);
     })
 }
 
