@@ -109,7 +109,6 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
-use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -207,7 +206,6 @@ impl Drop for AutoCloseWorker {
 #[dom_struct]
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
-    crypto: MutNullableDom<Crypto>,
 
     /// A [`TaskManager`] for this [`GlobalScope`].
     task_manager: OnceCell<TaskManager>,
@@ -775,7 +773,6 @@ impl GlobalScope {
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
-            crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
@@ -2408,10 +2405,6 @@ impl GlobalScope {
             .expect("Can't obtain context after runtime shutdown")
             .as_ptr();
         unsafe { SafeJSContext::from_ptr(cx) }
-    }
-
-    pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self, can_gc))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {

@@ -290,6 +290,7 @@ pub(crate) struct Window {
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
+    crypto: MutNullableDom<Crypto>,
     #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
@@ -1510,7 +1511,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto(CanGc::deprecated_note())
+        self.crypto
+            .or_init(|| Crypto::new(self.as_global_scope(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-frameelement>
@@ -3695,6 +3697,7 @@ impl Window {
             image_cache_sender,
             image_cache,
             navigator: Default::default(),
+            crypto: Default::default(),
             location: Default::default(),
             history: Default::default(),
             custom_element_registry: Default::default(),
