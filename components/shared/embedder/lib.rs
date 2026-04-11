@@ -480,6 +480,10 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
+    /// Async permission request for screen wake lock. The callback is invoked
+    /// with the user's decision, which resolves or rejects the pending promise
+    /// without blocking the script thread.
+    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.

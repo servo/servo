@@ -5,6 +5,8 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use embedder_traits::{AllowOrDeny, EmbedderMsg};
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use servo_constellation_traits::ScriptToConstellationMessage;
 
@@ -14,11 +16,12 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::WakeLockBinding::{WakeLockMethods, WakeLockType};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::wakelock::wakelocksentinel::WakeLockSentinel;
+use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/screen-wake-lock/#the-wakelock-interface>
@@ -41,7 +44,7 @@ impl WakeLock {
 
 impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
-    fn Request(&self, cx: &mut CurrentRealm, type_: WakeLockType) -> Rc<Promise> {
+    fn Request(&self, cx: &mut CurrentRealm, _type_: WakeLockType) -> Rc<Promise> {
         let global = GlobalScope::from_current_realm(cx);
         let promise = Promise::new_in_realm(cx);
 
@@ -60,18 +63,43 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
             return promise;
         }
 
-        // Step 4. Notify the constellation to acquire the wake lock. The constellation
-        // tracks the aggregate lock count and only signals the embedder on the 0→1
-        // transition, so the embedder is not spammed per individual request.
-        // <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
-        global
-            .as_window()
-            .send_to_constellation(ScriptToConstellationMessage::AcquireWakeLock);
+        // Step 4. Request permission for "screen-wake-lock" asynchronously.
+        // The callback is invoked when the embedder responds, at which point
+        // handle_response() either acquires the lock or rejects the promise.
+        // <https://w3c.github.io/screen-wake-lock/#dfn-obtain-permission>
+        let Some(webview_id) = global.webview_id() else {
+            promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
+            return promise;
+        };
 
-        // Step 5. Create a WakeLockSentinel and resolve the promise with it.
-        let sentinel = WakeLockSentinel::new(cx, &global, type_);
-        promise.resolve_native(&sentinel, CanGc::from_cx(cx));
+        let task_source = global.task_manager().dom_manipulation_task_source();
+        let callback = callback_promise(&promise, self, task_source);
+        global.send_to_embedder(EmbedderMsg::RequestWakeLockPermission(webview_id, callback));
 
         promise
+    }
+}
+
+impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
+    /// Called asynchronously when the embedder responds to the permission request.
+    /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
+    fn handle_response(&self, cx: &mut JSContext, response: AllowOrDeny, promise: &Rc<Promise>) {
+        let can_gc = CanGc::from_cx(cx);
+        match response {
+            // Step 7a. If permission is denied, reject with NotAllowedError.
+            AllowOrDeny::Deny => {
+                promise.reject_error(Error::NotAllowed(None), can_gc);
+            },
+            // Step 7b-7c. Acquire the lock and resolve with a WakeLockSentinel.
+            AllowOrDeny::Allow => {
+                let global = self.global();
+                global
+                    .as_window()
+                    .send_to_constellation(ScriptToConstellationMessage::AcquireWakeLock);
+                // WakeLockType::Screen is the only variant; the spec only defines "screen".
+                let sentinel = WakeLockSentinel::new(cx, &global, WakeLockType::Screen);
+                promise.resolve_native(&sentinel, can_gc);
+            },
+        }
     }
 }
