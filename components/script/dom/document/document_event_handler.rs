@@ -830,8 +830,7 @@ impl DocumentEventHandler {
         }
         if event.action == MouseButtonAction::Up {
             if let Some(active_element) = self.current_active_element.take() {
-                self.element_for_activation(active_element)
-                    .set_active_state(false);
+                active_element.set_active_state(false);
             } else {
                 self.element_for_activation(element.clone())
                     .set_active_state(false);

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>:active state persists when flex order changes on mousedown</title>
+<link rel="help" href="https://github.com/servo/servo/issues/43862">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#container {
+    display: flex;
+    flex-flow: column;
+    width: 200px;
+}
+#target {
+    order: -1;
+    height: 50px;
+    background: tomato;
+}
+#target:active {
+    order: 1;
+    background: yellow;
+}
+.sibling {
+    height: 50px;
+    background: cornflowerblue;
+}
+</style>
+<div id="container">
+    <div class="sibling"></div>
+    <div class="sibling"></div>
+    <div id="target"></div>
+    <div class="sibling"></div>
+    <div class="sibling"></div>
+</div>
+<script>
+function captureActiveState(target) {
+    return new Promise(resolve => {
+        target.addEventListener("mousedown", () => {
+            resolve(target.matches(":active"));
+        }, { once: true });
+    });
+}
+
+promise_test(async t => {
+    const target = document.getElementById("target");
+    const statePromise = captureActiveState(target);
+
+    await new test_driver.Actions()
+        .pointerMove(5, 5, { origin: target })
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+    const wasActive = await statePromise;
+    assert_true(wasActive, ":active should be set on mousedown");
+}, ":active is set when element is clicked");
+
+promise_test(async t => {
+    const target = document.getElementById("target");
+
+    await new test_driver.Actions()
+        .pointerMove(5, 5, { origin: target })
+        .pointerDown()
+        .send();
+
+    // Move the pointer off the target to trigger a hover state change
+    await new test_driver.Actions()
+        .pointerMove(50, 50)
+        .send();
+
+    // Check the active state after moving, but before releasing the mouse
+    const isActiveDuringDrag = target.matches(":active");
+
+    await new test_driver.Actions()
+        .pointerUp()
+        .send();
+
+    assert_true(isActiveDuringDrag, ":active should persist through drag");
+}, ":active state persists through mousemove during drag");
+</script>
