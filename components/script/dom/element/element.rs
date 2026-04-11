@@ -4423,8 +4423,9 @@ impl VirtualMethods for Element {
         node.rev_version();
 
         // Notify devtools that the DOM changed
-        let global = self.owner_global();
-        if global.live_devtools_updates() {
+        let window = self.owner_window();
+        if window.live_devtools_updates() {
+            let global = window.upcast::<GlobalScope>();
             if let Some(sender) = global.devtools_chan() {
                 let pipeline_id = global.pipeline_id();
                 if ScriptThread::devtools_want_updates_for_node(pipeline_id, self.upcast()) {

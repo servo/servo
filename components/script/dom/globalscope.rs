@@ -243,9 +243,6 @@ pub(crate) struct GlobalScope {
     #[no_trace]
     pipeline_id: PipelineId,
 
-    /// A flag to indicate whether the developer tools has requested
-    /// live updates from the worker.
-    devtools_wants_updates: Cell<bool>,
 
     /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, Instant>>,
@@ -784,7 +781,7 @@ impl GlobalScope {
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
-            devtools_wants_updates: Default::default(),
+
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
             devtools_chan,
@@ -2420,14 +2417,6 @@ impl GlobalScope {
 
     pub(crate) fn cookie_store(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
         self.cookie_store.or_init(|| CookieStore::new(self, can_gc))
-    }
-
-    pub(crate) fn live_devtools_updates(&self) -> bool {
-        self.devtools_wants_updates.get()
-    }
-
-    pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
-        self.devtools_wants_updates.set(value);
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {

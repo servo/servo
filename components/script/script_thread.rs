@@ -2189,9 +2189,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
                 match documents.find_window(id) {
                     Some(window) => {
-                        window
-                            .upcast::<GlobalScope>()
-                            .set_devtools_wants_updates(to_send);
+                        window.set_devtools_wants_updates(to_send);
                     },
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
@@ -4130,8 +4128,8 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-            if global.live_devtools_updates() {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            if window.live_devtools_updates() {
                 let css_error = CSSError {
                     filename,
                     line,
