@@ -2663,7 +2663,6 @@ impl Window {
             viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
-            dom_count: document.dom_count(),
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),

@@ -614,8 +614,6 @@ pub struct ReflowRequest {
     pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
-    /// The number of objects in the dom #10110
-    pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
     /// The current animation timeline value.

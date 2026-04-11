@@ -4437,9 +4437,6 @@ impl VirtualMethods for Element {
                 doc.register_element_name(self, name.clone());
             }
         }
-
-        // This is used for layout optimization.
-        doc.increment_dom_count();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -4478,8 +4475,6 @@ impl VirtualMethods for Element {
                 doc.unregister_element_name(self, value.clone());
             }
         }
-        // This is used for layout optimization.
-        doc.decrement_dom_count();
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {

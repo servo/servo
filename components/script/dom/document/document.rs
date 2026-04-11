@@ -462,12 +462,6 @@ pub(crate) struct Document {
     /// A rAF request is considered spurious if nothing was actually reflowed.
     spurious_animation_frames: Cell<u8>,
 
-    /// Track the total number of elements in this DOM's tree.
-    /// This is sent to layout every time a reflow is done;
-    /// layout uses this to determine if the gains from parallel layout will be worth the overhead.
-    ///
-    /// See also: <https://github.com/servo/servo/issues/10110>
-    dom_count: Cell<u32>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableDom<Element>,
     /// Map from ID to set of form control elements that have that ID as
@@ -1050,22 +1044,6 @@ impl Document {
             .next();
         self.target_base_element
             .set(new_target_base_element.as_deref());
-    }
-
-    pub(crate) fn dom_count(&self) -> u32 {
-        self.dom_count.get()
-    }
-
-    /// This is called by `bind_to_tree` when a node is added to the DOM.
-    /// The internal count is used by layout to determine whether to be sequential or parallel.
-    /// (it's sequential for small DOMs)
-    pub(crate) fn increment_dom_count(&self) {
-        self.dom_count.set(self.dom_count.get() + 1);
-    }
-
-    /// This is called by `unbind_from_tree` when a node is removed from the DOM.
-    pub(crate) fn decrement_dom_count(&self) {
-        self.dom_count.set(self.dom_count.get() - 1);
     }
 
     pub(crate) fn quirks_mode(&self) -> QuirksMode {
@@ -3622,7 +3600,6 @@ impl Document {
             ignore_destructive_writes_counter: Default::default(),
             ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
-            dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
