@@ -65,9 +65,9 @@ class MachCommands(CommandBase):
         category="bootstrap",
     )
     @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
-    def bootstrap_gstreamer(self, force: bool = False) -> int:
+    def bootstrap_gstreamer(self, force: bool = False, yes: bool = False) -> int:
         try:
-            servo.platform.get().bootstrap_gstreamer(force)
+            servo.platform.get().bootstrap_gstreamer(force, yes)
         except NotImplementedError as exception:
             print(exception)
             return 1

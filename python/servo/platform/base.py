@@ -141,9 +141,9 @@ class Base:
         as fast as possible."""
         return False
 
-    def bootstrap_gstreamer(self, force: bool) -> None:
+    def bootstrap_gstreamer(self, force: bool, yes: bool) -> None:
         target = BuildTarget.from_triple(self.triple)
-        if not self._platform_bootstrap_gstreamer(target, force, False):
+        if not self._platform_bootstrap_gstreamer(target, force, yes):
             root = self.gstreamer_root(target)
             if root:
                 print(f"GStreamer found at: {root}")
