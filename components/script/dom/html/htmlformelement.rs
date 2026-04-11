@@ -18,6 +18,7 @@ use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use rand::random;
 use rustc_hash::FxBuildHasher;
+use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::match_domstring_ascii;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::attr::AttrValue;
@@ -82,7 +83,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
-use crate::dom::types::HTMLIFrameElement;
+use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
@@ -1625,7 +1626,7 @@ impl FormSubmitterElement<'_> {
     }
 }
 
-pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
+pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
 
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
@@ -1666,12 +1667,21 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
             return;
         }
 
+        // Step 4. If element is listed, has a form content attribute, and is connected, then:
         let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {
-            // Step 3
-            let doc = node.owner_document();
+            // Step 4.1 If the first element in element's tree, in tree order, to have an ID that is identical
+            // to element's form content attribute's value, is a form element, then associate the element
+            // with that form element.
             let form_id = elem.get_string_attribute(&local_name!("form"));
-            doc.GetElementById(form_id)
-                .and_then(DomRoot::downcast::<HTMLFormElement>)
+            let first_relevant_element = if let Some(shadow_root) = self.containing_shadow_root() {
+                shadow_root
+                    .upcast::<DocumentFragment>()
+                    .GetElementById(form_id)
+            } else {
+                node.owner_document().GetElementById(form_id)
+            };
+
+            first_relevant_element.and_then(DomRoot::downcast::<HTMLFormElement>)
         } else {
             // Step 4
             nearest_form_ancestor
