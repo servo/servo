@@ -1328,7 +1328,9 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
-    fn unbind_from_tree(&self, _context: &UnbindContext, _can_gc: CanGc) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+
         if self.marked_as_render_blocking.replace(false) {
             let document = self.owner_document();
             document.decrement_render_blocking_element_count();
