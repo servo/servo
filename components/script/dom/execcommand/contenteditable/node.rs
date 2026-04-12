@@ -721,6 +721,110 @@ where
     Some(new_parent)
 }
 
+pub(crate) struct RecordedValueAndCommandOfNode {
+    node: DomRoot<Node>,
+    command: CommandName,
+    specified_command_value: Option<DOMString>,
+}
+
+/// <https://w3c.github.io/editing/docs/execCommand/#record-the-values>
+pub(crate) fn record_the_values(
+    node_list: Vec<DomRoot<Node>>,
+) -> Vec<RecordedValueAndCommandOfNode> {
+    // Step 1. Let values be a list of (node, command, specified command value) triples, initially empty.
+    let mut values = vec![];
+    // Step 2. For each node in node list,
+    // for each command in the list "subscript", "bold", "fontName", "fontSize", "foreColor",
+    // "hiliteColor", "italic", "strikethrough", and "underline" in that order:
+    for node in node_list {
+        for command in vec![
+            CommandName::Subscript,
+            CommandName::Bold,
+            CommandName::FontName,
+            CommandName::FontSize,
+            CommandName::ForeColor,
+            CommandName::HiliteColor,
+            CommandName::Italic,
+            CommandName::Strikethrough,
+            CommandName::Underline,
+        ] {
+            // Step 2.1. Let ancestor equal node.
+            let mut ancestor =
+                if let Some(node_element) = DomRoot::downcast::<Element>(node.clone()) {
+                    Some(node_element)
+                } else {
+                    // Step 2.2. If ancestor is not an Element, set it to its parent.
+                    node.GetParentElement()
+                };
+            // Step 2.3. While ancestor is an Element and its specified command value for command is null, set it to its parent.
+            while let Some(ref ancestor_element) = ancestor {
+                if ancestor_element.specified_command_value(&command).is_none() {
+                    ancestor = ancestor_element.upcast::<Node>().GetParentElement();
+                    continue;
+                }
+                break;
+            }
+            // Step 2.4. If ancestor is an Element,
+            // add (node, command, ancestor's specified command value for command) to values.
+            // Otherwise add (node, command, null) to values.
+            let specified_command_value =
+                ancestor.and_then(|ancestor| ancestor.specified_command_value(&command));
+            values.push(RecordedValueAndCommandOfNode {
+                node: node.clone(),
+                command,
+                specified_command_value,
+            });
+        }
+    }
+    // Step 3. Return values.
+    values
+}
+
+/// <https://w3c.github.io/editing/docs/execCommand/#restore-the-values>
+pub(crate) fn restore_the_values(cx: &mut JSContext, values: Vec<RecordedValueAndCommandOfNode>) {
+    // Step 1. For each (node, command, value) triple in values:
+    for triple in values {
+        let RecordedValueAndCommandOfNode {
+            node,
+            command,
+            specified_command_value,
+        } = triple;
+        // Step 1.1. Let ancestor equal node.
+        let mut ancestor = if let Some(node_element) = DomRoot::downcast::<Element>(node.clone()) {
+            Some(node_element)
+        } else {
+            // Step 1.2. If ancestor is not an Element, set it to its parent.
+            node.GetParentElement()
+        };
+        // Step 1.3. While ancestor is an Element and its specified command value for command is null, set it to its parent.
+        while let Some(ref ancestor_element) = ancestor {
+            if ancestor_element.specified_command_value(&command).is_none() {
+                ancestor = ancestor_element.upcast::<Node>().GetParentElement();
+                continue;
+            }
+            break;
+        }
+        // Step 1.4. If value is null and ancestor is an Element,
+        // push down values on node for command, with new value null.
+        if specified_command_value.is_none() && ancestor.is_some() {
+            node.push_down_values(cx, &command, None);
+        } else {
+            // Step 1.5. Otherwise, if ancestor is an Element and its specified command value for command is not equivalent to value,
+            // or if ancestor is not an Element and value is not null, force the value of command to value on node.
+            if match (ancestor, specified_command_value.as_ref()) {
+                (Some(ancestor), value) => !command.are_equivalent_values(
+                    ancestor.specified_command_value(&command).as_ref(),
+                    value,
+                ),
+                (None, Some(_)) => true,
+                _ => false,
+            } {
+                node.force_the_value(cx, &command, specified_command_value.as_ref());
+            }
+        }
+    }
+}
+
 impl HTMLBRElement {
     /// <https://w3c.github.io/editing/docs/execCommand/#extraneous-line-break>
     fn is_extraneous_line_break(&self) -> bool {
