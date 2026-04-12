@@ -69,17 +69,13 @@ use crate::dom::bindings::error::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlscriptelement::{
-    ExternalScriptKind, HTMLScriptElement, SCRIPT_JS_MIMES, Script, finish_fetching_a_script,
-    substitute_with_local_script,
-};
-use crate::dom::node::NodeTraits;
+use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -150,14 +146,14 @@ impl Clone for RethrowError {
 pub(crate) struct ModuleScript {
     pub(crate) base_url: ServoUrl,
     pub(crate) options: ScriptFetchOptions,
-    pub(crate) owner: Option<ModuleOwner>,
+    pub(crate) owner: Option<Trusted<GlobalScope>>,
 }
 
 impl ModuleScript {
     pub(crate) fn new(
         base_url: ServoUrl,
         options: ScriptFetchOptions,
-        owner: Option<ModuleOwner>,
+        owner: Option<Trusted<GlobalScope>>,
     ) -> Self {
         ModuleScript {
             base_url,
@@ -302,7 +298,7 @@ impl ModuleTree {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
-        let owner = ModuleOwner::DynamicModule(Trusted::new(global));
+        let owner = Trusted::new(global);
 
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
@@ -491,7 +487,7 @@ impl ModuleTree {
         specifier: DOMString,
     ) -> Fallible<ServoUrl> {
         // Step 1~3 to get settingsObject and baseURL
-        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.global()));
+        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.root()));
         // Step 1. Let settingsObject and baseURL be null.
         let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
             // Step 2. If referringScript is not null, then:
@@ -635,61 +631,6 @@ impl Callback for QueueTaskHandler {
                 promise.root().resolve_native(&(), CanGc::from_cx(cx));
             }),
         );
-    }
-}
-
-/// The owner of the module
-/// It can be `worker` or `script` element
-#[derive(Clone, JSTraceable)]
-pub(crate) enum ModuleOwner {
-    Worker(Trusted<WorkerGlobalScope>),
-    Window(Trusted<HTMLScriptElement>, ExternalScriptKind, bool),
-    DynamicModule(Trusted<GlobalScope>),
-}
-
-impl ModuleOwner {
-    pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
-        match &self {
-            ModuleOwner::Worker(scope) => scope.root().global(),
-            ModuleOwner::Window(script, _, _) => (*script.root()).global(),
-            ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
-        }
-    }
-
-    fn notify_owner_to_finish(&self, cx: &mut JSContext, module_tree: Option<Rc<ModuleTree>>) {
-        match &self {
-            ModuleOwner::Worker(scope) => {
-                scope
-                    .root()
-                    .on_complete(cx, module_tree.map(Script::Module));
-            },
-            ModuleOwner::DynamicModule(_) => {},
-            ModuleOwner::Window(script, kind, is_inline) => {
-                let element = script.root();
-
-                let kind = *kind;
-                let load = match module_tree {
-                    Some(module_tree) => Ok(Script::Module(module_tree)),
-                    None => Err(()),
-                };
-
-                element.set_result(load);
-
-                if !is_inline {
-                    return finish_fetching_a_script(&element, kind, cx);
-                }
-
-                let global = element.owner_global();
-                let trusted = Trusted::new(&*element);
-
-                let task_source = global.task_manager().networking_task_source();
-
-                task_source.queue(task!(terminate_module_fetch: move |cx| {
-                    let element = trusted.root();
-                    finish_fetching_a_script(&element, kind, cx);
-                }));
-            },
-        }
     }
 }
 

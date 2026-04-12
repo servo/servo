@@ -856,8 +856,6 @@ impl HTMLScriptElement {
         };
 
         // Step 30. Let settings object be el's node document's relevant settings object.
-        // This is done by passing ModuleOwner in step 31.11 and step 32.2.
-        // What we actually need is global's import map eventually.
 
         let base_url = doc.base_url();
 

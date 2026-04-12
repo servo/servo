@@ -28,7 +28,6 @@ use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -36,9 +35,8 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
-    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError,
-    ScriptFetchOptions, fetch_a_single_module_script, gen_type_error,
-    module_script_from_reference_private,
+    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
+    fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
 
@@ -457,14 +455,11 @@ pub(crate) fn host_load_imported_module(
 
     // Step 6.2. Set settingsObject to referencingScript's settings object.
     if let Some(ref owner) = script_owner {
-        global_scope = owner.global();
+        global_scope = owner.root();
     }
 
     // Note: loadState is undefined when performing a dynamic import, fall back to `ModuleOwner::DynamicModule`.
-    let owner = script_owner
-        .filter(|_| load_state.is_some())
-        .unwrap_or(ModuleOwner::DynamicModule(Trusted::new(&global_scope)));
-    let global = owner.global();
+    let global = &global_scope.clone();
 
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
     // Note: These substeps are implemented by `GetRequestedModuleSpecifier`,
@@ -472,11 +467,8 @@ pub(crate) fn host_load_imported_module(
 
     // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
-    let url = ModuleTree::resolve_module_specifier(
-        &global_scope,
-        referencing_script,
-        specifier.clone().into(),
-    );
+    let url =
+        ModuleTree::resolve_module_specifier(global, referencing_script, specifier.clone().into());
 
     // Step 9 If the previous step threw an exception, then:
     if let Err(error) = url {
@@ -571,7 +563,7 @@ pub(crate) fn host_load_imported_module(
         cx,
         url,
         fetch_client,
-        &global,
+        global,
         destination,
         fetch_options,
         fetch_referrer,
