@@ -7,7 +7,6 @@
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell};
 use std::default::Default;
-use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -25,13 +24,11 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData};
+use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
-use selectors::Element as SelectorsElement;
-use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::attr::CaseSensitivity;
+use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
 use servo_arc::Arc as ServoArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -46,10 +43,7 @@ use style::properties::{
     parse_style_attribute,
 };
 use style::rule_tree::{CascadeLevel, CascadeOrigin};
-use style::selector_parser::{
-    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser, Snapshot,
-    extended_filtering,
-};
+use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
@@ -57,7 +51,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
+use style::values::{AtomIdent, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -100,7 +94,6 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
@@ -165,6 +158,7 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
+use crate::layout_dom::ServoDangerousStyleElement;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
@@ -2248,16 +2242,6 @@ impl Element {
             })
     }
 
-    pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&LocalName::from("part"))
-            .is_some_and(|attr| {
-                attr.value()
-                    .as_tokens()
-                    .iter()
-                    .any(|atom| case_sensitivity.eq_atom(name, atom))
-            })
-    }
-
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
         debug_assert_eq!(
             *local_name,
@@ -3714,9 +3698,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-matches>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let doc = self.owner_document();
-        let url = doc.url();
+        let document = self.owner_document();
+        let url = document.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
             &selectors.str(),
             &UrlExtraData(url.get_arc()),
@@ -3725,14 +3710,18 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = doc.quirks_mode();
-        let element = DomRoot::from_ref(self);
-
-        Ok(dom_apis::element_matches(
-            &SelectorWrapper::Borrowed(&element),
-            &selectors,
-            quirks_mode,
-        ))
+        // SAFETY: traced_self is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_self = Dom::from_ref(self);
+        let quirks_mode = document.quirks_mode();
+        Ok(with_layout_state(|| {
+            #[expect(unsafe_code)]
+            let layout_element = unsafe { traced_self.to_layout() };
+            dom_apis::element_matches(
+                &ServoDangerousStyleElement::from(layout_element.upcast()),
+                &selectors,
+                quirks_mode,
+            )
+        }))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector>
@@ -3741,9 +3730,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-closest>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let doc = self.owner_document();
-        let url = doc.url();
+        let document = self.owner_document();
+        let url = document.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
             &selectors.str(),
             &UrlExtraData(url.get_arc()),
@@ -3752,13 +3742,19 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = doc.quirks_mode();
-        Ok(dom_apis::element_closest(
-            SelectorWrapper::Owned(DomRoot::from_ref(self)),
-            &selectors,
-            quirks_mode,
-        )
-        .map(SelectorWrapper::into_owned))
+        // SAFETY: traced_self is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_self = Dom::from_ref(self);
+        let quirks_mode = document.quirks_mode();
+        let closest_element = with_layout_state(|| {
+            #[expect(unsafe_code)]
+            let layout_element = unsafe { traced_self.to_layout() };
+            dom_apis::element_closest(
+                ServoDangerousStyleElement::from(layout_element.upcast()),
+                &selectors,
+                quirks_mode,
+            )
+        });
+        Ok(closest_element.map(ServoDangerousStyleElement::rooted))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-insertadjacentelement>
@@ -4611,323 +4607,7 @@ impl VirtualMethods for Element {
         }
     }
 }
-
-#[derive(Clone, PartialEq)]
-/// A type that wraps a DomRoot value so we can implement the SelectorsElement
-/// trait without violating the orphan rule. Since the trait assumes that the
-/// return type and self type of various methods is the same type that it is
-/// implemented against, we need to be able to represent multiple ownership styles.
-pub enum SelectorWrapper<'a> {
-    Borrowed(&'a DomRoot<Element>),
-    Owned(DomRoot<Element>),
-}
-
-impl fmt::Debug for SelectorWrapper<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.deref().fmt(f)
-    }
-}
-
-impl Deref for SelectorWrapper<'_> {
-    type Target = DomRoot<Element>;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            SelectorWrapper::Owned(r) => r,
-            SelectorWrapper::Borrowed(r) => r,
-        }
-    }
-}
-
-impl SelectorWrapper<'_> {
-    fn into_owned(self) -> DomRoot<Element> {
-        match self {
-            SelectorWrapper::Owned(r) => r,
-            SelectorWrapper::Borrowed(r) => r.clone(),
-        }
-    }
-}
-
-impl SelectorsElement for SelectorWrapper<'_> {
-    type Impl = SelectorImpl;
-
-    #[expect(unsafe_code)]
-    fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(unsafe { &*self.reflector().get_jsobject().get() })
-    }
-
-    fn parent_element(&self) -> Option<Self> {
-        self.upcast::<Node>()
-            .GetParentElement()
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn parent_node_is_shadow_root(&self) -> bool {
-        match self.upcast::<Node>().GetParentNode() {
-            None => false,
-            Some(node) => node.is::<ShadowRoot>(),
-        }
-    }
-
-    fn containing_shadow_host(&self) -> Option<Self> {
-        self.containing_shadow_root()
-            .map(|shadow_root| shadow_root.Host())
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn is_pseudo_element(&self) -> bool {
-        false
-    }
-
-    fn match_pseudo_element(
-        &self,
-        _pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        false
-    }
-
-    fn prev_sibling_element(&self) -> Option<Self> {
-        self.node
-            .preceding_siblings()
-            .find_map(DomRoot::downcast)
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn next_sibling_element(&self) -> Option<Self> {
-        self.node
-            .following_siblings()
-            .find_map(DomRoot::downcast)
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn first_element_child(&self) -> Option<Self> {
-        self.GetFirstElementChild().map(SelectorWrapper::Owned)
-    }
-
-    fn attr_matches(
-        &self,
-        ns: &NamespaceConstraint<&style::Namespace>,
-        local_name: &style::LocalName,
-        operation: &AttrSelectorOperation<&AtomString>,
-    ) -> bool {
-        match *ns {
-            NamespaceConstraint::Specific(ns) => self
-                .get_attribute_with_namespace(ns, local_name)
-                .is_some_and(|attr| attr.value().eval_selector(operation)),
-            NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {
-                *attr.local_name() == **local_name && attr.value().eval_selector(operation)
-            }),
-        }
-    }
-
-    fn is_root(&self) -> bool {
-        Element::is_root(self)
-    }
-
-    fn is_empty(&self) -> bool {
-        self.node.children().all(|node| {
-            !node.is::<Element>() &&
-                match node.downcast::<Text>() {
-                    None => true,
-                    Some(text) => text.upcast::<CharacterData>().data().is_empty(),
-                }
-        })
-    }
-
-    fn has_local_name(&self, local_name: &LocalName) -> bool {
-        Element::local_name(self) == local_name
-    }
-
-    fn has_namespace(&self, ns: &Namespace) -> bool {
-        Element::namespace(self) == ns
-    }
-
-    fn is_same_type(&self, other: &Self) -> bool {
-        Element::local_name(self) == Element::local_name(other) &&
-            Element::namespace(self) == Element::namespace(other)
-    }
-
-    fn match_non_ts_pseudo_class(
-        &self,
-        pseudo_class: &NonTSPseudoClass,
-        _: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        match *pseudo_class {
-            // https://github.com/servo/servo/issues/8718
-            NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
-            NonTSPseudoClass::Visited => false,
-
-            NonTSPseudoClass::ServoNonZeroBorder => match self.downcast::<HTMLTableElement>() {
-                None => false,
-                Some(this) => match this.get_border() {
-                    None | Some(0) => false,
-                    Some(_) => true,
-                },
-            },
-
-            NonTSPseudoClass::CustomState(ref state) => self.has_custom_state(&state.0),
-
-            // FIXME(heycam): This is wrong, since extended_filtering accepts
-            // a string containing commas (separating each language tag in
-            // a list) but the pseudo-class instead should be parsing and
-            // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => {
-                extended_filtering(&self.upcast::<Node>().get_lang().unwrap_or_default(), lang)
-            },
-
-            NonTSPseudoClass::ReadOnly => {
-                !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
-            },
-
-            NonTSPseudoClass::Active |
-            NonTSPseudoClass::Autofill |
-            NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Default |
-            NonTSPseudoClass::Defined |
-            NonTSPseudoClass::Disabled |
-            NonTSPseudoClass::Enabled |
-            NonTSPseudoClass::Focus |
-            NonTSPseudoClass::FocusVisible |
-            NonTSPseudoClass::FocusWithin |
-            NonTSPseudoClass::Fullscreen |
-            NonTSPseudoClass::Hover |
-            NonTSPseudoClass::InRange |
-            NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::Invalid |
-            NonTSPseudoClass::Modal |
-            NonTSPseudoClass::MozMeterOptimum |
-            NonTSPseudoClass::MozMeterSubOptimum |
-            NonTSPseudoClass::MozMeterSubSubOptimum |
-            NonTSPseudoClass::Open |
-            NonTSPseudoClass::Optional |
-            NonTSPseudoClass::OutOfRange |
-            NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::PopoverOpen |
-            NonTSPseudoClass::ReadWrite |
-            NonTSPseudoClass::Required |
-            NonTSPseudoClass::Target |
-            NonTSPseudoClass::UserInvalid |
-            NonTSPseudoClass::UserValid |
-            NonTSPseudoClass::Valid => Element::state(self).contains(pseudo_class.state_flag()),
-        }
-    }
-
-    fn is_link(&self) -> bool {
-        // FIXME: This is HTML only.
-        let node = self.upcast::<Node>();
-        match node.type_id() {
-            // https://html.spec.whatwg.org/multipage/#selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLAnchorElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-                self.has_attribute(&local_name!("href"))
-            },
-            _ => false,
-        }
-    }
-
-    fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        self.id_attribute
-            .borrow()
-            .as_ref()
-            .is_some_and(|atom| case_sensitivity.eq_atom(id, atom))
-    }
-
-    fn is_part(&self, name: &AtomIdent) -> bool {
-        Element::is_part(self, name, CaseSensitivity::CaseSensitive)
-    }
-
-    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
-        None
-    }
-
-    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        Element::has_class(self, name, case_sensitivity)
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        self.html_element_in_html_document()
-    }
-
-    fn is_html_slot_element(&self) -> bool {
-        self.is_html_element() && self.local_name() == &local_name!("slot")
-    }
-
-    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
-        // Handle flags that apply to the element.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            #[expect(unsafe_code)]
-            unsafe {
-                Dom::from_ref(&***self)
-                    .to_layout()
-                    .insert_selector_flags(self_flags);
-            }
-        }
-
-        // Handle flags that apply to the parent.
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.parent_element() {
-                #[expect(unsafe_code)]
-                unsafe {
-                    Dom::from_ref(&**p)
-                        .to_layout()
-                        .insert_selector_flags(parent_flags);
-                }
-            }
-        }
-    }
-
-    fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
-        let mut f = |hash| filter.insert_hash(hash & BLOOM_HASH_MASK);
-
-        // We can't use style::bloom::each_relevant_element_hash(*self, f)
-        // since DomRoot<Element> doesn't have the TElement trait.
-        f(Element::local_name(self).get_hash());
-        f(Element::namespace(self).get_hash());
-
-        if let Some(ref id) = *self.id_attribute.borrow() {
-            f(id.get_hash());
-        }
-
-        if let Some(attr) = self.get_attribute(&local_name!("class")) {
-            for class in attr.value().as_tokens() {
-                f(AtomIdent::cast(class).get_hash());
-            }
-        }
-
-        for attr in self.attrs.borrow().iter() {
-            let name = style::values::GenericAtomIdent::cast(attr.local_name());
-            if !style::bloom::is_attr_name_excluded_from_filter(name) {
-                f(name.get_hash());
-            }
-        }
-
-        true
-    }
-
-    fn has_custom_state(&self, name: &AtomIdent) -> bool {
-        let mut has_state = false;
-        self.each_custom_state(|state| has_state |= state == name);
-
-        has_state
-    }
-}
-
 impl Element {
-    fn each_custom_state<F>(&self, callback: F)
-    where
-        F: FnMut(&AtomIdent),
-    {
-        self.get_element_internals()
-            .and_then(|internals| internals.custom_states())
-            .inspect(|states| states.for_each_state(callback));
-    }
-
     pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         let doc = self.node.owner_doc();
 

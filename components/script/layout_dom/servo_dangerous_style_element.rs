@@ -14,6 +14,7 @@ use euclid::default::Size2D;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use layout_api::{DangerousStyleElement, LayoutDamage, LayoutNode};
+use script_bindings::root::DomRoot;
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
@@ -68,8 +69,8 @@ unsafe impl Send for ServoDangerousStyleElement<'_> {}
 unsafe impl Sync for ServoDangerousStyleElement<'_> {}
 
 impl<'dom> ServoDangerousStyleElement<'dom> {
-    pub(crate) fn layout_dom(&self) -> LayoutDom<'dom, Element> {
-        self.element
+    pub(crate) fn rooted(self) -> DomRoot<Element> {
+        DomRoot::from_ref(unsafe { self.element.as_ref() })
     }
 }
 

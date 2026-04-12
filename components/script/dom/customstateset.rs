@@ -10,7 +10,6 @@ use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use script_bindings::trace::CustomTraceable;
-use style::values::AtomIdent;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
@@ -38,16 +37,6 @@ impl CustomStateSet {
 
     pub(crate) fn new(window: &Window, element: &HTMLElement, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited(element)), window, can_gc)
-    }
-
-    pub(crate) fn for_each_state<F>(&self, mut callback: F)
-    where
-        F: FnMut(&AtomIdent),
-    {
-        // FIXME: This creates new atoms whenever it is called, which is not optimal.
-        for state in self.internal.borrow().iter() {
-            callback(&AtomIdent::from(&*state.str()));
-        }
     }
 
     /// Returns a borrowed version of the set without the usual Ref wrapper.
