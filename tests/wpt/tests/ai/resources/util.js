@@ -283,6 +283,11 @@ async function createProofreader(options = {}) {
   return await Proofreader.create(options);
 }
 
+async function createClassifier(options = {}) {
+  await test_driver.bless();
+  return await Classifier.create(options);
+}
+
 async function ensureLanguageModel(options = {}) {
   assert_true(!!LanguageModel);
   const availability = await LanguageModel.availability(options);

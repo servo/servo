@@ -911,6 +911,62 @@ const mulTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'mul int32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        },
+        'inputB': {
+          'data': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'mul',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [2, -6, 12, -20, 30, -42, 56, -72, 90, -110, 132, -156],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        }
+      }
+    }
+  },
+
+  // uint32 tests
+  {
+    'name': 'mul uint32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'uint32'}
+        },
+        'inputB': {
+          'data': [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'uint32'}
+        }
+      },
+      'operators': [{
+        'name': 'mul',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [2, 6, 12, 20, 30, 42, 56, 72, 90, 110, 132, 156],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'uint32'}
+        }
+      }
+    }
   }
 ];
 

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Request URL Modifiers: referrer-policy(no-referrer) in external stylesheet</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-referrer-policy-modifier">
+<link rel="match" href="../../url-image-ref.html">
+<meta name="assert" content="A url() with referrer-policy(no-referrer) in an external stylesheet sends no referrer header.">
+<link rel="stylesheet" href="../../support/external-referrer-policy-no-referrer.sub.css">
+</head>
+<body>
+<p>Test passes if there is a green square.</p>
+<div class="test"></div>
+<script>
+window.addEventListener("load", () => {
+  document.documentElement.classList.remove("reftest-wait");
+});
+</script>
+</body>
+</html>

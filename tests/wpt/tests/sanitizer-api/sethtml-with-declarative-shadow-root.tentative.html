@@ -1,0 +1,72 @@
+<!doctype html>
+<head>
+  <title>Sanitize template with a declarative shadow root</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div></div>
+  <script>
+    test((t) => {
+      const element = document.createElement("div");
+      element.setHTML("<div><template shadowrootmode='open'></template></div>");
+      assert_equals(element.firstElementChild.shadowRoot, null);
+      assert_equals(element.firstElementChild.firstElementChild, null);
+    }, "template with shadowrootmode should be removed by safe default");
+
+    test((t) => {
+      const element = document.createElement("div");
+      element.setHTMLUnsafe(
+        "<div><template shadowrootmode='open'></template></div>",
+      );
+      assert_not_equals(element.firstElementChild.shadowRoot, null);
+    }, "template with shadowrootmode should not be removed in unsafe mode");
+
+    test((t) => {
+      const element = document.createElement("div");
+      element.setHTML(
+        "<div><template shadowrootmode='open'></template></div>",
+        { sanitizer: { removeElements: ["template"] } },
+      );
+      assert_equals(element.firstElementChild.shadowRoot, null);
+      assert_equals(element.firstElementChild.firstElementChild, null);
+    }, "template with shadowrootmode should not be processed when <template> is forbidden");
+
+    test((t) => {
+      const element = document.createElement("div");
+      element.setHTML(
+        "<div><template shadowrootmode='open'></template></div>",
+        { sanitizer: { removeAttributes: ["shadowrootmode"] } },
+      );
+      assert_equals(element.firstElementChild.shadowRoot, null);
+      assert_equals(
+        element.firstElementChild.firstElementChild.localName,
+        "template",
+      );
+    }, "template with shadowrootmode should be processed as a normal template when the shadowRootMode attribute is forbidden");
+
+    for (const [attribute, value, property, expectedValue] of [
+      ["shadowrootdelegatesfocus", "", "delegatesFocus", false],
+      ["shadowrootserializable", "", "serializable", false],
+      ["shadowrootclonable", "", "clonable", false],
+      ["shadowrootreferencetarget", "something", "referenceTarget", null],
+      ["shadowrootcustomelementregistry", "", "customElementRegistry", null],
+      ["shadowrootadoptedstylesheets", "style.css", "adoptedStyleSheets", []],
+    ]) {
+      test((t) => {
+        const element = document.createElement("div");
+        element.setHTML(
+          `<div><template shadowrootmode='open' ${attribute}="${value}"></template></div>`,
+          { sanitizer: { removeAttributes: [attribute] } },
+        );
+        assert_not_equals(element.firstElementChild.shadowRoot, null);
+        if (Array.isArray(expectedValue)) {
+          assert_array_equals(element.firstElementChild.shadowRoot[property], expectedValue);
+        } else {
+          assert_equals(element.firstElementChild.shadowRoot[property], expectedValue);
+        }
+      }, `shadowRoot.${property} does not propagate to the shadow root when ${attribute} is removed by sanitizer`);
+    }
+
+</script>
+</body>

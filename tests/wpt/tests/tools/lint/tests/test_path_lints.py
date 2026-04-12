@@ -186,3 +186,23 @@ def test_web_features_file_in_non_test_directory(path):
 def test_web_features_file_in_non_test_directory_negative(path):
     errors = check_path("/foo/", path)
     assert not any(e[0] == "WEB-FEATURES-FILE-IN-NON-TEST-DIRECTORY" for e in errors)
+
+
+@pytest.mark.parametrize("path", [
+    os.path.join("css", "css-images", "WEB_FEATURES.yaml"),
+    os.path.join("html", "semantics", "WEB_FEATURES.yaml"),
+])
+def test_wrong_web_features_file_extension(path):
+    errors = check_path("/foo/", path)
+    assert len(errors) == 1
+    assert errors[0][0] == "INVALID-WEB-FEATURES-FILE"
+
+
+@pytest.mark.parametrize("path", [
+    os.path.join("css", "css-images", "WEB_FEATURES.yml"),
+    os.path.join("html", "semantics", "WEB_FEATURES.yml"),
+    os.path.join("css", "css-images", "other_file.yaml"),
+])
+def test_wrong_web_features_file_extension_negative(path):
+    errors = check_path("/foo/", path)
+    assert not any(e[0] == "INVALID-WEB-FEATURES-FILE" for e in errors)

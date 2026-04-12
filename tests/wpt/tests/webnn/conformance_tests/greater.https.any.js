@@ -977,6 +977,34 @@ const greaterTests = [
         }
       }
     }
+  },
+
+  // int32 input tests
+  {
+    'name': 'greater int32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [10, -20, 30, -40, 50, -60, 70, -80, 90, -100, 110, -120],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        },
+        'inputB': {
+          'data': [5, -10, 35, -35, 55, -55, 65, -85, 95, -95, 105, -125],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'greater',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'uint8'}
+        }
+      }
+    }
   }
 ];
 

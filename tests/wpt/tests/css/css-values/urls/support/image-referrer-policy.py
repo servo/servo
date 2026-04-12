@@ -3,8 +3,6 @@ import os.path
 from wptserve.utils import isomorphic_decode
 
 def main(request, response):
-    origin = request.GET[b'origin']
-    url = request.GET[b'url']
     expected_referrer = request.GET[b'expected_referrer']
     actual_referrer = request.headers.get(b'referer', b'')
 
@@ -14,11 +12,13 @@ def main(request, response):
         else:
             body = open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u"1x1-red.png"), u"rb").read()
     elif expected_referrer == b'origin':
+        origin = request.GET[b'origin']
         if actual_referrer == origin:
             body = open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u"1x1-green.png"), u"rb").read()
         else:
             body = open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u"1x1-red.png"), u"rb").read()
     elif expected_referrer == b'url':
+        url = request.GET[b'url']
         if actual_referrer == url:
             body = open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u"1x1-green.png"), u"rb").read()
         else:
@@ -29,6 +29,7 @@ def main(request, response):
 
     response.add_required_headers = False
     response.writer.write_status(200)
+    response.writer.write_header(b"content-type", b"image/png")
 
     if b'corp' in request.GET:
         response.writer.write_header(b"cross-origin-resource-policy", request.GET[b'corp'])

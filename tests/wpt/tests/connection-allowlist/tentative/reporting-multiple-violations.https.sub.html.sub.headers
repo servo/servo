@@ -1,0 +1,2 @@
+Reporting-Endpoints: endpoint="/reporting/resources/report.py?reportID=03e8717b-03c3-4c91-9e8a-2be5f31920e8"
+Connection-Allowlist: (response-origin); report-to=endpoint

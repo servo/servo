@@ -83,7 +83,8 @@ function prerender_no_vary_search_test(description, noVarySearch, noVarySearchHi
     }
   }, description);
 }
-
+// TODO(crbug.com/499027745): Adding noVarySearchHint to subsetTest causes test
+// flakiness. Will need to update tests or test infra.
 hint_test_inputs.forEach(({description, noVarySearch, noVarySearchHint, prefetchQuery, navigateQuery, shouldUse}) => {
   subsetTest(prerender_no_vary_search_test, description, noVarySearch, prefetchQuery, navigateQuery, shouldUse);
 });

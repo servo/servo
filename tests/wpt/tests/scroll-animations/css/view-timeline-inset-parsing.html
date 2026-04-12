@@ -20,6 +20,9 @@ test_valid_value('view-timeline-inset', '1px auto, auto 4px');
 test_valid_value('view-timeline-inset', '1px, 2px, 3px');
 test_valid_value('view-timeline-inset', '1px 1px, 2px 3px', '1px, 2px 3px');
 test_valid_value('view-timeline-inset', 'auto auto, auto auto', 'auto, auto');
+test_valid_value('view-timeline-inset', '1.5px 1.5px', '1.5px');
+test_valid_value('view-timeline-inset', '300px 300px', '300px');
+test_valid_value('view-timeline-inset', '1em 1em', '1em');
 
 test_invalid_value('view-timeline-inset', 'none');
 test_invalid_value('view-timeline-inset', 'foo bar');

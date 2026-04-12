@@ -2,33 +2,28 @@
 <html>
 <head>
 <style>
-    .test {
-        display: inline-block;
-        margin: 20px;
-        width: 300px;
-        height: 150px;
-        box-sizing: border-box;
-        border: 50px solid blue;
-    }
+  .test {
+    display: inline-block;
+    margin: 20px;
+    width: 160px;
+    height: 120px;
+    box-sizing: border-box;
+    border: 24px solid blue;
+  }
 
-    .circle {
-        border-shape: circle();
-    }
+  .single-shape {
+    border-shape: polygon(50% -8%, 108% 50%, 50% 108%, -8% 50%) half-border-box;
+  }
 
-    .hexagon {
-        border-shape: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    }
-
-    .diamond {
-        border-shape: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    }
+  .double-shape {
+    border-shape: circle(50%) circle(35%);
+  }
 </style>
 </head>
 <body>
 
-<div class="test circle"></div>
-<div class="test hexagon"></div>
-<div class="test diamond"></div>
+<div class="test single-shape"></div>
+<div class="test double-shape"></div>
 
 </body>
 </html>
