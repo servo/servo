@@ -16,9 +16,17 @@
 	"postCreateCommand":
 		"./mach bootstrap --yes",
 
+	"mounts": [
+		"source=servo-cargo-target,target=/var/servo-cargo-target,type=volume"
+	],
+
 	"containerEnv": {
 		"CC": "clang",
 		"CXX": "clang++",
+		// at least on macOS the workspace directory can be mounted as case-insensitve,
+		// which causes build errors in mozjs. Using a volume avoids this issue, and can
+		// also improve performance.
+		"CARGO_TARGET_DIR": "/var/servo-cargo-target",
 		"UV_PROJECT_ENVIRONMENT": ".devcontainer-venv"
 	}
 }
