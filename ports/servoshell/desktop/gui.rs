@@ -82,62 +82,9 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
-fn configure_fonts() -> FontDefinitions {
+#[cfg(any(target_os = "windows", target_os = "linux"))]
+fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
-    let font_candidates = [
-        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
-        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
-    ];
-
-    let mut loaded_font_names = Vec::new();
-
-    for (path_str, font_name) in font_candidates.iter() {
-        let font_path = Path::new(path_str);
-        if font_path.exists() {
-            match fs::read(font_path) {
-                Ok(bytes) => {
-                    fonts
-                        .font_data
-                        .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
-                    loaded_font_names.push(font_name.to_string());
-                    info!("Loaded font: {}", font_name);
-                },
-                Err(error) => {
-                    info!("Failed to read font {}: {}", font_name, error);
-                },
-            }
-        }
-    }
-
-    if !loaded_font_names.is_empty() {
-        let proportional = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
-        for font_name in loaded_font_names.iter() {
-            proportional.insert(0, font_name.clone());
-        }
-    }
-
-    fonts
-}
-
-#[cfg(target_os = "linux")]
-fn configure_fonts() -> FontDefinitions {
-    let mut fonts = FontDefinitions::default();
-    let font_candidates = [
-        (
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "Noto Sans CJK",
-        ), // Ubuntu/Debian
-        (
-            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
-            "Noto Sans CJK",
-        ), // Fedora/Arch
-        (
-            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-            "WenQuanYi Micro Hei",
-        ), // common fallback
-    ];
-
     let mut loaded_font_names = Vec::new();
 
     for (path_str, font_name) in font_candidates.iter() {
@@ -170,7 +117,33 @@ fn configure_fonts() -> FontDefinitions {
     fonts
 }
 
-#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+#[cfg(target_os = "windows")]
+fn configure_fonts() -> FontDefinitions {
+    load_cjk_fonts(&[
+        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
+        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
+    ])
+}
+
+#[cfg(target_os = "linux")]
+fn configure_fonts() -> FontDefinitions {
+    load_cjk_fonts(&[
+        (
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Ubuntu/Debian
+        (
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Fedora/Arch
+        (
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // common fallback
+    ])
+}
+
+#[cfg(target_os = "macos")]
 fn configure_fonts() -> FontDefinitions {
     // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
     // does not support CJK. Add them for Mac.
