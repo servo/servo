@@ -665,10 +665,7 @@ impl DedicatedWorkerGlobalScope {
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
             MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    self.upcast::<GlobalScope>()
-                        .set_devtools_wants_updates(bool_val);
-                },
+                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _bool_val) => {},
                 DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
                     self.debugger_global.fire_eval(
                         CanGc::from_cx(cx),

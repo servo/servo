@@ -481,6 +481,10 @@ pub(crate) struct Window {
     /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
     #[no_trace]
     last_activation_timestamp: Cell<UserActivationTimestamp>,
+
+    /// A flag to indicate whether the developer tools has requested
+    /// live updates from the window.
+    devtools_wants_updates: Cell<bool>,
 }
 
 impl Window {
@@ -3762,6 +3766,7 @@ impl Window {
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
+            devtools_wants_updates: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
@@ -3769,6 +3774,14 @@ impl Window {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.as_global_scope().pipeline_id()
+    }
+
+    pub(crate) fn live_devtools_updates(&self) -> bool {
+        self.devtools_wants_updates.get()
+    }
+
+    pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
+        self.devtools_wants_updates.set(value);
     }
 
     /// Create a new cached instance of the given value.

@@ -496,10 +496,7 @@ impl ServiceWorkerGlobalScope {
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, wants_updates) => {
-                    self.upcast::<GlobalScope>()
-                        .set_devtools_wants_updates(wants_updates);
-                },
+                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
                 DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
                     if let Some(debugger_global) = self.debugger_global.as_deref() {
                         debugger_global.fire_eval(
