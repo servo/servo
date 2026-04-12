@@ -2,16 +2,35 @@
 
   description = "Servo web engine dev environment";
 
-  inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
-  };
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-  outputs = { self, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system: {
-      devShells = {
-        default = import ./shell.nix { buildAndroid = false; };
-        android  = import ./shell.nix { buildAndroid = true; };
-      };
-    });
+  outputs = { self, nixpkgs }:
+
+  let
+    allSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
+
+    forAllSystems = nixpkgs.lib.genAttrs allSystems;
+  in {
+
+    devShells = forAllSystems (system:
+      let
+        mkShell = buildAndroid: import ./shell.nix {
+          inherit buildAndroid;
+        };
+      in {
+
+        default = mkShell false;
+
+      } // nixpkgs.lib.optionalAttrs (system != "aarch64-linux") {
+
+        android = mkShell true;
+
+      });
+  };
 
 }
