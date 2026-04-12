@@ -15,6 +15,7 @@ use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTy
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
+use crate::dom::execcommand::contenteditable::node::move_preserving_ranges;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
@@ -51,9 +52,9 @@ impl HTMLElement {
             // Step 4.2. For each child in children, insert child into element's parent immediately before element, preserving ranges.
             let element_parent = node.GetParentNode().expect("Must always have a parent");
             for child in node.children() {
-                if element_parent.InsertBefore(cx, &child, Some(node)).is_err() {
-                    unreachable!("Must always be able to insert");
-                }
+                move_preserving_ranges(cx, &child, |cx| {
+                    element_parent.InsertBefore(cx, &child, Some(node))
+                });
             }
             // Step 4.3. Remove element from its parent.
             node.remove_self(cx);

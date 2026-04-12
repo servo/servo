@@ -18,7 +18,8 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::execcommand::contenteditable::node::{
-    NodeOrString, is_allowed_child, move_preserving_ranges, split_the_parent,
+    NodeOrString, is_allowed_child, move_preserving_ranges, record_the_values, restore_the_values,
+    split_the_parent,
 };
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -506,7 +507,7 @@ impl Selection {
         }
 
         // Step 32. If start block is an ancestor of end block:
-        if start_block.is_ancestor_of(&end_block) {
+        let values = if start_block.is_ancestor_of(&end_block) {
             // Step 32.1. Let reference node be end block.
             let mut reference_node = end_block.clone();
             // Step 32.2. While reference node is not a child of start block, set reference node to its parent.
@@ -593,7 +594,7 @@ impl Selection {
             // Step 32.5. If end block's firstChild is not an inline node,
             // restore states and values from record, then abort these steps.
             if !first_child.is_inline_node() {
-                // TODO: Restore state
+                active_range.restore_states_and_values(cx, self, context_object, overrides);
                 return;
             }
             // Step 32.6. Let children be a list of nodes, initially empty.
@@ -620,7 +621,7 @@ impl Selection {
                 break;
             }
             // Step 32.9. Record the values of children, and let values be the result.
-            // TODO
+            let values = record_the_values(children.iter().map(|dom| dom.as_rooted()).collect());
 
             // Step 32.10. While children's first member's parent is not start block,
             // split the parent of children.
@@ -645,6 +646,8 @@ impl Selection {
                     }
                 }
             }
+
+            values
         // Step 33. Otherwise, if start block is a descendant of end block:
         } else if end_block.is_ancestor_of(&start_block) {
             // Step 33.1. Call collapse() on the context object's selection,
@@ -706,13 +709,15 @@ impl Selection {
                 break;
             }
             // Step 33.8. Record the values of nodes to move, and let values be the result.
-            // TODO
+            let values = record_the_values(nodes_to_move.iter().cloned().collect());
 
             // Step 33.9. For each node in nodes to move,
             // append node as the last child of start block, preserving ranges.
             for node in nodes_to_move.iter() {
                 move_preserving_ranges(cx, node, |cx| start_block.AppendChild(cx, node));
             }
+
+            values
         // Step 34. Otherwise:
         } else {
             // Step 34.1. Call collapse() on the context object's selection,
@@ -738,7 +743,7 @@ impl Selection {
                 }
             }
             // Step 34.3. Record the values of end block's children, and let values be the result.
-            // TODO
+            let values = record_the_values(end_block.children().collect());
 
             // Step 34.4. While end block has children,
             // append the first child of end block to start block, preserving ranges.
@@ -766,7 +771,9 @@ impl Selection {
                 }
                 break;
             }
-        }
+
+            values
+        };
 
         // Step 35.
         //
@@ -781,7 +788,7 @@ impl Selection {
         // TODO
 
         // Step 38. Restore the values from values.
-        // TODO
+        restore_the_values(cx, values);
 
         // Step 39. If start block has no children, call createElement("br") on the context object and
         // append the result as the last child of start block.
