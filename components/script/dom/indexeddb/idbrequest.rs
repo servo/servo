@@ -580,7 +580,9 @@ impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
     ) -> Fallible<()> {
         // Step 1. If this's done flag is false, then throw an "InvalidStateError" DOMException.
         if !self.is_done() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot get result on a request that is still pending.".into(),
+            )));
         }
 
         // Step 2. Return this's result, or undefined if the request resulted in an error.
@@ -592,7 +594,9 @@ impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
     fn GetError(&self) -> Fallible<Option<DomRoot<DOMException>>> {
         // Step 1. If this's done flag is false, then throw an "InvalidStateError" DOMException.
         if !self.is_done() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot get error on a request that is still pending.".into(),
+            )));
         }
 
         // Step 2. Return this's error, or null if no error occurred.
