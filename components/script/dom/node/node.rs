@@ -130,7 +130,7 @@ use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent};
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
-use crate::layout_dom::ServoDangerousStyleNode;
+use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -1545,8 +1545,7 @@ impl Node {
                 .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
         })?;
 
-        Ok(first_matching_element
-            .map(|element| DomRoot::from_ref(unsafe { element.layout_dom().as_ref() })))
+        Ok(first_matching_element.map(ServoDangerousStyleElement::rooted))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
@@ -1566,7 +1565,7 @@ impl Node {
         })?;
         let iter = matching_elements
             .into_iter()
-            .map(|element| DomRoot::from_ref(unsafe { element.layout_dom().as_ref() }))
+            .map(ServoDangerousStyleElement::rooted)
             .map(DomRoot::upcast::<Node>);
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
