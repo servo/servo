@@ -42,7 +42,7 @@ jobs:
         with:
           name: ${{ env.IMAGE_ARTIFACT_NAME }}
           path: ${{ env.IMAGE_ARCHIVE }}
-          compression-level: 0
+          archive: false
           if-no-files-found: error
 
   devcontainer_ubuntu_publish:
