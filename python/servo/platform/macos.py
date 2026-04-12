@@ -18,8 +18,10 @@ from .build_target import BuildTarget
 
 URL_BASE = "https://github.com/servo/servo-build-deps/releases/download/macOS"
 GSTREAMER_PLUGIN_VERSION = "1.22.3"
-GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-1.22.3-universal.pkg"
-GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-1.22.3-universal.pkg"
+GSTREAMER_FILENAME = "gstreamer-1.0-1.22.3-universal.pkg"
+GSTREAMER_URL = f"{URL_BASE}/{GSTREAMER_FILENAME}"
+GSTREAMER_DEVEL_FILENAME = "gstreamer-1.0-devel-1.22.3-universal.pkg"
+GSTREAMER_DEVEL_URL = f"{URL_BASE}/{GSTREAMER_DEVEL_FILENAME}"
 GSTREAMER_ROOT = "/Library/Frameworks/GStreamer.framework/Versions/1.0"
 
 
@@ -57,16 +59,20 @@ class MacOS(Base):
             return False
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            libs_pkg = os.path.join(temp_dir, GSTREAMER_URL.rsplit("/", maxsplit=1)[-1])
-            devel_pkg = os.path.join(temp_dir, GSTREAMER_DEVEL_URL.rsplit("/", maxsplit=1)[-1])
-            install_command = f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{devel_pkg}' -target /"
+            libs_pkg = os.path.join(temp_dir, GSTREAMER_FILENAME)
+            devel_pkg = os.path.join(temp_dir, GSTREAMER_DEVEL_FILENAME)
 
             if not (yes or force):
                 print("Warning: GStreamer was not installed since it requires elevated permissions.\n")
                 print("To install GStreamer, either: ")
                 print("1. Run mach bootstrap again with --yes")
-                print("2. Manually run:")
-                print("sudo " + install_command + "\n")
+                print("2. Do it Manually:")
+                print(f"\t1. Download the GStreamer Libraries:")
+                print(f"\tcurl -L -# -o /tmp/{GSTREAMER_FILENAME} {GSTREAMER_URL}\n")
+                print(f"\t2. Download the GStreamer Development Support:")
+                print(f"\tcurl -L -# -o /tmp/{GSTREAMER_DEVEL_FILENAME} {GSTREAMER_DEVEL_URL}\n")
+                print("\t3. Install GStreamer:")
+                print(f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / &&installer -pkg '/tmp/{GSTREAMER_DEVEL_FILENAME}' -target / \n")
                 return False
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
@@ -78,7 +84,7 @@ class MacOS(Base):
                     "sudo",
                     "sh",
                     "-c",
-                    install_command,
+                    f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{devel_pkg}' -target /",
                 ]
             )
 
