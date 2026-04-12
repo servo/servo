@@ -444,9 +444,6 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(cx, context);
         }
 
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
-
         if context.tree_connected {
             let element = self.upcast();
 
