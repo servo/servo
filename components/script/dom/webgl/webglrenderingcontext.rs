@@ -2917,8 +2917,8 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
         self.send_command(msg);
 
-        if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&texture);
+        if let Some(framebuffer) = self.bound_draw_framebuffer.get() {
+            framebuffer.invalidate_texture(&texture);
         }
     }
 
