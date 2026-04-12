@@ -1184,7 +1184,7 @@ fn create_constellation(
         wgpu_image_map: paint.webgpu_image_map(),
         async_runtime,
         privileged_urls,
-        wake_lock_provider: Arc::new(NoOpWakeLockProvider),
+        wake_lock_provider: Box::new(NoOpWakeLockProvider),
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

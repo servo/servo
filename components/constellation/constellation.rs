@@ -487,10 +487,10 @@ pub struct Constellation<STF, SWF> {
 
     /// Aggregate screen wake lock count across all webviews. The provider is notified
     /// only when this transitions 0→1 (acquire) or N→0 (release).
-    wake_lock_count: u32,
+    screen_wake_lock_count: u32,
 
     /// Provider for OS-level screen wake lock acquisition and release.
-    wake_lock_provider: Arc<dyn WakeLockProvider>,
+    wake_lock_provider: Box<dyn WakeLockProvider>,
 
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
@@ -591,7 +591,7 @@ pub struct InitialConstellationState {
     pub async_runtime: Box<dyn AsyncRuntime>,
 
     /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
-    pub wake_lock_provider: Arc<dyn WakeLockProvider>,
+    pub wake_lock_provider: Box<dyn WakeLockProvider>,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not. A normal exit
@@ -742,7 +742,7 @@ where
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
-                    wake_lock_count: 0,
+                    screen_wake_lock_count: 0,
                     wake_lock_provider: state.wake_lock_provider,
                     broken_image_icon_data: broken_image_icon_data.clone(),
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
@@ -2108,14 +2108,15 @@ where
                 }
             },
             ScriptToConstellationMessage::AcquireWakeLock => {
-                self.wake_lock_count += 1;
-                if self.wake_lock_count == 1 {
+                self.screen_wake_lock_count += 1;
+                if self.screen_wake_lock_count == 1 {
                     self.wake_lock_provider.acquire();
                 }
             },
             ScriptToConstellationMessage::ReleaseWakeLock => {
-                self.wake_lock_count = self.wake_lock_count.saturating_sub(1);
-                if self.wake_lock_count == 0 {
+                self.screen_wake_lock_count =
+                    self.screen_wake_lock_count.saturating_sub(1);
+                if self.screen_wake_lock_count == 0 {
                     self.wake_lock_provider.release();
                 }
             },
