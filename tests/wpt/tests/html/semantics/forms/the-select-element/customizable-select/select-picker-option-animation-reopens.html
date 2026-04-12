@@ -32,27 +32,23 @@ const option = document.querySelector('option');
 promise_test(async () => {
   // First open: animation should start.
   await test_driver.click(select);
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
 
-  const opacityFirstOpen = Number(getComputedStyle(option).opacity);
-  assert_greater_than(opacityFirstOpen, 0,
-    'Option opacity should be greater than 0 during first open (animation running).');
+  const animationsFirstOpen = option.getAnimations();
+  assert_equals(animationsFirstOpen.length, 1,
+    'Option should have one animation during first open.');
+  assert_equals(animationsFirstOpen[0].playState, 'running',
+    'Animation should be running during first open.');
 
   // Close the picker.
   await test_driver.click(select);
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
 
   // Second open: animation should restart.
   await test_driver.click(select);
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
 
-  const opacitySecondOpen = Number(getComputedStyle(option).opacity);
-  assert_greater_than(opacitySecondOpen, 0,
-    'Option opacity should be greater than 0 during second open (animation restarted).');
-  assert_less_than(opacitySecondOpen, 1,
-    'Option opacity should be less than 1 during second open (animation still running, not stuck at final value from first open).');
+  const animationsSecondOpen = option.getAnimations();
+  assert_equals(animationsSecondOpen.length, 1,
+    'Option should have one animation during second open (animation restarted).');
+  assert_equals(animationsSecondOpen[0].playState, 'running',
+    'Animation should be running during second open.');
 }, 'CSS animations on option elements restart when the base-select picker reopens.');
 </script>

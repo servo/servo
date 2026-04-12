@@ -75,7 +75,7 @@ futures-util = { version = "0.3", default-features = false }
 gleam = "0.15"
 glib = "0.22"
 glib-sys = "0.22"
-glow = "0.16.0"
+glow = "0.17.0"
 gstreamer = { version = "0.25", features = ["v1_18"] }
 gstreamer-app = "0.25"
 gstreamer-audio = "0.25"
@@ -109,7 +109,7 @@ indexmap = { version = "2.11.4", features = ["std"] }
 inventory = { version = "0.3.24" }
 ipc-channel = "0.21"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.7", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.8", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
@@ -158,15 +158,15 @@ rustc-hash = "2.1.2"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
-sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
-sea-query-rusqlite = { version = "0.8.0-rc.15" }
+sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
+sea-query-rusqlite = { version = "=0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
+selectors = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -174,13 +174,13 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "6cfce6f3293b5e13c2246838380e514b8b206a27" }
-surfman = { version = "0.11.0", features = ["chains"] }
+stylo = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10c4141c62e860d50745a75547" }
+surfman = { version = "0.12.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 taffy = { version = "0.10", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
@@ -278,6 +278,7 @@ servo-media-gstreamer = { version = "0.1.0", path = "components/media/backends/g
 servo-media-gstreamer-render = { version = "0.1.0", path = "components/media/backends/gstreamer/render" }
 servo-media-gstreamer-render-android = { version = "0.1.0", path = "components/media/backends/gstreamer/render-android" }
 servo-media-gstreamer-render-unix = { version = "0.1.0", path = "components/media/backends/gstreamer/render-unix" }
+servo-media-ohos = { version = "0.1.0", path = "components/media/backends/ohos" }
 servo-media-player = { version = "0.1.0", path = "components/media/player" }
 servo-media-streams = { version = "0.1.0", path = "components/media/streams" }
 servo-media-traits = { version = "0.1.0", path = "components/media/traits" }
@@ -375,12 +376,6 @@ codegen-units = 1
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }
-#
-# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
-# This is only used in servoshell.
-# TODO: When these are no longer needed remove the exception in deny.toml as well.
-egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
 #
 # Or for Stylo:
 #

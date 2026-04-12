@@ -252,7 +252,6 @@ impl<'a, T: DomObject> Deref for UnrootedDom<'a, T> {
 /// guarantee about no GC happening in this lifetime.
 impl<'a, T: Castable> UnrootedDom<'a, T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    #[expect(dead_code)]
     pub fn upcast<U>(dom: UnrootedDom<'a, T>) -> UnrootedDom<'a, U>
     where
         U: Castable,

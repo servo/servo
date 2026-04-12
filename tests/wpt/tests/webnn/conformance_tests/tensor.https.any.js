@@ -1382,8 +1382,10 @@ const assert_gpu_buffer_data_equals =
 /**
  * Export to GPU operation test.
  * @param {String} testName - The name of the test operation.
+ * @param {String} dataType - The tensor data type used in the test.
+ * @param {String} powerPreference - The WebGPU adapter power preference.
  */
-const testExportToGPU = (testName, dataType) => {
+const testExportToGPU = (testName, dataType, powerPreference) => {
   let gpuAdapter;
   let gpuDevice;
   let mlContext;
@@ -1395,7 +1397,8 @@ const testExportToGPU = (testName, dataType) => {
 
   promise_setup(async () => {
     // Initialize GPU
-    gpuAdapter = navigator.gpu && await navigator.gpu.requestAdapter();
+    gpuAdapter =
+        navigator.gpu && await navigator.gpu.requestAdapter({powerPreference});
     if (!gpuAdapter) {
       isExportToGPUSupported = false;
       return;
@@ -1455,7 +1458,7 @@ const testExportToGPU = (testName, dataType) => {
           await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
       await mlContext.exportToGPU(mlTensor);
     } catch (e) {
-      if (e.name === 'NotSupportedError') {
+      if (e.name === 'NotSupportedError' || e.name === 'TypeError') {
         isExportToGPUSupported = false;
         return;
       }
@@ -1817,8 +1820,12 @@ if (navigator.ml) {
   testReadTensor('read');
   testWriteTensor('write');
   testDispatchTensor('dispatch');
-  testExportToGPU('interop float16', 'float16');
-  testExportToGPU('interop float32', 'float32');
+  testExportToGPU('interop float16 low-power', 'float16', 'low-power');
+  testExportToGPU(
+      'interop float16 high-performance', 'float16', 'high-performance');
+  testExportToGPU('interop float32 low-power', 'float32', 'low-power');
+  testExportToGPU(
+      'interop float32 high-performance', 'float32', 'high-performance');
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
 }

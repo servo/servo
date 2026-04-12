@@ -59,7 +59,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
+    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
     reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
@@ -1395,7 +1395,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(fulfill_image_decode_promises: move || {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native(&(), CanGc::note());
+                    trusted_promise.root().resolve_native(&(), CanGc::deprecated_note());
                 }
             }));
     }
@@ -1422,7 +1422,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move || {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::note());
+                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::deprecated_note());
                 }
             }));
     }
@@ -1678,15 +1678,6 @@ impl MicrotaskRunnable for ImageElementMicrotask {
     }
 }
 
-pub(crate) trait LayoutHTMLImageElementHelpers {
-    fn image_url(self) -> Option<ServoUrl>;
-    fn image_density(self) -> Option<f64>;
-    fn image_data(self) -> (Option<Image>, Option<ImageMetadata>);
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-    fn showing_broken_image_icon(self) -> bool;
-}
-
 impl<'dom> LayoutDom<'dom, HTMLImageElement> {
     #[expect(unsafe_code)]
     fn current_request(self) -> &'dom ImageRequest {
@@ -1702,27 +1693,25 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
                 .expect("dimension attribute source should be always non-null")
         }
     }
-}
 
-impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
-    fn image_url(self) -> Option<ServoUrl> {
+    pub(crate) fn image_url(self) -> Option<ServoUrl> {
         self.current_request().parsed_url.clone()
     }
 
-    fn image_data(self) -> (Option<Image>, Option<ImageMetadata>) {
+    pub(crate) fn image_data(self) -> (Option<Image>, Option<ImageMetadata>) {
         let current_request = self.current_request();
         (current_request.image.clone(), current_request.metadata)
     }
 
-    fn image_density(self) -> Option<f64> {
+    pub(crate) fn image_density(self) -> Option<f64> {
         self.current_request().current_pixel_density
     }
 
-    fn showing_broken_image_icon(self) -> bool {
+    pub(crate) fn showing_broken_image_icon(self) -> bool {
         matches!(self.current_request().state, State::Broken)
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -1730,7 +1719,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.dimension_attribute_source()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

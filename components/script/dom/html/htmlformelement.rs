@@ -18,6 +18,7 @@ use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use rand::random;
 use rustc_hash::FxBuildHasher;
+use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::match_domstring_ascii;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::attr::AttrValue;
@@ -82,7 +83,7 @@ use crate::dom::node::{
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
-use crate::dom::types::HTMLIFrameElement;
+use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
@@ -436,7 +437,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-length>
     fn Length(&self) -> u32 {
-        self.Elements(CanGc::note()).Length()
+        self.Elements(CanGc::deprecated_note()).Length()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-item>
@@ -877,16 +878,20 @@ impl HTMLFormElement {
             // Step 23. If targetNavigable is null, then return.
             return;
         };
-        // Step 24. Let historyHandling be "auto".
-        // TODO
-        // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
-        // then set historyHandling to "replace".
-        // TODO
-
         let target_document = match chosen.document() {
             Some(doc) => doc,
             None => return,
         };
+
+        // Step 24. Let historyHandling be "auto".
+        // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
+        // then set historyHandling to "replace".
+        let history_handling = if doc == target_document && !doc.completely_loaded() {
+            NavigationHistoryBehavior::Replace
+        } else {
+            NavigationHistoryBehavior::Auto
+        };
+
         let target_window = target_document.window();
         let mut load_data = LoadData::new(
             LoadOrigin::Script(doc.origin().snapshot()),
@@ -914,7 +919,13 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
-                self.mutate_action_url(&mut form_data, load_data, encoding, target_window);
+                self.mutate_action_url(
+                    &mut form_data,
+                    load_data,
+                    encoding,
+                    target_window,
+                    history_handling,
+                );
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
@@ -925,6 +936,7 @@ impl HTMLFormElement {
                     enctype,
                     encoding,
                     target_window,
+                    history_handling,
                     can_gc,
                 );
             },
@@ -934,7 +946,7 @@ impl HTMLFormElement {
             ("data", FormMethod::Post) |
             ("ftp", _) |
             ("javascript", _) => {
-                self.plan_to_navigate(load_data, target_window);
+                self.plan_to_navigate(load_data, target_window, history_handling);
             },
             ("mailto", FormMethod::Post) => {
                 // TODO: Mail as body
@@ -955,6 +967,7 @@ impl HTMLFormElement {
         mut load_data: LoadData,
         encoding: &'static Encoding,
         target: &Window,
+        history_handling: NavigationHistoryBehavior,
     ) {
         let charset = encoding.name();
 
@@ -965,10 +978,11 @@ impl HTMLFormElement {
                 .map(|field| (field.name.str(), field.replace_value(charset))),
         );
 
-        self.plan_to_navigate(load_data, target);
+        self.plan_to_navigate(load_data, target, history_handling);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#submit-body>
+    #[allow(clippy::too_many_arguments)]
     fn submit_entity_body(
         &self,
         form_data: &mut [FormDatum],
@@ -976,6 +990,7 @@ impl HTMLFormElement {
         enctype: FormEncType,
         encoding: &'static Encoding,
         target: &Window,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
         let boundary = generate_boundary();
@@ -1020,7 +1035,7 @@ impl HTMLFormElement {
             .0;
         load_data.data = Some(request_body);
 
-        self.plan_to_navigate(load_data, target);
+        self.plan_to_navigate(load_data, target, history_handling);
     }
 
     fn set_url_query_pairs<T>(
@@ -1039,7 +1054,12 @@ impl HTMLFormElement {
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, mut load_data: LoadData, target: &Window) {
+    fn plan_to_navigate(
+        &self,
+        mut load_data: LoadData,
+        target: &Window,
+        history_handling: NavigationHistoryBehavior,
+    ) {
         // 1. Let referrerPolicy be the empty string.
         // 2. If the form element's link types include the noreferrer keyword,
         //    then set referrerPolicy to "no-referrer".
@@ -1113,10 +1133,10 @@ impl HTMLFormElement {
             navigate(
                 cx,
                 &window.root(),
-                NavigationHistoryBehavior::Push,
+                history_handling,
                 false,
                 load_data,
-            );
+            )
         });
 
         // 5. Set the form's planned navigation to the just-queued task.
@@ -1625,7 +1645,7 @@ impl FormSubmitterElement<'_> {
     }
 }
 
-pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
+pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
 
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
@@ -1666,12 +1686,21 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
             return;
         }
 
+        // Step 4. If element is listed, has a form content attribute, and is connected, then:
         let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {
-            // Step 3
-            let doc = node.owner_document();
+            // Step 4.1 If the first element in element's tree, in tree order, to have an ID that is identical
+            // to element's form content attribute's value, is a form element, then associate the element
+            // with that form element.
             let form_id = elem.get_string_attribute(&local_name!("form"));
-            doc.GetElementById(form_id)
-                .and_then(DomRoot::downcast::<HTMLFormElement>)
+            let first_relevant_element = if let Some(shadow_root) = self.containing_shadow_root() {
+                shadow_root
+                    .upcast::<DocumentFragment>()
+                    .GetElementById(form_id)
+            } else {
+                node.owner_document().GetElementById(form_id)
+            };
+
+            first_relevant_element.and_then(DomRoot::downcast::<HTMLFormElement>)
         } else {
             // Step 4
             nearest_form_ancestor

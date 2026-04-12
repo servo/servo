@@ -89,10 +89,10 @@ impl CookieListener {
                     // (There is currently no way for list to result in failure)
                     if let Some(cookie) = cookie {
                         // Otherwise, resolve p with the first item of list.
-                        promise.resolve_native(&cookie_to_list_item(cookie.into_inner()), CanGc::note());
+                        promise.resolve_native(&cookie_to_list_item(cookie.into_inner()), CanGc::deprecated_note());
                     } else {
                         // If list is empty, then resolve p with null.
-                        promise.resolve_native(&NullValue(), CanGc::note());
+                        promise.resolve_native(&NullValue(), CanGc::deprecated_note());
                     }
                 },
                 CookieData::GetAll(cookies) => {
@@ -102,10 +102,10 @@ impl CookieListener {
                         .into_iter()
                         .map(|cookie| cookie_to_list_item(cookie.0))
                         .collect_vec(),
-                    CanGc::note());
+                    CanGc::deprecated_note());
                 },
                 CookieData::Delete(_) | CookieData::Change(_) | CookieData::Set(_) => {
-                    promise.resolve_native(&(), CanGc::note());
+                    promise.resolve_native(&(), CanGc::deprecated_note());
                 }
             }
         }));

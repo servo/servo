@@ -145,6 +145,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::CustomElementRegistry;
+use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
 use crate::dom::document::{
     AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
 };
@@ -289,6 +290,7 @@ pub(crate) struct Window {
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
+    crypto: MutNullableDom<Crypto>,
     #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
@@ -305,6 +307,8 @@ pub(crate) struct Window {
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
+    /// <https://cookiestore.spec.whatwg.org/#globals>
+    cookie_store: MutNullableDom<CookieStore>,
     status: DomRefCell<DOMString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
@@ -477,6 +481,10 @@ pub(crate) struct Window {
     /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
     #[no_trace]
     last_activation_timestamp: Cell<UserActivationTimestamp>,
+
+    /// A flag to indicate whether the developer tools has requested
+    /// live updates from the window.
+    devtools_wants_updates: Cell<bool>,
 }
 
 impl Window {
@@ -1274,23 +1282,34 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
-    fn Focus(&self) {
-        // > 1. Let `current` be this `Window` object's browsing context.
-        // >
-        // > 2. If `current` is null, then return.
-        let current = match self.undiscarded_window_proxy() {
-            Some(proxy) => proxy,
-            None => return,
-        };
+    fn Focus(&self, cx: &mut js::context::JSContext) {
+        // Step 1. Let current be this's navigable.
+        // Note: We don't necessarily have access to the navigable, because it might
+        // be in another process.
 
-        // > 3. Run the focusing steps with `current`.
-        current.focus();
-
-        // > 4. If current is a top-level browsing context, user agents are
-        // >    encouraged to trigger some sort of notification to indicate to
-        // >    the user that the page is attempting to gain focus.
+        // Step 2. If current is null, then return.
         //
-        // TODO: Step 4
+        // Note: This is equivalent to there being an active `Document` and the WindowProxy
+        // not being discarded due to the parent <iframe> being removed from its `Document`.
+        let document = self.Document();
+        if !document.is_active() || self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 3. If the allow focus steps given current's active document return false, then return.
+        // TODO: Implement this.
+
+        // Step 4. Run the focusing steps with current.
+        document.focus_handler().focus(
+            FocusOperation::Focus(FocusableArea::Viewport),
+            FocusInitiator::Local,
+            CanGc::from_cx(cx),
+        );
+
+        // Step 5. If current is a top-level traversable, user agents are encouraged to trigger some
+        // sort of notification to indicate to the user that the page is attempting to gain focus.
+        //
+        // Note: We currently don't do this. Most browsers don't.
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-blur>
@@ -1414,7 +1433,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history>
     fn History(&self) -> DomRoot<History> {
-        self.history.or_init(|| History::new(self, CanGc::note()))
+        self.history
+            .or_init(|| History::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
@@ -1425,7 +1445,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-customelements>
     fn CustomElements(&self) -> DomRoot<CustomElementRegistry> {
         self.custom_element_registry
-            .or_init(|| CustomElementRegistry::new(self, CanGc::note()))
+            .or_init(|| CustomElementRegistry::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
@@ -1434,25 +1454,69 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>
-    fn SessionStorage(&self) -> DomRoot<Storage> {
-        self.session_storage
-            .or_init(|| Storage::new(self, WebStorageType::Session, CanGc::note()))
+    fn GetSessionStorage(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Storage>> {
+        // Step 1. If this's associated Document's session storage holder is non-null,
+        // then return this's associated Document's session storage holder.
+        if let Some(storage) = self.session_storage.get() {
+            return Ok(storage);
+        }
+
+        // Step 2. Let map be the result of running obtain a session storage bottle map
+        // with this's relevant settings object and "sessionStorage".
+        // Step 3. If map is failure, then throw a "SecurityError" DOMException.
+        if !self.origin().is_tuple() {
+            return Err(Error::Security(Some(
+                "Cannot access sessionStorage from opaque origin.".to_string(),
+            )));
+        }
+
+        // Step 4. Let storage be a new Storage object whose map is map.
+        let storage = Storage::new(self, WebStorageType::Session, CanGc::from_cx(cx));
+
+        // Step 5. Set this's associated Document's session storage holder to storage.
+        self.session_storage.set(Some(&storage));
+
+        // Step 6. Return storage.
+        Ok(storage)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-localstorage>
-    fn LocalStorage(&self) -> DomRoot<Storage> {
-        self.local_storage
-            .or_init(|| Storage::new(self, WebStorageType::Local, CanGc::note()))
+    fn GetLocalStorage(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Storage>> {
+        // Step 1. If this's associated Document's local storage holder is non-null,
+        // then return this's associated Document's local storage holder.
+        if let Some(storage) = self.local_storage.get() {
+            return Ok(storage);
+        }
+
+        // Step 2. Let map be the result of running obtain a local storage bottle map
+        // with this's relevant settings object and "localStorage".
+        // Step 3. If map is failure, then throw a "SecurityError" DOMException.
+        if !self.origin().is_tuple() {
+            return Err(Error::Security(Some(
+                "Cannot access localStorage from opaque origin.".to_string(),
+            )));
+        }
+
+        // Step 4. Let storage be a new Storage object whose map is map.
+        let storage = Storage::new(self, WebStorageType::Local, CanGc::from_cx(cx));
+
+        // Step 5. Set this's associated Document's local storage holder to storage.
+        self.local_storage.set(Some(&storage));
+
+        // Step 6. Return storage.
+        Ok(storage)
     }
 
     /// <https://cookiestore.spec.whatwg.org/#Window>
     fn CookieStore(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
-        self.global().cookie_store(can_gc)
+        self.cookie_store
+            .or_init(|| CookieStore::new(self.upcast::<GlobalScope>(), can_gc))
     }
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto(CanGc::note())
+        self.crypto
+            .or_init(|| Crypto::new(self.as_global_scope(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-frameelement>
@@ -1488,7 +1552,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>
     fn Navigator(&self) -> DomRoot<Navigator> {
         self.navigator
-            .or_init(|| Navigator::new(self, CanGc::note()))
+            .or_init(|| Navigator::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-clientinformation>
@@ -1657,7 +1721,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Performance::new(
                 self.as_global_scope(),
                 self.navigation_start.get(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         })
     }
@@ -1884,7 +1948,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             pseudo,
             CSSModificationAccess::Readonly,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -2088,7 +2152,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
         let media_query_list = MediaList::parse_media_list(&query.str(), self);
         let document = self.Document();
-        let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
+        let mql = MediaQueryList::new(&document, media_query_list, CanGc::deprecated_note());
         self.media_query_lists.track(&*mql);
         mql
     }
@@ -2116,7 +2180,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     #[cfg(feature = "bluetooth")]
     fn TestRunner(&self) -> DomRoot<TestRunner> {
         self.test_runner
-            .or_init(|| TestRunner::new(self.upcast(), CanGc::note()))
+            .or_init(|| TestRunner::new(self.upcast(), CanGc::deprecated_note()))
     }
 
     fn RunningAnimationCount(&self) -> u32 {
@@ -2149,7 +2213,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
         self.document
             .get()
-            .and_then(|d| d.GetSelection(CanGc::note()))
+            .and_then(|d| d.GetSelection(CanGc::deprecated_note()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
@@ -2158,7 +2222,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             event
                 .reflector()
                 .get_jsobject()
-                .safe_to_jsval(cx, rval, CanGc::note());
+                .safe_to_jsval(cx, rval, CanGc::deprecated_note());
         }
     }
 
@@ -2250,7 +2314,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -2393,7 +2457,7 @@ impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub(crate) fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet
-            .or_init(|| self.new_paint_worklet(CanGc::note()))
+            .or_init(|| self.new_paint_worklet(CanGc::deprecated_note()))
     }
 
     pub(crate) fn has_document(&self) -> bool {
@@ -2608,7 +2672,6 @@ impl Window {
             viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
-            dom_count: document.dom_count(),
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
@@ -3638,6 +3701,7 @@ impl Window {
             image_cache_sender,
             image_cache,
             navigator: Default::default(),
+            crypto: Default::default(),
             location: Default::default(),
             history: Default::default(),
             custom_element_registry: Default::default(),
@@ -3648,6 +3712,7 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
+            cookie_store: Default::default(),
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
@@ -3701,6 +3766,7 @@ impl Window {
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
+            devtools_wants_updates: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
@@ -3708,6 +3774,14 @@ impl Window {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.as_global_scope().pipeline_id()
+    }
+
+    pub(crate) fn live_devtools_updates(&self) -> bool {
+        self.devtools_wants_updates.get()
+    }
+
+    pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
+        self.devtools_wants_updates.set(value);
     }
 
     /// Create a new cached instance of the given value.
@@ -3806,7 +3880,7 @@ impl Window {
             let obj = this.reflector().get_jsobject();
             let _ac = JSAutoRealm::new(*cx, obj.get());
             rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::note()) {
+            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::deprecated_note()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),
@@ -3815,14 +3889,14 @@ impl Window {
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     ports,
-                    CanGc::note()
+                    CanGc::deprecated_note()
                 );
             } else {
                 // Step 4, fire messageerror.
                 MessageEvent::dispatch_error(
                     this.upcast(),
                     this.upcast(),
-                    CanGc::note()
+                    CanGc::deprecated_note()
                 );
             }
         });

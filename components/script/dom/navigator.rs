@@ -13,6 +13,7 @@ use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOr
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::rust::MutableHandleValue;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CredentialsMode, Destination, RequestBuilder, RequestId, RequestMode,
     is_cors_safelisted_request_content_type,
@@ -345,18 +346,18 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
         self.bluetooth
-            .or_init(|| Bluetooth::new(&self.global(), CanGc::note()))
+            .or_init(|| Bluetooth::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#framework-credential-management>
     fn Credentials(&self) -> DomRoot<CredentialsContainer> {
         self.credentials
-            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::note()))
+            .or_init(|| CredentialsContainer::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://www.w3.org/TR/geolocation/#navigator_interface>
     fn Geolocation(&self) -> DomRoot<Geolocation> {
-        Geolocation::new(&self.global(), CanGc::note())
+        Geolocation::new(&self.global(), CanGc::deprecated_note())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
@@ -377,13 +378,13 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-plugins>
     fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins
-            .or_init(|| PluginArray::new(&self.global(), CanGc::note()))
+            .or_init(|| PluginArray::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes>
     fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
         self.mime_types
-            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::note()))
+            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled>
@@ -399,7 +400,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
-            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::note()))
+            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled>
@@ -424,20 +425,20 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://w3c.github.io/permissions/#navigator-and-workernavigator-extension>
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     #[cfg(feature = "webxr")]
     fn Xr(&self) -> DomRoot<XRSystem> {
         self.xr
-            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::note()))
+            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::deprecated_note()))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
-            .or_init(|| MediaDevices::new(&self.global(), CanGc::note()))
+            .or_init(|| MediaDevices::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
@@ -452,14 +453,15 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // - If a media instance (HTMLMediaElement so far) starts playing media.
             let global = self.global();
             let window = global.as_window();
-            MediaSession::new(window, CanGc::note())
+            MediaSession::new(window, CanGc::deprecated_note())
         })
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
+        self.gpu
+            .or_init(|| GPU::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
@@ -532,15 +534,19 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             request_body = Some(extracted_body.into_net_request_body().0);
         }
         // Step 7.1. Let req be a new request, initialized as follows:
-        let request = RequestBuilder::new(None, url.clone(), global.get_referrer())
-            .mode(cors_mode)
-            .destination(Destination::None)
-            .with_global_scope(&global)
-            .method(http::Method::POST)
-            .body(request_body)
-            .keep_alive(true)
-            .credentials_mode(CredentialsMode::Include)
-            .headers(headers);
+        let request = RequestBuilder::new(
+            None,
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            global.get_referrer(),
+        )
+        .mode(cors_mode)
+        .destination(Destination::None)
+        .with_global_scope(&global)
+        .method(http::Method::POST)
+        .body(request_body)
+        .keep_alive(true)
+        .credentials_mode(CredentialsMode::Include)
+        .headers(headers);
         // Step 7.2. Fetch req.
         global.fetch(
             request,
@@ -558,7 +564,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://servo.org/internal-no-spec>
     fn Servo(&self) -> DomRoot<ServoInternals> {
         self.servo_internals
-            .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
+            .or_init(|| ServoInternals::new(&self.global(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-registerprotocolhandler>

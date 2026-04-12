@@ -5,7 +5,7 @@
 <title>CSS Ruby Layout: parsing ruby-overhang with valid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-ruby-1/#propdef-ruby-overhang">
 <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
-<meta name="assert" content="ruby-overhang supports the full grammar 'auto | none'.">
+<meta name="assert" content="ruby-overhang supports the full grammar 'auto | spaces | none'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -14,6 +14,7 @@
 <script>
 test_valid_value("ruby-overhang", "auto");
 test_valid_value("ruby-overhang", "none");
+test_valid_value("ruby-overhang", "spaces");
 </script>
 </body>
 </html>

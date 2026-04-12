@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::path::Path;
 use std::str::FromStr;
 
 use servo_url::ServoUrl;
@@ -77,4 +78,14 @@ fn test_matches_about_blank_does_not_match_invariants_maintained_from_url() {
     url.set_path("test");
     let servo_url = ServoUrl::from_url(url);
     assert!(!servo_url.matches_about_blank());
+}
+
+#[test]
+fn test_file_urls_are_potentially_trustworthy() {
+    let path = Path::new(&env!("CARGO_MANIFEST_PATH"))
+        .canonicalize()
+        .unwrap();
+    let url: ServoUrl = ServoUrl::from_file_path(path.clone()).unwrap();
+
+    assert!(url.origin().is_potentially_trustworthy())
 }

@@ -1825,18 +1825,21 @@ impl ScriptThread {
             ScriptThreadMessage::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
-            ScriptThreadMessage::FocusIFrame(parent_pipeline_id, frame_id, sequence) => self
-                .handle_focus_iframe_msg(
-                    parent_pipeline_id,
-                    frame_id,
-                    sequence,
-                    CanGc::from_cx(cx),
-                ),
-            ScriptThreadMessage::FocusDocument(pipeline_id, sequence) => {
-                self.handle_focus_document_msg(pipeline_id, sequence, CanGc::from_cx(cx))
+            ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
+                pipeline_id,
+                sequence,
+                iframe_browsing_context_id,
+            ) => self.handle_focus_document_as_part_of_focusing_steps(
+                cx,
+                pipeline_id,
+                sequence,
+                iframe_browsing_context_id,
+            ),
+            ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(pipeline_id, sequence) => {
+                self.handle_unfocus_document_as_part_of_focusing_steps(cx, pipeline_id, sequence);
             },
-            ScriptThreadMessage::Unfocus(pipeline_id, sequence) => {
-                self.handle_unfocus_msg(pipeline_id, sequence, CanGc::from_cx(cx))
+            ScriptThreadMessage::FocusDocument(pipeline_id) => {
+                self.handle_focus_document(cx, pipeline_id);
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
@@ -1856,7 +1859,9 @@ impl ScriptThread {
                 key,
                 old_value,
                 new_value,
-            ) => self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
+            ) => {
+                self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value, cx)
+            },
             ScriptThreadMessage::ReportCSSError(pipeline_id, filename, line, column, msg) => {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
@@ -2131,22 +2136,17 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(cx, &self.devtools_state, id, &node_id, reply)
             },
-            DevtoolScriptControlMsg::GetStylesheetStyle(
-                id,
-                node_id,
-                selector,
-                stylesheet,
-                reply,
-            ) => devtools::handle_get_stylesheet_style(
-                cx,
-                &self.devtools_state,
-                &documents,
-                id,
-                &node_id,
-                selector,
-                stylesheet,
-                reply,
-            ),
+            DevtoolScriptControlMsg::GetStylesheetStyle(id, node_id, matched_rule, reply) => {
+                devtools::handle_get_stylesheet_style(
+                    cx,
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    &node_id,
+                    matched_rule,
+                    reply,
+                )
+            },
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(
                     cx,
@@ -2189,9 +2189,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
                 match documents.find_window(id) {
                     Some(window) => {
-                        window
-                            .upcast::<GlobalScope>()
-                            .set_devtools_wants_updates(to_send);
+                        window.set_devtools_wants_updates(to_send);
                     },
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
@@ -2848,101 +2846,87 @@ impl ScriptThread {
         warn!("change of activity sent to nonexistent pipeline");
     }
 
-    fn handle_focus_iframe_msg(
+    fn handle_focus_document_as_part_of_focusing_steps(
         &self,
-        parent_pipeline_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
         sequence: FocusSequenceNumber,
-        can_gc: CanGc,
+        browsing_context_id: Option<BrowsingContextId>,
     ) {
-        let document = self
-            .documents
-            .borrow()
-            .find_document(parent_pipeline_id)
-            .unwrap();
-
-        let Some(iframe_element) = ({
-            // Enclose `iframes()` call and create a new root to avoid retaining
-            // borrow.
-            let iframes = document.iframes();
-            iframes
-                .get(browsing_context_id)
-                .map(|iframe| DomRoot::from_ref(iframe.element.upcast::<Node>()))
-        }) else {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Unknown {pipeline_id:?} for FocusDocumentAsPartOfFocusingSteps message.");
             return;
         };
 
-        if document.focus_handler().focus_sequence() > sequence {
+        let focus_handler = document.focus_handler();
+        if focus_handler.focus_sequence() > sequence {
             debug!(
-                "Disregarding the FocusIFrame message because the contained sequence number is \
-                too old ({:?} < {:?})",
-                sequence,
-                document.focus_handler().focus_sequence()
+                "Disregarding the FocusDocumentAsPartOfFocusingSteps message because \
+                the contained sequence number is too old ({sequence:?} < {:?})",
+                focus_handler.focus_sequence()
             );
             return;
         }
 
-        if let Some(focusable_area) = iframe_element.get_the_focusable_area() {
-            iframe_element.owner_document().focus_handler().focus(
-                FocusOperation::Focus(focusable_area),
-                FocusInitiator::Remote,
-                can_gc,
-            );
-        }
+        let focusable_area = browsing_context_id
+            .and_then(|browsing_context_id| {
+                document
+                    .iframes()
+                    .get(browsing_context_id)
+                    .map(|iframe| FocusableArea::Node {
+                        node: DomRoot::from_ref(iframe.element.upcast()),
+                        kind: Default::default(),
+                    })
+            })
+            .unwrap_or(FocusableArea::Viewport);
+
+        focus_handler.focus(
+            FocusOperation::Focus(focusable_area),
+            FocusInitiator::Remote,
+            CanGc::from_cx(cx),
+        );
     }
 
-    fn handle_focus_document_msg(
-        &self,
-        pipeline_id: PipelineId,
-        sequence: FocusSequenceNumber,
-        can_gc: CanGc,
-    ) {
-        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            let focus_handler = document.focus_handler();
-            if focus_handler.focus_sequence() > sequence {
-                debug!(
-                    "Disregarding the FocusDocument message because the contained sequence number is \
-                    too old ({:?} < {:?})",
-                    sequence,
-                    focus_handler.focus_sequence()
-                );
-                return;
-            }
-            focus_handler.focus(
-                FocusOperation::Focus(FocusableArea::Viewport),
-                FocusInitiator::Remote,
-                can_gc,
-            );
-        } else {
-            warn!(
-                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_focus_document_msg."
-            );
-        }
+    fn handle_focus_document(&self, cx: &mut js::context::JSContext, pipeline_id: PipelineId) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Unknown {pipeline_id:?} for FocusDocument message.");
+            return;
+        };
+        document.window().Focus(cx);
     }
 
-    fn handle_unfocus_msg(
+    fn handle_unfocus_document_as_part_of_focusing_steps(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         sequence: FocusSequenceNumber,
-        can_gc: CanGc,
     ) {
-        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-            let focus_handler = document.focus_handler();
-            if focus_handler.focus_sequence() > sequence {
-                debug!(
-                    "Disregarding the Unfocus message because the contained sequence number is \
-                    too old ({:?} < {:?})",
-                    sequence,
-                    focus_handler.focus_sequence()
-                );
-                return;
-            }
-            focus_handler.handle_container_unfocus(can_gc);
-        } else {
-            warn!(
-                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_unfocus_msg."
-            );
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Unknown {pipeline_id:?} for UnfocusDocumentAsPartOfFocusingSteps");
+            return;
+        };
+
+        // We ignore unfocus requests for top-level `Document`s as they *always* have focus.
+        // Note that this does not take into account system focus.
+        if document.window().is_top_level() {
+            return;
         }
+
+        let focus_handler = document.focus_handler();
+        if focus_handler.focus_sequence() > sequence {
+            debug!(
+                "Disregarding the Unfocus message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                focus_handler.focus_sequence()
+            );
+            return;
+        }
+        focus_handler.focus(
+            FocusOperation::Unfocus,
+            FocusInitiator::Remote,
+            CanGc::from_cx(cx),
+        );
     }
 
     #[expect(clippy::too_many_arguments)]
@@ -3285,6 +3269,7 @@ impl ScriptThread {
     }
 
     /// Notify a window of a storage event
+    #[allow(clippy::too_many_arguments)]
     fn handle_storage_event(
         &self,
         pipeline_id: PipelineId,
@@ -3293,14 +3278,18 @@ impl ScriptThread {
         key: Option<String>,
         old_value: Option<String>,
         new_value: Option<String>,
+        cx: &mut js::context::JSContext,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             return warn!("Storage event sent to closed pipeline {pipeline_id}.");
         };
 
         let storage = match storage_type {
-            WebStorageType::Local => window.LocalStorage(),
-            WebStorageType::Session => window.SessionStorage(),
+            WebStorageType::Local => window.GetLocalStorage(cx),
+            WebStorageType::Session => window.GetSessionStorage(cx),
+        };
+        let Ok(storage) = storage else {
+            return;
         };
 
         storage.queue_storage_event(url, key, old_value, new_value);
@@ -4139,8 +4128,8 @@ impl ScriptThread {
             return;
         };
 
-        if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
-            if global.live_devtools_updates() {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            if window.live_devtools_updates() {
                 let css_error = CSSError {
                     filename,
                     line,

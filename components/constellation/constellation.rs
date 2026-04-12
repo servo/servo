@@ -1908,15 +1908,20 @@ where
                     data,
                 );
             },
-            ScriptToConstellationMessage::Focus(focused_child_browsing_context_id, sequence) => {
-                self.handle_focus_msg(
+            ScriptToConstellationMessage::FocusAncestorBrowsingContextsForFocusingSteps(
+                focused_child_browsing_context_id,
+                sequence,
+            ) => {
+                self.handle_focus_ancestor_browsing_contexts_for_focusing_steps(
                     source_pipeline_id,
                     focused_child_browsing_context_id,
                     sequence,
                 );
             },
-            ScriptToConstellationMessage::FocusRemoteDocument(focused_browsing_context_id) => {
-                self.handle_focus_remote_document_msg(focused_browsing_context_id);
+            ScriptToConstellationMessage::FocusRemoteBrowsingContext(
+                focused_browsing_context_id,
+            ) => {
+                self.handle_focus_remote_browsing_context(focused_browsing_context_id);
             },
             ScriptToConstellationMessage::SetThrottledComplete(throttled) => {
                 self.handle_set_throttled_complete(source_pipeline_id, throttled);
@@ -4453,7 +4458,7 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_focus_msg(
+    fn handle_focus_ancestor_browsing_contexts_for_focusing_steps(
         &mut self,
         pipeline_id: PipelineId,
         focused_child_browsing_context_id: Option<BrowsingContextId>,
@@ -4493,23 +4498,20 @@ where
         self.focus_browsing_context(Some(pipeline_id), focused_browsing_context_id);
     }
 
-    fn handle_focus_remote_document_msg(&mut self, focused_browsing_context_id: BrowsingContextId) {
-        let pipeline_id = match self.browsing_contexts.get(&focused_browsing_context_id) {
-            Some(browsing_context) => browsing_context.pipeline_id,
-            None => return warn!("Browsing context {} not found", focused_browsing_context_id),
+    fn handle_focus_remote_browsing_context(&mut self, target: BrowsingContextId) {
+        let Some(browsing_context) = self.browsing_contexts.get(&target) else {
+            return warn!("{target:?} not found for focus message");
         };
-
-        // Ignore if its active document isn't fully active.
-        if self.get_activity(pipeline_id) != DocumentActivity::FullyActive {
-            debug!(
-                "Ignoring the remote focus request because pipeline {} of \
-                browsing context {} is not fully active",
-                pipeline_id, focused_browsing_context_id,
-            );
-            return;
+        let pipeline_id = browsing_context.pipeline_id;
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return warn!("{pipeline_id:?} not found for focus message");
+        };
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::FocusDocument(pipeline_id))
+        {
+            self.handle_send_error(pipeline_id, error);
         }
-
-        self.focus_browsing_context(None, focused_browsing_context_id);
     }
 
     /// Perform [the focusing steps][1] for the active document of
@@ -4610,7 +4612,10 @@ where
         // > substeps: [...]
         for &pipeline in old_focus_chain_pipelines.iter() {
             if Some(pipeline.id) != initiator_pipeline_id {
-                let msg = ScriptThreadMessage::Unfocus(pipeline.id, pipeline.focus_sequence);
+                let msg = ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(
+                    pipeline.id,
+                    pipeline.focus_sequence,
+                );
                 trace!("Sending {:?} to {}", msg, pipeline.id);
                 if let Err(e) = pipeline.event_loop.send(msg) {
                     send_errors.push((pipeline.id, e));
@@ -4630,49 +4635,35 @@ where
             // Don't send a message to the browsing context that initiated this
             // focus operation. It already knows that it has gotten focus.
             if Some(pipeline.id) != initiator_pipeline_id {
-                let msg = if let Some(child_browsing_context_id) = child_browsing_context_id {
-                    // Focus the container element of `child_browsing_context_id`.
-                    ScriptThreadMessage::FocusIFrame(
+                if let Err(error) = pipeline.event_loop.send(
+                    ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
                         pipeline.id,
-                        child_browsing_context_id,
                         pipeline.focus_sequence,
-                    )
-                } else {
-                    // Focus the document.
-                    ScriptThreadMessage::FocusDocument(pipeline.id, pipeline.focus_sequence)
-                };
-                trace!("Sending {:?} to {}", msg, pipeline.id);
-                if let Err(e) = pipeline.event_loop.send(msg) {
-                    send_errors.push((pipeline.id, e));
+                        child_browsing_context_id,
+                    ),
+                ) {
+                    send_errors.push((pipeline.id, error));
                 }
-            } else {
-                trace!(
-                    "Not notifying {} - it's the initiator of this focus operation",
-                    pipeline.id
-                );
             }
             child_browsing_context_id = Some(pipeline.browsing_context_id);
         }
 
-        if let (Some(pipeline), Some(child_browsing_context_id)) =
-            (first_common_pipeline_in_chain, child_browsing_context_id)
-        {
+        if let Some(pipeline) = first_common_pipeline_in_chain {
             if Some(pipeline.id) != initiator_pipeline_id {
-                // Focus the container element of `child_browsing_context_id`.
-                let msg = ScriptThreadMessage::FocusIFrame(
-                    pipeline.id,
-                    child_browsing_context_id,
-                    pipeline.focus_sequence,
-                );
-                trace!("Sending {:?} to {}", msg, pipeline.id);
-                if let Err(e) = pipeline.event_loop.send(msg) {
-                    send_errors.push((pipeline.id, e));
+                if let Err(error) = pipeline.event_loop.send(
+                    ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
+                        pipeline.id,
+                        pipeline.focus_sequence,
+                        child_browsing_context_id,
+                    ),
+                ) {
+                    send_errors.push((pipeline.id, error));
                 }
             }
         }
 
-        for (pipeline_id, e) in send_errors {
-            self.handle_send_error(pipeline_id, e);
+        for (pipeline_id, error) in send_errors {
+            self.handle_send_error(pipeline_id, error);
         }
     }
 
@@ -4753,7 +4744,7 @@ where
                 let _ = response_sender.send(is_open);
             },
             WebDriverCommandMsg::FocusBrowsingContext(browsing_context_id) => {
-                self.handle_focus_remote_document_msg(browsing_context_id);
+                self.handle_focus_remote_browsing_context(browsing_context_id);
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
@@ -5094,9 +5085,16 @@ where
 
         // If the browsing context is focused, focus the document
         let msg = if is_focused {
-            ScriptThreadMessage::FocusDocument(pipeline_id, pipeline.focus_sequence)
+            ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(
+                pipeline_id,
+                pipeline.focus_sequence,
+                None,
+            )
         } else {
-            ScriptThreadMessage::Unfocus(pipeline_id, pipeline.focus_sequence)
+            ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(
+                pipeline_id,
+                pipeline.focus_sequence,
+            )
         };
         if let Err(e) = pipeline.event_loop.send(msg) {
             self.handle_send_error(pipeline_id, e);

@@ -7,14 +7,13 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use fonts::{
-    FontContext, FontRef, GlyphStore, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
-};
+use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::text::is_bidi_control;
+use style::Zero;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
@@ -54,13 +53,50 @@ enum SegmentStartSoftWrapPolicy {
     FollowLinebreaker,
 }
 
-/// A data structure which contains font and language information about a run of text or
-/// glyphs processed during inline layout.
+/// A data structure which contains information used when shaping a [`TextRunSegment`].
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct FontAndScriptInfo {
+    /// The font used when shaping a [`TextRunSegment`].
     pub font: FontRef,
+    /// The script used when shaping a [`TextRunSegment`].
     pub script: Script,
+    /// The BiDi [`Level`] used when shaping a [`TextRunSegment`].
     pub bidi_level: Level,
+    /// The [`Language`] used when shaping a [`TextRunSegment`].
+    pub language: Language,
+    /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
+    /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
+    ///
+    /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
+    /// determine the amount of spacing to apply.
+    pub letter_spacing: Option<Au>,
+    /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
+    pub word_spacing: Option<Au>,
+    /// The [`TextRendering`] value from the original style.
+    pub text_rendering: TextRendering,
+}
+
+impl From<&FontAndScriptInfo> for ShapingOptions {
+    fn from(info: &FontAndScriptInfo) -> Self {
+        let mut flags = ShapingFlags::empty();
+        if info.bidi_level.is_rtl() {
+            flags.insert(ShapingFlags::RTL_FLAG);
+        }
+        if info.letter_spacing.is_some() {
+            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+        };
+        if info.text_rendering == TextRendering::Optimizespeed {
+            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+            flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+        }
+        Self {
+            letter_spacing: info.letter_spacing,
+            word_spacing: info.word_spacing,
+            script: info.script,
+            language: info.language,
+            flags,
+        }
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -103,18 +139,26 @@ impl TextRunSegment {
     /// Update this segment if the Font and Script are compatible. The update will only
     /// ever make the Script specific. Returns true if the new Font and Script are
     /// compatible with this segment or false otherwise.
-    fn update_if_compatible(&mut self, info: &FontAndScriptInfo) -> bool {
-        if self.info.bidi_level != info.bidi_level || !Arc::ptr_eq(&self.info.font, &info.font) {
+    fn update_if_compatible(
+        &mut self,
+        new_font: &FontRef,
+        new_script: Script,
+        new_bidi_level: Level,
+    ) -> bool {
+        if self.info.bidi_level != new_bidi_level || !Arc::ptr_eq(&self.info.font, new_font) {
             return false;
         }
 
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
         }
-        if !is_specific(self.info.script) && is_specific(info.script) {
-            self.info = Arc::new(info.clone());
+        if !is_specific(self.info.script) && is_specific(new_script) {
+            self.info = Arc::new(FontAndScriptInfo {
+                script: new_script,
+                ..(*self.info).clone()
+            });
         }
-        info.script == self.info.script || !is_specific(info.script)
+        new_script == self.info.script || !is_specific(new_script)
     }
 
     fn layout_into_line_items(
@@ -186,8 +230,9 @@ impl TextRunSegment {
         parent_style: &ComputedValues,
         formatting_context_text: &str,
         linebreaker: &mut LineBreaker,
-        shaping_options: &ShapingOptions,
     ) {
+        let options: ShapingOptions = (&*self.info).into();
+
         // Gather the linebreaks that apply to this segment from the inline formatting context's collection
         // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
         // piece of text is processed.
@@ -206,12 +251,11 @@ impl TextRunSegment {
 
         let mut last_slice = self.range.start..self.range.start;
         for break_index in linebreak_iter {
+            let mut options = options;
             if *break_index == self.range.start {
                 self.break_at_start = true;
                 continue;
             }
-
-            let mut options = *shaping_options;
 
             // Extend the slice to the next UAX#14 line break opportunity.
             let mut slice = last_slice.end..*break_index;
@@ -376,87 +420,15 @@ impl TextRun {
         bidi_info: &BidiInfo,
     ) {
         let parent_style = self.inline_styles.style.borrow().clone();
-        let inherited_text_style = parent_style.get_inherited_text().clone();
-        let letter_spacing = inherited_text_style
-            .letter_spacing
-            .0
-            .resolve(parent_style.clone_font().font_size.computed_size());
-        let letter_spacing = if letter_spacing.px() != 0. {
-            Some(app_units::Au::from(letter_spacing))
-        } else {
-            None
-        };
-        let language = parent_style
-            .get_font()
-            ._x_lang
-            .0
-            .parse()
-            .unwrap_or(Language::UND);
-
-        let mut flags = ShapingFlags::empty();
-        if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-            flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
+        let mut segments = self.segment_text_by_font(
+            layout_context,
+            formatting_context_text,
+            bidi_info,
+            &parent_style,
+        );
+        for segment in segments.iter_mut() {
+            segment.shape_text(&parent_style, formatting_context_text, linebreaker);
         }
-        let word_spacing = inherited_text_style.word_spacing.to_length().map(Au::from);
-
-        let segments = self
-            .segment_text_by_font(
-                layout_context,
-                formatting_context_text,
-                bidi_info,
-                &parent_style,
-            )
-            .into_iter()
-            .map(|mut segment| {
-                let word_spacing = word_spacing.unwrap_or_else(|| {
-                    let space_width = segment
-                        .info
-                        .font
-                        .glyph_index(' ')
-                        .map(|glyph_id| segment.info.font.glyph_h_advance(glyph_id))
-                        .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
-                    inherited_text_style
-                        .word_spacing
-                        .to_used_value(Au::from_f64_px(space_width))
-                });
-
-                let mut flags = flags;
-                if segment.info.bidi_level.is_rtl() {
-                    flags.insert(ShapingFlags::RTL_FLAG);
-                }
-
-                // From https://www.w3.org/TR/css-text-3/#cursive-script:
-                // Cursive scripts do not admit gaps between their letters for either
-                // justification or letter-spacing.
-                let letter_spacing = if is_cursive_script(segment.info.script) {
-                    None
-                } else {
-                    letter_spacing
-                };
-                if letter_spacing.is_some() {
-                    flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-                };
-
-                let shaping_options = ShapingOptions {
-                    letter_spacing,
-                    word_spacing: Some(word_spacing),
-                    script: segment.info.script,
-                    language,
-                    flags,
-                };
-
-                segment.shape_text(
-                    &parent_style,
-                    formatting_context_text,
-                    linebreaker,
-                    &shaping_options,
-                );
-
-                segment
-            })
-            .collect();
-
         let _ = std::mem::replace(&mut self.shaped_text, segments);
     }
 
@@ -476,9 +448,25 @@ impl TextRun {
         let mut current: Option<TextRunSegment> = None;
         let mut results = Vec::new();
 
-        let lang = parent_style.get_font()._x_lang.clone();
+        let x_lang = parent_style.get_font()._x_lang.clone();
+        let language = x_lang.0.parse().unwrap_or(Language::UND);
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
+
+        let parent_style = self.inline_styles.style.borrow().clone();
+        let inherited_text_style = parent_style.get_inherited_text().clone();
+        let font_size = parent_style.get_font().font_size.computed_size().into();
+        let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
+        let letter_spacing = inherited_text_style
+            .letter_spacing
+            .0
+            .to_used_value(font_size);
+        let letter_spacing = if !letter_spacing.is_zero() {
+            Some(letter_spacing)
+        } else {
+            None
+        };
+        let text_rendering = inherited_text_style.text_rendering;
 
         // The next current character index within the entire inline formatting context's text.
         let mut next_character_index = self.character_range.start;
@@ -500,23 +488,39 @@ impl TextRun {
                 &layout_context.font_context,
                 character,
                 next_character,
-                lang.clone(),
+                language,
             ) else {
                 continue;
             };
 
-            let info = FontAndScriptInfo {
-                font,
-                script: Script::from(character),
-                bidi_level: bidi_info.levels[current_byte_index],
-            };
+            let script = Script::from(character);
+            let bidi_level = bidi_info.levels[current_byte_index];
 
             // If the existing segment is compatible with the character, keep going.
             if let Some(current) = current.as_mut() {
-                if current.update_if_compatible(&info) {
+                if current.update_if_compatible(&font, script, bidi_level) {
                     continue;
                 }
             }
+
+            // From https://www.w3.org/TR/css-text-3/#cursive-script:
+            // Cursive scripts do not admit gaps between their letters for either
+            // justification or letter-spacing.
+            let letter_spacing = if is_cursive_script(script) {
+                None
+            } else {
+                letter_spacing
+            };
+
+            let info = FontAndScriptInfo {
+                font,
+                script,
+                bidi_level,
+                language,
+                word_spacing,
+                letter_spacing,
+                text_rendering,
+            };
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first
@@ -543,7 +547,11 @@ impl TextRun {
                     Arc::new(FontAndScriptInfo {
                         font,
                         script: Script::Common,
+                        language,
                         bidi_level: Level::ltr(),
+                        letter_spacing,
+                        word_spacing,
+                        text_rendering,
                     }),
                     self.text_range.start,
                     self.character_range.start,

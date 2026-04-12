@@ -87,14 +87,14 @@ use icu_locid::LanguageIdentifier;
 use icu_locid::subtags::{Language, language};
 use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
-use layout_api::wrapper_traits::SharedSelection;
+use layout_api::{LayoutNode, SharedSelection};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
 };
 use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::line_break::T as LineBreak;
@@ -269,7 +269,7 @@ impl InlineItem {
     pub(crate) fn repair_style(
         &self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
@@ -1087,7 +1087,7 @@ impl InlineFormattingContextLayout<'_> {
             let mut block_end_position = block_start_position + resolved_block_advance;
             if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
                 if !is_phantom_line {
-                    sequential_layout_state.collapse_margins();
+                    sequential_layout_state.commit_margin();
                 }
 
                 // This amount includes both the block size of the line and any extra space
@@ -1906,7 +1906,7 @@ impl InlineFormattingContext {
     pub(crate) fn repair_style(
         &self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();

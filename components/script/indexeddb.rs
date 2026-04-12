@@ -9,17 +9,18 @@ use itertools::Itertools;
 use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::jsapi::{
-    ClippedTime, IsArrayBufferObject, IsDetachedArrayBufferObject, JS_GetArrayBufferViewBuffer,
-    JS_GetStringLength, JS_IsArrayBufferViewObject, PropertyKey,
+    ClippedTime, HandleValueArray, IsArrayBufferObject, IsDetachedArrayBufferObject,
+    JS_GetArrayBufferViewBuffer, JS_GetStringLength, JS_IsArrayBufferViewObject, NewArrayObject,
+    PropertyKey,
 };
-use js::jsval::{DoubleValue, JSVal, UndefinedValue};
+use js::jsval::{DoubleValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::SameValue;
 use js::rust::wrappers2::{
     GetArrayLength, IsArrayObject, JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier,
     JS_NewObject, NewDateObject, ObjectIsDate,
 };
 use js::rust::{HandleValue, MutableHandleValue};
-use js::typedarray::{ArrayBuffer, ArrayBufferView};
+use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -46,21 +47,107 @@ pub fn key_type_to_jsval(
     key: &IndexedDBKeyType,
     mut result: MutableHandleValue,
 ) {
+    // Step 1. Let type be key’s type.
+    // Step 2. Let value be key’s value.
+    // Step 3. Switch on type:
     match key {
+        // Step 3. If type is number, return an ECMAScript Number value equal to value.
         IndexedDBKeyType::Number(n) => result.set(DoubleValue(*n)),
+
+        // Step 3. If type is string, return an ECMAScript String value equal to value.
         IndexedDBKeyType::String(s) => s.safe_to_jsval(cx, result),
-        IndexedDBKeyType::Binary(b) => b.safe_to_jsval(cx, result),
-        IndexedDBKeyType::Date(d) => {
-            let time = js::jsapi::ClippedTime { t: *d };
-            let date = unsafe { js::rust::wrappers2::NewDateObject(cx, time) };
+
+        IndexedDBKeyType::Date(d) => unsafe {
+            // Step 3.1. Let date be the result of executing the ECMAScript Date
+            // constructor with the single argument value.
+            let date = NewDateObject(cx, ClippedTime { t: *d });
+
+            // Step 3.2. Assert: date is not an abrupt completion.
+            assert!(
+                !date.is_null(),
+                "Failed to convert IndexedDB date key into a Date"
+            );
+
+            // Step 3.3. Return date.
             date.safe_to_jsval(cx, result);
         },
-        IndexedDBKeyType::Array(a) => {
-            rooted!(&in(cx) let mut values = vec![JSVal::default(); a.len()]);
-            for (i, key) in a.iter().enumerate() {
-                key_type_to_jsval(cx, key, values.handle_mut_at(i));
+
+        IndexedDBKeyType::Binary(b) => unsafe {
+            // Step 3.1. Let len be value’s length.
+            let len = b.len();
+
+            // Step 3.2. Let buffer be the result of executing the ECMAScript
+            // ArrayBuffer constructor with len.
+            rooted!(&in(cx) let mut buffer = ptr::null_mut::<js::jsapi::JSObject>());
+            assert!(
+                ArrayBuffer::create(cx.raw_cx(), CreateWith::Length(len), buffer.handle_mut())
+                    .is_ok(),
+                "Failed to convert IndexedDB binary key into an ArrayBuffer"
+            );
+
+            // Step 3.3. Assert: buffer is not an abrupt completion.
+
+            // Step 3.4. Set the entries in buffer’s [[ArrayBufferData]] internal slot to the
+            // entries in value.
+            let mut array_buffer = ArrayBuffer::from(buffer.get())
+                .expect("ArrayBuffer::create should create an ArrayBuffer object");
+            array_buffer.as_mut_slice().copy_from_slice(b);
+
+            // Step 3.5. Return buffer.
+            result.set(ObjectValue(buffer.get()));
+        },
+
+        IndexedDBKeyType::Array(a) => unsafe {
+            // Step 3.1. Let array be the result of executing the ECMAScript Array
+            // constructor with no arguments.
+            let empty_args = HandleValueArray::empty();
+            rooted!(&in(cx) let array = NewArrayObject(cx.raw_cx(), &empty_args));
+
+            // Step 3.2. Assert: array is not an abrupt completion.
+            assert!(
+                !array.get().is_null(),
+                "Failed to convert IndexedDB array key into an Array"
+            );
+
+            // Step 3.3. Let len be value’s size.
+            let len = a.len();
+
+            // Step 3.4. Let index be 0.
+            let mut index = 0;
+
+            // Step 3.5. While index is less than len:
+            while index < len {
+                // Step 3.5.1. Let entry be the result of converting a key to a value with
+                // value[index].
+                rooted!(&in(cx) let mut entry = UndefinedValue());
+                key_type_to_jsval(cx, &a[index], entry.handle_mut());
+
+                // Step 3.5.2. Let status be CreateDataProperty(array, index, entry).
+                let index_property = CString::new(index.to_string());
+                assert!(
+                    index_property.is_ok(),
+                    "Failed to convert IndexedDB array index to CString"
+                );
+                let index_property = index_property.unwrap();
+                let status = define_dictionary_property(
+                    cx.into(),
+                    array.handle(),
+                    index_property.as_c_str(),
+                    entry.handle(),
+                );
+
+                // Step 3.5.3. Assert: status is true.
+                assert!(
+                    status.is_ok(),
+                    "CreateDataProperty on a fresh JS array should not fail"
+                );
+
+                // Step 3.5.4. Increase index by 1.
+                index += 1;
             }
-            values.safe_to_jsval(cx, result);
+
+            // Step 3.6. Return array.
+            result.set(ObjectValue(array.get()));
         },
     }
 }
@@ -561,7 +648,7 @@ pub(crate) fn evaluate_key_path_on_value(
                         object.handle(),
                         identifier_name.as_c_str(),
                         current_value.handle_mut(),
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     ) {
                         Ok(true) => {},
                         Ok(false) => return Ok(EvaluationResult::Failure),
@@ -646,7 +733,7 @@ pub(crate) fn can_inject_key_into_value(
                 current_object.handle(),
                 identifier_name.as_c_str(),
                 current_value.handle_mut(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         } {
             Ok(true) => {},
@@ -726,7 +813,7 @@ pub(crate) fn inject_key_into_value(
                 current_object.handle(),
                 identifier_name.as_c_str(),
                 current_value.handle_mut(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         } {
             Ok(true) => {},

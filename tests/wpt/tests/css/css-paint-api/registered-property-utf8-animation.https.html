@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Values of UTF-8 registered properties reach worklet</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/">
+<link rel="match" href="parse-input-arguments-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<script src="./resources/utils.js"></script>
+<body>
+<div id="target"></div>
+<script>
+    try {
+      CSS.registerProperty({
+        name: '--café',
+        syntax: '<number>',
+        initialValue: '0',
+        inherits: false
+      });
+
+      target.animate([
+          {'--café': '8', easing: 'steps(1, end)'},
+          {'--café': '0'}], {
+          duration: 1200000,
+      });
+
+      expectWorkletValue(target, '--café', '[CSSUnitValue 8]');
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

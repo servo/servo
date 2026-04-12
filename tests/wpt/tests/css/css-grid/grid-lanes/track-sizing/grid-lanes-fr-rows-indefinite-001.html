@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: fractional row tracks need additional pass</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="../../../reference/ref-filled-green-100px-square-only.html">
+  <style>
+    .grid-lanes {
+        display: grid-lanes;
+        grid-template-rows: repeat(2, minmax(0, 0.4fr));
+        flow-tolerance: 0;
+        width: 100px;
+        background: red;
+    }
+    .item {
+        grid-row: 2 / span 1;
+        background: green;
+        width: 100px;
+        height: 100px;
+        position: relative;
+        top: -32px;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Adapted from flex-sizing-rows-indefinite-height-002.html.
+    Verifies two-pass fr track sizing with indefinite block size in grid-lanes.
+
+    Grid-lanes container: 2 rows of minmax(0, 0.4fr), no explicit height.
+    Item: 100px tall, placed in row 2, offset by top: -32px.
+
+    Calculations for fr size: (https://drafts.csswg.org/css-grid-2/#algo-find-fr-size).
+
+    Pass 1 (block size indefinite):
+      Leftover space = 100px because of item's max-content
+      Sum of flex-factors = 0.4 + 0.4 -> clamp to 1
+      1fr size = 100 (leftover space) / 1 (sum of flex-factors) = 100
+      Each row height = 0.4 x 100 = 40px
+
+    Pass 2 (block size definite = 80px):
+      Leftover space = 80px
+      Sum of flex-factors = 0.4 + 0.4 -> clamp to 1
+      1fr size = 80 (leftover space) / 1 (sum of flex-factors) = 80
+      Each row height = 0.4 x 80 = 32px
+
+    The item is still 100px height and placed in row 2. With the second pass
+    where the rows are sized to 32px, shifting the item up 32px should cause
+    the item to cover top 32px of the container.
+  -->
+  <p>Test passes if there is a filled green square.</p>
+  <div class="grid-lanes">
+      <span class="item"></span>
+  </div>
+</body>
+</html>

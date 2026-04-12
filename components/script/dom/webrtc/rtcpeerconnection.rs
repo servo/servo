@@ -86,7 +86,7 @@ impl WebRtcSignaller for RTCSignaller {
         let this = self.trusted.clone();
         self.task_source.queue(task!(on_ice_candidate: move || {
             let this = this.root();
-            this.on_ice_candidate(candidate, CanGc::note());
+            this.on_ice_candidate(candidate, CanGc::deprecated_note());
         }));
     }
 
@@ -95,7 +95,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(on_negotiation_needed: move || {
                 let this = this.root();
-                this.on_negotiation_needed(CanGc::note());
+                this.on_negotiation_needed(CanGc::deprecated_note());
             }));
     }
 
@@ -104,7 +104,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(update_gathering_state: move || {
                 let this = this.root();
-                this.update_gathering_state(state, CanGc::note());
+                this.update_gathering_state(state, CanGc::deprecated_note());
             }));
     }
 
@@ -113,7 +113,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(update_ice_connection_state: move || {
                 let this = this.root();
-                this.update_ice_connection_state(state, CanGc::note());
+                this.update_ice_connection_state(state, CanGc::deprecated_note());
             }));
     }
 
@@ -122,7 +122,7 @@ impl WebRtcSignaller for RTCSignaller {
         self.task_source
             .queue(task!(update_signaling_state: move || {
                 let this = this.root();
-                this.update_signaling_state(state, CanGc::note());
+                this.update_signaling_state(state, CanGc::deprecated_note());
             }));
     }
 
@@ -131,7 +131,7 @@ impl WebRtcSignaller for RTCSignaller {
         let id = *id;
         self.task_source.queue(task!(on_add_stream: move || {
             let this = this.root();
-            this.on_add_stream(id, ty, CanGc::note());
+            this.on_add_stream(id, ty, CanGc::deprecated_note());
         }));
     }
 
@@ -148,7 +148,7 @@ impl WebRtcSignaller for RTCSignaller {
                 let this = this.root();
                 let global = this.global();
                 let _ac = enter_realm(&*global);
-                this.on_data_channel_event(channel, event, CanGc::note());
+                this.on_data_channel_event(channel, event, CanGc::deprecated_note());
             }));
     }
 
@@ -463,7 +463,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.offer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::note());
+                            promise.resolve_native(&init, CanGc::deprecated_note());
                         }
                     }
                 }));
@@ -492,7 +492,7 @@ impl RTCPeerConnection {
                     } else {
                         let init: RTCSessionDescriptionInit = desc.convert();
                         for promise in this.answer_promises.borrow_mut().drain(..) {
-                            promise.resolve_native(&init, CanGc::note());
+                            promise.resolve_native(&init, CanGc::deprecated_note());
                         }
                     }
                 }));
@@ -661,11 +661,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         let desc = RTCSessionDescription::Constructor(
                             this.global().as_window(),
                             None,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                             &desc,
                         ).unwrap();
                         this.local_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&(), CanGc::note())
+                        trusted_promise.root().resolve_native(&(), CanGc::deprecated_note())
                     }));
                 }),
             );
@@ -704,11 +704,11 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                         let desc = RTCSessionDescription::Constructor(
                             this.global().as_window(),
                             None,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                             &desc,
                         ).unwrap();
                         this.remote_description.set(Some(&desc));
-                        trusted_promise.root().resolve_native(&(), CanGc::note())
+                        trusted_promise.root().resolve_native(&(), CanGc::deprecated_note())
                     }));
                 }),
             );
@@ -777,7 +777,14 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         label: USVString,
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(&self.global(), self, label, init, None, CanGc::note())
+        RTCDataChannel::new(
+            &self.global(),
+            self,
+            label,
+            init,
+            None,
+            CanGc::deprecated_note(),
+        )
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver>
@@ -786,7 +793,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         _track_or_kind: MediaStreamTrackOrString,
         init: &RTCRtpTransceiverInit,
     ) -> DomRoot<RTCRtpTransceiver> {
-        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::note())
+        RTCRtpTransceiver::new(&self.global(), init.direction, CanGc::deprecated_note())
     }
 }
 

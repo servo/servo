@@ -326,7 +326,7 @@ impl ServoParser {
             ParserKind::ScriptCreated,
             None,
             None,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
         document.set_current_parser(Some(&parser));
     }
@@ -1249,7 +1249,7 @@ impl ParserContext {
             &document.global(),
             CrossProcessInstant::now(),
             document,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         );
         self.pushed_entry_index = document
             .global()
@@ -1780,7 +1780,7 @@ impl TreeSink for Sink {
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
-            control.set_form_owner_from_parser(&form, CanGc::note());
+            control.set_form_owner_from_parser(&form, CanGc::deprecated_note());
         }
     }
 
@@ -1882,7 +1882,7 @@ impl TreeSink for Sink {
                 attr.name,
                 DOMString::from(String::from(attr.value)),
                 None,
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
         }
     }

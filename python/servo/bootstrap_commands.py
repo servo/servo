@@ -14,6 +14,7 @@ import json
 import os
 import os.path as path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -152,6 +153,9 @@ class MachCommands(CommandBase):
                 old_toolchains.append(toolchain)
 
         removing_anything = False
+        if shutil.which("rustup") is None:
+            print("rustup not found. Cannot list or remove old toolchains.")
+            return
         stdout = subprocess.check_output(["rustup", "toolchain", "list"])
         for toolchain_with_host in stdout.split():
             for old in old_toolchains:

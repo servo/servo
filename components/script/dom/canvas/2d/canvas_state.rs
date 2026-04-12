@@ -2364,12 +2364,7 @@ impl CanvasState {
 
             let script = Script::from(character);
 
-            let font = font_group.find_by_codepoint(
-                font_context,
-                character,
-                next_char,
-                x_language.clone(),
-            );
+            let font = font_group.find_by_codepoint(font_context, character, next_char, language);
 
             if !is_variation_selector(character) &&
                 !current_text_run.script_and_font_compatible(script, &font)

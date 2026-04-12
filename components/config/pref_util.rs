@@ -98,9 +98,21 @@ impl_pref_from! {
 impl_from_pref! {
     PrefValue::Float => f64,
     PrefValue::Int => i64,
-    PrefValue::UInt => u64,
     PrefValue::Str => String,
     PrefValue::Bool => bool,
+}
+
+// The default generated from `impl_from_pref` would cause panic
+// when converting from PrefValue::Int.
+impl TryFrom<PrefValue> for u64 {
+    type Error = String;
+    fn try_from(other: PrefValue) -> Result<Self, Self::Error> {
+        match other {
+            PrefValue::UInt(value) => Ok(value),
+            PrefValue::Int(value) if value >= 0 => Ok(value as u64),
+            _ => Err(format!("Cannot convert {other:?} to u64")),
+        }
+    }
 }
 
 impl From<[f64; 4]> for PrefValue {

@@ -82,6 +82,13 @@ impl Selection {
     }
 
     pub(crate) fn queue_selectionchange_task(&self) {
+        // https://w3c.github.io/editing/docs/execCommand/#state-override
+        // https://w3c.github.io/editing/docs/execCommand/#value-override
+        // > Whenever the number of ranges in the selection changes to something different,
+        // > and whenever a boundary point of the range at a given index in the selection changes
+        // > to something different, the state override and value override must be unset for every command.
+        self.document.clear_command_overrides();
+
         if self.task_queued.get() {
             // Spec doesn't specify not to queue multiple tasks,
             // but it's much easier to code range operations if
@@ -97,7 +104,7 @@ impl Selection {
                 task!(selectionchange_task_steps: move || {
                     let this = this.root();
                     this.task_queued.set(false);
-                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
+                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::deprecated_note());
                 })
             );
         self.task_queued.set(true);

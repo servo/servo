@@ -109,7 +109,6 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
-use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -130,7 +129,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
+use crate::dom::types::{AbortSignal, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
@@ -207,7 +206,6 @@ impl Drop for AutoCloseWorker {
 #[dom_struct]
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
-    crypto: MutNullableDom<Crypto>,
 
     /// A [`TaskManager`] for this [`GlobalScope`].
     task_manager: OnceCell<TaskManager>,
@@ -230,9 +228,6 @@ pub(crate) struct GlobalScope {
         >,
     >,
 
-    /// <https://cookiestore.spec.whatwg.org/#globals>
-    cookie_store: MutNullableDom<CookieStore>,
-
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
     indexeddb: MutNullableDom<IDBFactory>,
 
@@ -242,10 +237,6 @@ pub(crate) struct GlobalScope {
     /// Pipeline id associated with this global.
     #[no_trace]
     pipeline_id: PipelineId,
-
-    /// A flag to indicate whether the developer tools has requested
-    /// live updates from the worker.
-    devtools_wants_updates: Cell<bool>,
 
     /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, Instant>>,
@@ -611,7 +602,7 @@ impl MessageListener {
                 self.task_source
                     .queue(task!(try_complete_disentanglement: move || {
                         let global = context.root();
-                        global.try_complete_disentanglement(port_id, CanGc::note());
+                        global.try_complete_disentanglement(port_id, CanGc::deprecated_note());
                     }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
@@ -652,7 +643,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::deprecated_note());
                         });
                         self.task_source.queue(task);
 
@@ -674,7 +665,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::deprecated_note());
                         });
 
                         self.task_source.queue(task);
@@ -702,7 +693,7 @@ impl FileListener {
                     FileListenerTarget::Stream(trusted_stream) => {
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted_stream.root();
-                            stream_handle_eof(&stream, CanGc::note());
+                            stream_handle_eof(&stream, CanGc::deprecated_note());
                         });
 
                         self.task_source.queue(task);
@@ -728,7 +719,7 @@ impl FileListener {
                         FileListenerTarget::Stream(trusted_stream) => {
                             self.task_source.queue(task!(error_stream: move || {
                                 let stream = trusted_stream.root();
-                                stream_handle_incoming(&stream, error, CanGc::note());
+                                stream_handle_incoming(&stream, error, CanGc::deprecated_note());
                             }));
                         },
                     }
@@ -778,13 +769,11 @@ impl GlobalScope {
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
-            crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            cookie_store: Default::default(),
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
-            devtools_wants_updates: Default::default(),
+
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
             devtools_chan,
@@ -1358,7 +1347,7 @@ impl GlobalScope {
                                 rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::note()) {
+                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::deprecated_note()) {
                                     // Step 10.4, Fire an event named message at destination.
                                     MessageEvent::dispatch_jsval(
                                         destination.upcast(),
@@ -1367,11 +1356,11 @@ impl GlobalScope {
                                         Some(&origin.ascii_serialization()),
                                         None,
                                         ports,
-                                        CanGc::note()
+                                        CanGc::deprecated_note()
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::note());
+                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::deprecated_note());
                                 }
                             })
                         );
@@ -2414,22 +2403,6 @@ impl GlobalScope {
         unsafe { SafeJSContext::from_ptr(cx) }
     }
 
-    pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self, can_gc))
-    }
-
-    pub(crate) fn cookie_store(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
-        self.cookie_store.or_init(|| CookieStore::new(self, can_gc))
-    }
-
-    pub(crate) fn live_devtools_updates(&self) -> bool {
-        self.devtools_wants_updates.get()
-    }
-
-    pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
-        self.devtools_wants_updates.set(value);
-    }
-
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
         let mut timers = self.console_timers.borrow_mut();
         if timers.len() >= 10000 {
@@ -3003,7 +2976,7 @@ impl GlobalScope {
     /// Returns the idb factory for this global.
     pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
         self.indexeddb
-            .or_init(|| IDBFactory::new(self, CanGc::note()))
+            .or_init(|| IDBFactory::new(self, CanGc::deprecated_note()))
     }
 
     pub(crate) fn get_existing_indexeddb(&self) -> Option<DomRoot<IDBFactory>> {

@@ -11,6 +11,7 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::inheritance::Castable;
 use servo_base::generic_channel::GenericSend;
+use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, SyncOperation,
@@ -59,6 +60,33 @@ pub struct IDBFactory {
 }
 
 impl IDBFactory {
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key-for-non-storage-purposes>
+    fn obtain_storage_key_for_non_storage_purposes(environment: &GlobalScope) -> ImmutableOrigin {
+        // Step 1: Let origin be environment’s origin if environment is an environment settings object; otherwise environment’s creation URL’s origin.
+        // Step 2: Return a tuple consisting of origin.
+        environment.origin().immutable().clone()
+    }
+
+    /// <https://storage.spec.whatwg.org/#obtain-a-storage-key>
+    fn obtain_storage_key(environment: &GlobalScope) -> Option<ImmutableOrigin> {
+        // Step 1: Let key be the result of running obtain a storage key for non-storage purposes
+        // with environment.
+        let key = Self::obtain_storage_key_for_non_storage_purposes(environment);
+
+        // Step 2: If key's origin is an opaque origin, then return failure.
+        if let ImmutableOrigin::Opaque(_) = key {
+            return None;
+        }
+
+        // Step 3: If the user has disabled storage, then return failure.
+        if !pref!(dom_indexeddb_enabled) {
+            return None;
+        }
+
+        // Step 4: Return key.
+        Some(key)
+    }
+
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
@@ -219,9 +247,10 @@ impl IDBFactory {
                 Ok(inner) => inner,
                 Err(err) => return error!("Error in IndexedDB factory callback {:?}.", err),
             };
+            // Step 5.3: Queue a database task to run these steps:
             task_source.queue(task!(set_request_result_to_database: move || {
                 let factory = response_listener.root();
-                factory.handle_connection_message(response, CanGc::note())
+                factory.handle_connection_message(response, CanGc::deprecated_note())
             }));
         })
         .expect("Could not create open database callback");
@@ -439,6 +468,7 @@ impl IDBFactory {
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn open_database(
         &self,
+        storage_key: ImmutableOrigin,
         name: DOMString,
         version: Option<u64>,
         request: &IDBOpenDBRequest,
@@ -454,9 +484,12 @@ impl IDBFactory {
 
         let callback = self.get_or_setup_callback();
 
+        // Step 5: Run these steps in parallel:
+        // Step 5.1: Let result be the result of opening a database connection,
+        // with storageKey, name, version if given and undefined otherwise, and request.
         let open_operation = SyncOperation::OpenDatabase(
             callback,
-            global.origin().immutable().clone(),
+            storage_key,
             name.to_string(),
             version,
             request.get_id(),
@@ -509,26 +542,23 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             ));
         };
 
-        // Step 2: Let origin be the origin of the global scope used to
-        // access this IDBFactory.
-        // TODO: update to 3.0 spec.
-        // Let environment be this’s relevant settings object.
+        // Step 2: Let environment be this’s relevant settings object.
         let global = self.global();
-        let origin = global.origin();
 
-        // Step 3: if origin is an opaque origin,
-        // throw a "SecurityError" DOMException and abort these steps.
-        // TODO: update to 3.0 spec.
-        // Let storageKey be the result of running obtain a storage key given environment.
-        if let ImmutableOrigin::Opaque(_) = origin.immutable() {
+        // Step 3: Let storageKey be the result of running obtain a storage key given environment.
+        // If failure is returned, then throw a "SecurityError" DOMException and abort these steps.
+        let Some(storage_key) = Self::obtain_storage_key(&global) else {
             return Err(Error::Security(None));
-        }
+        };
 
         // Step 4: Let request be a new open request.
-        let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
+        let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 5: Runs in parallel
-        if self.open_database(name, version, &request).is_err() {
+        if self
+            .open_database(storage_key, name, version, &request)
+            .is_err()
+        {
             return Err(Error::Operation(None));
         }
 
@@ -543,21 +573,18 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
         // Step 2: Let storageKey be the result of running obtain a storage key given environment.
         // If failure is returned, then throw a "SecurityError" DOMException and abort these steps.
-        // TODO: use a storage key.
-        let origin = global.origin();
-
-        // Legacy step 2: if origin is an opaque origin,
-        // throw a "SecurityError" DOMException and abort these steps.
-        // TODO: remove when a storage key is used.
-        if let ImmutableOrigin::Opaque(_) = origin.immutable() {
+        let Some(storage_key) = Self::obtain_storage_key(&global) else {
             return Err(Error::Security(None));
-        }
+        };
 
         // Step 3: Let request be a new open request
-        let request = IDBOpenDBRequest::new(&self.global(), CanGc::note());
+        let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 4: Runs in parallel
-        if request.delete_database(name.to_string()).is_err() {
+        if request
+            .delete_database(storage_key, name.to_string())
+            .is_err()
+        {
             return Err(Error::Operation(None));
         }
 
@@ -567,12 +594,19 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
 
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases>
     fn Databases(&self, cx: &mut JSContext) -> Rc<Promise> {
-        // Step 1: Let environment be this’s relevant settings object
+        // Step 1: Let environment be this’s relevant settings object.
         let global = self.global();
 
         // Step 2: Let storageKey be the result of running obtain a storage key given environment.
-        // If failure is returned, then return a promise rejected with a "SecurityError" DOMException
-        // TODO: implement storage keys.
+        // If failure is returned, then return a promise rejected with a "SecurityError" DOMException.
+        let storage_key = match Self::obtain_storage_key(&global) {
+            Some(storage_key) => storage_key,
+            None => {
+                let p = Promise::new(&global, CanGc::from_cx(cx));
+                p.reject_error(Error::Security(None), CanGc::from_cx(cx));
+                return p;
+            },
+        };
 
         // Step 3: Let p be a new promise.
         let p = Promise::new(&global, CanGc::from_cx(cx));
@@ -593,7 +627,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                 return error!("Callback for `DataBases` called twice.");
             };
 
-            // Step 3.5: Queue a database task to resolve p with result.
+            // Step 4.4: Queue a database task to resolve p with result.
             task_source.queue(task!(set_request_result_to_database: move |cx| {
                 let promise = trusted_promise.root();
                 match result {
@@ -617,10 +651,9 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             }
             }));
         })
-        .expect("Could not create delete database callback");
+        .expect("Could not create databases callback");
 
-        let get_operation =
-            SyncOperation::GetDatabases(callback, global.origin().immutable().clone());
+        let get_operation = SyncOperation::GetDatabases(callback, storage_key);
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(get_operation))

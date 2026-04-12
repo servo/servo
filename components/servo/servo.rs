@@ -121,7 +121,17 @@ mod media_platform {
     }
 }
 
-#[cfg(not(feature = "media-gstreamer"))]
+#[cfg(all(not(feature = "media-gstreamer"), target_env = "ohos"))]
+mod media_platform {
+    use servo_media_ohos::OhosBackend;
+
+    use super::ServoMedia;
+    pub fn init() {
+        ServoMedia::init::<OhosBackend>();
+    }
+}
+
+#[cfg(all(not(feature = "media-gstreamer"), not(target_env = "ohos")))]
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {
@@ -149,7 +159,7 @@ struct ServoInner {
     net_embedder_receiver: Receiver<NetToEmbedderMsg>,
     constellation_embedder_receiver: Receiver<ConstellationToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
-    site_data_manager: Rc<RefCell<SiteDataManager>>,
+    site_data_manager: SiteDataManager,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -930,12 +940,12 @@ impl Servo {
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
             ))),
-            site_data_manager: Rc::new(RefCell::new(SiteDataManager::new(
+            site_data_manager: SiteDataManager::new(
                 public_resource_threads,
                 private_resource_threads,
                 public_storage_threads,
                 private_storage_threads,
-            ))),
+            ),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),
@@ -1010,8 +1020,8 @@ impl Servo {
         self.0.network_manager.borrow()
     }
 
-    pub fn site_data_manager<'a>(&'a self) -> Ref<'a, SiteDataManager> {
-        self.0.site_data_manager.borrow()
+    pub fn site_data_manager(&self) -> &SiteDataManager {
+        &self.0.site_data_manager
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {

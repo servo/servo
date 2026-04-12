@@ -7,8 +7,9 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleArgument, ConsoleArgumentObject, ConsoleArgumentPropertyValue, ConsoleLogLevel,
-    ConsoleMessage, ConsoleMessageFields, ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
+    ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields, DebuggerValue, ObjectPreview,
+    PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg, StackFrame,
+    get_time_stamp,
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
@@ -19,7 +20,8 @@ use js::rust::wrappers::{
     JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
 use js::rust::{
-    CapturedJSStack, HandleObject, HandleValue, IdVector, ToString, describe_scripted_caller,
+    CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
+    describe_scripted_caller,
 };
 use script_bindings::conversions::get_dom_class;
 
@@ -45,7 +47,7 @@ impl Console {
     #[expect(unsafe_code)]
     fn build_message(
         level: ConsoleLogLevel,
-        arguments: Vec<ConsoleArgument>,
+        arguments: Vec<DebuggerValue>,
         stacktrace: Option<Vec<StackFrame>>,
     ) -> ConsoleMessage {
         let cx = GlobalScope::get_cx();
@@ -71,7 +73,8 @@ impl Console {
 
         Self::send_to_embedder(global, level.clone(), formatted_message);
 
-        let console_message = Self::build_message(level, vec![message.into()], None);
+        let console_message =
+            Self::build_message(level, vec![DebuggerValue::StringValue(message)], None);
 
         Self::send_to_devtools(global, console_message);
     }
@@ -84,10 +87,38 @@ impl Console {
     ) {
         let cx = GlobalScope::get_cx();
 
-        let arguments = messages
-            .iter()
-            .map(|msg| console_argument_from_handle_value(cx, *msg, &mut Vec::new()))
-            .collect();
+        // If the first argument is a string, apply sprintf-style substitutions per the
+        // WHATWG Console spec formatter. The result is a single formatted string followed
+        // by any arguments that were not consumed by a substitution specifier.
+        let (arguments, embedder_msg) = if !messages.is_empty() && messages[0].is_string() {
+            let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
+            let remaining = &messages[consumed..];
+
+            let mut arguments: Vec<DebuggerValue> =
+                vec![DebuggerValue::StringValue(formatted.clone())];
+            for msg in remaining {
+                arguments.push(console_argument_from_handle_value(
+                    cx,
+                    *msg,
+                    &mut Vec::new(),
+                ));
+            }
+
+            let embedder_msg = if remaining.is_empty() {
+                formatted
+            } else {
+                format!("{formatted} {}", stringify_handle_values(remaining))
+            };
+
+            (arguments, embedder_msg.into())
+        } else {
+            let arguments = messages
+                .iter()
+                .map(|msg| console_argument_from_handle_value(cx, *msg, &mut Vec::new()))
+                .collect();
+            (arguments, stringify_handle_values(&messages))
+        };
+
         let stacktrace = (include_stacktrace == IncludeStackTrace::Yes)
             .then_some(get_js_stack(*GlobalScope::get_cx()));
         let console_message = Self::build_message(level.clone(), arguments, stacktrace);
@@ -95,8 +126,7 @@ impl Console {
         Console::send_to_devtools(global, console_message);
 
         let prefix = global.current_group_label().unwrap_or_default();
-        let msgs = stringify_handle_values(&messages);
-        let formatted_message = format!("{prefix}{msgs}");
+        let formatted_message = format!("{prefix}{embedder_msg}");
 
         Self::send_to_embedder(global, level, formatted_message);
     }
@@ -142,39 +172,34 @@ fn console_argument_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
-) -> ConsoleArgument {
+) -> DebuggerValue {
     #[expect(unsafe_code)]
     fn inner(
         cx: JSContext,
         handle_value: HandleValue,
         seen: &mut Vec<u64>,
-    ) -> Result<ConsoleArgument, ()> {
+    ) -> Result<DebuggerValue, ()> {
         if handle_value.is_string() {
             let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
             let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
-            return Ok(ConsoleArgument::String(dom_string));
-        }
-
-        if handle_value.is_int32() {
-            let integer = handle_value.to_int32();
-            return Ok(ConsoleArgument::Integer(integer));
+            return Ok(DebuggerValue::StringValue(dom_string));
         }
 
         if handle_value.is_number() {
             let number = handle_value.to_number();
-            return Ok(ConsoleArgument::Number(number));
+            return Ok(DebuggerValue::NumberValue(number));
         }
 
         if handle_value.is_boolean() {
             let boolean = handle_value.to_boolean();
-            return Ok(ConsoleArgument::Boolean(boolean));
+            return Ok(DebuggerValue::BooleanValue(boolean));
         }
 
         if handle_value.is_object() {
             // JS objects can create circular reference, and we want to avoid recursing infinitely
             if seen.contains(&handle_value.asBits_) {
                 // FIXME: Handle this properly
-                return Ok(ConsoleArgument::String("[circular]".into()));
+                return Ok(DebuggerValue::StringValue("[circular]".into()));
             }
 
             seen.push(handle_value.asBits_);
@@ -183,7 +208,11 @@ fn console_argument_from_handle_value(
             debug_assert_eq!(js_value, Some(handle_value.asBits_));
 
             if let Some(console_argument_object) = maybe_argument_object {
-                return Ok(ConsoleArgument::Object(console_argument_object));
+                return Ok(DebuggerValue::ObjectValue {
+                    uuid: "".to_string(),
+                    class: "Object".to_owned(),
+                    preview: Some(console_argument_object),
+                });
             }
 
             return Err(());
@@ -192,15 +221,19 @@ fn console_argument_from_handle_value(
         // FIXME: Handle more complex argument types here
         let stringified_value = stringify_handle_value(handle_value);
 
-        Ok(ConsoleArgument::String(stringified_value.into()))
+        Ok(DebuggerValue::StringValue(stringified_value.into()))
     }
 
     match inner(cx, handle_value, seen) {
         Ok(arg) => arg,
         Err(()) => {
             let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-            report_pending_exception(cx, InRealm::Already(&in_realm_proof), CanGc::note());
-            ConsoleArgument::String("<error>".into())
+            report_pending_exception(
+                cx,
+                InRealm::Already(&in_realm_proof),
+                CanGc::deprecated_note(),
+            );
+            DebuggerValue::StringValue("<error>".into())
         },
     }
 }
@@ -210,7 +243,7 @@ fn console_object_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
-) -> Option<ConsoleArgumentObject> {
+) -> Option<ObjectPreview> {
     rooted!(in(*cx) let object = handle_value.to_object());
     let mut object_class = ESClass::Other;
     if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
@@ -271,18 +304,22 @@ fn console_object_from_handle_value(
             continue;
         };
 
-        own_properties.push(ConsoleArgumentPropertyValue {
-            key,
+        own_properties.push(DevtoolsPropertyDescriptor {
+            name: key,
+            value: console_argument_from_handle_value(cx, property.handle(), seen),
             configurable: descriptor.hasConfigurable_() && descriptor.configurable_(),
             enumerable: descriptor.hasEnumerable_() && descriptor.enumerable_(),
             writable: descriptor.hasWritable_() && descriptor.writable_(),
-            value: console_argument_from_handle_value(cx, property.handle(), seen),
+            is_accessor: false,
         });
     }
 
-    Some(ConsoleArgumentObject {
-        class: "Object".to_owned(),
-        own_properties,
+    Some(ObjectPreview {
+        kind: "Object".to_owned(),
+        own_properties_length: Some(own_properties.len() as u32),
+        own_properties: Some(own_properties),
+        function: None,
+        array_length: None,
     })
 }
 
@@ -468,6 +505,116 @@ fn maybe_stringify_dom_object(cx: JSContext, value: HandleValue) -> Option<DOMSt
         return Some("<error converting DOM object to string>".into());
     }
     Some(repr.into())
+}
+
+/// Apply sprintf-style substitutions to console format arguments per the WHATWG Console spec.
+///
+/// If the first argument is a string, it is treated as a format string where `%s`, `%d`, `%i`,
+/// `%f`, `%o`, `%O`, and `%c` are replaced by subsequent arguments. Returns the formatted string
+/// and the index of the first argument that was not consumed by a substitution.
+///
+/// <https://console.spec.whatwg.org/#formatter>
+#[expect(unsafe_code)]
+fn apply_sprintf_substitutions(cx: JSContext, messages: &[HandleValue]) -> (String, usize) {
+    debug_assert!(!messages.is_empty() && messages[0].is_string());
+
+    let js_string = ptr::NonNull::new(messages[0].to_string()).unwrap();
+    let format_string = unsafe { jsstr_to_string(*cx, js_string) };
+
+    let mut result = String::new();
+    let mut arg_index = 1usize;
+    let mut chars = format_string.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            result.push(c);
+            continue;
+        }
+
+        match chars.peek().copied() {
+            Some('s') => {
+                chars.next();
+                if arg_index < messages.len() {
+                    result.push_str(&stringify_handle_value(messages[arg_index]).to_string());
+                    arg_index += 1;
+                } else {
+                    result.push_str("%s");
+                }
+            },
+            Some('d') | Some('i') => {
+                let spec = chars.next().unwrap();
+                if arg_index < messages.len() {
+                    let num = unsafe { ToNumber(*cx, messages[arg_index]) };
+                    if num.is_err() {
+                        unsafe { jsapi::JS_ClearPendingException(*cx) };
+                    }
+                    arg_index += 1;
+                    format_integer_substitution(&mut result, num);
+                } else {
+                    result.push('%');
+                    result.push(spec);
+                }
+            },
+            Some('f') => {
+                chars.next();
+                if arg_index < messages.len() {
+                    let num = unsafe { ToNumber(*cx, messages[arg_index]) };
+                    if num.is_err() {
+                        unsafe { jsapi::JS_ClearPendingException(*cx) };
+                    }
+                    arg_index += 1;
+                    format_float_substitution(&mut result, num);
+                } else {
+                    result.push_str("%f");
+                }
+            },
+            Some('o') | Some('O') => {
+                let spec = chars.next().unwrap();
+                if arg_index < messages.len() {
+                    result.push_str(&stringify_handle_value(messages[arg_index]).to_string());
+                    arg_index += 1;
+                } else {
+                    result.push('%');
+                    result.push(spec);
+                }
+            },
+            Some('c') => {
+                chars.next();
+                if arg_index < messages.len() {
+                    arg_index += 1; // consume but ignore CSS styling
+                }
+            },
+            Some('%') => {
+                chars.next();
+                result.push('%');
+            },
+            _ => {
+                result.push('%');
+            },
+        }
+    }
+
+    (result, arg_index)
+}
+
+fn format_integer_substitution(result: &mut String, num: Result<f64, ()>) {
+    match num {
+        Ok(n) if n.is_nan() => result.push_str("NaN"),
+        Ok(n) if n == f64::INFINITY => result.push_str("Infinity"),
+        Ok(n) if n == f64::NEG_INFINITY => result.push_str("-Infinity"),
+        Ok(n) => result.push_str(&(n.trunc() as i64).to_string()),
+        Err(_) => result.push_str("NaN"),
+    }
+}
+
+fn format_float_substitution(result: &mut String, num: Result<f64, ()>) {
+    match num {
+        Ok(n) if n.is_nan() => result.push_str("NaN"),
+        Ok(n) if n == f64::INFINITY => result.push_str("Infinity"),
+        Ok(n) if n == f64::NEG_INFINITY => result.push_str("-Infinity"),
+        Ok(n) => result.push_str(&n.to_string()),
+        Err(_) => result.push_str("NaN"),
+    }
 }
 
 fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {

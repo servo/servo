@@ -22,9 +22,9 @@ use std::thread;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, EnvironmentInfo,
-    FrameInfo, FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
-    SourceInfo, WorkerId, get_time_stamp,
+    DebuggerValue, DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation,
+    EnvironmentInfo, FrameInfo, FrameOffset, NavigationState, NetworkEvent, PauseReason,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -53,7 +53,7 @@ use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
 use crate::actors::thread::{ThreadActor, ThreadInterruptedReply};
 use crate::actors::watcher::WatcherActor;
-use crate::actors::worker::{WorkerActor, WorkerType};
+use crate::actors::worker::{WorkerTargetActor, WorkerType};
 use crate::id::IdMap;
 use crate::network_handler::handle_network_event;
 use crate::protocol::{DevtoolsConnection, JsonPacketStream};
@@ -345,7 +345,7 @@ impl DevtoolsInstance {
                             column_number: css_error.column,
                             time_stamp: get_time_stamp(),
                         },
-                        arguments: vec![css_error.msg.into()],
+                        arguments: vec![DebuggerValue::StringValue(css_error.msg)],
                         stacktrace: None,
                     };
                     let console_message =
@@ -482,29 +482,26 @@ impl DevtoolsInstance {
             } else {
                 WorkerType::Dedicated
             };
-            let worker_name = self.registry.new_name::<WorkerActor>();
-            let worker = WorkerActor {
-                name: worker_name.clone(),
-                console_name: console_name.clone(),
+            let worker_name = WorkerTargetActor::register(
+                &self.registry,
+                console_name.clone(),
                 thread_name,
-                worker_id: id,
-                url: page_info.url,
-                type_: worker_type,
-                script_chan: script_sender,
-                streams: Default::default(),
-            };
+                id,
+                page_info.url,
+                worker_type,
+                script_sender,
+            );
             let root_actor = self.registry.find::<RootActor>("root");
             if page_info.is_service_worker {
                 root_actor
                     .service_workers
                     .borrow_mut()
-                    .push(worker.name.clone());
+                    .push(worker_name.clone());
             } else {
-                root_actor.workers.borrow_mut().push(worker.name.clone());
+                root_actor.workers.borrow_mut().push(worker_name.clone());
             }
 
             self.actor_workers.insert(id, worker_name.clone());
-            self.registry.register(worker);
 
             Root::DedicatedWorker(worker_name)
         } else {
@@ -623,7 +620,7 @@ impl DevtoolsInstance {
             let worker_name = self.actor_workers.get(&worker_id)?;
             Some(
                 self.registry
-                    .find::<WorkerActor>(worker_name)
+                    .find::<WorkerTargetActor>(worker_name)
                     .console_name
                     .clone(),
             )
@@ -719,14 +716,14 @@ impl DevtoolsInstance {
 
             let thread_actor_name = self
                 .registry
-                .find::<WorkerActor>(worker_name)
+                .find::<WorkerTargetActor>(worker_name)
                 .thread_name
                 .clone();
             let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
 
             thread_actor.source_manager.add_source(&source_actor);
 
-            let worker_actor = self.registry.find::<WorkerActor>(worker_name);
+            let worker_actor = self.registry.find::<WorkerTargetActor>(worker_name);
 
             for stream in self.connections.lock().unwrap().values_mut() {
                 worker_actor.resource_array(
@@ -803,7 +800,7 @@ impl DevtoolsInstance {
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);
-        let thread = self
+        let thread_actor = self
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
@@ -813,7 +810,7 @@ impl DevtoolsInstance {
         frame_actor.set_offset(frame_offset.column, frame_offset.line);
 
         let msg = ThreadInterruptedReply {
-            from: thread.name(),
+            from: thread_actor.name(),
             type_: "paused".to_owned(),
             actor: pause_name,
             frame: frame_actor.encode(&self.registry),
@@ -842,22 +839,22 @@ impl DevtoolsInstance {
         let browsing_context_actor = self
             .registry
             .find::<BrowsingContextActor>(browsing_context_name);
-        let thread = self
+        let thread_actor = self
             .registry
             .find::<ThreadActor>(&browsing_context_actor.thread_name);
 
-        let source = match thread
+        let source_name = match thread_actor
             .source_manager
             .find_source(&self.registry, &frame.url)
         {
-            Some(source) => source.name(),
+            Some(source_actor) => source_actor.name(),
             None => {
                 warn!("No source actor found for URL: {}", frame.url);
                 return;
             },
         };
 
-        let frame_name = FrameActor::register(&self.registry, source, frame);
+        let frame_name = FrameActor::register(&self.registry, source_name, frame);
 
         let _ = result_sender.send(frame_name);
     }

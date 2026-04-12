@@ -111,11 +111,6 @@ pub(crate) struct HTMLScriptElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-script-external>
     from_an_external_file: Cell<bool>,
 
-    /// `introductionType` value to set in the `CompileOptionsWrapper`, overriding the usual
-    /// `srcScript` or `inlineScript` that this script would normally use.
-    #[no_trace]
-    introduction_type_override: Cell<Option<&'static CStr>>,
-
     /// <https://html.spec.whatwg.org/multipage/#dom-script-blocking>
     blocking: MutNullableDom<DOMTokenList>,
 
@@ -143,7 +138,6 @@ impl HTMLScriptElement {
             line_number: creator.return_line_number(),
             script_text: DomRefCell::new(DOMString::new()),
             from_an_external_file: Cell::new(false),
-            introduction_type_override: Cell::new(None),
             blocking: Default::default(),
             marked_as_render_blocking: Default::default(),
         }
@@ -692,8 +686,8 @@ impl HTMLScriptElement {
         cx: &mut JSContext,
         introduction_type_override: Option<&'static CStr>,
     ) {
-        self.introduction_type_override
-            .set(introduction_type_override);
+        let introduction_type =
+            introduction_type_override.or(Some(IntroductionType::INLINE_SCRIPT));
 
         // Step 1. If el's already started is true, then return.
         if self.already_started.get() {
@@ -968,7 +962,7 @@ impl HTMLScriptElement {
                         base_url,
                         options,
                         ErrorReporting::Unmuted,
-                        introduction_type_override.or(Some(IntroductionType::INLINE_SCRIPT)),
+                        introduction_type,
                         self.line_number as u32,
                         false,
                     );
@@ -1020,6 +1014,7 @@ impl HTMLScriptElement {
                         base_url,
                         options,
                         self.line_number as u32,
+                        introduction_type,
                     );
                     return;
                 },
@@ -1333,7 +1328,9 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
-    fn unbind_from_tree(&self, _context: &UnbindContext, _can_gc: CanGc) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+
         if self.marked_as_render_blocking.replace(false) {
             let document = self.owner_document();
             document.decrement_render_blocking_element_count();

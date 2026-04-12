@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-autospace with supplementary ideographs (reference)</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<style>
+.test {
+  font-size: 40px;
+  border: solid 3px salmon;
+  width: fit-content;
+  margin-bottom: 2px;
+  text-autospace: no-autospace;
+}
+.manual-spacing-right {
+  margin-right: 0.125em;
+}
+.manual-spacing-left {
+  margin-left: 0.125em;
+}
+</style>
+<!-- BMP ideograph -->
+<div class="test"><span class="manual-spacing-right">国</span>A</div>
+<div class="test">A<span class="manual-spacing-left">国</span></div>
+
+<!-- Supplementary ideograph: same spacing expected -->
+<div class="test"><span class="manual-spacing-right">&#x20000;</span>A</div>
+<div class="test">A<span class="manual-spacing-left">&#x20000;</span></div>
+
+<!-- Across a span boundary -->
+<div class="test"><span class="manual-spacing-right">&#x20000;</span><span>A</span></div>
+<div class="test"><span>A</span><span class="manual-spacing-left">&#x20000;</span></div>

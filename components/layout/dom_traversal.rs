@@ -5,12 +5,10 @@
 use std::borrow::Cow;
 
 use html5ever::LocalName;
-use layout_api::wrapper_traits::{
-    PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+use layout_api::{
+    LayoutElement, LayoutElementType, LayoutNode, LayoutNodeType, PseudoElementChain,
 };
-use layout_api::{LayoutElementType, LayoutNodeType};
-use script::layout_dom::ServoThreadSafeLayoutNode;
-use selectors::Element as SelectorsElement;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
@@ -30,15 +28,12 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 /// avoid having to repeat the same arguments in argument lists.
 #[derive(Clone)]
 pub(crate) struct NodeAndStyleInfo<'dom> {
-    pub node: ServoThreadSafeLayoutNode<'dom>,
+    pub node: ServoLayoutNode<'dom>,
     pub style: ServoArc<ComputedValues>,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
-    pub(crate) fn new(
-        node: ServoThreadSafeLayoutNode<'dom>,
-        style: ServoArc<ComputedValues>,
-    ) -> Self {
+    pub(crate) fn new(node: ServoLayoutNode<'dom>, style: ServoArc<ComputedValues>) -> Self {
         Self { node, style }
     }
 
@@ -122,7 +117,7 @@ fn traverse_children_of<'dom>(
         traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
     }
 
-    for child in parent_element_info.node.children() {
+    for child in parent_element_info.node.flat_tree_children() {
         if child.is_text_node() {
             let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
             handler.handle_text(&info, child.text_content());
@@ -137,7 +132,7 @@ fn traverse_children_of<'dom>(
 }
 
 fn traverse_element<'dom>(
-    element: ServoThreadSafeLayoutNode<'dom>,
+    element: ServoLayoutNode<'dom>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
@@ -255,10 +250,7 @@ impl Contents {
         matches!(self, Contents::Replaced(_))
     }
 
-    pub(crate) fn for_element(
-        node: ServoThreadSafeLayoutNode<'_>,
-        context: &LayoutContext,
-    ) -> Self {
+    pub(crate) fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Self {
         if let Some(replaced) = ReplacedContents::for_element(node, context) {
             return Self::Replaced(replaced);
         }
@@ -358,7 +350,7 @@ pub(crate) fn generate_pseudo_element_content(
                             .node
                             .set_uses_content_attribute_with_attr(true);
                         let attr_val =
-                            element.get_attr(&attr.namespace_url, &LocalName::from(attr_name));
+                            element.attribute(&attr.namespace_url, &LocalName::from(attr_name));
                         vec.push(PseudoElementContentItem::Text(
                             attr_val.map_or("".to_string(), |s| s.to_string()),
                         ));

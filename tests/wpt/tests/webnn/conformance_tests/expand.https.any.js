@@ -1325,6 +1325,31 @@ const expandTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'expand int32 2D tensor to 2D',
+    'graph': {
+      'inputs': {
+        'expandInput': {
+          'data': [1, -2, 3],
+          'descriptor': {shape: [1, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'expand',
+        'arguments':
+            [{'input': 'expandInput'}, {'newShape': [3, 3]}],
+        'outputs': 'expandOutput'
+      }],
+      'expectedOutputs': {
+        'expandOutput': {
+          'data': [1, -2, 3, 1, -2, 3, 1, -2, 3],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

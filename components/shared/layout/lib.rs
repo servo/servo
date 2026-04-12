@@ -9,9 +9,12 @@
 #![deny(unsafe_code)]
 
 mod layout_damage;
-pub mod wrapper_traits;
+mod layout_element;
+mod layout_node;
+mod pseudo_element_chain;
 
 use std::any::Any;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
@@ -19,12 +22,15 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
 use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, WebFontDocumentContext};
+use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
+pub use layout_element::{DangerousStyleElement, LayoutElement};
+pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
@@ -34,6 +40,7 @@ use parking_lot::RwLock;
 use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
+pub use pseudo_element_chain::PseudoElementChain;
 use rustc_hash::FxHashMap;
 use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
@@ -62,11 +69,12 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
-pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
+pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
 }
 
-pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
+pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
+pub type GenericLayoutData = dyn GenericLayoutDataTrait;
 
 #[derive(Default, MallocSizeOf)]
 pub struct StyleData {
@@ -120,6 +128,21 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
+/// A selection shared between script and layout. This selection is managed by the DOM
+/// node that maintains it, and can be modified from script. Once modified, layout is
+/// expected to reflect the new selection visual on the next display list update.
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+pub struct ScriptSelection {
+    /// The range of this selection in the DOM node that manages it.
+    pub range: TextByteRange,
+    /// The character range of this selection in the DOM node that manages it.
+    pub character_range: Range<usize>,
+    /// Whether or not this selection is enabled. Selections may be disabled
+    /// when their node loses focus.
+    pub enabled: bool,
+}
+
+pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;
 pub struct HTMLCanvasData {
     pub image_key: Option<ImageKey>,
     pub width: u32,
@@ -614,8 +637,6 @@ pub struct ReflowRequest {
     pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
-    /// The number of objects in the dom #10110
-    pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
     /// The current animation timeline value.

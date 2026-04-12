@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>caretPositionFromPoint in flex/grid containers with tall children</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-caretpositionfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  #container {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+  }
+  /*
+   * pointer-events:none on the children makes the hit-test return the flex
+   * container element.  The container's positionForPoint must then walk its
+   * children to find the one closest to the queried point.
+   */
+  .item {
+    pointer-events: none;
+    font: 16px/1 Ahem;
+  }
+</style>
+<div id="container">
+  <div id="short" class="item" style="height: 20px">AAA</div>
+  <div id="tall"  class="item" style="height: 300px">BBB</div>
+</div>
+<script>
+  test(() => {
+    const tall = document.getElementById("tall");
+    const rect = tall.getBoundingClientRect();
+    // 5 px below #tall's top edge – unambiguously inside #tall.
+    const pos = document.caretPositionFromPoint(rect.left + 10, rect.top + 5);
+    assert_not_equals(pos, null, "should return a CaretPosition");
+    assert_true(tall.contains(pos.offsetNode),
+      "caret near top of #tall must be inside #tall, not #short");
+  }, "caretPositionFromPoint just inside a tall flex child resolves to that child");
+
+  test(() => {
+    const tall = document.getElementById("tall");
+    const rect = tall.getBoundingClientRect();
+    // 100 px below #tall's top edge – well inside #tall.
+    const pos = document.caretPositionFromPoint(rect.left + 10, rect.top + 100);
+    assert_not_equals(pos, null, "should return a CaretPosition");
+    assert_true(tall.contains(pos.offsetNode),
+      "caret deep inside #tall must be inside #tall");
+  }, "caretPositionFromPoint well inside a tall flex child resolves to that child");
+
+  test(() => {
+    const short_ = document.getElementById("short");
+    const rect = short_.getBoundingClientRect();
+    // Vertically centred in #short – sanity check.
+    const pos = document.caretPositionFromPoint(rect.left + 10, rect.top + 10);
+    assert_not_equals(pos, null, "should return a CaretPosition");
+    assert_true(short_.contains(pos.offsetNode),
+      "caret inside #short must be inside #short");
+  }, "caretPositionFromPoint inside the short flex child resolves correctly");
+</script>

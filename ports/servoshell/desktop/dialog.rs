@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::Path;
-use std::sync::Arc;
 
 use egui::{
     Area, Button, CornerRadius, Frame, Id, Modal, Order, RichText, Sense, Stroke, Vec2, pos2,
 };
-use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
+use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog, Filter};
 use euclid::Length;
 use log::{error, warn};
 use servo::{
@@ -64,18 +63,16 @@ impl Dialog {
         let mut dialog = EguiFileDialog::new();
         if !file_picker.filter_patterns().is_empty() {
             let filter_patterns = file_picker.filter_patterns().to_owned();
+            let filter = Filter::new(move |path: &Path| {
+                path.extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|ext| {
+                        let ext = ext.to_lowercase();
+                        filter_patterns.iter().any(|pattern| ext == pattern.0)
+                    })
+            });
             dialog = dialog
-                .add_file_filter(
-                    "All Supported Types",
-                    Arc::new(move |path: &Path| {
-                        path.extension()
-                            .and_then(|e| e.to_str())
-                            .is_some_and(|ext| {
-                                let ext = ext.to_lowercase();
-                                filter_patterns.iter().any(|pattern| ext == pattern.0)
-                            })
-                    }),
-                )
+                .add_file_filter("All Supported Types", filter)
                 .default_file_filter("All Supported Types");
         }
 
@@ -478,17 +475,17 @@ impl Dialog {
                 let area = egui::Area::new(egui::Id::new("select-window"))
                     .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
 
-                let mut selected_option = prompt.selected_option();
+                let mut selected_options = prompt.selected_options();
 
                 fn display_option(
                     ui: &mut egui::Ui,
                     option: &SelectElementOption,
-                    selected_option: &mut Option<usize>,
+                    selected_options: &mut Vec<usize>,
                     is_open: &mut bool,
                     in_group: bool,
+                    allow_multiple: bool,
                 ) {
-                    let is_checked =
-                        selected_option.is_some_and(|selected_index| selected_index == option.id);
+                    let is_checked = selected_options.contains(&option.id);
 
                     // TODO: Surely there's a better way to align text in a selectable label in egui.
                     let label_text = if in_group {
@@ -510,8 +507,25 @@ impl Dialog {
                         .inner;
 
                     if clickable_area.clicked() && !option.is_disabled {
-                        *selected_option = Some(option.id);
-                        *is_open = false;
+                        if allow_multiple {
+                            if let Some(pos) =
+                                selected_options.iter().position(|id| *id == option.id)
+                            {
+                                selected_options.remove(pos);
+                            }
+                            if let Some(position) =
+                                selected_options.iter().position(|id| *id == option.id)
+                            {
+                                selected_options.remove(position);
+                                selected_options.push(option.id);
+                            }
+                        } else {
+                            selected_options.clear();
+                            selected_options.push(option.id);
+                        }
+                        if !allow_multiple {
+                            *is_open = false;
+                        }
                     }
 
                     if clickable_area.hovered() && option.is_disabled {
@@ -533,9 +547,10 @@ impl Dialog {
                                         display_option(
                                             ui,
                                             option,
-                                            &mut selected_option,
+                                            &mut selected_options,
                                             &mut is_open,
                                             false,
+                                            prompt.allow_select_multiple(),
                                         );
                                     },
                                     SelectElementOptionOrOptgroup::Optgroup { label, options } => {
@@ -545,9 +560,10 @@ impl Dialog {
                                             display_option(
                                                 ui,
                                                 option,
-                                                &mut selected_option,
+                                                &mut selected_options,
                                                 &mut is_open,
                                                 true,
+                                                prompt.allow_select_multiple(),
                                             );
                                         }
                                     },
@@ -562,7 +578,7 @@ impl Dialog {
                     is_open = false;
                 }
 
-                prompt.select(selected_option);
+                prompt.select(selected_options);
 
                 if !is_open {
                     maybe_prompt.take().unwrap().submit();

@@ -318,7 +318,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
         let (descriptor, data) = {
             let _span =
-                profile_traits::trace_span!("image_descriptor_and_serializable_data",).entered();
+                profile_traits::trace_span!("image_descriptor_and_serializable_data").entered();
             self.draw_target.image_descriptor_and_serializable_data()
         };
 

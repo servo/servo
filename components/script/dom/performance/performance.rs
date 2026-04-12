@@ -7,6 +7,8 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
+use script_bindings::cformat;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
@@ -367,7 +369,7 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify(CanGc::note());
+            o.notify(CanGc::deprecated_note());
         }
     }
 
@@ -448,7 +450,7 @@ impl Performance {
                 .task_manager()
                 .performance_timeline_task_source()
                 .queue(task!(fire_a_buffer_full_event: move || {
-                    performance.root().fire_buffer_full_event(CanGc::note());
+                    performance.root().fire_buffer_full_event(CanGc::deprecated_note());
                 }));
         }
 
@@ -468,6 +470,53 @@ impl Performance {
         }
     }
 
+    /// <https://w3c.github.io/user-timing/#convert-a-name-to-a-timestamp>
+    fn convert_a_name_to_a_timestamp(&self, name: &str) -> Fallible<CrossProcessInstant> {
+        // Step 1. If the global object is not a Window object, throw a TypeError.
+        let Some(window) = DomRoot::downcast::<Window>(self.global()) else {
+            return Err(Error::Type(cformat!(
+                "Cannot use {name} from non-window global"
+            )));
+        };
+
+        // Step 2. If name is navigationStart, return 0.
+        if name == "navigationStart" {
+            return Ok(self.time_origin);
+        }
+
+        // Step 3. Let startTime be the value of navigationStart in the PerformanceTiming interface.
+        // FIXME: We don't implement this value yet, so we assume it's zero (and then we don't need it at all)
+
+        // Step 4. Let endTime be the value of name in the PerformanceTiming interface.
+        // NOTE: We store all performance values on the document
+        let document = window.Document();
+        let end_time = match name {
+            "unloadEventStart" => document.get_unload_event_start(),
+            "unloadEventEnd" => document.get_unload_event_end(),
+            "domInteractive" => document.get_dom_interactive(),
+            "domContentLoadedEventStart" => document.get_dom_content_loaded_event_start(),
+            "domContentLoadedEventEnd" => document.get_dom_content_loaded_event_end(),
+            "domComplete" => document.get_dom_complete(),
+            "loadEventStart" => document.get_load_event_start(),
+            "loadEventEnd" => document.get_load_event_end(),
+            other => {
+                if cfg!(debug_assertions) {
+                    unreachable!("{other:?} is not the name of a timestamp");
+                }
+                return Err(Error::Operation(None));
+            },
+        };
+        // Step 5. If endTime is 0, throw an InvalidAccessError.
+        let Some(end_time) = end_time else {
+            return Err(Error::InvalidAccess(Some(format!(
+                "{name} hasn't happened yet"
+            ))));
+        };
+
+        // Step 6. Return result of subtracting startTime from endTime.
+        Ok(end_time)
+    }
+
     /// <https://w3c.github.io/user-timing/#convert-a-mark-to-a-timestamp>
     fn convert_a_mark_to_a_timestamp(
         &self,
@@ -475,19 +524,35 @@ impl Performance {
     ) -> Fallible<CrossProcessInstant> {
         match mark {
             StringOrDouble::String(name) => {
-                // TODO: Step 1. If mark is a DOMString and it has the same name as a read only attribute in the
+                // Step 1. If mark is a DOMString and it has the same name as a read only attribute in the
                 // PerformanceTiming interface, let end time be the value returned by running the convert
                 // a name to a timestamp algorithm with name set to the value of mark.
-
+                // TODO: These aren't all fields because servo doesn't support some of them yet
+                if matches!(
+                    &*name.str(),
+                    "navigationStart" |
+                        "unloadEventStart" |
+                        "unloadEventEnd" |
+                        "domInteractive" |
+                        "domContentLoadedEventStart" |
+                        "domContentLoadedEventEnd" |
+                        "domComplete" |
+                        "loadEventStart" |
+                        "loadEventEnd"
+                ) {
+                    self.convert_a_name_to_a_timestamp(&name.str())
+                }
                 // Step 2. Otherwise, if mark is a DOMString, let end time be the value of the startTime
                 // attribute from the most recent occurrence of a PerformanceMark object in the performance entry
                 // buffer whose name is mark. If no matching entry is found, throw a SyntaxError.
-                self.buffer
-                    .borrow()
-                    .get_last_entry_start_time_with_name_and_type(name.clone(), EntryType::Mark)
-                    .ok_or(Error::Syntax(Some(format!(
-                        "No PerformanceMark named {name} exists"
-                    ))))
+                else {
+                    self.buffer
+                        .borrow()
+                        .get_last_entry_start_time_with_name_and_type(name.clone(), EntryType::Mark)
+                        .ok_or(Error::Syntax(Some(format!(
+                            "No PerformanceMark named {name} exists"
+                        ))))
+                }
             },
             // Step 3. Otherwise, if mark is a DOMHighResTimeStamp:
             StringOrDouble::Double(timestamp) => {
@@ -505,8 +570,7 @@ impl Performance {
 }
 
 impl PerformanceMethods<crate::DomTypeHolder> for Performance {
-    // FIXME(avada): this should be deprecated in the future, but some sites still use it
-    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute>
+    /// <https://w3c.github.io/navigation-timing/#dom-performance-timing>
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
         let entries = self.GetEntriesByType(DOMString::from("navigation"));
         if !entries.is_empty() {
@@ -521,10 +585,10 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global(), CanGc::note())
+        PerformanceNavigation::new(&self.global(), CanGc::deprecated_note())
     }
 
-    /// <https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now>
+    /// <https://w3c.github.io/hr-time/#dom-performance-now>
     fn Now(&self) -> DOMHighResTimeStamp {
         self.to_dom_high_res_time_stamp(CrossProcessInstant::now())
     }

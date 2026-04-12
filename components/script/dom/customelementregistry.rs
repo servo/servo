@@ -611,9 +611,11 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
-            Some(definition) => definition
-                .constructor
-                .safe_to_jsval(cx, retval, CanGc::note()),
+            Some(definition) => {
+                definition
+                    .constructor
+                    .safe_to_jsval(cx, retval, CanGc::deprecated_note())
+            },
             None => retval.set(UndefinedValue()),
         }
     }
@@ -1241,22 +1243,26 @@ impl CustomElementReactionStack {
 
                 let local_name = DOMString::from(&*local_name);
                 rooted!(in(*cx) let mut name_value = UndefinedValue());
-                local_name.safe_to_jsval(cx, name_value.handle_mut(), CanGc::note());
+                local_name.safe_to_jsval(cx, name_value.handle_mut(), CanGc::deprecated_note());
 
                 rooted!(in(*cx) let mut old_value = NullValue());
                 if let Some(old_val) = old_val {
-                    old_val.safe_to_jsval(cx, old_value.handle_mut(), CanGc::note());
+                    old_val.safe_to_jsval(cx, old_value.handle_mut(), CanGc::deprecated_note());
                 }
 
                 rooted!(in(*cx) let mut value = NullValue());
                 if let Some(val) = val {
-                    val.safe_to_jsval(cx, value.handle_mut(), CanGc::note());
+                    val.safe_to_jsval(cx, value.handle_mut(), CanGc::deprecated_note());
                 }
 
                 rooted!(in(*cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
                     let namespace = DOMString::from(&*namespace);
-                    namespace.safe_to_jsval(cx, namespace_value.handle_mut(), CanGc::note());
+                    namespace.safe_to_jsval(
+                        cx,
+                        namespace_value.handle_mut(),
+                        CanGc::deprecated_note(),
+                    );
                 }
 
                 let args = vec![

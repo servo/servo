@@ -109,7 +109,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout, UnrootedDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::bindings::weakref::DOMTracker;
@@ -462,12 +462,6 @@ pub(crate) struct Document {
     /// A rAF request is considered spurious if nothing was actually reflowed.
     spurious_animation_frames: Cell<u8>,
 
-    /// Track the total number of elements in this DOM's tree.
-    /// This is sent to layout every time a reflow is done;
-    /// layout uses this to determine if the gains from parallel layout will be worth the overhead.
-    ///
-    /// See also: <https://github.com/servo/servo/issues/10110>
-    dom_count: Cell<u32>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableDom<Element>,
     /// Map from ID to set of form control elements that have that ID as
@@ -721,12 +715,11 @@ impl Document {
             },
         };
 
-        if parent.is::<Element>() {
-            if !parent.is_styled() {
+        if let Some(parent_element) = parent.downcast::<Element>() {
+            if !parent_element.is_styled() {
                 return;
             }
-
-            if parent.is_display_none() {
+            if parent_element.is_display_none() {
                 return;
             }
         }
@@ -902,7 +895,7 @@ impl Document {
                 // Step 4.6.2 Set document's page showing flag to true.
                 document.page_showing.set(true);
                 // Step 4.6.3 Update the visibility state of document to "visible".
-                document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::note());
+                document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::deprecated_note());
                 // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                 // global object with true.
                 let event = PageTransitionEvent::new(
@@ -911,11 +904,11 @@ impl Document {
                     false, // bubbles
                     false, // cancelable
                     true, // persisted
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let event = event.upcast::<Event>();
                 event.set_trusted(true);
-                window.dispatch_event_with_target_override(event, CanGc::note());
+                window.dispatch_event_with_target_override(event, CanGc::deprecated_note());
             }))
     }
 
@@ -1050,22 +1043,6 @@ impl Document {
             .next();
         self.target_base_element
             .set(new_target_base_element.as_deref());
-    }
-
-    pub(crate) fn dom_count(&self) -> u32 {
-        self.dom_count.get()
-    }
-
-    /// This is called by `bind_to_tree` when a node is added to the DOM.
-    /// The internal count is used by layout to determine whether to be sequential or parallel.
-    /// (it's sequential for small DOMs)
-    pub(crate) fn increment_dom_count(&self) {
-        self.dom_count.set(self.dom_count.get() + 1);
-    }
-
-    /// This is called by `unbind_from_tree` when a node is removed from the DOM.
-    pub(crate) fn decrement_dom_count(&self) {
-        self.dom_count.set(self.dom_count.get() - 1);
     }
 
     pub(crate) fn quirks_mode(&self) -> QuirksMode {
@@ -1941,10 +1918,10 @@ impl Document {
                             false,
                             old_url,
                             new_url,
-                            CanGc::note(),
+                            CanGc::deprecated_note(),
                         )
                         .upcast::<Event>()
-                        .fire(window.upcast(), CanGc::note());
+                        .fire(window.upcast(), CanGc::deprecated_note());
                 }));
         }
     }
@@ -2224,7 +2201,7 @@ impl Document {
                 }
 
                 // Step 9.1. Update the current document readiness to "complete".
-                document.set_ready_state(DocumentReadyState::Complete, CanGc::note());
+                document.set_ready_state(DocumentReadyState::Complete, CanGc::deprecated_note());
 
                 // Step 9.2. If the Document object's browsing context is null, then abort these steps.
                 if document.browsing_context().is_none() {
@@ -2240,11 +2217,11 @@ impl Document {
                     atom!("load"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
-                window.dispatch_event_with_target_override(&load_event, CanGc::note());
+                window.dispatch_event_with_target_override(&load_event, CanGc::deprecated_note());
 
                 // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
                 // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID
@@ -2270,11 +2247,11 @@ impl Document {
                     false, // bubbles
                     false, // cancelable
                     false, // persisted
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
                 let page_show_event = page_show_event.upcast::<Event>();
                 page_show_event.set_trusted(true);
-                page_show_event.fire(window.upcast(), CanGc::note());
+                page_show_event.fire(window.upcast(), CanGc::deprecated_note());
 
                 // Step 9.12. Completely finish loading the Document.
                 document.completely_finish_loading();
@@ -2283,7 +2260,7 @@ impl Document {
                 // TODO
 
                 if let Some(fragment) = document.url().fragment() {
-                    document.scroll_to_the_fragment(fragment, CanGc::note());
+                    document.scroll_to_the_fragment(fragment, CanGc::deprecated_note());
                 }
             }));
 
@@ -2476,7 +2453,7 @@ impl Document {
 
                 // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
                 // attribute initialized to true.
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
+                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::deprecated_note());
 
                 // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
                 // high resolution time given the Document's relevant global object.
@@ -3220,7 +3197,7 @@ impl Document {
             .task_manager()
             .intersection_observer_task_source()
             .queue(task!(notify_intersection_observers: move || {
-                document.root().notify_intersection_observers(CanGc::note());
+                document.root().notify_intersection_observers(CanGc::deprecated_note());
             }));
     }
 
@@ -3362,35 +3339,25 @@ pub(crate) enum DocumentSource {
     NotFromParser,
 }
 
-pub(crate) trait LayoutDocumentHelpers<'dom> {
-    fn is_html_document_for_layout(&self) -> bool;
-    fn quirks_mode(self) -> QuirksMode;
-    fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
-    fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
-    fn shadow_roots_styles_changed(self) -> bool;
-    fn flush_shadow_roots_stylesheets(self);
-    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>];
-}
-
 #[expect(unsafe_code)]
-impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
+impl<'dom> LayoutDom<'dom, Document> {
     #[inline]
-    fn is_html_document_for_layout(&self) -> bool {
+    pub(crate) fn is_html_document_for_layout(&self) -> bool {
         self.unsafe_get().is_html_document
     }
 
     #[inline]
-    fn quirks_mode(self) -> QuirksMode {
+    pub(crate) fn quirks_mode(self) -> QuirksMode {
         self.unsafe_get().quirks_mode.get()
     }
 
     #[inline]
-    fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
+    pub(crate) fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
         self.unsafe_get().style_shared_lock()
     }
 
     #[inline]
-    fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
+    pub(crate) fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
         // FIXME(nox): We should just return a
         // &'dom HashSet<LayoutDom<'dom, ShadowRoot>> here but not until
         // I rework the ToLayout trait as mentioned in
@@ -3406,16 +3373,16 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    fn shadow_roots_styles_changed(self) -> bool {
+    pub(crate) fn shadow_roots_styles_changed(self) -> bool {
         self.unsafe_get().shadow_roots_styles_changed.get()
     }
 
     #[inline]
-    fn flush_shadow_roots_stylesheets(self) {
+    pub(crate) fn flush_shadow_roots_stylesheets(self) {
         (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 
-    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
+    pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
         let id_map = unsafe { self.unsafe_get().id_map.borrow_for_layout() };
         let matching_elements = id_map.get(id).map(Vec::as_slice).unwrap_or_default();
         unsafe { LayoutDom::to_layout_slice(matching_elements) }
@@ -3632,7 +3599,6 @@ impl Document {
             ignore_destructive_writes_counter: Default::default(),
             ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
-            dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
@@ -4660,6 +4626,13 @@ impl Document {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    /// and <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    pub(crate) fn clear_command_overrides(&self) {
+        self.state_override.borrow_mut().clear();
+        self.value_override.borrow_mut().clear();
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
     pub(crate) fn default_single_line_container_name(&self) -> DefaultSingleLineContainerName {
         self.default_single_line_container_name.get()
@@ -5361,11 +5334,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         };
 
         let node = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-            let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-            });
+            let elem = root
+                .upcast::<Node>()
+                .child_elements_unrooted(cx.no_gc())
+                .find(|node| {
+                    node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
+                });
             match elem {
-                Some(elem) => DomRoot::upcast::<Node>(elem),
+                Some(elem) => UnrootedDom::upcast::<Node>(elem).as_rooted(),
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(
@@ -5387,10 +5363,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         } else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
-                .traverse_preorder(ShadowIncluding::No)
+                .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
-                Some(elem) => elem,
+                Some(elem) => elem.as_rooted(),
                 None => match self.GetHead() {
                     Some(head) => {
                         let name = QualName::new(None, ns!(html), local_name!("title"));

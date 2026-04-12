@@ -148,7 +148,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self,
             WebGPUComputePass(compute_pass_id),
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -219,7 +219,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             WebGPURenderPass(render_pass_id),
             self,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -324,7 +324,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 }

@@ -211,8 +211,8 @@ impl BaseAudioContext {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value, CanGc::note()),
-                Err(ref error) => promise.reject_error(error.clone(), CanGc::note()),
+                Ok(ref value) => promise.resolve_native(value, CanGc::deprecated_note()),
+                Err(ref error) => promise.reject_error(error.clone(), CanGc::deprecated_note()),
             }
         }
     }
@@ -542,14 +542,14 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                             length as u32,
                             this.sample_rate,
                             Some(decoded_audio.as_slice()),
-                            CanGc::note());
+                            CanGc::deprecated_note());
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid_));
                         let resolver = resolvers.remove(&uuid_).unwrap();
                         if let Some(callback) = resolver.success_callback {
-                            let _ = callback.Call__(&buffer, ExceptionHandling::Report, CanGc::note());
+                            let _ = callback.Call__(&buffer, ExceptionHandling::Report, CanGc::deprecated_note());
                         }
-                        resolver.promise.resolve_native(&buffer, CanGc::note());
+                        resolver.promise.resolve_native(&buffer, CanGc::deprecated_note());
                     }));
                 })
                 .error(move |error| {
@@ -560,11 +560,11 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
                             let _ = callback.Call__(
-                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
-                                ExceptionHandling::Report, CanGc::note());
+                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::deprecated_note()),
+                                ExceptionHandling::Report, CanGc::deprecated_note());
                         }
                         let error = cformat!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error), CanGc::note());
+                        resolver.promise.reject_error(Error::Type(error), CanGc::deprecated_note());
                     }));
                 })
                 .build();

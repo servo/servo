@@ -229,7 +229,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &data, array.handle_mut(), CanGc::note())
+        create_buffer_source(cx, &data, array.handle_mut(), CanGc::deprecated_note())
             .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
@@ -1025,11 +1025,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_resolved(&self.global(), cx, v, CanGc::note())
+        Promise::new_resolved(&self.global(), cx, v, CanGc::deprecated_note())
     }
 
     fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
-        Promise::new_rejected(&self.global(), cx, v, CanGc::note())
+        Promise::new_rejected(&self.global(), cx, v, CanGc::deprecated_note())
     }
 
     fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
@@ -1205,7 +1205,7 @@ impl TestBindingCallback {
     pub(crate) fn invoke(self) {
         self.promise
             .root()
-            .resolve_native(&self.value, CanGc::note());
+            .resolve_native(&self.value, CanGc::deprecated_note());
     }
 }
 

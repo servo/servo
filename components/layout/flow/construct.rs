@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 
+use layout_api::LayoutNode;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::properties::ComputedValues;

@@ -15,12 +15,12 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
 
 const DEFAULT_COLSPAN: u32 = 1;
@@ -116,36 +116,27 @@ impl HTMLTableCellElementMethods<crate::DomTypeHolder> for HTMLTableCellElement 
     }
 }
 
-pub(crate) trait HTMLTableCellElementLayoutHelpers<'dom> {
-    fn get_background_color(self) -> Option<AbsoluteColor>;
-    fn get_colspan(self) -> Option<u32>;
-    fn get_rowspan(self) -> Option<u32>;
-    fn get_table(self) -> Option<LayoutDom<'dom, HTMLTableElement>>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-}
-
-impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableCellElement> {
-    fn get_background_color(self) -> Option<AbsoluteColor> {
+impl<'dom> LayoutDom<'dom, HTMLTableCellElement> {
+    pub(crate) fn get_background_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_colspan(self) -> Option<u32> {
+    pub(crate) fn get_colspan(self) -> Option<u32> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("colspan"))
             .map(AttrValue::as_uint)
     }
 
-    fn get_rowspan(self) -> Option<u32> {
+    pub(crate) fn get_rowspan(self) -> Option<u32> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
             .map(AttrValue::as_uint)
     }
 
-    fn get_table(self) -> Option<LayoutDom<'dom, HTMLTableElement>> {
+    pub(crate) fn get_table(self) -> Option<LayoutDom<'dom, HTMLTableElement>> {
         let row = self.upcast::<Node>().composed_parent_node_ref()?;
         row.downcast::<HTMLTableRowElement>()?;
         let section = row.composed_parent_node_ref()?;
@@ -156,7 +147,7 @@ impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTable
         })
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -164,7 +155,7 @@ impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTable
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

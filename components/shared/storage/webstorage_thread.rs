@@ -7,7 +7,7 @@ use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
-use servo_url::ServoUrl;
+use servo_url::ImmutableOrigin;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, MallocSizeOf, Serialize)]
 pub enum WebStorageType {
@@ -30,14 +30,19 @@ impl OriginDescriptor {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebStorageThreadMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(GenericSender<usize>, WebStorageType, WebViewId, ServoUrl),
+    Length(
+        GenericSender<usize>,
+        WebStorageType,
+        WebViewId,
+        ImmutableOrigin,
+    ),
 
     /// gets the name of the key at the specified index in the associated storage data
     Key(
         GenericSender<Option<String>>,
         WebStorageType,
         WebViewId,
-        ServoUrl,
+        ImmutableOrigin,
         u32,
     ),
 
@@ -46,7 +51,7 @@ pub enum WebStorageThreadMsg {
         GenericSender<Vec<String>>,
         WebStorageType,
         WebViewId,
-        ServoUrl,
+        ImmutableOrigin,
     ),
 
     /// gets the value associated with the given key in the associated storage data
@@ -54,7 +59,7 @@ pub enum WebStorageThreadMsg {
         GenericSender<Option<String>>,
         WebStorageType,
         WebViewId,
-        ServoUrl,
+        ImmutableOrigin,
         String,
     ),
 
@@ -63,7 +68,7 @@ pub enum WebStorageThreadMsg {
         GenericSender<Result<(bool, Option<String>), ()>>,
         WebStorageType,
         WebViewId,
-        ServoUrl,
+        ImmutableOrigin,
         String,
         String,
     ),
@@ -73,12 +78,17 @@ pub enum WebStorageThreadMsg {
         GenericSender<Option<String>>,
         WebStorageType,
         WebViewId,
-        ServoUrl,
+        ImmutableOrigin,
         String,
     ),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(GenericSender<bool>, WebStorageType, WebViewId, ServoUrl),
+    Clear(
+        GenericSender<bool>,
+        WebStorageType,
+        WebViewId,
+        ImmutableOrigin,
+    ),
 
     /// clones all storage data of the given top-level browsing context for a new browsing context.
     /// should only be used for sessionStorage.

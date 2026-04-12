@@ -148,13 +148,13 @@ partial interface Window {
 
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
 interface mixin WindowSessionStorage {
-  readonly attribute Storage sessionStorage;
+  [Throws] readonly attribute Storage sessionStorage;
 };
 Window includes WindowSessionStorage;
 
 // https://html.spec.whatwg.org/multipage/#dom-localstorage
 interface mixin WindowLocalStorage {
-  readonly attribute Storage localStorage;
+  [Throws] readonly attribute Storage localStorage;
 };
 Window includes WindowLocalStorage;
 

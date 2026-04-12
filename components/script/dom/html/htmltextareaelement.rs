@@ -11,7 +11,7 @@ use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
+use layout_api::{ScriptSelection, SharedSelection};
 use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -31,7 +31,7 @@ use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
@@ -71,24 +71,18 @@ pub(crate) struct HTMLTextAreaElement {
     shared_selection: SharedSelection,
 }
 
-pub(crate) trait LayoutHTMLTextAreaElementHelpers {
-    fn selection_for_layout(self) -> SharedSelection;
-    fn get_cols(self) -> u32;
-    fn get_rows(self) -> u32;
-}
-
-impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
-    fn selection_for_layout(self) -> SharedSelection {
+impl LayoutDom<'_, HTMLTextAreaElement> {
+    pub(crate) fn selection_for_layout(self) -> SharedSelection {
         self.unsafe_get().shared_selection.clone()
     }
 
-    fn get_cols(self) -> u32 {
+    pub(crate) fn get_cols(self) -> u32 {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("cols"))
             .map_or(DEFAULT_COLS, AttrValue::as_uint)
     }
 
-    fn get_rows(self) -> u32 {
+    pub(crate) fn get_rows(self) -> u32 {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("rows"))
             .map_or(DEFAULT_ROWS, AttrValue::as_uint)
@@ -816,7 +810,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().pop();
 
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
-        self.reset(CanGc::note());
+        self.reset(CanGc::deprecated_note());
     }
 }
 

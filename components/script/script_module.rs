@@ -41,6 +41,7 @@ use js::rust::{
     transform_str_to_source_text,
 };
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -67,7 +68,7 @@ use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -91,7 +92,7 @@ use crate::module_loading::{
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::NonSendTaskBox;
 
@@ -617,6 +618,25 @@ impl Callback for ModuleHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         let task = self.task.borrow_mut().take().unwrap();
         task.run_box(cx);
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct QueueTaskHandler {
+    #[conditional_malloc_size_of]
+    promise: Rc<Promise>,
+}
+
+impl Callback for QueueTaskHandler {
+    fn callback(&self, cx: &mut CurrentRealm, _: HandleValue) {
+        let global = GlobalScope::from_current_realm(cx);
+        let promise = TrustedPromise::new(self.promise.clone());
+
+        global.task_manager().networking_task_source().queue(
+            task!(continue_module_loading: move |cx| {
+                promise.root().resolve_native(&(), CanGc::from_cx(cx));
+            }),
+        );
     }
 }
 
@@ -1359,6 +1379,7 @@ pub(crate) fn fetch_inline_module_script(
     url: ServoUrl,
     options: ScriptFetchOptions,
     line_number: u32,
+    introduction_type: Option<&'static CStr>,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
@@ -1368,7 +1389,7 @@ pub(crate) fn fetch_inline_module_script(
         options,
         false,
         line_number,
-        Some(IntroductionType::INLINE_SCRIPT),
+        introduction_type,
         CanGc::from_cx(cx),
     ));
     let fetch_client = ModuleFetchClient::from_global_scope(&owner.global());
@@ -1539,31 +1560,53 @@ pub(crate) fn fetch_a_single_module_script(
         }),
     ));
 
-    let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::note());
+    let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::from_cx(cx));
 
-    let realm = enter_realm(&*global);
-    let comp = InRealm::Entered(&realm);
+    let mut realm = enter_auto_realm(cx, &*global);
+    let cx = &mut realm.current_realm();
+
+    let in_realm_proof = cx.into();
+    let comp = InRealm::Already(&in_realm_proof);
+
     run_a_callback::<DomTypeHolder, _>(&global, || {
         let has_pending_fetch = pending.borrow().is_some();
-        // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
-        let pending_option = pending.borrow_mut().take();
-        let new_pending =
-            pending_option.unwrap_or_else(|| Promise::new_in_current_realm(comp, CanGc::note()));
-        new_pending.append_native_handler(&handler, comp, CanGc::note());
-        let _ = pending.borrow_mut().insert(new_pending);
+
+        let promise = Promise::new_in_realm(cx);
 
         // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
         // then queue a task on the networking task source to proceed with running the following steps.
         if has_pending_fetch {
+            promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+
+            // Append an handler to the existing pending fetch, once resolved it will queue a task
+            // to run onComplete.
+            let continue_loading_handler = PromiseNativeHandler::new(
+                &global,
+                Some(Box::new(QueueTaskHandler { promise })),
+                None,
+                CanGc::from_cx(cx),
+            );
+
+            // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
+            let pending_promise = pending.borrow_mut().take();
+            if let Some(promise) = pending_promise {
+                promise.append_native_handler(&continue_loading_handler, comp, CanGc::from_cx(cx));
+                let _ = pending.borrow_mut().insert(promise);
+            }
             return;
         }
+
+        promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+
+        let prev = pending.borrow_mut().replace(promise);
+        assert!(prev.is_none());
+
+        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
+        global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
         // We only need a policy container when fetching the root of a module worker.
         let policy_container = (is_top_level && matches!(owner, ModuleOwner::Worker(_)))
             .then(|| fetch_client.policy_container.clone());
-
-        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-        global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
         let document: Option<DomRoot<Document>> = match &owner {
             ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
@@ -1592,21 +1635,25 @@ pub(crate) fn fetch_a_single_module_script(
         // TODO Step 11. Set request's initiator type to "script".
 
         // Step 12. Set up the module script request given request and options.
-        let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-            .destination(destination)
-            .parser_metadata(options.parser_metadata)
-            .integrity_metadata(options.integrity_metadata.clone())
-            .credentials_mode(options.credentials_mode)
-            .referrer_policy(options.referrer_policy)
-            .mode(mode)
-            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-            .insecure_requests_policy(fetch_client.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
-            .policy_container(fetch_client.policy_container)
-            .client(fetch_client.client)
-            .pipeline_id(Some(fetch_client.pipeline_id))
-            .origin(fetch_client.origin)
-            .https_state(fetch_client.https_state);
+        let request = RequestBuilder::new(
+            webview_id,
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            referrer,
+        )
+        .destination(destination)
+        .parser_metadata(options.parser_metadata)
+        .integrity_metadata(options.integrity_metadata.clone())
+        .credentials_mode(options.credentials_mode)
+        .referrer_policy(options.referrer_policy)
+        .mode(mode)
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
+        .insecure_requests_policy(fetch_client.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
+        .policy_container(fetch_client.policy_container)
+        .client(fetch_client.client)
+        .pipeline_id(Some(fetch_client.pipeline_id))
+        .origin(fetch_client.origin)
+        .https_state(fetch_client.https_state);
 
         let context = ModuleContext {
             owner,

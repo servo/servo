@@ -646,6 +646,33 @@ const sliceTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'slice int32 2D tensor',
+    'graph': {
+      'inputs': {
+        'sliceInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'slice',
+        'arguments': [
+          {'input': 'sliceInput'}, {'starts': [1, 1]},
+          {'sizes': [2, 2]}
+        ],
+        'outputs': 'sliceOutput'
+      }],
+      'expectedOutputs': {
+        'sliceOutput': {
+          'data': [5, -6, -8, 9],
+          'descriptor': {shape: [2, 2], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

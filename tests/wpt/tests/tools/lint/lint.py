@@ -757,7 +757,10 @@ def check_meta_file(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Err
 
 
 def check_web_features_file_path(repo_root: Text, path: Text) -> List[rules.Error]:
-    if os.path.basename(path) != WEB_FEATURES_YML_FILENAME:
+    basename = os.path.basename(path)
+    if basename == "WEB_FEATURES.yaml":
+        return [rules.InvalidWebFeaturesFile.error(path, ("Use 'WEB_FEATURES.yml' instead of 'WEB_FEATURES.yaml'",))]
+    if basename != WEB_FEATURES_YML_FILENAME:
         return []
     source_file = SourceFile(repo_root, path, "/")
     if source_file.in_non_test_dir():

@@ -625,14 +625,7 @@ class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
         self.webdriver = self.parent.webdriver
 
     def send_keys(self, element, keys):
-        try:
-            return element.send_keys(keys)
-        except webdriver_error.UnknownErrorException as e:
-            # workaround https://bugs.chromium.org/p/chromedriver/issues/detail?id=1999
-            if (e.http_status != 500 or
-                e.status_code != "unknown error"):
-                raise
-            return element.send_element_command("POST", "value", {"value": list(keys)})
+        return element.send_keys(keys)
 
 
 class WebDriverActionSequenceProtocolPart(ActionSequenceProtocolPart):

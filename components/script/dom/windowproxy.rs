@@ -696,23 +696,6 @@ impl WindowProxy {
         result
     }
 
-    /// Run [the focusing steps] with this browsing context.
-    ///
-    /// [the focusing steps]: https://html.spec.whatwg.org/multipage/#focusing-steps
-    pub fn focus(&self) {
-        debug!(
-            "Requesting the constellation to initiate a focus operation for \
-            browsing context {}",
-            self.browsing_context_id()
-        );
-        self.global()
-            .script_to_constellation_chan()
-            .send(ScriptToConstellationMessage::FocusRemoteDocument(
-                self.browsing_context_id(),
-            ))
-            .unwrap();
-    }
-
     pub fn document_origin(&self) -> Option<String> {
         let pipeline_id = self.currently_active()?;
         let (result_sender, result_receiver) = generic_channel::channel().unwrap();
@@ -1275,7 +1258,7 @@ impl Drop for WindowProxyHandler {
 fn throw_security_error(cx: SafeJSContext, realm: InRealm) -> bool {
     if !unsafe { JS_IsExceptionPending(*cx) } {
         let global = unsafe { GlobalScope::from_context(*cx, realm) };
-        throw_dom_exception(cx, &global, Error::Security(None), CanGc::note());
+        throw_dom_exception(cx, &global, Error::Security(None), CanGc::deprecated_note());
     }
     false
 }

@@ -388,7 +388,7 @@ fn continue_dynamic_import(
                 Some(Box::new(OnRejectedHandler {
                     promise: inner_promise,
                 })),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
             let in_realm = InRealm::Already(&in_realm_proof);
             evaluate_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(cx));

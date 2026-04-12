@@ -18,6 +18,7 @@ use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
@@ -275,6 +276,7 @@ pub(crate) struct WorkerGlobalScope {
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
+    crypto: MutNullableDom<Crypto>,
     #[no_trace]
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
     policy_container: DomRefCell<PolicyContainer>,
@@ -365,6 +367,7 @@ impl WorkerGlobalScope {
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
+            crypto: Default::default(),
             policy_container: Default::default(),
             devtools_receiver,
             _devtools_sender: init.from_devtools_sender,
@@ -654,8 +657,13 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location>
     fn Location(&self) -> DomRoot<WorkerLocation> {
-        self.location
-            .or_init(|| WorkerLocation::new(self, self.worker_url.borrow().clone(), CanGc::note()))
+        self.location.or_init(|| {
+            WorkerLocation::new(
+                self,
+                self.worker_url.borrow().clone(),
+                CanGc::deprecated_note(),
+            )
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts>
@@ -696,7 +704,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             let global_scope = self.upcast::<GlobalScope>();
             let request = RequestBuilder::new(
                 global_scope.webview_id(),
-                url.clone(),
+                UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
                 global_scope.get_referrer(),
             )
             .destination(Destination::Script)
@@ -804,12 +812,13 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-worker-navigator>
     fn Navigator(&self) -> DomRoot<WorkerNavigator> {
         self.navigator
-            .or_init(|| WorkerNavigator::new(self, CanGc::note()))
+            .or_init(|| WorkerNavigator::new(self, CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.upcast::<GlobalScope>().crypto(CanGc::note())
+        self.crypto
+            .or_init(|| Crypto::new(self.upcast::<GlobalScope>(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
@@ -946,7 +955,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start, CanGc::note())
+            Performance::new(
+                global_scope,
+                self.navigation_start,
+                CanGc::deprecated_note(),
+            )
         })
     }
 

@@ -19,7 +19,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
-use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
+use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
@@ -907,12 +907,7 @@ impl HTMLInputElement {
     }
 }
 
-pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
-    fn size_for_layout(self) -> u32;
-    fn selection_for_layout(self) -> Option<SharedSelection>;
-}
-
-impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElement> {
+impl<'dom> LayoutDom<'dom, HTMLInputElement> {
     /// Textual input, specifically text entry and domain specific input has
     /// a default preferred size.
     ///
@@ -922,11 +917,11 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
     //                       for domain specific input widgets correctly.
     // FIXME(#4378): Implement the calculation of average character width for
     //               textual input correctly.
-    fn size_for_layout(self) -> u32 {
+    pub(crate) fn size_for_layout(self) -> u32 {
         self.unsafe_get().size.get()
     }
 
-    fn selection_for_layout(self) -> Option<SharedSelection> {
+    pub(crate) fn selection_for_layout(self) -> Option<SharedSelection> {
         Some(self.unsafe_get().shared_selection.clone())
     }
 }

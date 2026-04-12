@@ -10,6 +10,7 @@ use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId,
@@ -34,7 +35,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadyState};
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
@@ -42,6 +43,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
 pub(crate) struct HTMLVideoElement {
@@ -164,7 +166,12 @@ impl HTMLVideoElement {
         // the poster attribute's value, relative to the element's node
         // document.
         // Step 4. If url is failure, then return. There is no poster frame.
-        let poster_url = match self.owner_document().encoding_parse_a_url(poster_url) {
+        let global = self.owner_global();
+        let poster_url = match self
+            .owner_document()
+            .encoding_parse_a_url(poster_url)
+            .map(|url| ensure_blob_referenced_by_url_is_kept_alive(&global, url))
+        {
             Ok(url) => url,
             Err(_) => {
                 self.htmlmediaelement.set_poster_frame(None);
@@ -177,7 +184,7 @@ impl HTMLVideoElement {
         let window = self.owner_window();
         let image_cache = window.image_cache();
         let cache_result = image_cache.get_cached_image_status(
-            poster_url.clone(),
+            poster_url.url(),
             window.origin().immutable().clone(),
             None,
         );
@@ -221,7 +228,7 @@ impl HTMLVideoElement {
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn do_fetch_poster_frame(
         &self,
-        poster_url: ServoUrl,
+        poster_url: UrlWithBlobClaim,
         id: PendingImageId,
         cx: &mut js::context::JSContext,
     ) {
@@ -250,12 +257,12 @@ impl HTMLVideoElement {
         LoadBlocker::terminate(blocker, cx);
         *blocker.borrow_mut() = Some(LoadBlocker::new(
             &self.owner_document(),
-            LoadType::Image(poster_url.clone()),
+            LoadType::Image(poster_url.url()),
         ));
 
         let context = PosterFrameFetchContext::new(
             self,
-            poster_url,
+            poster_url.url(),
             id,
             request.id,
             self.global().core_resource_thread(),
@@ -514,14 +521,8 @@ impl PosterFrameFetchContext {
     }
 }
 
-pub(crate) trait LayoutHTMLVideoElementHelpers {
-    fn data(self) -> HTMLMediaData;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-}
-
-impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
-    fn data(self) -> HTMLMediaData {
+impl LayoutDom<'_, HTMLVideoElement> {
+    pub(crate) fn data(self) -> HTMLMediaData {
         let video = self.unsafe_get();
 
         // Get the current frame being rendered.
@@ -541,7 +542,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
         }
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -549,7 +550,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

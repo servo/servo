@@ -82,13 +82,9 @@ impl DocumentFragment {
     }
 }
 
-pub(crate) trait LayoutDocumentFragmentHelpers<'dom> {
-    fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element>;
-}
-
-impl<'dom> LayoutDocumentFragmentHelpers<'dom> for LayoutDom<'dom, DocumentFragment> {
+impl<'dom> LayoutDom<'dom, DocumentFragment> {
     #[inline]
-    fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element> {
+    pub(crate) fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element> {
         #[expect(unsafe_code)]
         unsafe {
             // https://dom.spec.whatwg.org/#shadowroot

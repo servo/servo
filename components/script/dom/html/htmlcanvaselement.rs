@@ -46,7 +46,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -164,12 +164,8 @@ impl HTMLCanvasElement {
     }
 }
 
-pub(crate) trait LayoutHTMLCanvasElementHelpers {
-    fn data(self) -> HTMLCanvasData;
-}
-
-impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
-    fn data(self) -> HTMLCanvasData {
+impl LayoutDom<'_, HTMLCanvasElement> {
+    pub(crate) fn data(self) -> HTMLCanvasData {
         let width_attr = self
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"));
@@ -203,7 +199,7 @@ impl HTMLCanvasElement {
         let image_key = match rendering_context {
             RenderingContext::Placeholder(..) => None,
             RenderingContext::Context2d(..) => get_image_key(),
-            RenderingContext::BitmapRenderer(_) => None,
+            RenderingContext::BitmapRenderer(..) => get_image_key(),
             RenderingContext::WebGL(..) => get_image_key(),
             RenderingContext::WebGL2(..) => get_image_key(),
             #[cfg(feature = "webgpu")]
@@ -408,16 +404,20 @@ impl HTMLCanvasElement {
     pub(crate) fn update_rendering(&self, epoch: Epoch) -> Option<ImageKey> {
         let context = self.context()?;
         let image_key = self.image_key.get()?;
-        match &*context {
+        let pending = match &*context {
             RenderingContext::Placeholder(..) => false,
             RenderingContext::Context2d(context) => context.update_rendering(epoch),
-            RenderingContext::BitmapRenderer(..) => false,
+            RenderingContext::BitmapRenderer(context) => context.update_rendering(epoch),
             RenderingContext::WebGL(context) => context.update_rendering(epoch),
             RenderingContext::WebGL2(context) => context.base_context().update_rendering(epoch),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(context) => context.update_rendering(epoch),
+        };
+
+        if pending {
+            return Some(image_key);
         }
-        .then_some(image_key)
+        None
     }
 }
 
@@ -594,7 +594,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 };
 
                 let Some(mut snapshot) = result else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
+                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::deprecated_note());
                     return;
                 };
 
@@ -611,14 +611,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::note());
+                       blob = Blob::new(&this.global(), blob_impl, CanGc::deprecated_note());
                        Some(&*blob)
                    }
                    Err(..) => None,
                 };
 
                 // Step 4.2.2: Invoke callback with « result » and "report".
-                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::note());
+                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::deprecated_note());
             }));
 
         Ok(())

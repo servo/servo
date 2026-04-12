@@ -5,9 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <select>
-  <button>
-    <selectedcontent id=main></selectedcontent>
-  </button>
+  <button></button>
   <option>one</option>
   <option>two</option>
 </select>
@@ -15,7 +13,6 @@
 <script>
 test(() => {
   const select = document.querySelector('select');
-  const mainSelectedcontent = document.querySelector('selectedcontent');
   const button = document.querySelector('button');
 
   const parentSelectedcontent = document.createElement('selectedcontent');
@@ -25,7 +22,13 @@ test(() => {
   childSelectedcontent.id = 'child';
   childSelectedcontent.textContent = 'child';
 
+  // Appending the disconnected childSelectedcontent to the disconnected
+  // parentSelectedcontent does not trigger any DOM changes.
   parentSelectedcontent.appendChild(childSelectedcontent);
+  // Appending the pair of nested selectedcontent elements triggers cloning
+  // for each of them. The child one is not updated because its post-insertion
+  // steps look for an ancestor select element, but the post-insertion steps of
+  // the parent one already removed it from the select element.
   button.appendChild(parentSelectedcontent);
 
   assert_equals(parentSelectedcontent.innerHTML, 'one',
@@ -35,12 +38,19 @@ test(() => {
   assert_equals(childSelectedcontent.parentNode, null,
     'child selectedcontent should get disconnected after inserting.');
 
+  // Appending childSelectedcontent to the connected parentSelectedcontent does
+  // not trigger any DOM changes because childSelectedcontent is marked as
+  // disabled for having an ancestor selectedcontent element.
   parentSelectedcontent.appendChild(childSelectedcontent);
+  // Assigning to select.value triggers an update for descendant selectedcontent
+  // elements. The child one is not updated because we check whether selectedcontent
+  // elements are disabled when building the list of selectedcontent elements to update.
   select.value = 'two';
+
   assert_equals(parentSelectedcontent.innerHTML, 'two',
     'parent selectedcontent should get updated when selected option is changed.');
-  assert_equals(childSelectedcontent.innerHTML, 'two',
-    'child selectedcontent should get updated when selected option is changed.');
+  assert_equals(childSelectedcontent.innerHTML, 'child',
+    'child selectedcontent should not get updated when selected option is changed.');
   assert_equals(childSelectedcontent.parentNode, null,
     'child selectedcontent should get disconnected when selected option is changed.');
 }, 'Modification behavior when nesting selectedcontent elements.');

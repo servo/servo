@@ -54,6 +54,7 @@ pub(crate) struct Response {
     fetch_body_stream: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,
+    /// FIXME: This should be removed.
     redirected: Cell<bool>,
     is_body_empty: Cell<bool>,
 }
@@ -289,6 +290,11 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-redirected>
+    /// TODO: The redirected getter steps are to return true if
+    /// this’s response’s URL list’s size is greater than 1; otherwise false.
+    ///
+    /// But if we do like spec says, test fails, probably because
+    /// we not fully set URL list in spec steps.
     fn Redirected(&self) -> bool {
         self.redirected.get()
     }
