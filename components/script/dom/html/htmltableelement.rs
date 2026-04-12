@@ -91,10 +91,6 @@ impl HTMLTableElement {
         n
     }
 
-    pub(crate) fn get_border(&self) -> Option<u32> {
-        self.border.get()
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
     fn get_first_section_of_type(
