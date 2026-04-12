@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use layout_api::wrapper_traits::ThreadSafeLayoutNode;
+use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::{ServoLayoutElement, ServoThreadSafeLayoutNode};
+use script::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::logical_geometry::Direction;
@@ -217,7 +217,7 @@ impl IndependentFormattingContext {
                 let table_grid_style = context
                     .style_context
                     .stylist
-                    .style_for_anonymous::<ServoLayoutElement>(
+                    .style_for_anonymous::<ServoDangerousStyleElement>(
                         &context.style_context.guards,
                         &PseudoElement::ServoTableGrid,
                         &node_and_style_info.style,
@@ -335,7 +335,7 @@ impl IndependentFormattingContext {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.base.repair_style(new_style);

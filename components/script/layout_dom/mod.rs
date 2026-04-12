@@ -19,14 +19,18 @@
 //! will race and cause spurious thread failure. (Note that I do not believe these races are
 //! exploitable, but they'll result in brokenness nonetheless.)
 
-#![expect(unsafe_code)]
+mod iterators;
+mod servo_dangerous_style_document;
+mod servo_dangerous_style_element;
+mod servo_dangerous_style_node;
+mod servo_dangerous_style_shadow_root;
+mod servo_layout_element;
+mod servo_layout_node;
 
-mod document;
-mod element;
-mod node;
-mod shadow_root;
-
-pub use document::*;
-pub use element::*;
-pub use node::*;
-pub use shadow_root::*;
+pub use iterators::*;
+pub use servo_dangerous_style_document::*;
+pub use servo_dangerous_style_element::*;
+pub use servo_dangerous_style_node::*;
+pub use servo_dangerous_style_shadow_root::*;
+pub use servo_layout_element::*;
+pub use servo_layout_node::*;

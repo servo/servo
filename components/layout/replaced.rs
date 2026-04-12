@@ -7,12 +7,10 @@ use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
 use html5ever::local_name;
-use layout_api::wrapper_traits::ThreadSafeLayoutNode;
-use layout_api::{IFrameSize, LayoutImageDestination, SVGElementData};
+use layout_api::{IFrameSize, LayoutElement, LayoutImageDestination, LayoutNode, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
-use script::layout_dom::ServoThreadSafeLayoutNode;
-use selectors::Element;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
@@ -148,10 +146,7 @@ pub(crate) enum ReplacedContentKind {
 }
 
 impl ReplacedContents {
-    pub fn for_element(
-        node: ServoThreadSafeLayoutNode<'_>,
-        context: &LayoutContext,
-    ) -> Option<Self> {
+    pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
                 return Self::from_image_url(
@@ -191,7 +186,7 @@ impl ReplacedContents {
                 Self::svg_kind_size(svg_data, context, node)
             } else if node
                 .as_html_element()
-                .is_some_and(|element| element.has_local_name(&local_name!("audio")))
+                .is_some_and(|element| element.local_name() == &local_name!("audio"))
             {
                 let natural_size = NaturalSizes {
                     width: None,
@@ -226,7 +221,7 @@ impl ReplacedContents {
     fn svg_kind_size(
         svg_data: SVGElementData,
         context: &LayoutContext,
-        node: ServoThreadSafeLayoutNode<'_>,
+        node: ServoLayoutNode<'_>,
     ) -> (ReplacedContentKind, NaturalSizes) {
         let rule_cache_conditions = &mut RuleCacheConditions::default();
 
@@ -309,10 +304,7 @@ impl ReplacedContents {
         (ReplacedContentKind::SVGElement(vector_image), natural_size)
     }
 
-    fn from_content_property(
-        node: ServoThreadSafeLayoutNode<'_>,
-        context: &LayoutContext,
-    ) -> Option<Self> {
+    fn from_content_property(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         // If the `content` property is a single image URL, non-replaced boxes
         // and images get replaced with the given image.
         if let Content::Items(GenericContentItems { items, .. }) =
@@ -330,7 +322,7 @@ impl ReplacedContents {
     }
 
     pub fn from_image_url(
-        node: ServoThreadSafeLayoutNode<'_>,
+        node: ServoLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
@@ -370,7 +362,7 @@ impl ReplacedContents {
     }
 
     pub fn from_image(
-        element: ServoThreadSafeLayoutNode<'_>,
+        element: ServoLayoutNode<'_>,
         context: &LayoutContext,
         image: &ComputedImage,
     ) -> Option<Self> {
@@ -380,7 +372,7 @@ impl ReplacedContents {
         }
     }
 
-    pub(crate) fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
+    pub(crate) fn zero_sized_invalid_image(node: ServoLayoutNode<'_>) -> Self {
         Self {
             kind: ReplacedContentKind::Image(ImageInfo {
                 image: None,
