@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::fs;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -17,12 +17,12 @@ use egui::{
     Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
     WidgetInfo, WidgetType, pos2,
 };
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use log::info;
 use log::warn;
 use servo::{
@@ -120,10 +120,60 @@ fn configure_fonts() -> FontDefinitions {
     fonts
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "linux")]
+fn configure_fonts() -> FontDefinitions {
+    let mut fonts = FontDefinitions::default();
+    let font_candidates = [
+        (
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Ubuntu/Debian
+        (
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Fedora/Arch
+        (
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // common fallback
+    ];
+
+    let mut loaded_font_names = Vec::new();
+
+    for (path_str, font_name) in font_candidates.iter() {
+        let font_path = Path::new(path_str);
+        if font_path.exists() {
+            match fs::read(font_path) {
+                Ok(bytes) => {
+                    if !fonts.font_data.contains_key(*font_name) {
+                        fonts
+                            .font_data
+                            .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
+                        loaded_font_names.push(font_name.to_string());
+                        info!("Loaded font: {}", font_name);
+                    }
+                },
+                Err(error) => {
+                    info!("Failed to read font {}: {}", font_name, error);
+                },
+            }
+        }
+    }
+
+    if !loaded_font_names.is_empty() {
+        let proportional = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
+        for font_name in loaded_font_names.iter() {
+            proportional.insert(0, font_name.clone());
+        }
+    }
+
+    fonts
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
 fn configure_fonts() -> FontDefinitions {
     // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
-    // does not support CJK. Add them for Mac/Linux.
+    // does not support CJK. Add them for Mac.
     FontDefinitions::default()
 }
 
