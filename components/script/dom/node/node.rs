@@ -3849,8 +3849,25 @@ impl Node {
 
     /// Compares `other` with `self` in [tree order](https://dom.spec.whatwg.org/#concept-tree-order).
     fn compare_dom_tree_position(&self, other: &Node, common_ancestor: &Node) -> Ordering {
+        debug_assert!(
+            self.inclusive_ancestors(ShadowIncluding::No)
+                .any(|ancestor| &*ancestor == common_ancestor)
+        );
+        debug_assert!(
+            other
+                .inclusive_ancestors(ShadowIncluding::No)
+                .any(|ancestor| &*ancestor == common_ancestor)
+        );
+
         if self == other {
             return Ordering::Equal;
+        }
+
+        if self == common_ancestor {
+            return Ordering::Less;
+        }
+        if other == common_ancestor {
+            return Ordering::Greater;
         }
 
         let my_ancestors: Vec<_> = self
