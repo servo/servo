@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Tests for ruby-overhang: spaces with middle dot</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#ruby-overhang">
+<link rel="match" href="ruby-overhang-spaces-005-ref.html">
+<meta name=assert content="With 'ruby-overhang: spaces', excess ruby overhangs on top of the blank part of middle dot, but no further.">
+<style>
+ruby {
+    ruby-overhang: spaces;
+    ruby-align: center;
+}
+div {
+    border-left: 5px solid;
+    border-right: 5px solid;
+    width: max-content;
+}
+.test { border-color: orange; }
+.measure { border-color: blue; }
+</style>
+<p>Test passes if orange and blue lines are aligned.
+<div class=test>あ・<ruby>あ<rt>あああああああ</ruby>・あ</div>
+<div class=measure>あ・　あ　・あ</div>

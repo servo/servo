@@ -31,7 +31,8 @@ function getNextEntry(type) {
     new PerformanceObserver((list, observer) => {
       const entries = list.getEntries();
       observer.disconnect();
-      assert_equals(entries.length, 1, 'Only one entry.');
+      // Some entry types may return a list each time (e.g. 'event' entries).
+      // We return the [0]'th value always.
       resolve(entries[0]);
     }).observe({ type });
   });

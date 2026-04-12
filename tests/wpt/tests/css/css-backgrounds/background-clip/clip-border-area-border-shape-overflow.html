@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Backgrounds Test: background-clip:border-area fills border-shape overflow</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="clip-border-area-border-shape-overflow-ref.html">
+<meta name="assert" content="background-clip:border-area backgrounds fill the full visible border-shape area, including overflow beyond the border box.">
+<meta name="fuzzy" content="maxDifference=0-50; totalPixels=0-500">
+<style>
+  .test {
+    display: inline-block;
+    margin: 20px;
+    width: 160px;
+    height: 120px;
+    box-sizing: border-box;
+    border: 24px solid transparent;
+    background-clip: border-area;
+    border-shape: polygon(50% -8%, 108% 50%, 50% 108%, -8% 50%);
+  }
+
+  .color {
+    background-color: blue;
+  }
+
+  .image {
+    background-image: linear-gradient(blue, blue);
+    background-repeat: no-repeat;
+  }
+</style>
+
+<div class="test color"></div>
+<div class="test image"></div>

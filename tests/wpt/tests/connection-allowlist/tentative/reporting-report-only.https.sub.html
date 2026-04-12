@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+</head>
+<body>
+<script>
+const { HTTPS_REMOTE_ORIGIN } = get_host_info();
+const endpoint = "/reporting/resources/report.py";
+const reportID = 'a66b96f5-e0c3-4d6d-b8d9-482488820c75';
+const url = `${HTTPS_REMOTE_ORIGIN}/common/blank-with-cors.html`;
+
+promise_test(async t => {
+  // This fetch should succeed as it is only report-only.
+  const response = await fetch(url);
+  assert_true(response.ok);
+
+  await wait(5000);
+  const reports = await pollReports(endpoint, reportID);
+
+  const report = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url);
+  assert_true(!!report, `A report for ${url} should be present.`);
+  assert_equals(report.body.disposition, 'report');
+}, 'Connection-Allowlist report is delivered to the reporting endpoint for a report-only fetch.');
+</script>
+</body>
+</html>

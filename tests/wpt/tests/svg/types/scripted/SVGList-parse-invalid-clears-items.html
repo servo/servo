@@ -38,7 +38,7 @@ test(function() {
 
     assert_equals(polygon.points.numberOfItems, 4, "initial valid parse gives 4 items");
 
-    // Setting a partially invalid value: valid point pairs followed by a invalid one.
+    // Setting a partially invalid value: valid point pairs followed by an invalid one.
     polygon.setAttribute("points", "0,0 100,0 INVALID");
     assert_equals(polygon.points.numberOfItems, 0,
         "SVGPointList: partially invalid attribute value should result in 0 items");

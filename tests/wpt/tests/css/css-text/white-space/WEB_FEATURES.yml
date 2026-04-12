@@ -2,7 +2,7 @@ features:
 - name: text-wrap-balance
   files:
   - text-wrap-balance-*
-- name: text-wrap-nowrap
+- name: text-wrap
   files:
   - text-wrap-nowrap-*
 - name: white-space

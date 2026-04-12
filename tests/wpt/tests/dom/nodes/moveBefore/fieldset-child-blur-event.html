@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>moveBefore should not close a modal dialog</title>
+<link rel="author" title="Dominic Farolino" href="dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<fieldset disabled id="fs">
+  <legend id="L1">
+    <input id="victim" onblur="window.blurExecuted = true">
+  </legend>
+  <legend id="L2"></legend>
+</fieldset>
+<script>
+test(() => {
+  victim.focus();
+  window.blurExecuted = false;
+  fs.moveBefore(L1, null);
+  assert_false(window.blurExecuted, "Blur event is not fired");
+}, "The 'blur' event is not fired on children of HTMLFieldSetElement during moveBefore()");
+</script>

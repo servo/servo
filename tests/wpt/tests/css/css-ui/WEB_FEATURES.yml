@@ -37,6 +37,9 @@ features:
 - name: caret-color
   files:
   - caret-color-*
+- name: caret-shape
+  files:
+  - caret-shape-*
   - caret-eol-*
 - name: cross-fade
   files:
