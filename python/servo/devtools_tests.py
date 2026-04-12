@@ -234,6 +234,13 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             response2 = devtools.watcher.get_breakpoint_list_actor()
             self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
 
+    def test_watcher_returns_same_blackboxing_actor_every_time(self):
+        self.run_servoshell(url="data:text/html,")
+        with Devtools.connect() as devtools:
+            response1 = devtools.watcher.get_blackboxing_actor()
+            response2 = devtools.watcher.get_blackboxing_actor()
+            self.assertEqual(response1["blackboxing"]["actor"], response2["blackboxing"]["actor"])
+
     def test_breakpoint_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:

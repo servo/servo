@@ -61,6 +61,7 @@ use crate::protocol::{DevtoolsConnection, JsonPacketStream};
 mod actor;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
+    pub mod blackboxing;
     pub mod breakpoint;
     pub mod browsing_context;
     pub mod console;
