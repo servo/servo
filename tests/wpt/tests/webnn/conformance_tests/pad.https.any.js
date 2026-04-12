@@ -1252,6 +1252,103 @@ const padTests = [
         }
       }
     }
+  },
+
+  // int32 tests
+  {
+    'name': 'pad int32 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            0, 0, 0, 0, 0,
+            0, 1, -2, 3, 0,
+            0, -4, 5, -6, 0,
+            0, 7, -8, 9, 0,
+            0, 0, 0, 0, 0
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'pad int32 2D tensor options.value',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}, {'options': {'value': -1}}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            -1, -1, -1, -1, -1,
+            -1, 1, -2, 3, -1,
+            -1, -4, 5, -6, -1,
+            -1, 7, -8, 9, -1,
+            -1, -1, -1, -1, -1
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'int32'}
+        }
+      }
+    }
+  },
+
+  // uint8 tests
+  {
+    'name': 'pad uint8 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'padInput': {
+          'data': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+          'descriptor': {shape: [3, 3], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'pad',
+        'arguments': [
+          {'input': 'padInput'}, {'beginningPadding': [1, 1]},
+          {'endingPadding': [1, 1]}
+        ],
+        'outputs': 'padOutput'
+      }],
+      'expectedOutputs': {
+        'padOutput': {
+          'data': [
+            0, 0, 0, 0, 0,
+            0, 1, 2, 3, 0,
+            0, 4, 5, 6, 0,
+            0, 7, 8, 9, 0,
+            0, 0, 0, 0, 0
+          ],
+          'descriptor': {shape: [5, 5], dataType: 'uint8'}
+        }
+      }
+    }
   }
 ];
 

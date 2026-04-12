@@ -5,8 +5,18 @@
 <link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PlatformProvidedBehaviors/explainer.md">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  custom-submit {
+    display: inline-block;
+    width: 100px;
+    height: 30px;
+  }
+</style>
 
 <form>
+  <input name="field" value="value">
   <custom-submit></custom-submit>
 </form>
 
@@ -27,17 +37,79 @@ customElements.define('custom-submit', CustomSubmitButton);
 const form = document.querySelector('form');
 const outside = document.querySelector('#outside');
 const customSubmit = form.querySelector('custom-submit');
+const defaultInput = form.querySelector('input');
 
 function reset() {
   form.replaceChildren();
   form.removeAttribute('action');
   form.removeAttribute('id');
+  form.removeAttribute('method');
+  form.removeAttribute('target');
   form.onsubmit = null;
   outside.replaceChildren();
   customSubmit.removeAttribute('disabled');
   customSubmit.removeAttribute('form');
   customSubmit.removeAttribute('id');
+  defaultInput.value = 'value';
+  defaultInput.required = false;
+  customSubmit.submitBehavior.disabled = false;
+  customSubmit.submitBehavior.formAction = '';
+  customSubmit.submitBehavior.formEnctype = '';
+  customSubmit.submitBehavior.formMethod = '';
+  customSubmit.submitBehavior.formNoValidate = false;
+  customSubmit.submitBehavior.formTarget = '';
+  customSubmit.submitBehavior.name = '';
+  customSubmit.submitBehavior.value = '';
+
   form.appendChild(customSubmit);
+  form.prepend(defaultInput);
+}
+
+// Clicks an element and returns whether the form's submit event fired.
+function clickSubmitsForm(element) {
+  let submitted = false;
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    submitted = true;
+  };
+  element.click();
+  form.onsubmit = null;
+  return submitted;
+}
+
+// Clicks a submitter, intercepts the submit event, and resolves with the
+// resulting FormData.
+function submitAndCollectFormData(submitter) {
+  return new Promise(resolve => {
+    form.addEventListener(
+        'submit',
+        (e) => {
+          e.preventDefault();
+          resolve(new FormData(form));
+        },
+        { once: true });
+    submitter.click();
+  });
+}
+
+// Clicks a submitter and navigates into a hidden iframe, then resolves with
+// the iframe's contentWindow. Callers can inspect location, document, etc.
+function submitIntoIframe(submitter) {
+  const iframe = document.createElement('iframe');
+  iframe.name = 'submit-target';
+  document.body.appendChild(iframe);
+  form.setAttribute('target', iframe.name);
+
+  return new Promise(resolve => {
+    iframe.addEventListener('load', () => {
+      if (iframe.contentWindow.location.href === 'about:blank') {
+        return;
+      }
+      resolve(iframe.contentWindow);
+      iframe.remove();
+    });
+    submitter.click();
+  });
 }
 
 test(() => {
@@ -62,8 +134,8 @@ test(() => {
   assert_true('value' in behavior, 'behavior should have value property');
 }, 'HTMLSubmitButtonBehavior has expected properties');
 
-test(() => {
-  reset();
+test(t => {
+  t.add_cleanup(reset);
   outside.appendChild(customSubmit);
   const behavior = customSubmit.submitBehavior;
   assert_equals(behavior.disabled, false, 'disabled should default to false');
@@ -111,20 +183,20 @@ test(() => {
   assert_equals(labelsDesc.set, undefined, 'labels should not have a setter');
 }, 'HTMLSubmitButtonBehavior.form and .labels are read-only');
 
-test(() => {
-  reset();
+test(t => {
+  t.add_cleanup(reset);
   assert_equals(customSubmit.submitBehavior.form, form);
 }, 'HTMLSubmitButtonBehavior.form returns the associated form');
 
-test(() => {
-  reset();
+test(t => {
+  t.add_cleanup(reset);
   outside.appendChild(customSubmit);
   customSubmit.removeAttribute('form');
   assert_equals(customSubmit.submitBehavior.form, null);
 }, 'HTMLSubmitButtonBehavior.form returns null when not in form');
 
-test(() => {
-  reset();
+test(t => {
+  t.add_cleanup(reset);
   customSubmit.id = 'labeled-element';
   const label = document.createElement('label');
   label.htmlFor = 'labeled-element';
@@ -135,4 +207,212 @@ test(() => {
   assert_equals(labels.length, 1);
   assert_equals(labels[0], label);
 }, 'HTMLSubmitButtonBehavior.labels returns associated labels');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  const formData = await submitAndCollectFormData(customSubmit);
+  assert_equals(formData.get('field'), 'value',
+    'Form should be submitted with input values');
+}, 'Click on custom element with HTMLSubmitButtonBehavior submits form');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitEventFired = false;
+  let submitEventTarget = null;
+
+  await new Promise(resolve => {
+    form.addEventListener('submit', ev => {
+      ev.preventDefault();
+      submitEventFired = true;
+      submitEventTarget = ev.target;
+      resolve();
+    }, { once: true });
+    customSubmit.click();
+  });
+  assert_true(submitEventFired, 'submit event should fire');
+  assert_equals(submitEventTarget, form, 'submit event target should be the form');
+}, 'Submit event fires when clicking custom submit button');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.disabled = true;
+  assert_false(clickSubmitsForm(customSubmit),
+    'Form should not be submitted when behavior is disabled');
+}, 'Disabled HTMLSubmitButtonBehavior does not submit form');
+
+test(t => {
+  t.add_cleanup(reset);
+  customSubmit.setAttribute('disabled', '');
+  assert_false(clickSubmitsForm(customSubmit),
+    'Form should not be submitted when element has disabled attribute');
+}, 'Element disabled attribute prevents HTMLSubmitButtonBehavior submission');
+
+test(t => {
+  t.add_cleanup(reset);
+  const fieldset = document.createElement('fieldset');
+  fieldset.disabled = true;
+  fieldset.appendChild(customSubmit);
+  form.appendChild(fieldset);
+  assert_false(clickSubmitsForm(customSubmit),
+    'Form should not be submitted when ancestor fieldset is disabled');
+}, 'Ancestor fieldset disabled prevents HTMLSubmitButtonBehavior submission');
+
+test(t => {
+  t.add_cleanup(reset);
+  const fieldset = document.createElement('fieldset');
+  fieldset.disabled = true;
+  const legend = document.createElement('legend');
+  legend.appendChild(customSubmit);
+  fieldset.appendChild(legend);
+  form.appendChild(fieldset);
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  customSubmit.click();
+  assert_true(submitted,
+    'Form should be submitted when element is in the first legend of a disabled fieldset');
+}, 'First legend exception: custom submit in first legend of disabled fieldset can still submit');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitCount = 0;
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    submitCount++;
+  };
+
+  customSubmit.click();
+  assert_equals(submitCount, 1, 'Should submit when neither behavior nor element is disabled');
+
+  customSubmit.submitBehavior.disabled = true;
+  customSubmit.click();
+  assert_equals(submitCount, 1, 'Should not submit when behavior.disabled is true');
+
+  customSubmit.submitBehavior.disabled = false;
+  customSubmit.setAttribute('disabled', '');
+  customSubmit.click();
+  assert_equals(submitCount, 1, 'Should not submit when element has disabled attribute');
+
+  customSubmit.removeAttribute('disabled');
+  customSubmit.click();
+  assert_equals(submitCount, 2, 'Should submit after removing disabled attribute');
+}, 'Submission blocked when behavior.disabled or element disabled attribute is set');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  form.setAttribute('action', '/should-not-be-used.html');
+  customSubmit.submitBehavior.formAction = '/common/blank.html';
+  const win = await submitIntoIframe(customSubmit);
+  assert_equals(win.location.pathname, '/common/blank.html',
+    'Form should be submitted to the behavior\'s formAction, not the form\'s action');
+}, 'formAction on HTMLSubmitButtonBehavior overrides form action');
+
+test(t => {
+  t.add_cleanup(reset);
+  defaultInput.value = '';
+  defaultInput.required = true;
+  customSubmit.submitBehavior.formNoValidate = true;
+  assert_true(clickSubmitsForm(customSubmit),
+    'Form should submit despite invalid field');
+}, 'formNoValidate on HTMLSubmitButtonBehavior bypasses form validation');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.formMethod = 'post';
+  form.setAttribute('action', '/common/blank.html');
+  const win = await submitIntoIframe(customSubmit);
+  assert_false(win.location.search.includes('field=value'),
+    'POST form method should not include form data in URL query string');
+}, 'formMethod on HTMLSubmitButtonBehavior overrides form method');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  form.setAttribute('method', 'post');
+  customSubmit.submitBehavior.formEnctype = 'text/plain';
+  form.setAttribute('action',
+    '/html/semantics/forms/form-submission-0/form-echo.py');
+  const win = await submitIntoIframe(customSubmit);
+
+  // text/plain encoding ends each entry with CRLF (0d 0a), which is absent
+  // in the default application/x-www-form-urlencoded encoding.
+  const body = win.document.body.textContent;
+  assert_true(body.trim().endsWith('0d 0a'),
+    'text/plain enctype should produce CRLF-terminated body');
+}, 'formEnctype on HTMLSubmitButtonBehavior overrides form enctype');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.name = 'action';
+  customSubmit.submitBehavior.value = 'submit-clicked';
+
+  form.setAttribute('action', '/common/blank.html');
+  const win = await submitIntoIframe(customSubmit);
+  assert_true(win.location.search.includes('action=submit-clicked'),
+    'Button name and value should be submitted');
+}, 'name and value on HTMLSubmitButtonBehavior are submitted with form');
+
+test(t => {
+  t.add_cleanup(reset);
+  outside.appendChild(customSubmit);
+  assert_false(clickSubmitsForm(customSubmit),
+    'Form should not be submitted by element outside form');
+}, 'Custom element with HTMLSubmitButtonBehavior outside form does not submit');
+
+test(t => {
+  t.add_cleanup(reset);
+  class NonFormAssociatedSubmit extends HTMLElement {
+    constructor() {
+      super();
+      this.attachInternals({ behaviors: [new HTMLSubmitButtonBehavior()] });
+    }
+  }
+  customElements.define('non-form-submit', NonFormAssociatedSubmit);
+
+  const nonFormElement = document.createElement('non-form-submit');
+  form.appendChild(nonFormElement);
+  assert_false(clickSubmitsForm(nonFormElement),
+    'Form should not be submitted by non-form-associated element');
+}, 'Non-form-associated custom element with HTMLSubmitButtonBehavior does not submit');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  const secondSubmit = document.createElement('custom-submit');
+  form.appendChild(secondSubmit);
+
+  customSubmit.submitBehavior.name = 'btn';
+  customSubmit.submitBehavior.value = 'first';
+  secondSubmit.submitBehavior.name = 'btn';
+  secondSubmit.submitBehavior.value = 'second';
+
+  form.setAttribute('action', '/common/blank.html');
+  const win = await submitIntoIframe(customSubmit);
+  assert_true(win.location.search.includes('btn=first'),
+    'Clicking first custom submit should submit its name/value');
+  assert_false(win.location.search.includes('btn=second'),
+    'Only the clicked button\'s name/value should be submitted');
+}, 'Only the clicked custom submit button\'s name/value is included in form data');
+
+test(t => {
+  t.add_cleanup(reset);
+  let customClickFired = false;
+  customSubmit.addEventListener('click', () => {
+    customClickFired = true;
+  }, { once: true });
+  customSubmit.remove();
+  const submitted = clickSubmitsForm(customSubmit);
+
+  assert_true(customClickFired,
+    'Custom element click handler should fire when disconnected');
+  assert_false(submitted,
+    'Form should not be submitted by disconnected custom element');
+}, 'Dispatching click on disconnected element fires event handlers but does not submit form');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  await test_driver.click(customSubmit);
+  assert_true(submitted,
+    'User click on custom submit button should submit form');
+}, 'User-initiated click submits form via HTMLSubmitButtonBehavior');
+
 </script>

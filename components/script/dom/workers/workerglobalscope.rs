@@ -276,6 +276,7 @@ pub(crate) struct WorkerGlobalScope {
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
+    crypto: MutNullableDom<Crypto>,
     #[no_trace]
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
     policy_container: DomRefCell<PolicyContainer>,
@@ -366,6 +367,7 @@ impl WorkerGlobalScope {
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
+            crypto: Default::default(),
             policy_container: Default::default(),
             devtools_receiver,
             _devtools_sender: init.from_devtools_sender,
@@ -815,8 +817,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.upcast::<GlobalScope>()
-            .crypto(CanGc::deprecated_note())
+        self.crypto
+            .or_init(|| Crypto::new(self.upcast::<GlobalScope>(), CanGc::deprecated_note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>

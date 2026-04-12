@@ -1,0 +1,6 @@
+.test {
+  width: 200px;
+  height: 200px;
+  background-color: blue;
+  background-image: url("{{location[server]}}/css/css-values/urls/support/image-referrer-policy.py?expected_referrer=url&url={{location[server]}}{{location[pathname]}}" referrer-policy(unsafe-url));
+}

@@ -7,15 +7,13 @@
 
 promise_test(async t => {
   const availability = await Classifier.availability();
-  if (availability === 'unavailable') {
-    await promise_rejects_dom(
-      t,
-      'NotSupportedError',
-      Classifier.create()
-    );
-  } else {
-    // If the API is available, it should successfully create.
-    const classifier = await Classifier.create();
-    assert_true(!!classifier, 'Classifier was successfully created');
-  }
+  assert_implements_optional(availability !== 'unavailable', 'classifier is unavailable');
+  const classifier = await createClassifier();
+  assert_true(!!classifier, 'Classifier was successfully created');
 }, 'Classifier.create() behavior depends on availability');
+
+promise_test(async t => {
+  const availability = await Classifier.availability();
+  assert_implements_optional(availability !== 'unavailable', 'classifier is unavailable');
+  await testCreateMonitorCallbackThrowsError(t, createClassifier);
+}, 'If monitor throws an error, Classifier.create() rejects with that error');

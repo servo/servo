@@ -56,7 +56,7 @@ jobs:
         run: |
           cd wpt
           git push --set-upstream origin $BRANCH_NAME
-          gh pr create --title "$COMMIT_TITLE" --body "$PR_BODY" --reviewer jcscottiii,dschuff
+          gh pr create --title "$COMMIT_TITLE" --body "$PR_BODY"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_TITLE: "Update Wasm tests"

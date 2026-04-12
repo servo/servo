@@ -10,55 +10,85 @@
 <style>
   .filler { height: 5000px }
 
-  #scroller {
+  .scroller {
     overflow: scroll;
-    width: 100px;
     height: 100px;
   }
 </style>
-<div id="scroller">
+<div id="scroller" class="scroller">
   <div class="filler"></div>
   <div class="filler"></div>
+  <div id="inner_scroller" class="scroller">
+    <div class="filler"></div>
+    <div class="filler"></div>
+  </div>
+</div>
+<div id="other_scroller" class="scroller">
   <div class="filler"></div>
 </div>
 <script>
   "use strict";
 
   const scroller = document.getElementById("scroller");
+  const inner_scroller = document.getElementById("inner_scroller");
+  const other_scroller = document.getElementById("other_scroller");
 
-  function resetScrollPosition() {
+  const target_at_5000px = scroller.firstElementChild.nextElementSibling;
+  const innertarget_at_5000px = inner_scroller.lastElementChild;
+
+  function resetScrollPositions() {
     scroller.scrollTop = 0;
-    assert_equals(scroller.scrollTop, 0, "Sanity check initial position");
+    inner_scroller.scrollTop = 0;
+    other_scroller.scrollTop = 0;
+    assert_true(!scroller.scrollTop && !inner_scroller.scrollTop
+          && !other_scroller.scrollTop, "Sanity check initial position");
   }
 
   promise_setup(async () => {
     await waitForCompositorReady();
   });
 
-  for (const scroll_method of ["scrollTo", "scrollBy"]) {
+  for (const scroll_method of ["scrollTo", "scrollBy", "scrollIntoView"]) {
     promise_test(async () => {
-      resetScrollPosition();
+      resetScrollPositions();
 
-      const pos1 = 5000;
-      let promise1 = scroller[scroll_method]({ top: pos1, behavior: "smooth" });
+      let promise1 = scroll_method != "scrollIntoView"
+            ? scroller[scroll_method]({ top: 5000, behavior: "smooth" })
+            : target_at_5000px.scrollIntoView({ behavior: "smooth" });
 
-      const pos2 = 10000;
+      const pos2 = 7000;
       scroller.scrollTop = pos2;
 
       assert_equals(scroller.scrollTop, pos2, "Position before promise wait");
       await promise1;
-      assert_equals(scroller.scrollTop, pos2, "Position after interruption");
-    }, `Element.${scroll_method} interruption by a non-promise scroll call`);
+      assert_equals(scroller.scrollTop, pos2, "Position after promise wait");
+    }, `Element.${scroll_method} interrupted by a non-promise scroll`);
+
+    promise_test(async () => {
+      resetScrollPositions();
+
+      const pos1 = 5000;
+      let promise1 = scroll_method != "scrollIntoView"
+            ? scroller[scroll_method]({ top: pos1, behavior: "smooth" })
+            : target_at_5000px.scrollIntoView({ behavior: "smooth" });
+
+      other_scroller.scrollTop = 100;
+
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position before promise wait");
+      await promise1;
+      assert_equals(scroller.scrollTop, pos1, "Position after promise wait");
+    }, `Element.${scroll_method} uninterrupted by an unrelated non-promise scroll`);
   }
 
   for (const interrupt_behavior of ["auto", "smooth"]) {
     promise_test(async () => {
-      resetScrollPosition();
+      resetScrollPositions();
 
       const pos1 = 5000;
       let promise1 = scroller.scrollTo({ top: pos1, behavior: "smooth" });
 
-      const pos2 = 10000;
+      const pos2 = 7000;
       let promise2 =
             scroller.scrollTo({ top: pos2, behavior: interrupt_behavior });
 
@@ -71,10 +101,10 @@
       await promise2;
       assert_equals(scroller.scrollTop, pos2,
             "Position after interrupting promise wait");
-    }, `Element.scrollTo: interruption by ${interrupt_behavior} scroll call`);
+    }, `Element.scrollTo: interrupted by ${interrupt_behavior} scroll`);
 
     promise_test(async () => {
-      resetScrollPosition();
+      resetScrollPositions();
 
       const pos1 = 5000;
       let promise1 = scroller.scrollBy({ top: pos1, behavior: "smooth" });
@@ -92,8 +122,60 @@
       await promise2;
       assert_equals(scroller.scrollTop, pos2,
             "Position after interrupting promise wait");
-    }, `Element.scrollBy: interruption by ${interrupt_behavior} scroll call`);
+    }, `Element.scrollBy: interrupted by ${interrupt_behavior} scroll`);
+
+    promise_test(async () => {
+      resetScrollPositions();
+
+      const pos1 = 5000;
+      let promise1 = target_at_5000px.scrollIntoView({ behavior: "smooth" });
+
+      const pos2 = 7000;
+      let promise2 =
+            scroller.scrollTo({ top: pos2, behavior: interrupt_behavior });
+
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position before first promise wait");
+      await promise1;
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position after first promise wait");
+
+      await promise2;
+      assert_equals(scroller.scrollTop, pos2,
+            "Position after interrupting promise wait");
+    }, `Element.scrollIntoView: interrupted by ${interrupt_behavior} scroll`);
   }
 
+  // Below are scrollIntoView tests involving nested scrollers.
+  promise_test(async () => {
+    resetScrollPositions();
 
+    let promise1 = target_at_5000px.scrollIntoView({ behavior: "smooth" });
+    let promise2 = innertarget_at_5000px.scrollIntoView({ behavior: "smooth" });
+
+    await promise1;
+    assert_not_equals(scroller.scrollTop, 5000,
+          "Position after first promise wait");
+
+    await promise2;
+    assert_equals(scroller.scrollTop, 10000,
+          "Position after interrupting promise wait");
+    assert_equals(inner_scroller.scrollTop, 5000,
+          "Inner-position after interrupting promise wait");
+  }, `Element.scrollIntoView: interrupted by inner scroll`);
+
+  promise_test(async () => {
+    resetScrollPositions();
+
+    let promise1 = innertarget_at_5000px.scrollIntoView({ behavior: "smooth" });
+    let promise2 = target_at_5000px.scrollIntoView({ behavior: "smooth" });
+
+    await promise1;
+    assert_not_equals(scroller.scrollTop, 10000,
+          "Position after first promise wait");
+
+    await promise2;
+    assert_equals(scroller.scrollTop, 5000,
+          "Position after interrupting promise wait");
+  }, `Element.scrollIntoView: interrupted by outer scroll`);
 </script>

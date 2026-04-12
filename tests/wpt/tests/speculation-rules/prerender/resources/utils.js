@@ -309,13 +309,21 @@ async function create_prerendered_page(t, params = {}, opt = {}, rule_extras = {
 
     const discarded = discard_remote.execute_script(() => Promise.resolve('discarded'));
 
-    init_remote.execute_script((activating_url, target_hint) => {
+    const navigate = init_remote.execute_script((activating_url, target_hint) => {
       if (target_hint === '_blank') {
         window.open(activating_url, '_blank', 'noopener');
       } else {
         window.location = activating_url;
       }
     }, [activating_url, rule_extras['target_hint']]);
+
+    // For _blank targets, the initiator page doesn't navigate away,
+    // so we can await the navigation to ensure window.open() has
+    // actually been called before racing the results.
+    if (rule_extras['target_hint'] === '_blank') {
+      await navigate;
+    }
+
     return Promise.any([prerendering, discarded]);
   }
 

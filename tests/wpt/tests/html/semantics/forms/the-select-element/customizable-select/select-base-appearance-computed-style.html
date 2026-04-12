@@ -143,9 +143,9 @@ test(() => {
     // serialized this way. position-try-fallbacks also gets serialized
     // differently.
     // https://drafts.csswg.org/css-anchor-position/#position-area-computed
-    'position-area': 'end span-end',
+    'position-area': 'self-end span-self-end',
     'position-try-order': 'most-block-size',
-    'position-try-fallbacks': 'start span-end, end span-start, start span-start',
+    'position-try-fallbacks': 'self-start span-self-end, self-end span-self-start, self-start span-self-start',
     'border': `1px solid ${canvasText}`,
     'background-color': canvas,
     'color': canvasText

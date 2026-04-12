@@ -62,7 +62,6 @@ class Base:
         if not skip_nextest:
             installed_something |= self.install_cargo_nextest(force)
         if not skip_lints:
-            installed_something |= self.install_cargo_about(force)
             installed_something |= self.install_taplo(force)
             installed_something |= self.install_cargo_deny(force)
             installed_something |= self.install_crown(force)
@@ -110,14 +109,6 @@ class Base:
         print(" * Installing cargo-deny...")
         if subprocess.call(["cargo", "install", "cargo-deny@0.19.0", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
-        return True
-
-    def install_cargo_about(self, force: bool) -> bool:
-        if not force and shutil.which("cargo-about") is not None:
-            return False
-        print(" * Installing cargo-about...")
-        if subprocess.call(["cargo", "install", "cargo-about", "--locked"]) != 0:
-            raise EnvironmentError("Installation of cargo-about failed.")
         return True
 
     def install_cargo_nextest(self, force: bool) -> bool:

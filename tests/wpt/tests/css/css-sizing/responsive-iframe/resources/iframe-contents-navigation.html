@@ -1,0 +1,16 @@
+<!doctype HTML>
+<head>
+<meta name="responsive-embedded-sizing">
+<style>
+body { margin: 0; }
+#box { width: 100px; height: 200px; background: blue; }
+</style>
+</head>
+<div id="box"></div>
+<script>
+window.addEventListener('message', (e) => {
+  if (e.data === 'navigate') {
+    window.location.href = 'iframe-contents-slow.html';
+  }
+});
+</script>

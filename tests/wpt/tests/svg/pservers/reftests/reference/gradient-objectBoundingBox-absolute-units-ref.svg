@@ -1,0 +1,18 @@
+<svg width="200" height="200"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Reference: objectBoundingBox gradient with unitless x2="96",
+           equivalent to x2="1in" (since 1in = 96px).</title>
+  </g>
+
+  <defs>
+    <linearGradient id="grad" gradientUnits="objectBoundingBox"
+                    x1="0" y1="0" x2="96" y2="0">
+      <stop offset="0" stop-color="blue"/>
+      <stop offset="1" stop-color="lime"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="200" height="200" fill="url(#grad)"/>
+</svg>

@@ -1603,7 +1603,6 @@ webrtc/RTCRtpTransceiver-stopping.https.html @web-platform-tests/interop
 webrtc/RTCRtpTransceiver.https.html @web-platform-tests/interop
 webrtc/RTCSctpTransport-events.html @web-platform-tests/interop
 webrtc/RTCSctpTransport-maxChannels.html @web-platform-tests/interop
-webrtc/back-forward-cache-with-open-webrtc-connection.https.window.js @web-platform-tests/interop
 webrtc/historical.html @web-platform-tests/interop
 webrtc/idlharness.https.window.js @web-platform-tests/interop
 webrtc/protocol/additional-codecs.html @web-platform-tests/interop

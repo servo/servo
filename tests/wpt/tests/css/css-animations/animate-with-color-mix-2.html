@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <style>
+    @keyframes colorize {
+      from {
+         background-color: color-mix(in srgb, black 50%,
+                                     currentcolor);
+      }
+      to {
+        background-color: color-mix(in srgb, white 50%,
+                                    currentcolor);
+      }
+    }
+
+    #target {
+      height: 200px;
+      width: 200px;
+      color: green;
+      animation: colorize 1s linear paused forwards;
+    }
+  </style>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+
+  test(t => {
+    const data = [
+      { at: 0.0, value: 'oklab(0.321876 -0.0868704 0.066684)' },
+      { at: 0.2, value: 'oklab(0.406791 -0.0876562 0.0663775)' },
+      { at: 0.4, value: 'oklab(0.491706 -0.088442 0.066071)' },
+      { at: 0.6, value: 'oklab(0.576621 -0.0892277 0.0657646)' },
+      { at: 0.8, value: 'oklab(0.661536 -0.0900135 0.0654581)' },
+      { at: 1.0, value: 'oklab(0.746451 -0.0907992 0.0651516) ' }
+    ];
+    const anim = document.getAnimations()[0];
+    data.forEach(entry => {
+      anim.currentTime = entry.at * 1000;
+      const actual = getComputedStyle(target).backgroundColor;
+      const expected = entry.value;
+      assert_oklab_color(
+          actual, expected,
+          `Background color at ${100*entry.at}% animation progress`);
+    });
+  });
+</script>
+</html>
