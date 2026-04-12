@@ -464,6 +464,7 @@ pub(crate) fn host_load_imported_module(
     let owner = script_owner
         .filter(|_| load_state.is_some())
         .unwrap_or(ModuleOwner::DynamicModule(Trusted::new(&global_scope)));
+    let global = owner.global();
 
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
     // Note: These substeps are implemented by `GetRequestedModuleSpecifier`,
@@ -570,7 +571,7 @@ pub(crate) fn host_load_imported_module(
         cx,
         url,
         fetch_client,
-        &owner.global(),
+        &global,
         destination,
         fetch_options,
         fetch_referrer,

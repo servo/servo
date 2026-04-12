@@ -1229,14 +1229,15 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
 pub(crate) fn fetch_a_module_worker_script_graph(
     cx: &mut JSContext,
+    global: &GlobalScope,
     url: ServoUrl,
     fetch_client: ModuleFetchClient,
-    owner: ModuleOwner,
     destination: Destination,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
-    let global = owner.global();
+    let global_scope = DomRoot::from_ref(global);
 
     // Step 1. Let options be a script fetch options whose cryptographic nonce
     // is the empty string, integrity metadata is the empty string, parser
@@ -1267,17 +1268,18 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         move |cx, module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
-                return owner.notify_owner_to_finish(cx, None);
+                return on_complete(cx, None);
             };
 
             // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
             // and onComplete.
             fetch_the_descendants_and_link_module_script(
                 cx,
+                &global_scope,
                 module,
                 fetch_client,
                 destination,
-                owner,
+                on_complete,
             );
         },
     );
@@ -1287,12 +1289,13 @@ pub(crate) fn fetch_a_module_worker_script_graph(
 pub(crate) fn fetch_an_external_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     options: ScriptFetchOptions,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
-    let global = owner.global();
     let referrer = global.get_referrer();
     let fetch_client = ModuleFetchClient::from_global_scope(&global);
+    let global_scope = DomRoot::from_ref(global);
 
     // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
     // and with the following steps given result:
@@ -1310,16 +1313,17 @@ pub(crate) fn fetch_an_external_module_script(
         move |cx, module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
-                return owner.notify_owner_to_finish(cx, None);
+                return on_complete(cx, None);
             };
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
             fetch_the_descendants_and_link_module_script(
                 cx,
+                &global_scope,
                 module,
                 fetch_client,
                 Destination::Script,
-                owner,
+                on_complete,
             );
         },
     );
@@ -1336,7 +1340,7 @@ pub(crate) fn fetch_a_modulepreload_module(
 ) {
     let referrer = global.get_referrer();
     let fetch_client = ModuleFetchClient::from_global_scope(global);
-    let owner = ModuleOwner::DynamicModule(Trusted::new(global));
+    let global_scope = DomRoot::from_ref(global);
 
     // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
     // fetching top level JSON/CSS module scripts, but should be possible when preloading.
@@ -1364,7 +1368,7 @@ pub(crate) fn fetch_a_modulepreload_module(
             on_complete(cx, result.is_none());
 
             // Step 2. Assert: settingsObject's global object implements Window.
-            assert!(owner.global().is::<Window>());
+            assert!(global_scope.is::<Window>());
 
             // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
@@ -1372,10 +1376,11 @@ pub(crate) fn fetch_a_modulepreload_module(
                 if let Some(module) = result {
                     fetch_the_descendants_and_link_module_script(
                         cx,
+                        &global_scope,
                         module,
                         fetch_client,
                         destination,
-                        owner,
+                        |_, _| {},
                     );
                 }
             }
@@ -1386,19 +1391,18 @@ pub(crate) fn fetch_a_modulepreload_module(
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
 pub(crate) fn fetch_inline_module_script(
     cx: &mut JSContext,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     module_script_text: Rc<DOMString>,
     url: ServoUrl,
     options: ScriptFetchOptions,
     line_number: u32,
     introduction_type: Option<&'static CStr>,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
-    let global = owner.global();
-
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
         module_script_text,
-        &global,
+        global,
         &url,
         options,
         false,
@@ -1406,15 +1410,16 @@ pub(crate) fn fetch_inline_module_script(
         introduction_type,
         CanGc::from_cx(cx),
     ));
-    let fetch_client = ModuleFetchClient::from_global_scope(&global);
+    let fetch_client = ModuleFetchClient::from_global_scope(global);
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(
         cx,
+        global,
         module_tree,
         fetch_client,
         Destination::Script,
-        owner,
+        on_complete,
     );
 }
 
@@ -1422,13 +1427,12 @@ pub(crate) fn fetch_inline_module_script(
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
 fn fetch_the_descendants_and_link_module_script(
     cx: &mut JSContext,
+    global: &GlobalScope,
     module_script: Rc<ModuleTree>,
     fetch_client: ModuleFetchClient,
     destination: Destination,
-    owner: ModuleOwner,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
-    let global = owner.global();
-
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
     if module_script.get_record().is_none() {
@@ -1438,7 +1442,7 @@ fn fetch_the_descendants_and_link_module_script(
         module_script.set_rethrow_error(parse_error.unwrap());
 
         // Step 2.2. Run onComplete given moduleScript.
-        owner.notify_owner_to_finish(cx, Some(module_script));
+        on_complete(cx, Some(module_script));
 
         // Step 2.3. Return.
         return;
@@ -1461,16 +1465,16 @@ fn fetch_the_descendants_and_link_module_script(
         Some(Rc::clone(&state)),
     );
 
-    let fulfillment_owner = owner.clone();
+    let global_scope = DomRoot::from_ref(global);
     let fulfilled_module = module_script.clone();
+    let fulfilled_on_complete = on_complete.clone();
 
     // Step 6. Upon fulfillment of loadingPromise, run the following steps:
     let loading_promise_fulfillment = ModuleHandler::new_boxed(Box::new(
-        task!(fulfilled_steps: |cx, fulfillment_owner: ModuleOwner| {
-            let global = fulfillment_owner.global();
+        task!(fulfilled_steps: |cx, global_scope: DomRoot<GlobalScope>| {
             let mut realm = AutoRealm::new(
                 cx,
-                NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+                NonNull::new(global_scope.reflector().get_jsobject().get()).unwrap(),
             );
             let cx = &mut *realm;
 
@@ -1486,27 +1490,23 @@ fn fetch_the_descendants_and_link_module_script(
             }
 
             // Step 6.2. Run onComplete given moduleScript.
-            fulfillment_owner.notify_owner_to_finish(cx, Some(fulfilled_module));
+            fulfilled_on_complete(cx, Some(fulfilled_module));
         }),
     ));
 
-    let rejection_owner = owner;
-    let rejected_module = module_script;
-
     // Step 7. Upon rejection of loadingPromise, run the following steps:
-    let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
-        task!(rejected_steps: |cx, rejection_owner: ModuleOwner, state: Rc<LoadState>| {
+    let loading_promise_rejection =
+        ModuleHandler::new_boxed(Box::new(task!(rejected_steps: |cx, state: Rc<LoadState>| {
             // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
             // and run onComplete given moduleScript.
             if let Some(error) = state.error_to_rethrow.borrow().as_ref() {
-                rejected_module.set_rethrow_error(error.clone());
-                rejection_owner.notify_owner_to_finish(cx, Some(rejected_module));
+                module_script.set_rethrow_error(error.clone());
+                on_complete(cx, Some(module_script));
             } else {
                 // Step 7.2. Otherwise, run onComplete given null.
-                rejection_owner.notify_owner_to_finish(cx, None);
+                on_complete(cx, None);
             }
-        }),
-    ));
+        })));
 
     let handler = PromiseNativeHandler::new(
         &global,

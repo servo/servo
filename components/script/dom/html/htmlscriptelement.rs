@@ -63,7 +63,7 @@ use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_module::{
-    ImportMap, ModuleOwner, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
+    ImportMap, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
@@ -926,12 +926,20 @@ impl HTMLScriptElement {
                             .resolve_a_module_integrity_metadata(&url);
                     }
 
+                    let script = DomRoot::from_ref(self);
+
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
                         cx,
                         url,
-                        ModuleOwner::Window(Trusted::new(self), kind, false),
+                        global,
                         options,
+                        move |cx, module_tree| {
+                            let load = module_tree.map(Script::Module).ok_or(());
+
+                            script.set_result(load);
+                            finish_fetching_a_script(&script, kind, cx);
+                        },
                     );
                 },
                 ScriptType::ImportMap => (),
@@ -989,14 +997,30 @@ impl HTMLScriptElement {
                         options.render_blocking = true;
                     }
 
+                    let script = DomRoot::from_ref(self);
                     fetch_inline_module_script(
                         cx,
-                        ModuleOwner::Window(Trusted::new(self), kind, true),
+                        global,
                         text_rc,
                         base_url,
                         options,
                         self.line_number as u32,
                         introduction_type,
+                        move |_, module_tree| {
+                            let load = module_tree.map(Script::Module).ok_or(());
+
+                            script.set_result(load);
+                            let trusted = Trusted::new(&*script);
+
+                            script
+                                .owner_global()
+                                .task_manager()
+                                .networking_task_source()
+                                .queue(task!(terminate_module_fetch: move |cx| {
+                                    let element = trusted.root();
+                                    finish_fetching_a_script(&element, kind, cx);
+                                }));
+                        },
                     );
                 },
                 ScriptType::ImportMap => {
