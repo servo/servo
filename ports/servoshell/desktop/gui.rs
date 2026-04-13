@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::fs;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::path::Path;
+#[cfg(target_os = "linux")]
+use std::process::Command;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -83,16 +85,18 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
 }
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
+fn load_cjk_fonts<S: AsRef<str>>(font_candidates: &[(S, S)]) -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
     let mut loaded_font_names = Vec::new();
 
     for (path_str, font_name) in font_candidates.iter() {
+        let path_str = path_str.as_ref();
+        let font_name = font_name.as_ref();
         let font_path = Path::new(path_str);
         if font_path.exists() {
             match fs::read(font_path) {
                 Ok(bytes) => {
-                    if !fonts.font_data.contains_key(*font_name) {
+                    if !fonts.font_data.contains_key(font_name) {
                         fonts
                             .font_data
                             .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
@@ -125,8 +129,51 @@ fn configure_fonts() -> FontDefinitions {
     ])
 }
 
+/// Query fontconfig for the file path of a font by family name.
+/// Returns the first matching file path, or `None` if fontconfig is unavailable
+/// or the family is not installed.
+#[cfg(target_os = "linux")]
+fn find_font_via_fc_list(family: &str) -> Option<String> {
+    let output = Command::new("fc-list")
+        .arg(format!(":family={}", family))
+        .output()
+        .ok()?;
+
+    String::from_utf8(output.stdout)
+        .ok()?
+        .lines()
+        .find_map(|line| {
+            let path = line.split(':').next()?.trim();
+            if path.is_empty() {
+                None
+            } else {
+                Some(path.to_string())
+            }
+        })
+}
+
 #[cfg(target_os = "linux")]
 fn configure_fonts() -> FontDefinitions {
+    // CJK families to search for, paired with the label used in egui's font registry.
+    const CJK_FAMILIES: &[(&str, &str)] = &[
+        ("Noto Sans CJK", "Noto Sans CJK"),
+        ("WenQuanYi Micro Hei", "WenQuanYi Micro Hei"),
+    ];
+
+    // Try fontconfig first — it works across all distros.
+    let dynamic: Vec<(String, String)> = CJK_FAMILIES
+        .iter()
+        .filter_map(|(family, label)| {
+            find_font_via_fc_list(family).map(|path| (path, label.to_string()))
+        })
+        .collect();
+
+    if !dynamic.is_empty() {
+        return load_cjk_fonts(&dynamic);
+    }
+
+    // fontconfig unavailable — fall back to well-known distro-specific paths.
+    info!("fc-list not found or returned no CJK fonts; falling back to hardcoded paths");
     load_cjk_fonts(&[
         (
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
