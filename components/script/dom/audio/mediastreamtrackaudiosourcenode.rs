@@ -44,21 +44,21 @@ impl MediaStreamTrackAudioSourceNode {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         context: &AudioContext,
         track: &MediaStreamTrack,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, track, cx)
+        Self::new_with_proto(cx, window, None, context, track)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
         track: &MediaStreamTrack,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let node = MediaStreamTrackAudioSourceNode::new_inherited(context, track)?;
         Ok(reflect_dom_object_with_proto_and_cx(
@@ -82,11 +82,11 @@ impl MediaStreamTrackAudioSourceNodeMethods<crate::DomTypeHolder>
         options: &MediaStreamTrackAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         MediaStreamTrackAudioSourceNode::new_with_proto(
+            cx,
             window,
             proto,
             context,
             &options.mediaStreamTrack,
-            cx,
         )
     }
 }

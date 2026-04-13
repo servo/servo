@@ -84,10 +84,10 @@ impl AudioContext {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         options: &AudioContextOptions,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<AudioContext>> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id)?;
@@ -117,7 +117,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         proto: Option<HandleObject>,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        AudioContext::new(window, proto, options, cx)
+        AudioContext::new(cx, window, proto, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency>
@@ -270,7 +270,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamAudioSourceNode::new(window, self, stream, cx)
+        MediaStreamAudioSourceNode::new(cx, window, self, stream)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamtracksource>
@@ -281,7 +281,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamTrackAudioSourceNode::new(window, self, track, cx)
+        MediaStreamTrackAudioSourceNode::new(cx, window, self, track)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamdestination>
@@ -291,7 +291,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamAudioDestinationNode::new(window, self, &AudioNodeOptions::empty(), cx)
+        MediaStreamAudioDestinationNode::new(cx, window, self, &AudioNodeOptions::empty())
     }
 }
 

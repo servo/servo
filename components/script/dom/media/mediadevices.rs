@@ -55,18 +55,18 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
     ) -> Rc<Promise> {
         let p = Promise::new_in_realm(cx);
         let media = ServoMedia::get();
-        let stream = MediaStream::new(&self.global(), cx);
+        let stream = MediaStream::new(cx, &self.global());
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
                 let track =
-                    MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio, cx);
+                    MediaStreamTrack::new(cx, &self.global(), audio, MediaStreamType::Audio);
                 stream.add_track(&track);
             }
         }
         if let Some(constraints) = convert_constraints(&constraints.video) {
             if let Some(video) = media.create_videoinput_stream(constraints) {
                 let track =
-                    MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video, cx);
+                    MediaStreamTrack::new(cx, &self.global(), video, MediaStreamType::Video);
                 stream.add_track(&track);
             }
         }

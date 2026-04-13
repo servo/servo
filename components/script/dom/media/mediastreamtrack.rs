@@ -34,10 +34,10 @@ impl MediaStreamTrack {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<MediaStreamTrack> {
         reflect_dom_object_with_cx(
             Box::new(MediaStreamTrack::new_inherited(id, ty)),
@@ -71,6 +71,6 @@ impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone>
     fn Clone(&self, cx: &mut js::context::JSContext) -> DomRoot<MediaStreamTrack> {
-        MediaStreamTrack::new(&self.global(), self.id, self.ty, cx)
+        MediaStreamTrack::new(cx, &self.global(), self.id, self.ty)
     }
 }

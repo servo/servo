@@ -32,24 +32,24 @@ impl RTCTrackEvent {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, cx)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, track)
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<RTCTrackEvent> {
         let trackevent = reflect_dom_object_with_proto_and_cx(
             Box::new(RTCTrackEvent::new_inherited(track)),
@@ -75,13 +75,13 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
         init: &RTCTrackEventBinding::RTCTrackEventInit,
     ) -> Fallible<DomRoot<RTCTrackEvent>> {
         Ok(RTCTrackEvent::new_with_proto(
+            cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             &init.track,
-            cx,
         ))
     }
 

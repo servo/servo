@@ -660,9 +660,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         _frame_request_rate: Option<Finite<f64>>,
     ) -> DomRoot<MediaStream> {
         let global = self.global();
-        let stream = MediaStream::new(&global, cx);
+        let stream = MediaStream::new(cx, &global);
         let track =
-            MediaStreamTrack::new(&global, MediaStreamId::new(), MediaStreamType::Video, cx);
+            MediaStreamTrack::new(cx, &global, MediaStreamId::new(), MediaStreamType::Video);
         stream.AddTrack(&track);
         stream
     }

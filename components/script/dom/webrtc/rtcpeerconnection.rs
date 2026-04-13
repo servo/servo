@@ -131,7 +131,7 @@ impl WebRtcSignaller for RTCSignaller {
         let id = *id;
         self.task_source.queue(task!(on_add_stream: move |cx| {
             let this = this.root();
-            this.on_add_stream(id, ty, cx);
+            this.on_add_stream(cx, id, ty, );
         }));
     }
 
@@ -263,21 +263,21 @@ impl RTCPeerConnection {
 
     fn on_add_stream(
         &self,
+        cx: &mut js::context::JSContext,
         id: MediaStreamId,
         ty: MediaStreamType,
-        cx: &mut js::context::JSContext,
     ) {
         if self.closed.get() {
             return;
         }
-        let track = MediaStreamTrack::new(&self.global(), id, ty, cx);
+        let track = MediaStreamTrack::new(cx, &self.global(), id, ty);
         let event = RTCTrackEvent::new(
+            cx,
             self.global().as_window(),
             atom!("track"),
             false,
             false,
             &track,
-            cx,
         );
         event
             .upcast::<Event>()

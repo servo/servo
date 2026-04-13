@@ -51,21 +51,21 @@ impl MediaStreamAudioSourceNode {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         context: &AudioContext,
         stream: &MediaStream,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, stream, cx)
+        Self::new_with_proto(cx, window, None, context, stream)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         context: &AudioContext,
         stream: &MediaStream,
-        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let node = MediaStreamAudioSourceNode::new_inherited(context, stream)?;
         Ok(reflect_dom_object_with_proto_and_cx(
@@ -86,7 +86,7 @@ impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudi
         context: &AudioContext,
         options: &MediaStreamAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        MediaStreamAudioSourceNode::new_with_proto(window, proto, context, &options.mediaStream, cx)
+        MediaStreamAudioSourceNode::new_with_proto(cx, window, proto, context, &options.mediaStream)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-MediaStreamAudioSourceNode-stream>
