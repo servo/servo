@@ -118,7 +118,7 @@ pub(crate) struct HTMLScriptElement {
     /// `prepare`
     marked_as_render_blocking: Cell<bool>,
 
-    /// <https://html.spec.whatwg.org/multipage/scripting.html#concept-script-result>
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-result>
     result: DomRefCell<Option<ScriptResult>>,
 }
 
@@ -312,7 +312,7 @@ impl ScriptOrigin {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/scripting.html#steps-to-run-when-the-result-is-ready>
+/// <https://html.spec.whatwg.org/multipage/#steps-to-run-when-the-result-is-ready>
 fn finish_fetching_a_script(
     elem: &HTMLScriptElement,
     script_kind: ExternalScriptKind,

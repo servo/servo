@@ -1535,7 +1535,7 @@ pub(crate) fn fetch_a_single_module_script(
             // Append an handler to the existing pending fetch, once resolved it will queue a task
             // to run onComplete.
             let continue_loading_handler = PromiseNativeHandler::new(
-                &global,
+                global,
                 Some(Box::new(QueueTaskHandler { promise })),
                 None,
                 CanGc::from_cx(cx),
