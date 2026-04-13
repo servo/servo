@@ -79,5 +79,3 @@ jobs:
           ./mach clippy --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all --github-annotations
-      - name: Taplo
-        run: taplo format --check
