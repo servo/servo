@@ -36,7 +36,7 @@ class JobConfig(object):
     name: str
     workflow: Workflow = Workflow.LINUX
     wpt: bool = False
-    profile: str = "release"
+    profile: str = "release-ci"
     unit_tests: bool = False
     build_libservo: bool = False
     bencher: bool = False
@@ -78,7 +78,7 @@ class JobConfig(object):
         elif self.workflow is Workflow.OHOS:
             self.name = "OpenHarmony"
         modifier = []
-        if self.profile != "release":
+        if self.profile != "release-ci":
             modifier.append(self.profile.title())
         if self.unit_tests:
             modifier.append("Unit Tests")
@@ -272,7 +272,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "name": "Linux (Unit Tests)",
                         "number_of_wpt_chunks": 20,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": True,
                         "build_libservo": False,
                         "workflow": "linux",
@@ -295,7 +295,7 @@ class TestParser(unittest.TestCase):
                         "name": "Linux (Unit Tests, Build libservo, WPT, Bencher)",
                         "workflow": "linux",
                         "wpt": True,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": True,
@@ -308,7 +308,7 @@ class TestParser(unittest.TestCase):
                         "name": "Windows (Unit Tests, Build libservo)",
                         "workflow": "windows",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": True,
                         "build_libservo": True,
                         "bencher": False,
@@ -321,7 +321,7 @@ class TestParser(unittest.TestCase):
                         "name": "MacOS Arm64 (Unit Tests)",
                         "workflow": "macos-arm64",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": True,
                         "build_libservo": False,
                         "bencher": False,
@@ -334,7 +334,7 @@ class TestParser(unittest.TestCase):
                         "name": "Android",
                         "workflow": "android",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
@@ -347,7 +347,7 @@ class TestParser(unittest.TestCase):
                         "name": "OpenHarmony",
                         "workflow": "ohos",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
@@ -360,7 +360,7 @@ class TestParser(unittest.TestCase):
                         "name": "Lint",
                         "workflow": "lint",
                         "wpt": False,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": False,
                         "build_libservo": False,
                         "bencher": False,
@@ -383,7 +383,7 @@ class TestParser(unittest.TestCase):
                         "bencher": False,
                         "name": "Linux (WPT)",
                         "number_of_wpt_chunks": 20,
-                        "profile": "release",
+                        "profile": "release-ci",
                         "unit_tests": False,
                         "build_libservo": False,
                         "workflow": "linux",
