@@ -656,17 +656,13 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
     fn CaptureStream(
         &self,
+        cx: &mut js::context::JSContext,
         _frame_request_rate: Option<Finite<f64>>,
-        can_gc: CanGc,
     ) -> DomRoot<MediaStream> {
         let global = self.global();
-        let stream = MediaStream::new(&global, can_gc);
-        let track = MediaStreamTrack::new(
-            &global,
-            MediaStreamId::new(),
-            MediaStreamType::Video,
-            can_gc,
-        );
+        let stream = MediaStream::new(cx, &global);
+        let track =
+            MediaStreamTrack::new(cx, &global, MediaStreamId::new(), MediaStreamType::Video);
         stream.AddTrack(&track);
         stream
     }
