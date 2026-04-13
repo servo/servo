@@ -1199,7 +1199,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         cx,
         url,
         fetch_client.clone(),
-        &global,
+        global,
         destination,
         options,
         referrer,
@@ -1235,7 +1235,7 @@ pub(crate) fn fetch_an_external_module_script(
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
     let referrer = global.get_referrer();
-    let fetch_client = ModuleFetchClient::from_global_scope(&global);
+    let fetch_client = ModuleFetchClient::from_global_scope(global);
     let global_scope = DomRoot::from_ref(global);
 
     // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
@@ -1244,7 +1244,7 @@ pub(crate) fn fetch_an_external_module_script(
         cx,
         url,
         fetch_client.clone(),
-        &global,
+        global,
         Destination::Script,
         options,
         referrer,
@@ -1329,6 +1329,7 @@ pub(crate) fn fetch_a_modulepreload_module(
     );
 }
 
+#[expect(clippy::too_many_arguments)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
 pub(crate) fn fetch_inline_module_script(
     cx: &mut JSContext,
@@ -1399,12 +1400,11 @@ fn fetch_the_descendants_and_link_module_script(
 
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
+    let mut realm = enter_auto_realm(cx, global);
+    let cx = &mut realm.current_realm();
+
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = load_requested_modules(
-        &mut CurrentRealm::assert(cx),
-        module_script.clone(),
-        Some(Rc::clone(&state)),
-    );
+    let loading_promise = load_requested_modules(cx, module_script.clone(), Some(state.clone()));
 
     let global_scope = DomRoot::from_ref(global);
     let fulfilled_module = module_script.clone();
@@ -1450,15 +1450,16 @@ fn fetch_the_descendants_and_link_module_script(
         })));
 
     let handler = PromiseNativeHandler::new(
-        &global,
+        global,
         Some(loading_promise_fulfillment),
         Some(loading_promise_rejection),
         CanGc::from_cx(cx),
     );
 
-    let realm = enter_realm(&*global);
-    let comp = InRealm::Entered(&realm);
-    run_a_callback::<DomTypeHolder, _>(&global, || {
+    let in_realm_proof = cx.into();
+    let comp = InRealm::Already(&in_realm_proof);
+
+    run_a_callback::<DomTypeHolder, _>(global, || {
         loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
     });
 }
@@ -1500,7 +1501,7 @@ pub(crate) fn fetch_a_single_module_script(
         None => DomRefCell::new(None),
     };
 
-    let global_scope = DomRoot::from_ref(&*global);
+    let global_scope = DomRoot::from_ref(global);
     let module_map_key = module_request.clone();
     let handler = ModuleHandler::new_boxed(Box::new(
         task!(fetch_completed: |cx, global_scope: DomRoot<GlobalScope>| {
@@ -1513,15 +1514,15 @@ pub(crate) fn fetch_a_single_module_script(
         }),
     ));
 
-    let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::from_cx(cx));
+    let handler = PromiseNativeHandler::new(global, Some(handler), None, CanGc::from_cx(cx));
 
-    let mut realm = enter_auto_realm(cx, &*global);
+    let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
 
     let in_realm_proof = cx.into();
     let comp = InRealm::Already(&in_realm_proof);
 
-    run_a_callback::<DomTypeHolder, _>(&global, || {
+    run_a_callback::<DomTypeHolder, _>(global, || {
         let has_pending_fetch = pending.borrow().is_some();
 
         let promise = Promise::new_in_realm(cx);
