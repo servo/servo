@@ -43,15 +43,18 @@ class MacOS(Base):
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = False
         try:
-            brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
-            output = subprocess.check_output(["brew", "bundle", "install", "--file", brewfile]).decode("utf-8")
+            brewfile = os.path.join(
+                util.SERVO_ROOT, "support", "macos", "Brewfile")
+            output = subprocess.check_output(
+                ["brew", "bundle", "install", "--file", brewfile]).decode("utf-8")
             print(output)
             installed_something = "Installing" in output
         except subprocess.CalledProcessError as e:
             print("Could not run homebrew. Is it installed?")
             raise e
         target = BuildTarget.from_triple(None)
-        installed_something |= self._platform_bootstrap_gstreamer(target, force, yes)
+        installed_something |= self._platform_bootstrap_gstreamer(
+            target, force, yes)
         return installed_something
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
@@ -63,20 +66,24 @@ class MacOS(Base):
             devel_pkg = os.path.join(temp_dir, GSTREAMER_DEVEL_FILENAME)
 
             if not (yes or force):
-                print("Warning: GStreamer was not installed since it requires elevated permissions.\n")
+                print(
+                    "Warning: GStreamer was not installed since it requires elevated permissions.\n")
                 print("To install GStreamer, either: ")
-                print("1. Run mach bootstrap again with --yes")
-                print("2. Do it Manually:")
-                print(f"\t1. Download the GStreamer Libraries:")
-                print(f"\tcurl -L -# -o /tmp/{GSTREAMER_FILENAME} {GSTREAMER_URL}\n")
-                print(f"\t2. Download the GStreamer Development Support:")
-                print(f"\tcurl -L -# -o /tmp/{GSTREAMER_DEVEL_FILENAME} {GSTREAMER_DEVEL_URL}\n")
-                print("\t3. Install GStreamer:")
-                print(f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / &&installer -pkg '/tmp/{GSTREAMER_DEVEL_FILENAME}' -target / \n")
+                print("a) Run mach bootstrap again with --yes")
+                print("b) OR install GStreamer manually:")
+                print("\t1. Download both GStreamer packages:")
+                print(
+                    f"\tcurl -L -# -o /tmp/{GSTREAMER_FILENAME} {GSTREAMER_URL}\n")
+                print(
+                    f"\tcurl -L -# -o /tmp/{GSTREAMER_DEVEL_FILENAME} {GSTREAMER_DEVEL_URL}\n")
+                print("\t2. Install GStreamer packages:")
+                print(f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / && installer -pkg '/tmp/{
+                      GSTREAMER_DEVEL_FILENAME}' -target / \n")
                 return False
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
-            util.download_file("GStreamer development support", GSTREAMER_DEVEL_URL, devel_pkg)
+            util.download_file("GStreamer development support",
+                               GSTREAMER_DEVEL_URL, devel_pkg)
 
             print("Installing GStreamer packages...")
             subprocess.check_call(
@@ -84,7 +91,8 @@ class MacOS(Base):
                     "sudo",
                     "sh",
                     "-c",
-                    f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{devel_pkg}' -target /",
+                    f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{
+                        devel_pkg}' -target /",
                 ]
             )
 
