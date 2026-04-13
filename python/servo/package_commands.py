@@ -177,6 +177,7 @@ class PackageCommands(CommandBase):
                 build_type_string = "Debug"
             # Inform the android build of where `libservoshell.so` is located.
             env["SERVO_TARGET_DIR"] = target_dir
+            env["SERVO_ANDROID_BUILD_TYPE_DIRECTORY"] = build_type.directory_name()
 
             flavor_name = "Basic"
             if flavor is not None:
