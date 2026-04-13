@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 pub(crate) struct WakeLockSentinel {
     eventtarget: EventTarget,
     released: Cell<bool>,
-    type_: Cell<WakeLockType>,
+    type_: WakeLockType,
 }
 
 impl WakeLockSentinel {
@@ -27,7 +27,7 @@ impl WakeLockSentinel {
         Self {
             eventtarget: EventTarget::new_inherited(),
             released: Cell::new(false),
-            type_: Cell::new(type_),
+            type_,
         }
     }
 
@@ -48,6 +48,6 @@ impl WakeLockSentinelMethods<crate::DomTypeHolder> for WakeLockSentinel {
 
     /// <https://w3c.github.io/screen-wake-lock/#dom-wakelocksentinel-type>
     fn Type(&self) -> WakeLockType {
-        self.type_.get()
+        self.type_
     }
 }

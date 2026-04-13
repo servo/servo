@@ -97,6 +97,7 @@ pub(crate) struct WebViewInner {
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     #[cfg(feature = "gamepad")]
     pub(crate) gamepad_delegate: Rc<dyn GamepadDelegate>,
+
     /// AccessKit subtree id for this [`WebView`], if accessibility is active.
     ///
     /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via

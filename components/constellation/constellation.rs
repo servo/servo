@@ -168,7 +168,7 @@ use servo_constellation_traits::{
     WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use servo_wakelock::WakeLockProvider;
+use servo_wakelock::{WakeLockProvider, WakeLockType};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
@@ -2110,14 +2110,15 @@ where
             ScriptToConstellationMessage::AcquireWakeLock => {
                 self.screen_wake_lock_count += 1;
                 if self.screen_wake_lock_count == 1 {
-                    self.wake_lock_provider.acquire();
+                    if let Err(e) = self.wake_lock_provider.acquire(WakeLockType::Screen) {
+                        warn!("Failed to acquire screen wake lock: {e}");
+                    }
                 }
             },
             ScriptToConstellationMessage::ReleaseWakeLock => {
-                self.screen_wake_lock_count =
-                    self.screen_wake_lock_count.saturating_sub(1);
+                self.screen_wake_lock_count = self.screen_wake_lock_count.saturating_sub(1);
                 if self.screen_wake_lock_count == 0 {
-                    self.wake_lock_provider.release();
+                    self.wake_lock_provider.release(WakeLockType::Screen);
                 }
             },
         }
