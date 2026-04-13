@@ -44,6 +44,7 @@ read-fonts = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
+servo_config = { package = "servo-config", path = "../config" }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-tracing = { workspace = true }
