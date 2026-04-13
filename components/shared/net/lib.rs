@@ -663,12 +663,6 @@ pub enum CoreResourceMsg {
         GenericSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
-    /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(
-        ServoUrl,
-        GenericSender<Vec<Serde<Cookie<'static>>>>,
-        CookieSource,
-    ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
