@@ -209,7 +209,7 @@ fn console_argument_from_handle_value(
 
             if let Some(console_argument_object) = maybe_argument_object {
                 return Ok(DebuggerValue::ObjectValue {
-                    uuid: "".to_string(),
+                    uuid: uuid::Uuid::new_v4().to_string(),
                     class: "Object".to_owned(),
                     preview: Some(console_argument_object),
                 });
