@@ -14,11 +14,10 @@ use crate::dom::bindings::codegen::Bindings::MediaStreamAudioSourceNodeBinding::
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::mediastream::MediaStream;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaStreamAudioSourceNode {
@@ -55,9 +54,9 @@ impl MediaStreamAudioSourceNode {
         window: &Window,
         context: &AudioContext,
         stream: &MediaStream,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, stream, can_gc)
+        Self::new_with_proto(window, None, context, stream, cx)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -66,14 +65,14 @@ impl MediaStreamAudioSourceNode {
         proto: Option<HandleObject>,
         context: &AudioContext,
         stream: &MediaStream,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let node = MediaStreamAudioSourceNode::new_inherited(context, stream)?;
-        Ok(reflect_dom_object_with_proto(
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -81,19 +80,13 @@ impl MediaStreamAudioSourceNode {
 impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiosourcenode-mediastreamaudiosourcenode>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &AudioContext,
         options: &MediaStreamAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        MediaStreamAudioSourceNode::new_with_proto(
-            window,
-            proto,
-            context,
-            &options.mediaStream,
-            can_gc,
-        )
+        MediaStreamAudioSourceNode::new_with_proto(window, proto, context, &options.mediaStream, cx)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-MediaStreamAudioSourceNode-stream>

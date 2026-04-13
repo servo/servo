@@ -10,13 +10,12 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventM
 use crate::dom::bindings::codegen::Bindings::RTCTrackEventBinding::{self, RTCTrackEventMethods};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct RTCTrackEvent {
@@ -38,9 +37,9 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, cx)
     }
 
     fn new_with_proto(
@@ -50,13 +49,13 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<RTCTrackEvent> {
-        let trackevent = reflect_dom_object_with_proto(
+        let trackevent = reflect_dom_object_with_proto_and_cx(
             Box::new(RTCTrackEvent::new_inherited(track)),
             window,
             proto,
-            can_gc,
+            cx,
         );
         {
             let event = trackevent.upcast::<Event>();
@@ -69,9 +68,9 @@ impl RTCTrackEvent {
 impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-constructor>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         type_: DOMString,
         init: &RTCTrackEventBinding::RTCTrackEventInit,
     ) -> Fallible<DomRoot<RTCTrackEvent>> {
@@ -82,7 +81,7 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.track,
-            can_gc,
+            cx,
         ))
     }
 

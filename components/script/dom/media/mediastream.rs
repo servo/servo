@@ -10,14 +10,13 @@ use servo_media::streams::registry::MediaStreamId;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::media::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaStream {
@@ -33,20 +32,23 @@ impl MediaStream {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaStream> {
-        Self::new_with_proto(global, None, can_gc)
+    pub(crate) fn new(
+        global: &GlobalScope,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<MediaStream> {
+        Self::new_with_proto(global, None, cx)
     }
 
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<MediaStream> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(MediaStream::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -54,10 +56,10 @@ impl MediaStream {
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<MediaStream> {
-        let this = Self::new(global, can_gc);
-        let track = MediaStreamTrack::new(global, id, ty, can_gc);
+        let this = Self::new(global, cx);
+        let track = MediaStreamTrack::new(global, id, ty, cx);
         this.AddTrack(&track);
         this
     }
@@ -74,31 +76,31 @@ impl MediaStream {
 impl MediaStreamMethods<crate::DomTypeHolder> for MediaStream {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStream>> {
-        Ok(MediaStream::new_with_proto(&global.global(), proto, can_gc))
+        Ok(MediaStream::new_with_proto(&global.global(), proto, cx))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor_(
+        cx: &mut js::context::JSContext,
         _: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         stream: &MediaStream,
     ) -> Fallible<DomRoot<MediaStream>> {
-        Ok(stream.clone_with_proto(proto, can_gc))
+        Ok(stream.clone_with_proto(proto, cx))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor__(
+        cx: &mut js::context::JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         tracks: Vec<DomRoot<MediaStreamTrack>>,
     ) -> Fallible<DomRoot<MediaStream>> {
-        let new = MediaStream::new_with_proto(&global.global(), proto, can_gc);
+        let new = MediaStream::new_with_proto(&global.global(), proto, cx);
         for track in tracks {
             // this is quadratic, but shouldn't matter much
             // if this becomes a problem we can use a hash map
@@ -161,14 +163,18 @@ impl MediaStreamMethods<crate::DomTypeHolder> for MediaStream {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-clone>
-    fn Clone(&self, can_gc: CanGc) -> DomRoot<MediaStream> {
-        self.clone_with_proto(None, can_gc)
+    fn Clone(&self, cx: &mut js::context::JSContext) -> DomRoot<MediaStream> {
+        self.clone_with_proto(None, cx)
     }
 }
 
 impl MediaStream {
-    fn clone_with_proto(&self, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<MediaStream> {
-        let new = MediaStream::new_with_proto(&self.global(), proto, can_gc);
+    fn clone_with_proto(
+        &self,
+        proto: Option<HandleObject>,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<MediaStream> {
+        let new = MediaStream::new_with_proto(&self.global(), proto, cx);
         for track in &*self.tracks.borrow() {
             new.add_track(track)
         }

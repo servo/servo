@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
@@ -49,29 +50,28 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia>
     fn GetUserMedia(
         &self,
+        cx: &mut CurrentRealm,
         constraints: &MediaStreamConstraints,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp, can_gc);
+        let p = Promise::new_in_realm(cx);
         let media = ServoMedia::get();
-        let stream = MediaStream::new(&self.global(), can_gc);
+        let stream = MediaStream::new(&self.global(), cx);
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
                 let track =
-                    MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio, can_gc);
+                    MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio, cx);
                 stream.add_track(&track);
             }
         }
         if let Some(constraints) = convert_constraints(&constraints.video) {
             if let Some(video) = media.create_videoinput_stream(constraints) {
                 let track =
-                    MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video, can_gc);
+                    MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video, cx);
                 stream.add_track(&track);
             }
         }
 
-        p.resolve_native(&stream, can_gc);
+        p.resolve_native(&stream, CanGc::from_cx(cx));
         p
     }
 

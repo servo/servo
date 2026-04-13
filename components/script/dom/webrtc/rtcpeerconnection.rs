@@ -129,9 +129,9 @@ impl WebRtcSignaller for RTCSignaller {
     fn on_add_stream(&self, id: &MediaStreamId, ty: MediaStreamType) {
         let this = self.trusted.clone();
         let id = *id;
-        self.task_source.queue(task!(on_add_stream: move || {
+        self.task_source.queue(task!(on_add_stream: move |cx| {
             let this = this.root();
-            this.on_add_stream(id, ty, CanGc::deprecated_note());
+            this.on_add_stream(id, ty, cx);
         }));
     }
 
@@ -261,20 +261,27 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
-    fn on_add_stream(&self, id: MediaStreamId, ty: MediaStreamType, can_gc: CanGc) {
+    fn on_add_stream(
+        &self,
+        id: MediaStreamId,
+        ty: MediaStreamType,
+        cx: &mut js::context::JSContext,
+    ) {
         if self.closed.get() {
             return;
         }
-        let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
+        let track = MediaStreamTrack::new(&self.global(), id, ty, cx);
         let event = RTCTrackEvent::new(
             self.global().as_window(),
             atom!("track"),
             false,
             false,
             &track,
-            can_gc,
+            cx,
         );
-        event.upcast::<Event>().fire(self.upcast(), can_gc);
+        event
+            .upcast::<Event>()
+            .fire(self.upcast(), CanGc::from_cx(cx));
     }
 
     fn on_data_channel_event(
