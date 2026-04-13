@@ -84,11 +84,11 @@ macro_rules! pref {
 
 /// The set of global preferences supported by Servo.
 ///
-/// Each preference can be in one of three states depending on its default value:
-/// - **Stable**: enabled by default for all users.
-/// - **Experimental**: disabled by default, but enabled in servoshell's experimental mode
-///   via the `--experimental` flag.
-/// - **Unstable**: disabled by default in all modes.
+/// Each preference has a default value that determines its initial state. These defaults
+/// fall into roughly three categories:
+/// - **Stable**: enabled by default.
+/// - **Experimental**: disabled by default, but intended to be enabled for experimental use.
+/// - **Unstable**: disabled by default.
 ///
 /// For a full overview of which preferences are experimental, see the
 /// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
