@@ -43,18 +43,15 @@ class MacOS(Base):
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = False
         try:
-            brewfile = os.path.join(
-                util.SERVO_ROOT, "support", "macos", "Brewfile")
-            output = subprocess.check_output(
-                ["brew", "bundle", "install", "--file", brewfile]).decode("utf-8")
+            brewfile = os.path.join(util.SERVO_ROOT, "support", "macos", "Brewfile")
+            output = subprocess.check_output(["brew", "bundle", "install", "--file", brewfile]).decode("utf-8")
             print(output)
             installed_something = "Installing" in output
         except subprocess.CalledProcessError as e:
             print("Could not run homebrew. Is it installed?")
             raise e
         target = BuildTarget.from_triple(None)
-        installed_something |= self._platform_bootstrap_gstreamer(
-            target, force, yes)
+        installed_something |= self._platform_bootstrap_gstreamer(target, force, yes)
         return installed_something
 
     def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
@@ -74,12 +71,13 @@ class MacOS(Base):
                 print(f"\tcurl -L -# -o /tmp/{GSTREAMER_FILENAME} {GSTREAMER_URL}\n")
                 print(f"\tcurl -L -# -o /tmp/{GSTREAMER_DEVEL_FILENAME} {GSTREAMER_DEVEL_URL}\n")
                 print("\t2. Install GStreamer packages:")
-                print(f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / && installer -pkg '/tmp/{GSTREAMER_DEVEL_FILENAME}' -target / \n")
+                print(
+                    f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / && installer -pkg '/tmp/{GSTREAMER_DEVEL_FILENAME}' -target / \n"
+                )
                 return False
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
-            util.download_file("GStreamer development support",
-                               GSTREAMER_DEVEL_URL, devel_pkg)
+            util.download_file("GStreamer development support", GSTREAMER_DEVEL_URL, devel_pkg)
 
             print("Installing GStreamer packages...")
             subprocess.check_call(
