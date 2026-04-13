@@ -158,6 +158,10 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.build_libservo = True
     if "production" in s:
         config.profile = "production"
+    elif "release" in s:
+        config.profile = "release"
+    elif "debug" in s:
+        config.profile = "dev"
     if "bencher" in s:
         config.bencher = True
     if "coverage" in s:
