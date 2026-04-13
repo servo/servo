@@ -481,7 +481,7 @@ impl Performance {
 
         // Step 2. If name is navigationStart, return 0.
         if name == "navigationStart" {
-            return Ok(self.time_origin);
+            return Ok(CrossProcessInstant::epoch());
         }
 
         // Step 3. Let startTime be the value of navigationStart in the PerformanceTiming interface.
