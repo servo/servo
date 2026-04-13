@@ -91,8 +91,7 @@ class MacOS(Base):
                     "sudo",
                     "sh",
                     "-c",
-                    f"installer -pkg '{libs_pkg}' -target / &&installer -pkg '{
-                        devel_pkg}' -target /",
+                    f"installer -pkg '{libs_pkg}' -target / && installer -pkg '{devel_pkg}' -target /",
                 ]
             )
 
