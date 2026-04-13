@@ -27,7 +27,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediastream::MediaStream;
@@ -87,11 +87,11 @@ impl AudioContext {
         window: &Window,
         proto: Option<HandleObject>,
         options: &AudioContextOptions,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<AudioContext>> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id)?;
-        let context = reflect_dom_object_with_proto(Box::new(context), window, proto, can_gc);
+        let context = reflect_dom_object_with_proto_and_cx(Box::new(context), window, proto, cx);
         context.resume();
         Ok(context)
     }
@@ -112,12 +112,12 @@ impl AudioContext {
 impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     /// <https://webaudio.github.io/web-audio-api/#AudioContext-constructors>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        AudioContext::new(window, proto, options, can_gc)
+        AudioContext::new(window, proto, options, cx)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency>
