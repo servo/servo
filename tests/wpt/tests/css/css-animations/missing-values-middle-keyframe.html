@@ -42,6 +42,7 @@
     <script>
     promise_test(async t => {
         box1.style.animation = "move-left 1s -10s linear 0.5 normal forwards paused";
+        assert_equals(getComputedStyle(box1).opacity, "0.5");
         assert_equals(getComputedStyle(box1).marginLeft, "50px");
     }, "Animation interpolates correctly when some keyframes don't declare all values");
     </script>
