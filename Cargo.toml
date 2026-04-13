@@ -161,12 +161,12 @@ rustls-platform-verifier = "0.6.2"
 sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "=0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo" }
+selectors = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -174,12 +174,12 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo" }
-stylo_atoms = { git = "https://github.com/servo/stylo" }
-stylo_dom = { git = "https://github.com/servo/stylo" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo" }
-stylo_traits = { git = "https://github.com/servo/stylo" }
+stylo = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039261661b049a5dc845cd80" }
 surfman = { version = "0.12.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -381,7 +381,7 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-[patch."https://github.com/servo/stylo"]
+# [patch."https://github.com/servo/stylo"]
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # stylo = { path = "../stylo/style" }
@@ -390,14 +390,6 @@ codegen-units = 1
 # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
 # stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
 # stylo_traits = { path = "../stylo/style_traits" }
-selectors = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-servo_arc = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-stylo = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-stylo_atoms = {git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-stylo_dom = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-stylo_malloc_size_of = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-stylo_static_prefs = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2" }
-stylo_traits = { git="https://github.com/simonwuelker/stylo", branch="keyframes-missing-properties-2"  }
 #
 # Or for another Git dependency:
 #
