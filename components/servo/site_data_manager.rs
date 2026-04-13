@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use bitflags::bitflags;
 use cookie::Cookie;
 use log::warn;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{CookieSource, PendingCookieRequest, ResourceThreads, SiteDescriptor};
+use net_traits::{CookieOperationId, ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
@@ -64,6 +64,8 @@ impl SiteData {
     }
 }
 
+type CookieCallback = Box<dyn FnOnce(Vec<Cookie<'static>>)>;
+
 /// Provides APIs for inspecting and managing site data.
 ///
 /// `SiteDataManager` exposes information about data that is conceptually
@@ -81,7 +83,8 @@ pub struct SiteDataManager {
     private_resource_threads: ResourceThreads,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
-    pending_cookie_requests: RefCell<Vec<PendingCookieRequest>>,
+    next_cookie_op_id: Cell<u64>,
+    pending_cookie_callbacks: RefCell<FxHashMap<CookieOperationId, CookieCallback>>,
 }
 
 impl SiteDataManager {
@@ -96,7 +99,8 @@ impl SiteDataManager {
             private_resource_threads,
             public_storage_threads,
             private_storage_threads,
-            pending_cookie_requests: RefCell::new(Vec::new()),
+            next_cookie_op_id: Cell::new(0),
+            pending_cookie_callbacks: RefCell::new(FxHashMap::default()),
         }
     }
 
@@ -232,30 +236,34 @@ impl SiteDataManager {
     }
 
     /// Asynchronously returns the cookies for the domain associated with the given [`Url`].
-    ///
-    /// The cookies are delivered via the provided callback during
-    /// [`Servo::spin_event_loop`](crate::Servo::spin_event_loop).
     pub fn cookies_for_url_async(
         &self,
         url: Url,
         source: CookieSource,
         callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
     ) {
-        let request =
-            self.public_resource_threads
-                .cookies_for_url_async(url.into(), source, callback);
-        self.pending_cookie_requests.borrow_mut().push(request);
+        let id = CookieOperationId(self.next_cookie_op_id.get());
+        self.next_cookie_op_id.set(id.0 + 1);
+        self.pending_cookie_callbacks
+            .borrow_mut()
+            .insert(id, Box::new(callback));
+        self.public_resource_threads
+            .cookies_for_url_async(id, url.into(), source);
     }
 
-    /// Poll pending asynchronous cookie requests, invoking callbacks for any
-    /// that have completed.
-    pub(crate) fn poll_pending_cookie_requests(&self) {
-        self.pending_cookie_requests
-            .borrow_mut()
-            .retain_mut(|request| match request.poll() {
-                Some(true) => false,
-                Some(false) => true,
-                None => false,
-            });
+    /// Handle a cookie response from the resource thread.
+    ///
+    /// This is called by the event loop when a
+    /// [`NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse`] is received.
+    pub(crate) fn handle_cookie_response(
+        &self,
+        id: CookieOperationId,
+        cookies: Vec<Cookie<'static>>,
+    ) {
+        if let Some(callback) = self.pending_cookie_callbacks.borrow_mut().remove(&id) {
+            callback(cookies);
+        } else {
+            warn!("Received cookie response for unknown operation {id:?}");
+        }
     }
 }

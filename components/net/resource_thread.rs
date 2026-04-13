@@ -562,6 +562,18 @@ impl ResourceChannelManager {
                     .collect();
                 self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
             },
+            CoreResourceMsg::EmbedderGetCookiesForUrl(operation_id, url, source) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let cookies: Vec<Cookie<'static>> =
+                    cookie_jar.cookies_data_for_url(&url, source).collect();
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse(
+                        operation_id,
+                        cookies,
+                    ));
+            },
             CoreResourceMsg::NewCookieListener(cookie_store_id, callback, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring
                 self.cookie_listeners.insert(cookie_store_id, callback);

@@ -28,12 +28,16 @@ use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{
-    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericReceiver, GenericSend,
-    GenericSender, SendResult, TryReceiveError,
+    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
+    SendResult,
 };
 use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
+
+/// Identifies a pending asynchronous cookie operation initiated by the embedder.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct CookieOperationId(pub u64);
 
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManagerThreadMsg;
@@ -478,34 +482,6 @@ pub trait AsyncRuntime: Send {
     fn shutdown(&mut self);
 }
 
-/// A pending asynchronous cookie request`.
-pub struct PendingCookieRequest {
-    receiver: GenericReceiver<Vec<Serde<Cookie<'static>>>>,
-    callback: Option<Box<dyn FnOnce(Vec<Cookie<'static>>)>>,
-}
-
-impl PendingCookieRequest {
-    /// Try to receive the cookie response without blocking.
-    ///
-    /// Returns `Some(true)` if the callback was invoked (request complete),
-    /// `Some(false)` if the response is not ready yet,
-    /// or `None` if the request was failed.
-    pub fn poll(&mut self) -> Option<bool> {
-        match self.receiver.try_recv() {
-            Ok(cookies) => {
-                if let Some(callback) = self.callback.take() {
-                    let cookies: Vec<Cookie<'static>> =
-                        cookies.into_iter().map(|c| c.into_inner()).collect();
-                    callback(cookies);
-                }
-                Some(true)
-            },
-            Err(TryReceiveError::Empty) => Some(false),
-            Err(TryReceiveError::ReceiveError(_)) => None,
-        }
-    }
-}
-
 /// Handle to a resource thread
 pub type CoreResourceThread = GenericSender<CoreResourceMsg>;
 
@@ -582,22 +558,6 @@ impl ResourceThreads {
             .collect()
     }
 
-    pub fn cookies_for_url_async(
-        &self,
-        url: ServoUrl,
-        source: CookieSource,
-        callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
-    ) -> PendingCookieRequest {
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let _ = self
-            .core_thread
-            .send(CoreResourceMsg::GetCookiesForUrl(url, sender, source));
-        PendingCookieRequest {
-            receiver,
-            callback: Some(Box::new(callback)),
-        }
-    }
-
     pub fn set_cookie_for_url(&self, url: ServoUrl, cookie: Cookie<'static>, source: CookieSource) {
         let _ = self.core_thread.send(CoreResourceMsg::SetCookieForUrl(
             url,
@@ -621,6 +581,17 @@ impl ResourceThreads {
             Some(sender),
         ));
         let _ = receiver.recv();
+    }
+
+    pub fn cookies_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        source: CookieSource,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderGetCookiesForUrl(id, url, source));
     }
 }
 
@@ -702,11 +673,15 @@ pub enum CoreResourceMsg {
     /// Retrieve the stored cookies as a header string for a given URL.
     GetCookieStringForUrl(ServoUrl, GenericSender<Option<String>>, CookieSource),
     /// Retrieve the stored cookies as a vector for the given URL.
+    /// The response is sent via the provided sender.
     GetCookiesForUrl(
         ServoUrl,
         GenericSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
+    /// Retrieve cookies for a URL for embedder. The response is
+    /// sent via [`NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse`].
+    EmbedderGetCookiesForUrl(CookieOperationId, ServoUrl, CookieSource),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),

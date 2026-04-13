@@ -730,7 +730,7 @@ fn test_get_cookie_async() {
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(url.clone().into_url())
+        .url(url.url().into_url())
         .build();
 
     // Wait for LoadStatus::Complete to ensure the HTTP response and Set-Cookie header are processed.
@@ -745,10 +745,14 @@ fn test_get_cookie_async() {
     servo_test
         .servo()
         .site_data_manager()
-        .cookies_for_url_async(url.into_url(), CookieSource::NonHTTP, move |cookies| {
-            assert!(continued_clone.get(), "callback fired synchronously");
-            *result_clone.borrow_mut() = Some(cookies);
-        });
+        .cookies_for_url_async(
+            url.as_url().clone(),
+            CookieSource::NonHTTP,
+            move |cookies| {
+                assert!(continued_clone.get(), "callback fired synchronously");
+                *result_clone.borrow_mut() = Some(cookies);
+            },
+        );
     assert!(result.borrow().is_none(), "result available before spin");
     continued_after_call.set(true);
 

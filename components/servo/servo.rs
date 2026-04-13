@@ -250,9 +250,6 @@ impl ServoInner {
                 .notify_error(ServoError::LostConnectionWithBackend);
         }
 
-        self.site_data_manager
-            .borrow()
-            .poll_pending_cookie_requests();
         self.paint.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
@@ -389,6 +386,10 @@ impl ServoInner {
                         .delegate()
                         .request_authentication(webview, authentication_request);
                 }
+            },
+            NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse(operation_id, cookies) => {
+                self.site_data_manager
+                    .handle_cookie_response(operation_id, cookies);
             },
         }
     }
