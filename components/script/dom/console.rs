@@ -16,8 +16,8 @@ use js::conversions::jsstr_to_string;
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::rust::wrappers::{
-    GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
-    JS_IdToValue, JS_Stringify, JS_ValueToSource,
+    GetArrayLength, GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById,
+    JS_GetPropertyById, JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
 use js::rust::{
     CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
@@ -207,10 +207,10 @@ fn console_argument_from_handle_value(
             let js_value = seen.pop();
             debug_assert_eq!(js_value, Some(handle_value.asBits_));
 
-            if let Some(console_argument_object) = maybe_argument_object {
+            if let Some((class, console_argument_object)) = maybe_argument_object {
                 return Ok(DebuggerValue::ObjectValue {
                     uuid: uuid::Uuid::new_v4().to_string(),
-                    class: "Object".to_owned(),
+                    class,
                     preview: Some(console_argument_object),
                 });
             }
@@ -243,15 +243,16 @@ fn console_object_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
     seen: &mut Vec<u64>,
-) -> Option<ObjectPreview> {
+) -> Option<(String, ObjectPreview)> {
     rooted!(in(*cx) let object = handle_value.to_object());
     let mut object_class = ESClass::Other;
     if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
         return None;
     }
-    if object_class != ESClass::Object {
+    if object_class != ESClass::Object && object_class != ESClass::Array {
         return None;
     }
+    let is_array = object_class == ESClass::Array;
 
     let mut own_properties = Vec::new();
     let mut ids = unsafe { IdVector::new(*cx) };
@@ -314,14 +315,27 @@ fn console_object_from_handle_value(
         });
     }
 
-    Some(ObjectPreview {
-        kind: "Object".to_owned(),
-        own_properties_length: Some(own_properties.len() as u32),
-        own_properties: Some(own_properties),
-        function: None,
-        array_length: None,
-        items: None,
-    })
+    let (class, kind, array_length) = if is_array {
+        let mut len = 0u32;
+        if !unsafe { GetArrayLength(*cx, object.handle(), &mut len) } {
+            return None;
+        }
+        ("Array".to_owned(), "ArrayLike".to_owned(), Some(len))
+    } else {
+        ("Object".to_owned(), "Object".to_owned(), None)
+    };
+
+    Some((
+        class,
+        ObjectPreview {
+            kind,
+            own_properties_length: Some(own_properties.len() as u32),
+            own_properties: Some(own_properties),
+            function: None,
+            array_length,
+            items: None,
+        },
+    ))
 }
 
 #[expect(unsafe_code)]
