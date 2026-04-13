@@ -1,4 +1,3 @@
-#
 name: Build Docker image and push to GitHub Packages
 
 # This workflow file is adapted from the example at https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions#upgrading-a-workflow-that-accesses-a-registry-using-a-personal-access-token
@@ -7,29 +6,63 @@ on:
     branches:
       - main
     # Only rebuild if the Dockerfile or dependencies change.
-    paths:
+    paths: &container-paths
       - '.devcontainer/**'
       - 'python/servo/platform/linux_packages/**'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths: *container-paths
+
+env:
+  IMAGE_NAME: devcontainer-ubuntu
+  IMAGE_ARCHIVE: devcontainer-ubuntu.tar
+  IMAGE_ARTIFACT_NAME: devcontainer-ubuntu-image
 
 jobs:
-  devcontainer_ubuntu:
+  devcontainer_ubuntu_build:
     runs-on: ubuntu-latest
-    # We probably don't want to spam the package registry of every developer
-    # thats working on servo and has actions enabled on their fork.
-    # You can comment this if to test changes to the workflow locally in your fork,
-    # use manual workflow dispatch in your fork.
-    if: github.repository_owner == 'servo' || github.event_name == 'workflow_dispatch'
     permissions:
-      packages: write
       contents: read
-    env:
-      IMAGE_NAME: devcontainer-ubuntu
     steps:
       - uses: actions/checkout@v6
 
       - name: Build image
         run: docker build . --file .devcontainer/Ubuntu.Dockerfile --tag ${{ env.IMAGE_NAME }} --label "runnumber=${GITHUB_RUN_ID}"
+
+      - name: Save image
+        if: github.event_name != 'pull_request'
+        run: docker save --output "${{ env.IMAGE_ARCHIVE }}" "${{ env.IMAGE_NAME }}"
+
+      - name: Upload image artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.IMAGE_ARTIFACT_NAME }}
+          path: ${{ env.IMAGE_ARCHIVE }}
+          archive: false
+          if-no-files-found: error
+
+  devcontainer_ubuntu_publish:
+    runs-on: ubuntu-latest
+    needs: devcontainer_ubuntu_build
+    # We probably don't want to spam the package registry of every developer
+    # thats working on servo and has actions enabled on their fork.
+    # You can comment this if to test changes to the workflow locally in your fork,
+    # use manual workflow dispatch in your fork.
+    if: github.event_name == 'push' && github.repository_owner == 'servo'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.IMAGE_ARTIFACT_NAME }}
+
+      - name: Load image
+        run: docker load --input "${{ env.IMAGE_ARCHIVE }}"
 
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
