@@ -29,7 +29,7 @@ rust-version = "1.86.0"
 [workspace.dependencies]
 accesskit = { version = "0.24.0", features = ["serde"] }
 accountable-refcell = "0.2.2"
-aes = "0.8.4"
+aes = "0.9.0"
 aes-gcm = "0.10.3"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
 app_units = "0.7"
