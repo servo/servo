@@ -83,6 +83,15 @@ macro_rules! pref {
 }
 
 /// The set of global preferences supported by Servo.
+///
+/// Each preference can be in one of three states depending on its default value:
+/// - **Stable**: enabled by default for all users.
+/// - **Experimental**: disabled by default, but enabled in servoshell's experimental mode
+///   via the `--experimental` flag.
+/// - **Unstable**: disabled by default in all modes.
+///
+/// For a full overview of which preferences are experimental, see the
+/// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 #[derive(Clone, Deserialize, Serialize, ServoPreferences)]
 pub struct Preferences {
     pub fonts_default: String,
