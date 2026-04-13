@@ -428,10 +428,6 @@ pub(crate) struct Window {
     #[no_trace]
     paint_api: CrossProcessPaintApi,
 
-    /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
-    /// It is used to avoid sending idle message more than once, which is unnecessary.
-    has_sent_idle_message: Cell<bool>,
-
     /// The [`UserScript`]s added via `UserContentManager`. These are potentially shared with other
     /// `WebView`s in this `ScriptThread`.
     #[no_trace]
@@ -3749,7 +3745,6 @@ impl Window {
             paint_worklet: Default::default(),
             exists_mut_observer: Cell::new(false),
             paint_api,
-            has_sent_idle_message: Cell::new(false),
             user_scripts,
             player_context,
             throttled: Cell::new(false),
