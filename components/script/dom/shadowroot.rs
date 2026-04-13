@@ -662,11 +662,14 @@ impl<'dom> LayoutDom<'dom, ShadowRoot> {
     // probably be revisited.
     #[inline]
     #[expect(unsafe_code)]
-    pub(crate) unsafe fn flush_stylesheets(
+    pub(crate) unsafe fn flush_stylesheets_for_layout(
         self,
         stylist: &mut Stylist,
         guard: &SharedRwLockReadGuard,
     ) {
+        unsafe {
+            debug_assert!(self.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
+        };
         let author_styles = unsafe { self.unsafe_get().author_styles.borrow_mut_for_layout() };
         if author_styles.stylesheets.dirty() {
             author_styles.flush(stylist, guard);

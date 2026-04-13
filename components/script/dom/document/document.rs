@@ -64,10 +64,11 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
+use style::stylist::Stylist;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
 use url::{Host, Position};
@@ -3357,29 +3358,17 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    pub(crate) fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
-        // FIXME(nox): We should just return a
-        // &'dom HashSet<LayoutDom<'dom, ShadowRoot>> here but not until
-        // I rework the ToLayout trait as mentioned in
-        // LayoutDom::to_layout_slice.
-        unsafe {
-            self.unsafe_get()
-                .shadow_roots
-                .borrow_for_layout()
-                .iter()
-                .map(|sr| sr.to_layout())
-                .collect()
-        }
+    pub(crate) fn flush_shadow_root_stylesheets_if_necessary(
+        self,
+        stylist: &mut Stylist,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        (*self.unsafe_get()).flush_shadow_root_stylesheets_if_necessary_for_layout(stylist, guard)
     }
 
     #[inline]
     pub(crate) fn shadow_roots_styles_changed(self) -> bool {
         self.unsafe_get().shadow_roots_styles_changed.get()
-    }
-
-    #[inline]
-    pub(crate) fn flush_shadow_roots_stylesheets(self) {
-        (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
@@ -4149,9 +4138,21 @@ impl Document {
         self.shadow_roots_styles_changed.get()
     }
 
-    pub(crate) fn flush_shadow_roots_stylesheets(&self) {
+    pub(crate) fn flush_shadow_root_stylesheets_if_necessary_for_layout(
+        &self,
+        stylist: &mut Stylist,
+        guard: &SharedRwLockReadGuard,
+    ) {
         if !self.shadow_roots_styles_changed.get() {
             return;
+        }
+        #[expect(unsafe_code)]
+        unsafe {
+            for shadow_root in self.shadow_roots.borrow_for_layout().iter() {
+                shadow_root
+                    .to_layout()
+                    .flush_stylesheets_for_layout(stylist, guard);
+            }
         }
         self.shadow_roots_styles_changed.set(false);
     }

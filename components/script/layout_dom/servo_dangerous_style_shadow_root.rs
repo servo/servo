@@ -7,8 +7,7 @@
 use std::fmt;
 
 use style::dom::TShadowRoot;
-use style::shared_lock::SharedRwLockReadGuard as StyleSharedRwLockReadGuard;
-use style::stylist::{CascadeData, Stylist};
+use style::stylist::CascadeData;
 
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::shadowroot::ShadowRoot;
@@ -57,21 +56,6 @@ impl<'dom> TShadowRoot for ServoDangerousStyleShadowRoot<'dom> {
 }
 
 impl<'dom> ServoDangerousStyleShadowRoot<'dom> {
-    /// Flush the stylesheets for the underlying shadow root.
-    ///
-    /// # Safety
-    ///
-    /// This modifies a DOM object, so should care should be taken that only one
-    /// thread has a reference to this object.
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn flush_stylesheets(
-        &self,
-        stylist: &mut Stylist,
-        guard: &StyleSharedRwLockReadGuard,
-    ) {
-        unsafe { self.shadow_root.flush_stylesheets(stylist, guard) }
-    }
-
     /// Whether or not this [`ServoDangerousStyleShadowRoot`] is the root
     /// of a user agent widget.
     pub fn is_ua_widget(&self) -> bool {

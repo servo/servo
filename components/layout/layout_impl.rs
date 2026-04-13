@@ -970,8 +970,7 @@ impl LayoutThread {
                 .force_stylesheet_origins_dirty(Origin::Author.into());
         }
 
-        // Flush shadow roots stylesheets if dirty.
-        document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author);
+        document.flush_shadow_root_stylesheets_if_necessary(&mut self.stylist, guards.author);
 
         self.stylist.flush(guards)
     }
