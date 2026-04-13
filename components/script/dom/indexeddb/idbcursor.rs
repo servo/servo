@@ -197,8 +197,8 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
         //
         // NOTE: If key returns an object (e.g. a Date or Array), it returns the
         // same object instance every time it is inspected, until the cursor’s key is changed.
-        // This means that if the object is modified, those modifications will be seen by a
-        // nyone inspecting the value of the cursor. However modifying such an object does not
+        // This means that if the object is modified, those modifications will be seen by
+        // anyone inspecting the value of the cursor. However modifying such an object does not
         // modify the contents of the database.
         if let Some(cached) = &*self.cached_key.borrow() {
             value.set(cached.get());
