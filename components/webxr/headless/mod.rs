@@ -12,12 +12,13 @@ use servo_base::generic_channel::GenericReceiver;
 use surfman::chains::SwapChains;
 use webxr_api::util::{self, ClipPlanes, HitTestList};
 use webxr_api::{
-    ApiSpace, BaseSpace, ContextId, DeviceAPI, DiscoveryAPI, Error, Event, EventBuffer, Floor,
-    Frame, FrameUpdateEvent, HitTestId, HitTestResult, HitTestSource, Input, InputFrame, InputId,
-    InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager, MockButton, MockDeviceInit,
-    MockDeviceMsg, MockDiscoveryAPI, MockInputMsg, MockViewInit, MockViewsInit, MockWorld, Native,
-    Quitter, Ray, SelectEvent, SelectKind, Session, SessionBuilder, SessionInit, SessionMode,
-    Space, SubImages, View, Viewer, ViewerPose, Viewports, Views,
+    ApiSpace, BaseSpace, ContextId, DeviceAPI, DiscoveryAPI, EnvironmentBlendMode, Error, Event,
+    EventBuffer, Floor, Frame, FrameUpdateEvent, HitTestId, HitTestResult, HitTestSource, Input,
+    InputFrame, InputId, InputSource, LayerGrandManager, LayerId, LayerInit, LayerManager,
+    MockButton, MockDeviceInit, MockDeviceMsg, MockDiscoveryAPI, MockInputMsg, MockViewInit,
+    MockViewsInit, MockWorld, Native, Quitter, Ray, SelectEvent, SelectKind, Session,
+    SessionBuilder, SessionInit, SessionMode, Space, SubImages, View, Viewer, ViewerPose,
+    Viewports, Views,
 };
 
 use crate::{SurfmanGL, SurfmanLayerManager};
@@ -328,6 +329,21 @@ impl DeviceAPI for HeadlessDevice {
     fn reference_space_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
         let bounds = self.data.lock().unwrap().bounds_geometry.clone();
         Some(bounds)
+    }
+
+    fn environment_blend_mode(&self) -> EnvironmentBlendMode {
+        let data = self.data.lock().unwrap();
+        let session = data
+            .sessions
+            .iter()
+            .find(|s| s.id == self.id)
+            .expect("Failed to find session for this device");
+
+        if session.mode == SessionMode::ImmersiveAR {
+            EnvironmentBlendMode::AlphaBlend
+        } else {
+            EnvironmentBlendMode::Opaque
+        }
     }
 }
 
