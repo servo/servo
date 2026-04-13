@@ -9,4 +9,4 @@ test-feature = []
 
 [dev-dependencies]
 test-package = { path = "." }
-other-name = { package = "test-package", path = "."}
+other-name = { package = "test-package", path = "." }
