@@ -11,7 +11,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::CStr;
 use std::mem;
 use std::ops::{Deref, Index};
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -32,7 +31,7 @@ use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::{Compile1, CurrentGlobalOrNull};
+use js::rust::wrappers2::{Compile1, CurrentGlobalOrNull, JS_ExecuteScript};
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue, ParentRuntime,
     get_object_class, transform_str_to_source_text,
@@ -118,7 +117,9 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::globalscope::broadcastchannel::BroadcastChannel;
-use crate::dom::globalscope::script_execution::{evaluate_script, fill_compile_options};
+use crate::dom::globalscope::script_execution::{
+    fill_compile_options, maybe_associate_with_script,
+};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -2972,16 +2973,18 @@ impl GlobalScope {
             let mut source = transform_str_to_source_text(&code);
             rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, options.ptr, &mut source) });
 
-            let Some(script) = NonNull::new(*compiled_script) else {
+            if compiled_script.is_null() {
                 debug!("error compiling Dom string");
                 report_pending_exception(cx);
                 return Err(JavaScriptEvaluationError::CompilationFailure);
-            };
+            }
 
             rooted!(&in(cx) let mut value = UndefinedValue());
             let rval = rval.unwrap_or_else(|| value.handle_mut());
 
-            if !evaluate_script(cx, script, url, fetch_options, rval) {
+            maybe_associate_with_script(cx, compiled_script.handle(), url, fetch_options);
+
+            if unsafe { !JS_ExecuteScript(cx, compiled_script.handle(), rval) } {
                 let error_info = take_and_report_pending_exception_for_api(cx);
                 return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }
