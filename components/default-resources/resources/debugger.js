@@ -99,10 +99,9 @@ function createValueGrip(value, depth = 0) {
                 return { valueType: "-Infinity" };
             } else if (Number.isNaN(value)) {
                 return { valueType: "NaN" };
-            } else if (!value && 1 / value === -Infinity) {
+            } else if (Object.is(value, -0)) {
                 return { valueType: "-0" };
             }
-
             return { valueType: "number", numberValue: value };
         case "string":
             return { valueType: "string", stringValue: value };

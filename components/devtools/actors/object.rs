@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DebuggerValue, ObjectPreview, PropertyDescriptor};
+use devtools_traits::{ObjectPreview, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{Map, Number, Value};
+use serde_json::{Map, Value};
 
-use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::property_iterator::PropertyIteratorActor;
 use crate::protocol::ClientRequest;
+use crate::{StreamId, debugger_value_to_json};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -74,52 +74,6 @@ impl ObjectPropertyDescriptor {
             writable: prop.writable,
             value: debugger_value_to_json(registry, prop.value.clone()),
         }
-    }
-}
-
-/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#148>
-pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerValue) -> Value {
-    let mut v = Map::new();
-    match value {
-        DebuggerValue::VoidValue => {
-            v.insert("type".to_owned(), Value::String("undefined".to_owned()));
-            Value::Object(v)
-        },
-        DebuggerValue::NullValue => {
-            v.insert("type".to_owned(), Value::String("null".to_owned()));
-            Value::Object(v)
-        },
-        DebuggerValue::BooleanValue(boolean) => Value::Bool(boolean),
-        DebuggerValue::NumberValue(val) => {
-            if val.is_nan() {
-                v.insert("type".to_owned(), Value::String("NaN".to_owned()));
-                Value::Object(v)
-            } else if val.is_infinite() {
-                if val < 0. {
-                    v.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
-                } else {
-                    v.insert("type".to_owned(), Value::String("Infinity".to_owned()));
-                }
-                Value::Object(v)
-            } else if val == 0. && val.is_sign_negative() {
-                v.insert("type".to_owned(), Value::String("-0".to_owned()));
-                Value::Object(v)
-            } else {
-                Value::Number(Number::from_f64(val).unwrap())
-            }
-        },
-        DebuggerValue::StringValue(str) => Value::String(str),
-        DebuggerValue::ObjectValue {
-            uuid,
-            class,
-            preview,
-            ..
-        } => {
-            let object_name = ObjectActor::register(registry, Some(uuid), class, preview);
-            let object_msg = registry.encode::<ObjectActor, _>(&object_name);
-            let value = serde_json::to_value(object_msg).unwrap_or_default();
-            Value::Object(value.as_object().cloned().unwrap_or_default())
-        },
     }
 }
 

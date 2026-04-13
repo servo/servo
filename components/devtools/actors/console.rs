@@ -23,11 +23,10 @@ use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::debugger_value_to_json;
 use crate::actors::worker::WorkerTargetActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
-use crate::{EmptyReplyMsg, StreamId, UniqueId};
+use crate::{EmptyReplyMsg, StreamId, UniqueId, debugger_value_to_json};
 
 #[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
