@@ -1408,7 +1408,7 @@ impl HTMLFormElement {
             let root = root.upcast::<Node>();
             let mut controls = self.controls.borrow_mut();
 
-            // https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token
+            // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
             // associates form control elements with a form before they are bound to the tree.
             //
             // In that case we can't use insert_pre_order, because the position of a element not in
