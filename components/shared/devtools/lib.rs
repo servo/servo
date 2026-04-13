@@ -159,6 +159,7 @@ pub struct ObjectPreview {
     pub own_properties_length: Option<u32>,
     pub function: Option<FunctionPreview>,
     pub array_length: Option<u32>,
+    pub items: Option<Vec<DebuggerValue>>,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

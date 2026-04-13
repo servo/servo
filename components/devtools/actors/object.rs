@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{ObjectPreview, PropertyDescriptor};
+use devtools_traits::{DebuggerValue, ObjectPreview, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -101,11 +101,45 @@ impl Actor for ObjectActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "enumProperties" => {
-                let properties = self
-                    .preview
-                    .as_ref()
-                    .and_then(|preview| preview.own_properties.clone())
-                    .unwrap_or_default();
+                let properties = self.preview.as_ref().map_or_else(Vec::new, |preview| {
+                    if preview.kind == "ArrayLike" {
+                        // For arrays, convert items to indexed properties
+                        // <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptor#description>
+                        let mut props: Vec<PropertyDescriptor> = preview
+                            .items
+                            .as_ref()
+                            .map(|items| {
+                                items
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(index, value)| PropertyDescriptor {
+                                        name: index.to_string(),
+                                        value: value.clone(),
+                                        configurable: true,
+                                        enumerable: true,
+                                        writable: true,
+                                        is_accessor: false,
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        // Add length property
+                        if let Some(length) = preview.array_length {
+                            // <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/length#value>
+                            props.push(PropertyDescriptor {
+                                name: "length".to_string(),
+                                value: DebuggerValue::NumberValue(length as f64),
+                                configurable: false,
+                                enumerable: false,
+                                writable: true,
+                                is_accessor: false,
+                            });
+                        }
+                        props
+                    } else {
+                        preview.own_properties.clone().unwrap_or_default()
+                    }
+                });
                 let property_iterator_name = PropertyIteratorActor::register(registry, properties);
                 let property_iterator_actor =
                     registry.find::<PropertyIteratorActor>(&property_iterator_name);
@@ -207,9 +241,22 @@ impl ActorEncode<Value> for ObjectActor {
         };
         let mut preview_map = Map::new();
 
+        preview_map.insert("kind".to_owned(), Value::String(preview.kind.clone()));
+
         if preview.kind == "ArrayLike" {
             if let Some(length) = preview.array_length {
                 preview_map.insert("length".to_owned(), Value::Number(length.into()));
+                m.insert(
+                    "ownPropertyLength".to_owned(),
+                    Value::Number((length + 1).into()),
+                );
+            }
+            if let Some(ref items) = preview.items {
+                let items_json: Vec<Value> = items
+                    .iter()
+                    .map(|item| debugger_value_to_json(registry, item.clone()))
+                    .collect();
+                preview_map.insert("items".to_owned(), Value::Array(items_json));
             }
         } else {
             if let Some(ref props) = preview.own_properties {
@@ -232,7 +279,6 @@ impl ActorEncode<Value> for ObjectActor {
                 m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
             }
         }
-        preview_map.insert("kind".to_owned(), Value::String(preview.kind));
 
         // Function-specific metadata
         if let Some(function) = preview.function {

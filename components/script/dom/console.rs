@@ -320,6 +320,7 @@ fn console_object_from_handle_value(
         own_properties: Some(own_properties),
         function: None,
         array_length: None,
+        items: None,
     })
 }
 

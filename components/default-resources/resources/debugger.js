@@ -196,14 +196,35 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
 });
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
-// TODO: Add implementation for showing Array items
 previewers.Array.push(function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const length = lengthDescriptor ? lengthDescriptor.value : 0;
 
+    if (depth > 1) {
+        return {
+            kind: "ArrayLike",
+            arrayLength: length,
+        };
+    }
+
+    const items = [];
+    for (let i = 0; i < length; i++) {
+        try {
+            const desc = obj.getOwnPropertyDescriptor(i);
+            if (desc && desc.value !== undefined) {
+                const grip = createValueGrip(desc.value, depth);
+                delete grip.preview;
+                items.push(grip);
+            }
+        } catch (e) {
+            // For now skip properties that throw on access
+        }
+    }
+
     return {
         kind: "ArrayLike",
         arrayLength: length,
+        items: items,
     };
 });
 
