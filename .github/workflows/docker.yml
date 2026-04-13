@@ -72,11 +72,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - devcontainer_ubuntu_build
-    # We probably don't want to spam the package registry of every developer
-    # thats working on servo and has actions enabled on their fork.
-    # You can comment this if to test changes to the workflow locally in your fork,
-    # use manual workflow dispatch in your fork.
-    if: github.event_name == 'push' && github.repository_owner == 'servo'
+    # Use manual workflow dispatch in your fork to test changes.
+    if: (github.event_name == 'push' && github.repository_owner == 'servo') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       packages: write
