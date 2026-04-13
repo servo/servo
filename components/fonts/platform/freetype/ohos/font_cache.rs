@@ -7,19 +7,11 @@ use std::fs::File;
 use std::io::Write;
 
 use log::error;
-use ohos_deviceinfo_sys::OH_GetBuildRootHash;
+use ohos_deviceinfo_sys::OH_GetDistributionOSVersion;
 use serde_json;
+use servo_config::opts;
 
 use crate::platform::freetype::ohos::font_list::FontList;
-
-/// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
-/// via an environment variable.
-#[cfg(ohos_mock)]
-static OHOS_FONTS_DIR: &str = env!("OHOS_SDK_FONTS_DIR");
-
-/// On OpenHarmony devices the fonts are always located here.
-#[cfg(not(ohos_mock))]
-static OHOS_FONTS_DIR: &str = "/system/fonts/";
 
 /// Checks if the font file has been cached on the disk. If no such file is found,
 /// or for whatever reason Servo fails to parse the file path, return false.
@@ -65,14 +57,14 @@ pub fn read_from_disk() -> Result<FontList, Box<dyn std::error::Error>> {
 /// Helper function to parse the filepath of the cache file.
 /// The format is /path/to/directory/font_cache_<OS_VERSION>.json
 fn parse_file_path() -> Result<String, Box<dyn std::error::Error>> {
+    let binding = opts::get().config_dir.clone().unwrap();
+    let base_dir = binding
+        .to_str()
+        .ok_or("Failed to parse base directory's path")?;
     let os_version = unsafe {
-        let os_version_c_str = CStr::from_ptr(OH_GetBuildRootHash());
+        let os_version_c_str = CStr::from_ptr(OH_GetDistributionOSVersion());
         os_version_c_str.to_str()?
     };
 
-    Ok(format!(
-        "{}{}{}{}",
-        OHOS_FONTS_DIR, "font_cache_", os_version, ".json"
-    )
-    .to_string())
+    Ok(format!("{}{}{}{}", base_dir, "font_cache_", os_version, ".json").to_string())
 }
