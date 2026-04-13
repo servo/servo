@@ -66,19 +66,15 @@ class MacOS(Base):
             devel_pkg = os.path.join(temp_dir, GSTREAMER_DEVEL_FILENAME)
 
             if not (yes or force):
-                print(
-                    "Warning: GStreamer was not installed since it requires elevated permissions.\n")
+                print("Warning: GStreamer was not installed since it requires elevated permissions.\n")
                 print("To install GStreamer, either: ")
                 print("a) Run mach bootstrap again with --yes")
                 print("b) OR install GStreamer manually:")
                 print("\t1. Download both GStreamer packages:")
-                print(
-                    f"\tcurl -L -# -o /tmp/{GSTREAMER_FILENAME} {GSTREAMER_URL}\n")
-                print(
-                    f"\tcurl -L -# -o /tmp/{GSTREAMER_DEVEL_FILENAME} {GSTREAMER_DEVEL_URL}\n")
+                print(f"\tcurl -L -# -o /tmp/{GSTREAMER_FILENAME} {GSTREAMER_URL}\n")
+                print(f"\tcurl -L -# -o /tmp/{GSTREAMER_DEVEL_FILENAME} {GSTREAMER_DEVEL_URL}\n")
                 print("\t2. Install GStreamer packages:")
-                print(f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / && installer -pkg '/tmp/{
-                      GSTREAMER_DEVEL_FILENAME}' -target / \n")
+                print(f"\tsudo installer -pkg '/tmp/{GSTREAMER_FILENAME}' -target / && installer -pkg '/tmp/{GSTREAMER_DEVEL_FILENAME}' -target / \n")
                 return False
 
             util.download_file("GStreamer libraries", GSTREAMER_URL, libs_pkg)
