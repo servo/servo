@@ -8,7 +8,7 @@ on:
         type: string
       profile:
         required: false
-        default: "release"
+        default: "release-ci"
         type: string
       compressed-file-path:
         required: false

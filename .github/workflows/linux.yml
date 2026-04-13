@@ -8,7 +8,7 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "release-ci"
         type: string
       build-args:
         default: ""
@@ -53,9 +53,9 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "release-ci"
         type: choice
-        options: ["release", "debug", "production"]
+        options: ["release-ci", "release", "debug", "production"]
       wpt-args:
         default: ""
         required: false
