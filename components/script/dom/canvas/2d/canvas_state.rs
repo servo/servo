@@ -700,11 +700,35 @@ impl CanvasState {
                     ));
                 },
                 OffscreenRenderingContext::WebGL(ref _context) => {
-                    // TODO send canvas message?
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
                 },
 
                 OffscreenRenderingContext::WebGL2(ref _context) => {
-                    // TODO send canvas message?
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
                 },
                 OffscreenRenderingContext::Detached => return Err(Error::InvalidState(None)),
             }
@@ -816,11 +840,35 @@ impl CanvasState {
                             ));
                         },
                         OffscreenRenderingContext::WebGL(ref _context) => {
-                            // TODO send canvas message
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.to_shared(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
+                            ));
                         },
 
                         OffscreenRenderingContext::WebGL2(ref _context) => {
-                            // TODO send canvas message
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.to_shared(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
+                            ));
                         },
                         OffscreenRenderingContext::Detached => {
                             return Err(Error::InvalidState(None));
