@@ -93,11 +93,11 @@ impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
             // Step 7b-7c. Acquire the lock and resolve with a WakeLockSentinel.
             AllowOrDeny::Allow => {
                 let global = self.global();
-                global
-                    .as_window()
-                    .send_to_constellation(ScriptToConstellationMessage::AcquireWakeLock(
+                global.as_window().send_to_constellation(
+                    ScriptToConstellationMessage::AcquireWakeLock(
                         servo_wakelock::WakeLockType::Screen,
-                    ));
+                    ),
+                );
                 // WakeLockType::Screen is the only variant; the spec only defines "screen".
                 let sentinel = WakeLockSentinel::new(cx, &global, WakeLockType::Screen);
                 promise.resolve_native(&sentinel, can_gc);
