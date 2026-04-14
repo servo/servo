@@ -624,6 +624,7 @@ impl Handler {
         match self.focused_webview_id()? {
             Some(webview_id) => {
                 self.session_mut()?.set_webview_id(webview_id);
+                self.wait_until_browsing_context_is_open(BrowsingContextId::from(webview_id))?;
                 self.session_mut()?
                     .set_browsing_context_id(BrowsingContextId::from(webview_id));
             },
@@ -642,6 +643,7 @@ impl Handler {
                     .expect("IPC failure when creating new webview for new session");
                 self.focus_webview(webview_id)?;
                 self.session_mut()?.set_webview_id(webview_id);
+                self.wait_until_browsing_context_is_open(BrowsingContextId::from(webview_id))?;
                 self.session_mut()?
                     .set_browsing_context_id(BrowsingContextId::from(webview_id));
                 let _ = self.wait_document_ready(Some(DEFAULT_PAGE_LOAD_TIMEOUT));
@@ -2637,6 +2639,37 @@ impl Handler {
         } else {
             Ok(())
         }
+    }
+
+    fn wait_until_browsing_context_is_open(
+        &self,
+        browsing_context_id: BrowsingContextId,
+    ) -> WebDriverResult<()> {
+        let now = Instant::now();
+        let (timeout, sleep_interval) = {
+            let timeouts = self.session()?.session_timeouts();
+            (
+                timeouts
+                    .page_load
+                    .map_or(Duration::MAX, Duration::from_millis),
+                Duration::from_millis(timeouts.sleep_interval),
+            )
+        };
+
+        while now.elapsed() < timeout {
+            if self
+                .verify_browsing_context_is_open(browsing_context_id)
+                .is_ok()
+            {
+                return Ok(());
+            }
+
+            sleep(sleep_interval);
+        }
+        Err(WebDriverError::new(
+            ErrorStatus::Timeout,
+            "Timed out waiting for the top-level browsing context to be ready",
+        ))
     }
 
     fn focus_webview(&self, webview_id: WebViewId) -> WebDriverResult<()> {
