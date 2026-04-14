@@ -4,7 +4,6 @@
 
 use js::context::JSContext;
 
-use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
