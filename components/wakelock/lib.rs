@@ -20,18 +20,6 @@ pub enum WakeLockType {
     Screen,
 }
 
-/// Error returned when acquiring a wake lock fails at the OS level.
-#[derive(Debug)]
-pub struct WakeLockError(pub String);
-
-impl std::fmt::Display for WakeLockError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Wake lock error: {}", self.0)
-    }
-}
-
-impl std::error::Error for WakeLockError {}
-
 /// Trait for platform-specific wake lock support.
 ///
 /// Implementations are responsible for interacting with the OS to prevent
@@ -40,12 +28,12 @@ pub trait WakeLockProvider: Send + Sync {
     /// Acquire a wake lock of the given type, preventing the associated
     /// resource from sleeping. Called when the aggregate lock count transitions
     /// from 0 to 1. Returns an error if the OS fails to grant the lock.
-    fn acquire(&self, type_: WakeLockType) -> Result<(), WakeLockError>;
+    fn acquire(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
 
     /// Release a previously acquired wake lock of the given type, allowing
     /// the resource to sleep. Called when the aggregate lock count transitions
     /// from N to 0.
-    fn release(&self, type_: WakeLockType);
+    fn release(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 /// A no-op [`WakeLockProvider`] used when no platform implementation is
@@ -53,9 +41,11 @@ pub trait WakeLockProvider: Send + Sync {
 pub struct NoOpWakeLockProvider;
 
 impl WakeLockProvider for NoOpWakeLockProvider {
-    fn acquire(&self, _type_: WakeLockType) -> Result<(), WakeLockError> {
+    fn acquire(&self, _type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 
-    fn release(&self, _type_: WakeLockType) {}
+    fn release(&self, _type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
+    }
 }

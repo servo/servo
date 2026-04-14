@@ -2118,7 +2118,9 @@ where
             ScriptToConstellationMessage::ReleaseWakeLock => {
                 self.screen_wake_lock_count = self.screen_wake_lock_count.saturating_sub(1);
                 if self.screen_wake_lock_count == 0 {
-                    self.wake_lock_provider.release(WakeLockType::Screen);
+                    if let Err(e) = self.wake_lock_provider.release(WakeLockType::Screen) {
+                        warn!("Failed to release screen wake lock: {e}");
+                    }
                 }
             },
         }
