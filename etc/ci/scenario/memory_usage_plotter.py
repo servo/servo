@@ -129,7 +129,7 @@ def get_memory_info(pid: int, host: HostOptions | str) -> Optional[MemoryInfo]:
         else:
             return None
 
-    if host == HostOptions.OHOS:
+    if host == HostOptions.OHOS or host == HostOptions.LINUX:
         for line in result.stdout.splitlines():
             for key in fields:
                 if line.startswith(key + ":"):
@@ -266,7 +266,7 @@ class NonBlockingMemoryLogging:
         if self.options.log_to_file:
             self.csv_file = open(self.options.file_name + ".csv", "w", newline="", encoding="utf-8")
             self.writer = csv.writer(self.csv_file)
-            self.writer.writerow(["timestamp", "rss (kb)", "swap (kb)", "event"])
+            self.writer.writerow(["timestamp", "rss (mb)", "swap (mb)", "event"])
         self._stop_event = threading.Event()
         self._thread = threading.Thread(
             target=self._run,
@@ -275,7 +275,6 @@ class NonBlockingMemoryLogging:
 
     def __enter__(self) -> Self:
         self.start()
-        self.csv_file = None
         return self
 
     def __exit__(
