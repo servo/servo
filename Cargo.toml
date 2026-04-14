@@ -213,7 +213,7 @@ webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
 wgpu-core = "26"
-wgpu-types = "26"
+wgpu-types = "29"
 winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.13"
