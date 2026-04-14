@@ -1164,7 +1164,7 @@ where
         inherited_secure_context: Option<bool>,
         throttled: bool,
     ) {
-        debug!("{}: Creating new browsing context", browsing_context_id);
+        debug!("{browsing_context_id}: Creating new browsing context");
         let bc_group_id = match self
             .browsing_context_group_set
             .iter_mut()

@@ -108,7 +108,9 @@ pub(crate) struct WebViewInner {
     /// [`TreeId`] of the web contents of this [`WebView`]’s active top-level pipeline,
     /// which is grafted into the tree for this [`WebView`].
     pub(crate) grafted_accesskit_tree_id: Option<TreeId>,
-    active_top_level_pipeline_epoch: Option<Epoch>,
+    /// A counter for changes to the grafted accesskit tree for this webview.
+    /// See [`Self::grafted_accesskit_tree_id`].
+    grafted_accesskit_tree_epoch: Option<Epoch>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -159,7 +161,7 @@ impl WebView {
                 .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
             accesskit_tree_id: None,
             grafted_accesskit_tree_id: None,
-            active_top_level_pipeline_epoch: None,
+            grafted_accesskit_tree_epoch: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -825,6 +827,7 @@ impl WebView {
         } else {
             self.inner_mut().accesskit_tree_id = None;
             self.inner_mut().grafted_accesskit_tree_id = None;
+            self.inner_mut().grafted_accesskit_tree_epoch = None;
         }
 
         self.inner().servo.constellation_proxy().send(
@@ -871,7 +874,7 @@ impl WebView {
     pub(crate) fn process_accessibility_tree_update(&self, tree_update: TreeUpdate, epoch: Epoch) {
         if self
             .inner()
-            .active_top_level_pipeline_epoch
+            .grafted_accesskit_tree_epoch
             .is_some_and(|current| epoch < current)
         {
             // We expect this to happen occasionally when the constellation navigates, because
@@ -882,11 +885,11 @@ impl WebView {
         }
         if self
             .inner()
-            .active_top_level_pipeline_epoch
+            .grafted_accesskit_tree_epoch
             .is_none_or(|current| epoch > current)
         {
             self.notify_document_accessibility_tree_id(tree_update.tree_id);
-            self.inner_mut().active_top_level_pipeline_epoch = Some(epoch);
+            self.inner_mut().grafted_accesskit_tree_epoch = Some(epoch);
         }
         self.delegate()
             .notify_accessibility_tree_update(self.clone(), tree_update);
