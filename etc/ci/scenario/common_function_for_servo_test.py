@@ -491,7 +491,7 @@ def run_test(
         finally:
             stop_servo()
         print("\033[32mTest Succeeded.\033[0m")
-    elif target_os == HostOptions.MACOS:
+    elif target_os == HostOptions.MACOS or target_os == HostOptions.LINUX:
         kill_servo()
         try:
             with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
