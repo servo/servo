@@ -15,11 +15,7 @@ use style::values::AtomIdent;
 
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::document::Document;
-use crate::dom::node::{Node, NodeFlags};
-use crate::layout_dom::{
-    ServoDangerousStyleElement, ServoDangerousStyleNode, ServoDangerousStyleShadowRoot,
-    ServoLayoutElement,
-};
+use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode, ServoLayoutElement};
 
 /// A wrapper around documents that ensures layout can only ever access safe properties.
 ///
@@ -92,39 +88,13 @@ impl<'dom> ServoDangerousStyleDocument<'dom> {
         self.document.style_shared_lock()
     }
 
-    fn shadow_roots(&self) -> Vec<ServoDangerousStyleShadowRoot<'_>> {
-        #[expect(unsafe_code)]
-        unsafe {
-            self.document
-                .shadow_roots()
-                .iter()
-                .map(|shadow_root| {
-                    debug_assert!(
-                        shadow_root
-                            .upcast::<Node>()
-                            .get_flag(NodeFlags::IS_CONNECTED)
-                    );
-                    (*shadow_root).into()
-                })
-                .collect()
-        }
-    }
-
     /// Flush the the stylesheets of all descendant shadow roots.
-    pub fn flush_shadow_roots_stylesheets(
+    pub fn flush_shadow_root_stylesheets_if_necessary(
         &self,
         stylist: &mut Stylist,
         guard: &StyleSharedRwLockReadGuard,
     ) {
-        #[expect(unsafe_code)]
-        unsafe {
-            if !self.document.shadow_roots_styles_changed() {
-                return;
-            }
-            self.document.flush_shadow_roots_stylesheets();
-            for shadow_root in self.shadow_roots() {
-                shadow_root.flush_stylesheets(stylist, guard);
-            }
-        }
+        self.document
+            .flush_shadow_root_stylesheets_if_necessary(stylist, guard);
     }
 }
