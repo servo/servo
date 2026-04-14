@@ -25,9 +25,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
 use js::rust::{Handle, HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
-use net_traits::CoreResourceMsg::{
-    DeleteCookie, DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl,
-};
+use net_traits::CoreResourceMsg::{DeleteCookie, DeleteCookies, GetCookiesForUrl, SetCookieForUrl};
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
@@ -1414,7 +1412,7 @@ pub(crate) fn handle_get_cookies(
                         .window()
                         .as_global_scope()
                         .resource_threads()
-                        .send(GetCookiesDataForUrl(url, sender, NonHTTP));
+                        .send(GetCookiesForUrl(url, sender, NonHTTP));
                     Ok(receiver.recv().unwrap())
                 },
                 None => Ok(Vec::new()),
@@ -1441,7 +1439,7 @@ pub(crate) fn handle_get_cookie(
                         .window()
                         .as_global_scope()
                         .resource_threads()
-                        .send(GetCookiesDataForUrl(url, sender, NonHTTP));
+                        .send(GetCookiesForUrl(url, sender, NonHTTP));
                     let cookies = receiver.recv().unwrap();
                     Ok(cookies
                         .into_iter()

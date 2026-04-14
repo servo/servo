@@ -574,15 +574,6 @@ impl ResourceChannelManager {
                     .sw_managers
                     .insert(origin, mediator_chan);
             },
-            CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
-                let mut cookie_jar = http_state.cookie_jar.write();
-                cookie_jar.remove_expired_cookies_for_url(&url);
-                let cookies = cookie_jar
-                    .cookies_data_for_url(&url, source)
-                    .map(Serde)
-                    .collect();
-                consumer.send(cookies).unwrap();
-            },
             CoreResourceMsg::ListCookies(sender) => {
                 let mut cookie_jar = http_state.cookie_jar.write();
                 cookie_jar.remove_all_expired_cookies();
