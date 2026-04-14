@@ -30,6 +30,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_base::Epoch;
 use servo_base::generic_channel::{
     GenericCallback, GenericSender, GenericSharedMemory, SendResult,
 };
@@ -508,7 +509,7 @@ pub enum EmbedderMsg {
     /// and the embedder can continue processing it, if necessary.
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, TreeUpdate),
+    AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
 }
 
 impl Debug for EmbedderMsg {

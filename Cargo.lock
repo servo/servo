@@ -8056,6 +8056,7 @@ dependencies = [
 name = "servo-layout"
 version = "0.1.0"
 dependencies = [
+ "accesskit",
  "app_units",
  "atomic_refcell",
  "bitflags 2.11.0",
@@ -8074,6 +8075,7 @@ dependencies = [
  "rayon",
  "rustc-hash 2.1.2",
  "selectors",
+ "serde",
  "servo-base",
  "servo-config",
  "servo-embedder-traits",

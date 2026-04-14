@@ -1164,7 +1164,7 @@ where
         inherited_secure_context: Option<bool>,
         throttled: bool,
     ) {
-        debug!("{}: Creating new browsing context", browsing_context_id);
+        debug!("{browsing_context_id}: Creating new browsing context");
         let bc_group_id = match self
             .browsing_context_group_set
             .iter_mut()
@@ -3160,23 +3160,19 @@ where
         };
 
         webview.accessibility_active = active;
-        self.constellation_to_embedder_proxy.send(
-            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
-                webview_id,
-                webview.active_top_level_pipeline_id.into(),
-            ),
+        let Some(pipeline_id) = webview.active_top_level_pipeline_id else {
+            return;
+        };
+        let epoch = webview.active_top_level_pipeline_epoch;
+        // Forward the activation to the webview’s active top-level pipeline, if any. For inactive
+        // pipelines (documents in bfcache), we only need to forward the activation if and when they
+        // become active (see set_frame_tree_for_webview()).
+        // There are two sites like this; this is the a11y activation site.
+        self.send_message_to_pipeline(
+            pipeline_id,
+            ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch),
+            "Set accessibility active after closure",
         );
-
-        // Forward the activation to the webview’s active pipelines (of those that represent
-        // documents). For inactive pipelines (documents in bfcache), we only need to forward the
-        // activation if and when they become active (see set_frame_tree_for_webview()).
-        for pipeline_id in self.active_pipelines_for_webview(webview_id) {
-            self.send_message_to_pipeline(
-                pipeline_id,
-                ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active),
-                "Set accessibility active after closure",
-            );
-        }
     }
 
     fn forward_input_event(
@@ -3253,13 +3249,7 @@ where
         // its focused browsing context to be itself.
         self.webviews.insert(
             webview_id,
-            ConstellationWebView::new(
-                &self.constellation_to_embedder_proxy,
-                webview_id,
-                pipeline_id,
-                browsing_context_id,
-                user_content_manager_id,
-            ),
+            ConstellationWebView::new(webview_id, browsing_context_id, user_content_manager_id),
         );
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
@@ -3649,9 +3639,7 @@ where
         self.webviews.insert(
             new_webview_id,
             ConstellationWebView::new(
-                &self.constellation_to_embedder_proxy,
                 new_webview_id,
-                new_pipeline_id,
                 new_browsing_context_id,
                 user_content_manager_id,
             ),
@@ -5773,23 +5761,6 @@ where
             })
     }
 
-    /// Convert a webview to a flat list of active pipeline ids, for activating accessibility.
-    fn active_pipelines_for_webview(&self, webview_id: WebViewId) -> Vec<PipelineId> {
-        let mut result = vec![];
-        let mut browsing_context_ids = vec![BrowsingContextId::from(webview_id)];
-        while let Some(browsing_context_id) = browsing_context_ids.pop() {
-            let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
-                continue;
-            };
-            let Some(pipeline) = self.pipelines.get(&browsing_context.pipeline_id) else {
-                continue;
-            };
-            result.push(browsing_context.pipeline_id);
-            browsing_context_ids.extend(pipeline.children.iter().copied());
-        }
-        result
-    }
-
     /// Send the frame tree for the given webview to `Paint`.
     #[servo_tracing::instrument(skip_all)]
     fn set_frame_tree_for_webview(&mut self, webview_id: WebViewId) {
@@ -5797,35 +5768,55 @@ where
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
-            if let Some(webview) = self.webviews.get_mut(&webview_id) {
-                if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
-                    webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
-                    self.constellation_to_embedder_proxy.send(
-                        ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(
-                            webview_id,
-                            webview.active_top_level_pipeline_id.into(),
-                        ),
-                    );
-                }
-            }
-
-            debug!("{}: Sending frame tree", browsing_context_id);
-            self.paint_proxy
-                .send(PaintMessage::SetFrameTreeForWebView(webview_id, frame_tree));
-        }
-
-        let Some(webview) = self.webviews.get(&webview_id) else {
+        let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) else {
             return;
         };
-        let active = webview.accessibility_active;
-        for pipeline_id in self.active_pipelines_for_webview(webview_id) {
+
+        let new_pipeline_id = frame_tree.pipeline.id;
+
+        debug!("{}: Sending frame tree", browsing_context_id);
+        self.paint_proxy
+            .send(PaintMessage::SetFrameTreeForWebView(webview_id, frame_tree));
+
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return;
+        };
+        if webview.active_top_level_pipeline_id == Some(new_pipeline_id) {
+            return;
+        }
+
+        let old_pipeline_id = webview.active_top_level_pipeline_id;
+        let old_epoch = webview.active_top_level_pipeline_epoch;
+        let new_epoch = old_epoch.next();
+
+        let accessibility_active = webview.accessibility_active;
+
+        webview.active_top_level_pipeline_id = Some(new_pipeline_id);
+        webview.active_top_level_pipeline_epoch = new_epoch;
+
+        // Deactivate accessibility in the now-inactive top-level document in the WebView.
+        // This ensures that the document stops sending tree updates, since they will be
+        // discarded in libservo anyway, and also ensures that when accessibility is
+        // reactivated, the document sends the whole accessibility tree from scratch.
+        if let Some(old_pipeline_id) = old_pipeline_id {
             self.send_message_to_pipeline(
-                pipeline_id,
-                ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active),
+                old_pipeline_id,
+                ScriptThreadMessage::SetAccessibilityActive(old_pipeline_id, false, old_epoch),
                 "Set accessibility active after closure",
             );
         }
+
+        // Forward activation to layout for the active top-level document in the WebView.
+        // There are two sites like this; this is the navigation (or bfcache traversal) site.
+        self.send_message_to_pipeline(
+            new_pipeline_id,
+            ScriptThreadMessage::SetAccessibilityActive(
+                new_pipeline_id,
+                accessibility_active,
+                new_epoch,
+            ),
+            "Set accessibility active after closure",
+        );
     }
 
     #[servo_tracing::instrument(skip_all)]

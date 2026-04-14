@@ -387,7 +387,24 @@ pub trait Layout {
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
     fn stylist_mut(&mut self) -> &mut Stylist;
 
-    fn set_accessibility_active(&self, active: bool);
+    /// Set whether the accessibility tree should be constructed for this Layout.
+    /// This should be called by the embedder when accessibility is requested by the user.
+    fn set_accessibility_active(&self, enabled: bool, epoch: Epoch);
+
+    /// Whether the accessibility tree needs updating. This is set to true when
+    /// - accessibility is activated; or
+    /// - a page is loaded after accesibility is activated.
+    ///
+    /// In future, this should be set to true if DOM or style have changed in a way that
+    /// impacts the accessibility tree.
+    ///
+    /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
+    /// should force a reflow, and handle_reflow() to determine whether to update the
+    /// accessibility tree during reflow.
+    fn needs_accessibility_update(&self) -> bool;
+
+    /// See [Self::needs_accessibility_update()].
+    fn set_needs_accessibility_update(&self);
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -593,6 +610,7 @@ bitflags! {
         /// updating style or layout. This is used when updating canvas contents and
         /// progressing to a new animated image frame.
         const UpdatedImageData = 1 << 5;
+        const UpdatedAccessibilityTree = 1 << 6;
     }
 }
 

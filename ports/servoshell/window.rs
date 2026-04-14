@@ -107,6 +107,8 @@ impl ServoShellWindow {
         self.add_webview(webview.clone());
         // If `self` is not in `state.windows`, our notify_accessibility_tree_update() will panic.
         if state.accessibility_active() {
+            // Activate accessibility in the WebView.
+            // There are two sites like this; this is the WebView creation site.
             webview.set_accessibility_active(true);
         }
         webview
