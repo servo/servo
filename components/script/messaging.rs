@@ -106,7 +106,6 @@ impl MixedMessage {
                 ScriptThreadMessage::EmbedderControlResponse(id, _) => Some(id.pipeline_id),
                 ScriptThreadMessage::SetUserContents(..) => None,
                 ScriptThreadMessage::DestroyUserContentManager(..) => None,
-                ScriptThreadMessage::AccessibilityTreeUpdate(..) => None,
                 ScriptThreadMessage::UpdatePinchZoomInfos(id, _) => Some(*id),
                 ScriptThreadMessage::SetAccessibilityActive(..) => None,
                 ScriptThreadMessage::TriggerGarbageCollection => None,

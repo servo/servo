@@ -25,7 +25,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
-use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
@@ -252,6 +252,7 @@ pub struct LayoutConfig {
     pub viewport_details: ViewportDetails,
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
+    pub embedder_chan: ScriptToEmbedderChan,
 }
 
 pub trait LayoutFactory: Send + Sync {
