@@ -10,13 +10,11 @@
 //! does nothing.
 //!
 //! <https://w3c.github.io/screen-wake-lock/>
+use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 
 /// The type of wake lock to acquire or release.
-///
-/// Currently only `Screen` is defined by the spec. Additional variants
-/// (e.g. `Cpu`) may be added in the future.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WakeLockType {
     Screen,
@@ -30,12 +28,12 @@ pub trait WakeLockProvider: Send + Sync {
     /// Acquire a wake lock of the given type, preventing the associated
     /// resource from sleeping. Called when the aggregate lock count transitions
     /// from 0 to 1. Returns an error if the OS fails to grant the lock.
-    fn acquire(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
+    fn acquire(&self, type_: WakeLockType) -> Result<(), Box<dyn Error>>;
 
     /// Release a previously acquired wake lock of the given type, allowing
     /// the resource to sleep. Called when the aggregate lock count transitions
     /// from N to 0.
-    fn release(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
+    fn release(&self, type_: WakeLockType) -> Result<(), Box<dyn Error>>;
 }
 
 /// A no-op [`WakeLockProvider`] used when no platform implementation is
@@ -43,11 +41,11 @@ pub trait WakeLockProvider: Send + Sync {
 pub struct NoOpWakeLockProvider;
 
 impl WakeLockProvider for NoOpWakeLockProvider {
-    fn acquire(&self, _type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>> {
+    fn acquire(&self, _type_: WakeLockType) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
-    fn release(&self, _type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>> {
+    fn release(&self, _type_: WakeLockType) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }

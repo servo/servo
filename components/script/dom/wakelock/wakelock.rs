@@ -63,9 +63,7 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
             return promise;
         }
 
-        // Step 4. Request permission for "screen-wake-lock" asynchronously.
-        // The callback is invoked when the embedder responds, at which point
-        // handle_response() either acquires the lock or rejects the promise.
+        // Step 4. Obtain permission for "screen-wake-lock".
         // <https://w3c.github.io/screen-wake-lock/#dfn-obtain-permission>
         let Some(webview_id) = global.webview_id() else {
             promise.reject_error(Error::NotAllowed(None), CanGc::from_cx(cx));
@@ -81,7 +79,6 @@ impl WakeLockMethods<crate::DomTypeHolder> for WakeLock {
 }
 
 impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
-    /// Called asynchronously when the embedder responds to the permission request.
     /// <https://w3c.github.io/screen-wake-lock/#the-request-method>
     fn handle_response(&self, cx: &mut JSContext, response: AllowOrDeny, promise: &Rc<Promise>) {
         let can_gc = CanGc::from_cx(cx);
@@ -98,7 +95,7 @@ impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
                         servo_wakelock::WakeLockType::Screen,
                     ),
                 );
-                // WakeLockType::Screen is the only variant; the spec only defines "screen".
+
                 let sentinel = WakeLockSentinel::new(cx, &global, WakeLockType::Screen);
                 promise.resolve_native(&sentinel, can_gc);
             },

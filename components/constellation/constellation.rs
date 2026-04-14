@@ -168,7 +168,7 @@ use servo_constellation_traits::{
     WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use servo_wakelock::WakeLockProvider;
+use servo_wakelock::{WakeLockProvider, WakeLockType};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
@@ -2107,21 +2107,25 @@ where
                     let _ = event_loop.send(ScriptThreadMessage::TriggerGarbageCollection);
                 }
             },
-            ScriptToConstellationMessage::AcquireWakeLock(type_) => {
-                self.screen_wake_lock_count += 1;
-                if self.screen_wake_lock_count == 1 {
-                    if let Err(e) = self.wake_lock_provider.acquire(type_) {
-                        warn!("Failed to acquire screen wake lock: {e}");
+            ScriptToConstellationMessage::AcquireWakeLock(type_) => match type_ {
+                WakeLockType::Screen => {
+                    self.screen_wake_lock_count += 1;
+                    if self.screen_wake_lock_count == 1 {
+                        if let Err(e) = self.wake_lock_provider.acquire(type_) {
+                            warn!("Failed to acquire screen wake lock: {e}");
+                        }
                     }
-                }
+                },
             },
-            ScriptToConstellationMessage::ReleaseWakeLock(type_) => {
-                self.screen_wake_lock_count = self.screen_wake_lock_count.saturating_sub(1);
-                if self.screen_wake_lock_count == 0 {
-                    if let Err(e) = self.wake_lock_provider.release(type_) {
-                        warn!("Failed to release screen wake lock: {e}");
+            ScriptToConstellationMessage::ReleaseWakeLock(type_) => match type_ {
+                WakeLockType::Screen => {
+                    self.screen_wake_lock_count = self.screen_wake_lock_count.saturating_sub(1);
+                    if self.screen_wake_lock_count == 0 {
+                        if let Err(e) = self.wake_lock_provider.release(type_) {
+                            warn!("Failed to release screen wake lock: {e}");
+                        }
                     }
-                }
+                },
             },
         }
     }
