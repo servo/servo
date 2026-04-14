@@ -352,6 +352,13 @@ def _parse_target_os_arg() -> Optional[HostOptions]:
     return HostOptions(args.target_os)
 
 
+def _parse_plot_arg() -> bool:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--plot", action="store_true")
+    args, _ = parser.parse_known_args()
+    return bool(args.plot)
+
+
 def _detect_host_target_os() -> HostOptions:
     if sys.platform == "darwin":
         return HostOptions.MACOS
@@ -383,14 +390,16 @@ def _create_memory_logging_options(
     target_os: HostOptions,
     test_name: str,
 ) -> Optional[MemoryLoggingOptions]:
+    plot_requested = _parse_plot_arg()
+
     if isinstance(use_memory_logging, MemoryLoggingOptions):
         options = use_memory_logging
-    elif use_memory_logging or os.environ.get("PLOT"):
+    elif use_memory_logging or plot_requested:
         options = MemoryLoggingOptions(log_to_file=True, pre_time=0.2, plot=True)
     else:
         return None
 
-    if os.environ.get("PLOT"):
+    if plot_requested:
         options.log_to_file = True
         options.plot = True
 
