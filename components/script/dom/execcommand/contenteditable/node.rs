@@ -20,7 +20,7 @@ use crate::dom::bindings::root::{DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
-use crate::dom::execcommand::basecommand::CommandName;
+use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -1070,7 +1070,49 @@ impl Node {
         let document = self.owner_document();
         let css_styling_flag = document.css_styling_flag();
         // Step 10. If the CSS styling flag is false:
-        // TODO
+        if !css_styling_flag {
+            match command {
+                // Step 10.1. If command is "bold" and new value is "bold",
+                // let new parent be the result of calling createElement("b") on the ownerDocument of node.
+                CommandName::Bold => {
+                    new_parent = Some(document.create_element(cx, "b"));
+                },
+                // Step 10.2. If command is "italic" and new value is "italic",
+                // let new parent be the result of calling createElement("i") on the ownerDocument of node.
+                CommandName::Italic => {
+                    new_parent = Some(document.create_element(cx, "i"));
+                },
+                // Step 10.3. If command is "strikethrough" and new value is "line-through",
+                // let new parent be the result of calling createElement("s") on the ownerDocument of node.
+                CommandName::Strikethrough => {
+                    new_parent = Some(document.create_element(cx, "s"));
+                },
+                // Step 10.4. If command is "underline" and new value is "underline",
+                // let new parent be the result of calling createElement("u") on the ownerDocument of node.
+                CommandName::Underline => {
+                    new_parent = Some(document.create_element(cx, "u"));
+                },
+                // Step 10.5. If command is "foreColor", and new value is fully opaque with
+                // red, green, and blue components in the range 0 to 255:
+                CommandName::ForeColor => {
+                    // TODO
+                },
+                // Step 10.6. If command is "fontName",
+                // let new parent be the result of calling createElement("font") on the ownerDocument of node,
+                // then set the face attribute of new parent to new value.
+                CommandName::FontName => {
+                    let new_font_element = document.create_element(cx, "font");
+                    new_font_element.set_string_attribute(
+                        &local_name!("face"),
+                        new_value.clone(),
+                        CanGc::from_cx(cx),
+                    );
+                    new_parent = Some(new_font_element);
+                },
+                _ => {},
+            }
+        }
+
         match command {
             // Step 11. If command is "createLink" or "unlink":
             // TODO
@@ -1119,6 +1161,9 @@ impl Node {
         }
         // Step 15. If new parent is null, let new parent be the result of calling createElement("span") on the ownerDocument of node.
         let new_parent = new_parent.unwrap_or_else(|| document.create_element(cx, "span"));
+        let new_parent_html_element = new_parent
+            .downcast::<HTMLElement>()
+            .expect("Must always create a HTML element");
         // Step 16. Insert new parent in node's parent before node.
         if self
             .GetParentNode()
@@ -1139,23 +1184,33 @@ impl Node {
             Some(new_value),
         ) {
             if let Some(css_property) = command.relevant_css_property() {
-                css_property.set_for_element(
-                    cx,
-                    new_parent
-                        .downcast::<HTMLElement>()
-                        .expect("Must always create a HTML element"),
-                    new_value.clone(),
-                );
+                css_property.set_for_element(cx, new_parent_html_element, new_value.clone());
             }
         }
-        // Step 18. If command is "strikethrough", and new value is "line-through",
-        // and the effective command value of "strikethrough" for new parent is not "line-through",
-        // set the "text-decoration" property of new parent to "line-through".
-        // TODO
-        // Step 19. If command is "underline", and new value is "underline",
-        // and the effective command value of "underline" for new parent is not "underline",
-        // set the "text-decoration" property of new parent to "underline".
-        // TODO
+        match command {
+            // Step 18. If command is "strikethrough", and new value is "line-through",
+            // and the effective command value of "strikethrough" for new parent is not "line-through",
+            // set the "text-decoration" property of new parent to "line-through".
+            CommandName::Strikethrough => {
+                // TODO
+            },
+            // Step 19. If command is "underline", and new value is "underline",
+            // and the effective command value of "underline" for new parent is not "underline",
+            // set the "text-decoration" property of new parent to "underline".
+            CommandName::Underline => {
+                if new_value == "underline" &&
+                    self.effective_command_value(&CommandName::Underline)
+                        .is_some_and(|value| value == "underline")
+                {
+                    CssPropertyName::TextDecorationLine.set_for_element(
+                        cx,
+                        new_parent_html_element,
+                        new_value.clone(),
+                    );
+                }
+            },
+            _ => {},
+        }
         // Step 20. Append node to new parent as its last child, preserving ranges.
         let new_parent = new_parent.upcast::<Node>();
         move_preserving_ranges(cx, self, |cx| new_parent.AppendChild(cx, self));
@@ -1899,8 +1954,13 @@ impl Node {
             // Step 7. If command is "underline",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
             // return "underline". Otherwise, return null.
-            // TODO
-            CommandName::Underline => None,
+            CommandName::Underline => Some("underline".into()).filter(|_| {
+                self.inclusive_ancestors(ShadowIncluding::No).any(|node| {
+                    node.downcast::<Element>()
+                        .and_then(|element| CommandName::Underline.resolved_value_for_node(element))
+                        .is_some_and(|property| property.contains("underline"))
+                })
+            }),
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
             _ => command.resolved_value_for_node(element),
         }
