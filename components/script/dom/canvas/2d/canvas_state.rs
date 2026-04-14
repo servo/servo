@@ -699,7 +699,7 @@ impl CanvasState {
                         self.state.borrow().transform,
                     ));
                 },
-                OffscreenRenderingContext::WebGL(ref _context) => {
+                OffscreenRenderingContext::WebGL(ref context) => {
                     let Some(snapshot) = context.get_image_data() else {
                         return Ok(());
                     };
@@ -715,7 +715,7 @@ impl CanvasState {
                     ));
                 },
 
-                OffscreenRenderingContext::WebGL2(ref _context) => {
+                OffscreenRenderingContext::WebGL2(ref context) => {
                     let Some(snapshot) = context.get_image_data() else {
                         return Ok(());
                     };
@@ -839,7 +839,7 @@ impl CanvasState {
                                 self.state.borrow().transform,
                             ));
                         },
-                        OffscreenRenderingContext::WebGL(ref _context) => {
+                        OffscreenRenderingContext::WebGL(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
                                 return Ok(());
                             };
@@ -855,7 +855,7 @@ impl CanvasState {
                             ));
                         },
 
-                        OffscreenRenderingContext::WebGL2(ref _context) => {
+                        OffscreenRenderingContext::WebGL2(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
                                 return Ok(());
                             };
