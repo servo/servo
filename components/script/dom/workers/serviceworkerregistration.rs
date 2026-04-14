@@ -126,9 +126,12 @@ impl ServiceWorkerRegistration {
             pipeline_id: global.pipeline_id(),
         };
 
+        // TODO:  handle error better
+        let window = global.downcast::<Window>().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
-        let init = prepare_workerscope_init(global, None, Some(worker_id));
+        let init =
+            prepare_workerscope_init(global, None, Some(worker_id), window.webgl_chan_value());
         let browsing_context_id = global
             .downcast::<Window>()
             .map(|w: &Window| w.window_proxy().browsing_context_id())

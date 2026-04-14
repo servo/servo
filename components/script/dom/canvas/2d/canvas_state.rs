@@ -699,6 +699,13 @@ impl CanvasState {
                         self.state.borrow().transform,
                     ));
                 },
+                OffscreenRenderingContext::WebGL(ref _context) => {
+                    // TODO send canvas message?
+                },
+
+                OffscreenRenderingContext::WebGL2(ref _context) => {
+                    // TODO send canvas message?
+                },
                 OffscreenRenderingContext::Detached => return Err(Error::InvalidState(None)),
             }
         } else {
@@ -807,6 +814,13 @@ impl CanvasState {
                                 self.state.borrow().composition_options(),
                                 self.state.borrow().transform,
                             ));
+                        },
+                        OffscreenRenderingContext::WebGL(ref _context) => {
+                            // TODO send canvas message
+                        },
+
+                        OffscreenRenderingContext::WebGL2(ref _context) => {
+                            // TODO send canvas message
                         },
                         OffscreenRenderingContext::Detached => {
                             return Err(Error::InvalidState(None));

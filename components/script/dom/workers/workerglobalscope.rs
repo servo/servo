@@ -28,6 +28,7 @@ use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineId, PipelineNamespace};
+use servo_canvas_traits::webgl::WebGLChan;
 use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
@@ -89,6 +90,7 @@ pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
     devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
+    webgl_chan: Option<WebGLChan>,
 ) -> WorkerGlobalScopeInit {
     WorkerGlobalScopeInit {
         resource_threads: global.resource_threads().clone(),
@@ -104,6 +106,7 @@ pub(crate) fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
         unminify_js: global.unminify_js(),
+        webgl_chan,
     }
 }
 
