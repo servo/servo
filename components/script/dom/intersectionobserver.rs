@@ -966,7 +966,7 @@ fn compute_the_intersection(
         // > 3.5. If container is the root element of a browsing context, update container to be the
         // >      browsing context’s document; otherwise, update container to be the containing block
         // >      of container.
-        // Additionally, for a node that doesn't have an element that establish it's containing block, we should
+        // Additionally, for a node that doesn't have an element that establishes its containing block, we should
         // refer to the browsing context's document.
         container = match containing_element
             .upcast::<Node>()
