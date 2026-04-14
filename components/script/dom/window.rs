@@ -181,7 +181,6 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
 use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
-use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
@@ -677,10 +676,8 @@ impl Window {
         &self.error_reporter
     }
 
-    pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
-        self.webgl_chan
-            .as_ref()
-            .map(|chan| WebGLCommandSender::new(chan.clone()))
+    pub(crate) fn webgl_chan(&self) -> Option<WebGLChan> {
+        self.webgl_chan.clone()
     }
 
     #[cfg(feature = "webxr")]

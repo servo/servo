@@ -29,9 +29,9 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{
     AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
-    TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
-    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
-    WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLVersion, YAxisTreatment, webgl_channel,
+    TexFormat, TexParameter, WebGLCommand, WebGLCommandBacktrace, WebGLContextId, WebGLError,
+    WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId, WebGLResult,
+    WebGLSLVersion, WebGLVersion, YAxisTreatment, webgl_channel,
 };
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -5253,22 +5253,6 @@ impl TexPixels {
 pub(crate) enum TexSource {
     Pixels(TexPixels),
     BufferOffset(i64),
-}
-
-#[derive(JSTraceable)]
-pub(crate) struct WebGLCommandSender {
-    #[no_trace]
-    sender: WebGLChan,
-}
-
-impl WebGLCommandSender {
-    pub(crate) fn new(sender: WebGLChan) -> WebGLCommandSender {
-        WebGLCommandSender { sender }
-    }
-
-    pub(crate) fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
-        self.sender.send(msg)
-    }
 }
 
 fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
