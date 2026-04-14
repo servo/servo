@@ -11,11 +11,13 @@
 //!
 //! <https://w3c.github.io/screen-wake-lock/>
 
+use serde::{Deserialize, Serialize};
+
 /// The type of wake lock to acquire or release.
 ///
 /// Currently only `Screen` is defined by the spec. Additional variants
 /// (e.g. `Cpu`) may be added in the future.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WakeLockType {
     Screen,
 }

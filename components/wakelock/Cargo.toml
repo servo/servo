@@ -12,3 +12,6 @@ description.workspace = true
 [lib]
 name = "servo_wakelock"
 path = "lib.rs"
+
+[dependencies]
+serde = { workspace = true }
