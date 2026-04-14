@@ -352,6 +352,14 @@ def _parse_target_os_arg() -> Optional[HostOptions]:
     return HostOptions(args.target_os)
 
 
+def _detect_host_target_os() -> HostOptions:
+    if sys.platform == "darwin":
+        return HostOptions.MACOS
+    if sys.platform.startswith("linux"):
+        return HostOptions.LINUX
+    raise ValueError(f"Unsupported host platform: {sys.platform!r}")
+
+
 def _resolve_target_os(target_os_arg: Optional[HostOptions]) -> HostOptions:
     if target_os_arg is not None:
         return target_os_arg
@@ -367,7 +375,7 @@ def _resolve_target_os(target_os_arg: Optional[HostOptions]) -> HostOptions:
         except ValueError as exc:
             raise ValueError(f"Unsupported TARGET_OS value: {target_os_env!r}") from exc
 
-    return HostOptions.OHOS
+    return _detect_host_target_os()
 
 
 def _create_memory_logging_options(
@@ -432,6 +440,8 @@ def run_test(
         print(f"Using command line arg ({target_os.value})")
     elif target_os_env:
         print(f"Using env var ({target_os.value})")
+    else:
+        print(f"Using host OS ({target_os.value})")
 
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
