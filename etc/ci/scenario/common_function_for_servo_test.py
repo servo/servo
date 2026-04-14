@@ -345,7 +345,7 @@ def _invoke_test_fn(
 
 def _parse_target_os_arg() -> Optional[HostOptions]:
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--target_os", choices=[option.value for option in HostOptions])
+    parser.add_argument("--target-os", choices=[option.value for option in HostOptions], dest="target_os")
     args, _ = parser.parse_known_args()
     if args.target_os is None:
         return None
