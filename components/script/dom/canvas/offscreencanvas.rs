@@ -217,24 +217,37 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let global = self.global();
-        // TODO: Better error handling
-        let window = global.downcast::<Window>().unwrap();
+
+        // 1. Let context be the result of following the instructions given in the
+        // WebGL specifications' Context Creation sections.
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self));
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options, can_gc)?;
-        let context =
-            WebGLRenderingContext::new(window, &canvas, WebGLVersion::WebGL1, size, attrs, can_gc)?;
+        self.global()
+            .downcast::<Window>()
+            .and_then(|window| {
+                WebGLRenderingContext::new(
+                    window,
+                    &canvas,
+                    WebGLVersion::WebGL1,
+                    size,
+                    attrs,
+                    can_gc,
+                )
+            })
+            .map(|context| {
+                // Step 2. If context is null, then return null;
+                // otherwise set this's context mode to webgl or webgl2.
+                *self.context.borrow_mut() =
+                    Some(OffscreenRenderingContext::WebGL(Dom::from_ref(&*context)));
 
-        // Step 2. Set this's context mode to WebGL Renderer.
-        *self.context.borrow_mut() =
-            Some(OffscreenRenderingContext::WebGL(Dom::from_ref(&*context)));
-
-        // Step 3. Return context.
-        Some(context)
+                // Step 3. Return context.
+                context
+            })
     }
 
+    // <https://html.spec.whatwg.org/multipage/#offscreen-context-type-webgl>
     fn get_or_init_webgl2_context(
         &self,
         cx: JSContext,
@@ -251,19 +264,25 @@ impl OffscreenCanvas {
                 _ => None,
             };
         }
-        let global = self.global();
-        // TODO: Better error handling
-        let window = global.downcast::<Window>().unwrap();
+
+        // 1. Let context be the result of following the instructions given in the
+        // WebGL specifications' Context Creation sections.
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(DomRoot::from_ref(self));
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options, can_gc)?;
-        let context = WebGL2RenderingContext::new(window, &canvas, size, attrs, can_gc)?;
+        self.global()
+            .downcast::<Window>()
+            .and_then(|window| WebGL2RenderingContext::new(window, &canvas, size, attrs, can_gc))
+            .map(|context| {
+                // Step 2. If context is null, then return null;
+                // otherwise set this's context mode to webgl or webgl2.
+                *self.context.borrow_mut() =
+                    Some(OffscreenRenderingContext::WebGL2(Dom::from_ref(&*context)));
 
-        *self.context.borrow_mut() =
-            Some(OffscreenRenderingContext::WebGL2(Dom::from_ref(&*context)));
-
-        Some(context)
+                // Step 3. Return context.
+                context
+            })
     }
 
     pub(crate) fn placeholder(&self) -> Option<DomRoot<HTMLCanvasElement>> {
