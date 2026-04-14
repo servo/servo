@@ -9,6 +9,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import argparse
 import enum
 import inspect
 import os
@@ -342,7 +343,23 @@ def _invoke_test_fn(
     test_fn(**kwargs)
 
 
+def _parse_target_os_arg() -> Optional[HostOptions]:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--target_os", choices=[option.value for option in HostOptions])
+    args, _ = parser.parse_known_args()
+    if args.target_os is None:
+        return None
+    return HostOptions(args.target_os)
+
+
 def _resolve_target_os(target_os_arg: Optional[HostOptions]) -> HostOptions:
+    if target_os_arg is not None:
+        return target_os_arg
+
+    parsed_target_os = _parse_target_os_arg()
+    if parsed_target_os is not None:
+        return parsed_target_os
+
     target_os_env = os.environ.get("TARGET_OS")
     if target_os_env:
         try:
@@ -350,8 +367,6 @@ def _resolve_target_os(target_os_arg: Optional[HostOptions]) -> HostOptions:
         except ValueError as exc:
             raise ValueError(f"Unsupported TARGET_OS value: {target_os_env!r}") from exc
 
-    if target_os_arg is not None:
-        return target_os_arg
     return HostOptions.OHOS
 
 
@@ -408,11 +423,16 @@ def run_test(
     use_memory_logging: Optional[MemoryLoggingOptions] | bool = None,
     url: Optional[str] = None,
 ) -> None:
-    target_os_env = os.environ.get("TARGET_OS")
-    if target_os_env:
-        print(f"Using env var ({target_os_env})")
-
+    parsed_target_os = _parse_target_os_arg()
     target_os = _resolve_target_os(target_os_arg)
+    target_os_env = os.environ.get("TARGET_OS")
+    if target_os_arg is not None:
+        print(f"Using run_test arg ({target_os.value})")
+    elif parsed_target_os is not None:
+        print(f"Using command line arg ({target_os.value})")
+    elif target_os_env:
+        print(f"Using env var ({target_os.value})")
+
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
         print("Setting mitmproxy replay")
