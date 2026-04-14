@@ -54,8 +54,10 @@ impl<'dom> ServoLayoutElement<'dom> {
         self.element.is_html_element()
     }
 
-    /// The shadow root this element is a host of.
-    pub fn shadow_root(&self) -> Option<ServoDangerousStyleShadowRoot<'dom>> {
+    /// The shadow root that this [`ServoLayoutElement`] is a host of, if it has one.
+    ///
+    /// Note: This should *not* be exposed to layout as it allows access to an ancestor element.
+    pub(super) fn shadow_root(&self) -> Option<ServoDangerousStyleShadowRoot<'dom>> {
         self.element.get_shadow_root_for_layout().map(Into::into)
     }
 }

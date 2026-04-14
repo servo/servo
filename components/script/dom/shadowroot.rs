@@ -654,7 +654,7 @@ impl<'dom> LayoutDom<'dom, ShadowRoot> {
     }
 
     #[inline]
-    pub(crate) fn is_ua_widget(&self) -> bool {
+    pub(crate) fn is_user_agent_widget(&self) -> bool {
         self.unsafe_get().is_user_agent_widget()
     }
 

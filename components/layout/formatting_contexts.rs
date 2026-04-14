@@ -150,34 +150,33 @@ impl IndependentFormattingContext {
         let non_replaced_contents = match contents {
             Contents::Replaced(contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
+
                 // Some replaced elements can have inner widgets, e.g. `<video controls>`.
-                let widget = Some(node_and_style_info.node)
-                    .filter(|node| node.pseudo_element_chain().is_empty())
-                    .and_then(|node| node.as_element())
-                    .and_then(|element| element.shadow_root())
-                    .is_some_and(|shadow_root| shadow_root.is_ua_widget())
-                    .then(|| {
-                        let widget_info = node_and_style_info
-                            .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
-                            .expect("Should always be able to construct info for anonymous boxes.");
-                        // Use a block formatting context for the widget, since the display inside is always flow.
-                        let widget_contents = IndependentFormattingContextContents::Flow(
-                            BlockFormattingContext::construct(
-                                context,
-                                &widget_info,
-                                NonReplacedContents::OfElement,
-                                propagated_data,
-                                false, /* is_list_item */
-                            ),
-                        );
-                        let widget_base =
-                            LayoutBoxBase::new((&widget_info).into(), widget_info.style);
-                        ArcRefCell::new(IndependentFormattingContext::new(
-                            widget_base,
-                            widget_contents,
+                let node = node_and_style_info.node;
+                let widget = (node.pseudo_element_chain().is_empty() &&
+                    node.is_root_of_user_agent_widget())
+                .then(|| {
+                    let widget_info = node_and_style_info
+                        .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
+                        .expect("Should always be able to construct info for anonymous boxes.");
+                    // Use a block formatting context for the widget, since the display inside is always flow.
+                    let widget_contents = IndependentFormattingContextContents::Flow(
+                        BlockFormattingContext::construct(
+                            context,
+                            &widget_info,
+                            NonReplacedContents::OfElement,
                             propagated_data,
-                        ))
-                    });
+                            false, /* is_list_item */
+                        ),
+                    );
+                    let widget_base = LayoutBoxBase::new((&widget_info).into(), widget_info.style);
+                    ArcRefCell::new(IndependentFormattingContext::new(
+                        widget_base,
+                        widget_contents,
+                        propagated_data,
+                    ))
+                });
+
                 return IndependentFormattingContextContents::Replaced(contents, widget);
             },
             Contents::Widget(non_replaced_contents) => {
