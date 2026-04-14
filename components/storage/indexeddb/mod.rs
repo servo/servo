@@ -1144,7 +1144,10 @@ impl IndexedDBManager {
         proxy_map: &StorageProxyMap,
     ) {
         if old_version == 0 {
-            if let Some(_db) = self.databases.remove(key) {
+            if let Some(db) = self.databases.remove(key) {
+                // Note: ensure db is dropped before deleting directory,
+                // to get around windows file locks.
+                drop(db);
                 let response = proxy_map
                     .handle
                     .delete_database(proxy_map.bottle_id, db_name.clone())
@@ -1800,6 +1803,10 @@ impl IndexedDBManager {
                 }
                 return;
             };
+
+            // Note: ensure db is dropped before deleting directory,
+            // to get around windows file locks.
+            drop(db);
 
             // Step 11: Delete db.
             // If this fails for any reason,

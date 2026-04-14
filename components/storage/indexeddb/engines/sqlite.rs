@@ -744,12 +744,12 @@ mod tests {
     use serde::{Deserialize, Serialize};
     use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
     use servo_base::id::{
-        BrowsingContextId, PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId,
+        PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
     use servo_base::threadpool::ThreadPool;
     use servo_url::ImmutableOrigin;
     use storage_traits::client_storage::{
-        ClientStorageThreadHandle, ClientStorageThreadMessage, StorageIdentifier, StorageProxyMap,
+        ClientStorageThreadHandle, StorageIdentifier, StorageProxyMap,
         StorageType,
     };
     use storage_traits::indexeddb::{
@@ -818,7 +818,7 @@ mod tests {
         let (_temp_dir, path, created, proxy_map, handle) = create_db("test_db".to_string());
         let thread_pool = get_pool();
         // Test create
-        let _ = SqliteEngine::new(
+        let db = SqliteEngine::new(
             path.clone(),
             created,
             &IndexedDBDescription {
@@ -828,6 +828,7 @@ mod tests {
             thread_pool.clone(),
         )
         .unwrap();
+        drop(db);
 
         // Test open
         let db = SqliteEngine::new(
@@ -845,6 +846,7 @@ mod tests {
         db.set_version(5).unwrap();
         let new_version = db.version().expect("Failed to get new version");
         assert_eq!(new_version, 5);
+        drop(db);
         handle
             .delete_database(proxy_map.bottle_id, "test_db".to_string())
             .recv()
