@@ -4,6 +4,7 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
@@ -57,6 +58,7 @@ enum DiskCacheTable {
     Key,
     Data,
     Size,
+    InsertionTimestamp,
 }
 
 impl DiskCache {
@@ -86,7 +88,8 @@ impl DiskCache {
                     "CREATE TABLE disk_cache_table (
                 key VARCHAR PRIMARY KEY,
                 data VARCHAR NOT NULL,
-                size INTEGER NOT NULL);",
+                size INTEGER NOT NULL,
+                insertion_timestamp INTEGER NOT NULL);",
                     [],
                 ) {
                     error!("Could not create table. DB Error {:?}", e);
@@ -237,14 +240,24 @@ impl DiskCache {
             let mut inner = self.inner.lock().await;
             let data_size = data.len();
 
+            let timestamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|duration| duration.as_secs())
+                .unwrap_or(0);
             let (query, params) = Query::insert()
                 .into_table(DiskCacheTable::Table)
                 .columns([
                     DiskCacheTable::Key,
                     DiskCacheTable::Data,
                     DiskCacheTable::Size,
+                    DiskCacheTable::InsertionTimestamp,
                 ])
-                .values_panic([key.as_ref().into(), data.into(), (data_size as u32).into()])
+                .values_panic([
+                    key.as_ref().into(),
+                    data.into(),
+                    (data_size as u32).into(),
+                    timestamp.into(),
+                ])
                 .build_rusqlite(SqliteQueryBuilder);
 
             if let Err(e) = inner.db.execute(query.as_str(), &*params.as_params()) {
@@ -304,14 +317,14 @@ impl DiskCache {
             st.query_one(&*size_values.as_params(), |row| Ok(row.get(0).unwrap_or(0)));
         if let Err(query_result) = query_result {
             error!("Could nto get new sum size {}", query_result);
-            Some(0)
+            None
         } else {
             query_result.ok()
         }
     }
 
     /// Clears the disk cache.
-    /// Should only be called in sync context.
+    /// Should only be called in sync context and will panic.
     #[servo_tracing::instrument(skip(self))]
     pub(crate) fn clear(&self) {
         let mut inner = self.inner.blocking_lock();

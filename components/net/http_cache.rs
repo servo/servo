@@ -9,7 +9,7 @@
 
 use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
@@ -62,31 +62,6 @@ impl CacheKey {
     }
 }
 
-/// Used for serializing instant into duration
-mod instant {
-    use std::time::{Duration, Instant};
-
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<S>(instant: &Instant, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let duration = instant.elapsed();
-        duration.serialize(serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Instant, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let duration = Duration::deserialize(deserializer)?;
-        let now = Instant::now();
-        let instant = now.checked_sub(duration).unwrap();
-        Ok(instant)
-    }
-}
-
 /// A complete cached resource.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CachedResource {
@@ -105,9 +80,7 @@ pub struct CachedResource {
     status: HttpStatus,
     url_list: Vec<ServoUrl>,
     expires: Duration,
-    /// This is technically a bit incorrect as we deserialize it via seconds and that might break things.
-    #[serde(with = "instant")]
-    last_validated: Instant,
+    last_validated: SystemTime,
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -439,12 +412,19 @@ fn create_cached_response(
 
     let expires = cached_resource.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
-    let time_since_validated = Instant::now() - cached_resource.last_validated;
+    let has_expired = if let Ok(duration_since_validated) =
+        SystemTime::now().duration_since(cached_resource.last_validated)
+    {
+        adjusted_expires <= duration_since_validated
+    } else {
+        // if we cannot compare the systemtime
+        true
+    };
 
     // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
-    let has_expired = adjusted_expires <= time_since_validated;
+
     let cached_response = CachedResponse {
         response,
         needs_validation: has_expired,
@@ -1067,7 +1047,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
             status: response.status.clone(),
             url_list: response.url_list.clone(),
             expires: expiry,
-            last_validated: Instant::now(),
+            last_validated: SystemTime::now(),
         };
 
         match self {
