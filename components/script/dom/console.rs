@@ -255,6 +255,7 @@ fn console_object_from_handle_value(
     let is_array = object_class == ESClass::Array;
 
     let mut own_properties = Vec::new();
+    let mut items: Vec<(i32, DebuggerValue)> = Vec::new();
     let mut ids = unsafe { IdVector::new(*cx) };
     if !unsafe {
         GetPropertyKeys(
@@ -290,6 +291,13 @@ fn console_object_from_handle_value(
             return None;
         }
 
+        if is_array && id.is_int() {
+            let index = id.to_int();
+            let value = console_argument_from_handle_value(cx, property.handle(), seen);
+            items.push((index, value));
+            continue;
+        }
+
         let key = if id.is_string() {
             rooted!(in(*cx) let mut key_value = UndefinedValue());
             let raw_id: jsapi::HandleId = id.handle().into();
@@ -315,14 +323,21 @@ fn console_object_from_handle_value(
         });
     }
 
-    let (class, kind, array_length) = if is_array {
+    let (class, kind, array_length, items) = if is_array {
         let mut len = 0u32;
         if !unsafe { GetArrayLength(*cx, object.handle(), &mut len) } {
             return None;
         }
-        ("Array".to_owned(), "ArrayLike".to_owned(), Some(len))
+        items.sort_by_key(|(index, _)| *index);
+        let ordered: Vec<DebuggerValue> = items.into_iter().map(|(_, value)| value).collect();
+        (
+            "Array".to_owned(),
+            "ArrayLike".to_owned(),
+            Some(len),
+            Some(ordered),
+        )
     } else {
-        ("Object".to_owned(), "Object".to_owned(), None)
+        ("Object".to_owned(), "Object".to_owned(), None, None)
     };
 
     Some((
@@ -333,7 +348,7 @@ fn console_object_from_handle_value(
             own_properties: Some(own_properties),
             function: None,
             array_length,
-            items: None,
+            items,
         },
     ))
 }
