@@ -512,6 +512,7 @@ def run_test(
                     session_history_max_length=session_history_max_length,
                     use_proxy=use_mitmproxy.should_servo_proxy(),
                     mitmproxy_port=MITMPROXY_PORT,
+                    url=url,
                 )
                 if memory_logging_options is None:
                     _invoke_test_fn(test_fn)

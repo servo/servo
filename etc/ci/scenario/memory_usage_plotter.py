@@ -21,7 +21,6 @@ import matplotlib.dates as mdates
 import datetime as dt
 from pathlib import Path
 from selenium import webdriver
-import sys
 from hdc_py.hdc import HarmonyDeviceConnector  # type: ignore[import-untyped]
 from enum import Enum
 from types import TracebackType
@@ -107,9 +106,7 @@ def get_memory_info(pid: int, host: HostOptions | str) -> Optional[MemoryInfo]:
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        print(f"Error running '{' '.join(cmd)}': {e}")
-        sys.exit(1)
-        return None
+        raise RuntimeError(f"Error running '{' '.join(cmd)}': {e}") from e
 
     fields = {
         "VmRSS": 0,
@@ -211,10 +208,16 @@ def load_memory_log(path: str) -> MemoryLog:
         for row in reader:
             event: Optional[str] = row["event"] or None
 
+            # Accept both the old kb headers and the current mb headers.
+            rss = row.get("rss (mb)") or row.get("rss (kb)")
+            swap = row.get("swap (mb)") or row.get("swap (kb)")
+            if rss is None or swap is None:
+                raise InvalidInputFile("Invalid CSV columns")
+
             sample = MemorySample(
                 timestamp=float(row["timestamp"]),
-                RSS_MB=float(row["rss (kb)"]),
-                Swap_MB=float(row["swap (kb)"]),
+                RSS_MB=float(rss),
+                Swap_MB=float(swap),
                 event_name=event,
             )
 
@@ -245,6 +248,7 @@ class NonBlockingMemoryLogging:
         driver: Optional[webdriver.Remote] = None,
     ) -> None:
         # Defaults:
+        self._loaded_from_dump = False
         self.driver = None
         self.hdc = None
         self.csv_file = None
@@ -254,7 +258,7 @@ class NonBlockingMemoryLogging:
             if options.from_dump is not None:
                 raise_if_input_invalid(options.from_dump)
                 self.from_dump()
-                sys.exit(0)
+                self._loaded_from_dump = True
         if host is not None:
             self.options.host = host
         if driver is not None:
@@ -274,7 +278,8 @@ class NonBlockingMemoryLogging:
         )
 
     def __enter__(self) -> Self:
-        self.start()
+        if not self._loaded_from_dump:
+            self.start()
         return self
 
     def __exit__(
@@ -283,7 +288,8 @@ class NonBlockingMemoryLogging:
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
-        self.stop()
+        if not self._loaded_from_dump:
+            self.stop()
         if self.csv_file:
             self.csv_file.close()
         if self.driver is not None:
@@ -298,8 +304,7 @@ class NonBlockingMemoryLogging:
                 else:
                     self.options.pid = get_servo_pid(SERVO_PROCESS_NAME)
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
-                print(f"Failed to get servo PID: {e}")
-                sys.exit(1)
+                raise RuntimeError(f"Failed to get servo PID: {e}") from e
         self._thread.start()
         if self.options.pre_time is not None:
             self.verbose_print(f"started sampling, with {self.options.pre_time}s delay")
