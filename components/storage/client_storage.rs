@@ -387,10 +387,12 @@ impl RegistryEngine for SqliteEngine {
         }
         // Note: directory deleted through SQL cascade.
 
-        // Delete the directory on disk
-        std::fs::remove_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryDeletionFailed)?;
-
         tx.commit()?;
+
+        // Delete the directory on disk.
+        // Note: on Windows this needs to be done outside of the transaction,
+        // because the transaction holds a file lock.
+        std::fs::remove_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryDeletionFailed)?;
 
         Ok(())
     }
