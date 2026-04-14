@@ -3883,11 +3883,7 @@ impl Node {
         let mut i = my_ancestors.len() - 1;
         let mut j = other_ancestors.len() - 1;
 
-        loop {
-            if my_ancestors[i] != other_ancestors[j] {
-                break;
-            }
-
+        while my_ancestors[i] == other_ancestors[j] {
             if i == 0 {
                 // self is an ancestor of other
                 debug_assert_ne!(j, 0, "Equal inclusive ancestors but nodes are not equal?");
@@ -3908,10 +3904,10 @@ impl Node {
             .preceding_siblings()
             .any(|sibling| sibling == other_ancestors[j])
         {
-            // other is a preceding sibling of self
+            // other or an ancestor is a preceding sibling of self or one of its ancestors.
             Ordering::Greater
         } else {
-            // self is a preceding sibling of other
+            // self or an ancestor is a preceding sibling of other or one of its ancestors.
             debug_assert!(
                 other_ancestors[j]
                     .preceding_siblings()
