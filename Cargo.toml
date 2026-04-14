@@ -183,7 +183,7 @@ stylo_traits = { git = "https://github.com/servo/stylo", rev = "96ceb5405bd7ce10
 surfman = { version = "0.12.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-taffy = { version = "0.10", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
+taffy = { version = "0.10.1", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
 tendril = { version = "0.5", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
 tikv-jemallocator = "0.6.1"
