@@ -2368,6 +2368,14 @@ impl<'dom> LayoutDom<'dom, Node> {
     pub(crate) fn is_in_ua_widget(&self) -> bool {
         self.unsafe_get().is_in_ua_widget()
     }
+
+    pub(crate) fn is_root_of_user_agent_widget(&self) -> bool {
+        self.downcast::<Element>().is_some_and(|element| {
+            element
+                .get_shadow_root_for_layout()
+                .is_some_and(|shadow_root| shadow_root.is_user_agent_widget())
+        })
+    }
 }
 
 //

@@ -54,11 +54,3 @@ impl<'dom> TShadowRoot for ServoDangerousStyleShadowRoot<'dom> {
         Some(self.shadow_root.get_style_data_for_layout())
     }
 }
-
-impl<'dom> ServoDangerousStyleShadowRoot<'dom> {
-    /// Whether or not this [`ServoDangerousStyleShadowRoot`] is the root
-    /// of a user agent widget.
-    pub fn is_ua_widget(&self) -> bool {
-        self.shadow_root.is_ua_widget()
-    }
-}
