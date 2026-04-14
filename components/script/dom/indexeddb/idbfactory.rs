@@ -587,7 +587,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // Note: switching to obtaining a storage bottle map,
         // as per https://github.com/w3c/IndexedDB/pull/334/
         let proxy_map =
-            self.obtain_a_local_storage_bottle_map(&global, origin.immutable().clone())?;
+            self.obtain_a_local_storage_bottle_map(&global, global.origin().immutable().clone())?;
 
         // Step 4: Let request be a new open request.
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
@@ -618,7 +618,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // Note: switching to obtaining a storage bottle map,
         // as per https://github.com/w3c/IndexedDB/pull/334/
         let proxy_map =
-            self.obtain_a_local_storage_bottle_map(&global, origin.immutable().clone())?;
+            self.obtain_a_local_storage_bottle_map(&global, global.origin().immutable().clone())?;
 
         // Step 3: Let request be a new open request
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
