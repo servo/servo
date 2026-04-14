@@ -557,4 +557,10 @@ def start_servo(
 
 
 def kill_servo() -> None:
-    subprocess.run(["killall", "servoshell"])
+    result = subprocess.run(
+        ["pkill", "-x", "servoshell"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"Failed to stop servoshell: {result.stderr.strip() or result.stdout.strip()}")
