@@ -36,7 +36,7 @@ dictionary PerformanceMeasureOptions {
 [Exposed=(Window,Worker)]
 partial interface Performance {
   [Throws]
-  undefined mark(DOMString markName);
+  PerformanceMark mark(DOMString markName);
   undefined clearMarks(optional DOMString markName);
   [Throws]
   PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions = {}, optional DOMString endMark);

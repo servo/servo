@@ -638,7 +638,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/user -timing/#dom-performance-mark>
-    fn Mark(&self, mark_name: DOMString) -> Fallible<()> {
+    fn Mark(&self, mark_name: DOMString) -> Fallible<DomRoot<PerformanceMark>> {
         let global = self.global();
         // NOTE: This should happen within the performancemark constructor
         if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&&*mark_name.str()) {
@@ -659,7 +659,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // TODO Step 3. Add entry to the performance entry buffer.
 
         // Step 4. Return entry.
-        Ok(())
+        Ok(entry)
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-clearmarks>
