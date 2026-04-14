@@ -825,8 +825,15 @@ impl Selection {
         // Step 2. If there is no formattable node effectively contained in the active range:
         if active_range.first_formattable_contained_node().is_none() {
             // Step 2.1. If command has inline command activated values, set the state override to true if new value is among them and false if it's not.
-            // TODO
-
+            let inline_command_activated_values = command.inline_command_activated_values();
+            if !inline_command_activated_values.is_empty() {
+                context_object.set_state_override(
+                    command,
+                    Some(new_value.as_ref().is_some_and(|new_value| {
+                        inline_command_activated_values.contains(&new_value.str().as_ref())
+                    })),
+                );
+            }
             // Step 2.2. If command is "subscript", unset the state override for "superscript".
             if command == CommandName::Subscript {
                 context_object.set_state_override(CommandName::Superscript, None);

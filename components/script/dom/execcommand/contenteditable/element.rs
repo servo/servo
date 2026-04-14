@@ -45,9 +45,15 @@ impl Element {
             },
             CommandName::Underline => {
                 // Step 6. If command is "underline", and element has a style attribute set, and that attribute sets "text-decoration":
-                // TODO
+                if let Some(value) = CssPropertyName::TextDecorationLine.value_set_for_style(self) {
+                    // Step 6.1. If element's style attribute sets "text-decoration" to a value containing "underline", return "underline".
+                    // Step 6.2. Return null.
+                    return Some("underline".into()).filter(|_| value.contains("underline"));
+                }
                 // Step 7. If command is "underline" and element is a u element, return "underline".
-                // TODO
+                if *self.local_name() == local_name!("u") {
+                    return Some("underline".into());
+                }
             },
             _ => {},
         };

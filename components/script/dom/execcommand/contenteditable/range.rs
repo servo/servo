@@ -43,6 +43,18 @@ impl RecordedStateOfNode {
         let value = node.effective_command_value(&command).into();
         Self { command, value }
     }
+
+    fn for_command_node_with_inline_activated_values(command: CommandName, node: &Node) -> Self {
+        let effective_command_value = node.effective_command_value(&command);
+        let value = effective_command_value
+            .is_some_and(|effective_command_value| {
+                command
+                    .inline_command_activated_values()
+                    .contains(&effective_command_value.str().as_ref())
+            })
+            .into();
+        Self { command, value }
+    }
 }
 
 impl Range {
@@ -123,8 +135,30 @@ impl Range {
             // "bold", "italic", "strikethrough", "subscript", "superscript", "underline", in order:
             // if node's effective command value for command is one of its inline command activated values,
             // add (command, true) to overrides, and otherwise add (command, false) to overrides.
-            // TODO
-
+            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+                CommandName::Bold,
+                &node,
+            ),
+            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+                CommandName::Italic,
+                &node,
+            ),
+            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+                CommandName::Strikethrough,
+                &node,
+            ),
+            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+                CommandName::Subscript,
+                &node,
+            ),
+            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+                CommandName::Superscript,
+                &node,
+            ),
+            RecordedStateOfNode::for_command_node_with_inline_activated_values(
+                CommandName::Underline,
+                &node,
+            ),
             // Step 6. For each command in the list "fontName", "foreColor", "hiliteColor", in order:
             // add (command, command's value) to overrides.
             // TODO

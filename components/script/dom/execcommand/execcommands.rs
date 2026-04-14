@@ -120,6 +120,7 @@ impl Document {
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontsize" => CommandName::FontSize,
             "stylewithcss" => CommandName::StyleWithCss,
+            "underline" => CommandName::Underline,
             _ => return None,
         })
     }

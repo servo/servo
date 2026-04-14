@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use js::context::JSContext;
 use servo_config::pref;
 use style::attr::parse_integer;
 use style::values::computed::CSSPixelLength;
@@ -63,7 +64,7 @@ enum ParsingMode {
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-fontsize-command>
 pub(crate) fn execute_fontsize_command(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
     value: DOMString,
@@ -120,7 +121,7 @@ pub(crate) fn execute_fontsize_command(
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-fontsize-command>
 pub(crate) fn value_for_fontsize_command(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     document: &Document,
 ) -> Option<DOMString> {
     // Step 1. If the active range is null, return the empty string.
