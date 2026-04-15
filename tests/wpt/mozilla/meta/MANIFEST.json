@@ -8123,19 +8123,6 @@
       {}
      ]
     ],
-    "sslfail.html": [
-     "40eb31ca31a2522287bcbf891ad00ac7fdaaa469",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/sslfail-ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "stylesheet-adopt-panic.html": [
      "df3b48291e08d907e944ad6a07c56268ff265fd1",
      [
@@ -11129,10 +11116,6 @@
     },
     "simple_scroll_to_fragment_ref.html": [
      "c379937160aad4c4e9624c2915c0d84ef7c4d785",
-     []
-    ],
-    "sslfail-ref.html": [
-     "4d371a86886ba80268ba54b39eeab50a9a51e04f",
      []
     ],
     "stylesheet-adopt-panic-ref.html": [
