@@ -377,8 +377,7 @@ impl Performance {
     fn can_add_resource_timing_entry(&self) -> bool {
         // Step 1. If resource timing buffer current size is smaller than resource timing buffer size limit, return true.
         // Step 2. Return false.
-        // TODO: Changing this to "<" (as per spec) does not result in passing tests, needs investigation
-        self.resource_timing_buffer_current_size.get() <=
+        self.resource_timing_buffer_current_size.get() <
             self.resource_timing_buffer_size_limit.get()
     }
 
