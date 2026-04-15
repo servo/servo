@@ -135,7 +135,7 @@ jobs:
       - if: runner.environment != 'self-hosted'
         name: Bootstrap
         run: |
-          ./mach bootstrap --yes --skip-lints
+          ./mach bootstrap --yes --skip-lints --skip-nextest
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |
