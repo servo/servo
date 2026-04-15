@@ -31,56 +31,59 @@
   -->
 </div>
 <script>
-window.onload = function() {
-  var realOffsetParent = document.getElementById('real-offset-parent');
-  var inline1 = document.getElementById('inline-1');
-  var inline2 = document.getElementById('inline-2');
-  var inline3 = document.getElementById('inline-3');
+var realOffsetParent = document.getElementById('real-offset-parent');
+var inline1 = document.getElementById('inline-1');
+var inline2 = document.getElementById('inline-2');
+var inline3 = document.getElementById('inline-3');
 
-  test(function() {
-    assert_equals(inline1.offsetParent, realOffsetParent,
-      "offsetParent of #inline-1 should be #real-offset-parent.");
-    assert_equals(inline2.offsetParent, realOffsetParent,
-      "offsetParent of #inline-2 should be #real-offset-parent.");
-    assert_equals(inline3.offsetParent, realOffsetParent,
-      "offsetParent of #inline-3 should be #real-offset-parent.");
-  }, "offsetParent");
+promise_test(async () => {
+  await document.fonts.ready;
+  assert_equals(inline1.offsetParent, realOffsetParent,
+    "offsetParent of #inline-1 should be #real-offset-parent.");
+  assert_equals(inline2.offsetParent, realOffsetParent,
+    "offsetParent of #inline-2 should be #real-offset-parent.");
+  assert_equals(inline3.offsetParent, realOffsetParent,
+    "offsetParent of #inline-3 should be #real-offset-parent.");
+}, "offsetParent");
 
-  test(function() {
-    assert_equals(inline1.offsetTop, 0,
-      "offsetTop of #inline-1 should be 0.");
-    assert_equals(inline2.offsetTop, 0,
-      "offsetTop of #inline-2 should be 0.");
-    assert_equals(inline3.offsetTop, 10,
-      "offsetTop of #inline-3 should be 10.");
-  }, "offsetTop");
+promise_test(async () => {
+  await document.fonts.ready;
+  assert_equals(inline1.offsetTop, 0,
+    "offsetTop of #inline-1 should be 0.");
+  assert_equals(inline2.offsetTop, 0,
+    "offsetTop of #inline-2 should be 0.");
+  assert_equals(inline3.offsetTop, 10,
+    "offsetTop of #inline-3 should be 10.");
+}, "offsetTop");
 
-  test(function() {
-    assert_equals(inline1.offsetLeft, 0,
-      "offsetLeft of #inline-1 should be 0.");
-    assert_equals(inline2.offsetLeft, 40,
-      "offsetLeft of #inline-2 should be 40.");
-    assert_equals(inline3.offsetLeft, 40,
-      "offsetLeft of #inline-3 should be 40.");
-  }, "offsetLeft");
+promise_test(async () => {
+  await document.fonts.ready;
+  assert_equals(inline1.offsetLeft, 0,
+    "offsetLeft of #inline-1 should be 0.");
+  assert_equals(inline2.offsetLeft, 40,
+    "offsetLeft of #inline-2 should be 40.");
+  assert_equals(inline3.offsetLeft, 40,
+    "offsetLeft of #inline-3 should be 40.");
+}, "offsetLeft");
 
-  test(function() {
-    assert_equals(inline1.offsetWidth, 30,
-      "offsetWidth of #inline-1 should be 30.");
-    assert_equals(inline2.offsetWidth, 70,
-      "offsetWidth of #inline-2 should be 70.");
-    assert_equals(inline3.offsetWidth, 30,
-      "offsetWidth of #inline-3 should be 30.");
-  }, "offsetWidth");
+promise_test(async () => {
+  await document.fonts.ready;
+  assert_equals(inline1.offsetWidth, 30,
+    "offsetWidth of #inline-1 should be 30.");
+  assert_equals(inline2.offsetWidth, 70,
+    "offsetWidth of #inline-2 should be 70.");
+  assert_equals(inline3.offsetWidth, 30,
+    "offsetWidth of #inline-3 should be 30.");
+}, "offsetWidth");
 
-  test(function() {
-    assert_equals(inline1.offsetHeight, 10,
-      "offsetHeight of #inline-1 should be 10.");
-    assert_equals(inline2.offsetHeight, 20,
-      "offsetHeight of #inline-2 should be 20.");
-    assert_equals(inline3.offsetHeight, 10,
-      "offsetHeight of #inline-3 should be 10.");
-  }, "offsetHeight");
-}
+promise_test(async () => {
+  await document.fonts.ready;
+  assert_equals(inline1.offsetHeight, 10,
+    "offsetHeight of #inline-1 should be 10.");
+  assert_equals(inline2.offsetHeight, 20,
+    "offsetHeight of #inline-2 should be 20.");
+  assert_equals(inline3.offsetHeight, 10,
+    "offsetHeight of #inline-3 should be 10.");
+}, "offsetHeight");
 </script>
 </body>
