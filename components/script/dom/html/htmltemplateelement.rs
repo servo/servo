@@ -85,6 +85,18 @@ impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
     make_bool_setter!(SetShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
 
+    /// <https://html.spec.whatwg.org/multipage/scripting.html#attr-template-shadowrootslotassignment>
+    make_enumerated_getter!(
+        ShadowRootSlotAssignment,
+        "shadowrootslotassignment",
+        "named" | "manual",
+        missing => "named",
+        invalid => "named"
+    );
+
+    /// <https://html.spec.whatwg.org/multipage/scripting.html#attr-template-shadowrootslotassignment>
+    make_atomic_setter!(SetShadowRootSlotAssignment, "shadowrootslotassignment");
+
     /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
     make_bool_getter!(ShadowRootClonable, "shadowrootclonable");
 
