@@ -1224,6 +1224,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     url: ServoUrl,
     fetch_client: ModuleFetchClient,
     owner: ModuleOwner,
+    destination: Destination,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
 ) {
@@ -1247,7 +1248,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         url,
         fetch_client.clone(),
         owner.clone(),
-        Destination::Worker,
+        destination,
         options,
         referrer,
         None,
@@ -1265,7 +1266,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
                 cx,
                 module,
                 fetch_client,
-                Destination::Worker,
+                destination,
                 owner,
             );
         },
