@@ -2305,6 +2305,14 @@ impl ScriptThread {
                     .fire_resume(cx, resume_limit_type, frame_actor_id);
                 self.debugger_paused.set(false);
             },
+            DevtoolScriptControlMsg::Blackbox(spidermonkey_id, coverage) => {
+                self.debugger_global
+                    .fire_blackbox(cx, spidermonkey_id, coverage);
+            },
+            DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, coverage) => {
+                self.debugger_global
+                    .fire_unblackbox(cx, spidermonkey_id, coverage);
+            },
         }
     }
 
