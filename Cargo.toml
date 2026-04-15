@@ -137,6 +137,7 @@ objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 ocb3 = "0.1.0"
+ohos-deviceinfo-sys = { version = "0.1.6" }
 openxr = "0.20"
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }

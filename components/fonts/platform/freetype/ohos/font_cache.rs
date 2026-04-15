@@ -8,7 +8,7 @@ use std::io::Write;
 
 use log::error;
 use ohos_deviceinfo_sys::OH_GetDistributionOSVersion;
-use serde_json;
+use postcard::{from_bytes, to_stdvec};
 use servo_config::opts;
 
 use crate::platform::freetype::ohos::font_list::FontList;
@@ -35,12 +35,12 @@ pub fn font_file_cached_on_disk() -> bool {
 
 /// This function serializes `FontList` and caches its result into disk.
 pub fn serialize_and_write_to_disk(input_data: FontList) -> Result<(), Box<dyn std::error::Error>> {
-    let serialized_data = serde_json::to_string(&input_data).unwrap();
+    let serialized_data = to_stdvec(&input_data).unwrap();
 
     let file_path = parse_file_path()?;
 
     let mut file = File::create(file_path)?;
-    file.write_all(serialized_data.as_bytes())?;
+    file.write_all(serialized_data.as_slice())?;
     Ok(())
 }
 
@@ -48,9 +48,9 @@ pub fn serialize_and_write_to_disk(input_data: FontList) -> Result<(), Box<dyn s
 /// and that the caller needs to find another way to get the FontList.
 pub fn read_from_disk() -> Result<FontList, Box<dyn std::error::Error>> {
     let file_path = parse_file_path()?;
-    let data = fs::read_to_string(file_path)?;
+    let data = fs::read(file_path)?;
 
-    let font_list: FontList = serde_json::from_str(&data).unwrap();
+    let font_list: FontList = from_bytes(&data).unwrap();
     Ok(font_list)
 }
 
@@ -66,5 +66,9 @@ fn parse_file_path() -> Result<String, Box<dyn std::error::Error>> {
         os_version_c_str.to_str()?
     };
 
-    Ok(format!("{}{}{}{}", base_dir, "font_cache_", os_version, ".json").to_string())
+    Ok(format!(
+        "{}{}{}{}",
+        base_dir, "post_font_cache_", os_version, ".bin"
+    )
+    .to_string())
 }

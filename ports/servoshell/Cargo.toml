@@ -75,6 +75,7 @@ keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 mime_guess = { workspace = true }
+postcard.workspace = true
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
