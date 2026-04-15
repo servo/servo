@@ -1969,11 +1969,6 @@ impl ScriptThread {
                     .borrow_mut()
                     .remove(&user_content_manager_id);
             },
-            ScriptThreadMessage::AccessibilityTreeUpdate(webview_id, tree_update, epoch) => {
-                let _ = self.senders.pipeline_to_embedder_sender.send(
-                    EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update, epoch),
-                );
-            },
             ScriptThreadMessage::UpdatePinchZoomInfos(id, pinch_zoom_infos) => {
                 self.handle_update_pinch_zoom_infos(id, pinch_zoom_infos, CanGc::from_cx(cx));
             },
@@ -3397,6 +3392,7 @@ impl ScriptThread {
             viewport_details: incomplete.viewport_details,
             user_stylesheets,
             theme: incomplete.theme,
+            embedder_chan: self.senders.pipeline_to_embedder_sender.clone(),
         };
 
         // Create the window and document objects.

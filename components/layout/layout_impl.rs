@@ -13,7 +13,7 @@ use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use bitflags::bitflags;
-use embedder_traits::{Theme, ViewportDetails};
+use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan, Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
@@ -136,6 +136,9 @@ pub struct LayoutThread {
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
+
+    /// The channel to send messages to the Embedder.
+    embedder_chan: ScriptToEmbedderChan,
 
     /// Reference to the script thread image cache.
     image_cache: Arc<dyn ImageCache>,
@@ -730,6 +733,7 @@ impl LayoutThread {
             is_iframe: config.is_iframe,
             script_chan: config.script_chan.clone(),
             time_profiler_chan: config.time_profiler_chan,
+            embedder_chan: config.embedder_chan.clone(),
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache: config.image_cache,
             font_context: config.font_context,
@@ -890,8 +894,8 @@ impl LayoutThread {
             // finalise after sending, removing accessibility damage? On fail, retain damage
             // for next reflow, as well as retaining document.needs_accessibility_update.
             let _ = self
-                .script_chan
-                .send(ScriptThreadMessage::AccessibilityTreeUpdate(
+                .embedder_chan
+                .send(EmbedderMsg::AccessibilityTreeUpdate(
                     self.webview_id,
                     tree_update,
                     accessibility_tree.epoch(),
