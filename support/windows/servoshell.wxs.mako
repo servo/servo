@@ -20,7 +20,6 @@
     <Media Id="1"
            Cabinet="Servo.cab"
            EmbedCab="yes"/>
-    <Property Id="SERVOEXEPATH" Value="[INSTALLDIR]servoshell.exe"/>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder" Name="PFiles">
         <Directory Id="Servo" Name="Servo">
@@ -54,7 +53,7 @@
             <Shortcut Id="StartMenuServoTechDemo"
               Directory="ProgramMenuDir"
               Name="Servo Tech Demo"
-               Target="[SERVOEXEPATH]"
+              Target="[INSTALLDIR]servoshell.exe"
               WorkingDirectory="INSTALLDIR"
               Icon="servoshell.exe"/>
           </Component>
