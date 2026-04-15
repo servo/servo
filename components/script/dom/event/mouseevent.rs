@@ -8,6 +8,7 @@ use std::f64::consts::PI;
 
 use dom_struct::dom_struct;
 use euclid::Point2D;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -22,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethod
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::FireMouseEventType;
@@ -95,20 +96,26 @@ impl MouseEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<MouseEvent> {
-        Self::new_uninitialized_with_proto(window, None, can_gc)
+    pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<MouseEvent> {
+        Self::new_uninitialized_with_proto(cx, window, None)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
-        reflect_dom_object_with_proto(Box::new(MouseEvent::new_inherited()), window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(
+            Box::new(MouseEvent::new_inherited()),
+            window,
+            proto,
+            cx,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         event_type: Atom,
         can_bubble: EventBubbles,
@@ -123,9 +130,9 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
-        can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
         Self::new_with_proto(
+            cx,
             window,
             None,
             event_type,
@@ -141,12 +148,12 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
-            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
@@ -162,9 +169,8 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
-        can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
-        let ev = MouseEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        let ev = MouseEvent::new_uninitialized_with_proto(cx, window, proto);
         ev.initialize_mouse_event(
             event_type,
             can_bubble,
@@ -223,11 +229,11 @@ impl MouseEvent {
     }
 
     pub(crate) fn new_for_platform_motion_event(
+        cx: &mut JSContext,
         window: &Window,
         event_name: FireMouseEventType,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         // These values come from the event tables in
         // <https://w3c.github.io/pointerevents/#mouse-event-types>.
@@ -243,6 +249,7 @@ impl MouseEvent {
         };
 
         let mouse_event = Self::new(
+            cx,
             window,
             Atom::from(event_name.as_str()),
             bubbles,
@@ -259,7 +266,6 @@ impl MouseEvent {
             input_event.pressed_mouse_buttons,
             None,
             None,
-            can_gc,
         );
 
         let event = mouse_event.upcast::<Event>();
@@ -274,6 +280,7 @@ impl MouseEvent {
     /// <https://w3c.github.io/pointerevents/#create-a-cancelable-mouseevent>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn for_platform_button_event(
+        cx: &mut JSContext,
         event_type: Atom,
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
@@ -281,7 +288,6 @@ impl MouseEvent {
         hit_test_result: &HitTestResult,
         modifiers: Modifiers,
         click_count: usize,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let client_point = hit_test_result.point_in_frame.to_i32();
         let page_point = hit_test_result
@@ -289,6 +295,7 @@ impl MouseEvent {
             .to_i32();
 
         let mouse_event = Self::new(
+            cx,
             window,
             event_type,
             EventBubbles::Bubbles,
@@ -303,7 +310,6 @@ impl MouseEvent {
             pressed_mouse_buttons,
             None,
             Some(hit_test_result.point_in_node),
-            can_gc,
         );
 
         mouse_event.upcast::<Event>().set_trusted(true);
@@ -459,9 +465,9 @@ impl MouseEvent {
 impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     /// <https://w3c.github.io/pointerevents/#dom-mouseevent-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &MouseEventBinding::MouseEventInit,
     ) -> Fallible<DomRoot<MouseEvent>> {
@@ -473,6 +479,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             scroll_offset.y as i32 + init.clientY,
         );
         let event = MouseEvent::new_with_proto(
+            cx,
             window,
             proto,
             event_type.into(),
@@ -488,7 +495,6 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             init.buttons,
             init.relatedTarget.as_deref(),
             None,
-            can_gc,
         );
         event
             .upcast::<Event>()

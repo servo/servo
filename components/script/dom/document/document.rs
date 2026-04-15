@@ -5226,60 +5226,65 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createevent>
-    fn CreateEvent(&self, mut interface: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Event>> {
+    fn CreateEvent(
+        &self,
+        cx: &mut js::context::JSContext,
+        mut interface: DOMString,
+    ) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
         match &*interface.str() {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
-                CompositionEvent::new_uninitialized(&self.window, can_gc),
+                CompositionEvent::new_uninitialized(&self.window, CanGc::from_cx(cx)),
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
-            "events" | "event" | "htmlevents" | "svgevents" => {
-                Ok(Event::new_uninitialized(self.window.upcast(), can_gc))
-            },
+            "events" | "event" | "htmlevents" | "svgevents" => Ok(Event::new_uninitialized(
+                self.window.upcast(),
+                CanGc::from_cx(cx),
+            )),
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
                 self.window.upcast(),
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "mouseevent" | "mouseevents" => Ok(DomRoot::upcast(MouseEvent::new_uninitialized(
+                cx,
                 &self.window,
-                can_gc,
             ))),
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 &self.window,
                 "".into(),
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "touchevent" => Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
                 &self.window,
-                &TouchList::new(&self.window, &[], can_gc),
-                &TouchList::new(&self.window, &[], can_gc),
-                &TouchList::new(&self.window, &[], can_gc),
-                can_gc,
+                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
+                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
+                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
+                CanGc::from_cx(cx),
             ))),
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             _ => Err(Error::NotSupported(None)),
         }

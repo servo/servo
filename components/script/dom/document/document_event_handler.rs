@@ -446,11 +446,11 @@ impl DocumentEventHandler {
                 .and_then(|point| self.window.hit_test_from_point_in_viewport(point))
             {
                 let mouse_out_event = MouseEvent::new_for_platform_motion_event(
+                    cx,
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
-                    CanGc::from_cx(cx),
                 );
 
                 // Fire pointerout before mouseout
@@ -464,12 +464,12 @@ impl DocumentEventHandler {
                     .fire(current_hover_target.upcast(), CanGc::from_cx(cx));
 
                 self.handle_mouse_enter_leave_event(
+                    cx,
                     DomRoot::from_ref(current_hover_target),
                     None,
                     FireMouseEventType::Leave,
                     &hit_test_result,
                     input_event,
-                    CanGc::from_cx(cx),
                 );
             }
         }
@@ -495,12 +495,12 @@ impl DocumentEventHandler {
 
     fn handle_mouse_enter_leave_event(
         &self,
+        cx: &mut JSContext,
         event_target: DomRoot<Node>,
         related_target: Option<DomRoot<Node>>,
         event_type: FireMouseEventType,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) {
         assert!(matches!(
             event_type,
@@ -540,11 +540,11 @@ impl DocumentEventHandler {
 
         for target in targets {
             let mouse_event = MouseEvent::new_for_platform_motion_event(
+                cx,
                 &self.window,
                 event_type,
                 hit_test_result,
                 input_event,
-                can_gc,
             );
             mouse_event
                 .upcast::<Event>()
@@ -552,12 +552,14 @@ impl DocumentEventHandler {
 
             // Fire pointer event before mouse event
             mouse_event
-                .to_pointer_hover_event(pointer_event_name, can_gc)
+                .to_pointer_hover_event(pointer_event_name, CanGc::from_cx(cx))
                 .upcast::<Event>()
-                .fire(target.upcast(), can_gc);
+                .fire(target.upcast(), CanGc::from_cx(cx));
 
             // Fire mouse event
-            mouse_event.upcast::<Event>().fire(target.upcast(), can_gc);
+            mouse_event
+                .upcast::<Event>()
+                .fire(target.upcast(), CanGc::from_cx(cx));
         }
     }
 
@@ -618,11 +620,11 @@ impl DocumentEventHandler {
                 }
 
                 let mouse_out_event = MouseEvent::new_for_platform_motion_event(
+                    cx,
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
-                    CanGc::from_cx(cx),
                 );
                 mouse_out_event
                     .upcast::<Event>()
@@ -642,12 +644,12 @@ impl DocumentEventHandler {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
                     let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
                     self.handle_mouse_enter_leave_event(
+                        cx,
                         event_target,
                         moving_into,
                         FireMouseEventType::Leave,
                         &hit_test_result,
                         input_event,
-                        CanGc::from_cx(cx),
                     );
                 }
             }
@@ -662,11 +664,11 @@ impl DocumentEventHandler {
             }
 
             let mouse_over_event = MouseEvent::new_for_platform_motion_event(
+                cx,
                 &self.window,
                 FireMouseEventType::Over,
                 &hit_test_result,
                 input_event,
-                CanGc::from_cx(cx),
             );
             mouse_over_event
                 .upcast::<Event>()
@@ -688,23 +690,23 @@ impl DocumentEventHandler {
                 old_hover_target.map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
             let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
             self.handle_mouse_enter_leave_event(
+                cx,
                 event_target,
                 moving_from,
                 FireMouseEventType::Enter,
                 &hit_test_result,
                 input_event,
-                CanGc::from_cx(cx),
             );
         }
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case
         // `Paint` should have also sent an event to the inner document.
         let mouse_event = MouseEvent::new_for_platform_motion_event(
+            cx,
             &self.window,
             FireMouseEventType::Move,
             &hit_test_result,
             input_event,
-            CanGc::from_cx(cx),
         );
 
         // Send pointermove event before mousemove.
@@ -875,6 +877,7 @@ impl DocumentEventHandler {
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_button_event(
+            cx,
             mouse_event_type,
             event,
             input_event.pressed_mouse_buttons,
@@ -882,7 +885,6 @@ impl DocumentEventHandler {
             &hit_test_result,
             input_event.active_keyboard_modifiers,
             self.click_counting_info.borrow().count + 1,
-            CanGc::from_cx(cx),
         ));
 
         match event.action {
@@ -970,11 +972,11 @@ impl DocumentEventHandler {
                     .increment_click_count(event.button, hit_test_result.point_in_frame);
 
                 self.maybe_trigger_click_for_mouse_button_down_event(
+                    cx,
                     event,
                     input_event,
                     &hit_test_result,
                     &element,
-                    CanGc::from_cx(cx),
                 );
             },
         }
@@ -984,11 +986,11 @@ impl DocumentEventHandler {
     /// <https://w3c.github.io/pointerevents/#handle-native-mouse-double-click>
     fn maybe_trigger_click_for_mouse_button_down_event(
         &self,
+        cx: &mut JSContext,
         event: MouseButtonEvent,
         input_event: &ConstellationInputEvent,
         hit_test_result: &HitTestResult,
         element: &Element,
-        can_gc: CanGc,
     ) {
         if event.button != MouseButton::Left {
             return;
@@ -1020,6 +1022,7 @@ impl DocumentEventHandler {
         let click_count = self.click_counting_info.borrow().count;
         element.set_click_in_progress(true);
         MouseEvent::for_platform_button_event(
+            cx,
             atom!("click"),
             event,
             input_event.pressed_mouse_buttons,
@@ -1027,10 +1030,9 @@ impl DocumentEventHandler {
             hit_test_result,
             input_event.active_keyboard_modifiers,
             click_count,
-            can_gc,
         )
         .upcast::<Event>()
-        .dispatch(element.upcast(), false, can_gc);
+        .dispatch(element.upcast(), false, CanGc::from_cx(cx));
         element.set_click_in_progress(false);
 
         // The firing of "dbclick" events is dependent on the platform, so we have
@@ -1043,6 +1045,7 @@ impl DocumentEventHandler {
         // even numbered clicks is a series of double clicks.
         if click_count % 2 == 0 {
             MouseEvent::for_platform_button_event(
+                cx,
                 Atom::from("dblclick"),
                 event,
                 input_event.pressed_mouse_buttons,
@@ -1050,10 +1053,9 @@ impl DocumentEventHandler {
                 hit_test_result,
                 input_event.active_keyboard_modifiers,
                 2,
-                can_gc,
             )
             .upcast::<Event>()
-            .dispatch(element.upcast(), false, can_gc);
+            .dispatch(element.upcast(), false, CanGc::from_cx(cx));
         }
     }
 
