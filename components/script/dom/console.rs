@@ -7,13 +7,16 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields, DebuggerValue, ObjectPreview,
-    PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg, StackFrame,
-    get_time_stamp,
+    ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields, DebuggerValue, FunctionPreview,
+    ObjectPreview, PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg,
+    StackFrame, get_time_stamp,
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{self, ESClass, PropertyDescriptor};
+use js::jsapi::{
+    self, ESClass, JS_GetFunctionArity, JS_GetFunctionDisplayId, JS_GetFunctionId,
+    JS_ValueToFunction, PropertyDescriptor,
+};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::rust::wrappers::{
     GetArrayLength, GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById,
@@ -203,15 +206,15 @@ fn console_argument_from_handle_value(
             }
 
             seen.push(handle_value.asBits_);
-            let maybe_argument_object = console_object_from_handle_value(cx, handle_value, seen);
+            let console_object = console_object_from_handle_value(cx, handle_value, seen);
             let js_value = seen.pop();
             debug_assert_eq!(js_value, Some(handle_value.asBits_));
 
-            if let Some((class, console_argument_object)) = maybe_argument_object {
+            if let Some((class, preview)) = console_object {
                 return Ok(DebuggerValue::ObjectValue {
                     uuid: uuid::Uuid::new_v4().to_string(),
                     class,
-                    preview: Some(console_argument_object),
+                    preview: Some(preview),
                 });
             }
 
@@ -249,10 +252,12 @@ fn console_object_from_handle_value(
     if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
         return None;
     }
-    if object_class != ESClass::Object && object_class != ESClass::Array {
+    if object_class != ESClass::Object &&
+        object_class != ESClass::Array &&
+        object_class != ESClass::Function
+    {
         return None;
     }
-    let is_array = object_class == ESClass::Array;
 
     let mut own_properties = Vec::new();
     let mut items: Vec<(i32, DebuggerValue)> = Vec::new();
@@ -291,7 +296,7 @@ fn console_object_from_handle_value(
             return None;
         }
 
-        if is_array && id.is_int() {
+        if object_class == ESClass::Array && id.is_int() {
             let index = id.to_int();
             let value = console_argument_from_handle_value(cx, property.handle(), seen);
             items.push((index, value));
@@ -323,21 +328,57 @@ fn console_object_from_handle_value(
         });
     }
 
-    let (class, kind, array_length, items) = if is_array {
-        let mut len = 0u32;
-        if !unsafe { GetArrayLength(*cx, object.handle(), &mut len) } {
-            return None;
-        }
-        items.sort_by_key(|(index, _)| *index);
-        let ordered: Vec<DebuggerValue> = items.into_iter().map(|(_, value)| value).collect();
-        (
-            "Array".to_owned(),
-            "ArrayLike".to_owned(),
-            Some(len),
-            Some(ordered),
-        )
-    } else {
-        ("Object".to_owned(), "Object".to_owned(), None, None)
+    let (class, kind, function, array_length, items) = match object_class {
+        ESClass::Array => {
+            let mut len = 0u32;
+            if !unsafe { GetArrayLength(*cx, object.handle(), &mut len) } {
+                return None;
+            }
+            items.sort_by_key(|(index, _)| *index);
+            let ordered: Vec<DebuggerValue> = items.into_iter().map(|(_, value)| value).collect();
+            (
+                "Array".into(),
+                "ArrayLike".into(),
+                None,
+                Some(len),
+                Some(ordered),
+            )
+        },
+        ESClass::Function => {
+            rooted!(in(*cx) let fun = unsafe { JS_ValueToFunction(*cx, handle_value.into()) });
+            rooted!(in(*cx) let mut name = std::ptr::null_mut::<jsapi::JSString>());
+            rooted!(in(*cx) let mut display_name = std::ptr::null_mut::<jsapi::JSString>());
+            let arity;
+            unsafe {
+                JS_GetFunctionId(*cx, fun.handle().into(), name.handle_mut().into());
+                JS_GetFunctionDisplayId(*cx, fun.handle().into(), display_name.handle_mut().into());
+                arity = JS_GetFunctionArity(fun.get());
+            }
+            let name = ptr::NonNull::new(*name).map(|name| unsafe { jsstr_to_string(*cx, name) });
+            let display_name = ptr::NonNull::new(*display_name)
+                .map(|display_name| unsafe { jsstr_to_string(*cx, display_name) });
+
+            // TODO: We should get the actual argument names from the function
+            // It's not trivial since we can't access the debugger API here
+            let parameter_names = (0..arity).map(|i| format!("<arg{i}>")).collect();
+
+            let function = FunctionPreview {
+                name,
+                display_name,
+                parameter_names,
+                is_async: None,
+                is_generator: None,
+            };
+            (
+                "Function".into(),
+                "Object".into(),
+                Some(function),
+                None,
+                None,
+            )
+        },
+        // TODO: Investigate if this class should be the object class
+        _ => ("Object".into(), "Object".into(), None, None, None),
     };
 
     Some((
@@ -346,7 +387,7 @@ fn console_object_from_handle_value(
             kind,
             own_properties_length: Some(own_properties.len() as u32),
             own_properties: Some(own_properties),
-            function: None,
+            function,
             array_length,
             items,
         },
