@@ -6,18 +6,18 @@ use sea_query::Iden;
 
 #[derive(Copy, Clone, Iden)]
 pub enum Column {
-    #[iden = "object_data"]
+    #[iden = "index_data"]
     Table,
-    ObjectStoreId,
-    Key,
-    Data,
+    IndexId,   // References object_store_index.id
+    IndexKey,  // The value extracted from the object (serialized)
+    ObjectKey, // The primary key of the object in object_data
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Model {
-    pub object_store_id: i32,
-    pub key: Vec<u8>,
-    pub data: Vec<u8>,
+    pub index_id: i32,
+    pub index_key: Vec<u8>,
+    pub object_key: Vec<u8>,
 }
 
 impl TryFrom<&Row<'_>> for Model {
@@ -25,9 +25,9 @@ impl TryFrom<&Row<'_>> for Model {
 
     fn try_from(value: &Row) -> Result<Self, Self::Error> {
         Ok(Self {
-            object_store_id: value.get(0)?,
-            key: value.get(1)?,
-            data: value.get(2)?,
+            index_id: value.get(0)?,
+            index_key: value.get(1)?,
+            object_key: value.get(2)?,
         })
     }
 }
