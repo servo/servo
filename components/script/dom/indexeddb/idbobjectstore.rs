@@ -322,7 +322,11 @@ impl IDBObjectStore {
         self.key_path.is_some()
     }
 
-    fn verify_not_deleted(&self) -> ErrorResult {
+    pub(crate) fn index_exists(&self, name: &DOMString) -> bool {
+        self.index_set.borrow().contains_key(name)
+    }
+
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
         let db = self.transaction.Db();
         if !db.object_store_exists(&self.name.borrow()) {
             return Err(Error::InvalidState(None));
@@ -331,7 +335,7 @@ impl IDBObjectStore {
     }
 
     /// Checks if the transaction is active, throwing a "TransactionInactiveError" DOMException if not.
-    fn check_transaction_active(&self) -> Fallible<()> {
+    pub(crate) fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = &self.transaction;
 
@@ -348,7 +352,7 @@ impl IDBObjectStore {
 
     /// Checks if the transaction is active, throwing a "TransactionInactiveError" DOMException if not.
     /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
-    fn check_readwrite_transaction_active(&self) -> Fallible<()> {
+    pub(crate) fn check_readwrite_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = &self.transaction;
 
@@ -468,6 +472,24 @@ impl IDBObjectStore {
         };
         // Step 12. Let operation be an algorithm to run store a record into an object store with
         // store, clone, key, and no-overwrite flag.
+        let mut index_key_value = Vec::new();
+        let index_set = self.index_set.borrow();
+        for index in index_set.values() {
+            // https://www.w3.org/TR/IndexedDB/#store-a-record-into-an-object-store: Step 5.1
+            // Let index key be the result of extracting a key from a value using a key path with value, index’s key path, and index’s multiEntry flag.
+            let index_key = extract_key(
+                cx,
+                cloned_js_value.handle(),
+                index.key_path(),
+                Some(index.multi_entry()),
+            )?;
+
+            // https://www.w3.org/TR/IndexedDB/#store-a-record-into-an-object-store: Step 5.2
+            // If index key is an exception, or invalid, or failure, take no further actions for index, and continue these steps for the next index.
+            if let ExtractionResult::Key(key) = index_key {
+                index_key_value.push((index.name(), index.unique(), key));
+            }
+        }
         let request = IDBRequest::execute_async(
             cx,
             self,
@@ -478,6 +500,7 @@ impl IDBObjectStore {
                     value: serialized_value,
                     should_overwrite: !no_overwrite,
                     key_generator_current_number: key_generator_current_number_for_put,
+                    index_key_value,
                 })
             },
             None,
