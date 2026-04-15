@@ -1061,7 +1061,11 @@ impl ScriptThread {
     }
 
     /// Process input events as part of a "update the rendering task".
-    fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn process_pending_input_events(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+    ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Processing pending input events for closed pipeline {pipeline_id}.");
             return;
@@ -1076,7 +1080,7 @@ impl ScriptThread {
         }
 
         let _guard = ScriptUserInteractingGuard::new(self.is_user_interacting.clone());
-        document.event_handler().handle_pending_input_events(can_gc);
+        document.event_handler().handle_pending_input_events(cx);
     }
 
     fn cancel_scheduled_update_the_rendering(&self) {
@@ -1186,7 +1190,7 @@ impl ScriptThread {
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.process_pending_input_events(*pipeline_id, CanGc::from_cx(cx));
+            self.process_pending_input_events(cx, *pipeline_id);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
             let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));

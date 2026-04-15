@@ -22,6 +22,7 @@ use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
+use js::context::JSContext;
 use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
@@ -297,7 +298,7 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn handle_pending_input_events(&self, can_gc: CanGc) {
+    pub(crate) fn handle_pending_input_events(&self, cx: &mut JSContext) {
         debug_assert!(
             !self.pending_input_events.borrow().is_empty(),
             "handle_pending_input_events called with no events"
@@ -328,11 +329,11 @@ impl DocumentEventHandler {
                 .set(event.active_keyboard_modifiers);
             let result = match event.event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
-                    self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
+                    self.handle_native_mouse_button_event(cx, mouse_button_event, &event);
                     InputEventResult::default()
                 },
                 InputEvent::MouseMove(_) => {
-                    self.handle_native_mouse_move_event(&event, can_gc);
+                    self.handle_native_mouse_move_event(cx, &event);
                     input_event_outcomes.extend(
                         mem::take(&mut coalesced_move_event_ids)
                             .into_iter()
@@ -344,14 +345,12 @@ impl DocumentEventHandler {
                     InputEventResult::default()
                 },
                 InputEvent::MouseLeftViewport(mouse_leave_event) => {
-                    self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
+                    self.handle_mouse_left_viewport_event(cx, &event, &mouse_leave_event);
                     InputEventResult::default()
                 },
-                InputEvent::Touch(touch_event) => {
-                    self.handle_touch_event(touch_event, &event, can_gc)
-                },
+                InputEvent::Touch(touch_event) => self.handle_touch_event(cx, touch_event, &event),
                 InputEvent::Wheel(wheel_event) => {
-                    let result = self.handle_wheel_event(wheel_event, &event, can_gc);
+                    let result = self.handle_wheel_event(cx, wheel_event, &event);
                     input_event_outcomes.extend(
                         mem::take(&mut coalesced_wheel_event_ids)
                             .into_iter()
@@ -360,16 +359,16 @@ impl DocumentEventHandler {
                     result
                 },
                 InputEvent::Keyboard(keyboard_event) => {
-                    self.handle_keyboard_event(keyboard_event, can_gc)
+                    self.handle_keyboard_event(cx, keyboard_event)
                 },
-                InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
+                InputEvent::Ime(ime_event) => self.handle_ime_event(cx, ime_event),
                 #[cfg(feature = "gamepad")]
                 InputEvent::Gamepad(gamepad_event) => {
                     self.handle_gamepad_event(gamepad_event);
                     InputEventResult::default()
                 },
                 InputEvent::EditingAction(editing_action_event) => {
-                    self.handle_editing_action(None, editing_action_event, can_gc)
+                    self.handle_editing_action(cx, None, editing_action_event)
                 },
             };
 
@@ -427,9 +426,9 @@ impl DocumentEventHandler {
 
     fn handle_mouse_left_viewport_event(
         &self,
+        cx: &mut JSContext,
         input_event: &ConstellationInputEvent,
         mouse_leave_event: &MouseLeftViewportEvent,
-        can_gc: CanGc,
     ) {
         if let Some(current_hover_target) = self.current_hover_target.get() {
             let current_hover_target = current_hover_target.upcast::<Node>();
@@ -451,18 +450,18 @@ impl DocumentEventHandler {
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
 
                 // Fire pointerout before mouseout
                 mouse_out_event
-                    .to_pointer_hover_event("pointerout", can_gc)
+                    .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(current_hover_target.upcast(), can_gc);
+                    .fire(current_hover_target.upcast(), CanGc::from_cx(cx));
 
                 mouse_out_event
                     .upcast::<Event>()
-                    .fire(current_hover_target.upcast(), can_gc);
+                    .fire(current_hover_target.upcast(), CanGc::from_cx(cx));
 
                 self.handle_mouse_enter_leave_event(
                     DomRoot::from_ref(current_hover_target),
@@ -470,7 +469,7 @@ impl DocumentEventHandler {
                     FireMouseEventType::Leave,
                     &hit_test_result,
                     input_event,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             }
         }
@@ -563,7 +562,11 @@ impl DocumentEventHandler {
     }
 
     /// <https://w3c.github.io/uievents/#handle-native-mouse-move>
-    fn handle_native_mouse_move_event(&self, input_event: &ConstellationInputEvent, can_gc: CanGc) {
+    fn handle_native_mouse_move_event(
+        &self,
+        cx: &mut JSContext,
+        input_event: &ConstellationInputEvent,
+    ) {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
             return;
@@ -619,7 +622,7 @@ impl DocumentEventHandler {
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 mouse_out_event
                     .upcast::<Event>()
@@ -627,13 +630,13 @@ impl DocumentEventHandler {
 
                 // Fire pointerout before mouseout
                 mouse_out_event
-                    .to_pointer_hover_event("pointerout", can_gc)
+                    .to_pointer_hover_event("pointerout", CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(old_target.upcast(), can_gc);
+                    .fire(old_target.upcast(), CanGc::from_cx(cx));
 
                 mouse_out_event
                     .upcast::<Event>()
-                    .fire(old_target.upcast(), can_gc);
+                    .fire(old_target.upcast(), CanGc::from_cx(cx));
 
                 if !old_target_is_ancestor_of_new_target {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
@@ -644,7 +647,7 @@ impl DocumentEventHandler {
                         FireMouseEventType::Leave,
                         &hit_test_result,
                         input_event,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
             }
@@ -663,7 +666,7 @@ impl DocumentEventHandler {
                 FireMouseEventType::Over,
                 &hit_test_result,
                 input_event,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             mouse_over_event
                 .upcast::<Event>()
@@ -671,13 +674,15 @@ impl DocumentEventHandler {
 
             // Fire pointerover before mouseover
             mouse_over_event
-                .to_pointer_hover_event("pointerover", can_gc)
+                .to_pointer_hover_event("pointerover", CanGc::from_cx(cx))
                 .upcast::<Event>()
-                .dispatch(new_target.upcast(), false, can_gc);
+                .dispatch(new_target.upcast(), false, CanGc::from_cx(cx));
 
-            mouse_over_event
-                .upcast::<Event>()
-                .dispatch(new_target.upcast(), false, can_gc);
+            mouse_over_event.upcast::<Event>().dispatch(
+                new_target.upcast(),
+                false,
+                CanGc::from_cx(cx),
+            );
 
             let moving_from =
                 old_hover_target.map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
@@ -688,7 +693,7 @@ impl DocumentEventHandler {
                 FireMouseEventType::Enter,
                 &hit_test_result,
                 input_event,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         }
 
@@ -699,21 +704,22 @@ impl DocumentEventHandler {
             FireMouseEventType::Move,
             &hit_test_result,
             input_event,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Send pointermove event before mousemove.
-        let pointer_event = mouse_event.to_pointer_event(Atom::from("pointermove"), can_gc);
+        let pointer_event =
+            mouse_event.to_pointer_event(Atom::from("pointermove"), CanGc::from_cx(cx));
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event
             .upcast::<Event>()
-            .fire(new_target.upcast(), can_gc);
+            .fire(new_target.upcast(), CanGc::from_cx(cx));
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case
         // `Paint` should have also sent an event to the inner document.
         mouse_event
             .upcast::<Event>()
-            .fire(new_target.upcast(), can_gc);
+            .fire(new_target.upcast(), CanGc::from_cx(cx));
 
         self.update_current_hover_target_and_status(Some(new_target));
     }
@@ -801,9 +807,9 @@ impl DocumentEventHandler {
     /// Handles native mouse down, mouse up, mouse click.
     fn handle_native_mouse_button_event(
         &self,
+        cx: &mut JSContext,
         event: MouseButtonEvent,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
@@ -876,7 +882,7 @@ impl DocumentEventHandler {
             &hit_test_result,
             input_event.active_keyboard_modifiers,
             self.click_counting_info.borrow().count + 1,
-            can_gc,
+            CanGc::from_cx(cx),
         ));
 
         match event.action {
@@ -895,14 +901,16 @@ impl DocumentEventHandler {
                 let pointer_event = dom_event
                     .downcast::<MouseEvent>()
                     .unwrap()
-                    .to_pointer_event(event_type.into(), can_gc);
+                    .to_pointer_event(event_type.into(), CanGc::from_cx(cx));
 
-                pointer_event.upcast::<Event>().fire(node.upcast(), can_gc);
+                pointer_event
+                    .upcast::<Event>()
+                    .fire(node.upcast(), CanGc::from_cx(cx));
 
                 self.down_button_count.set(down_button_count + 1);
 
                 // Step 7. Let result = dispatch event at target
-                let result = dom_event.dispatch(node.upcast(), false, can_gc);
+                let result = dom_event.dispatch(node.upcast(), false, CanGc::from_cx(cx));
 
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
@@ -913,7 +921,7 @@ impl DocumentEventHandler {
                     self.window.Document().focus_handler().focus(
                         FocusOperation::Focus(node.find_click_focusable_area()),
                         FocusInitiator::Local,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
 
@@ -924,7 +932,7 @@ impl DocumentEventHandler {
                         node.upcast(),
                         &hit_test_result,
                         input_event,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
             },
@@ -945,12 +953,14 @@ impl DocumentEventHandler {
                 let pointer_event = dom_event
                     .downcast::<MouseEvent>()
                     .unwrap()
-                    .to_pointer_event(event_type.into(), can_gc);
+                    .to_pointer_event(event_type.into(), CanGc::from_cx(cx));
 
-                pointer_event.upcast::<Event>().fire(node.upcast(), can_gc);
+                pointer_event
+                    .upcast::<Event>()
+                    .fire(node.upcast(), CanGc::from_cx(cx));
 
                 // Step 7. dispatch event at target.
-                dom_event.dispatch(node.upcast(), false, can_gc);
+                dom_event.dispatch(node.upcast(), false, CanGc::from_cx(cx));
 
                 // Click counts should still work for other buttons even though they
                 // do not trigger "click" and "dblclick" events, so we increment
@@ -964,7 +974,7 @@ impl DocumentEventHandler {
                     input_event,
                     &hit_test_result,
                     &element,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
         }
@@ -1105,9 +1115,9 @@ impl DocumentEventHandler {
 
     fn handle_touch_event(
         &self,
+        cx: &mut JSContext,
         event: EmbedderTouchEvent,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) -> InputEventResult {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
@@ -1147,7 +1157,7 @@ impl DocumentEventHandler {
             client_y,
             page_x,
             page_y,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Dispatch pointer event before updating active touch points and before touch event.
@@ -1174,9 +1184,11 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 true, // cancelable
                 Some(hit_test_result.point_in_node),
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            pointer_over.upcast::<Event>().fire(&current_target, can_gc);
+            pointer_over
+                .upcast::<Event>()
+                .fire(&current_target, CanGc::from_cx(cx));
 
             // Fire pointerenter hierarchically (from topmost ancestor to target)
             self.fire_pointer_event_for_touch(
@@ -1187,7 +1199,7 @@ impl DocumentEventHandler {
                 is_primary,
                 input_event,
                 &hit_test_result,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         }
 
@@ -1199,11 +1211,11 @@ impl DocumentEventHandler {
             input_event.active_keyboard_modifiers,
             event.is_cancelable(),
             Some(hit_test_result.point_in_node),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         pointer_event
             .upcast::<Event>()
-            .fire(&current_target, can_gc);
+            .fire(&current_target, CanGc::from_cx(cx));
 
         // For touch devices, fire pointerout/pointerleave after pointerup/pointercancel
         // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
@@ -1220,9 +1232,11 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 true, // cancelable
                 Some(hit_test_result.point_in_node),
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            pointer_out.upcast::<Event>().fire(&current_target, can_gc);
+            pointer_out
+                .upcast::<Event>()
+                .fire(&current_target, CanGc::from_cx(cx));
 
             // Fire pointerleave hierarchically (from target to topmost ancestor)
             self.fire_pointer_event_for_touch(
@@ -1233,7 +1247,7 @@ impl DocumentEventHandler {
                 is_primary,
                 input_event,
                 &hit_test_result,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         }
 
@@ -1275,7 +1289,7 @@ impl DocumentEventHandler {
                     client_y,
                     page_x,
                     page_y,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
 
                 // Update or remove the stored touch
@@ -1320,18 +1334,22 @@ impl DocumentEventHandler {
             EventComposed::Composed,
             Some(window),
             0i32,
-            &TouchList::new(window, self.active_touch_points.borrow().r(), can_gc),
-            &TouchList::new(window, from_ref(&&*changed_touch), can_gc),
-            &TouchList::new(window, target_touches.r(), can_gc),
+            &TouchList::new(
+                window,
+                self.active_touch_points.borrow().r(),
+                CanGc::from_cx(cx),
+            ),
+            &TouchList::new(window, from_ref(&&*changed_touch), CanGc::from_cx(cx)),
+            &TouchList::new(window, target_touches.r(), CanGc::from_cx(cx)),
             // FIXME: modifier keys
             false,
             false,
             false,
             false,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = touch_event.upcast::<Event>();
-        event.fire(&touch_dispatch_target, can_gc);
+        event.fire(&touch_dispatch_target, CanGc::from_cx(cx));
         event.flags().into()
     }
 
@@ -1367,22 +1385,22 @@ impl DocumentEventHandler {
     /// The entry point for all key processing for web content
     fn handle_keyboard_event(
         &self,
+        cx: &mut JSContext,
         keyboard_event: EmbedderKeyboardEvent,
-        can_gc: CanGc,
     ) -> InputEventResult {
         let target = &self.target_for_events_following_focus();
         let keyevent = KeyboardEvent::new_with_platform_keyboard_event(
             &self.window,
             keyboard_event.event.state.event_type().into(),
             &keyboard_event.event,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let event = keyevent.upcast::<Event>();
 
         event.set_composed(true);
 
-        event.fire(target, can_gc);
+        event.fire(target, CanGc::from_cx(cx));
 
         let mut flags = event.flags();
         if flags.contains(EventFlags::Canceled) {
@@ -1407,25 +1425,25 @@ impl DocumentEventHandler {
                 &self.window,
                 atom!("keypress"),
                 &keyboard_event.event,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             keypress_event.upcast::<Event>().set_composed(true);
             let event = keypress_event.upcast::<Event>();
-            event.fire(target, can_gc);
+            event.fire(target, CanGc::from_cx(cx));
             flags = event.flags();
         }
 
         flags.into()
     }
 
-    fn handle_ime_event(&self, event: ImeEvent, can_gc: CanGc) -> InputEventResult {
+    fn handle_ime_event(&self, cx: &mut JSContext, event: ImeEvent) -> InputEventResult {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
                 document.focus_handler().focus(
                     FocusOperation::Focus(FocusableArea::Viewport),
                     FocusInitiator::Local,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 return Default::default();
             },
@@ -1451,19 +1469,19 @@ impl DocumentEventHandler {
             Some(&self.window),
             0,
             DOMString::from(composition_event.data),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let event = event.upcast::<Event>();
-        event.fire(focused_element.upcast(), can_gc);
+        event.fire(focused_element.upcast(), CanGc::from_cx(cx));
         event.flags().into()
     }
 
     fn handle_wheel_event(
         &self,
+        cx: &mut JSContext,
         event: EmbedderWheelEvent,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) -> InputEventResult {
         // Ignore all incoming events without a hit test.
         let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
@@ -1511,13 +1529,13 @@ impl DocumentEventHandler {
             Finite::wrap(-event.delta.y),
             Finite::wrap(-event.delta.z),
             event.delta.mode as u32,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let dom_event = dom_event.upcast::<Event>();
         dom_event.set_trusted(true);
         dom_event.set_composed(true);
-        dom_event.fire(node.upcast(), can_gc);
+        dom_event.fire(node.upcast(), CanGc::from_cx(cx));
 
         dom_event.flags().into()
     }
@@ -1651,9 +1669,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
     pub(crate) fn handle_editing_action(
         &self,
+        cx: &mut JSContext,
         element: Option<DomRoot<Element>>,
         action: EditingActionEvent,
-        can_gc: CanGc,
     ) -> InputEventResult {
         let clipboard_event_type = match action {
             EditingActionEvent::Copy => ClipboardEventType::Copy,
@@ -1676,7 +1694,7 @@ impl DocumentEventHandler {
 
         // Step 2 Fire a clipboard event
         let clipboard_event =
-            self.fire_clipboard_event(element.clone(), clipboard_event_type, can_gc);
+            self.fire_clipboard_event(element.clone(), clipboard_event_type, CanGc::from_cx(cx));
 
         // Step 3 If a script doesn't call preventDefault()
         // the event will be handled inside target's VirtualMethods::handle_event
@@ -1709,7 +1727,7 @@ impl DocumentEventHandler {
                     }
 
                     // Step 4.2 Fire a clipboard event named clipboardchange
-                    self.fire_clipboard_event(element, ClipboardEventType::Change, can_gc);
+                    self.fire_clipboard_event(element, ClipboardEventType::Change, CanGc::from_cx(cx));
                 },
                 // Step 4.1 Return false.
                 // Note: This function deviates from the specification a bit by returning
