@@ -36,8 +36,7 @@
                           Directory="ProgramMenuDir"
                           Name="Servo Tech Demo"
                           WorkingDirectory="INSTALLDIR"
-                          Icon="servoshell.exe"
-                          Advertise="yes"/>
+                          Icon="servoshell.exe"/>
               </File>
 	            ${include_dependencies()}
             </Component>
