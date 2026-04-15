@@ -11,7 +11,8 @@ use servo_base::Epoch;
 use style::dom::{NodeInfo, OpaqueNode};
 
 struct AccessibilityUpdate {
-    accesskit_update: accesskit::TreeUpdate,
+    accesskit_update: Option<accesskit::TreeUpdate>,
+    nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
 }
 
 #[derive(Debug)]
@@ -31,19 +32,30 @@ pub struct AccessibilityTree {
 impl AccessibilityUpdate {
     fn new(tree: accesskit::Tree, tree_id: accesskit::TreeId) -> Self {
         Self {
-            accesskit_update: accesskit::TreeUpdate {
-                nodes: Default::default(),
+            accesskit_update: Some(accesskit::TreeUpdate {
+                nodes: vec![],
                 tree: Some(tree),
                 focus: accesskit::NodeId(1),
                 tree_id,
-            },
+            }),
+            nodes: FxHashMap::default(),
         }
     }
 
     fn add(&mut self, node: &AccessibilityNode) {
-        self.accesskit_update
-            .nodes
-            .push((node.id, node.accesskit_node.clone()));
+        assert!(
+            self.accesskit_update.is_some(),
+            "Tried to use TreeUpdate after finializing"
+        );
+        self.nodes.insert(node.id, node.accesskit_node.clone());
+    }
+
+    fn finalize(&mut self) -> accesskit::TreeUpdate {
+        let Some(mut accesskit_update) = self.accesskit_update.take() else {
+            panic!("Tried to use TreeUpdate after finializing");
+        };
+        accesskit_update.nodes.extend(self.nodes.drain());
+        accesskit_update
     }
 }
 
@@ -89,7 +101,7 @@ impl AccessibilityTree {
         tree_update.add(root_node);
 
         self.update_node_and_children(root_dom_node, &mut tree_update);
-        Some(tree_update.accesskit_update)
+        Some(tree_update.finalize())
     }
 
     fn update_node_and_children(
