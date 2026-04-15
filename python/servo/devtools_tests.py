@@ -995,6 +995,42 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             result["arguments"], [{"type": "Infinity"}, {"type": "-Infinity"}, {"type": "NaN"}, {"type": "-0"}, 1.0]
         )
 
+    def test_console_log_array(self):
+        script_tag = "<script>let log_array = () => console.log([1, 2, 3]);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_array();")
+        object = result["arguments"][0]
+        self.assertEquals(object["class"], "Array")
+        preview = object["preview"]
+        self.assertEquals(preview["kind"], "ArrayLike")
+        self.assertEquals(preview["length"], 3)
+        self.assertEquals(preview["items"], [1, 2, 3])
+
+    def test_console_log_function(self):
+        script_tag = "<script>function test_function() { }let log_function = () => console.log(test_function);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_function();")
+        function = result["arguments"][0]
+        self.assertEquals(function["class"], "Function")
+        self.assertEquals(function["name"], "test_function")
+        self.assertEquals(function["displayName"], "test_function")
+        preview = function["preview"]
+        self.assertEquals(preview["kind"], "Object")
+
+    @unittest.expectedFailure
+    def test_console_log_function_arguments(self):
+        script_tag = (
+            "<script>function test_arguments(a, b) { return a + b; }"
+            "let log_arguments = () => console.log(test_arguments);"
+            "</script>"
+        )
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_arguments();")
+        self.assertEquals(result["arguments"][0]["parameterNames"], ["a", "b"])
+
     def test_console_log_sprintf_substitutions(self):
         script_tag = (
             "<script>let log_sprintf = () => "
