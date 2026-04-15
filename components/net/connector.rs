@@ -407,20 +407,52 @@ where
     }
 }
 
+static CRYPTO_PROVIDER_CACHE: LazyLock<Arc<CryptoProvider>> = LazyLock::new(|| {
+    CryptoProvider::get_default()
+        .map(|provider| provider.clone())
+        // The embedder should have initialized the default crypto provider before
+        // initializing servo, so this should never fail.
+        .unwrap_or_else(|| {
+            warn!("Default crypto provider not initialized before first access in connector.");
+            Arc::new(aws_lc_rs::default_provider())
+        })
+});
+
 /// A cache for the default rustls platform verifier.
 ///
 /// Instantiating a new verifier can be expensive, since it can read through all certificates:
 /// <https://github.com/rustls/rustls-platform-verifier/blob/996b1c903491641b17b3c9afb65d1352f6fc6b76/rustls-platform-verifier/src/verification/others.rs#L92>
 static RUSTLS_PLATFORM_VERIFIER_CACHE: LazyLock<Arc<rustls_platform_verifier::Verifier>> =
     LazyLock::new(|| {
-        let crypto_provider = CryptoProvider::get_default()
-            .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
-            .clone();
         Arc::new(
-            rustls_platform_verifier::Verifier::new(crypto_provider)
+            rustls_platform_verifier::Verifier::new(CRYPTO_PROVIDER_CACHE.clone())
                 .expect("Could not initialize platform certificate verifier"),
         )
     });
+
+#[inline]
+pub fn prewarm_tls() {
+    if !pref!(network_tls_prewarm_enabled) {
+        return;
+    }
+
+    #[servo_tracing::instrument]
+    fn prewarm_tls_impl() {
+        // The verifier reads through all certificates, so we want to do that
+        // before the first access.
+        LazyLock::force(&RUSTLS_PLATFORM_VERIFIER_CACHE);
+        let mut sink = [0u8; 32];
+        // The first access can be slow, if the provider needs to gather entropy.
+        let _ = CRYPTO_PROVIDER_CACHE.secure_random.fill(&mut sink);
+    }
+
+    if let Err(error) = std::thread::Builder::new()
+        .name("Net-TLS-prewarm".into())
+        .spawn(prewarm_tls_impl)
+    {
+        warn!("Failed to spawn thread to prewarm TLS: {error:?}");
+    }
+}
 
 #[derive(Debug)]
 struct CertificateVerificationOverrideVerifier {
@@ -452,13 +484,10 @@ impl CertificateVerificationOverrideVerifier {
                 CACertificates::Override(_certificates) => {
                     #[cfg(target_os = "android")]
                     unreachable!("Android should always use the WebPKI verifier.");
-                    let crypto_provider = CryptoProvider::get_default()
-                        .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
-                        .clone();
                     #[cfg(not(target_os = "android"))]
                     let verifier = rustls_platform_verifier::Verifier::new_with_extra_roots(
                         _certificates,
-                        crypto_provider,
+                        CRYPTO_PROVIDER_CACHE.clone(),
                     )
                     .expect("Could not initialize platform certificate verifier");
                     Arc::new(verifier)
