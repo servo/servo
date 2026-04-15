@@ -568,10 +568,6 @@ impl WorkerGlobalScope {
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
     pub(crate) fn on_complete(&self, cx: &mut js::context::JSContext, script: Option<Script>) {
-        let dedicated_worker_scope = self
-            .downcast::<DedicatedWorkerGlobalScope>()
-            .expect("Only DedicatedWorkerGlobalScope is supported for now");
-
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
             Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
@@ -583,7 +579,9 @@ impl WorkerGlobalScope {
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
-                dedicated_worker_scope.forward_simple_error_at_worker();
+                if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+                    dedicated.forward_simple_error_at_worker();
+                }
 
                 // TODO Step 1.2. Run the environment discarding steps for inside settings.
                 // Step 1.3 Abort these steps.
@@ -603,7 +601,7 @@ impl WorkerGlobalScope {
         {
             let mut realm = enter_auto_realm(cx, self);
             let cx = &mut realm.current_realm();
-            define_all_exposed_interfaces(cx, dedicated_worker_scope.upcast());
+            define_all_exposed_interfaces(cx, self.upcast());
             self.execution_ready.store(true, Ordering::Relaxed);
             match script {
                 Script::Classic(script) => {
@@ -616,7 +614,9 @@ impl WorkerGlobalScope {
                 },
                 _ => unreachable!(),
             }
-            dedicated_worker_scope.fire_queued_messages(CanGc::from_cx(cx));
+            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+                dedicated.fire_queued_messages(CanGc::from_cx(cx));
+            }
         }
     }
 
