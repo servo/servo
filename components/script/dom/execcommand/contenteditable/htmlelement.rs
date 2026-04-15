@@ -47,13 +47,13 @@ impl HTMLElement {
             return;
         }
         // Step 4. If element is a simple modifiable element:
+        let node_parent = node.GetParentNode().expect("Must always have a parent");
         if element.is_simple_modifiable_element() {
             // Step 4.1. Let children be the children of element.
             // Step 4.2. For each child in children, insert child into element's parent immediately before element, preserving ranges.
-            let element_parent = node.GetParentNode().expect("Must always have a parent");
             for child in node.children() {
                 move_preserving_ranges(cx, &child, |cx| {
-                    element_parent.InsertBefore(cx, &child, Some(node))
+                    node_parent.InsertBefore(cx, &child, Some(node))
                 });
             }
             // Step 4.3. Remove element from its parent.
@@ -116,11 +116,34 @@ impl HTMLElement {
         // Step 10. If element's specified command value for command is null,
         // return the empty list.
         if element.specified_command_value(command).is_none() {
-            // TODO
+            return;
         }
         // Step 11. Set the tag name of element to "span",
         // and return the one-node list consisting of the result.
-        // TODO
+        //
+        // Yeah, here we are. The spec makes this look easy, but the way we
+        // model elements, it's not. We can't simply set the `local_name`,
+        // since the struct also must change. Therefore, instead of only
+        // changing the tag name, we perform all necessary changes to make
+        // it seem like we "changed it to a span". To do so, we move all
+        // of its children and copy its attributes, after which we remove
+        // the original node.
+        let document = node.owner_document();
+        let new_span = document.create_element(cx, "span");
+        let new_span_node = new_span.upcast::<Node>();
+        if node_parent
+            .InsertBefore(cx, new_span_node, Some(node))
+            .is_err()
+        {
+            unreachable!("Must always be able to insert");
+        }
+        for child in node.children() {
+            move_preserving_ranges(cx, &child, |cx| new_span_node.AppendChild(cx, &child));
+        }
+
+        element.copy_all_attributes_to_other_element(cx, &new_span);
+
+        node.remove_self(cx);
     }
 
     /// There is no specification for this implementation. Instead, it is

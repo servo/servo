@@ -45,7 +45,6 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use style::Atom;
-use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
@@ -100,9 +99,7 @@ use crate::dom::customelementregistry::{
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{
-    AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
-};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -3409,27 +3406,6 @@ impl Node {
         Some(index)
     }
 
-    /// Ensure that for styles, we clone the already-parsed property declaration block.
-    /// This does two things:
-    /// 1. it uses the same fast-path as CSSStyleDeclaration
-    /// 2. it also avoids the CSP checks when cloning (it shouldn't run any when cloning
-    ///    existing valid attributes)
-    fn compute_attribute_value_with_style_fast_path(attr: &Dom<Attr>, elem: &Element) -> AttrValue {
-        if *attr.local_name() == local_name!("style") {
-            if let Some(ref pdb) = *elem.style_attribute().borrow() {
-                let document = elem.owner_document();
-                let shared_lock = document.style_shared_lock();
-                let new_pdb = pdb.read_with(&shared_lock.read()).clone();
-                return AttrValue::Declaration(
-                    (**attr.value()).to_owned(),
-                    ServoArc::new(shared_lock.wrap(new_pdb)),
-                );
-            }
-        }
-
-        attr.value().clone()
-    }
-
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn clone(
         cx: &mut JSContext,
@@ -3578,21 +3554,7 @@ impl Node {
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
                 // Step 2.5. For each attribute of node’s attribute list:
-                for attr in node_elem.attrs().iter() {
-                    // Step 2.5.1. Let copyAttribute be the result of cloning a single node given attribute, document, and null.
-                    let new_value =
-                        Node::compute_attribute_value_with_style_fast_path(attr, node_elem);
-                    // Step 2.5.2. Append copyAttribute to copy.
-                    copy_elem.push_new_attribute(
-                        attr.local_name().clone(),
-                        new_value,
-                        attr.name().clone(),
-                        attr.namespace().clone(),
-                        attr.prefix().cloned(),
-                        AttributeMutationReason::ByCloning,
-                        CanGc::from_cx(cx),
-                    );
-                }
+                node_elem.copy_all_attributes_to_other_element(cx, copy_elem);
             },
             _ => (),
         }
