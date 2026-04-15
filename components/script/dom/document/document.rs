@@ -5259,8 +5259,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 CanGc::from_cx(cx),
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
+                cx,
                 &self.window,
-                CanGc::from_cx(cx),
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
                 self.window.upcast(),

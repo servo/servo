@@ -1392,10 +1392,10 @@ impl DocumentEventHandler {
     ) -> InputEventResult {
         let target = &self.target_for_events_following_focus();
         let keyevent = KeyboardEvent::new_with_platform_keyboard_event(
+            cx,
             &self.window,
             keyboard_event.event.state.event_type().into(),
             &keyboard_event.event,
-            CanGc::from_cx(cx),
         );
 
         let event = keyevent.upcast::<Event>();
@@ -1424,10 +1424,10 @@ impl DocumentEventHandler {
         {
             // https://w3c.github.io/uievents/#keypress-event-order
             let keypress_event = KeyboardEvent::new_with_platform_keyboard_event(
+                cx,
                 &self.window,
                 atom!("keypress"),
                 &keyboard_event.event,
-                CanGc::from_cx(cx),
             );
             keypress_event.upcast::<Event>().set_composed(true);
             let event = keypress_event.upcast::<Event>();
