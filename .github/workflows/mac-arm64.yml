@@ -125,7 +125,9 @@ jobs:
       - name: Install crown
         run: cargo install --path support/crown
 
-      - uses: taiki-e/install-action@v2
+      - name: Install cargo nextest
+        if: ${{ inputs.unit-tests }}
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
