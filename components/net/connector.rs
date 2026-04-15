@@ -4,7 +4,7 @@
 
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 use std::{fmt, io};
 
@@ -387,6 +387,8 @@ pub fn create_tls_config(
         ignore_certificate_errors,
         override_manager,
     );
+    // TODO: After <https://github.com/rustls/rustls-platform-verifier/pull/204> is merged,
+    // `dangerous` can be removed.
     rustls::ClientConfig::builder()
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(verifier))
@@ -404,6 +406,21 @@ where
         spawn_task(fut);
     }
 }
+
+/// A cache for the default rustls platform verifier.
+///
+/// Instantiating a new verifier can be expensive, since it can read through all certificates:
+/// <https://github.com/rustls/rustls-platform-verifier/blob/996b1c903491641b17b3c9afb65d1352f6fc6b76/rustls-platform-verifier/src/verification/others.rs#L92>
+static RUSTLS_PLATFORM_VERIFIER_CACHE: LazyLock<Arc<rustls_platform_verifier::Verifier>> =
+    LazyLock::new(|| {
+        let crypto_provider = CryptoProvider::get_default()
+            .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
+            .clone();
+        Arc::new(
+            rustls_platform_verifier::Verifier::new(crypto_provider)
+                .expect("Could not initialize platform certificate verifier"),
+        )
+    });
 
 #[derive(Debug)]
 struct CertificateVerificationOverrideVerifier {
@@ -428,25 +445,26 @@ impl CertificateVerificationOverrideVerifier {
         // on Android.
         let use_webpki_roots = cfg!(target_os = "android") || pref!(network_use_webpki_roots);
         let main_verifier = if !use_webpki_roots {
-            let crypto_provider = CryptoProvider::get_default()
-                .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
-                .clone();
             let verifier = match ca_certficates {
-                CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
+                CACertificates::Default => RUSTLS_PLATFORM_VERIFIER_CACHE.clone(),
                 // Android doesn't support `Verifier::new_with_extra_roots`, but currently Android
                 // never uses the platform verifier at all.
                 CACertificates::Override(_certificates) => {
                     #[cfg(target_os = "android")]
                     unreachable!("Android should always use the WebPKI verifier.");
+                    let crypto_provider = CryptoProvider::get_default()
+                        .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
+                        .clone();
                     #[cfg(not(target_os = "android"))]
-                    rustls_platform_verifier::Verifier::new_with_extra_roots(
+                    let verifier = rustls_platform_verifier::Verifier::new_with_extra_roots(
                         _certificates,
                         crypto_provider,
                     )
+                    .expect("Could not initialize platform certificate verifier");
+                    Arc::new(verifier)
                 },
-            }
-            .expect("Could not initialize platform certificate verifier");
-            Arc::new(verifier) as Arc<dyn ServerCertVerifier>
+            };
+            verifier as Arc<dyn ServerCertVerifier>
         } else {
             let mut root_store =
                 rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
