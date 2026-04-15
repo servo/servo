@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, Modifiers, NamedKey};
 use style::Atom;
@@ -16,13 +17,12 @@ use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEvent
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct KeyboardEvent {
@@ -59,30 +59,31 @@ impl KeyboardEvent {
         }
     }
 
-    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<KeyboardEvent> {
-        Self::new_uninitialized_with_proto(window, None, can_gc)
+    pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<KeyboardEvent> {
+        Self::new_uninitialized_with_proto(cx, window, None)
     }
 
     fn new_uninitialized_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(KeyboardEvent::new_inherited()),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new_with_platform_keyboard_event(
+        cx: &mut JSContext,
         window: &Window,
         event_type: Atom,
         keyboard_event: &keyboard_types::KeyboardEvent,
-        can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
         Self::new_with_proto(
+            cx,
             window,
             None,
             event_type,
@@ -99,12 +100,12 @@ impl KeyboardEvent {
             keyboard_event.modifiers,
             0, /* char_code */
             keyboard_event.key.legacy_keycode(),
-            can_gc,
         )
     }
 
     #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
@@ -121,9 +122,8 @@ impl KeyboardEvent {
         modifiers: Modifiers,
         char_code: u32,
         key_code: u32,
-        can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
-        let event = KeyboardEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        let event = KeyboardEvent::new_uninitialized_with_proto(cx, window, proto);
         event.init_event(
             event_type,
             can_bubble,
@@ -188,9 +188,9 @@ impl KeyboardEvent {
 impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-keyboardevent>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         event_type: DOMString,
         init: &KeyboardEventBinding::KeyboardEventInit,
     ) -> Fallible<DomRoot<KeyboardEvent>> {
@@ -200,6 +200,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         modifiers.set(Modifiers::SHIFT, init.parent.shiftKey);
         modifiers.set(Modifiers::META, init.parent.metaKey);
         let event = KeyboardEvent::new_with_proto(
+            cx,
             window,
             proto,
             event_type.into(),
@@ -216,7 +217,6 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
             modifiers,
             init.charCode,
             init.keyCode,
-            can_gc,
         );
         *event.key.borrow_mut() = init.key.clone();
         Ok(event)

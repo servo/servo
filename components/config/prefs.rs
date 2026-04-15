@@ -83,6 +83,15 @@ macro_rules! pref {
 }
 
 /// The set of global preferences supported by Servo.
+///
+/// Each preference has a default value that determines its initial state. These defaults
+/// fall into roughly three categories:
+/// - **Stable**: enabled by default.
+/// - **Experimental**: disabled by default, but intended to be enabled for experimental use.
+/// - **Unstable**: disabled by default.
+///
+/// For a full overview of which preferences are experimental, see the
+/// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 #[derive(Clone, Deserialize, Serialize, ServoPreferences)]
 pub struct Preferences {
     pub fonts_default: String,
@@ -142,6 +151,8 @@ pub struct Preferences {
     pub dom_gamepad_enabled: bool,
     // feature: Geolocation API | #38903 | Web/API/Geolocation_API
     pub dom_geolocation_enabled: bool,
+    // feature: Screen Wake Lock API | #43615 | Web/API/Screen_Wake_Lock_API
+    pub dom_wakelock_enabled: bool,
     // feature: IndexedDB | #6963 | Web/API/IndexedDB_API
     pub dom_indexeddb_enabled: bool,
     // feature: IntersectionObserver | #35767 | Web/API/Intersection_Observer_API
@@ -364,6 +375,7 @@ impl Preferences {
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
             dom_geolocation_enabled: false,
+            dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,
             dom_microdata_testing_enabled: false,

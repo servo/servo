@@ -1,0 +1,17 @@
+[package]
+name = "servo-wakelock"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[lib]
+name = "servo_wakelock"
+path = "lib.rs"
+
+[dependencies]
+serde = { workspace = true }

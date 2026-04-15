@@ -245,7 +245,11 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             }
         }
 
-        let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
+        let webgl_chan = global
+            .downcast::<Window>()
+            .and_then(|window| window.webgl_chan_value());
+        let init =
+            prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id), webgl_chan);
 
         let (control_sender, control_receiver) = unbounded();
         let (context_sender, context_receiver) = unbounded();

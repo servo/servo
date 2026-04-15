@@ -189,7 +189,7 @@ impl Range {
                     BoolOrOptionalString::Bool(bool_)
                         if override_state
                             .command
-                            .current_state(context_object)
+                            .current_state(cx, context_object)
                             .is_some_and(|value| value != bool_) =>
                     {
                         override_state

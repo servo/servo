@@ -1,6 +1,29 @@
 {
  "items": {
   "crashtest": {
+   "css": {
+    "background-border-padding-crash.html": [
+     "c6420d31f3876cf4269ee2d4a519e0458d3487d3",
+     [
+      null,
+      {}
+     ]
+    ],
+    "issue-18544-flow-list-crash.html": [
+     "4679c9f69b1e3f1b3da3966651199a51c59f42d6",
+     [
+      null,
+      {}
+     ]
+    ],
+    "media-calc-crash.html": [
+     "7a963caf2b18dc4cd0dafa130b8bbc61b52afe73",
+     [
+      null,
+      {}
+     ]
+    ]
+   },
    "mozilla": {
     "async-html-meta-charset-crash.html": [
      "8743acb152daa256af34bc938f688561abd313c1",
@@ -88,6 +111,13 @@
       {}
      ]
     ],
+    "link-rel-crash.html": [
+     "a0b3482e5158c65b0ce7cdc5bf2b7cca21fc2c2a",
+     [
+      null,
+      {}
+     ]
+    ],
     "location-set-crash.html": [
      "0b1695df79b0437fb644bfcb3ef09bc0eb906f1e",
      [
@@ -141,6 +171,13 @@
     ],
     "window_resizeTo_not_permitted-crash.html": [
      "7b6a67ff81436a91048bdb627f303f7fab2762f7",
+     [
+      null,
+      {}
+     ]
+    ],
+    "zero-size-canvas-crash.html": [
+     "e46bd3651e40d5f41d3e5e0f5bace5e6a7b5b12a",
      [
       null,
       {}
@@ -710,19 +747,6 @@
       [
        [
         "/_mozilla/css/background_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
-    "background_border_padding_crash.html": [
-     "f3d50025ac06d4ccc30ebda74b41cad12cdfd1f2",
-     [
-      null,
-      [
-       [
-        "/_mozilla/css/background_border_padding_crash-ref.html",
         "=="
        ]
       ],
@@ -8099,19 +8123,6 @@
       {}
      ]
     ],
-    "sslfail.html": [
-     "40eb31ca31a2522287bcbf891ad00ac7fdaaa469",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/sslfail-ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "stylesheet-adopt-panic.html": [
      "df3b48291e08d907e944ad6a07c56268ff265fd1",
      [
@@ -8593,10 +8604,6 @@
     ],
     "attr_selector_case_sensitivity_ref.html": [
      "9e9be12d13e3c36d367a74c47aa963ad4a5d25f7",
-     []
-    ],
-    "background_border_padding_crash-ref.html": [
-     "7ac5f8bdca22aa7a6abbfec69be422f0ebb5dd5f",
      []
     ],
     "background_clip_ref.html": [
@@ -11111,10 +11118,6 @@
      "c379937160aad4c4e9624c2915c0d84ef7c4d785",
      []
     ],
-    "sslfail-ref.html": [
-     "4d371a86886ba80268ba54b39eeab50a9a51e04f",
-     []
-    ],
     "stylesheet-adopt-panic-ref.html": [
      "b47617e42497612417297d9acc17dc10350c3f91",
      []
@@ -13035,13 +13038,6 @@
       {}
      ]
     ],
-    "issue_18544_flow_list_crash.html": [
-     "9ef57cad02a34e5cf3693b8f98b12b335d8a3db2",
-     [
-      null,
-      {}
-     ]
-    ],
     "matchMedia.html": [
      "45a7ea268b1ebdba69e947b79d675cc9221428d4",
      [
@@ -13051,13 +13047,6 @@
     ],
     "media_bogus_query_sequence.html": [
      "a112a316eab1f15a804410f030730d189bb35757",
-     [
-      null,
-      {}
-     ]
-    ],
-    "media_calc_crash.html": [
-     "136a86cd4c27bf2c289c889f0cd2dab69fe3022b",
      [
       null,
       {}
@@ -14420,13 +14409,6 @@
       }
      ]
     ],
-    "link_rel_crash.html": [
-     "9fa5a1dc04fff0f879d88ce95f4eb5181e2f9b92",
-     [
-      null,
-      {}
-     ]
-    ],
     "load_event.html": [
      "091909ee81cfe7a7ef41c750d1499556e60378fb",
      [
@@ -15224,13 +15206,6 @@
     ],
     "xpathmark-ft.html": [
      "d2c65f8ff6529b8c8dba26c07484793096c0617a",
-     [
-      null,
-      {}
-     ]
-    ],
-    "zero_size_canvas_crash.html": [
-     "45eb9b559e8d6105baca5ab4d336de520d33b36b",
      [
       null,
       {}

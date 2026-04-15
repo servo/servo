@@ -312,8 +312,6 @@ pub enum ScriptThreadMessage {
     /// Release all data for the given `UserContentManagerId` from the `ScriptThread`'s
     /// `user_contents_for_manager_id` map.
     DestroyUserContentManager(UserContentManagerId),
-    /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate, Epoch),
     /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
     /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),

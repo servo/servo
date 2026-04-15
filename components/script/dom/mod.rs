@@ -376,6 +376,8 @@ pub(crate) mod values;
 pub(crate) mod virtualmethods;
 pub(crate) mod visibilitystateentry;
 pub(crate) mod visualviewport;
+pub(crate) mod wakelock;
+pub(crate) use self::wakelock::*;
 pub(crate) mod webgl;
 pub(crate) use self::webgl::extensions::ext::*;
 pub(crate) use self::webgl::*;
