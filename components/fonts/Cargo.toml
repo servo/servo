@@ -37,14 +37,15 @@ malloc_size_of_derive = { workspace = true }
 memmap2 = { workspace = true }
 net_traits = { workspace = true }
 num-traits = { workspace = true }
+ohos-deviceinfo-sys = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
+postcard = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { package = "servo-config", path = "../config" }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-tracing = { workspace = true }
@@ -59,8 +60,6 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 webrender_api = { workspace = true }
-serde_json.workspace = true
-ohos-deviceinfo-sys = "0.1.6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
