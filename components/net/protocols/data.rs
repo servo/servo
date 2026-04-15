@@ -40,7 +40,7 @@ impl ProtocolHandler for DataProtocolHander {
                         http::header::CONTENT_TYPE,
                         HeaderValue::from_str(&mime.to_string()).unwrap(),
                     );
-                    response.status = HttpStatus::default();
+                    response.status = Some(HttpStatus::default());
                     Some(response)
                 },
                 Err(_) => None,

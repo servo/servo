@@ -403,7 +403,7 @@ impl FetchResponseListener for EventSourceContext {
                 };
                 // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
                 // `text/event-stream`, then fail the connection.
-                if meta.status.code() != StatusCode::OK {
+                if meta.status != StatusCode::OK {
                     return self.fail_the_connection();
                 }
                 let mime = match meta.content_type {

@@ -32,7 +32,6 @@ use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full};
 use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
-use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper_serde::Serde;
 use ipc_channel::IpcError;
@@ -140,7 +139,7 @@ impl HttpState {
     ) -> Option<AuthenticationResponse> {
         // We do not make an authentication request for non-WebView associated HTTP requests.
         let webview_id = request.target_webview_id?;
-        let for_proxy = response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED;
+        let for_proxy = response.status == Some(StatusCode::PROXY_AUTHENTICATION_REQUIRED.into());
 
         // If this is not actually a navigation request return None.
         if request.mode != RequestMode::Navigate {
@@ -1092,13 +1091,15 @@ pub async fn http_fetch(
     if response
         .actual_response()
         .status
-        .try_code()
-        .is_some_and(is_redirect_status)
+        .as_ref()
+        .is_some_and(|code| is_redirect_status(**code))
     {
         // Step 6.1. If internalResponse’s status is not 303, request’s body is non-null,
         // and the connection uses HTTP/2, then user agents may, and are even encouraged to,
         // transmit an RST_STREAM frame.
-        if response.actual_response().status != StatusCode::SEE_OTHER {
+        if response.actual_response().status != Some(StatusCode::SEE_OTHER.into()) ||
+            response.actual_response().status.is_none()
+        {
             // TODO: send RST_STREAM frame
         }
 
@@ -1192,8 +1193,8 @@ fn location_url_for_response(
         response
             .actual_response()
             .status
-            .try_code()
-            .is_some_and(is_redirect_status)
+            .as_ref()
+            .is_some_and(|status| is_redirect_status(**status))
     );
     // Step 2. Let location be the result of extracting header list values given `Location` and response’s header list.
     let mut location = response
@@ -1321,7 +1322,8 @@ pub async fn http_redirect_fetch(
 
     // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
     // body’s source is null, then return a network error.
-    if response.actual_response().status != StatusCode::SEE_OTHER &&
+    if (response.actual_response().status != Some(StatusCode::SEE_OTHER.into()) ||
+        response.actual_response().status.is_none()) &&
         request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::ConnectionFailure);
@@ -1331,7 +1333,7 @@ pub async fn http_redirect_fetch(
     if response
         .actual_response()
         .status
-        .try_code()
+        .as_ref()
         .is_some_and(|code| {
             // internalResponse’s status is 301 or 302 and request’s method is `POST`
             ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND) &&
@@ -1717,7 +1719,14 @@ async fn http_network_or_cache_fetch(
             // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
             // inclusive, invalidate appropriate stored responses in httpCache, as per the
             // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
-            if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
+            if (200..=399).contains(
+                &forward_response
+                    .status
+                    .as_ref()
+                    .map(|status| status.as_u16())
+                    .unwrap_or(0),
+            ) && !http_request.method.is_safe()
+            {
                 if let Some(guard) = cache_guard.try_as_mut() {
                     invalidate(http_request, &forward_response, guard).await;
                 }
@@ -1729,7 +1738,8 @@ async fn http_network_or_cache_fetch(
             }
 
             // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
-            if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
+            if revalidating_flag && forward_response.status == Some(StatusCode::NOT_MODIFIED.into())
+            {
                 // Ensure done_chan is None,
                 // since the network response will be replaced by the revalidated stored one.
                 *done_chan = None;
@@ -1792,7 +1802,7 @@ async fn http_network_or_cache_fetch(
     // TODO(#33616): Figure out what to do with request window objects
     // NOTE: Requiring a WWW-Authenticate header here is ad-hoc, but seems to match what other browsers are
     // doing. See Step 14.1.
-    if response.status.try_code() == Some(StatusCode::UNAUTHORIZED) &&
+    if response.status == Some(StatusCode::UNAUTHORIZED.into()) &&
         !cors_flag &&
         include_credentials &&
         response.headers.contains_key(WWW_AUTHENTICATE)
@@ -1849,7 +1859,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 15. If response’s status is 407, then:
-    if response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED {
+    if response.status == Some(StatusCode::PROXY_AUTHENTICATION_REQUIRED.into()) {
         let request = &mut fetch_params.request;
         // Step 15.1 If request’s traversable for user prompts is "no-traversable", then return a network error.
 
@@ -2289,14 +2299,7 @@ async fn http_network_fetch(
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
 
-    let status_text = res
-        .extensions()
-        .get::<ReasonPhrase>()
-        .map(ReasonPhrase::as_bytes)
-        .or_else(|| res.status().canonical_reason().map(str::as_bytes))
-        .map(Vec::from)
-        .unwrap_or_default();
-    response.status = HttpStatus::new(res.status(), status_text);
+    response.status = Some(res.status().into());
 
     info!("got {:?} response for {:?}", res.status(), request.url());
     response.headers = res.headers().clone();
@@ -2365,7 +2368,8 @@ async fn http_network_fetch(
                 *body = ResponseBody::Done(completed_body);
                 send_response_values_to_devtools(
                     Some(headers),
-                    status,
+                    // TODO: Change to use Option<HttpStatus>
+                    status.unwrap_or_default(),
                     Some(devtools_response_body),
                     CacheState::None,
                     &devtools_request,
@@ -2523,7 +2527,12 @@ async fn cors_preflight_fetch(
         http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
 
     // Step 7. If a CORS check for request and response returns success and response’s status is an ok status, then:
-    if cors_check(request, &response).is_ok() && response.status.code().is_success() {
+    if cors_check(request, &response).is_ok() &&
+        response
+            .status
+            .as_ref()
+            .is_some_and(|status| status.is_success())
+    {
         // Step 7.1 Let methods be the result of extracting header list values given
         // `Access-Control-Allow-Methods` and response’s header list.
         let mut methods = if response

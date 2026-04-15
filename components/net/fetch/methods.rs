@@ -169,7 +169,7 @@ pub(crate) fn transfers_request_body_stream_to_later_manual_redirect(
         response
             .actual_response()
             .status
-            .try_code()
+            .as_ref()
             .is_some_and(|status| status.is_redirection())
 }
 
@@ -771,7 +771,10 @@ pub async fn main_fetch(
         // read status of a network error if we blocked the request above.
         let internal_response = if !internal_response.is_network_error() &&
             response_type == ResponseType::Opaque &&
-            internal_response.status.code() == StatusCode::PARTIAL_CONTENT &&
+            internal_response
+                .status
+                .as_ref()
+                .is_some_and(|status| *status == StatusCode::PARTIAL_CONTENT) &&
             internal_response.range_requested &&
             !request.headers.contains_key(RANGE)
         {
@@ -974,7 +977,7 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
     *response.body.lock() = ResponseBody::Done(vec![]);
-    response.status = HttpStatus::default();
+    response.status = Some(HttpStatus::default());
     response
 }
 
@@ -984,7 +987,7 @@ fn create_about_memory(url: ServoUrl, timing_type: ResourceTimingType) -> Respon
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
     *response.body.lock() = ResponseBody::Done(resources::read_bytes(Resource::AboutMemoryHTML));
-    response.status = HttpStatus::default();
+    response.status = Some(HttpStatus::default());
     response
 }
 
@@ -1101,14 +1104,18 @@ async fn scheme_fetch(
     }
 }
 
-fn is_null_body_status(status: &HttpStatus) -> bool {
-    matches!(
-        status.try_code(),
-        Some(StatusCode::SWITCHING_PROTOCOLS) |
-            Some(StatusCode::NO_CONTENT) |
-            Some(StatusCode::RESET_CONTENT) |
-            Some(StatusCode::NOT_MODIFIED)
-    )
+fn is_null_body_status(status: &Option<HttpStatus>) -> bool {
+    if let Some(status) = status {
+        [
+            StatusCode::SWITCHING_PROTOCOLS,
+            StatusCode::NO_CONTENT,
+            StatusCode::RESET_CONTENT,
+            StatusCode::NOT_MODIFIED,
+        ]
+        .contains(status)
+    } else {
+        false
+    }
 }
 
 /// <https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?>

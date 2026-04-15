@@ -45,7 +45,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
             cache.get_or_guard(CacheKey::new(&request)).await
         };
         // Second, mutate the response into a 304 response, and refresh the stored one.
-        response.status = StatusCode::NOT_MODIFIED.into();
+        response.status = Some(StatusCode::NOT_MODIFIED.into());
         let (send, recv) = unbounded();
         let mut done_chan = Some((send, recv));
         let refreshed_response = refresh(
@@ -107,7 +107,7 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     initial_incomplete_response
         .headers
         .insert(EXPIRES, HeaderValue::from_str("0").unwrap());
-    initial_incomplete_response.status = StatusCode::PARTIAL_CONTENT.into();
+    initial_incomplete_response.status = Some(StatusCode::PARTIAL_CONTENT.into());
     cache.store(&request, &initial_incomplete_response).await;
 
     // Try to construct response from http_cache

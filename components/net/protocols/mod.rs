@@ -238,7 +238,7 @@ pub fn is_url_potentially_trustworthy(
 }
 
 pub fn range_not_satisfiable_error(response: &mut Response) {
-    response.status = StatusCode::RANGE_NOT_SATISFIABLE.into();
+    response.status = Some(StatusCode::RANGE_NOT_SATISFIABLE.into());
 }
 
 /// Get the range bounds if the `Range` header is present.
@@ -262,5 +262,5 @@ pub fn get_range_request_bounds(range: Option<Range>, len: u64) -> RangeRequestB
 }
 
 pub fn partial_content(response: &mut Response) {
-    response.status = StatusCode::PARTIAL_CONTENT.into();
+    response.status = Some(StatusCode::PARTIAL_CONTENT.into());
 }

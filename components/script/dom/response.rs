@@ -41,7 +41,7 @@ pub(crate) struct Response {
     reflector_: Reflector,
     headers_reflector: MutNullableDom<Headers>,
     #[no_trace]
-    status: DomRefCell<HttpStatus>,
+    status: DomRefCell<Option<HttpStatus>>,
     response_type: DomRefCell<DOMResponseType>,
     #[no_trace]
     url: DomRefCell<Option<ServoUrl>>,
@@ -70,7 +70,7 @@ impl Response {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
-            status: DomRefCell::new(HttpStatus::default()),
+            status: DomRefCell::new(Some(HttpStatus::default())),
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
             url_list: DomRefCell::new(vec![]),
@@ -199,7 +199,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         let response = Response::new(global, can_gc);
         *response.response_type.borrow_mut() = DOMResponseType::Error;
         response.Headers(can_gc).set_guard(Guard::Immutable);
-        *response.status.borrow_mut() = HttpStatus::new_error();
+        *response.status.borrow_mut() = None;
         response
     }
 
@@ -230,7 +230,9 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         let response = Response::new(global, can_gc);
 
         // Step 5
-        *response.status.borrow_mut() = HttpStatus::new_raw(status, vec![]);
+        *response.status.borrow_mut() = http::StatusCode::from_u16(status)
+            .ok()
+            .map(|code| code.into());
 
         // Step 6
         let url_bytestring =
@@ -301,17 +303,33 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-status>
     fn Status(&self) -> u16 {
-        self.status.borrow().raw_code()
+        self.status
+            .borrow()
+            .as_ref()
+            .expect("Status not set")
+            .as_u16()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-ok>
     fn Ok(&self) -> bool {
-        self.status.borrow().is_success()
+        self.status
+            .borrow()
+            .as_ref()
+            .is_some_and(|status| status.is_success())
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-statustext>
     fn StatusText(&self) -> ByteString {
-        ByteString::new(self.status.borrow().message().to_vec())
+        ByteString::new(
+            self.status
+                .borrow()
+                .as_ref()
+                .expect("Status not set")
+                .canonical_reason()
+                .unwrap()
+                .as_bytes()
+                .to_owned(),
+        )
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-headers>
@@ -425,8 +443,9 @@ fn initialize_response(
 
     // 3. Set response’s response’s status to init["status"].
     // 4. Set response’s response’s status message to init["statusText"].
-    *response.status.borrow_mut() =
-        HttpStatus::new_raw(init.status, init.statusText.clone().into());
+    *response.status.borrow_mut() = http::StatusCode::from_u16(init.status)
+        .ok()
+        .map(|status| status.into());
 
     // 5. If init["headers"] exists, then fill response’s headers with init["headers"].
     if let Some(ref headers_member) = init.headers {
@@ -498,7 +517,7 @@ impl Response {
     }
 
     pub(crate) fn set_status(&self, status: &HttpStatus) {
-        self.status.borrow_mut().clone_from(status);
+        *self.status.borrow_mut() = Some(status.clone());
     }
 
     pub(crate) fn set_final_url(&self, final_url: ServoUrl) {
@@ -512,18 +531,18 @@ impl Response {
     fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc: CanGc) {
         match response_type {
             DOMResponseType::Error => {
-                *self.status.borrow_mut() = HttpStatus::new_error();
+                *self.status.borrow_mut() = None;
                 self.set_headers(None, can_gc);
             },
             DOMResponseType::Opaque => {
                 *self.url_list.borrow_mut() = vec![];
-                *self.status.borrow_mut() = HttpStatus::new_error();
+                *self.status.borrow_mut() = None;
                 self.set_headers(None, can_gc);
                 self.body_stream.set(None);
                 self.fetch_body_stream.set(None);
             },
             DOMResponseType::Opaqueredirect => {
-                *self.status.borrow_mut() = HttpStatus::new_error();
+                *self.status.borrow_mut() = None;
                 self.set_headers(None, can_gc);
                 self.body_stream.set(None);
                 self.fetch_body_stream.set(None);

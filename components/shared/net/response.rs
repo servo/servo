@@ -104,7 +104,7 @@ pub struct Response {
     pub termination_reason: Option<TerminationReason>,
     url: Option<ServoUrl>,
     pub url_list: Vec<ServoUrl>,
-    pub status: HttpStatus,
+    pub status: Option<HttpStatus>,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
@@ -150,7 +150,7 @@ impl Response {
             termination_reason: None,
             url: Some(url),
             url_list: vec![],
-            status: HttpStatus::default(),
+            status: Some(HttpStatus::default()),
             headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -175,7 +175,9 @@ impl Response {
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
-        res.status = HttpStatus::new_raw(init.status_code, vec![]);
+        res.status = http::StatusCode::from_u16(init.status_code)
+            .ok()
+            .map(|status_code| status_code.into());
         res
     }
 
@@ -185,7 +187,7 @@ impl Response {
             termination_reason: None,
             url: None,
             url_list: vec![],
-            status: HttpStatus::new_error(),
+            status: None,
             headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -305,14 +307,14 @@ impl Response {
                 response.url_list = vec![];
                 response.url = None;
                 response.headers = HeaderMap::new();
-                response.status = HttpStatus::new_error();
+                response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
                 response.headers = HeaderMap::new();
-                response.status = HttpStatus::new_error();
+                response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
@@ -327,7 +329,8 @@ impl Response {
             metadata.set_content_type(extract_mime_type_as_mime(&response.headers).as_ref());
             metadata.location_url.clone_from(&response.location_url);
             metadata.headers = Some(Serde(response.headers.clone()));
-            metadata.status.clone_from(&response.status);
+            // TODO: Add Option<HttpStatus> to Metadata
+            metadata.status = response.status.clone().unwrap_or(metadata.status);
             metadata.https_state = response.https_state;
             metadata.referrer.clone_from(&response.referrer);
             metadata.referrer_policy = response.referrer_policy;

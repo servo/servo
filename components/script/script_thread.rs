@@ -3095,7 +3095,7 @@ impl ScriptThread {
         //
         // TODO: The specification has been updated and we no longer should abort.
         let is_204_205 = match metadata {
-            Some(metadata) => metadata.status.in_range(204..=205),
+            Some(metadata) => (204..=205).contains(&metadata.status.as_u16()),
             _ => false,
         };
 
@@ -3536,7 +3536,7 @@ impl ScriptThread {
             DocumentSource::FromParser,
             loader,
             referrer,
-            Some(metadata.status.raw_code()),
+            Some(metadata.status.as_u16()),
             incomplete.canceller,
             is_initial_about_blank,
             true,
@@ -4010,11 +4010,7 @@ impl ScriptThread {
             location_url: metadata.location_url.clone(),
             headers,
             referrer: metadata.referrer.clone(),
-            status_code: metadata
-                .status
-                .try_code()
-                .map(|code| code.as_u16())
-                .unwrap_or(200),
+            status_code: metadata.status.as_u16(),
         });
 
         incomplete_load.canceller = FetchCanceller::new(

@@ -172,7 +172,7 @@ impl ResourceTimingListener for XHRContext {
 #[derive(Clone)]
 pub(crate) enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceived(GenerationId, Option<HeaderMap>, HttpStatus),
+    HeadersReceived(GenerationId, Option<HeaderMap>, Option<HttpStatus>),
     /// Partial progress (after receiving headers), containing portion of the response
     Loading(GenerationId, Vec<u8>),
     /// Loading is done
@@ -201,7 +201,7 @@ pub(crate) struct XMLHttpRequest {
     upload: Dom<XMLHttpRequestUpload>,
     response_url: DomRefCell<String>,
     #[no_trace]
-    status: DomRefCell<HttpStatus>,
+    status: DomRefCell<Option<HttpStatus>>,
     response: DomRefCell<Vec<u8>>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
@@ -248,7 +248,7 @@ impl XMLHttpRequest {
             with_credentials: Cell::new(false),
             upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global, can_gc)),
             response_url: DomRefCell::new(String::new()),
-            status: DomRefCell::new(HttpStatus::new_error()),
+            status: DomRefCell::new(None),
             response: DomRefCell::new(vec![]),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
@@ -422,7 +422,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 *self.request_headers.borrow_mut() = HeaderMap::new();
                 self.send_flag.set(false);
                 self.upload_listener.set(false);
-                *self.status.borrow_mut() = HttpStatus::new_error();
+                *self.status.borrow_mut() = None;
 
                 // Step 13
                 if self.ready_state.get() != XMLHttpRequestState::Opened {
@@ -819,7 +819,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         if self.ready_state.get() == XMLHttpRequestState::Done {
             self.change_ready_state(XMLHttpRequestState::Unsent, can_gc);
             self.response_status.set(Err(()));
-            *self.status.borrow_mut() = HttpStatus::new_error();
+            *self.status.borrow_mut() = None;
             self.response.borrow_mut().clear();
             self.response_headers.borrow_mut().clear();
         }
@@ -832,12 +832,25 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
     /// <https://xhr.spec.whatwg.org/#the-status-attribute>
     fn Status(&self) -> u16 {
-        self.status.borrow().raw_code()
+        self.status
+            .borrow()
+            .as_ref()
+            .expect("Expected valid status")
+            .as_u16()
     }
 
     /// <https://xhr.spec.whatwg.org/#the-statustext-attribute>
     fn StatusText(&self) -> ByteString {
-        ByteString::new(self.status.borrow().message().to_vec())
+        ByteString::new(
+            self.status
+                .borrow()
+                .as_ref()
+                .expect("Expected valid status")
+                .canonical_reason()
+                .unwrap()
+                .as_bytes()
+                .to_vec(),
+        )
     }
 
     /// <https://xhr.spec.whatwg.org/#the-getresponseheader()-method>
@@ -1072,7 +1085,7 @@ impl XMLHttpRequest {
             XHRProgress::HeadersReceived(
                 gen_id,
                 metadata.headers.map(Serde::into_inner),
-                metadata.status,
+                Some(metadata.status),
             ),
             can_gc,
         );
@@ -1146,7 +1159,7 @@ impl XMLHttpRequest {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                if !status.is_error() {
+                if status.is_some() {
                     *self.status.borrow_mut() = status;
                 }
                 if let Some(h) = headers.as_ref() {
@@ -1225,7 +1238,7 @@ impl XMLHttpRequest {
 
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
-                *self.status.borrow_mut() = HttpStatus::new_error();
+                *self.status.borrow_mut() = None;
                 self.response_headers.borrow_mut().clear();
                 // XXXManishearth set response to NetworkError
                 self.change_ready_state(XMLHttpRequestState::Done, can_gc);
