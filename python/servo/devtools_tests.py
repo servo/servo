@@ -117,6 +117,23 @@ def resume_and_wait(client, thread_actor, timeout=3):
     return future.result(timeout)
 
 
+# Wait for a given number of seconds and assert that no pause happens after calling the trigger
+def wait_and_assert_no_pause(client, thread_actor, trigger, duration):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    trigger()
+
+    try:
+        data = future.result(duration)
+        raise AssertionError(f"Received unexpected pause: {data}")
+    except TimeoutError:
+        pass
+
+
 @dataclass
 class Devtools:
     client: RDPClient
@@ -1249,6 +1266,23 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 devtools.client.send_receive({"to": devtools.tab.actor_id, **message_data})
 
                 done.result(1)
+
+    def test_blackboxing_prevents_breakpoint_pause(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "debugger/loop.html")
+
+            # Get valid breakpoint position
+            positions = devtools.client.send_receive(
+                {"to": source_actor, "type": "getBreakpointPositionsCompressed"}
+            ).get("positions", {})
+            line_str = min(positions.keys(), key=int)
+            line, column = int(line_str), positions[line_str][0]
+
+            # Set a breakpoint and confirm that we will not pause
+            trigger = lambda: set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
+            wait_and_assert_no_pause(devtools.client, thread_actor, trigger, duration=1)
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
