@@ -743,14 +743,11 @@ mod tests {
     use profile_traits::time::ProfilerChan;
     use serde::{Deserialize, Serialize};
     use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
-    use servo_base::id::{
-        PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId,
-    };
+    use servo_base::id::{PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId};
     use servo_base::threadpool::ThreadPool;
     use servo_url::ImmutableOrigin;
     use storage_traits::client_storage::{
-        ClientStorageThreadHandle, StorageIdentifier, StorageProxyMap,
-        StorageType,
+        ClientStorageThreadHandle, StorageIdentifier, StorageProxyMap, StorageType,
     };
     use storage_traits::indexeddb::{
         AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
