@@ -2870,13 +2870,11 @@ impl GlobalScope {
                 no_script_rval,
             ));
 
-            if compiled_script.is_null() {
+            let Some(script) = NonNull::new(*compiled_script) else {
                 debug!("error compiling Dom string");
                 report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
                 return Err(JavaScriptEvaluationError::CompilationFailure);
-            }
-
-            let script = NonNull::new(*compiled_script).expect("Can't be null");
+            };
 
             rooted!(&in(cx) let mut value = UndefinedValue());
             let rval = rval.unwrap_or_else(|| value.handle_mut());
