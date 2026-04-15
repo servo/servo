@@ -974,3 +974,47 @@ fn test_webview_load_with_headers() {
     assert_eq!(request_count.load(std::sync::atomic::Ordering::SeqCst), 2);
     server.close();
 }
+
+#[test]
+fn test_console_log_and_error_ordering() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!doctype html><script>\
+                    console.log('Hello');\
+                    DocumentFragment.prototype.querySelector.call(document, 'body');\
+                </script>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    // Wait until both messages have arrived through the embedder channel.
+    let captured = delegate.clone();
+    servo_test.spin(move || captured.console_messages.borrow().len() < 2);
+
+    let messages = delegate.console_messages.borrow();
+    assert_eq!(
+        messages.len(),
+        2,
+        "Expected exactly 2 console messages, got: {messages:?}"
+    );
+
+    // The console.log("Hello") must arrive first.
+    assert!(
+        messages[0].1.contains("Hello"),
+        "Expected first message to contain 'Hello', got: {:?}",
+        messages[0].1
+    );
+
+    // The uncaught TypeError must arrive second.
+    assert!(
+        messages[1].1.contains("DocumentFragment") || messages[1].1.contains("querySelector"),
+        "Expected second message to contain error info, got: {:?}",
+        messages[1].1
+    );
+}
