@@ -6158,8 +6158,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
-    fn QueryCommandState(&self, command_id: DOMString) -> bool {
-        self.command_state_for_command(command_id)
+    fn QueryCommandState(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
+        self.command_state_for_command(cx, command_id)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>

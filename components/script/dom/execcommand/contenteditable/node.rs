@@ -904,9 +904,11 @@ impl Node {
             !last_ancestor
                 .upcast::<Node>()
                 .GetParentNode()
-                .is_some_and(|last_ancestor| {
+                .is_some_and(|last_ancestor_parent| {
                     command.are_loosely_equivalent_values(
-                        last_ancestor.effective_command_value(command).as_ref(),
+                        last_ancestor_parent
+                            .effective_command_value(command)
+                            .as_ref(),
                         new_value.as_ref(),
                     )
                 })
