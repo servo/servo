@@ -377,7 +377,7 @@ impl WebView {
     /// transition or is running `requestAnimationFrame` callbacks. This indicates that the
     /// embedding application should be spinning the Servo event loop on regular intervals
     /// in order to trigger animation updates.
-    pub fn animating(self) -> bool {
+    pub fn animating(&self) -> bool {
         self.inner().animating
     }
 
