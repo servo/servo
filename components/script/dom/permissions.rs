@@ -393,6 +393,7 @@ impl Convert<PermissionFeature> for PermissionName {
             PermissionName::Background_sync => PermissionFeature::BackgroundSync,
             PermissionName::Bluetooth => PermissionFeature::Bluetooth,
             PermissionName::Persistent_storage => PermissionFeature::PersistentStorage,
+            PermissionName::Screen_wake_lock => PermissionFeature::ScreenWakeLock,
         }
     }
 }

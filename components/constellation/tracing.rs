@@ -189,6 +189,8 @@ mod from_script {
                     target!("RespondToScreenshotReadinessRequest")
                 },
                 Self::TriggerGarbageCollection => target!("TriggerGarbageCollection"),
+                Self::AcquireWakeLock(..) => target!("AcquireWakeLock"),
+                Self::ReleaseWakeLock(..) => target!("ReleaseWakeLock"),
             }
         }
     }

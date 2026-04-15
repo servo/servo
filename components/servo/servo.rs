@@ -69,6 +69,7 @@ use servo_geometry::{
 };
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
+use servo_wakelock::NoOpWakeLockProvider;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
@@ -534,6 +535,21 @@ impl ServoInner {
                         requested_feature,
                         allow_deny_request: AllowOrDenyRequest::new(
                             response_sender,
+                            AllowOrDeny::Deny,
+                            self.servo_errors.sender(),
+                        ),
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
+                }
+            },
+            EmbedderMsg::RequestWakeLockPermission(webview_id, callback) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let permission_request = PermissionRequest {
+                        requested_feature: PermissionFeature::ScreenWakeLock,
+                        allow_deny_request: AllowOrDenyRequest::new_from_callback(
+                            callback,
                             AllowOrDeny::Deny,
                             self.servo_errors.sender(),
                         ),
@@ -1161,6 +1177,7 @@ fn create_constellation(
         wgpu_image_map: paint.webgpu_image_map(),
         async_runtime,
         privileged_urls,
+        wake_lock_provider: Box::new(NoOpWakeLockProvider),
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

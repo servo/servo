@@ -285,6 +285,7 @@ servo-media-traits = { version = "0.1.0", path = "components/media/traits" }
 servo-media-webrtc = { version = "0.1.0", path = "components/media/webrtc" }
 servo-tracing = { version = "0.1.0", path = "components/servo_tracing" }
 servo-url = { version = "0.1.0", path = "components/url" }
+servo-wakelock = { version = "0.1.0", path = "components/wakelock" }
 storage = { package = "servo-storage", version = "0.1.0", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "0.1.0", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "0.1.0", path = "components/timers" }
