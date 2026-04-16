@@ -139,8 +139,8 @@ impl BodyMixin for Response {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
-        let headers = self.Headers(can_gc);
+    fn get_mime_type(&self, cx: &mut js::context::JSContext) -> Vec<u8> {
+        let headers = self.Headers(CanGc::from_cx(cx));
         headers.extract_mime_type()
     }
 }
@@ -378,33 +378,33 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-text>
-    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Text, can_gc)
+    fn Text(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Text)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-blob>
-    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Blob, can_gc)
+    fn Blob(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Blob)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-formdata>
-    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::FormData, can_gc)
+    fn FormData(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::FormData)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-json>
-    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Json, can_gc)
+    fn Json(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Json)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-arraybuffer>
-    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::ArrayBuffer, can_gc)
+    fn ArrayBuffer(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::ArrayBuffer)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
-    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
-        consume_body(self, BodyType::Bytes, can_gc)
+    fn Bytes(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Bytes)
     }
 }
 

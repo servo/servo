@@ -354,7 +354,7 @@ impl ByteTeeUnderlyingSource {
                     .expect("Branch 1 should be set.")
                     .get_byte_controller();
                 let byob_request = byob_branch_controller
-                    .get_byob_request(cx.into(), CanGc::from_cx(cx))
+                    .get_byob_request(cx)
                     .expect("Byob request should be set.");
 
                 match byob_request {
@@ -399,7 +399,7 @@ impl ByteTeeUnderlyingSource {
                     .expect("Branch 2 should be set.")
                     .get_byte_controller();
                 let byob_request = byob_branch_controller
-                    .get_byob_request(cx.into(), CanGc::from_cx(cx))
+                    .get_byob_request(cx)
                     .expect("Byob request should be set.");
 
                 match byob_request {

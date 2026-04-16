@@ -139,7 +139,7 @@ impl ByteTeeReadIntoRequest {
         // If otherCanceled is false,
         if !other_canceled {
             // Let cloneResult be CloneAsUint8Array(chunk).
-            let clone_result = chunk.clone_as_uint8_array(cx.into());
+            let clone_result = chunk.clone_as_uint8_array(cx);
 
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {

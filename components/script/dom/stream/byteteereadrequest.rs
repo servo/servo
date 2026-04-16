@@ -170,7 +170,7 @@ impl ByteTeeReadRequest {
                 HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
                     RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
                 ));
-            let clone_result = chunk2_source.clone_as_uint8_array(cx.into());
+            let clone_result = chunk2_source.clone_as_uint8_array(cx);
 
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
@@ -186,7 +186,7 @@ impl ByteTeeReadRequest {
                 HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
                     RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
                 ));
-            match chunk2_source.clone_as_uint8_array(cx.into()) {
+            match chunk2_source.clone_as_uint8_array(cx) {
                 Ok(clone) => chunk2_view = Some(clone),
                 Err(error) => {
                     handle_clone_error(cx, error);
