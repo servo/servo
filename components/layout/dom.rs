@@ -5,7 +5,6 @@
 use std::marker::PhantomData;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use html5ever::{local_name, ns};
 use layout_api::{
     GenericLayoutDataTrait, LayoutDataTrait, LayoutElement, LayoutElementType, LayoutNode,
     LayoutNodeType as ScriptLayoutNodeType, SVGElementData,
@@ -18,6 +17,7 @@ use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
+use web_atoms::{local_name, ns};
 
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
