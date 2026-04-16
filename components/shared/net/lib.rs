@@ -593,6 +593,23 @@ impl ResourceThreads {
             .core_thread
             .send(CoreResourceMsg::EmbedderGetCookiesForUrl(id, url, source));
     }
+
+    pub fn set_cookie_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        cookie: Cookie<'static>,
+        source: CookieSource,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderSetCookieForUrl(
+                id,
+                url,
+                Serde(cookie),
+                source,
+            ));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -682,6 +699,14 @@ pub enum CoreResourceMsg {
     /// Retrieve cookies for a URL for embedder. The response is
     /// sent via [`NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse`].
     EmbedderGetCookiesForUrl(CookieOperationId, ServoUrl, CookieSource),
+    /// Set a cookie for a URL on behalf of the embedder. The response is
+    /// sent via [`NetToEmbedderMsg::EmbedderSetCookieForUrlResponse`].
+    EmbedderSetCookieForUrl(
+        CookieOperationId,
+        ServoUrl,
+        Serde<Cookie<'static>>,
+        CookieSource,
+    ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),

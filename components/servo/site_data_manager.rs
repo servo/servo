@@ -64,7 +64,20 @@ impl SiteData {
     }
 }
 
-type CookieCallback = Box<dyn FnOnce(Vec<Cookie<'static>>)>;
+/// The response data for a pending embedder cookie operation.
+pub(crate) enum CookieOperationResponse {
+    /// Cookies returned from a get operation.
+    Cookies(Vec<Cookie<'static>>),
+    /// Acknowledgement that a operation is completed.
+    Done,
+}
+
+/// A callback for a pending embedder cookie operation,
+/// paired with the [`CookieOperationResponse`].
+enum CookieOperationCallback {
+    Cookies(Box<dyn FnOnce(Vec<Cookie<'static>>)>),
+    Done(Box<dyn FnOnce()>),
+}
 
 /// Provides APIs for inspecting and managing site data.
 ///
@@ -84,7 +97,7 @@ pub struct SiteDataManager {
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
     next_cookie_op_id: Cell<u64>,
-    pending_cookie_callbacks: RefCell<FxHashMap<CookieOperationId, CookieCallback>>,
+    pending_cookie_callbacks: RefCell<FxHashMap<CookieOperationId, CookieOperationCallback>>,
 }
 
 impl SiteDataManager {
@@ -242,28 +255,61 @@ impl SiteDataManager {
         source: CookieSource,
         callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
     ) {
-        let id = CookieOperationId(self.next_cookie_op_id.get());
-        self.next_cookie_op_id.set(id.0 + 1);
+        let id = self.next_operation_id();
         self.pending_cookie_callbacks
             .borrow_mut()
-            .insert(id, Box::new(callback));
+            .insert(id, CookieOperationCallback::Cookies(Box::new(callback)));
         self.public_resource_threads
             .cookies_for_url_async(id, url.into(), source);
     }
 
-    /// Handle a cookie response from the resource thread.
+    /// Asynchronously sets a cookie for the domain associated with the given [`Url`].
+    pub fn set_cookie_for_url_async(
+        &self,
+        url: Url,
+        cookie: Cookie<'static>,
+        callback: impl FnOnce() + 'static,
+    ) {
+        let id = self.next_operation_id();
+        self.pending_cookie_callbacks
+            .borrow_mut()
+            .insert(id, CookieOperationCallback::Done(Box::new(callback)));
+        self.public_resource_threads.set_cookie_for_url_async(
+            id,
+            url.into(),
+            cookie,
+            CookieSource::HTTP,
+        );
+    }
+
+    /// Handle a cookie operation response from the resource thread.
     ///
-    /// This is called by the event loop when a
-    /// [`NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse`] is received.
+    /// This is called by the event loop when an embedder cookie response is received.
     pub(crate) fn handle_cookie_response(
         &self,
         id: CookieOperationId,
-        cookies: Vec<Cookie<'static>>,
+        response: CookieOperationResponse,
     ) {
-        if let Some(callback) = self.pending_cookie_callbacks.borrow_mut().remove(&id) {
-            callback(cookies);
-        } else {
+        let Some(callback) = self.pending_cookie_callbacks.borrow_mut().remove(&id) else {
             warn!("Received cookie response for unknown operation {id:?}");
+            return;
+        };
+        match (callback, response) {
+            (CookieOperationCallback::Cookies(cb), CookieOperationResponse::Cookies(cookies)) => {
+                cb(cookies);
+            },
+            (CookieOperationCallback::Done(cb), CookieOperationResponse::Done) => {
+                cb();
+            },
+            _ => {
+                warn!("Cookie response type mismatch for operation {id:?}");
+            },
         }
+    }
+
+    fn next_operation_id(&self) -> CookieOperationId {
+        let id = CookieOperationId(self.next_cookie_op_id.get());
+        self.next_cookie_op_id.set(id.0 + 1);
+        id
     }
 }

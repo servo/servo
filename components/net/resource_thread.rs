@@ -574,6 +574,19 @@ impl ResourceChannelManager {
                         cookies,
                     ));
             },
+            CoreResourceMsg::EmbedderSetCookieForUrl(operation_id, url, cookie, source) => {
+                self.resource_manager.set_cookie_for_url(
+                    &url,
+                    cookie.into_inner(),
+                    source,
+                    http_state,
+                );
+                http_state
+                    .embedder_proxy
+                    .send(NetToEmbedderMsg::EmbedderSetCookieForUrlResponse(
+                        operation_id,
+                    ));
+            },
             CoreResourceMsg::NewCookieListener(cookie_store_id, callback, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring
                 self.cookie_listeners.insert(cookie_store_id, callback);

@@ -37,4 +37,6 @@ pub enum NetToEmbedderMsg {
     ),
     /// Response to a [`CoreResourceMsg::EmbedderGetCookiesForUrl`] request.
     EmbedderGetCookiesForUrlResponse(CookieOperationId, Vec<Cookie<'static>>),
+    /// Response to a [`CoreResourceMsg::EmbedderSetCookieForUrl`] request.
+    EmbedderSetCookieForUrlResponse(CookieOperationId),
 }
