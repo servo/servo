@@ -77,9 +77,7 @@ use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::input_element::input_type::InputType;
-use crate::dom::node::{
-    BindContext, Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper,
-};
+use crate::dom::node::{Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
@@ -91,6 +89,7 @@ use crate::navigation::navigate;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
+/// <https://html.spec.whatwg.org/multipage/#the-form-element>
 #[dom_struct]
 pub(crate) struct HTMLFormElement {
     htmlelement: HTMLElement,
@@ -114,6 +113,7 @@ pub(crate) struct HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#planned-navigation>
     planned_navigation: Cell<usize>,
 
+    /// <https://html.spec.whatwg.org/multipage/#attr-form-rel>
     #[no_trace]
     relations: Cell<LinkRelations>,
 }
@@ -1407,7 +1407,18 @@ impl HTMLFormElement {
             let root = self.upcast::<Element>().root_element();
             let root = root.upcast::<Node>();
             let mut controls = self.controls.borrow_mut();
-            controls.insert_pre_order(control.to_element(), root);
+
+            // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
+            // associates form control elements with a form before they are bound to the tree.
+            //
+            // In that case we can't use insert_pre_order, because the position of a element not in
+            // the tree can't be compared to anything in the DOM tree.
+            let control_element = control.to_element();
+            if control_element.upcast::<Node>().has_parent() {
+                controls.insert_pre_order(control_element, root);
+            } else {
+                controls.push(Dom::from_ref(control_element));
+            }
         }
         self.update_validity(can_gc);
     }
@@ -1921,15 +1932,6 @@ impl VirtualMethods for HTMLFormElement {
             },
             _ => {},
         }
-    }
-
-    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
-        }
-
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
     }
 }
 

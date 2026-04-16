@@ -221,6 +221,9 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
     fn is_single_line_text_input(&self) -> bool;
 
+    /// Whether or not this [`LayoutNode`] is in a user agent widget shadow DOM.
+    fn is_root_of_user_agent_widget(&self) -> bool;
+
     /// Set whether or not this node has an active pseudo-element style with a `content`
     /// attribute that uses `attr`.
     fn set_uses_content_attribute_with_attr(&self, _uses_content_attribute_with_attr: bool);

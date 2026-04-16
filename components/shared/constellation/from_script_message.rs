@@ -35,7 +35,9 @@ use servo_base::id::{
     ServiceWorkerRegistrationId, WebViewId,
 };
 use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+use servo_canvas_traits::webgl::WebGLChan;
 use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
+use servo_wakelock::WakeLockType;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
@@ -483,6 +485,8 @@ pub struct WorkerGlobalScopeInit {
     pub inherited_secure_context: Option<bool>,
     /// Unminify Javascript.
     pub unminify_js: bool,
+    /// Handle for communicating messages to the WebGL thread, if available.
+    pub webgl_chan: Option<WebGLChan>,
 }
 
 /// Common entities representing a network load origin
@@ -726,6 +730,14 @@ pub enum ScriptToConstellationMessage {
     RespondToScreenshotReadinessRequest(ScreenshotReadinessResponse),
     /// Request the constellation to force garbage collection in all `ScriptThread`'s.
     TriggerGarbageCollection,
+    /// Request to acquire a wake lock of the given type. The constellation will track the
+    /// aggregate lock count and notify the provider only when the count transitions from 0 to 1.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+    AcquireWakeLock(WakeLockType),
+    /// Request to release a wake lock of the given type. The constellation will track the
+    /// aggregate lock count and notify the provider only when the count transitions from N to 0.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
+    ReleaseWakeLock(WakeLockType),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

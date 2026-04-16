@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -76,7 +77,7 @@ impl Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#enabled>
     fn selection_if_command_is_enabled(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_name: CommandName,
     ) -> Option<DomRoot<Selection>> {
         let selection = self.GetSelection(CanGc::from_cx(cx))?;
@@ -120,6 +121,7 @@ impl Document {
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontsize" => CommandName::FontSize,
             "stylewithcss" => CommandName::StyleWithCss,
+            "underline" => CommandName::Underline,
             _ => return None,
         })
     }
@@ -128,20 +130,16 @@ impl Document {
 pub(crate) trait DocumentExecCommandSupport {
     fn is_command_supported(&self, command_id: DOMString) -> bool;
     fn is_command_indeterminate(&self, command_id: DOMString) -> bool;
-    fn command_state_for_command(&self, command_id: DOMString) -> bool;
-    fn command_value_for_command(
-        &self,
-        cx: &mut js::context::JSContext,
-        command_id: DOMString,
-    ) -> DOMString;
+    fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool;
+    fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString;
     fn check_support_and_enabled(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: &DOMString,
     ) -> Option<(CommandName, DomRoot<Selection>)>;
     fn exec_command_for_command_id(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: DOMString,
         value: DOMString,
     ) -> bool;
@@ -162,12 +160,12 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
-    fn command_state_for_command(&self, command_id: DOMString) -> bool {
+    fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
         // Step 1. If command is not supported or has no state, return false.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
             return false;
         };
-        let Some(state) = command.current_state(self) else {
+        let Some(state) = command.current_state(cx, self) else {
             return false;
         };
         // Step 2. If the state override for command is set, return it.
@@ -176,11 +174,7 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
-    fn command_value_for_command(
-        &self,
-        cx: &mut js::context::JSContext,
-        command_id: DOMString,
-    ) -> DOMString {
+    fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString {
         // Step 1. If command is not supported or has no value, return the empty string.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
             return DOMString::new();
@@ -206,7 +200,7 @@ impl DocumentExecCommandSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
     fn check_support_and_enabled(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: &DOMString,
     ) -> Option<(CommandName, DomRoot<Selection>)> {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
@@ -218,7 +212,7 @@ impl DocumentExecCommandSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
     fn exec_command_for_command_id(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: DOMString,
         value: DOMString,
     ) -> bool {

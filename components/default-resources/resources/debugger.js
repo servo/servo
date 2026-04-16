@@ -72,9 +72,6 @@ addEventListener("addDebuggee", event => {
     }
 });
 
-// Maximum number of properties to include in preview
-// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#29>
-const OBJECT_PREVIEW_MAX_ITEMS = 10;
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
 const previewers = {
@@ -99,10 +96,9 @@ function createValueGrip(value, depth = 0) {
                 return { valueType: "-Infinity" };
             } else if (Number.isNaN(value)) {
                 return { valueType: "NaN" };
-            } else if (!value && 1 / value === -Infinity) {
+            } else if (Object.is(value, -0)) {
                 return { valueType: "-0" };
             }
-
             return { valueType: "number", numberValue: value };
         case "string":
             return { valueType: "string", stringValue: value };
@@ -124,7 +120,7 @@ function createValueGrip(value, depth = 0) {
 
 // Extract own properties from a debuggee object
 // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
-function extractOwnProperties(obj, depth, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
+function extractOwnProperties(obj, depth) {
     const ownProperties = [];
     let totalLength = 0;
 
@@ -136,9 +132,7 @@ function extractOwnProperties(obj, depth, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
         return { ownProperties, ownPropertiesLength: 0 };
     }
 
-    let count = 0;
     for (const name of names) {
-        if (count >= maxItems) break;
         try {
             const desc = obj.getOwnPropertyDescriptor(name);
             if (desc) {
@@ -163,7 +157,6 @@ function extractOwnProperties(obj, depth, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
                 }
 
                 ownProperties.push(prop);
-                count++;
             }
         } catch (e) {
             // For now skip properties that throw on access
@@ -197,14 +190,35 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
 });
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
-// TODO: Add implementation for showing Array items
 previewers.Array.push(function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const length = lengthDescriptor ? lengthDescriptor.value : 0;
 
+    if (depth > 1) {
+        return {
+            kind: "ArrayLike",
+            arrayLength: length,
+        };
+    }
+
+    const items = [];
+    for (let i = 0; i < length; i++) {
+        try {
+            const desc = obj.getOwnPropertyDescriptor(i);
+            if (desc && desc.value !== undefined) {
+                const grip = createValueGrip(desc.value, depth);
+                delete grip.preview;
+                items.push(grip);
+            }
+        } catch (e) {
+            // For now skip properties that throw on access
+        }
+    }
+
     return {
         kind: "ArrayLike",
         arrayLength: length,
+        items: items,
     };
 });
 

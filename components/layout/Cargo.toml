@@ -19,6 +19,7 @@ doctest = false
 tracing = ["dep:tracing"]
 
 [dependencies]
+accesskit = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
@@ -46,6 +47,7 @@ rustc-hash = { workspace = true }
 script = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
+serde = { workspace = true }
 servo_arc = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }

@@ -256,12 +256,25 @@ impl VirtualMethods for HTMLLinkElement {
 
         let local_name = attr.local_name();
         let is_removal = mutation.is_removal();
-        if *local_name == local_name!("disabled") {
-            self.handle_disabled_attribute_change(is_removal);
-            return;
-        }
-        let node = self.upcast::<Node>();
+        match *local_name {
+            local_name!("disabled") => {
+                self.handle_disabled_attribute_change(is_removal);
+                return;
+            },
+            local_name!("rel") | local_name!("rev") => {
+                let previous_relations = self.relations.get();
+                self.relations
+                    .set(LinkRelations::for_element(self.upcast()));
 
+                // If relations haven't changed, we shouldn't do anything
+                if previous_relations == self.relations.get() {
+                    return;
+                }
+            },
+            _ => {},
+        }
+
+        let node = self.upcast::<Node>();
         if !node.is_connected() {
             return;
         }
@@ -278,15 +291,6 @@ impl VirtualMethods for HTMLLinkElement {
 
         match *local_name {
             local_name!("rel") | local_name!("rev") => {
-                let previous_relations = self.relations.get();
-                self.relations
-                    .set(LinkRelations::for_element(self.upcast()));
-
-                // If relations haven't changed, we shouldn't do anything
-                if previous_relations == self.relations.get() {
-                    return;
-                }
-
                 // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
                 // > When the external resource link is created on a link element that is already browsing-context connected.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
@@ -443,9 +447,6 @@ impl VirtualMethods for HTMLLinkElement {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(cx, context);
         }
-
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
 
         if context.tree_connected {
             let element = self.upcast();

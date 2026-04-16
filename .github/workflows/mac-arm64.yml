@@ -125,14 +125,16 @@ jobs:
       - name: Install crown
         run: cargo install --path support/crown
 
-      - uses: taiki-e/install-action@v2
+      - name: Install cargo nextest
+        if: ${{ inputs.unit-tests }}
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
 
       - if: runner.environment != 'self-hosted'
         name: Bootstrap
         run: |
-          ./mach bootstrap --yes --skip-lints
+          ./mach bootstrap --yes --skip-lints --skip-nextest
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |

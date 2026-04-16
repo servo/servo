@@ -32,12 +32,6 @@
                     DiskId="1"
                     Source="${windowize(exe_path)}\servoshell.exe"
                     KeyPath="yes">
-                <Shortcut Id="StartMenuServoTechDemo"
-                          Directory="ProgramMenuDir"
-                          Name="Servo Tech Demo"
-                          WorkingDirectory="INSTALLDIR"
-                          Icon="servoshell.exe"
-                          Advertise="yes"/>
               </File>
 	            ${include_dependencies()}
             </Component>
@@ -56,6 +50,12 @@
                            Type="string"
                            Value=""
                            KeyPath="yes"/>
+            <Shortcut Id="StartMenuServoTechDemo"
+              Directory="ProgramMenuDir"
+              Name="Servo Tech Demo"
+              Target="[INSTALLDIR]servoshell.exe"
+              WorkingDirectory="INSTALLDIR"
+              Icon="servoshell.exe"/>
           </Component>
         </Directory>
       </Directory>

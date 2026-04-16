@@ -69,6 +69,7 @@ use servo_geometry::{
 };
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
+use servo_wakelock::NoOpWakeLockProvider;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
@@ -543,6 +544,21 @@ impl ServoInner {
                         .request_permission(webview, permission_request);
                 }
             },
+            EmbedderMsg::RequestWakeLockPermission(webview_id, callback) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let permission_request = PermissionRequest {
+                        requested_feature: PermissionFeature::ScreenWakeLock,
+                        allow_deny_request: AllowOrDenyRequest::new_from_callback(
+                            callback,
+                            AllowOrDeny::Deny,
+                            self.servo_errors.sender(),
+                        ),
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
+                }
+            },
             EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
                 Ok(port) => self
                     .delegate
@@ -669,11 +685,9 @@ impl ServoInner {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
-            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update) => {
+            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update, epoch) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_accessibility_tree_update(webview, tree_update);
+                    webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
         }
@@ -779,11 +793,6 @@ impl ServoInner {
                     webview
                         .delegate()
                         .notify_media_session_event(webview, media_session_event);
-                }
-            },
-            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(webview_id, tree_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.notify_document_accessibility_tree_id(tree_id);
                 }
             },
         }
@@ -1168,6 +1177,7 @@ fn create_constellation(
         wgpu_image_map: paint.webgpu_image_map(),
         async_runtime,
         privileged_urls,
+        wake_lock_provider: Box::new(NoOpWakeLockProvider),
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

@@ -30,6 +30,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_base::Epoch;
 use servo_base::generic_channel::{
     GenericCallback, GenericSender, GenericSharedMemory, SendResult,
 };
@@ -480,6 +481,10 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
+    /// Async permission request for screen wake lock. The callback is invoked
+    /// with the user's decision, which resolves or rejects the pending promise
+    /// without blocking the script thread.
+    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
@@ -508,7 +513,7 @@ pub enum EmbedderMsg {
     /// and the embedder can continue processing it, if necessary.
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, TreeUpdate),
+    AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
 }
 
 impl Debug for EmbedderMsg {
@@ -594,6 +599,7 @@ pub enum PermissionFeature {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
+    ScreenWakeLock,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.

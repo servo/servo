@@ -12,7 +12,7 @@ use servo_base::generic_channel::channel;
 use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
-use crate::actors::object::ObjectActor;
+use crate::actors::object::{ObjectActor, ObjectActorMsg};
 use crate::actors::source::SourceActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 
@@ -49,7 +49,7 @@ pub(crate) struct FrameActorMsg {
     display_name: String,
     oldest: bool,
     state: FrameState,
-    this: Value,
+    this: ObjectActorMsg,
     #[serde(rename = "where")]
     where_: FrameWhere,
 }

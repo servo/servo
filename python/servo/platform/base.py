@@ -32,7 +32,7 @@ class Base:
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
-    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool, yes: bool) -> bool:
         raise NotImplementedError("GStreamer bootstrap support is not yet available for your OS.")
 
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
@@ -132,9 +132,9 @@ class Base:
         as fast as possible."""
         return False
 
-    def bootstrap_gstreamer(self, force: bool) -> None:
+    def bootstrap_gstreamer(self, force: bool, yes: bool) -> None:
         target = BuildTarget.from_triple(self.triple)
-        if not self._platform_bootstrap_gstreamer(target, force):
+        if not self._platform_bootstrap_gstreamer(target, force, yes):
             root = self.gstreamer_root(target)
             if root:
                 print(f"GStreamer found at: {root}")

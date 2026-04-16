@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::fs;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -17,12 +17,12 @@ use egui::{
     Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
     WidgetInfo, WidgetType, pos2,
 };
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use log::info;
 use log::warn;
 use servo::{
@@ -82,14 +82,9 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
-#[cfg(target_os = "windows")]
-fn configure_fonts() -> FontDefinitions {
+#[cfg(any(target_os = "windows", target_os = "linux"))]
+fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
-    let font_candidates = [
-        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
-        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
-    ];
-
     let mut loaded_font_names = Vec::new();
 
     for (path_str, font_name) in font_candidates.iter() {
@@ -97,11 +92,13 @@ fn configure_fonts() -> FontDefinitions {
         if font_path.exists() {
             match fs::read(font_path) {
                 Ok(bytes) => {
-                    fonts
-                        .font_data
-                        .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
-                    loaded_font_names.push(font_name.to_string());
-                    info!("Loaded font: {}", font_name);
+                    if !fonts.font_data.contains_key(*font_name) {
+                        fonts
+                            .font_data
+                            .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
+                        loaded_font_names.push(font_name.to_string());
+                        info!("Loaded font: {}", font_name);
+                    }
                 },
                 Err(error) => {
                     info!("Failed to read font {}: {}", font_name, error);
@@ -120,10 +117,36 @@ fn configure_fonts() -> FontDefinitions {
     fonts
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "windows")]
+fn configure_fonts() -> FontDefinitions {
+    load_cjk_fonts(&[
+        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
+        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
+    ])
+}
+
+#[cfg(target_os = "linux")]
+fn configure_fonts() -> FontDefinitions {
+    load_cjk_fonts(&[
+        (
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Ubuntu/Debian
+        (
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Fedora/Arch
+        (
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // common fallback
+    ])
+}
+
+#[cfg(target_os = "macos")]
 fn configure_fonts() -> FontDefinitions {
     // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
-    // does not support CJK. Add them for Mac/Linux.
+    // does not support CJK. Add them for Mac.
     FontDefinitions::default()
 }
 
@@ -531,7 +554,7 @@ impl Gui {
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
-            let rect = ctx.content_rect();
+            let available_rect = ctx.available_rect_before_wrap();
 
             // Build a graft node for each WebView.
             for (webview_id, webview) in window.webviews() {
@@ -542,7 +565,7 @@ impl Gui {
                     });
                 }
             }
-            let size = Size2D::new(rect.width(), rect.height()) * scale;
+            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale;
             if let Some(webview) = window.active_webview() &&
                 size != webview.size()
             {
@@ -557,7 +580,7 @@ impl Gui {
                     ctx.clone(),
                     LayerId::new(Order::Tooltip, Id::new("tooltip")),
                     "tooltip layer".into(),
-                    pos2(0.0, ctx.content_rect().max.y),
+                    pos2(0.0, available_rect.max.y),
                 )
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
                 window.set_needs_repaint();
@@ -566,12 +589,8 @@ impl Gui {
             window.repaint_webviews();
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
-                let rect = egui::Rect::from_two_pos(
-                    (0.0, toolbar_height.0).into(),
-                    ctx.content_rect().max,
-                );
                 ctx.layer_painter(LayerId::background()).add(PaintCallback {
-                    rect,
+                    rect: available_rect,
                     callback: Arc::new(CallbackFn::new(move |info, painter| {
                         let clip = info.viewport_in_pixels();
                         let rect_in_parent = Rect::new(

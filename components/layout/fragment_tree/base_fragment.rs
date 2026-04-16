@@ -71,6 +71,9 @@ pub(crate) enum FragmentStatus {
     New,
     /// The style of the fragment has changed.
     StyleChanged,
+    /// The fragment was reused between layouts, but its final layout
+    /// position may have changed.
+    PositionMaybeChanged,
     /// The fragment hasn't changed.
     Clean,
 }

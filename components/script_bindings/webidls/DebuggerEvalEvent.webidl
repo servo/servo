@@ -45,6 +45,7 @@ dictionary ObjectPreview {
     sequence<PropertyDescriptor> ownProperties;
     unsigned long ownPropertiesLength;
     unsigned long arrayLength;
+    sequence<DebuggerValue> items;
     FunctionPreview function;
 };
 

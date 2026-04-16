@@ -33,7 +33,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{BindContext, Node, NodeTraits};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{LinkRelations, follow_hyperlink};
 use crate::script_runtime::CanGc;
@@ -129,15 +129,6 @@ impl VirtualMethods for HTMLAnchorElement {
             },
             _ => {},
         }
-    }
-
-    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
-        }
-
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
     }
 }
 

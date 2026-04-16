@@ -118,7 +118,7 @@ use unicode_bidi::{BidiInfo, Level};
 use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
-use super::{CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult};
+use super::{IndependentFloatOrAtomicLayoutResult, IndependentFormattingContextLayoutResult};
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
@@ -1932,7 +1932,7 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         // Clear any cached inline fragments from previous layouts.
         for inline_box in self.inline_boxes.iter() {
             inline_box.borrow().base.clear_fragments();
@@ -2030,7 +2030,7 @@ impl InlineFormattingContext {
         let (content_block_size, collapsible_margins_in_children, baselines) =
             layout.placement_state.finish();
 
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             fragments: layout.fragments,
             content_block_size,
             collapsible_margins_in_children,

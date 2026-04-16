@@ -64,10 +64,11 @@ use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::selector_parser::Snapshot;
-use style::shared_lock::SharedRwLock as StyleSharedRwLock;
+use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
+use style::stylist::Stylist;
 use stylo_atoms::Atom;
 use time::Duration as TimeDuration;
 use url::{Host, Position};
@@ -2839,7 +2840,8 @@ impl Document {
         }
         if !self.window().layout_blocked() &&
             (!self.restyle_reason().is_empty() ||
-                self.window().layout().needs_new_display_list())
+                self.window().layout().needs_new_display_list() ||
+                self.window().layout().needs_accessibility_update())
         {
             return true;
         }
@@ -3144,7 +3146,7 @@ impl Document {
     ) {
         // Step 1
         // > Let rootBounds be observer’s root intersection rectangle.
-        let root_bounds = intersection_observer.root_intersection_rectangle(self);
+        let root_bounds = intersection_observer.root_intersection_rectangle();
 
         // Step 2
         // > For each target in observer’s internal [[ObservationTargets]] slot,
@@ -3357,29 +3359,17 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     #[inline]
-    pub(crate) fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>> {
-        // FIXME(nox): We should just return a
-        // &'dom HashSet<LayoutDom<'dom, ShadowRoot>> here but not until
-        // I rework the ToLayout trait as mentioned in
-        // LayoutDom::to_layout_slice.
-        unsafe {
-            self.unsafe_get()
-                .shadow_roots
-                .borrow_for_layout()
-                .iter()
-                .map(|sr| sr.to_layout())
-                .collect()
-        }
+    pub(crate) fn flush_shadow_root_stylesheets_if_necessary(
+        self,
+        stylist: &mut Stylist,
+        guard: &SharedRwLockReadGuard,
+    ) {
+        (*self.unsafe_get()).flush_shadow_root_stylesheets_if_necessary_for_layout(stylist, guard)
     }
 
     #[inline]
     pub(crate) fn shadow_roots_styles_changed(self) -> bool {
         self.unsafe_get().shadow_roots_styles_changed.get()
-    }
-
-    #[inline]
-    pub(crate) fn flush_shadow_roots_stylesheets(self) {
-        (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 
     pub(crate) fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
@@ -4149,9 +4139,21 @@ impl Document {
         self.shadow_roots_styles_changed.get()
     }
 
-    pub(crate) fn flush_shadow_roots_stylesheets(&self) {
+    pub(crate) fn flush_shadow_root_stylesheets_if_necessary_for_layout(
+        &self,
+        stylist: &mut Stylist,
+        guard: &SharedRwLockReadGuard,
+    ) {
         if !self.shadow_roots_styles_changed.get() {
             return;
+        }
+        #[expect(unsafe_code)]
+        unsafe {
+            for shadow_root in self.shadow_roots.borrow_for_layout().iter() {
+                shadow_root
+                    .to_layout()
+                    .flush_stylesheets_for_layout(stylist, guard);
+            }
         }
         self.shadow_roots_styles_changed.set(false);
     }
@@ -5224,60 +5226,65 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createevent>
-    fn CreateEvent(&self, mut interface: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Event>> {
+    fn CreateEvent(
+        &self,
+        cx: &mut js::context::JSContext,
+        mut interface: DOMString,
+    ) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
         match &*interface.str() {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "compositionevent" | "textevent" => Ok(DomRoot::upcast(
-                CompositionEvent::new_uninitialized(&self.window, can_gc),
+                CompositionEvent::new_uninitialized(&self.window, CanGc::from_cx(cx)),
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
-            "events" | "event" | "htmlevents" | "svgevents" => {
-                Ok(Event::new_uninitialized(self.window.upcast(), can_gc))
-            },
+            "events" | "event" | "htmlevents" | "svgevents" => Ok(Event::new_uninitialized(
+                self.window.upcast(),
+                CanGc::from_cx(cx),
+            )),
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
+                cx,
                 &self.window,
-                can_gc,
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
                 self.window.upcast(),
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "mouseevent" | "mouseevents" => Ok(DomRoot::upcast(MouseEvent::new_uninitialized(
+                cx,
                 &self.window,
-                can_gc,
             ))),
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 &self.window,
                 "".into(),
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             "touchevent" => Ok(DomRoot::upcast(DomTouchEvent::new_uninitialized(
                 &self.window,
-                &TouchList::new(&self.window, &[], can_gc),
-                &TouchList::new(&self.window, &[], can_gc),
-                &TouchList::new(&self.window, &[], can_gc),
-                can_gc,
+                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
+                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
+                &TouchList::new(&self.window, &[], CanGc::from_cx(cx)),
+                CanGc::from_cx(cx),
             ))),
             "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
                 &self.window,
-                can_gc,
+                CanGc::from_cx(cx),
             ))),
             _ => Err(Error::NotSupported(None)),
         }
@@ -6156,8 +6163,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
-    fn QueryCommandState(&self, command_id: DOMString) -> bool {
-        self.command_state_for_command(command_id)
+    fn QueryCommandState(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
+        self.command_state_for_command(cx, command_id)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>

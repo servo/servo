@@ -80,12 +80,12 @@ use script_traits::{
 };
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::generic_channel;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
     TEST_WEBVIEW_ID, WebViewId,
 };
+use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
@@ -1061,7 +1061,11 @@ impl ScriptThread {
     }
 
     /// Process input events as part of a "update the rendering task".
-    fn process_pending_input_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn process_pending_input_events(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+    ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Processing pending input events for closed pipeline {pipeline_id}.");
             return;
@@ -1076,7 +1080,7 @@ impl ScriptThread {
         }
 
         let _guard = ScriptUserInteractingGuard::new(self.is_user_interacting.clone());
-        document.event_handler().handle_pending_input_events(can_gc);
+        document.event_handler().handle_pending_input_events(cx);
     }
 
     fn cancel_scheduled_update_the_rendering(&self) {
@@ -1186,7 +1190,7 @@ impl ScriptThread {
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.process_pending_input_events(*pipeline_id, CanGc::from_cx(cx));
+            self.process_pending_input_events(cx, *pipeline_id);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
             let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));
@@ -1969,16 +1973,11 @@ impl ScriptThread {
                     .borrow_mut()
                     .remove(&user_content_manager_id);
             },
-            ScriptThreadMessage::AccessibilityTreeUpdate(webview_id, tree_update) => {
-                let _ = self.senders.pipeline_to_embedder_sender.send(
-                    EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update),
-                );
-            },
             ScriptThreadMessage::UpdatePinchZoomInfos(id, pinch_zoom_infos) => {
                 self.handle_update_pinch_zoom_infos(id, pinch_zoom_infos, CanGc::from_cx(cx));
             },
-            ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active) => {
-                self.set_accessibility_active(pipeline_id, active);
+            ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch) => {
+                self.set_accessibility_active(pipeline_id, active, epoch);
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(*GlobalScope::get_cx(), GCReason::API);
@@ -3397,6 +3396,7 @@ impl ScriptThread {
             viewport_details: incomplete.viewport_details,
             user_stylesheets,
             theme: incomplete.theme,
+            embedder_chan: self.senders.pipeline_to_embedder_sender.clone(),
         };
 
         // Create the window and document objects.
@@ -3703,7 +3703,7 @@ impl ScriptThread {
     }
 
     /// See the docs for [`ScriptThreadMessage::SetAccessibilityActive`].
-    fn set_accessibility_active(&self, pipeline_id: PipelineId, active: bool) {
+    fn set_accessibility_active(&self, pipeline_id: PipelineId, active: bool, epoch: Epoch) {
         if !(pref!(accessibility_enabled)) {
             return;
         }
@@ -3713,7 +3713,10 @@ impl ScriptThread {
             .borrow()
             .find_document(pipeline_id)
             .expect("Got pipeline_id from self.documents");
-        document.window().layout().set_accessibility_active(active);
+        document
+            .window()
+            .layout()
+            .set_accessibility_active(active, epoch);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

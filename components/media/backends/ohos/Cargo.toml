@@ -23,7 +23,7 @@ servo-media-webrtc = { workspace = true }
 mime = "0.3.13"
 once_cell = "1.18.0"
 log = "0.4"
-ohos-media-sys = { version = "0.0.5" ,features = ["api-21"] }
+ohos-media-sys = { version = "0.0.5", features = ["api-21"] }
 ohos-window-sys = { version = "0.1.3", features = ["api-13"] }
 ohos-sys-opaque-types = { version = "0.1.7" }
 ipc-channel = { workspace = true }

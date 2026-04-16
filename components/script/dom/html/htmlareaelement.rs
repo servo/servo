@@ -10,7 +10,6 @@ use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -31,7 +30,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
-use crate::dom::node::{BindContext, Node};
+use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{LinkRelations, follow_hyperlink};
 use crate::script_runtime::CanGc;
@@ -364,15 +363,6 @@ impl VirtualMethods for HTMLAreaElement {
             },
             _ => {},
         }
-    }
-
-    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
-        }
-
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
     }
 }
 

@@ -25,10 +25,16 @@ use url::Url;
 
 use crate::VERSION;
 
+/// Preferences enabled when servoshell is launched with the `--enable-experimental-web-platform-features` flag.
+///
+/// These preferences are disabled by default but activated in experimental mode.
+/// For more details, see the
+/// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_async_clipboard_enabled",
     "dom_exec_command_enabled",
     "dom_fontface_enabled",
+    "dom_indexeddb_enabled",
     "dom_intersection_observer_enabled",
     "dom_navigator_protocol_handlers_enabled",
     "dom_notification_enabled",

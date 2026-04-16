@@ -181,7 +181,6 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
 use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
-use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
@@ -427,10 +426,6 @@ pub(crate) struct Window {
     /// Cross-process access to `Paint`.
     #[no_trace]
     paint_api: CrossProcessPaintApi,
-
-    /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
-    /// It is used to avoid sending idle message more than once, which is unnecessary.
-    has_sent_idle_message: Cell<bool>,
 
     /// The [`UserScript`]s added via `UserContentManager`. These are potentially shared with other
     /// `WebView`s in this `ScriptThread`.
@@ -681,10 +676,13 @@ impl Window {
         &self.error_reporter
     }
 
-    pub(crate) fn webgl_chan(&self) -> Option<WebGLCommandSender> {
-        self.webgl_chan
-            .as_ref()
-            .map(|chan| WebGLCommandSender::new(chan.clone()))
+    pub(crate) fn webgl_chan(&self) -> Option<WebGLChan> {
+        self.webgl_chan.clone()
+    }
+
+    // TODO: rename the function to webgl_chan after the existing `webgl_chan` function is removed.
+    pub(crate) fn webgl_chan_value(&self) -> Option<WebGLChan> {
+        self.webgl_chan.clone()
     }
 
     #[cfg(feature = "webxr")]
@@ -2856,6 +2854,19 @@ impl Window {
         )
     }
 
+    /// Query the ancestor node that establishes the containing block for the given node.
+    /// <https://drafts.csswg.org/css-position-3/#def-cb>
+    #[expect(unsafe_code)]
+    pub(crate) fn containing_block_node_query_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Option<DomRoot<Node>> {
+        self.layout
+            .borrow()
+            .query_containing_block(node.to_trusted_node_address())
+            .map(|address| unsafe { from_untrusted_node_address(address) })
+    }
+
     /// Query the used padding values for the given node, but do not force a reflow.
     /// This is used for things like `ResizeObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of
@@ -3749,7 +3760,6 @@ impl Window {
             paint_worklet: Default::default(),
             exists_mut_observer: Cell::new(false),
             paint_api,
-            has_sent_idle_message: Cell::new(false),
             user_scripts,
             player_context,
             throttled: Cell::new(false),

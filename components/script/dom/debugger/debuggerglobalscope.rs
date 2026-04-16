@@ -640,6 +640,12 @@ fn parse_object_preview(preview: &ObjectPreview) -> devtools_traits::ObjectPrevi
                 is_generator: fields.isGenerator,
             }),
         array_length: preview.arrayLength,
+        items: preview.items.as_ref().map(|items| {
+            items
+                .iter()
+                .map(|item| parse_debugger_value(item, None))
+                .collect()
+        }),
     }
 }
 

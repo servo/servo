@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::properties::PropertyDeclarationId;
 use style::properties::generated::LonghandId;
+use style::values::specified::text::TextDecorationLine;
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use crate::dom::bindings::str::DOMString;
@@ -19,6 +22,7 @@ use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
+use crate::dom::execcommand::commands::underline::execute_underline_command;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
@@ -91,7 +95,11 @@ impl CssPropertyName {
                 CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
                 CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
                 CssPropertyName::TextDecorationLine => {
-                    style.clone_text_decoration_line().to_css_string()
+                    let text_decoration_line = style.get_text().text_decoration_line;
+                    if text_decoration_line == TextDecorationLine::NONE {
+                        return None;
+                    }
+                    text_decoration_line.to_css_string()
                 },
             }
             .into(),
@@ -138,7 +146,7 @@ impl CssPropertyName {
 
     pub(crate) fn set_for_element(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         element: &HTMLElement,
         new_value: DOMString,
     ) {
@@ -147,21 +155,13 @@ impl CssPropertyName {
         let _ = style.SetProperty(cx, self.property_name(), new_value, "".into());
     }
 
-    pub(crate) fn remove_from_element(
-        &self,
-        cx: &mut js::context::JSContext,
-        element: &HTMLElement,
-    ) {
+    pub(crate) fn remove_from_element(&self, cx: &mut JSContext, element: &HTMLElement) {
         let _ = element
             .Style(CanGc::from_cx(cx))
             .RemoveProperty(cx, self.property_name());
     }
 
-    pub(crate) fn value_for_element(
-        &self,
-        cx: &mut js::context::JSContext,
-        element: &HTMLElement,
-    ) -> DOMString {
+    pub(crate) fn value_for_element(&self, cx: &mut JSContext, element: &HTMLElement) -> DOMString {
         element
             .Style(CanGc::from_cx(cx))
             .GetPropertyValue(self.property_name())
@@ -218,21 +218,36 @@ impl CommandName {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state>
-    pub(crate) fn current_state(&self, document: &Document) -> Option<bool> {
+    pub(crate) fn current_state(&self, cx: &mut JSContext, document: &Document) -> Option<bool> {
         Some(match self {
             CommandName::StyleWithCss => {
                 // https://w3c.github.io/editing/docs/execCommand/#the-stylewithcss-command
                 // > True if the CSS styling flag is true, otherwise false.
                 document.css_styling_flag()
             },
-            _ => return None,
+            CommandName::FontSize => {
+                // Font size does not have a state defined for its command
+                false
+            },
+            _ => {
+                // https://w3c.github.io/editing/docs/execCommand/#state
+                // > The state of a command is true if it is already in effect,
+                // > in some sense specific to the command.
+                let selection = document.GetSelection(CanGc::from_cx(cx))?;
+                let active_range = selection.active_range()?;
+                active_range
+                    .first_formattable_contained_node()
+                    .unwrap_or_else(|| active_range.start_container())
+                    .effective_command_value(self)
+                    .is_some()
+            },
         })
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value>
     pub(crate) fn current_value(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         document: &Document,
     ) -> Option<DOMString> {
         Some(match self {
@@ -342,7 +357,7 @@ impl CommandName {
     /// <https://w3c.github.io/editing/docs/execCommand/#action>
     pub(crate) fn execute(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         document: &Document,
         selection: &Selection,
         value: DOMString,
@@ -354,7 +369,27 @@ impl CommandName {
             CommandName::Delete => execute_delete_command(cx, document, selection),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
+            CommandName::Underline => execute_underline_command(cx, document, selection),
             _ => false,
+        }
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#inline-command-activated-values>
+    pub(crate) fn inline_command_activated_values(&self) -> Vec<&str> {
+        match self {
+            // https://w3c.github.io/editing/docs/execCommand/#the-bold-command
+            CommandName::Bold => vec!["bold", "600", "700", "800", "900"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-italic-command
+            CommandName::Italic => vec!["italic", "oblique"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-strikethrough-command
+            CommandName::Strikethrough => vec!["line-through"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-subscript-command
+            CommandName::Subscript => vec!["subscript"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
+            CommandName::Superscript => vec!["superscript"],
+            // https://w3c.github.io/editing/docs/execCommand/#the-underline-command
+            CommandName::Underline => vec!["underline"],
+            _ => vec![],
         }
     }
 }

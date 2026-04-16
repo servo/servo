@@ -530,6 +530,7 @@ impl DedicatedWorkerGlobalScope {
                                 worker_url.url(),
                                 fetch_client,
                                 ModuleOwner::Worker(Trusted::new(scope)),
+                                Destination::Worker,
                                 referrer,
                                 credentials,
                             );

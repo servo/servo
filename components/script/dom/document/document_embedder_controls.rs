@@ -500,23 +500,23 @@ impl ContextMenuNodes {
             },
             ContextMenuAction::Cut => {
                 window.Document().event_handler().handle_editing_action(
+                    cx,
                     self.text_input_element.clone(),
                     EditingActionEvent::Cut,
-                    CanGc::from_cx(cx),
                 );
             },
             ContextMenuAction::Copy => {
                 window.Document().event_handler().handle_editing_action(
+                    cx,
                     self.text_input_element.clone(),
                     EditingActionEvent::Copy,
-                    CanGc::from_cx(cx),
                 );
             },
             ContextMenuAction::Paste => {
                 window.Document().event_handler().handle_editing_action(
+                    cx,
                     self.text_input_element.clone(),
                     EditingActionEvent::Paste,
-                    CanGc::from_cx(cx),
                 );
             },
             ContextMenuAction::SelectAll => {

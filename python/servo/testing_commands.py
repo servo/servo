@@ -63,9 +63,15 @@ TOML_GLOBS = [
     "*.toml",
     ".cargo/*.toml",
     "components/*/*.toml",
-    "components/shared/*/*.toml",
+    "components/*/*/*.toml",
+    "components/media/backends/*/*.toml",
+    "components/media/*/*/*/*.toml",
+    "etc/ci/scenario/*.toml",
     "ports/*/*.toml",
     "support/*/*.toml",
+    "python/tidy/tests/*.toml",
+    "python/tidy/tests/*/*.toml",
+    "tests/unit/*/*.toml",
 ]
 
 

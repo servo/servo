@@ -1043,7 +1043,7 @@ goog.scope(function() {
 
             // There should be at least one enabled vertex attribute array that has a divisor of zero in WebGL.
             // This limitation is added to keep compatible with D3D. It differs from the feature in gles.
-            // See the section <Enabled Attribute> in WebGL spec: https://www.khronos.org/registry/webgl/specs/latest/2.0/#5.6
+            // See the section <Enabled Attribute> in WebGL spec: https://www.khronos.org/registry/webgl/specs/latest/2.0/#6.6
             if (hasZeroDivisor == false)
                 continue;
 
