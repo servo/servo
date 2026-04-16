@@ -13,7 +13,9 @@ use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use bitflags::bitflags;
-use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan, Theme, ViewportDetails};
+use embedder_traits::{
+    EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
+};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
@@ -86,10 +88,11 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
-    process_effective_overflow_query, process_node_scroll_area_request,
-    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
-    process_resolved_style_request, process_scroll_container_query,
+    process_box_areas_request, process_client_rect_request, process_containing_block_query,
+    process_current_css_zoom_query, process_effective_overflow_query,
+    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
+    process_resolved_font_style_query, process_resolved_style_request,
+    process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
@@ -315,6 +318,15 @@ impl Layout for LayoutThread {
     fn remove_cached_image(&mut self, url: &ServoUrl) {
         let mut resolved_images_cache = self.resolved_images_cache.write();
         resolved_images_cache.remove(url);
+    }
+
+    /// Return the node corresponding to the containing block of the provided node.
+    #[servo_tracing::instrument(skip_all)]
+    fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_containing_block_query(node)
+        })
     }
 
     /// Return the resolved values of this node's padding rect.
