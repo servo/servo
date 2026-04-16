@@ -23,16 +23,12 @@ pub struct HttpStatus {
 
 impl HttpStatus {
     /// Creates a new [`HttpStatus`] with a potential message
-    pub fn try_new(code: u16, msg: Option<Vec<u8>>) -> Option<Self> {
+    pub fn try_new(code: u16, message: Option<Vec<u8>>) -> Option<Self> {
         let code = http::StatusCode::from_u16(code).ok()?;
-        let message = msg
-            .or_else(|| {
-                code.canonical_reason()
-                    .map(|reason| reason.as_bytes().to_owned())
-            })
-            .unwrap_or_default();
-
-        Some(HttpStatus { code, message })
+        Some(HttpStatus {
+            code,
+            message: message.unwrap_or_default(),
+        })
     }
 
     /// The inner message will construct the canonical reason if none given.
