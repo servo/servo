@@ -16,11 +16,13 @@ use crate::protocol::ClientRequest;
 use crate::{ActorMsg, StreamId};
 
 pub mod accessibility;
+pub mod accessible_walker;
 pub mod css_properties;
 pub mod highlighter;
 pub mod layout;
 pub mod node;
 pub mod page_style;
+pub mod simulator;
 pub mod style_rule;
 pub mod walker;
 

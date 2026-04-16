@@ -9,6 +9,7 @@ use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::property_iterator::PropertyIteratorActor;
+use crate::actors::symbol_iterator::SymbolIteratorActor;
 use crate::protocol::ClientRequest;
 use crate::{StreamId, debugger_value_to_json};
 
@@ -157,18 +158,15 @@ impl Actor for ObjectActor {
             },
 
             "enumSymbols" => {
-                let symbol_iterator_actor = SymbolIteratorActor {
-                    name: registry.new_name::<SymbolIteratorActor>(),
-                };
+                let symbol_iterator_name = SymbolIteratorActor::register(registry);
                 let msg = EnumReply {
                     from: self.name(),
                     iterator: EnumIterator {
-                        actor: symbol_iterator_actor.name(),
+                        actor: symbol_iterator_name,
                         type_: EnumIteratorType::SymbolIterator,
                         count: 0,
                     },
                 };
-                registry.register(symbol_iterator_actor);
                 request.reply_final(&msg)?
             },
 
@@ -309,16 +307,5 @@ impl ActorEncode<Value> for ObjectActor {
         m.insert("preview".to_owned(), Value::Object(preview_map));
 
         Value::Object(m)
-    }
-}
-
-#[derive(MallocSizeOf)]
-struct SymbolIteratorActor {
-    name: String,
-}
-
-impl Actor for SymbolIteratorActor {
-    fn name(&self) -> String {
-        self.name.clone()
     }
 }
