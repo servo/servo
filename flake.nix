@@ -42,7 +42,7 @@
 
           deps = import ./nix/packages.nix {
             inherit pkgs;
-            inherit (pkgs) lib stdenv;
+            inherit (pkgs) lib;
             gnumakeSource = nixpkgs-gnumake.legacyPackages.${system};
           };
 

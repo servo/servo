@@ -1,4 +1,4 @@
-{ pkgs, lib, stdenv, gnumakeSource ? null }:
+{ pkgs, lib, gnumakeSource ? null }:
 let
   gnumakePkgs =
     if gnumakeSource != null
@@ -26,6 +26,7 @@ let
   };
 
   llvmPackages = pkgs.llvmPackages_20;
+  stdenv = llvmPackages.stdenv;
 in {
 
   envVars = {
