@@ -33,7 +33,7 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
-use crate::layout_box_base::CacheableLayoutResult;
+use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
@@ -611,7 +611,7 @@ impl FlexContainer {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         lazy_block_size: &LazySize,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
@@ -949,7 +949,7 @@ impl FlexContainer {
         //   This is unlikely because `align-content` defaults to `stretch`.
         let depends_on_block_constraints = true;
 
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size,
             content_inline_size_for_table: None,
@@ -1870,7 +1870,7 @@ impl FlexItem<'_> {
             self.preferred_aspect_ratio,
             &lazy_block_size,
         );
-        let CacheableLayoutResult {
+        let IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size,
             baselines: content_box_baselines,

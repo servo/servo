@@ -23,7 +23,7 @@ use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
     PhysicalSides, PhysicalSize, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
 };
-use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
+use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
@@ -592,7 +592,7 @@ impl HoistedAbsolutelyPositionedBox {
             preferred_aspect_ratio,
             &lazy_block_size,
         );
-        let CacheableLayoutResult {
+        let IndependentFormattingContextLayoutResult {
             content_inline_size_for_table,
             content_block_size,
             fragments,
