@@ -33,6 +33,7 @@ in {
     LIBCLANG_PATH = lib.makeLibraryPath [
       llvmPackages.clang-unwrapped.lib
     ];
+    CLANG_PATH = "${llvmPackages.clang}/bin/clang";
     SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
     TERMINFO = "${pkgs.ncurses.out}/share/terminfo";
   };
