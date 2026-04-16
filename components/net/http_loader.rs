@@ -735,8 +735,6 @@ fn obtain_response_setup_router_callback(
         }
     }
 
-    let chunk_requester2 = chunk_requester.clone();
-
     ROUTER.add_typed_route(
         body_port,
         Box::new(move |message| {
@@ -779,9 +777,9 @@ fn obtain_response_setup_router_callback(
 
             // Step 5.1.2.3
             // Request the next chunk.
-            let mut chunk_requester2 = chunk_requester2.lock();
-            if let Some(chunk_requester2) = chunk_requester2.as_mut() {
-                if let Err(error) = chunk_requester2.send(BodyChunkRequest::Chunk) {
+            let mut chunk_requester = chunk_requester.lock();
+            if let Some(chunk_requester) = chunk_requester.as_mut() {
+                if let Err(error) = chunk_requester.send(BodyChunkRequest::Chunk) {
                     log_request_body_stream_closed(
                         "request the next request body chunk",
                         Some(&error),
