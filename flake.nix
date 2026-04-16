@@ -48,7 +48,6 @@
 
           androidDeps = import ./nix/android.nix {
             inherit androidPkgs;
-            inherit (androidPkgs) lib;
           };
 
           hook = import ./nix/shell-hook.nix {

@@ -1,4 +1,4 @@
-{ androidPkgs, lib }:
+{ androidPkgs }:
 let
   buildToolsVersion = "34.0.0";
 
