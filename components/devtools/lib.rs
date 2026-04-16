@@ -990,6 +990,8 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
             preview,
             ..
         } => {
+            // TODO: We should have a field called `ownPropertyLength` here
+            // That will show "{...}" when an object has more properties
             let object_name = ObjectActor::register(registry, Some(uuid), class, preview);
             let object_msg = registry.encode::<ObjectActor, _>(&object_name);
             let value = serde_json::to_value(object_msg).unwrap_or_default();
