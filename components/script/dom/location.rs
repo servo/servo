@@ -178,7 +178,7 @@ impl Location {
     }
 
     /// Get this `Location` object's [relevant `Document`][1], or
-    /// `Err(Error::Security(None))` if it's non-null and its origin is not same
+    /// `Err(Error::Security(..))` if it's non-null and its origin is not same
     /// origin-domain with the entry setting object's origin.
     ///
     /// In the specification's terms:
@@ -217,7 +217,7 @@ impl Location {
             }) {
                 Ok(Some(document))
             } else {
-                Err(Error::Security(None))
+                Err(Error::Security("Location's relevant Document is not same origin-domain with the entry settings object's origin".to_string().into()))
             }
         } else {
             // The browsing context is null
@@ -226,7 +226,7 @@ impl Location {
     }
 
     /// Get this `Location` object's [relevant url][1] or
-    /// `Err(Error::Security(None))` if the [relevant `Document`][2] if it's non-null
+    /// `Err(Error::Security(..))` if the [relevant `Document`][2] if it's non-null
     /// and its origin is not same origin-domain with the entry setting object's
     /// origin.
     ///
@@ -305,7 +305,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
-                Err(_) => return Err(Error::Syntax(None)),
+                Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
 
             Ok(Some(url))
@@ -333,7 +333,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
                 // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
-                Err(_) => return Err(Error::Syntax(None)),
+                Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
             // Step 4. Location-object navigate this to urlRecord given "replace".
             self.navigate_a_location(cx, url, NavigationHistoryBehavior::Replace);
@@ -514,7 +514,9 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
             if copy_url.as_mut_url().set_scheme(scheme).is_err() {
                 // Step 5: If possibleFailure is failure, then throw a "SyntaxError" DOMException.
-                return Err(Error::Syntax(None));
+                return Err(Error::Syntax(
+                    "Couldn't parse URL scheme".to_string().into(),
+                ));
             }
 
             // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
