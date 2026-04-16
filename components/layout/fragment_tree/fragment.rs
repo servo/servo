@@ -24,7 +24,7 @@ use super::{
 use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::inline::line::TextRunOffsets;
-use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
+use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
@@ -225,6 +225,33 @@ impl Fragment {
                 fragment.borrow_mut().calculate_scrollable_overflow()
             },
             _ => {},
+        }
+    }
+
+    pub(crate) fn scrollable_overflow_padding_contribution_for_parent(
+        &self,
+        padding: PhysicalSides<Au>,
+    ) -> PhysicalRect<Au> {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let box_fragment = fragment.borrow();
+                if !box_fragment
+                    .style()
+                    .clone_position()
+                    .is_absolutely_positioned()
+                {
+                    box_fragment.margin_rect().outer_rect(padding)
+                } else {
+                    Rect::zero()
+                }
+            },
+            // TODO: Using PositioningFragment's content rect are not correct, since it is not
+            // representing the inline bounds of the underlying fragments correctly.
+            Fragment::Positioning(fragment) => fragment.borrow().base.rect.outer_rect(padding),
+            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::Text(..) |
+            Fragment::Image(..) |
+            Fragment::IFrame(..) => Rect::zero(),
         }
     }
 

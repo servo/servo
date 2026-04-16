@@ -4,7 +4,7 @@
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use euclid::Rect;
+use euclid::{Box2D, Rect};
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::ScrollTreeNodeId;
@@ -16,6 +16,7 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style_traits::CSSPixel;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::SharedStyle;
@@ -259,6 +260,13 @@ impl BoxFragment {
         self
     }
 
+    /// Whether we should padding inflate children boxes, non-scrollable and input boxes container shouldn't be
+    /// padding inflated.
+    fn should_padding_inflate_children_boxes(&self) -> bool {
+        self.style().establishes_scroll_container(self.base.flags) &&
+            !self.base.flags.intersects(FragmentFlags::IS_INPUT_ELEMENT)
+    }
+
     /// Get the scrollable overflow for this [`BoxFragment`] relative to its
     /// containing block.
     pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
@@ -272,6 +280,12 @@ impl BoxFragment {
     pub(crate) fn calculate_scrollable_overflow(&mut self) {
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.base.rect.origin.to_vector();
+
+        let padding_inflation = if self.should_padding_inflate_children_boxes() {
+            Some(self.padding)
+        } else {
+            None
+        };
 
         // > The scrollable overflow area is the union of:
         // > * The scroll container’s own padding box.
@@ -308,11 +322,37 @@ impl BoxFragment {
                 // wholly unrechable scrollable overflow area, but also clips it. This
                 // makes the resulting value more like the "scroll area" rather than the
                 // "scrollable overflow."
-                let scrollable_overflow_from_child = self
-                    .clip_wholly_unreachable_scrollable_overflow(
-                        scrollable_overflow_from_child,
-                        physical_padding_rect,
-                    );
+                let scrollable_overflow_clip =
+                    self.wholly_unreachable_scrollable_overflow_clip(physical_padding_rect);
+                let scrollable_overflow_from_child = scrollable_overflow_from_child
+                    .to_box2d()
+                    .intersection_unchecked(&scrollable_overflow_clip);
+
+                // If the scrollable overflow of the child is wholly unreachable, we
+                // don't add its contribution to the parent's scrollable overflow.
+                // TODO: However, this doesn't correctly consider the relative adjusted
+                // relative positioned CSS box, as it should consider its pre-adjusted
+                // position.
+                if scrollable_overflow_from_child.is_negative() {
+                    return acc;
+                }
+
+                let mut scrollable_overflow_from_child = scrollable_overflow_from_child.to_rect();
+
+                // Additional padding necessary to enale scroll positions that satisfy the
+                // requirements of both `place-content: start` and `place-content: end` alignment.
+                if let Some(padding) = padding_inflation {
+                    let padding_contribution = child
+                        .scrollable_overflow_padding_contribution_for_parent(padding)
+                        .translate(content_origin);
+
+                    scrollable_overflow_from_child = scrollable_overflow_from_child
+                        .union(&padding_contribution)
+                        .to_box2d()
+                        .intersection_unchecked(&scrollable_overflow_clip)
+                        .to_rect();
+                }
+
                 acc.union(&scrollable_overflow_from_child)
             });
 
@@ -448,14 +488,13 @@ impl BoxFragment {
             .unwrap_or(overflow)
     }
 
-    /// Return the clipped the scrollable overflow based on its scroll origin, determined
-    /// by overflow direction. For an element, the clip rect is the padding rect and for
-    /// viewport, it is the initial containing block.
-    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
+    /// Return the clip rectangle for the scrollable overflow based on its scroll origin,
+    /// determined by overflow direction. For an element, the clip rect is the padding rect
+    /// and for viewport, it is the initial containing block.
+    pub(crate) fn wholly_unreachable_scrollable_overflow_clip(
         &self,
-        scrollable_overflow: PhysicalRect<Au>,
         clipping_rect: PhysicalRect<Au>,
-    ) -> PhysicalRect<Au> {
+    ) -> Box2D<Au, CSSPixel> {
         // From <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>:
         // > Unless otherwise adjusted (e.g. by content alignment [css-align-3]), the area
         // > beyond the scroll origin in either axis is considered the unreachable scrollable
@@ -477,6 +516,16 @@ impl BoxFragment {
         } else {
             clipping_box.min.y = MIN_AU;
         }
+
+        clipping_box
+    }
+
+    pub(crate) fn clip_wholly_unreachable_scrollable_overflow(
+        &self,
+        scrollable_overflow: PhysicalRect<Au>,
+        clipping_rect: PhysicalRect<Au>,
+    ) -> PhysicalRect<Au> {
+        let clipping_box = self.wholly_unreachable_scrollable_overflow_clip(clipping_rect);
 
         let scrollable_overflow_box = scrollable_overflow
             .to_box2d()

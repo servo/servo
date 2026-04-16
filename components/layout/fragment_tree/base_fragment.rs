@@ -209,6 +209,9 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 &local_name!("table") | &local_name!("th") | &local_name!("td") => {
                     flags.insert(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT);
                 },
+                &local_name!("input") => {
+                    flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
+                },
                 _ => {},
             }
 
@@ -264,6 +267,8 @@ bitflags! {
         /// Whether or not this is a table cell that is part of a collapsed row or column.
         /// In that case it should not be painted.
         const IS_COLLAPSED = 1 << 11;
+        /// Whether or not the node that created this Fragment is a `<input>` element.
+        const IS_INPUT_ELEMENT = 1 << 12;
 
     }
 }
