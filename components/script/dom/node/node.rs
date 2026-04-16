@@ -356,12 +356,12 @@ impl Node {
         Node::replace_all(cx, Some(fragment.upcast()), target);
     }
 
-    /// Clear this [`Node`]'s layout data and also clear the layout data of all children.
-    /// Note that this clears layout data from all non-flat tree descendants and flat tree
-    /// descendants.
-    pub(crate) fn remove_layout_boxes_from_subtree(&self, no_gc: &NoGC) {
+    /// Clear style and layout data on this [`Node`] and all descendants. This is used to clean
+    /// up the data when a [`Node`] becomes detached from the flat tree. Note that this
+    /// operates on both DOM and flat tree descendants.
+    pub(crate) fn remove_style_and_layout_data_from_subtree(&self, no_gc: &NoGC) {
         for node in self.traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes) {
-            node.layout_data.borrow_mut().take();
+            node.clean_up_style_and_layout_data();
         }
     }
 
