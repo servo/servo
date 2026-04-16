@@ -32,6 +32,7 @@ use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full};
 use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
+use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper_serde::Serde;
 use ipc_channel::IpcError;
@@ -2299,7 +2300,12 @@ async fn http_network_fetch(
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
 
-    response.status = Some(res.status().into());
+    let status_text = res
+        .extensions()
+        .get::<ReasonPhrase>()
+        .map(ReasonPhrase::as_bytes)
+        .map(Vec::from);
+    response.status = HttpStatus::try_new(res.status().as_u16(), status_text);
 
     info!("got {:?} response for {:?}", res.status(), request.url());
     response.headers = res.headers().clone();

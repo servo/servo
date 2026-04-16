@@ -845,10 +845,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             self.status
                 .borrow()
                 .as_ref()
-                .and_then(|status| status.canonical_reason())
+                .map(|status| status.message())
                 .unwrap_or_default()
-                .as_bytes()
-                .to_vec(),
+                .to_owned(),
         )
     }
 
