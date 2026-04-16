@@ -85,6 +85,7 @@ mod actors {
     pub mod root;
     pub mod source;
     pub mod stylesheets;
+    pub mod symbol_iterator;
     pub mod tab;
     pub mod thread;
     pub mod timeline;
