@@ -22,96 +22,12 @@ use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::stream::compressionstream::convert_chunk_to_vec;
+use crate::dom::stream::compressionstream::{BROTLI_BUFFER_SIZE, convert_chunk_to_vec};
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
 };
 use crate::script_runtime::CanGc;
-
-/// A wrapper to blend ZlibDecoder<Vec<u8>>, DeflateDecoder<Vec<u8>> and GzDecoder<Vec<u8>>
-/// together as a single type.
-enum Decompressor {
-    Deflate(ZlibDecoder<Vec<u8>>),
-    DeflateRaw(DeflateDecoder<Vec<u8>>),
-    Gzip(GzDecoder<Vec<u8>>),
-    Brotli(Box<BrotliDecoder<Vec<u8>>>),
-}
-
-/// Expose methods of the inner decoder.
-impl Decompressor {
-    fn new(format: CompressionFormat) -> Decompressor {
-        match format {
-            CompressionFormat::Deflate => Decompressor::Deflate(ZlibDecoder::new(Vec::new())),
-            CompressionFormat::Deflate_raw => {
-                Decompressor::DeflateRaw(DeflateDecoder::new(Vec::new()))
-            },
-            CompressionFormat::Gzip => Decompressor::Gzip(GzDecoder::new(Vec::new())),
-            CompressionFormat::Brotli => {
-                Decompressor::Brotli(Box::new(BrotliDecoder::new(Vec::new(), 4096)))
-            },
-        }
-    }
-
-    fn get_ref(&self) -> &Vec<u8> {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.get_ref(),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.get_ref(),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.get_ref(),
-            Decompressor::Brotli(brotli_decoder) => brotli_decoder.get_ref(),
-        }
-    }
-
-    fn get_mut(&mut self) -> &mut Vec<u8> {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.get_mut(),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.get_mut(),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.get_mut(),
-            Decompressor::Brotli(brotli_decoder) => brotli_decoder.get_mut(),
-        }
-    }
-
-    fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.write(buf),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.write(buf),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.write(buf),
-            Decompressor::Brotli(brotli_decoder) => brotli_decoder.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.flush(),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.flush(),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.flush(),
-            Decompressor::Brotli(brotli_decoder) => brotli_decoder.flush(),
-        }
-    }
-
-    fn try_finish(&mut self) -> io::Result<()> {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.try_finish(),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.try_finish(),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.try_finish(),
-            Decompressor::Brotli(brotli_decoder) => brotli_decoder.flush(),
-        }
-    }
-}
-
-impl MallocSizeOf for Decompressor {
-    #[expect(unsafe_code)]
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match self {
-            Decompressor::Deflate(zlib_decoder) => zlib_decoder.size_of(ops),
-            Decompressor::DeflateRaw(deflate_decoder) => deflate_decoder.size_of(ops),
-            Decompressor::Gzip(gz_decoder) => gz_decoder.size_of(ops),
-            Decompressor::Brotli(brotli_decoder) => unsafe {
-                ops.malloc_size_of(&**brotli_decoder)
-            },
-        }
-    }
-}
 
 /// <https://compression.spec.whatwg.org/#decompressionstream>
 #[dom_struct]
@@ -126,7 +42,7 @@ pub(crate) struct DecompressionStream {
 
     // <https://compression.spec.whatwg.org/#decompressionstream-context>
     #[no_trace]
-    context: RefCell<Decompressor>,
+    context: RefCell<DecompressionContext>,
 }
 
 impl DecompressionStream {
@@ -138,7 +54,7 @@ impl DecompressionStream {
             reflector_: Reflector::new(),
             transform: Dom::from_ref(transform),
             format,
-            context: RefCell::new(Decompressor::new(format)),
+            context: RefCell::new(DecompressionContext::new(format)),
         }
     }
 
@@ -167,7 +83,7 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
         format: CompressionFormat,
     ) -> Fallible<DomRoot<DecompressionStream>> {
         // Step 1. If format is unsupported in DecompressionStream, then throw a TypeError.
-        // NOTE: All of "deflate", "deflate-raw", "gzip" and "br" are supported.
+        // NOTE: All of "brotli", "deflate", "deflate-raw" and "gzip" are supported.
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
@@ -216,19 +132,10 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     // Step 2. Let buffer be the result of decompressing chunk with ds’s format and context. If
     // this results in an error, then throw a TypeError.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut decompressor = ds.context.borrow_mut();
-    let mut offset = 0;
-    let mut written = 1;
-    while offset < chunk.len() && written > 0 {
-        written = decompressor
-            .write(&chunk[offset..])
-            .map_err(|_| Error::Type(c"DecompressionStream: write() failed".to_owned()))?;
-        offset += written;
-    }
-    decompressor
-        .flush()
-        .map_err(|_| Error::Type(c"DecompressionStream: flush() failed".to_owned()))?;
-    let buffer = decompressor.get_ref();
+    let mut decompression_context = ds.context.borrow_mut();
+    let buffer = decompression_context
+        .decompress(&chunk)
+        .map_err(|_| Error::Type(c"Failed to decompress a chunk of compressed input".into()))?;
 
     // Step 3. If buffer is empty, return.
     if buffer.is_empty() {
@@ -242,7 +149,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
     let array = create_buffer_source::<Uint8>(
         cx.into(),
-        buffer,
+        &buffer,
         js_object.handle_mut(),
         CanGc::from_cx(cx),
     )
@@ -251,13 +158,9 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     array.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
     controller.enqueue(cx, global, rval.handle())?;
 
-    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
-    // buffer of decompressor to save memory.
-    decompressor.get_mut().clear();
-
     // Step 6. If the end of the compressed input has been reached, and ds’s context has not fully
     // consumed chunk, then throw a TypeError.
-    if offset < chunk.len() {
+    if decompression_context.is_ended {
         return Err(Error::Type(
             c"The end of the compressed input has been reached".to_owned(),
         ));
@@ -276,16 +179,10 @@ pub(crate) fn decompress_flush_and_enqueue(
     // Step 1. Let buffer be the result of decompressing an empty input with ds’s format and
     // context, with the finish flag.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut decompressor = ds.context.borrow_mut();
-    let offset = decompressor.get_ref().len();
-    let is_ended = decompressor
-        .write(&[0])
-        .map_err(|_| Error::Type(c"DecompressionStream: write() failed".to_owned()))? ==
-        0;
-    decompressor
-        .try_finish()
-        .map_err(|_| Error::Type(c"DecompressionStream: try_finish() failed".to_owned()))?;
-    let buffer = &decompressor.get_ref()[offset..];
+    let mut decompression_context = ds.context.borrow_mut();
+    let buffer = decompression_context
+        .finalize()
+        .map_err(|_| Error::Type(c"Failed to finalize the decompression stream".into()))?;
 
     // Step 2. If buffer is empty, return.
     if !buffer.is_empty() {
@@ -296,7 +193,7 @@ pub(crate) fn decompress_flush_and_enqueue(
         rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
         let array = create_buffer_source::<Uint8>(
             cx.into(),
-            buffer,
+            &buffer,
             js_object.handle_mut(),
             CanGc::from_cx(cx),
         )
@@ -305,10 +202,6 @@ pub(crate) fn decompress_flush_and_enqueue(
         array.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
         controller.enqueue(cx, global, rval.handle())?;
     }
-
-    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
-    // buffer of decompressor to save memory.
-    decompressor.get_mut().clear();
 
     // Step 3. If the end of the compressed input has not been reached, then throw a TypeError.
     //
@@ -320,11 +213,158 @@ pub(crate) fn decompress_flush_and_enqueue(
     // indicates the end has not been reached. Otherwise, the end has been reached. This test has
     // to been done before calling `try_finish`, so we execute it in Step 1, and store the result
     // in `is_ended`.
-    if !is_ended {
+    if !decompression_context.is_ended {
         return Err(Error::Type(
             c"The end of the compressed input has not been reached".to_owned(),
         ));
     }
 
     Ok(())
+}
+
+/// An enum grouping decoders of differenct compression algorithms.
+enum Decoder {
+    Brotli(Box<BrotliDecoder<Vec<u8>>>),
+    Deflate(ZlibDecoder<Vec<u8>>),
+    DeflateRaw(DeflateDecoder<Vec<u8>>),
+    Gzip(GzDecoder<Vec<u8>>),
+}
+
+impl MallocSizeOf for Decoder {
+    #[expect(unsafe_code)]
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            Decoder::Brotli(decoder) => unsafe { ops.malloc_size_of(&**decoder) },
+            Decoder::Deflate(decoder) => decoder.size_of(ops),
+            Decoder::DeflateRaw(decoder) => decoder.size_of(ops),
+            Decoder::Gzip(decoder) => decoder.size_of(ops),
+        }
+    }
+}
+
+/// <https://compression.spec.whatwg.org/#decompressionstream-context>
+/// Used to encapsulate the logic of decoder.
+#[derive(MallocSizeOf)]
+struct DecompressionContext {
+    decoder: Decoder,
+    is_ended: bool,
+}
+
+impl DecompressionContext {
+    fn new(format: CompressionFormat) -> DecompressionContext {
+        let decoder = match format {
+            CompressionFormat::Brotli => {
+                Decoder::Brotli(Box::new(BrotliDecoder::new(Vec::new(), BROTLI_BUFFER_SIZE)))
+            },
+            CompressionFormat::Deflate => Decoder::Deflate(ZlibDecoder::new(Vec::new())),
+            CompressionFormat::Deflate_raw => Decoder::DeflateRaw(DeflateDecoder::new(Vec::new())),
+            CompressionFormat::Gzip => Decoder::Gzip(GzDecoder::new(Vec::new())),
+        };
+        DecompressionContext {
+            decoder,
+            is_ended: false,
+        }
+    }
+
+    fn decompress(&mut self, mut chunk: &[u8]) -> Result<Vec<u8>, io::Error> {
+        let mut result = Vec::new();
+
+        match &mut self.decoder {
+            Decoder::Brotli(decoder) => {
+                while !chunk.is_empty() {
+                    let written = decoder.write(chunk)?;
+                    if written == 0 {
+                        self.is_ended = true;
+                        break;
+                    }
+                    chunk = &chunk[written..];
+                }
+                decoder.flush()?;
+                result.append(decoder.get_mut());
+            },
+            Decoder::Deflate(decoder) => {
+                while !chunk.is_empty() {
+                    let written = decoder.write(chunk)?;
+                    if written == 0 {
+                        self.is_ended = true;
+                        break;
+                    }
+                    chunk = &chunk[written..];
+                }
+                decoder.flush()?;
+                result.append(decoder.get_mut());
+            },
+            Decoder::DeflateRaw(decoder) => {
+                while !chunk.is_empty() {
+                    let written = decoder.write(chunk)?;
+                    if written == 0 {
+                        self.is_ended = true;
+                        break;
+                    }
+                    chunk = &chunk[written..];
+                }
+                decoder.flush()?;
+                result.append(decoder.get_mut());
+            },
+            Decoder::Gzip(decoder) => {
+                while !chunk.is_empty() {
+                    let written = decoder.write(chunk)?;
+                    if written == 0 {
+                        self.is_ended = true;
+                        break;
+                    }
+                    chunk = &chunk[written..];
+                }
+                decoder.flush()?;
+                result.append(decoder.get_mut());
+            },
+        }
+
+        Ok(result)
+    }
+
+    fn finalize(&mut self) -> Result<Vec<u8>, io::Error> {
+        let mut result = Vec::new();
+
+        match &mut self.decoder {
+            Decoder::Brotli(decoder) => {
+                if decoder.close().is_ok() {
+                    self.is_ended = true;
+                };
+                result.append(decoder.get_mut());
+            },
+            Decoder::Deflate(decoder) => {
+                // Compressed data in "Deflate" format does not have trailing bytes. Therefore,
+                // `ZlibEncoder::try_finish` is designed not to throw an error when the end of
+                // compressed input has not been reached, in order to decompress as much of the
+                // input as possible.
+                //
+                // To detect whether the end is reached, the workaround is to write one more byte to
+                // the encoder. Refusing to take the extra byte indicates the end has been reached.
+                //
+                // Note that we need to pull out the data in buffer first to avoid the extra byte
+                // contaminate the output.
+                decoder.flush()?;
+                result.append(decoder.get_mut());
+                if decoder.write(&[0])? == 0 {
+                    self.is_ended = true;
+                }
+                decoder.try_finish()?;
+            },
+            Decoder::DeflateRaw(decoder) => {
+                if decoder.try_finish().is_ok() {
+                    self.is_ended = true;
+                };
+                result.append(decoder.get_mut());
+            },
+            Decoder::Gzip(decoder) => {
+                if decoder.try_finish().is_ok() {
+                    self.is_ended = true;
+                };
+                result.append(decoder.get_mut());
+            },
+        }
+
+        Ok(result)
+    }
 }
