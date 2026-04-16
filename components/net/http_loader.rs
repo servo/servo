@@ -5,14 +5,11 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
-use crossbeam_channel::Sender;
-use devtools_traits::{
-    ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
-    HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
-};
+use content_security_policy::percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use devtools_traits::ChromeToDevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
@@ -34,7 +31,6 @@ use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
-use hyper_serde::Serde;
 use ipc_channel::IpcError;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -57,9 +53,9 @@ use net_traits::response::{
     CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
 };
 use net_traits::{
-    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
-    RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, TlsSecurityInfo, TlsSecurityState,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
+    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue, TlsSecurityInfo,
+    TlsSecurityState,
 };
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -87,6 +83,9 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
+use crate::devtools::{
+    prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
+};
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
@@ -409,179 +408,6 @@ fn build_tls_security_info(handshake: &TlsHandshakeInfo, hsts_enabled: bool) -> 
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn prepare_devtools_request(
-    request_id: String,
-    url: ServoUrl,
-    method: Method,
-    headers: HeaderMap,
-    body: Option<Vec<u8>>,
-    pipeline_id: PipelineId,
-    connect_time: Duration,
-    send_time: Duration,
-    destination: Destination,
-    is_xhr: bool,
-    browsing_context_id: BrowsingContextId,
-) -> ChromeToDevtoolsControlMsg {
-    let started_date_time = SystemTime::now();
-    let request = DevtoolsHttpRequest {
-        url,
-        method,
-        headers,
-        body: body.map(DebugVec::from),
-        pipeline_id,
-        started_date_time,
-        time_stamp: started_date_time
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64,
-        connect_time,
-        send_time,
-        destination,
-        is_xhr,
-        browsing_context_id,
-    };
-    let net_event = NetworkEvent::HttpRequestUpdate(request);
-
-    ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
-}
-
-pub fn send_request_to_devtools(
-    msg: ChromeToDevtoolsControlMsg,
-    devtools_chan: &Sender<DevtoolsControlMsg>,
-) {
-    if matches!(msg, ChromeToDevtoolsControlMsg::NetworkEvent(_, ref network_event) if !network_event.forward_to_devtools())
-    {
-        return;
-    }
-    if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)) {
-        error!("DevTools send failed: {e}");
-    }
-}
-
-pub fn send_response_to_devtools(
-    request: &Request,
-    context: &FetchContext,
-    response: &Response,
-    body_data: Option<Vec<u8>>,
-) {
-    let meta = match response.metadata() {
-        Ok(FetchMetadata::Unfiltered(m)) => m,
-        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
-        Err(_) => {
-            log::warn!("No metadata available, skipping devtools response.");
-            return;
-        },
-    };
-    send_response_values_to_devtools(
-        meta.headers.map(Serde::into_inner),
-        meta.status,
-        body_data,
-        response.cache_state,
-        request,
-        context.devtools_chan.clone(),
-    );
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn send_response_values_to_devtools(
-    headers: Option<HeaderMap>,
-    status: HttpStatus,
-    body: Option<Vec<u8>>,
-    cache_state: CacheState,
-    request: &Request,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-) {
-    if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
-        devtools_chan,
-        request.pipeline_id,
-        request.target_webview_id,
-    ) {
-        let browsing_context_id = webview_id.into();
-        let from_cache = matches!(cache_state, CacheState::Local | CacheState::Validated);
-
-        let devtoolsresponse = DevtoolsHttpResponse {
-            headers,
-            status,
-            body: body.map(DebugVec::from),
-            from_cache,
-            pipeline_id,
-            browsing_context_id,
-        };
-        let net_event_response = NetworkEvent::HttpResponse(devtoolsresponse);
-
-        let msg =
-            ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), net_event_response);
-
-        let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
-    }
-}
-
-pub fn send_security_info_to_devtools(
-    request: &Request,
-    context: &FetchContext,
-    response: &Response,
-) {
-    let meta = match response.metadata() {
-        Ok(FetchMetadata::Unfiltered(m)) => m,
-        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
-        Err(_) => {
-            log::warn!("No metadata available, skipping devtools security info.");
-            return;
-        },
-    };
-
-    if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
-        context.devtools_chan.clone(),
-        meta.tls_security_info,
-        request.target_webview_id,
-    ) {
-        let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {
-            browsing_context_id: webview_id.into(),
-            security_info: Some(security_info),
-        });
-
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), update);
-
-        let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
-    }
-}
-
-pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
-    // Do not forward data requests to devtools
-    if request.url().scheme() == "data" {
-        return;
-    }
-    if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
-        context.devtools_chan.as_ref(),
-        request.target_webview_id.map(|id| id.into()),
-        request.pipeline_id,
-    ) {
-        // Build the partial DevtoolsHttpRequest
-        let devtools_request = DevtoolsHttpRequest {
-            url: request.current_url(),
-            method: request.method.clone(),
-            headers: request.headers.clone(),
-            body: None,
-            pipeline_id,
-            started_date_time: SystemTime::now(),
-            time_stamp: 0,
-            connect_time: Duration::from_millis(0),
-            send_time: Duration::from_millis(0),
-            destination: request.destination,
-            is_xhr: false,
-            browsing_context_id,
-        };
-
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-            request.id.0.to_string(),
-            NetworkEvent::HttpRequest(devtools_request),
-        );
-
-        send_request_to_devtools(msg, devtools_chan);
-    }
-}
-
 fn auth_from_cache(
     auth_cache: &RwLock<AuthCache>,
     origin: &ImmutableOrigin,
@@ -696,13 +522,7 @@ async fn obtain_response(
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
     // https://url.spec.whatwg.org/#percent-encoded-bytes
-    let encoded_url = url
-        .clone()
-        .into_url()
-        .as_ref()
-        .replace('|', "%7C")
-        .replace('{', "%7B")
-        .replace('}', "%7D");
+    let encoded_url = utf8_percent_encode(url.as_str(), NON_ALPHANUMERIC).to_string();
 
     let request = if let Some(chunk_requester) = body_sender {
         let (sink, stream) = if source_is_null {
@@ -710,7 +530,7 @@ async fn obtain_response(
             // TODO: this should not be set for HTTP/2(currently not supported?).
             headers.insert(TRANSFER_ENCODING, HeaderValue::from_static("chunked"));
 
-            let (sender, receiver) = channel(10);
+            let (sender, receiver) = channel(1);
             (BodySink::Chunked(sender), BodyStream::Chunked(receiver))
         } else {
             // Note: Hyper seems to already buffer bytes when the request appears not stream-able,
