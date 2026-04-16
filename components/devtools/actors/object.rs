@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DebuggerValue, ObjectPreview, PropertyDescriptor};
+use std::collections::HashMap;
+
+use devtools_traits::{DebuggerValue, PropertyDescriptor};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -36,7 +38,38 @@ struct EnumReply {
 #[derive(Serialize)]
 struct PrototypeReply {
     from: String,
-    prototype: Value,
+    prototype: ObjectActorMsg,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ObjectPreview {
+    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub own_properties: Option<HashMap<String, ObjectPropertyDescriptor>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub own_properties_length: Option<u32>,
+    #[serde(flatten)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub function: Option<FunctionPreview>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub length: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Vec<Value>>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FunctionPreview {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    pub parameter_names: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_async: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_generator: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -46,21 +79,23 @@ pub(crate) struct ObjectActorMsg {
     #[serde(rename = "type")]
     type_: String,
     class: String,
-    own_property_length: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    own_property_length: Option<u32>,
     extensible: bool,
     frozen: bool,
     sealed: bool,
-    is_error: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     preview: Option<ObjectPreview>,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ObjectPropertyDescriptor {
+    pub value: Value,
     pub configurable: bool,
     pub enumerable: bool,
     pub writable: bool,
-    pub value: Value,
+    pub is_accessor: bool,
 }
 
 impl ObjectPropertyDescriptor {
@@ -69,10 +104,11 @@ impl ObjectPropertyDescriptor {
         prop: &PropertyDescriptor,
     ) -> Self {
         Self {
+            value: debugger_value_to_json(registry, prop.value.clone()),
             configurable: prop.configurable,
             enumerable: prop.enumerable,
             writable: prop.writable,
-            value: debugger_value_to_json(registry, prop.value.clone()),
+            is_accessor: prop.is_accessor,
         }
     }
 }
@@ -82,7 +118,7 @@ pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
     class: String,
-    preview: Option<ObjectPreview>,
+    preview: Option<devtools_traits::ObjectPreview>,
 }
 
 impl Actor for ObjectActor {
@@ -191,7 +227,7 @@ impl ObjectActor {
         registry: &ActorRegistry,
         uuid: Option<String>,
         class: String,
-        preview: Option<ObjectPreview>,
+        preview: Option<devtools_traits::ObjectPreview>,
     ) -> String {
         let Some(uuid) = uuid else {
             let name = registry.new_name::<Self>();
@@ -223,92 +259,60 @@ impl ObjectActor {
     }
 }
 
-impl ActorEncode<Value> for ObjectActor {
-    fn encode(&self, registry: &ActorRegistry) -> Value {
-        // TODO: convert to a serialize struct instead
-        let mut m = Map::new();
-        m.insert("type".to_owned(), Value::String("object".to_owned()));
-        m.insert("class".to_owned(), Value::String(self.class.clone()));
-        m.insert("actor".to_owned(), Value::String(self.name()));
-        m.insert("extensible".to_owned(), Value::Bool(true));
-        m.insert("frozen".to_owned(), Value::Bool(false));
-        m.insert("sealed".to_owned(), Value::Bool(false));
+impl ActorEncode<ObjectActorMsg> for ObjectActor {
+    fn encode(&self, registry: &ActorRegistry) -> ObjectActorMsg {
+        let mut msg = ObjectActorMsg {
+            actor: self.name(),
+            type_: "object".into(),
+            class: self.class.clone(),
+            extensible: true,
+            frozen: false,
+            sealed: false,
+            preview: None,
+            own_property_length: None,
+        };
 
         // Build preview
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
         let Some(preview) = self.preview.clone() else {
-            return Value::Object(m);
+            return msg;
         };
-        let mut preview_map = Map::new();
+        msg.own_property_length = preview.own_properties_length;
 
-        preview_map.insert("kind".to_owned(), Value::String(preview.kind.clone()));
+        let function = preview.function.map(|function| FunctionPreview {
+            name: function.name.clone(),
+            display_name: function.display_name.clone(),
+            parameter_names: function.parameter_names.clone(),
+            is_async: function.is_async,
+            is_generator: function.is_generator,
+        });
 
-        if preview.kind == "ArrayLike" {
-            if let Some(length) = preview.array_length {
-                preview_map.insert("length".to_owned(), Value::Number(length.into()));
-                m.insert(
-                    "ownPropertyLength".to_owned(),
-                    Value::Number((length + 1).into()),
-                );
-            }
-            if let Some(ref items) = preview.items {
-                let items_json: Vec<Value> = items
+        let preview = ObjectPreview {
+            kind: preview.kind.clone(),
+            own_properties: preview.own_properties.map(|own_properties| {
+                own_properties
+                    .iter()
+                    .map(|prop| {
+                        (
+                            prop.name.clone(),
+                            ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
+                        )
+                    })
+                    .collect()
+            }),
+            own_properties_length: preview.own_properties_length,
+            function,
+            length: preview.array_length,
+            items: preview.items.map(|items| {
+                items
                     .iter()
                     .map(|item| debugger_value_to_json(registry, item.clone()))
-                    .collect();
-                preview_map.insert("items".to_owned(), Value::Array(items_json));
-            }
-        } else {
-            if let Some(ref props) = preview.own_properties {
-                let mut own_props_map = Map::new();
-                for prop in props {
-                    let descriptor = serde_json::to_value(
-                        ObjectPropertyDescriptor::from_property_descriptor(registry, prop),
-                    )
-                    .unwrap();
-                    own_props_map.insert(prop.name.clone(), descriptor);
-                }
-                preview_map.insert("ownProperties".to_owned(), Value::Object(own_props_map));
-            }
+                    .collect()
+            }),
+        };
 
-            if let Some(length) = preview.own_properties_length {
-                preview_map.insert(
-                    "ownPropertiesLength".to_owned(),
-                    Value::Number(length.into()),
-                );
-                m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
-            }
-        }
-
-        // Function-specific metadata
-        if let Some(function) = preview.function {
-            if let Some(name) = function.name {
-                m.insert("name".to_owned(), Value::String(name));
-            }
-            if let Some(display_name) = function.display_name {
-                m.insert("displayName".to_owned(), Value::String(display_name));
-            }
-            m.insert(
-                "parameterNames".to_owned(),
-                Value::Array(
-                    function
-                        .parameter_names
-                        .into_iter()
-                        .map(Value::String)
-                        .collect(),
-                ),
-            );
-            if let Some(is_async) = function.is_async {
-                m.insert("isAsync".to_owned(), Value::Bool(is_async));
-            }
-            if let Some(is_generator) = function.is_generator {
-                m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
-            }
-        }
-
-        m.insert("preview".to_owned(), Value::Object(preview_map));
-
-        Value::Object(m)
+        msg.preview = Some(preview);
+        msg
     }
 }
 
