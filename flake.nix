@@ -29,15 +29,31 @@
             ];
           };
 
+          androidPkgs = import nixpkgs {
+            inherit system;
+            overlays = [
+              rust-overlay.overlays.default
+            ];
+            config = {
+              allowUnfree = true;
+              android_sdk.accept_license = true;
+            };
+          };
+
           deps = import ./nix/packages.nix {
-            inherit (pkgs) lib stdenv;
             inherit pkgs;
+            inherit (pkgs) lib stdenv;
             gnumakeSource = nixpkgs-gnumake.legacyPackages.${system};
           };
 
+          androidDeps = import ./nix/android.nix {
+            inherit androidPkgs;
+            inherit (androidPkgs) lib;
+          };
+
           hook = import ./nix/shell-hook.nix {
-            inherit (pkgs) lib;
             inherit pkgs system;
+            inherit (pkgs) lib;
           };
         in {
 
@@ -47,6 +63,13 @@
 
             shellHook = hook;
           } // deps.envVars);
+
+          android = pkgs.mkShell ({
+            buildInputs = deps.buildInputs ++ androidDeps.buildInputs;
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath deps.runtimeLibs;
+
+            shellHook = hook;
+          } // deps.envVars // androidDeps.envVars);
 
         }
       );

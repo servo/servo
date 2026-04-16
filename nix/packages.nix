@@ -1,10 +1,11 @@
 { pkgs, lib, stdenv, gnumakeSource ? null }:
 let
   gnumakePkgs =
-    if gnumakeSource != null then gnumakeSource
-    else import (builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
-    }) {};
+    if gnumakeSource != null
+      then gnumakeSource
+      else import (builtins.fetchTarball {
+        url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
+      }) {};
 
   rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
   rustPlatform = pkgs.makeRustPlatform {
