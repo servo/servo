@@ -12,9 +12,11 @@ use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
 use euclid::{Point2D, Rect, Scale, Size2D};
-use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
+use jni::errors::{Error, ThrowRuntimeExAndDefault};
+use jni::objects::{Global, JClass, JObject, JString, JValue, JValueOwned};
+use jni::strings::JNIStr;
 use jni::sys::{jboolean, jfloat, jint, jobject};
-use jni::{JNIEnv, JavaVM};
+use jni::{Env, EnvUnowned, JavaVM, jni_sig, jni_str};
 use keyboard_types::{Key, NamedKey};
 use log::{debug, error, info, warn};
 use raw_window_handle::{
@@ -47,7 +49,7 @@ struct InitOptions {
 }
 
 struct HostCallbacks {
-    callbacks: GlobalRef,
+    callbacks: Global<JObject<'static>>,
     jvm: JavaVM,
 }
 
@@ -64,267 +66,288 @@ pub extern "C" fn android_main() {
     // this currently.
 }
 
-fn call<F>(env: &mut JNIEnv, f: F)
+fn call<F>(env: &mut Env, f: F)
 where
     F: FnOnce(&App),
 {
     APP.with(|app| match app.borrow().as_ref() {
         Some(app) => (f)(app),
-        None => throw(env, "Servo not available in this thread"),
+        None => throw(env, jni_str!("Servo not available in this thread")),
     });
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
-    env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
     let version = crate::VERSION;
-    env.new_string(version)
-        .unwrap_or_else(|_str| JObject::null().into())
+    env.with_env(|env| -> jni::errors::Result<_> { env.new_string(version) })
+        .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 /// Initialize Servo. At that point, we need a valid GL context. In the future, this will
 /// be done in multiple steps.
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     _activity: JObject<'local>,
     opts: JObject<'local>,
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
 ) {
-    let (init_opts, log, log_str, _gst_debug_str) = match get_options(&mut env, &opts, &surface) {
-        Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
-        Err(err) => {
-            throw(&mut env, &err);
-            return;
-        },
-    };
+    env.with_env(|env| -> jni::errors::Result<_> {
+        let (init_opts, log, log_str, _gst_debug_str) = get_options(env, &opts, &surface)?;
 
-    if log {
-        // Note: Android debug logs are stripped from a release build.
-        // debug!() will only show in a debug build. Use info!() if logs
-        // should show up in adb logcat with a release build.
-        let filters = [
-            "servo",
-            "servoshell",
-            "servoshell::egl:gl_glue",
-            // Show redirected stdout / stderr by default
-            "servoshell::egl::log",
-            // Show JS errors by default.
-            "script::dom::bindings::error",
-            // Show GL errors by default.
-            "servo_canvas::webgl_thread",
-            "paint::paint",
-            "servo_constellation::constellation",
-        ];
-        let mut filter_builder = FilterBuilder::new();
-        for &module in &filters {
-            filter_builder.filter_module(module, log::LevelFilter::Debug);
-        }
-        if let Some(log_str) = log_str {
-            for module in log_str.split(',') {
+        if log {
+            // Note: Android debug logs are stripped from a release build.
+            // debug!() will only show in a debug build. Use info!() if logs
+            // should show up in adb logcat with a release build.
+            let filters = [
+                "servo",
+                "servoshell",
+                "servoshell::egl:gl_glue",
+                // Show redirected stdout / stderr by default
+                "servoshell::egl::log",
+                // Show JS errors by default.
+                "script::dom::bindings::error",
+                // Show GL errors by default.
+                "servo_canvas::webgl_thread",
+                "paint::paint",
+                "servo_constellation::constellation",
+            ];
+            let mut filter_builder = FilterBuilder::new();
+            for &module in &filters {
                 filter_builder.filter_module(module, log::LevelFilter::Debug);
             }
+            if let Some(log_str) = log_str {
+                for module in log_str.split(',') {
+                    filter_builder.filter_module(module, log::LevelFilter::Debug);
+                }
+            }
+
+            android_logger::init_once(
+                Config::default()
+                    .with_max_level(log::LevelFilter::Debug)
+                    .with_filter(filter_builder.build())
+                    .with_tag("servoshell"),
+            )
         }
 
-        android_logger::init_once(
-            Config::default()
-                .with_max_level(log::LevelFilter::Debug)
-                .with_filter(filter_builder.build())
-                .with_tag("servoshell"),
-        )
-    }
+        info!("init");
 
-    info!("init");
+        // We only redirect stdout and stderr for non-production builds, since it is
+        // only used for debugging purposes. This saves us one thread in production.
+        #[cfg(not(servo_production))]
+        if let Err(e) = super::log::redirect_stdout_and_stderr() {
+            error!("Failed to redirect stdout and stderr to logcat due to: {e:?}");
+        }
 
-    // We only redirect stdout and stderr for non-production builds, since it is
-    // only used for debugging purposes. This saves us one thread in production.
-    #[cfg(not(servo_production))]
-    if let Err(e) = super::log::redirect_stdout_and_stderr() {
-        error!("Failed to redirect stdout and stderr to logcat due to: {e:?}");
-    }
+        let callbacks: Global<JObject<'static>> = env.new_global_ref(callbacks_obj)?;
 
-    let callbacks_ref = match env.new_global_ref(callbacks_obj) {
-        Ok(r) => r,
-        Err(_) => {
-            throw(
-                &mut env,
-                "Failed to get global reference of callback argument",
-            );
-            return;
-        },
-    };
+        let jvm = env.get_java_vm()?;
 
-    let event_loop_waker = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
-    let host = Rc::new(HostCallbacks::new(callbacks_ref, &env));
+        let event_loop_waker = Box::new(WakeupCallback::new(
+            unsafe { env.global_from_raw::<JObject>(**callbacks) },
+            jvm.clone(),
+        ));
 
-    crate::init_crypto();
+        let host = Rc::new(HostCallbacks::new(callbacks, jvm));
 
-    let (opts, mut preferences, servoshell_preferences) =
-        match parse_command_line_arguments(init_opts.args.as_slice()) {
-            ArgumentParsingResult::ContentProcess(..) => {
-                unreachable!("Android does not have support for multiprocess yet.")
-            },
-            ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
-                (opts, preferences, servoshell_preferences)
-            },
-            ArgumentParsingResult::Exit => {
-                std::process::exit(0);
-            },
-            ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+        crate::init_crypto();
+
+        let (opts, mut preferences, servoshell_preferences) =
+            match parse_command_line_arguments(init_opts.args.as_slice()) {
+                ArgumentParsingResult::ContentProcess(..) => {
+                    unreachable!("Android does not have support for multiprocess yet.")
+                },
+                ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+                    (opts, preferences, servoshell_preferences)
+                },
+                ArgumentParsingResult::Exit => {
+                    std::process::exit(0);
+                },
+                ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+            };
+
+        preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
+
+        crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+
+        let (display_handle, window_handle) = unsafe {
+            (
+                DisplayHandle::borrow_raw(init_opts.display_handle),
+                WindowHandle::borrow_raw(init_opts.window_handle),
+            )
         };
 
-    preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
+        let hidpi_scale_factor = Scale::new(init_opts.density);
 
-    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
-
-    let (display_handle, window_handle) = unsafe {
-        (
-            DisplayHandle::borrow_raw(init_opts.display_handle),
-            WindowHandle::borrow_raw(init_opts.window_handle),
-        )
-    };
-
-    let hidpi_scale_factor = Scale::new(init_opts.density);
-
-    APP.with(|app| {
-        let new_app = App::new(AppInitOptions {
-            host,
-            event_loop_waker,
-            initial_url: init_opts.url,
-            opts,
-            preferences,
-            servoshell_preferences,
-            #[cfg(feature = "webxr")]
-            xr_discovery: init_opts.xr_discovery,
+        APP.with(|app| {
+            let new_app = App::new(AppInitOptions {
+                host,
+                event_loop_waker,
+                initial_url: init_opts.url,
+                opts,
+                preferences,
+                servoshell_preferences,
+                #[cfg(feature = "webxr")]
+                xr_discovery: init_opts.xr_discovery,
+            });
+            new_app.add_platform_window(
+                display_handle,
+                window_handle,
+                init_opts.viewport_rect,
+                hidpi_scale_factor,
+            );
+            *app.borrow_mut() = Some(new_app);
         });
-        new_app.add_platform_window(
-            display_handle,
-            window_handle,
-            init_opts.viewport_rect,
-            hidpi_scale_factor,
-        );
-        *app.borrow_mut() = Some(new_app);
-    });
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
     enable: jboolean,
 ) {
     debug!("setExperimentalMode {enable}");
-    call(&mut env, |s| {
-        for pref in EXPERIMENTAL_PREFS {
-            s.servo().set_preference(pref, PrefValue::Bool(enable != 0));
-        }
-    });
+    env.with_env(|env| -> jni::errors::Result<_> {
+        call(env, |s| {
+            for pref in EXPERIMENTAL_PREFS {
+                s.servo().set_preference(pref, PrefValue::Bool(enable));
+            }
+        });
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     coordinates: JObject<'local>,
 ) {
-    let viewport_rect = jni_coordinate_to_rust_viewport_rect(&mut env, &coordinates);
-    debug!("resize {viewport_rect:#?}");
-    match viewport_rect {
-        Ok(viewport_rect) => call(&mut env, |s| s.resize(viewport_rect)),
-        Err(error) => throw(&mut env, &error),
-    }
+    env.with_env(|env| -> jni::errors::Result<_> {
+        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
+        debug!("resize {viewport_rect:#?}");
+        call(env, |s| s.resize(viewport_rect));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) {
-    debug!("performUpdates");
-    call(&mut env, |app| {
-        app.spin_event_loop();
-    });
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("performUpdates");
+        call(env, |app| app.spin_event_loop());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_loadUri<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
     url: JString<'local>,
 ) {
-    debug!("loadUri");
-    match env.get_string(&url) {
-        Ok(url) => {
-            let url: String = url.into();
-            call(&mut env, |s| s.load_uri(&url));
-        },
-        Err(_) => {
-            throw(&mut env, "Failed to convert Java string");
-        },
-    };
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("loadUri");
+        let url = url.to_string();
+        call(env, |s| s.load_uri(&url));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_reload<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) {
-    debug!("reload");
-    call(&mut env, |s| s.reload());
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("reload");
+        call(env, |s| s.reload());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) {
-    debug!("stop");
-    call(&mut env, |s| s.stop());
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("stop");
+        call(env, |s| s.stop());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_goBack<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) {
-    debug!("goBack");
-    call(&mut env, |s| s.go_back());
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("goBack");
+        call(env, |s| s.go_back());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _class: JClass<'local>,
 ) {
-    debug!("goForward");
-    call(&mut env, |s| s.go_forward());
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("goForward");
+        call(env, |s| s.go_forward());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     dx: jint,
     dy: jint,
     x: jint,
     y: jint,
 ) {
-    debug!("scroll");
-    call(&mut env, |s| {
-        s.scroll(dx as f32, dy as f32, x as f32, y as f32)
-    });
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("scroll");
+        call(env, |s| s.scroll(dx as f32, dy as f32, x as f32, y as f32));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_doFrame<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
 ) {
-    call(&mut env, |s| s.notify_vsync());
+    env.with_env(|env| -> jni::errors::Result<_> {
+        call(env, |s| s.notify_vsync());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 enum KeyCode {
@@ -378,239 +401,317 @@ fn key_from_unicode_keycode(unicode: u32, keycode: i32) -> Option<Key> {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_keydown<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     keycode: jint,
     unicode: jint,
 ) {
-    debug!("keydown {keycode}");
-    if let Some(key) = key_from_unicode_keycode(unicode as u32, keycode) {
-        call(&mut env, move |s| s.key_down(key));
-    }
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("keydown {keycode}");
+        if let Some(key) = key_from_unicode_keycode(unicode as u32, keycode) {
+            call(env, move |s| s.key_down(key));
+        }
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_keyup<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     keycode: jint,
     unicode: jint,
 ) {
-    debug!("keyup {keycode}");
-    if let Some(key) = key_from_unicode_keycode(unicode as u32, keycode) {
-        call(&mut env, move |s| s.key_up(key));
-    }
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("keyup {keycode}");
+        if let Some(key) = key_from_unicode_keycode(unicode as u32, keycode) {
+            call(env, move |s| s.key_up(key));
+        }
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchDown<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     x: jfloat,
     y: jfloat,
     pointer_id: jint,
 ) {
-    debug!("touchDown");
-    call(&mut env, |s| s.touch_down(x, y, pointer_id));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("touchDown");
+        call(env, |s| s.touch_down(x, y, pointer_id));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchUp<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     x: jfloat,
     y: jfloat,
     pointer_id: jint,
 ) {
-    debug!("touchUp");
-    call(&mut env, |s| s.touch_up(x, y, pointer_id));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("touchUp");
+        call(env, |s| s.touch_up(x, y, pointer_id));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchMove<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     x: jfloat,
     y: jfloat,
     pointer_id: jint,
 ) {
-    debug!("touchMove");
-    call(&mut env, |s| s.touch_move(x, y, pointer_id));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("touchMove");
+        call(env, |s| s.touch_move(x, y, pointer_id));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     x: jfloat,
     y: jfloat,
     pointer_id: jint,
 ) {
-    debug!("touchCancel");
-    call(&mut env, |s| s.touch_cancel(x, y, pointer_id));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("touchCancel");
+        call(env, |s| s.touch_cancel(x, y, pointer_id));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     factor: jfloat,
     x: jfloat,
     y: jfloat,
 ) {
-    debug!("pinchZoomStart");
-    call(&mut env, |s| s.pinchzoom_start(factor, x, y));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("pinchZoomStart");
+        call(env, |s| s.pinchzoom_start(factor, x, y));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     factor: jfloat,
     x: jfloat,
     y: jfloat,
 ) {
-    debug!("pinchZoom");
-    call(&mut env, |s| s.pinchzoom(factor, x, y));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("pinchZoom");
+        call(env, |s| s.pinchzoom(factor, x, y));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     factor: jfloat,
     x: jfloat,
     y: jfloat,
 ) {
-    debug!("pinchZoomEnd");
-    call(&mut env, |s| s.pinchzoom_end(factor, x, y));
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("pinchZoomEnd");
+        call(env, |s| s.pinchzoom_end(factor, x, y));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
-    mut env: JNIEnv,
+    mut env: EnvUnowned,
     _: JClass,
     x: jfloat,
     y: jfloat,
 ) {
-    debug!("click");
-    call(&mut env, |s| {
-        s.mouse_down(x, y, MouseButton::Left);
-        s.mouse_up(x, y, MouseButton::Left);
-    });
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("click");
+        call(env, |s| {
+            s.mouse_down(x, y, MouseButton::Left);
+            s.mouse_up(x, y, MouseButton::Left);
+        });
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pausePainting(mut env: JNIEnv, _: JClass<'_>) {
-    debug!("pausePainting");
-    call(&mut env, |s| s.pause_painting());
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pausePainting(
+    mut env: EnvUnowned,
+    _: JClass<'_>,
+) {
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("pausePainting");
+        call(env, |s| s.pause_painting());
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_resumePainting<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     surface: JObject<'local>,
     coordinates: JObject<'local>,
 ) {
-    debug!("resumePainting");
-    let viewport_rect = match jni_coordinate_to_rust_viewport_rect(&mut env, &coordinates) {
-        Ok(viewport_rect) => viewport_rect,
-        Err(error) => return throw(&mut env, &error),
-    };
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("resumePainting");
+        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
+        let (_, window_handle) = display_and_window_handle(env, &surface);
 
-    let (_, window_handle) = display_and_window_handle(&mut env, &surface);
-    call(&mut env, |app| {
-        app.resume_painting(window_handle, viewport_rect);
-    });
+        call(env, |s| {
+            s.resume_painting(window_handle, viewport_rect);
+        });
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
-    mut env: JNIEnv<'local>,
+    mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     action: jint,
 ) {
-    debug!("mediaSessionAction");
+    env.with_env(|env| -> jni::errors::Result<_> {
+        debug!("mediaSessionAction");
 
-    let action = match action {
-        1 => MediaSessionActionType::Play,
-        2 => MediaSessionActionType::Pause,
-        3 => MediaSessionActionType::SeekBackward,
-        4 => MediaSessionActionType::SeekForward,
-        5 => MediaSessionActionType::PreviousTrack,
-        6 => MediaSessionActionType::NextTrack,
-        7 => MediaSessionActionType::SkipAd,
-        8 => MediaSessionActionType::Stop,
-        9 => MediaSessionActionType::SeekTo,
-        _ => return warn!("Ignoring unknown MediaSessionAction"),
-    };
-    call(&mut env, |s| s.media_session_action(action.clone()));
+        let action = match action {
+            1 => MediaSessionActionType::Play,
+            2 => MediaSessionActionType::Pause,
+            3 => MediaSessionActionType::SeekBackward,
+            4 => MediaSessionActionType::SeekForward,
+            5 => MediaSessionActionType::PreviousTrack,
+            6 => MediaSessionActionType::NextTrack,
+            7 => MediaSessionActionType::SkipAd,
+            8 => MediaSessionActionType::Stop,
+            9 => MediaSessionActionType::SeekTo,
+            _ => {
+                warn!("Ignoring unknown MediaSessionAction");
+                return Ok(());
+            },
+        };
+        call(env, |s| s.media_session_action(action.clone()));
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
 }
 
 pub struct WakeupCallback {
-    callback: GlobalRef,
+    callback: Global<JObject<'static>>,
     jvm: Arc<JavaVM>,
 }
 
 impl WakeupCallback {
-    pub fn new(callback: GlobalRef, env: &JNIEnv) -> WakeupCallback {
-        let jvm = Arc::new(env.get_java_vm().unwrap());
+    pub fn new(callback: Global<JObject<'static>>, jvm: JavaVM) -> WakeupCallback {
+        let jvm = Arc::new(jvm);
         WakeupCallback { callback, jvm }
     }
 }
 
 impl EventLoopWaker for WakeupCallback {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
-        Box::new(WakeupCallback {
-            callback: self.callback.clone(),
-            jvm: self.jvm.clone(),
-        })
+        let jvm = self.jvm.clone();
+        let callback = self.callback.as_ref();
+        self.jvm
+            .attach_current_thread(|env| -> Result<Box<WakeupCallback>, Error> {
+                let callback = unsafe { env.global_from_raw::<JObject>(**callback) };
+                Ok(Box::new(WakeupCallback { callback, jvm }))
+            })
+            .unwrap()
     }
     fn wake(&self) {
         debug!("wakeup");
-        let mut env = self.jvm.attach_current_thread().unwrap();
-        env.call_method(self.callback.as_obj(), "wakeup", "()V", &[])
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                env.call_method(
+                    self.callback.as_ref(),
+                    jni_str!("wakeup"),
+                    jni_sig!("()V"),
+                    &[],
+                )?;
+                Ok(())
+            })
             .unwrap();
     }
 }
 
 impl HostCallbacks {
-    pub fn new(callbacks: GlobalRef, env: &JNIEnv) -> HostCallbacks {
-        let jvm = env.get_java_vm().unwrap();
+    pub fn new(callbacks: Global<JObject<'static>>, jvm: JavaVM) -> HostCallbacks {
         HostCallbacks { callbacks, jvm }
     }
 }
 
 impl HostTrait for HostCallbacks {
     fn show_alert(&self, message: String) {
-        let mut env = self.jvm.get_env().unwrap();
-        let Ok(string) = new_string_as_jvalue(&mut env, &message) else {
-            return;
-        };
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onAlert",
-            "(Ljava/lang/String;)V",
-            &[(&string).into()],
-        )
-        .unwrap();
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let Ok(string) = new_string_as_jvalue(env, &message) else {
+                    return Ok(());
+                };
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onAlert"),
+                    jni_sig!("(Ljava/lang/String;)V"),
+                    &[(&string).into()],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn notify_load_status_changed(&self, load_status: LoadStatus) {
         debug!("notify_load_status_changed: {load_status:?}");
-        let mut env = self.jvm.get_env().unwrap();
-        match load_status {
-            LoadStatus::Started => {
-                env.call_method(self.callbacks.as_obj(), "onLoadStarted", "()V", &[])
-                    .unwrap();
-            },
-            LoadStatus::HeadParsed => {},
-            LoadStatus::Complete => {
-                env.call_method(self.callbacks.as_obj(), "onLoadEnded", "()V", &[])
-                    .unwrap();
-            },
-        };
+        self.jvm
+            .attach_current_thread(|env| match load_status {
+                LoadStatus::Started => env
+                    .call_method(
+                        self.callbacks.as_ref(),
+                        jni_str!("onLoadStarted"),
+                        jni_sig!("()V"),
+                        &[],
+                    )
+                    .map(|_| ()),
+                LoadStatus::HeadParsed => Ok(()),
+                LoadStatus::Complete => env
+                    .call_method(
+                        self.callbacks.as_ref(),
+                        jni_str!("onLoadEnded"),
+                        jni_sig!("()V"),
+                        &[],
+                    )
+                    .map(|_| ()),
+            })
+            .unwrap();
     }
 
     fn on_shutdown_complete(&self) {
@@ -619,97 +720,129 @@ impl HostTrait for HostCallbacks {
 
     fn on_title_changed(&self, title: Option<String>) {
         debug!("on_title_changed");
-        let mut env = self.jvm.get_env().unwrap();
-        let title = title.unwrap_or_default();
-        let Ok(title_string) = new_string_as_jvalue(&mut env, &title) else {
-            return;
-        };
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onTitleChanged",
-            "(Ljava/lang/String;)V",
-            &[(&title_string).into()],
-        )
-        .unwrap();
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let title = title.unwrap_or_default();
+                let Ok(title_string) = new_string_as_jvalue(env, &title) else {
+                    return Ok(());
+                };
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onTitleChanged"),
+                    jni_sig!("(Ljava/lang/String;)V"),
+                    &[(&title_string).into()],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn on_url_changed(&self, url: String) {
         debug!("on_url_changed");
-        let mut env = self.jvm.get_env().unwrap();
-        let Ok(url_string) = new_string_as_jvalue(&mut env, &url) else {
-            return;
-        };
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onUrlChanged",
-            "(Ljava/lang/String;)V",
-            &[(&url_string).into()],
-        )
-        .unwrap();
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let Ok(url_string) = new_string_as_jvalue(env, &url) else {
+                    return Ok(());
+                };
+
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onUrlChanged"),
+                    jni_sig!("(Ljava/lang/String;)V"),
+                    &[(&url_string).into()],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
         debug!("on_history_changed");
-        let mut env = self.jvm.get_env().unwrap();
-        let can_go_back = JValue::Bool(can_go_back as jboolean);
-        let can_go_forward = JValue::Bool(can_go_forward as jboolean);
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onHistoryChanged",
-            "(ZZ)V",
-            &[can_go_back, can_go_forward],
-        )
-        .unwrap();
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let can_go_back = JValue::Bool(can_go_back as jboolean);
+                let can_go_forward = JValue::Bool(can_go_forward as jboolean);
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onHistoryChanged"),
+                    jni_sig!("(ZZ)V"),
+                    &[can_go_back, can_go_forward],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn on_ime_show(&self, _: InputMethodControl) {
-        let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onImeShow", "()V", &[])
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onImeShow"),
+                    jni_sig!("()V"),
+                    &[],
+                )?;
+                Ok(())
+            })
             .unwrap();
     }
 
     fn on_ime_hide(&self) {
-        let mut env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "onImeHide", "()V", &[])
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onImeHide"),
+                    jni_sig!("()V"),
+                    &[],
+                )?;
+                Ok(())
+            })
             .unwrap();
     }
 
     fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
         info!("on_media_session_metadata");
-        let mut env = self.jvm.get_env().unwrap();
-        let Ok(title) = new_string_as_jvalue(&mut env, &title) else {
-            return;
-        };
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let Ok(title) = new_string_as_jvalue(env, &title) else {
+                    return Ok(());
+                };
 
-        let Ok(artist) = new_string_as_jvalue(&mut env, &artist) else {
-            return;
-        };
+                let Ok(artist) = new_string_as_jvalue(env, &artist) else {
+                    return Ok(());
+                };
 
-        let Ok(album) = new_string_as_jvalue(&mut env, &album) else {
-            return;
-        };
+                let Ok(album) = new_string_as_jvalue(env, &album) else {
+                    return Ok(());
+                };
 
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onMediaSessionMetadata",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
-            &[(&title).into(), (&artist).into(), (&album).into()],
-        )
-        .unwrap();
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onMediaSessionMetadata"),
+                    jni_sig!("(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"),
+                    &[(&title).into(), (&artist).into(), (&album).into()],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
         info!("on_media_session_playback_state_change {:?}", state);
-        let mut env = self.jvm.get_env().unwrap();
-        let state = state as i32;
-        let state = JValue::Int(state as jint);
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onMediaSessionPlaybackStateChange",
-            "(I)V",
-            &[state],
-        )
-        .unwrap();
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let state = state as i32;
+                let state = JValue::Int(state as jint);
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onMediaSessionPlaybackStateChange"),
+                    jni_sig!("(I)V"),
+                    &[state],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn on_media_session_set_position_state(
@@ -722,18 +855,21 @@ impl HostTrait for HostCallbacks {
             "on_media_session_playback_state_change ({:?}, {:?}, {:?})",
             duration, position, playback_rate
         );
-        let mut env = self.jvm.get_env().unwrap();
-        let duration = JValue::Float(duration as jfloat);
-        let position = JValue::Float(position as jfloat);
-        let playback_rate = JValue::Float(playback_rate as jfloat);
+        self.jvm
+            .attach_current_thread(|env| -> Result<(), Error> {
+                let duration = JValue::Float(duration as jfloat);
+                let position = JValue::Float(position as jfloat);
+                let playback_rate = JValue::Float(playback_rate as jfloat);
 
-        env.call_method(
-            self.callbacks.as_obj(),
-            "onMediaSessionSetPositionState",
-            "(FFF)V",
-            &[duration, position, playback_rate],
-        )
-        .unwrap();
+                env.call_method(
+                    self.callbacks.as_ref(),
+                    jni_str!("onMediaSessionSetPositionState"),
+                    jni_sig!("(FFF)V"),
+                    &[duration, position, playback_rate],
+                )?;
+                Ok(())
+            })
+            .unwrap();
     }
 
     fn on_panic(&self, _reason: String, _backtrace: Option<String>) {}
@@ -743,8 +879,8 @@ unsafe extern "C" {
     pub fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
 }
 
-fn throw(env: &mut JNIEnv, err: &str) {
-    if let Err(e) = env.throw(("java/lang/Exception", err)) {
+fn throw(env: &mut Env, err: &JNIStr) {
+    if let Err(e) = env.throw(err) {
         warn!(
             "Failed to throw Java exception: `{}`. Exception was: `{}`",
             e, err
@@ -753,13 +889,13 @@ fn throw(env: &mut JNIEnv, err: &str) {
 }
 
 fn new_string_as_jvalue<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     input_string: &str,
 ) -> Result<JValueOwned<'local>, &'static str> {
     let jstring = match env.new_string(input_string) {
         Ok(jstring) => jstring,
         Err(_) => {
-            throw(env, "Couldn't create Java string");
+            throw(env, jni_str!("Couldn't create Java string"));
             return Err("Couldn't create Java string");
         },
     };
@@ -767,107 +903,71 @@ fn new_string_as_jvalue<'local>(
 }
 
 fn jni_coordinate_to_rust_viewport_rect<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     obj: &JObject<'local>,
-) -> Result<Rect<i32, DevicePixel>, String> {
-    let x = get_non_null_field(env, obj, "x", "I")?
-        .i()
-        .map_err(|_| "x not an int")? as i32;
-    let y = get_non_null_field(env, obj, "y", "I")?
-        .i()
-        .map_err(|_| "y not an int")? as i32;
-    let width = get_non_null_field(env, obj, "width", "I")?
-        .i()
-        .map_err(|_| "width not an int")? as i32;
-    let height = get_non_null_field(env, obj, "height", "I")?
-        .i()
-        .map_err(|_| "height not an int")? as i32;
+) -> Result<Rect<i32, DevicePixel>, Error> {
+    let x = env.get_field(obj, jni_str!("x"), jni_sig!("I"))?.i()?;
+    let y = env.get_field(obj, jni_str!("y"), jni_sig!("I"))?.i()?;
+
+    let width = env.get_field(obj, jni_str!("width"), jni_sig!("I"))?.i()?;
+    let height = env.get_field(obj, jni_str!("height"), jni_sig!("I"))?.i()?;
+
     Ok(Rect::new(Point2D::new(x, y), Size2D::new(width, height)))
 }
 
-fn get_field<'local>(
-    env: &mut JNIEnv<'local>,
-    obj: &JObject<'local>,
-    field: &str,
-    type_: &str,
-) -> Result<Option<JValueOwned<'local>>, String> {
-    let Ok(class) = env.get_object_class(obj) else {
-        return Err("Can't get object class".to_owned());
-    };
-
-    if env.get_field_id(class, field, type_).is_err() {
-        return Err(format!("Can't find `{}` field", field));
-    }
-
-    env.get_field(obj, field, type_)
-        .map(Some)
-        .map_err(|_| format!("Can't find `{}` field", field))
-}
-
-fn get_non_null_field<'local>(
-    env: &mut JNIEnv<'local>,
-    obj: &JObject<'local>,
-    field: &str,
-    type_: &str,
-) -> Result<JValueOwned<'local>, String> {
-    match get_field(env, obj, field, type_)? {
-        None => Err(format!("Field {} is null", field)),
-        Some(f) => Ok(f),
-    }
-}
-
 fn get_field_as_string<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     obj: &JObject<'local>,
-    field: &str,
-) -> Result<Option<String>, String> {
-    let string = {
-        let value = get_field(env, obj, field, "Ljava/lang/String;")?;
-        let Some(value) = value else {
-            return Ok(None);
-        };
-        value
-            .l()
-            .map_err(|_| format!("field `{}` is not an Object", field))?
-    };
-
-    Ok(env.get_string((&string).into()).map(|s| s.into()).ok())
+    field: &JNIStr,
+) -> Result<String, Error> {
+    let string_value = env
+        .get_field(obj, field, jni_sig!("Ljava/lang/String;"))?
+        .l()?;
+    JString::cast_local(env, string_value)?.try_to_string(env)
 }
 
 fn get_options<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     opts: &JObject<'local>,
     surface: &JObject<'local>,
-) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
-    let args = get_field_as_string(env, opts, "args")?;
-    let url = get_field_as_string(env, opts, "url")?;
-    let log_str = get_field_as_string(env, opts, "logStr")?;
-    let gst_debug_str = get_field_as_string(env, opts, "gstDebugStr")?;
-    let experimental_mode = get_non_null_field(env, opts, "experimentalMode", "Z")?
-        .z()
-        .map_err(|_| "experimentalMode not a boolean")?;
-    let density = get_non_null_field(env, opts, "density", "F")?
-        .f()
-        .map_err(|_| "density not a float")? as f32;
-    let log = get_non_null_field(env, opts, "enableLogs", "Z")?
-        .z()
-        .map_err(|_| "enableLogs not a boolean")?;
-    let coordinates = get_non_null_field(
-        env,
-        opts,
-        "coordinates",
-        "Lorg/servo/servoview/JNIServo$ServoCoordinates;",
-    )?
-    .l()
-    .map_err(|_| "coordinates is not an object")?;
+) -> Result<(InitOptions, bool, Option<String>, Option<String>), Error> {
+    let args = get_field_as_string(env, opts, jni_str!("args")).ok();
+    let url = get_field_as_string(env, opts, jni_str!("url")).ok();
+    let log_str = get_field_as_string(env, opts, jni_str!("logStr")).ok();
+    let gst_debug_str = get_field_as_string(env, opts, jni_str!("gstDebugStr")).ok();
+
+    let experimental_mode = env
+        .get_field(opts, jni_str!("experimentalMode"), jni_sig!("Z"))?
+        .z()?;
+
+    let density = env
+        .get_field(opts, jni_str!("density"), jni_sig!("F"))?
+        .f()?;
+
+    let log = env
+        .get_field(opts, jni_str!("enableLogs"), jni_sig!("Z"))?
+        .z()?;
+
+    let coordinates = env
+        .get_field(
+            opts,
+            jni_str!("coordinates"),
+            jni_sig!("Lorg/servo/servoview/JNIServo$ServoCoordinates;"),
+        )?
+        .l()?;
+
     let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
 
-    let mut args: Vec<String> = match args {
-        Some(args) => serde_json::from_str(&args)
-            .map_err(|_| "Invalid arguments. Servo arguments must be formatted as a JSON array")?,
-        None => None,
-    }
-    .unwrap_or_default();
+    let mut args: Vec<String> = args
+        .and_then(|args| {
+            serde_json::from_str(&args)
+                .inspect_err(|_| {
+                    error!("Invalid arguments. Servo arguments must be formatted as a JSON array")
+                })
+                .ok()
+        })
+        .unwrap_or_default();
+
     if experimental_mode {
         args.push("--enable-experimental-web-platform-features".to_owned());
     }
@@ -887,11 +987,10 @@ fn get_options<'local>(
 }
 
 fn display_and_window_handle(
-    env: &mut JNIEnv<'_>,
+    env: &mut Env<'_>,
     surface: &JObject<'_>,
 ) -> (RawDisplayHandle, RawWindowHandle) {
-    let native_window =
-        unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface.as_raw()) };
+    let native_window = unsafe { ANativeWindow_fromSurface(env.get_raw(), surface.as_raw()) };
     let native_window = NonNull::new(native_window).expect("Could not get Android window");
     (
         RawDisplayHandle::Android(AndroidDisplayHandle::new()),
