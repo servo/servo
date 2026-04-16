@@ -442,7 +442,7 @@ fn prepare_devtools_request(
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
 
-pub fn send_request_to_devtools(
+fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
@@ -455,7 +455,7 @@ pub fn send_request_to_devtools(
     }
 }
 
-pub fn send_response_to_devtools(
+pub(crate) fn send_response_to_devtools(
     request: &Request,
     context: &FetchContext,
     response: &Response,
@@ -480,7 +480,7 @@ pub fn send_response_to_devtools(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn send_response_values_to_devtools(
+fn send_response_values_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
     body: Option<Vec<u8>>,
@@ -513,7 +513,7 @@ pub fn send_response_values_to_devtools(
     }
 }
 
-pub fn send_security_info_to_devtools(
+pub(crate) fn send_security_info_to_devtools(
     request: &Request,
     context: &FetchContext,
     response: &Response,
@@ -543,7 +543,7 @@ pub fn send_security_info_to_devtools(
     }
 }
 
-pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
+pub(crate) fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
     // Do not forward data requests to devtools
     if request.url().scheme() == "data" {
         return;
@@ -965,7 +965,7 @@ async fn obtain_response(
 /// [HTTP fetch](https://fetch.spec.whatwg.org/#concept-http-fetch)
 #[async_recursion]
 #[allow(clippy::too_many_arguments)]
-pub async fn http_fetch(
+pub(crate) async fn http_fetch(
     fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     cors_flag: bool,
@@ -1220,7 +1220,7 @@ fn location_url_for_response(
     location
 }
 
-/// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
+/// [HTTP redirect fetch](https://fetch.spec.whatwg.org/#http-redirect-fetch)
 #[async_recursion]
 pub async fn http_redirect_fetch(
     fetch_params: &mut FetchParams,

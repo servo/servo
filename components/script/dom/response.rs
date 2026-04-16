@@ -43,6 +43,9 @@ pub(crate) struct Response {
     #[no_trace]
     status: DomRefCell<HttpStatus>,
     response_type: DomRefCell<DOMResponseType>,
+    /// <https://fetch.spec.whatwg.org/#concept-response-url>
+    /// FIXME: This should always point to the last entry of `url_list`.
+    /// Somehow we directly set it instead.
     #[no_trace]
     url: DomRefCell<Option<ServoUrl>>,
     #[no_trace]
