@@ -3153,31 +3153,41 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         // TODO: If pixel store parameter constraints are not met, generates an INVALID_OPERATION error.
 
-        // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let unpacking_alignment = self.base.texture_unpacking_alignment();
+        let element_size = data_type.element_size();
+        let components_per_element = data_type.components_per_element();
+        let components = format.components();
+        // NOTE: width, height and depth are positive or zero due to validate()
+        let expected_byte_len = if height == 0 {
+            0
+        } else {
+            // We need to be careful here to not count unpack
+            // alignment at the end of the image, otherwise (for
+            // example) passing a single byte for uploading a 1x1x1
+            // GL_ALPHA/GL_UNSIGNED_BYTE texture would throw an error.
+            let cpp = element_size * components / components_per_element;
+            let mut padding_bytes = (cpp * width) % unpacking_alignment;
+            if padding_bytes > 0 {
+                padding_bytes = unpacking_alignment - padding_bytes;
+            }
+            let bytes_per_row = cpp * width + padding_bytes;
+            let bytes_last_row = cpp * width;
+            let bytes_per_image = bytes_per_row * height;
+            let bytes_last_image = bytes_per_row * (height - 1) + bytes_last_row;
+            bytes_per_image * (depth - 1) + bytes_last_image
+        };
+
+        // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let buff = match *src_data {
             Some(ref data) => GenericSharedMemory::from_bytes(unsafe { data.as_slice() }),
-            None => {
-                let element_size = data_type.element_size();
-                let components = format.components();
-                let components_per_element = format.components();
-                // FIXME: This is copied from tex_image_2d which is apparently incorrect
-                // NOTE: width and height are positive or zero due to validate()
-                let expected_byte_len = if height == 0 {
-                    0
-                } else {
-                    // We need to be careful here to not count unpack
-                    // alignment at the end of the image, otherwise (for
-                    // example) passing a single byte for uploading a 1x1
-                    // GL_ALPHA/GL_UNSIGNED_BYTE texture would throw an error.
-                    let cpp = element_size * components / components_per_element;
-                    let stride =
-                        (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
-                    stride * (height - 1) + width * cpp
-                };
-                GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize])
-            },
+            None => GenericSharedMemory::from_bytes(&vec![0u8; expected_byte_len as usize]),
         };
+        if buff.len() < expected_byte_len as usize {
+            return {
+                self.base.webgl_error(InvalidOperation);
+                Ok(())
+            };
+        }
         let (alpha_treatment, y_axis_treatment) =
             self.base.get_current_unpack_state(Alpha::NotPremultiplied);
         // If UNPACK_FLIP_Y_WEBGL or UNPACK_PREMULTIPLY_ALPHA_WEBGL is set to true, texImage3D and texSubImage3D
