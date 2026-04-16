@@ -57,7 +57,7 @@ pub(crate) enum CssPropertyName {
 }
 
 impl CssPropertyName {
-    fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
         let style = element.style()?;
 
         Some(
