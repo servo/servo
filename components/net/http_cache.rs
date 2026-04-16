@@ -910,11 +910,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
             metadata: cacheable_metadata,
             location_url: response.location_url.clone(),
             https_state: response.https_state,
-            status: response
-                .status
-                .as_ref()
-                .expect("Cached Resource should always have a response status")
-                .clone(),
+            status: response.status.as_ref().cloned().unwrap_or_default(), // If we do not have a response code, we assume Ok
             url_list: response.url_list.clone(),
             expires: expiry,
             last_validated: Instant::now(),

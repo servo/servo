@@ -835,8 +835,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         self.status
             .borrow()
             .as_ref()
-            .expect("Expected valid status")
-            .as_u16()
+            .map(|status| status.as_u16())
+            .unwrap_or(0)
     }
 
     /// <https://xhr.spec.whatwg.org/#the-statustext-attribute>
@@ -845,9 +845,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             self.status
                 .borrow()
                 .as_ref()
-                .expect("Expected valid status")
-                .canonical_reason()
-                .unwrap()
+                .and_then(|status| status.canonical_reason())
+                .unwrap_or_default()
                 .as_bytes()
                 .to_vec(),
         )

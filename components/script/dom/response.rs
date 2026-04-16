@@ -306,8 +306,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         self.status
             .borrow()
             .as_ref()
-            .expect("Status not set")
-            .as_u16()
+            .map(|status| status.as_u16())
+            .unwrap_or(0)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-ok>
@@ -324,9 +324,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
             self.status
                 .borrow()
                 .as_ref()
-                .expect("Status not set")
-                .canonical_reason()
-                .unwrap()
+                .and_then(|status| status.canonical_reason())
+                .unwrap_or_default()
                 .as_bytes()
                 .to_owned(),
         )
