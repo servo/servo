@@ -8,7 +8,7 @@ use std::io::Write;
 use std::{fs, thread};
 
 use log::error;
-use ohos_deviceinfo_sys::OH_GetDistributionOSVersion;
+use ohos_deviceinfo_sys::OH_GetIncrementalVersion;
 use postcard::{from_bytes, to_stdvec};
 use servo_config::opts;
 
@@ -109,7 +109,7 @@ fn get_directory() -> Result<String, Box<dyn Error>> {
 /// Currently, the naming format is <OS_VERSION>_font-cache.bin"
 fn parse_filename() -> Result<String, Box<dyn Error>> {
     let os_version = unsafe {
-        let os_version_c_str = CStr::from_ptr(OH_GetDistributionOSVersion());
+        let os_version_c_str = CStr::from_ptr(OH_GetIncrementalVersion());
         os_version_c_str.to_str()?
     };
 
