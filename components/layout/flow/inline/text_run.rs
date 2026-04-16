@@ -442,20 +442,17 @@ impl TextRun {
         bidi_info: &BidiInfo,
         parent_style: &ServoArc<ComputedValues>,
     ) -> Vec<TextRunSegment> {
-        let font_group = layout_context
-            .font_context
-            .font_group(parent_style.clone_font());
+        let font_style = parent_style.clone_font();
+        let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
+        let font_size = font_style.font_size.computed_size().into();
+        let font_group = layout_context.font_context.font_group(font_style);
         let mut current: Option<TextRunSegment> = None;
         let mut results = Vec::new();
 
-        let x_lang = parent_style.get_font()._x_lang.clone();
-        let language = x_lang.0.parse().unwrap_or(Language::UND);
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
 
-        let parent_style = self.inline_styles.style.borrow().clone();
         let inherited_text_style = parent_style.get_inherited_text().clone();
-        let font_size = parent_style.get_font().font_size.computed_size().into();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
         let letter_spacing = inherited_text_style
             .letter_spacing
