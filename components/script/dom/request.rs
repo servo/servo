@@ -400,8 +400,7 @@ impl Request {
                 ));
             }
             // Step 32.2. Set this’s headers’s guard to "request-no-cors".
-            r.Headers(CanGc::from_cx(cx))
-                .set_guard(Guard::RequestNoCors);
+            r.Headers(cx).set_guard(Guard::RequestNoCors);
         }
 
         match headers_copy {
@@ -413,17 +412,16 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(CanGc::from_cx(cx))
-                        .copy_from_headers(input_request.Headers(CanGc::from_cx(cx)))?;
+                    r.Headers(cx).copy_from_headers(input_request.Headers(cx))?;
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
-            Some(headers_copy) => r.Headers(CanGc::from_cx(cx)).fill(Some(headers_copy))?,
+            Some(headers_copy) => r.Headers(cx).fill(Some(headers_copy))?,
         }
 
         // Step 33.5 depending on how we got here
         // Copy the headers list onto the headers of net_traits::Request
-        r.request.borrow_mut().headers = r.Headers(CanGc::from_cx(cx)).get_headers_list();
+        r.request.borrow_mut().headers = r.Headers(cx).get_headers_list();
 
         // Step 34. Let inputBody be input’s request’s body if input is a Request object; otherwise null.
         let input_body = if let RequestInfo::Request(ref mut input_request) = input {
@@ -468,12 +466,12 @@ impl Request {
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
                 if !r
-                    .Headers(CanGc::from_cx(cx))
+                    .Headers(cx)
                     .Has(ByteString::new(ct_header_name.to_vec()))
                     .unwrap()
                 {
                     let ct_header_val = contents.as_bytes();
-                    r.Headers(CanGc::from_cx(cx)).Append(
+                    r.Headers(cx).Append(
                         ByteString::new(ct_header_name.to_vec()),
                         ByteString::new(ct_header_val.to_vec()),
                     )?;
@@ -544,7 +542,7 @@ impl Request {
     fn clone_from(cx: &mut js::context::JSContext, r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
-        let headers_guard = r.Headers(CanGc::from_cx(cx)).get_guard();
+        let headers_guard = r.Headers(cx).get_guard();
 
         // Step 1. Let newRequest be a copy of request, except for its body.
         let mut new_req_inner = req.clone();
@@ -559,10 +557,8 @@ impl Request {
             r_clone.request.borrow_mut().body = Some(body);
         }
 
-        r_clone
-            .Headers(CanGc::from_cx(cx))
-            .copy_from_headers(r.Headers(CanGc::from_cx(cx)))?;
-        r_clone.Headers(CanGc::from_cx(cx)).set_guard(headers_guard);
+        r_clone.Headers(cx).copy_from_headers(r.Headers(cx))?;
+        r_clone.Headers(cx).set_guard(headers_guard);
 
         clone_body_stream_for_dom_body(cx, &r.body_stream, &r_clone.body_stream)?;
 
@@ -637,9 +633,9 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-headers>
-    fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
+    fn Headers(&self, cx: &mut js::context::JSContext) -> DomRoot<Headers> {
         self.headers
-            .or_init(|| Headers::new(&self.global(), can_gc))
+            .or_init(|| Headers::new(&self.global(), CanGc::from_cx(cx)))
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-destination>
@@ -743,33 +739,33 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-text>
-    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Text, can_gc)
+    fn Text(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Text)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-blob>
-    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Blob, can_gc)
+    fn Blob(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Blob)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-formdata>
-    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::FormData, can_gc)
+    fn FormData(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::FormData)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-json>
-    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Json, can_gc)
+    fn Json(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Json)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-arraybuffer>
-    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::ArrayBuffer, can_gc)
+    fn ArrayBuffer(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::ArrayBuffer)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
-    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
-        consume_body(self, BodyType::Bytes, can_gc)
+    fn Bytes(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Bytes)
     }
 }
 
@@ -792,8 +788,8 @@ impl BodyMixin for Request {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
-        let headers = self.Headers(can_gc);
+    fn get_mime_type(&self, cx: &mut js::context::JSContext) -> Vec<u8> {
+        let headers = self.Headers(cx);
         headers.extract_mime_type()
     }
 }
