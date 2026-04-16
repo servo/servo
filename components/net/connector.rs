@@ -408,7 +408,8 @@ where
 }
 
 static CRYPTO_PROVIDER_CACHE: LazyLock<Arc<CryptoProvider>> = LazyLock::new(|| {
-    CryptoProvider::get_default().cloned()
+    CryptoProvider::get_default()
+        .cloned()
         // The embedder should have initialized the default crypto provider before
         // initializing servo, so this should never fail.
         .unwrap_or_else(|| {
