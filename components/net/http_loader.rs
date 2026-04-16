@@ -8,7 +8,7 @@ use std::sync::Arc as StdArc;
 use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
-use content_security_policy::percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use devtools_traits::ChromeToDevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
@@ -499,6 +499,8 @@ fn log_fetch_terminated_send_failure(terminated_with_error: bool, context: &str)
     );
 }
 
+const FRAGMENT: &AsciiSet = &CONTROLS.add(b'|').add(b'{').add(b'}');
+
 #[allow(clippy::too_many_arguments)]
 #[servo_tracing::instrument(skip_all, fields(url))]
 /// This sets up the callback infrastructure to send body frames to `body_sender` and fires the client request.
@@ -522,7 +524,7 @@ async fn obtain_response(
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
     // https://url.spec.whatwg.org/#percent-encoded-bytes
-    let encoded_url = utf8_percent_encode(url.as_str(), NON_ALPHANUMERIC).to_string();
+    let encoded_url = utf8_percent_encode(url.as_str(), FRAGMENT).to_string();
 
     let request = if let Some(chunk_requester) = body_sender {
         let (sink, stream) = if source_is_null {
@@ -1424,48 +1426,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // Steps 8.16 to 8.18
-    match http_request.cache_mode {
-        // Step 8.16: If httpRequest’s cache mode is "default" and httpRequest’s header list
-        // contains `If-Modified-Since`, `If-None-Match`, `If-Unmodified-Since`, `If-Match`, or
-        // `If-Range`, then set httpRequest’s cache mode to "no-store".
-        CacheMode::Default if is_no_store_cache(&http_request.headers) => {
-            http_request.cache_mode = CacheMode::NoStore;
-        },
-
-        // Note that the following steps (8.17 and 8.18) are being considered for removal:
-        // https://github.com/whatwg/fetch/issues/722#issuecomment-1420264615
-
-        // Step 8.17: If httpRequest’s cache mode is "no-cache", httpRequest’s prevent no-cache
-        // cache-control header modification flag is unset, and httpRequest’s header list does not
-        // contain `Cache-Control`, then append (`Cache-Control`, `max-age=0`) to httpRequest’s
-        // header list.
-        // TODO: Implement request's prevent no-cache cache-control header modification flag
-        // https://fetch.spec.whatwg.org/#no-cache-prevent-cache-control
-        CacheMode::NoCache if !http_request.headers.contains_key(header::CACHE_CONTROL) => {
-            http_request
-                .headers
-                .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(0)));
-        },
-
-        // Step 8.18: If httpRequest’s cache mode is "no-store" or "reload", then:
-        CacheMode::Reload | CacheMode::NoStore => {
-            // Step 8.18.1: If httpRequest’s header list does not contain `Pragma`, then append
-            // (`Pragma`, `no-cache`) to httpRequest’s header list.
-            if !http_request.headers.contains_key(header::PRAGMA) {
-                http_request.headers.typed_insert(Pragma::no_cache());
-            }
-
-            // Step 8.18.2: If httpRequest’s header list does not contain `Cache-Control`, then
-            // append (`Cache-Control`, `no-cache`) to httpRequest’s header list.
-            if !http_request.headers.contains_key(header::CACHE_CONTROL) {
-                http_request
-                    .headers
-                    .typed_insert(CacheControl::new().with_no_cache());
-            }
-        },
-
-        _ => {},
-    }
+    append_cache_data_to_headers(http_request);
 
     // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
     // `identity`) to httpRequest’s header list.
@@ -1761,6 +1722,7 @@ async fn http_network_or_cache_fetch(
     // Step 18. Return response.
     response
 }
+
 /// If the cache is not ready to construct a response, wait.
 ///
 /// The cache is not ready if a previous fetch checked the cache, found nothing,
@@ -1768,7 +1730,6 @@ async fn http_network_or_cache_fetch(
 ///
 /// Note that this is a different workflow from the one involving `wait_for_cached_response`.
 /// That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
-///
 #[servo_tracing::instrument(skip_all)]
 async fn block_for_cache_ready<'a>(
     context: &'a FetchContext,
@@ -2673,6 +2634,52 @@ fn append_the_fetch_metadata_headers(r: &mut Request) {
 
     // Step 5. Set the Sec-Fetch-User header for r.
     set_the_sec_fetch_user_header(r);
+}
+
+/// Steps 8.16 to 8.18 in [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
+fn append_cache_data_to_headers(http_request: &mut Request) {
+    match http_request.cache_mode {
+        // Step 8.16: If httpRequest’s cache mode is "default" and httpRequest’s header list
+        // contains `If-Modified-Since`, `If-None-Match`, `If-Unmodified-Since`, `If-Match`, or
+        // `If-Range`, then set httpRequest’s cache mode to "no-store".
+        CacheMode::Default if is_no_store_cache(&http_request.headers) => {
+            http_request.cache_mode = CacheMode::NoStore;
+        },
+
+        // Note that the following steps (8.17 and 8.18) are being considered for removal:
+        // https://github.com/whatwg/fetch/issues/722#issuecomment-1420264615
+
+        // Step 8.17: If httpRequest’s cache mode is "no-cache", httpRequest’s prevent no-cache
+        // cache-control header modification flag is unset, and httpRequest’s header list does not
+        // contain `Cache-Control`, then append (`Cache-Control`, `max-age=0`) to httpRequest’s
+        // header list.
+        // TODO: Implement request's prevent no-cache cache-control header modification flag
+        // https://fetch.spec.whatwg.org/#no-cache-prevent-cache-control
+        CacheMode::NoCache if !http_request.headers.contains_key(header::CACHE_CONTROL) => {
+            http_request
+                .headers
+                .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(0)));
+        },
+
+        // Step 8.18: If httpRequest’s cache mode is "no-store" or "reload", then:
+        CacheMode::Reload | CacheMode::NoStore => {
+            // Step 8.18.1: If httpRequest’s header list does not contain `Pragma`, then append
+            // (`Pragma`, `no-cache`) to httpRequest’s header list.
+            if !http_request.headers.contains_key(header::PRAGMA) {
+                http_request.headers.typed_insert(Pragma::no_cache());
+            }
+
+            // Step 8.18.2: If httpRequest’s header list does not contain `Cache-Control`, then
+            // append (`Cache-Control`, `no-cache`) to httpRequest’s header list.
+            if !http_request.headers.contains_key(header::CACHE_CONTROL) {
+                http_request
+                    .headers
+                    .typed_insert(CacheControl::new().with_no_cache());
+            }
+        },
+
+        _ => {},
+    }
 }
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-dest>
