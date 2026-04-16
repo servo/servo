@@ -305,7 +305,7 @@ jobs:
     name: Build release (Android)
     uses: ./.github/workflows/android.yml
     with:
-      profile: "release"
+      profile: "production"
     secrets: inherit
 
   build-ohos:
