@@ -8071,7 +8071,6 @@ dependencies = [
  "bitflags 2.11.0",
  "data-url",
  "euclid",
- "html5ever",
  "icu_locid",
  "icu_segmenter",
  "itertools 0.14.0",
@@ -8113,6 +8112,7 @@ dependencies = [
  "unicode-script",
  "unicode_categories",
  "url",
+ "web_atoms",
  "webrender_api",
  "xi-unicode",
 ]
