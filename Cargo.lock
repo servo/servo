@@ -9062,7 +9062,6 @@ dependencies = [
  "ohos-ime-sys",
  "ohos-vsync",
  "ohos-window-manager-sys",
- "postcard",
  "raw-window-handle",
  "rustls",
  "serde_json",
