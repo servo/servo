@@ -442,7 +442,7 @@ fn prepare_devtools_request(
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
 
-fn send_request_to_devtools(
+pub fn send_request_to_devtools(
     msg: ChromeToDevtoolsControlMsg,
     devtools_chan: &Sender<DevtoolsControlMsg>,
 ) {
@@ -455,7 +455,7 @@ fn send_request_to_devtools(
     }
 }
 
-pub(crate) fn send_response_to_devtools(
+pub fn send_response_to_devtools(
     request: &Request,
     context: &FetchContext,
     response: &Response,
@@ -480,7 +480,7 @@ pub(crate) fn send_response_to_devtools(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn send_response_values_to_devtools(
+pub fn send_response_values_to_devtools(
     headers: Option<HeaderMap>,
     status: HttpStatus,
     body: Option<Vec<u8>>,
@@ -513,7 +513,7 @@ fn send_response_values_to_devtools(
     }
 }
 
-pub(crate) fn send_security_info_to_devtools(
+pub fn send_security_info_to_devtools(
     request: &Request,
     context: &FetchContext,
     response: &Response,
@@ -543,7 +543,7 @@ pub(crate) fn send_security_info_to_devtools(
     }
 }
 
-pub(crate) fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
+pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
     // Do not forward data requests to devtools
     if request.url().scheme() == "data" {
         return;
