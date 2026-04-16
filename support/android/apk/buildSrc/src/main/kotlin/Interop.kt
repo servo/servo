@@ -23,7 +23,9 @@ fun Project.getNativeTargetDir(debug: Boolean, arch: String): String {
 }
 
 fun getSubTargetDir(debug: Boolean, arch: String): String {
-    val buildTypeDirectory = System.getenv("SERVO_ANDROID_BUILD_TYPE_DIRECTORY") ?: if (debug) "debug" else "release"
+    val buildTypeDirectory = System.getenv("SERVO_TARGET_DIR")
+        ?.let { File(it).name }
+        ?: if (debug) "debug" else "release"
     return getRustTarget(arch) + "/" + buildTypeDirectory
 }
 
