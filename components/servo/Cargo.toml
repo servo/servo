@@ -57,6 +57,7 @@ tracing = [
     "layout/tracing",
     "profile_traits/tracing",
     "script/tracing",
+    "net/tracing",
 ]
 vello = ["servo-constellation/vello"]
 webgl_backtrace = [
