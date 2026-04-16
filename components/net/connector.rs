@@ -437,12 +437,11 @@ pub fn prewarm_tls() {
 
     #[servo_tracing::instrument]
     fn prewarm_tls_impl() {
-        // The verifier reads through all certificates, so we want to do that
-        // before the first access.
-        LazyLock::force(&RUSTLS_PLATFORM_VERIFIER_CACHE);
         let mut sink = [0u8; 32];
         // The first access can be slow, if the provider needs to gather entropy.
         let _ = CRYPTO_PROVIDER_CACHE.secure_random.fill(&mut sink);
+        // Note: We don't need to explicitly force initialize RUSTLS_PLATFORM_VERIFIER_CACHE,
+        // since the resource manager thread will do that during startup.
     }
 
     if let Err(error) = std::thread::Builder::new()
