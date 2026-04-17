@@ -460,7 +460,7 @@ impl FetchResponseListener for ClassicContext {
     ) {
         match (response.as_ref(), self.status.as_ref()) {
             (Err(error), _) | (_, Err(error)) => {
-                error!("Fetching classic script failed {:?}", error);
+                error!("Fetching classic script failed {:?} ({})", error, self.url);
                 // Step 6, response is an error.
                 finish_fetching_a_script(&self.elem.root(), self.kind, Err(()), cx);
 
