@@ -9,6 +9,7 @@ use std::sync::Arc;
 use app_units::Au;
 use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
+use icu_properties::{self, LineBreak};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
@@ -22,7 +23,6 @@ use style::str::char_is_whitespace;
 use style::values::computed::OverflowWrap;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_script::Script;
-use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
@@ -30,14 +30,6 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::inline::line::TextRunOffsets;
 use crate::fragment_tree::BaseFragmentInfo;
-
-// These constants are the xi-unicode line breaking classes that are defined in
-// `table.rs`. Unfortunately, they are only identified by number.
-pub(crate) const XI_LINE_BREAKING_CLASS_CM: u8 = 9;
-pub(crate) const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
-pub(crate) const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
-pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
-pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 
 // There are two reasons why we might want to break at the start:
 //
@@ -619,12 +611,14 @@ fn char_does_not_change_font(character: char) -> bool {
         return false;
     }
 
-    let class = linebreak_property(character);
-    class == XI_LINE_BREAKING_CLASS_CM ||
-        class == XI_LINE_BREAKING_CLASS_GL ||
-        class == XI_LINE_BREAKING_CLASS_ZW ||
-        class == XI_LINE_BREAKING_CLASS_WJ ||
-        class == XI_LINE_BREAKING_CLASS_ZWJ
+    matches!(
+        icu_properties::maps::line_break().get(character),
+        LineBreak::CombiningMark |
+            LineBreak::Glue |
+            LineBreak::ZWSpace |
+            LineBreak::WordJoiner |
+            LineBreak::ZWJ
+    )
 }
 
 pub(super) fn get_font_for_first_font_for_style(

@@ -8072,6 +8072,7 @@ dependencies = [
  "data-url",
  "euclid",
  "icu_locid",
+ "icu_properties",
  "icu_segmenter",
  "itertools 0.14.0",
  "kurbo 0.12.0",
@@ -8114,7 +8115,6 @@ dependencies = [
  "url",
  "web_atoms",
  "webrender_api",
- "xi-unicode",
 ]
 
 [[package]]
@@ -12041,12 +12041,6 @@ name = "xcursor"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bec9e4a500ca8864c5b47b8b482a73d62e4237670e5b5f1d6b9e3cae50f28f2b"
-
-[[package]]
-name = "xi-unicode"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a67300977d3dc3f8034dae89778f502b6ba20b269527b3223ba59c0cf393bb8a"
 
 [[package]]
 name = "xkbcommon-dl"
