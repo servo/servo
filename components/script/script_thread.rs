@@ -72,6 +72,7 @@ use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::DebuggerSourceLocation;
 use script_bindings::script_runtime::{JSContext, temp_cx};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
@@ -2269,6 +2270,32 @@ impl ScriptThread {
                 self.debugger_global
                     .fire_resume(cx, resume_limit_type, frame_actor_id);
                 self.debugger_paused.set(false);
+            },
+            DevtoolScriptControlMsg::Blackbox(spidermonkey_id, start, end) => {
+                self.debugger_global.fire_blackbox(
+                    spidermonkey_id,
+                    DebuggerSourceLocation {
+                        line: start.line,
+                        column: start.column,
+                    },
+                    DebuggerSourceLocation {
+                        line: end.line,
+                        column: end.column,
+                    },
+                );
+            },
+            DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, start, end) => {
+                self.debugger_global.fire_unblackbox(
+                    spidermonkey_id,
+                    DebuggerSourceLocation {
+                        line: start.line,
+                        column: start.column,
+                    },
+                    DebuggerSourceLocation {
+                        line: end.line,
+                        column: end.column,
+                    },
+                );
             },
         }
     }

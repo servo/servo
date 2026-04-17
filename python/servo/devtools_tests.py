@@ -1280,6 +1280,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line_str = min(positions.keys(), key=int)
             line, column = int(line_str), positions[line_str][0]
 
+            # TODO: Actually set a blackbox
+
             # Set a breakpoint and confirm that we will not pause
             trigger = lambda: set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
             wait_and_assert_no_pause(devtools.client, thread_actor, trigger, duration=1)

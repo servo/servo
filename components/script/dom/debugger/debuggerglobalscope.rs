@@ -26,7 +26,9 @@ use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBi
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::{
     EnvironmentInfo, EnvironmentVariable,
 };
-use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding::{
+    self, DebuggerSourceLocation,
+};
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
@@ -357,6 +359,24 @@ impl DebuggerGlobalScope {
             event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerClearBreakpointEvent::new"
         );
+    }
+
+    pub(crate) fn fire_blackbox(
+        &self,
+        spidermonkey_id: u32,
+        start: DebuggerSourceLocation,
+        end: DebuggerSourceLocation,
+    ) {
+        todo!();
+    }
+
+    pub(crate) fn fire_unblackbox(
+        &self,
+        spidermonkey_id: u32,
+        start: DebuggerSourceLocation,
+        end: DebuggerSourceLocation,
+    ) {
+        todo!();
     }
 }
 
