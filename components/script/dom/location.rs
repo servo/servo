@@ -300,10 +300,9 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
     /// <https://html.spec.whatwg.org/multipage/#dom-location-assign>
     fn Assign(&self, cx: &mut JSContext, url: USVString) -> ErrorResult {
         self.setter_common(cx, |_copy_url| {
-            // Step 3: Parse url relative to the entry settings object. If that failed,
+            // Step 3: encoding-parse url relative to the entry settings object. If that failed,
             // throw a "SyntaxError" DOMException.
-            let base_url = self.entry_settings_object().api_base_url();
-            let url = match base_url.join(&url.0) {
+            let url = match self.window.Document().encoding_parse_a_url(&url.0) {
                 Ok(url) => url,
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
             };
@@ -329,8 +328,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
             // Step 2. Let urlRecord be the result of encoding-parsing a URL given url, relative to the entry settings object.
-            let base_url = self.entry_settings_object().api_base_url();
-            let url = match base_url.join(&url.0) {
+            let url = match self.window.Document().encoding_parse_a_url(&url.0) {
                 Ok(url) => url,
                 // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
@@ -435,8 +433,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
             // Step 2: Let url be the result of encoding-parsing a URL given the given value, relative to the entry settings object.
-            let base_url = self.entry_settings_object().api_base_url();
-            let url = match base_url.join(&value.0) {
+            let url = match self.window.Document().encoding_parse_a_url(&value.0) {
                 Ok(url) => url,
                 // Step 3: If url is failure, then throw a "SyntaxError" DOMException.
                 Err(e) => return Err(Error::Syntax(Some(format!("Couldn't parse URL: {}", e)))),
