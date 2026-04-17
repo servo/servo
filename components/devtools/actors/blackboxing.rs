@@ -11,7 +11,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::thread::ThreadActor;
 use crate::{ActorMsg, EmptyReplyMsg};
 
-/// Used for both 'blackbox' and 'unblackbox' request
+/// Used for both 'blackbox' and 'unblackbox' requests
 #[derive(Deserialize)]
 struct BlackboxRequest {
     range: Vec<BlackboxRange>,
