@@ -1281,8 +1281,10 @@ impl Node {
             // set the "text-decoration" property of new parent to "underline".
             CommandName::Underline => {
                 if new_value == "underline" &&
-                    self.effective_command_value(&CommandName::Underline)
-                        .is_some_and(|value| value == "underline")
+                    new_parent
+                        .upcast::<Node>()
+                        .effective_command_value(&CommandName::Underline)
+                        .is_none_or(|value| value != "underline")
                 {
                     CssPropertyName::TextDecorationLine.set_for_element(
                         cx,
