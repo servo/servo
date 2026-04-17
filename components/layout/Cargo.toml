@@ -28,8 +28,9 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
-html5ever = { workspace = true }
+web_atoms = { workspace = true }
 icu_locid = { workspace = true }
+icu_properties = { workspace = true, features = ["compiled_data"] }
 icu_segmenter = { workspace = true }
 itertools = { workspace = true }
 kurbo = { workspace = true }
@@ -66,7 +67,6 @@ unicode-script = { workspace = true }
 unicode_categories = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
-xi-unicode = { workspace = true }
 
 [dev-dependencies]
 num-traits = { workspace = true }

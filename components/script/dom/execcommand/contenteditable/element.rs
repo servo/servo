@@ -94,6 +94,70 @@ impl Element {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#modifiable-element>
+    pub(crate) fn is_modifiable_element(&self) -> bool {
+        let attrs = self.attrs();
+        let mut attrs = attrs.iter();
+        let type_id = self.upcast::<Node>().type_id();
+
+        // > A modifiable element is a b, em, i, s, span, strike, strong, sub, sup, or u element
+        // > with no attributes except possibly style;
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSpanElement,
+            ))
+        ) || matches!(
+            *self.local_name(),
+            local_name!("b") |
+                local_name!("em") |
+                local_name!("i") |
+                local_name!("s") |
+                local_name!("strike") |
+                local_name!("strong") |
+                local_name!("sub") |
+                local_name!("sup") |
+                local_name!("u")
+        ) {
+            return attrs.all(|attr| attr.local_name() == &local_name!("style"));
+        }
+
+        // > or a font element with no attributes except possibly style, color, face, and/or size;
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLFontElement,
+            ))
+        ) {
+            return attrs.all(|attr| {
+                matches!(
+                    *attr.local_name(),
+                    local_name!("style") |
+                        local_name!("color") |
+                        local_name!("face") |
+                        local_name!("size")
+                )
+            });
+        }
+
+        // > or an a element with no attributes except possibly style and/or href.
+        if matches!(
+            type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            ))
+        ) {
+            return attrs.all(|attr| {
+                matches!(
+                    *attr.local_name(),
+                    local_name!("style") | local_name!("href")
+                )
+            });
+        }
+
+        false
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#simple-modifiable-element>
     pub(crate) fn is_simple_modifiable_element(&self) -> bool {
         let attrs = self.attrs();
@@ -130,7 +194,7 @@ impl Element {
             // > with exactly one attribute, which is style,
             // > which sets no CSS properties (including invalid or unrecognized properties).
             if attr_count == 1 &&
-                self.attrs().first().expect("Size is 1").local_name() == &local_name!("style")
+                attrs.first().expect("Size is 1").local_name() == &local_name!("style")
             {
                 let style_attribute = self.style_attribute().borrow();
                 if style_attribute.as_ref().is_some_and(|declarations| {

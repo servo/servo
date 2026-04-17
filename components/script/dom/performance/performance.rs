@@ -637,7 +637,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             .get_entries_by_name_and_type(Some(name), entry_type)
     }
 
-    /// <https://w3c.github.io/user -timing/#dom-performance-mark>
+    /// <https://w3c.github.io/user-timing/#dom-performance-mark>
     fn Mark(&self, mark_name: DOMString) -> Fallible<DomRoot<PerformanceMark>> {
         let global = self.global();
         // NOTE: This should happen within the performancemark constructor
@@ -646,17 +646,18 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         }
 
         // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
+        // TODO: Implement PerformanceMark constructor steps
         let entry = PerformanceMark::new(
             &global,
             mark_name,
             CrossProcessInstant::now(),
             Duration::ZERO,
+            Default::default(),
         );
 
         // Step 2. Queue a PerformanceEntry entry.
+        // Step 3. Add entry to the performance entry buffer. (This is done in queue_entry itself)
         self.queue_entry(entry.upcast::<PerformanceEntry>());
-
-        // TODO Step 3. Add entry to the performance entry buffer.
 
         // Step 4. Return entry.
         Ok(entry)
@@ -796,10 +797,11 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             measure_name,
             start_time,
             end_time - start_time,
+            Default::default(),
         );
 
         // Step 10. Queue a PerformanceEntry entry.
-        // Step 11. Add entry to the performance entry buffer.
+        // Step 11. Add entry to the performance entry buffer. (This is done in queue_entry itself)
         self.queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 12. Return entry.

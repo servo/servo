@@ -109,9 +109,11 @@ jobs:
       - if: ${{ runner.environment == 'self-hosted' }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
+        # Safeguard: -- means FETCH_HEAD is revision instead of path.
+        # See <https://github.com/servo/servo/pull/44309>
         run: |
           git switch --detach
-          git reset --hard FETCH_HEAD
+          git reset --hard FETCH_HEAD --
 
       - if: runner.environment != 'self-hosted'
         name: Setup Python

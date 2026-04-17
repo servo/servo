@@ -706,10 +706,8 @@ where
             }
             // Step 15.2. While new parent's nextSibling has children,
             // append its first child as the last child of new parent, preserving ranges.
-            while let Some(first_of_next) = next_of_new_parent.children().next() {
-                move_preserving_ranges(cx, &first_of_next, |cx| {
-                    new_parent.AppendChild(cx, &first_of_next)
-                });
+            for child in next_of_new_parent.children() {
+                move_preserving_ranges(cx, &child, |cx| new_parent.AppendChild(cx, &child));
             }
             // Step 15.3. Remove new parent's nextSibling from its parent.
             next_of_new_parent.remove_self(cx);
@@ -972,6 +970,84 @@ impl Node {
         }
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#reorder-modifiable-descendants>
+    fn reorder_modifiable_descendants(
+        &self,
+        cx: &mut JSContext,
+        command: &CommandName,
+        new_value: &DOMString,
+    ) {
+        // Step 1. Let candidate equal node.
+        let mut candidate = DomRoot::from_ref(self);
+        // Step 2. While candidate is a modifiable element, and candidate has exactly one child,
+        // and that child is also a modifiable element,
+        // and candidate is not a simple modifiable element or candidate's specified command value
+        // for command is not equivalent to new value, set candidate to its child.
+        loop {
+            if let Some(candidate_element) = candidate.downcast::<Element>() {
+                if candidate_element.is_modifiable_element() &&
+                    candidate.children_count() == 1 &&
+                    (!candidate_element.is_simple_modifiable_element() ||
+                        !command.are_equivalent_values(
+                            candidate_element.specified_command_value(command).as_ref(),
+                            Some(new_value),
+                        ))
+                {
+                    let child = candidate.children().next().expect("Has one child");
+
+                    if let Some(child_element) = child.downcast::<Element>() {
+                        if child_element.is_modifiable_element() {
+                            candidate = child;
+                            continue;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        // Step 3. If candidate is node, or is not a simple modifiable element,
+        // or its specified command value is not equivalent to new value,
+        // or its effective command value is not loosely equivalent to new value, abort these steps.
+        if *candidate == *self ||
+            !command.are_loosely_equivalent_values(
+                candidate.effective_command_value(command).as_ref(),
+                Some(new_value),
+            )
+        {
+            return;
+        }
+        if let Some(candidate) = candidate.downcast::<Element>() {
+            if !candidate.is_simple_modifiable_element() ||
+                !command.are_equivalent_values(
+                    candidate.specified_command_value(command).as_ref(),
+                    Some(new_value),
+                )
+            {
+                return;
+            }
+        }
+        // Step 4. While candidate has children,
+        // insert the first child of candidate into candidate's parent immediately before candidate, preserving ranges.
+        let parent_of_candidate = candidate
+            .GetParentNode()
+            .expect("Must always have a parent");
+        for child in candidate.children() {
+            move_preserving_ranges(cx, &child, |cx| {
+                parent_of_candidate.InsertBefore(cx, &child, Some(&candidate))
+            });
+        }
+        // Step 5. Insert candidate into node's parent immediately after node.
+        let parent_of_node = self.GetParentNode().expect("Must always have a parent");
+        if parent_of_node
+            .InsertBefore(cx, &candidate, self.GetNextSibling().as_deref())
+            .is_err()
+        {
+            unreachable!("Must always be able to insert");
+        }
+        // Step 6. Append the node as the last child of candidate, preserving ranges.
+        move_preserving_ranges(cx, self, |cx| candidate.AppendChild(cx, self));
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#force-the-value>
     pub(crate) fn force_the_value(
         &self,
@@ -997,9 +1073,13 @@ impl Node {
             NodeOrString::String("span".to_owned()),
         ) {
             // Step 4.1. Reorder modifiable descendants of node's previousSibling.
-            // TODO
+            if let Some(previous) = self.GetPreviousSibling() {
+                previous.reorder_modifiable_descendants(cx, command, new_value);
+            }
             // Step 4.2. Reorder modifiable descendants of node's nextSibling.
-            // TODO
+            if let Some(next) = self.GetNextSibling() {
+                next.reorder_modifiable_descendants(cx, command, new_value);
+            }
             // Step 4.3. Wrap the one-node list consisting of node,
             // with sibling criteria returning true for a simple modifiable element whose
             // specified command value is equivalent to new value and whose effective command value
@@ -1201,8 +1281,10 @@ impl Node {
             // set the "text-decoration" property of new parent to "underline".
             CommandName::Underline => {
                 if new_value == "underline" &&
-                    self.effective_command_value(&CommandName::Underline)
-                        .is_some_and(|value| value == "underline")
+                    new_parent
+                        .upcast::<Node>()
+                        .effective_command_value(&CommandName::Underline)
+                        .is_none_or(|value| value != "underline")
                 {
                     CssPropertyName::TextDecorationLine.set_for_element(
                         cx,
@@ -1959,7 +2041,9 @@ impl Node {
             CommandName::Underline => Some("underline".into()).filter(|_| {
                 self.inclusive_ancestors(ShadowIncluding::No).any(|node| {
                     node.downcast::<Element>()
-                        .and_then(|element| CommandName::Underline.resolved_value_for_node(element))
+                        .and_then(|element| {
+                            CssPropertyName::TextDecorationLine.resolved_value_for_node(element)
+                        })
                         .is_some_and(|property| property.contains("underline"))
                 })
             }),
