@@ -6,8 +6,8 @@ use std::cell::OnceCell;
 use std::cmp::min;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::mem;
 use std::sync::Arc;
-use std::{mem, thread};
 
 use imsz::imsz_from_reader;
 use log::{debug, warn};
@@ -31,7 +31,6 @@ use resvg::usvg::{self, fontdb};
 use rustc_hash::FxHashMap;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
-use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::ImageKey as WebRenderImageKey;
 use webrender_api::units::DeviceIntSize;
@@ -731,21 +730,12 @@ pub struct ImageCacheFactoryImpl {
 impl ImageCacheFactoryImpl {
     pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
-
-        // Uses an estimate of the system cpus to decode images
-        // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
-        // If no information can be obtained about the system, uses 4 threads as a default
-        let thread_count = thread::available_parallelism()
-            .map(|i| i.get())
-            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_image_cache_workers_max).max(1) as usize);
-
         let mut fontdb = fontdb::Database::new();
         fontdb.load_system_fonts();
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
-            thread_pool: Arc::new(ThreadPool::new(thread_count, "ImageCache".to_string())),
+            thread_pool: ThreadPool::new(servo_base::threadpool::ThreadPoolType::ImageCache),
             fontdb: Arc::new(fontdb),
         }
     }

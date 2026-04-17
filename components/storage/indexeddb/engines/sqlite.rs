@@ -786,7 +786,7 @@ mod tests {
     }
 
     fn get_pool() -> Arc<ThreadPool> {
-        Arc::new(ThreadPool::new(1, "test".to_string()))
+        ThreadPool::new(servo_base::threadpool::ThreadPoolType::Test)
     }
 
     #[test]
