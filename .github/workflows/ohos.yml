@@ -182,9 +182,11 @@ jobs:
         run: git fetch --depth=1 origin $GITHUB_SHA
       - if: ${{ github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      # Safeguard: -- means FETCH_HEAD is revision instead of path.
+      # See <https://github.com/servo/servo/pull/44309>
       - run: |
           git switch --detach
-          git reset --hard FETCH_HEAD
+          git reset --hard FETCH_HEAD --
       - name: Adding test files to directory
         run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
       - name: Build for aarch64 HarmonyOS
