@@ -872,15 +872,10 @@ where
             None => self
                 .browsing_context_group_set
                 .values()
-                .filter_map(|bc_group| {
-                    if bc_group
+                .filter(|bc_group| {
+                    bc_group
                         .top_level_browsing_context_set
                         .contains(webview_id)
-                    {
-                        Some(bc_group)
-                    } else {
-                        None
-                    }
                 })
                 .last()
                 .ok_or(

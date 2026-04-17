@@ -651,10 +651,10 @@ impl ImageCacheStore {
                 .remove(&(url.clone(), origin.clone(), *cors_setting))
         {
             if let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response {
-                if image.id.is_some() {
+                if let Some(id) = image.id {
                     self.paint_api.update_images(
                         self.webview_id.into(),
-                        vec![ImageUpdate::DeleteImage(image.id.unwrap())].into(),
+                        vec![ImageUpdate::DeleteImage(id)].into(),
                     );
                 }
             }
@@ -670,17 +670,19 @@ impl ImageCacheStore {
             .rasterized_vector_images
             .remove(&(*image_id, *device_size))
         {
-            // If there is no corresponding rasterized_vector_image result,
-            // then the vector image is either being rasterized or is in
-            // self.store.key_cache.pending_image_keys. Either way, we need to notify the
-            // KeyCache that it was evicted.
-            if entry.result.is_none() {
+            if let Some(result) = entry.result {
+                if let Some(image_id) = result.id {
+                    self.paint_api.update_images(
+                        self.webview_id.into(),
+                        vec![ImageUpdate::DeleteImage(image_id)].into(),
+                    );
+                }
+            } else {
+                // If there is no corresponding rasterized_vector_image result,
+                // then the vector image is either being rasterized or is in
+                // self.store.key_cache.pending_image_keys. Either way, we need to notify the
+                // KeyCache that it was evicted.
                 self.evict_image_from_keycache(image_id, device_size);
-            } else if let Some(image_id) = entry.result.as_ref().unwrap().id {
-                self.paint_api.update_images(
-                    self.webview_id.into(),
-                    vec![ImageUpdate::DeleteImage(image_id)].into(),
-                );
             }
         }
     }

@@ -122,12 +122,10 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                             return;
                         }
                     },
-                    InputType::Radio(_) => {
+                    InputType::Radio(_) if input.Value() == value => {
                         // Step 2
-                        if input.Value() == value {
-                            input.SetChecked(true, can_gc);
-                            return;
-                        }
+                        input.SetChecked(true, can_gc);
+                        return;
                     },
                     _ => {},
                 }

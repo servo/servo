@@ -901,11 +901,10 @@ impl IndexedDBManager {
                                 Some(IndexedDBTxnMode::Readonly) => {
                                     db.running_readonly.remove(&txn);
                                 },
-                                Some(_) => {
-                                    if db.running_readwrite == Some(txn) {
-                                        db.running_readwrite = None;
-                                    }
+                                Some(_) if db.running_readwrite == Some(txn) => {
+                                    db.running_readwrite = None;
                                 },
+                                Some(_) => {},
                                 None => {
                                     // txn might have been aborted/removed; nothing to clear
                                 },
