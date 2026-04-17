@@ -4326,20 +4326,18 @@ impl Document {
     }
 
     pub(crate) fn update_animations_post_reflow(&self) {
+        let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
+            .do_post_reflow_update(&self.window, current_timeline_value);
         self.image_animation_manager
-            .borrow()
-            .maybe_schedule_update_after_layout(
-                &self.window,
-                self.current_animation_timeline_value(),
-            );
+            .borrow_mut()
+            .do_post_reflow_update(&self.window, current_timeline_value);
     }
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         self.animations.cancel_animations_for_node(node);
         self.image_animation_manager
-            .borrow()
+            .borrow_mut()
             .cancel_animations_for_node(node);
     }
 

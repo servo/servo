@@ -145,11 +145,24 @@ impl Animations {
         ));
     }
 
-    /// Processes any new animations that were discovered after reflow. Collect messages
-    /// that trigger events for any animations that changed state.
+    /// This does three things:
+    ///  - Cancel animations for any nodes that are no longer being rendered or delegating rendering.
+    ///  - Process any new animations that were discovered after reflow.
+    ///  - Collect pending events for any animations that changed state.
     pub(crate) fn do_post_reflow_update(&self, window: &Window, now: f64) {
-        let pipeline_id = window.pipeline_id();
         let mut sets = self.sets.sets.write();
+        {
+            let rooted_nodes = self.rooted_nodes.borrow();
+            for (key, set) in sets.iter_mut() {
+                if rooted_nodes.get(&NoTrace(key.node)).is_some_and(|node| {
+                    !node.is_being_rendered_or_delegates_rendering(key.pseudo_element)
+                }) {
+                    set.cancel_all_animations();
+                }
+            }
+        }
+
+        let pipeline_id = window.pipeline_id();
         self.root_newly_animating_dom_nodes(&sets);
 
         for (key, set) in sets.iter_mut() {

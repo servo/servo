@@ -7,14 +7,11 @@ use std::cell::Cell;
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::AxesScrollSensitivity;
-use rustc_hash::FxHashSet;
 use servo_base::print_tree::PrintTree;
-use style::animation::AnimationSetKey;
 use style::computed_values::position::T as Position;
 
 use super::{BoxFragment, ContainingBlockManager, Fragment};
 use crate::ArcRefCell;
-use crate::context::LayoutContext;
 use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
@@ -42,7 +39,6 @@ pub struct FragmentTree {
 
 impl FragmentTree {
     pub(crate) fn new(
-        layout_context: &LayoutContext,
         root_fragments: Vec<Fragment>,
         initial_containing_block: PhysicalRect<Au>,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
@@ -54,47 +50,10 @@ impl FragmentTree {
             viewport_scroll_sensitivity,
         };
 
-        // As part of building the fragment tree, we want to stop animating elements and
-        // pseudo-elements that used to be animating or had animating images attached to
-        // them. Create a set of all elements that used to be animating.
-        let mut animations = layout_context.style_context.animations.sets.write();
-        let mut invalid_animating_nodes: FxHashSet<_> = animations.keys().cloned().collect();
-
-        let mut animating_images = layout_context.image_resolver.animating_images.write();
-        let mut invalid_image_animating_nodes: FxHashSet<_> = animating_images
-            .node_to_state_map
-            .keys()
-            .cloned()
-            .map(|node| AnimationSetKey::new(node, None))
-            .collect();
-
         fragment_tree.find(|fragment, _level, containing_block| {
-            if let Some(tag) = fragment.tag() {
-                // TODO: Support animations on nested pseudo-elements.
-                invalid_animating_nodes.remove(&AnimationSetKey::new(
-                    tag.node,
-                    tag.pseudo_element_chain.primary,
-                ));
-                invalid_image_animating_nodes.remove(&AnimationSetKey::new(
-                    tag.node,
-                    tag.pseudo_element_chain.primary,
-                ));
-            }
-
             fragment.set_containing_block(containing_block);
             None::<()>
         });
-
-        // Cancel animations for any elements and pseudo-elements that are no longer found
-        // in the fragment tree.
-        for node in &invalid_animating_nodes {
-            if let Some(state) = animations.get_mut(node) {
-                state.cancel_all_animations();
-            }
-        }
-        for node in &invalid_image_animating_nodes {
-            animating_images.remove(node.node);
-        }
 
         fragment_tree
     }

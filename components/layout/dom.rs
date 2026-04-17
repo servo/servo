@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use layout_api::{
     GenericLayoutDataTrait, LayoutDataTrait, LayoutElement, LayoutElementType, LayoutNode,
-    LayoutNodeType as ScriptLayoutNodeType, SVGElementData,
+    LayoutNodeType as ScriptLayoutNodeType, NodeRenderingType, SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
@@ -320,6 +320,11 @@ pub(crate) trait NodeExt<'dom> {
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
     fn unset_all_boxes(&self);
 
+    /// Returns the [`NodeRenderingType`] for this [`LayoutNode`] which describes whether
+    /// the node is being rendered, delegating rendering, or not being rendered at all
+    /// based on whether it has a [`LayoutBox`] and what kind.
+    fn rendering_type(&self) -> NodeRenderingType;
+
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
 
@@ -500,6 +505,17 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
 
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
+    }
+
+    fn rendering_type(&self) -> NodeRenderingType {
+        let Some(layout_data) = self.inner_layout_data() else {
+            return NodeRenderingType::NotRendered;
+        };
+        match &*layout_data.self_box.borrow() {
+            Some(LayoutBox::DisplayContents(..)) => NodeRenderingType::DelegatesRendering,
+            Some(..) => NodeRenderingType::Rendered,
+            None => NodeRenderingType::NotRendered,
+        }
     }
 
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {

@@ -339,6 +339,14 @@ pub trait Layout {
     /// Marks that this layout needs to produce a new display list for rendering updates.
     fn set_needs_new_display_list(&self);
 
+    /// Returns the [`NodeRenderingType`] for this node and pseudo. This is used to determine
+    /// if a node is being rendered, delegating its rendering, or not being rendered at all.
+    fn node_rendering_type(
+        &self,
+        node: TrustedNodeAddress,
+        pseudo: Option<PseudoElement>,
+    ) -> NodeRenderingType;
+
     fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress>;
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
     fn query_box_area(
@@ -432,6 +440,19 @@ pub enum BoxAreaType {
 }
 
 pub type CSSPixelRectIterator = Box<dyn Iterator<Item = Rect<Au, CSSPixel>>>;
+
+/// Whether or not this node is being rendered or delegates rendering according
+/// to the HTML standard.
+#[derive(Copy, Clone)]
+pub enum NodeRenderingType {
+    /// <https://html.spec.whatwg.org/multipage/#being-rendered>
+    Rendered,
+    /// <https://html.spec.whatwg.org/multipage/#delegating-its-rendering-to-its-children>
+    DelegatesRendering,
+    /// If neither of the other two cases are true, this is. The node is effectively not
+    /// taking part in the final layout of the page.
+    NotRendered,
+}
 
 #[derive(Default)]
 pub struct PhysicalSides {

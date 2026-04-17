@@ -219,7 +219,6 @@ impl BoxTree {
         };
 
         FragmentTree::new(
-            layout_context,
             root_fragments,
             physical_containing_block,
             viewport_scroll_sensitivity,
