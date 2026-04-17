@@ -82,7 +82,7 @@ use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
-use crate::site_data_manager::SiteDataManager;
+use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
@@ -387,6 +387,16 @@ impl ServoInner {
                         .delegate()
                         .request_authentication(webview, authentication_request);
                 }
+            },
+            NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse(operation_id, cookies) => {
+                self.site_data_manager.handle_cookie_response(
+                    operation_id,
+                    CookieOperationResponse::Cookies(cookies),
+                );
+            },
+            NetToEmbedderMsg::EmbedderSetCookieForUrlResponse(operation_id) => {
+                self.site_data_manager
+                    .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
         }
     }

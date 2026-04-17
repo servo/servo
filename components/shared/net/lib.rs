@@ -35,6 +35,10 @@ use servo_base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
+/// Identifies a pending asynchronous cookie operation initiated by the embedder.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct CookieOperationId(pub u64);
+
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
@@ -578,6 +582,34 @@ impl ResourceThreads {
         ));
         let _ = receiver.recv();
     }
+
+    pub fn cookies_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        source: CookieSource,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderGetCookiesForUrl(id, url, source));
+    }
+
+    pub fn set_cookie_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        cookie: Cookie<'static>,
+        source: CookieSource,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderSetCookieForUrl(
+                id,
+                url,
+                Serde(cookie),
+                source,
+            ));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -658,9 +690,21 @@ pub enum CoreResourceMsg {
     /// Retrieve the stored cookies as a header string for a given URL.
     GetCookieStringForUrl(ServoUrl, GenericSender<Option<String>>, CookieSource),
     /// Retrieve the stored cookies as a vector for the given URL.
+    /// The response is sent via the provided sender.
     GetCookiesForUrl(
         ServoUrl,
         GenericSender<Vec<Serde<Cookie<'static>>>>,
+        CookieSource,
+    ),
+    /// Retrieve cookies for a URL for embedder. The response is
+    /// sent via [`NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse`].
+    EmbedderGetCookiesForUrl(CookieOperationId, ServoUrl, CookieSource),
+    /// Set a cookie for a URL on behalf of the embedder. The response is
+    /// sent via [`NetToEmbedderMsg::EmbedderSetCookieForUrlResponse`].
+    EmbedderSetCookieForUrl(
+        CookieOperationId,
+        ServoUrl,
+        Serde<Cookie<'static>>,
         CookieSource,
     ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
