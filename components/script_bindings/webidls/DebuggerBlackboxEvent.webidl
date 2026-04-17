@@ -7,6 +7,9 @@
 [Exposed=DebuggerGlobalScope]
 interface DebuggerBlackboxEvent : Event {
     readonly attribute unsigned long spidermonkeyId;
-    readonly attribute SourceLocation start;
-    readonly attribute SourceLocation end;
+};
+
+partial interface DebuggerBlackboxEvent {
+    DebuggerSourceLocation start();
+    DebuggerSourceLocation end();
 };

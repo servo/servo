@@ -408,8 +408,8 @@ pub enum DevtoolScriptControlMsg {
     Resume(Option<String>, Option<String>),
     ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
     GetEnvironment(String, GenericSender<String>),
-    Blackbox(u32, SourceLocation, SourceLocation),
-    Unblackbox(u32, SourceLocation, SourceLocation),
+    Blackbox(u32, (u32, u32), (u32, u32)),
+    Unblackbox(u32, (u32, u32), (u32, u32)),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
@@ -645,10 +645,4 @@ pub struct FrameOffset {
     pub actor: String,
     pub column: u32,
     pub line: u32,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct SourceLocation {
-    pub line: u32,
-    pub column: u32,
 }

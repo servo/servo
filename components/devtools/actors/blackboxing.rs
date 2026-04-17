@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, SourceLocation};
+use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 
@@ -57,22 +57,10 @@ impl Actor for BlackboxingActor {
             serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
 
         let (start, end) = match &blackbox_request.range[..] {
-            [] => (
-                SourceLocation { line: 0, column: 0 },
-                SourceLocation {
-                    line: u32::MAX,
-                    column: u32::MAX,
-                },
-            ),
+            [] => ((0, 0), (u32::MAX, u32::MAX)),
             [range] => (
-                SourceLocation {
-                    line: range.start.line,
-                    column: range.start.column,
-                },
-                SourceLocation {
-                    line: range.end.line,
-                    column: range.end.column,
-                },
+                (range.start.line, range.start.column),
+                (range.end.line, range.end.column),
             ),
             _ => {
                 log::warn!(
