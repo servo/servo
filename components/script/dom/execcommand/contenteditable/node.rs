@@ -1286,7 +1286,7 @@ impl Node {
                         .effective_command_value(&CommandName::Underline)
                         .is_none_or(|value| value != "underline")
                 {
-                    CssPropertyName::TextDecorationLine.set_for_element(
+                    CssPropertyName::TextDecoration.set_for_element(
                         cx,
                         new_parent_html_element,
                         new_value.clone(),
