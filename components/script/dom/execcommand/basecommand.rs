@@ -5,7 +5,7 @@
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::properties::PropertyDeclarationId;
-use style::properties::generated::LonghandId;
+use style::properties::generated::{LonghandId, ShorthandId};
 use style::values::specified::text::TextDecorationLine;
 use style_traits::ToCss;
 
@@ -53,6 +53,7 @@ pub(crate) enum CssPropertyName {
     FontSize,
     FontWeight,
     FontStyle,
+    TextDecoration,
     TextDecorationLine,
 }
 
@@ -94,6 +95,7 @@ impl CssPropertyName {
                 },
                 CssPropertyName::FontWeight => style.clone_font_weight().to_css_string(),
                 CssPropertyName::FontStyle => style.clone_font_style().to_css_string(),
+                CssPropertyName::TextDecoration => unreachable!("Should use longhands instead"),
                 CssPropertyName::TextDecorationLine => {
                     let text_decoration_line = style.get_text().text_decoration_line;
                     if text_decoration_line == TextDecorationLine::NONE {
@@ -122,6 +124,13 @@ impl CssPropertyName {
             CssPropertyName::FontSize => LonghandId::FontSize,
             CssPropertyName::FontWeight => LonghandId::FontWeight,
             CssPropertyName::FontStyle => LonghandId::FontStyle,
+            CssPropertyName::TextDecoration => {
+                let mut dest = String::new();
+                style
+                    .shorthand_to_css(ShorthandId::TextDecoration, &mut dest)
+                    .ok()?;
+                return Some(dest.into());
+            },
             CssPropertyName::TextDecorationLine => LonghandId::TextDecorationLine,
         };
         style
@@ -139,6 +148,7 @@ impl CssPropertyName {
             CssPropertyName::FontSize => "font-size",
             CssPropertyName::FontWeight => "font-weight",
             CssPropertyName::FontStyle => "font-style",
+            CssPropertyName::TextDecoration => "text-decoration",
             CssPropertyName::TextDecorationLine => "text-decoration-line",
         }
         .into()
