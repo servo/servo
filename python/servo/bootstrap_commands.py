@@ -41,6 +41,7 @@ class MachCommands(CommandBase):
     @CommandArgument("--skip-platform", action="store_true", help="Skip platform bootstrapping.")
     @CommandArgument("--skip-lints", action="store_true", help="Skip tool necessary for linting.")
     @CommandArgument("--skip-nextest", action="store_true", help="Skip tool for running Rust tests.")
+    @CommandArgument("--skip-gstreamer-deps", action="store_true", help="Skip gstreamer dependencies.")
     def bootstrap(
         self,
         force: bool = False,
@@ -48,12 +49,13 @@ class MachCommands(CommandBase):
         skip_platform: bool = False,
         skip_lints: bool = False,
         skip_nextest: bool = False,
+        skip_gstreamer_deps: bool = False,
     ) -> int:
         # Note: This entry point isn't actually invoked by ./mach bootstrap.
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
         try:
-            servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
+            servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest, skip_gstreamer_deps)
         except NotImplementedError as exception:
             print(exception)
             return 1

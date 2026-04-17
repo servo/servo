@@ -101,7 +101,7 @@ class Windows(Base):
         else:
             print("done")
 
-    def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
+    def _platform_bootstrap(self, force: bool, yes: bool, skip_gstreamer_deps: bool) -> bool:
         installed_something = self.passive_bootstrap()
         # If `winget` works well in practice, we could switch the default in the future.
         if shutil.which("choco") is not None:

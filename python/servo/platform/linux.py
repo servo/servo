@@ -26,10 +26,12 @@ def parse_pkg_file(filename: str) -> list[str]:
         return packages
 
 
-def apt_packages() -> list[str]:
+def apt_packages(skip_gstreamer_deps: bool) -> list[str]:
     basepath = os.path.dirname(__file__)
     apt_pkgs: list[str] = []
     for file in os.listdir(os.path.join(basepath, "linux_packages", "apt")):
+        if skip_gstreamer_deps and ("gstreamer" in file) or ("ubuntu" in file):
+            continue
         # Note: For now we also include ubuntu-only packages, since not available packages
         # will be filtered out automatically, since we check which packages are available.
         if file.endswith(".txt") and file.startswith("apt_"):
@@ -70,7 +72,7 @@ class Linux(Base):
         self.is_linux = True
         self.distro = distro.name()
 
-    def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
+    def _platform_bootstrap(self, force: bool, yes: bool, skip_gstreamer_deps: bool) -> bool:
         if self.distro.lower() == "nixos":
             print("NixOS does not need bootstrap, it will automatically enter a nix-shell")
             print("Just run ./mach build")
@@ -110,10 +112,10 @@ class Linux(Base):
             input("Press Enter to continue...")
             return False
 
-        installed_something = self.install_non_gstreamer_dependencies(force, yes)
+        installed_something = self.install_non_gstreamer_dependencies(force, yes, skip_gstreamer_deps)
         return installed_something
 
-    def install_non_gstreamer_dependencies(self, force: bool, yes: bool = False) -> bool:
+    def install_non_gstreamer_dependencies(self, force: bool, yes: bool, skip_gstreamer_deps: bool) -> bool:
         def check_sudo() -> bool:
             if os.geteuid() != 0:  # pyrefly: ignore[missing-attribute]
                 if shutil.which("sudo") is None:
@@ -131,8 +133,12 @@ class Linux(Base):
         pkgs = []
         command = []
         if self.distro in ["Ubuntu", "Debian GNU/Linux", "Raspbian GNU/Linux"]:
+            print("BEFORE INSTALL")
             command = ["apt-get", "install", "-m"]
-            pkgs = apt_packages()
+            pkgs = apt_packages(skip_gstreamer_deps)
+            print("DOING THE TINSTALL")
+            print("PKG" + str(pkgs))
+            print("skip" + str(skip_gstreamer_deps))
 
             # Skip 'clang' if 'clang' binary already exists.
             result = subprocess.run(["which", "clang"], capture_output=True)

@@ -1,0 +1,10 @@
+gstreamer1.0-plugins-good
+gstreamer1.0-plugins-bad
+libgstreamer-plugins-bad1.0-dev
+gstreamer1.0-plugins-ugly
+gstreamer1.0-plugins-base
+libgstreamer-plugins-base1.0-dev
+gstreamer1.0-libav
+libgstrtspserver-1.0-dev
+gstreamer1.0-tools
+libges-1.0-dev
