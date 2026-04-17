@@ -21,7 +21,6 @@ fn new_storage_thread_group(
     let client_storage: ClientStorageThreadHandle =
         ClientStorageThreadFactory::new(config_dir.clone());
     let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(
-        config_dir.clone(),
         mem_profiler_chan.clone(),
         format!("indexedDB-reporter-{label}"),
     );
