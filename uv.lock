@@ -793,14 +793,14 @@ wheels = [
 
 [[package]]
 name = "mako"
-version = "1.2.2"
+version = "1.3.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markupsafe" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/f2/8ad2ec3d531c97c4071572a4104e00095300e278a7449511bee197ca22c9/Mako-1.2.2.tar.gz", hash = "sha256:3724869b363ba630a272a5f89f68c070352137b8fd1757650017b7e06fda163f", size = 490741, upload-time = "2022-08-29T18:03:43.31Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/8a/805404d0c0b9f3d7a326475ca008db57aea9c5c9f2e1e39ed0faa335571c/mako-1.3.11.tar.gz", hash = "sha256:071eb4ab4c5010443152255d77db7faa6ce5916f35226eb02dc34479b6858069", size = 399811, upload-time = "2026-04-14T20:19:51.493Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/90/12/eb62db8bc346bc41a7ec8fbccd525e91d2747f9acfa6fbfd978948640a85/Mako-1.2.2-py3-none-any.whl", hash = "sha256:8efcb8004681b5f71d09c983ad5a9e6f5c40601a6ec469148753292abc0da534", size = 78666, upload-time = "2022-08-29T18:03:52.207Z" },
+    { url = "https://files.pythonhosted.org/packages/68/a5/19d7aaa7e433713ffe881df33705925a196afb9532efc8475d26593921a6/mako-1.3.11-py3-none-any.whl", hash = "sha256:e372c6e333cf004aa736a15f425087ec977e1fcbd2966aae7f17c8dc1da27a77", size = 78503, upload-time = "2026-04-14T20:19:53.233Z" },
 ]
 
 [[package]]
@@ -1796,7 +1796,7 @@ requires-dist = [
     { name = "json-e", specifier = "==4.7.0" },
     { name = "jsonschema", marker = "python_full_version < '3.9'", specifier = "==4.23.0" },
     { name = "jsonschema", marker = "python_full_version >= '3.9'", specifier = "==4.25.1" },
-    { name = "mako", specifier = "==1.2.2" },
+    { name = "mako", specifier = "==1.3.11" },
     { name = "mozcrash", specifier = "==2.2.1" },
     { name = "mozdebug", specifier = "==0.4.0" },
     { name = "mozfile", specifier = "==3.0.0" },
