@@ -664,6 +664,7 @@ impl App {
         {
             warn!("Binding native surface to context failed ({error:?})");
         }
+        embedded_platform_window.request_repaint(&self.window());
         self.spin_event_loop();
     }
 }
