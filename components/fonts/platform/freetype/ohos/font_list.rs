@@ -7,7 +7,7 @@ use std::fs::File;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
-use std::{fs, io};
+use std::{fs, io, thread};
 
 use log::{debug, error, warn};
 use read_fonts::FileRef::{Collection, Font as OHOS_Font};
@@ -22,7 +22,7 @@ use style::values::computed::{
 use unicode_script::Script;
 
 use crate::platform::freetype::ohos::font_cache::{
-    font_file_cached_on_disk, read_from_disk, serialize_and_write_to_disk,
+    font_file_cached_on_disk, read_from_disk, serialize_and_write_to_disk_wrapper,
 };
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
@@ -57,7 +57,7 @@ impl From<FontWidth> for StyleFontStretch {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Font {
     // `LocalFontIdentifier` uses `Atom` for string interning and requires a String or str, so we
     // already require a String here, instead of using a PathBuf.
@@ -67,20 +67,20 @@ struct Font {
     width: FontWidth,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FontFamily {
     name: String,
     fonts: Vec<Font>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FontAlias {
     from: String,
     to: String,
     weight: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(super) struct FontList {
     families: Vec<FontFamily>,
     aliases: Vec<FontAlias>,
@@ -270,7 +270,9 @@ impl FontList {
                 aliases: Self::fallback_font_aliases(),
             };
 
-            let _ = serialize_and_write_to_disk(font_list);
+            let font_list_clone = font_list.clone();
+            thread::spawn(move || serialize_and_write_to_disk_wrapper(font_list_clone));
+            return font_list;
         }
 
         match read_from_disk() {

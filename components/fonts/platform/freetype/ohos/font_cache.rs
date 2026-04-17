@@ -37,15 +37,16 @@ pub fn font_file_cached_on_disk() -> bool {
     }
 }
 
-/// This function serializes `FontList` and caches its result into disk.
-pub fn serialize_and_write_to_disk(input_data: FontList) -> Result<(), Box<dyn Error>> {
-    let serialized_data = to_stdvec(&input_data).unwrap();
-
-    let file_path = parse_file_path()?;
-
-    let mut file = File::create(file_path)?;
-    file.write_all(serialized_data.as_slice())?;
-    Ok(())
+/// This is a wrapper to `serialize_and_write_to_disk_wrapper`. The reason this wrapper is used is because
+/// serialization will be performed on a separate detached thread, and so the spawning thread won't be receiving the result.
+/// Instead, this wrapper will receive the result and log an error, if it exists.
+pub fn serialize_and_write_to_disk_wrapper(input_data: FontList) {
+    if let Err(e) = serialize_and_write_to_disk(input_data) {
+        error!(
+            "Servo fails to serialize font list to disk. Error message: {:?}",
+            e
+        );
+    }
 }
 
 /// Reads the OHOS FontList cache file. Returns a `Result` so the caller can know if this function fails
@@ -54,37 +55,41 @@ pub fn read_from_disk() -> Result<FontList, Box<dyn Error>> {
     let file_path = parse_file_path()?;
     let data = fs::read(file_path)?;
 
-    let font_list: FontList = from_bytes(&data).unwrap();
+    let font_list: FontList = from_bytes(&data)?;
     Ok(font_list)
 }
 
 /// Traverses the directory where the font cache file is stored and removes redundant font cache files.
 /// A font cache file becomes redundant when there is an OS update (because the system fonts may be updated as well).
-/// We won't be processing the return result, but the Send & Sync traits are added just to satisfy the requirements from std::thread.
-fn remove_redundant_cache_files() -> Result<(), Box<dyn Error + Send + Sync>> {
+fn remove_redundant_cache_files() {
     let base_dir = get_directory().unwrap();
     let expected_cache_filename = parse_filename().unwrap();
     let cache_filename_components: Vec<&str> = expected_cache_filename.split('_').collect();
 
     if let Ok(entries) = fs::read_dir(&base_dir) {
         for entry in entries {
-            if let Ok(entry) = entry {
-                if let Ok(filename) = entry.file_name().into_string() {
-                    let filename_components: Vec<&str> = filename.split('_').collect();
+            let Ok(entry) = entry else {
+                continue;
+            };
+            let Ok(filename) = entry.file_name().into_string() else {
+                continue;
+            };
+            let filename_components: Vec<&str> = filename.split('_').collect();
 
-                    // check if file is font cache file, and whether or not it is outdated.
-                    if (filename_components.len() == 2) && // the font cache file only has one `_`. So the vector length from splitting must be 2.
+            // check if file is font cache file, and whether or not it is outdated.
+            if (filename_components.len() == 2) && // the font cache file only has one `_`. So the vector length from splitting must be 2.
                         (filename_components[1] == cache_filename_components[1]) && // check if the suffix is the same
                         (filename_components[0] != cache_filename_components[0])
-                    {
-                        let _ = fs::remove_file(format!("{}{}", &base_dir, filename).to_string());
-                    }
-                }
+            {
+                if let Err(e) = fs::remove_file(format!("{}{}", &base_dir, filename).to_string()) {
+                    error!(
+                        "Obsolete font cache file found; but Servo fails to remove it. Error : {:?}",
+                        e
+                    );
+                };
             }
         }
     }
-
-    Ok(())
 }
 
 /// Helper function to parse the filepath of the cache file.
@@ -114,4 +119,15 @@ fn parse_filename() -> Result<String, Box<dyn Error>> {
     };
 
     Ok(format!("{}{}", os_version, "_font-cache.bin").to_string())
+}
+
+/// This function serializes `FontList` and caches its result into disk.
+fn serialize_and_write_to_disk(input_data: FontList) -> Result<(), Box<dyn Error>> {
+    let serialized_data = to_stdvec(&input_data).unwrap();
+
+    let file_path = parse_file_path()?;
+
+    let mut file = File::create(file_path)?;
+    file.write_all(serialized_data.as_slice())?;
+    Ok(())
 }
