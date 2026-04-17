@@ -25,12 +25,11 @@ use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use surfman::{
     Context as SurfmanContext, Device as SurfmanDevice, Error as SurfmanError, SurfaceTexture,
 };
-use webxr_api;
 use webxr_api::util::{self, ClipPlanes};
 use webxr_api::{
-    BaseSpace, Capture, ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event, EventBuffer,
-    Floor, Frame, GLContexts, InputId, InputSource, LayerGrandManager, LayerId, LayerInit,
-    LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind,
+    self, BaseSpace, Capture, ContextId, DeviceAPI, DiscoveryAPI, Display, Error, Event,
+    EventBuffer, Floor, Frame, GLContexts, InputId, InputSource, LayerGrandManager, LayerId,
+    LayerInit, LayerManager, LayerManagerAPI, LeftEye, Native, Quitter, RightEye, SelectKind,
     Session as WebXrSession, SessionBuilder, SessionInit, SessionMode, SubImage, SubImages, View,
     ViewerPose, Viewport, Viewports, Views, Visibility,
 };

@@ -502,10 +502,8 @@ impl IntersectionObserver {
         // > If the intersection root is an Element, and target is not a descendant of
         // > the intersection root in the containing block chain, skip to step 11.
         match &self.root {
-            Some(ElementOrDocument::Document(document)) => {
-                if document != &target.owner_document() {
-                    return IntersectionObservationOutput::default_skipped();
-                }
+            Some(ElementOrDocument::Document(document)) if document != &target.owner_document() => {
+                return IntersectionObservationOutput::default_skipped();
             },
             Some(ElementOrDocument::Element(element)) => {
                 // To ensure consistency, we also check for elements right now, but we can depend on the

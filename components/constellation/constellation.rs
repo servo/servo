@@ -871,16 +871,11 @@ where
             },
             None => self
                 .browsing_context_group_set
-                .iter()
-                .filter_map(|(_, bc_group)| {
-                    if bc_group
+                .values()
+                .filter(|bc_group| {
+                    bc_group
                         .top_level_browsing_context_set
                         .contains(webview_id)
-                    {
-                        Some(bc_group)
-                    } else {
-                        None
-                    }
                 })
                 .last()
                 .ok_or(

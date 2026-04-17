@@ -303,17 +303,13 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
                     return Err(Error::IndexSize(None));
                 }
             },
-            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
-                if value > 2 {
-                    return Err(Error::NotSupported(None));
-                }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) if value > 2 => {
+                return Err(Error::NotSupported(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeTypeId::StereoPannerNode,
-            )) => {
-                if value > 2 {
-                    return Err(Error::NotSupported(None));
-                }
+            )) if value > 2 => {
+                return Err(Error::NotSupported(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
                 return Err(Error::InvalidState(None));
@@ -349,10 +345,10 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         }
 
         match self.upcast::<EventTarget>().type_id() {
-            EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
-                if self.context.is_offline() {
-                    return Err(Error::InvalidState(None));
-                }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode)
+                if self.context.is_offline() =>
+            {
+                return Err(Error::InvalidState(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value == ChannelCountMode::Max {
@@ -361,10 +357,8 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeTypeId::StereoPannerNode,
-            )) => {
-                if value == ChannelCountMode::Max {
-                    return Err(Error::NotSupported(None));
-                }
+            )) if value == ChannelCountMode::Max => {
+                return Err(Error::NotSupported(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
                 return Err(Error::InvalidState(None));

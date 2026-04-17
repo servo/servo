@@ -1755,15 +1755,12 @@ pub(crate) fn is_field_value(slice: &[u8]) -> bool {
                     false
                 }
             },
-            10 => {
+            10 if prev == PreviousCharacter::CR => {
                 // LF
-                if prev == PreviousCharacter::CR {
-                    prev = PreviousCharacter::LF;
-                    true
-                } else {
-                    false
-                }
+                prev = PreviousCharacter::LF;
+                true
             },
+            10 => false,
             32 => {
                 // SP
                 if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
@@ -1779,15 +1776,12 @@ pub(crate) fn is_field_value(slice: &[u8]) -> bool {
                     false
                 }
             },
-            9 => {
+            9 if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT => {
                 // HT
-                if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
-                    prev = PreviousCharacter::SPHT;
-                    true
-                } else {
-                    false
-                }
+                prev = PreviousCharacter::SPHT;
+                true
             },
+            9 => false,
             0..=31 | 127 => false, // CTLs
             x if x > 127 => false, // non ASCII
             _ if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT => {

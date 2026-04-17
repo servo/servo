@@ -457,14 +457,14 @@ impl TextRun {
         };
         let text_rendering = inherited_text_style.text_rendering;
 
-        // The next current character index within the entire inline formatting context's text.
-        let mut next_character_index = self.character_range.start;
         // The next bytes index of the charcter within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
 
-        for (character, next_character) in char_iterator {
+        // next_character_index: The next current character index within the entire inline formatting context's text.
+        for (next_character_index, (character, next_character)) in
+            (self.character_range.start..).zip(char_iterator)
+        {
             let current_character_index = next_character_index;
-            next_character_index += 1;
 
             let current_byte_index = next_byte_index;
             next_byte_index += character.len_utf8();
