@@ -15,7 +15,6 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
-use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener,
     ImageOrMetadataAvailable, ImageResponse, PendingImageId,
@@ -771,23 +770,21 @@ impl FetchResponseListener for ResourceFetchListener {
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
 
-        let status = metadata
-            .as_ref()
-            .map(|m| m.status.clone())
-            .unwrap_or_else(HttpStatus::new_error);
-
         self.status = {
-            if status.is_success() {
+            let status = metadata.as_ref().map(|m| &m.status);
+            if let Some(status) = status &&
+                status.is_success()
+            {
                 Ok(())
-            } else if status.is_error() {
+            } else if let Some(status) = status {
+                Err(NetworkError::ResourceLoadError(format!(
+                    "HTTP error code {}",
+                    **status,
+                )))
+            } else {
                 Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
-            } else {
-                Err(NetworkError::ResourceLoadError(format!(
-                    "HTTP error code {}",
-                    status.code()
-                )))
             }
         };
     }

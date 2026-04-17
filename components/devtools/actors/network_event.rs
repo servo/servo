@@ -613,8 +613,8 @@ impl NetworkEventActor {
             response_cookies_available: cookies.is_some(),
             response_headers_available: headers.is_some(),
             response_start_available: true,
-            status: status.code().to_string(),
-            status_text: String::from_utf8_lossy(status.message()).to_string(),
+            status: status.as_str().to_owned(),
+            status_text: status.canonical_reason().unwrap().to_string(),
         })
     }
 

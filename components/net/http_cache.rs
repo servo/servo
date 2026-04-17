@@ -217,7 +217,7 @@ fn get_response_expiry(response: &Response) -> Duration {
     }
     // Calculating Heuristic Freshness
     // <https://tools.ietf.org/html/rfc7234#section-4.2.2>
-    if let Some(ref code) = response.status.try_code() {
+    if let Some(ref code) = response.status {
         // <https://tools.ietf.org/html/rfc7234#section-5.5.4>
         // Since presently we do not generate a Warning header field with a 113 warn-code,
         // 24 hours minus response age is the max for heuristic calculation.
@@ -243,7 +243,7 @@ fn get_response_expiry(response: &Response) -> Duration {
         } else {
             max_heuristic
         };
-        if is_cacheable_by_default(*code) {
+        if is_cacheable_by_default(**code) {
             // Status codes that are cacheable by default can use heuristics to determine freshness.
             return heuristic_freshness;
         }
@@ -313,7 +313,7 @@ fn create_cached_response(
     response
         .location_url
         .clone_from(&cached_resource.location_url);
-    response.status.clone_from(&cached_resource.status);
+    response.status = Some(cached_resource.status.clone());
     response.url_list.clone_from(&cached_resource.url_list);
     response.https_state = cached_resource.https_state;
     response.referrer = request.referrer.to_url().cloned();
@@ -610,13 +610,8 @@ pub(crate) fn construct_response(
         //
         // TODO: Combining partial content to fulfill a non-Range request
         // see https://tools.ietf.org/html/rfc7234#section-3.3
-        match cached_resource.status.try_code() {
-            Some(ref code) => {
-                if *code == StatusCode::PARTIAL_CONTENT {
-                    continue;
-                }
-            },
-            None => continue,
+        if *cached_resource.status == StatusCode::PARTIAL_CONTENT {
+            continue;
         }
         // Returning a response that can be constructed
         // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
@@ -641,7 +636,7 @@ pub fn refresh(
     done_chan: &mut DoneChannel,
     cached_resources: &mut [CachedResource],
 ) -> Option<Response> {
-    assert_eq!(response.status, StatusCode::NOT_MODIFIED);
+    assert_eq!(response.status, Some(StatusCode::NOT_MODIFIED.into()));
 
     let cached_resource = cached_resources.iter_mut().next()?;
 
@@ -673,15 +668,10 @@ pub fn refresh(
 
         constructed_response.body = cached_resource.body.clone();
 
-        constructed_response
-            .status
-            .clone_from(&cached_resource.status);
         constructed_response.https_state = cached_resource.https_state;
         constructed_response.referrer = request.referrer.to_url().cloned();
         constructed_response.referrer_policy = request.referrer_policy;
-        constructed_response
-            .status
-            .clone_from(&cached_resource.status);
+        constructed_response.status = Some(cached_resource.status.clone());
         constructed_response
             .url_list
             .clone_from(&cached_resource.url_list);
@@ -767,7 +757,10 @@ impl HttpCache {
             if actual_response.is_network_error() {
                 return *resource.body.lock() == ResponseBody::Empty;
             }
-            resource.status == actual_response.status
+            actual_response
+                .status
+                .as_ref()
+                .is_some_and(|status| *status == resource.status)
         });
 
         for cached_resource in relevant_cached_resources {
@@ -917,7 +910,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
             metadata: cacheable_metadata,
             location_url: response.location_url.clone(),
             https_state: response.https_state,
-            status: response.status.clone(),
+            status: response.status.as_ref().cloned().unwrap_or_default(), // If we do not have a response code, we assume Ok
             url_list: response.url_list.clone(),
             expires: expiry,
             last_validated: Instant::now(),

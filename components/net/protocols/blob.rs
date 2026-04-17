@@ -55,7 +55,7 @@ impl ProtocolHandler for BlobProtocolHander {
             url_and_blob_claim.url(),
             ResourceFetchTiming::new(request.timing_type()),
         );
-        response.status = HttpStatus::default();
+        response.status = Some(HttpStatus::default());
 
         if is_range_request {
             response.range_requested = true;

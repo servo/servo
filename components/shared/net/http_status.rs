@@ -4,114 +4,86 @@
 
 #![deny(unsafe_code)]
 
-use std::ops::RangeBounds;
+use std::ops::Deref;
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{MallocSizeOf, StatusCode};
-
-/// A representation of a HTTP Status Code and Message that can be used for
-/// DOM Response objects and other cases.
-/// These objects are immutable once created.
+/// A thin wrapper around [`http::StatusCode`] with a custom message. Default value is OK
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct HttpStatus {
-    code: u16,
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
+    code: http::StatusCode,
+    /// Custom message. This can be different than canonical_reason
     message: Vec<u8>,
 }
 
 impl HttpStatus {
-    /// Creates a new HttpStatus for a valid status code.
-    pub fn new(code: StatusCode, message: Vec<u8>) -> Self {
-        Self {
-            code: code.as_u16(),
-            message,
-        }
+    /// Creates a new [`HttpStatus`] with a potential message
+    pub fn try_new(code: u16, message: Option<Vec<u8>>) -> Option<Self> {
+        let code = http::StatusCode::from_u16(code).ok()?;
+        Some(HttpStatus {
+            code,
+            message: message.unwrap_or_default(),
+        })
     }
 
-    /// Creates a new HttpStatus from a raw status code, but will panic
-    /// if the code is not in the 100 to 599 valid range.
-    pub fn new_raw(code: u16, message: Vec<u8>) -> Self {
-        if !(100..=599).contains(&code) {
-            panic!(
-                "HttpStatus code must be in the range 100 to 599, inclusive, but is {}",
-                code
-            );
-        }
-
-        Self { code, message }
-    }
-
-    /// Creates an instance that represents a Response.error() instance.
-    pub fn new_error() -> Self {
-        Self {
-            code: 0,
-            message: vec![],
-        }
-    }
-
-    /// Returns the StatusCode for non-error cases, panics otherwise.
-    pub fn code(&self) -> StatusCode {
-        StatusCode::from_u16(self.code).expect("HttpStatus code is 0, can't return a StatusCode")
-    }
-
-    /// Returns the StatusCode if not an error instance, or None otherwise.
-    pub fn try_code(&self) -> Option<StatusCode> {
-        StatusCode::from_u16(self.code).ok()
-    }
-
-    /// Returns the u16 representation of the access code. This is usable both for
-    /// valid HTTP status codes and in the error case.
-    pub fn raw_code(&self) -> u16 {
-        self.code
-    }
-
-    /// Get access to a reference of the message part.
+    /// The inner message will construct the canonical reason if none given.
     pub fn message(&self) -> &[u8] {
-        &self.message
+        if self.message.is_empty() {
+            self.code
+                .canonical_reason()
+                .map(|reason| reason.as_bytes())
+                .unwrap_or_default()
+        } else {
+            &self.message
+        }
     }
+}
 
-    /// Helper that relays is_success() from the underlying code.
-    pub fn is_success(&self) -> bool {
-        StatusCode::from_u16(self.code).is_ok_and(|s| s.is_success())
-    }
+impl Deref for HttpStatus {
+    type Target = http::StatusCode;
 
-    /// True when the object was created with `new_error`.
-    pub fn is_error(&self) -> bool {
-        self.code == 0
-    }
-
-    /// Returns true if this status is in the given range.
-    /// Always return false for error statuses.
-    pub fn in_range<T: RangeBounds<u16>>(&self, range: T) -> bool {
-        self.code != 0 && range.contains(&self.code)
+    fn deref(&self) -> &Self::Target {
+        &self.code
     }
 }
 
 impl Default for HttpStatus {
-    /// The default implementation creates a "200 OK" response.
     fn default() -> Self {
         Self {
-            code: 200,
-            message: b"OK".to_vec(),
+            code: http::StatusCode::OK,
+            message: vec![],
         }
     }
 }
 
-impl PartialEq<StatusCode> for HttpStatus {
-    fn eq(&self, other: &StatusCode) -> bool {
-        self.code == other.as_u16()
+impl PartialEq<http::StatusCode> for HttpStatus {
+    fn eq(&self, other: &http::StatusCode) -> bool {
+        self.code.eq(other)
     }
 }
 
-impl From<StatusCode> for HttpStatus {
-    fn from(code: StatusCode) -> Self {
-        Self {
-            code: code.as_u16(),
-            message: code
-                .canonical_reason()
-                .unwrap_or_default()
-                .as_bytes()
-                .to_vec(),
+impl PartialEq<HttpStatus> for http::StatusCode {
+    fn eq(&self, other: &HttpStatus) -> bool {
+        self.eq(&other.code)
+    }
+}
+
+impl PartialEq<http::StatusCode> for &HttpStatus {
+    fn eq(&self, other: &http::StatusCode) -> bool {
+        self.code.eq(other)
+    }
+}
+
+impl From<http::StatusCode> for HttpStatus {
+    fn from(value: http::StatusCode) -> Self {
+        HttpStatus {
+            code: value,
+            message: vec![],
         }
     }
 }

@@ -6,7 +6,6 @@ use content_security_policy::Destination;
 use embedder_traits::{GenericEmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
 use log::error;
 use net_traits::NetworkError;
-use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 
@@ -55,10 +54,7 @@ impl RequestInterceptor {
                     let mut response_override =
                         Response::new(webresource_response.url.into(), timing);
                     response_override.headers = webresource_response.headers;
-                    response_override.status = HttpStatus::new(
-                        webresource_response.status_code,
-                        webresource_response.status_message,
-                    );
+                    response_override.status = Some(webresource_response.status_code.into());
                     *response = Some(response_override);
                 },
                 WebResourceResponseMsg::SendBodyData(data) => {

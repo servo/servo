@@ -36,7 +36,7 @@ impl ProtocolHandler for UrlInfoProtocolHander {
         let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
         *response.body.lock() = ResponseBody::Done(content.as_bytes().to_vec());
         response.headers.typed_insert(ContentType::text());
-        response.status = HttpStatus::default();
+        response.status = Some(HttpStatus::default());
 
         Box::pin(std::future::ready(response))
     }

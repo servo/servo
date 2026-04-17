@@ -650,7 +650,7 @@ fn test_fetch_response_is_opaque_filtered() {
     assert!(fetch_response.url().is_none());
     assert!(fetch_response.url_list.is_empty());
     // this also asserts that status message is "the empty byte sequence"
-    assert!(fetch_response.status.is_error());
+    assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock() {
         ResponseBody::Empty => {},
@@ -700,7 +700,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     assert_eq!(fetch_response.response_type, ResponseType::OpaqueRedirect);
 
     // this also asserts that status message is "the empty byte sequence"
-    assert!(fetch_response.status.is_error());
+    assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock() {
         ResponseBody::Empty => {},
@@ -878,7 +878,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
             .internal_response
             .unwrap()
             .status
-            .code()
+            .unwrap()
             .is_success()
     );
     assert!(
@@ -958,7 +958,7 @@ fn test_fetch_self_signed() {
 
     let response = fetch_with_context(request, &mut context);
 
-    assert!(response.status.code().is_success());
+    assert!(response.status.unwrap().is_success());
 
     let _ = server.close();
 }
@@ -1602,14 +1602,8 @@ fn test_fetch_request_intercepted() {
     }
 
     assert_eq!(
-        response.status.code(),
-        StatusCode::FOUND,
+        response.status,
+        Some(StatusCode::FOUND.into()),
         "Status code does not match!"
-    );
-
-    assert_eq!(
-        response.status.message(),
-        STATUS_MESSAGE,
-        "The status_message was not set correctly!"
     );
 }

@@ -14,7 +14,6 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
-use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
@@ -416,24 +415,21 @@ impl FetchResponseListener for ClassicContext {
             }
         });
 
-        let status = self
-            .metadata
-            .as_ref()
-            .map(|m| m.status.clone())
-            .unwrap_or_else(HttpStatus::new_error);
-
         self.status = {
-            if status.is_error() {
+            let status = self.metadata.as_ref().map(|m| &m.status);
+            if let Some(status) = status &&
+                status.is_success()
+            {
+                Ok(())
+            } else if let Some(status) = status {
+                Err(NetworkError::ResourceLoadError(format!(
+                    "HTTP error code {}",
+                    **status,
+                )))
+            } else {
                 Err(NetworkError::ResourceLoadError(
                     "No http status code received".to_owned(),
                 ))
-            } else if status.is_success() {
-                Ok(())
-            } else {
-                Err(NetworkError::ResourceLoadError(format!(
-                    "HTTP error code {}",
-                    status.code()
-                )))
             }
         };
     }
