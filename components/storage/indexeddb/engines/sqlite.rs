@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use log::{info, warn};
+use log::{error, info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -83,12 +83,24 @@ impl SqliteEngine {
 
     // TODO: intake dual pools
     pub fn new(
-        path: PathBuf,
-        created: bool,
+        base_dir: &Path,
         db_info: &IndexedDBDescription,
         pool: Arc<ThreadPool>,
     ) -> Result<Self, Error> {
-        let db_path = path.join("indexeddb.sqlite");
+        let mut db_path = PathBuf::new();
+        db_path.push(base_dir);
+        db_path.push(db_info.as_path());
+        let db_parent = db_path.clone();
+        db_path.push("db.sqlite");
+
+        let created_db_path = if !db_path.exists() {
+            std::fs::create_dir_all(db_parent).unwrap();
+            std::fs::File::create(&db_path).unwrap();
+            true
+        } else {
+            false
+        };
+
         let connection = Self::init_db(&db_path, db_info)?;
 
         for stmt in DB_PRAGMAS {
@@ -101,7 +113,7 @@ impl SqliteEngine {
             db_path,
             read_pool: pool.clone(),
             write_pool: pool,
-            created_db_path: created,
+            created_db_path,
         })
     }
 
@@ -381,6 +393,17 @@ impl KvsEngine for SqliteEngine {
 
     fn close_store(&self, _store_name: &str) -> Result<(), Self::Error> {
         // TODO: do something
+        Ok(())
+    }
+
+    fn delete_database(self) -> Result<(), Self::Error> {
+        // attempt to close the connection first
+        let _ = self.connection.close();
+        if self.db_path.exists() {
+            if let Err(e) = std::fs::remove_dir_all(self.db_path.parent().unwrap()) {
+                error!("Failed to delete database: {:?}", e);
+            }
+        }
         Ok(())
     }
 
@@ -736,33 +759,23 @@ impl MallocSizeOf for SqliteEngine {
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
-    use std::path::PathBuf;
     use std::sync::Arc;
 
     use profile_traits::generic_callback::GenericCallback;
     use profile_traits::time::ProfilerChan;
     use serde::{Deserialize, Serialize};
     use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
-    use servo_base::id::{PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId};
     use servo_base::threadpool::ThreadPool;
     use servo_url::ImmutableOrigin;
-    use storage_traits::client_storage::{
-        ClientStorageThreadHandle, StorageIdentifier, StorageProxyMap, StorageType,
-    };
     use storage_traits::indexeddb::{
         AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, CreateObjectResult,
         IndexedDBKeyRange, IndexedDBKeyType, IndexedDBTxnMode, KeyPath, PutItemResult,
     };
     use url::Host;
 
-    use crate::ClientStorageThreadFactory;
     use crate::indexeddb::IndexedDBDescription;
     use crate::indexeddb::engines::sqlite::encoding;
     use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
-
-    fn install_test_namespace() {
-        PipelineNamespace::install(PipelineNamespaceId(1));
-    }
 
     fn test_origin() -> ImmutableOrigin {
         ImmutableOrigin::Tuple(
@@ -776,48 +789,13 @@ mod tests {
         Arc::new(ThreadPool::new(1, "test".to_string()))
     }
 
-    fn create_db(
-        db_name: String,
-    ) -> (
-        tempfile::TempDir,
-        PathBuf,
-        bool,
-        StorageProxyMap,
-        ClientStorageThreadHandle,
-    ) {
-        if PIPELINE_NAMESPACE.get().is_none() {
-            install_test_namespace();
-        }
-        let tmp_dir = tempfile::tempdir().unwrap();
-        let handle: ClientStorageThreadHandle =
-            ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
-
-        let storage_proxy_map = handle
-            .obtain_a_storage_bottle_map(
-                StorageType::Local,
-                Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID)),
-                StorageIdentifier::IndexedDB,
-                test_origin(),
-            )
-            .recv()
-            .unwrap()
-            .unwrap();
-        let (path, created) = handle
-            .create_database(storage_proxy_map.bottle_id, db_name)
-            .recv()
-            .unwrap()
-            .unwrap();
-        (tmp_dir, path, created, storage_proxy_map, handle)
-    }
-
     #[test]
     fn test_cycle() {
-        let (_temp_dir, path, created, proxy_map, handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         // Test create
-        let db = SqliteEngine::new(
-            path.clone(),
-            created,
+        let _ = SqliteEngine::new(
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -825,12 +803,9 @@ mod tests {
             thread_pool.clone(),
         )
         .unwrap();
-        drop(db);
-
         // Test open
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -843,21 +818,15 @@ mod tests {
         db.set_version(5).unwrap();
         let new_version = db.version().expect("Failed to get new version");
         assert_eq!(new_version, 5);
-        drop(db);
-        handle
-            .delete_database(proxy_map.bottle_id, "test_db".to_string())
-            .recv()
-            .unwrap()
-            .expect("Failed to delete database");
+        db.delete_database().expect("Failed to delete database");
     }
 
     #[test]
     fn test_create_store() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -881,11 +850,10 @@ mod tests {
 
     #[test]
     fn test_create_store_empty_name() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -902,11 +870,10 @@ mod tests {
 
     #[test]
     fn test_injection() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -930,11 +897,10 @@ mod tests {
 
     #[test]
     fn test_key_path() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -953,11 +919,10 @@ mod tests {
 
     #[test]
     fn test_delete_store() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -981,11 +946,10 @@ mod tests {
 
     #[test]
     fn test_delete_store_removes_store_records() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -1051,11 +1015,10 @@ mod tests {
             .expect("Could not construct callback")
         }
 
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
-            path,
-            created,
+            base_dir.path(),
             &IndexedDBDescription {
                 name: "test_db".to_string(),
                 origin: test_origin(),
@@ -1224,11 +1187,10 @@ mod tests {
             lower_open: bool,
             upper_open: bool,
         ) -> Vec<i32> {
-            let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+            let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
             let thread_pool = get_pool();
             let db = SqliteEngine::new(
-                path,
-                created,
+                base_dir.path(),
                 &IndexedDBDescription {
                     name: "test_db".to_string(),
                     origin: test_origin(),

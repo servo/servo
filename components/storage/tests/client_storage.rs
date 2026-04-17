@@ -6,9 +6,7 @@ use std::path::PathBuf;
 
 use rusqlite::Connection;
 use servo_base::generic_channel;
-use servo_base::id::{
-    BrowsingContextId, PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId,
-};
+use servo_base::id::{BrowsingContextId, PipelineNamespace, PipelineNamespaceId, WebViewId};
 use servo_url::ServoUrl;
 use storage::ClientStorageThreadFactory;
 use storage_traits::client_storage::{
@@ -17,9 +15,7 @@ use storage_traits::client_storage::{
 };
 
 fn install_test_namespace() {
-    if PIPELINE_NAMESPACE.get().is_none() {
-        PipelineNamespace::install(PipelineNamespaceId(1));
-    }
+    PipelineNamespace::install(PipelineNamespaceId(1));
 }
 
 fn registry_db_path(tmp_dir: &tempfile::TempDir) -> PathBuf {
@@ -33,7 +29,7 @@ fn open_registry(tmp_dir: &tempfile::TempDir) -> Connection {
 fn obtain_bottle_map(
     handle: &ClientStorageThreadHandle,
     storage_type: StorageType,
-    webview: Option<WebViewId>,
+    webview: WebViewId,
     storage_identifier: StorageIdentifier,
     origin: servo_url::ImmutableOrigin,
 ) -> StorageProxyMap {
@@ -72,7 +68,7 @@ fn test_workflow() {
     let storage_proxy_map = handle
         .obtain_a_storage_bottle_map(
             StorageType::Local,
-            Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID)),
+            WebViewId::new(servo_base::id::TEST_PAINTER_ID),
             StorageIdentifier::IndexedDB,
             url.origin(),
         )
@@ -82,21 +78,18 @@ fn test_workflow() {
 
     // Create a db.
     let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1".to_string());
-    let (path, created) = receiver.recv().unwrap().expect("Path should be created");
-    assert!(created);
+    let path = receiver.recv().unwrap().expect("Path should be created");
 
     assert!(std::fs::read_dir(path.clone()).is_ok());
 
     // Create another db with the same name.
     let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1".to_string());
-    let (path, created) = receiver.recv().unwrap().expect("Path should be created");
-    assert!(!created);
+    assert!(receiver.recv().unwrap().is_err());
 
     // Create another db with a different same.
     let receiver = handle.create_database(storage_proxy_map.bottle_id, "test2".to_string());
-    let (yet_another_path, created) = receiver.recv().unwrap().expect("Path should be created");
+    let yet_another_path = receiver.recv().unwrap().expect("Path should be created");
     assert_ne!(path, yet_another_path);
-    assert!(created);
 
     // Delete the dbs.
     let receiver = handle.delete_database(storage_proxy_map.bottle_id, "test1".to_string());
@@ -110,7 +103,7 @@ fn test_workflow() {
     let second_proxy_map = handle
         .obtain_a_storage_bottle_map(
             StorageType::Local,
-            Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID)),
+            WebViewId::new(servo_base::id::TEST_PAINTER_ID),
             StorageIdentifier::IndexedDB,
             url.origin(),
         )
@@ -134,7 +127,7 @@ fn test_repeated_local_obtain_reuses_same_logical_rows() {
         ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
-    let webview = Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID));
+    let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
 
     let first = obtain_bottle_map(
         &handle,
@@ -189,8 +182,8 @@ fn test_repeated_session_obtain_reuses_same_logical_rows() {
         ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
-    let webview = Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID));
-    let browsing_context = Into::<BrowsingContextId>::into(webview.clone().unwrap()).to_string();
+    let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
+    let browsing_context = Into::<BrowsingContextId>::into(webview).to_string();
 
     let first = obtain_bottle_map(
         &handle,

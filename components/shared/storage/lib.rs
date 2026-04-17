@@ -6,7 +6,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericSend, GenericSender, SendResult};
 
-use crate::client_storage::{ClientStorageThreadHandle, ClientStorageThreadMessage};
+use crate::client_storage::ClientStorageThreadMessage;
 use crate::indexeddb::IndexedDBThreadMsg;
 use crate::webstorage_thread::{OriginDescriptor, WebStorageThreadMsg, WebStorageType};
 
@@ -32,10 +32,6 @@ impl StorageThreads {
             idb_thread,
             web_storage_thread,
         }
-    }
-
-    pub fn client_storage_handle(&self) -> ClientStorageThreadHandle {
-        self.client_storage_thread.clone().into()
     }
 
     // TODO: Consider changing to `webstorage_sites`

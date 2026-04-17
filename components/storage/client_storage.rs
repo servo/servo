@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::thread;
 
 use log::warn;
-use rusqlite::{Connection, OptionalExtension, Transaction};
+use rusqlite::{Connection, Transaction};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use servo_url::ImmutableOrigin;
@@ -22,7 +22,7 @@ trait RegistryEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<(PathBuf, bool), ClientStorageErrorr<Self::Error>>;
+    ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>>;
     fn delete_database(
         &mut self,
         bottle_id: i64,
@@ -31,7 +31,7 @@ trait RegistryEngine {
     fn obtain_a_storage_bottle_map(
         &mut self,
         storage_type: StorageType,
-        webview: Option<WebViewId>,
+        webview: WebViewId,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: &GenericSender<ClientStorageThreadMessage>,
@@ -302,33 +302,8 @@ impl RegistryEngine for SqliteEngine {
         &mut self,
         bottle_id: i64,
         name: String,
-    ) -> Result<(PathBuf, bool), ClientStorageErrorr<Self::Error>> {
+    ) -> Result<PathBuf, ClientStorageErrorr<Self::Error>> {
         let tx = self.connection.transaction()?;
-
-        // TODO: combine this into a single query (utilizing WITH and a join).
-        let database_id: i64 = tx
-            .query_row(
-                "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
-             ON CONFLICT(bottle_id, name) DO UPDATE SET name = excluded.name
-            RETURNING id;",
-                (bottle_id, name),
-                |row| row.get(0),
-            )
-            .map_err(ClientStorageErrorr::Internal)?;
-
-        let existing_path: Option<String> = tx
-            .query_row(
-                "SELECT path FROM directories WHERE database_id = ?1;",
-                [database_id],
-                |row| row.get(0),
-            )
-            .optional()
-            .map_err(ClientStorageErrorr::Internal)?;
-
-        if let Some(p) = existing_path {
-            // If it exists, we don't need the transaction anymore
-            return Ok((PathBuf::from(p), false));
-        }
 
         let dir = Uuid::new_v4().to_string();
         let cluster = dir.chars().last().unwrap();
@@ -344,17 +319,29 @@ impl RegistryEngine for SqliteEngine {
             )))
         })?;
 
+        let database_id: i64 = tx
+            .query_row(
+                "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2)
+             ON CONFLICT(bottle_id, name) DO NOTHING
+             RETURNING id;",
+                (bottle_id, name),
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => ClientStorageErrorr::DatabaseAlreadyExists,
+                e => ClientStorageErrorr::Internal(e),
+            })?;
+
         tx.execute(
             "INSERT INTO directories (database_id, path) VALUES (?1, ?2);",
             (database_id, path_str),
-        )
-        .map_err(ClientStorageErrorr::Internal)?;
-
-        tx.commit().map_err(ClientStorageErrorr::Internal)?;
+        )?;
 
         std::fs::create_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryCreationFailed)?;
 
-        Ok((path, true))
+        tx.commit()?;
+
+        Ok(path)
     }
 
     /// Delete a database for the indexedDB endpoint.
@@ -387,12 +374,10 @@ impl RegistryEngine for SqliteEngine {
         }
         // Note: directory deleted through SQL cascade.
 
-        tx.commit()?;
-
-        // Delete the directory on disk.
-        // Note: on Windows this needs to be done outside of the transaction,
-        // because the transaction holds a file lock.
+        // Delete the directory on disk
         std::fs::remove_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryDeletionFailed)?;
+
+        tx.commit()?;
 
         Ok(())
     }
@@ -401,7 +386,7 @@ impl RegistryEngine for SqliteEngine {
     fn obtain_a_storage_bottle_map(
         &mut self,
         storage_type: StorageType,
-        webview: Option<WebViewId>,
+        webview: WebViewId,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
         sender: &GenericSender<ClientStorageThreadMessage>,
@@ -417,11 +402,6 @@ impl RegistryEngine for SqliteEngine {
             StorageType::Session => {
                 // Step 3: Otherwise:
                 // Step 3.1: Assert: type is "session".
-                let Some(webview) = webview else {
-                    debug_assert!(false, "Session storage is only available on Window.");
-                    return Err(ClientStorageErrorr::SessionStorageRequiresWindow);
-                };
-
                 // Step 3.2: Set shed to environment’s global object’s associated Document’s
                 // node navigable’s traversable navigable’s storage shed.
                 // Note: using the browsing context of the webview as the traversable navigable.
@@ -472,13 +452,10 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
     fn new(config_dir: Option<PathBuf>) -> ClientStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
 
-        let mut temp_dir: Option<tempfile::TempDir> = None;
         let storage_dir = config_dir
             .unwrap_or_else(|| {
                 let tmp_dir = tempfile::tempdir().unwrap();
-                let path = tmp_dir.path().to_path_buf();
-                temp_dir = Some(tmp_dir);
-                path
+                tmp_dir.path().to_path_buf()
             })
             .join("clientstorage");
         std::fs::create_dir_all(&storage_dir)
@@ -487,8 +464,6 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
-                // Keep temp_dir alive while the thread runs.
-                let _ = temp_dir;
                 let engine = SqliteEngine::new(storage_dir).unwrap_or_else(|error| {
                     warn!("Failed to initialize ClientStorage engine into storage dir: {error:?}");
                     SqliteEngine::memory().unwrap()
