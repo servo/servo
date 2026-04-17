@@ -9,7 +9,6 @@ use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_base::generic_channel::GenericSend;
 use servo_url::origin::ImmutableOrigin;
-use storage_traits::client_storage::StorageProxyMap;
 use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -215,7 +214,6 @@ impl IDBOpenDBRequest {
         &self,
         storage_key: ImmutableOrigin,
         name: String,
-        proxy_map: StorageProxyMap,
     ) -> Result<(), ()> {
         let global = self.global();
 
@@ -235,7 +233,7 @@ impl IDBOpenDBRequest {
         .expect("Could not create delete database callback");
 
         let delete_operation =
-            SyncOperation::DeleteDatabase(callback, storage_key, name, proxy_map, self.get_id());
+            SyncOperation::DeleteDatabase(callback, storage_key, name, self.get_id());
 
         if global
             .storage_threads()
