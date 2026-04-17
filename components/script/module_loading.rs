@@ -458,7 +458,6 @@ pub(crate) fn host_load_imported_module(
         global_scope = owner.root();
     }
 
-    // Note: loadState is undefined when performing a dynamic import, fall back to `ModuleOwner::DynamicModule`.
     let global = &global_scope.clone();
 
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
