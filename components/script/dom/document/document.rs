@@ -2223,6 +2223,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
     pub(crate) fn unload(&self, cx: &mut JSContext, recursive_flag: bool) {
+        if !self.is_window_relevant() {
+            return;
+        }
+
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
