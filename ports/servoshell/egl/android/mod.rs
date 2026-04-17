@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use android_logger::{self, Config, FilterBuilder};
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -37,6 +37,12 @@ thread_local! {
     pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
 }
 
+static CALLBACK_OBJ: OnceLock<Global<JObject<'static>>> = OnceLock::new();
+
+fn callback_ref() -> &'static JObject<'static> {
+    CALLBACK_OBJ.get().expect("Servo init failed").as_ref()
+}
+
 struct InitOptions {
     args: Vec<String>,
     url: Option<String>,
@@ -49,7 +55,6 @@ struct InitOptions {
 }
 
 struct HostCallbacks {
-    callbacks: Global<JObject<'static>>,
     jvm: JavaVM,
 }
 
@@ -146,14 +151,13 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
         let callbacks: Global<JObject<'static>> = env.new_global_ref(callbacks_obj)?;
 
+        assert!(CALLBACK_OBJ.set(callbacks).is_ok());
+
         let jvm = env.get_java_vm()?;
 
-        let event_loop_waker = Box::new(WakeupCallback::new(
-            unsafe { env.global_from_raw::<JObject>(**callbacks) },
-            jvm.clone(),
-        ));
+        let event_loop_waker = Box::new(WakeupCallback::new(jvm.clone()));
 
-        let host = Rc::new(HostCallbacks::new(callbacks, jvm));
+        let host = Rc::new(HostCallbacks::new(jvm));
 
         crate::init_crypto();
 
@@ -627,38 +631,25 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
 }
 
 pub struct WakeupCallback {
-    callback: Global<JObject<'static>>,
     jvm: Arc<JavaVM>,
 }
 
 impl WakeupCallback {
-    pub fn new(callback: Global<JObject<'static>>, jvm: JavaVM) -> WakeupCallback {
-        let jvm = Arc::new(jvm);
-        WakeupCallback { callback, jvm }
+    fn new(jvm: JavaVM) -> WakeupCallback {
+        WakeupCallback { jvm: Arc::new(jvm) }
     }
 }
 
 impl EventLoopWaker for WakeupCallback {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         let jvm = self.jvm.clone();
-        let callback = self.callback.as_ref();
-        self.jvm
-            .attach_current_thread(|env| -> Result<Box<WakeupCallback>, Error> {
-                let callback = unsafe { env.global_from_raw::<JObject>(**callback) };
-                Ok(Box::new(WakeupCallback { callback, jvm }))
-            })
-            .unwrap()
+        Box::new(WakeupCallback { jvm })
     }
     fn wake(&self) {
         debug!("wakeup");
         self.jvm
             .attach_current_thread(|env| -> Result<(), Error> {
-                env.call_method(
-                    self.callback.as_ref(),
-                    jni_str!("wakeup"),
-                    jni_sig!("()V"),
-                    &[],
-                )?;
+                env.call_method(callback_ref(), jni_str!("wakeup"), jni_sig!("()V"), &[])?;
                 Ok(())
             })
             .unwrap();
@@ -666,8 +657,8 @@ impl EventLoopWaker for WakeupCallback {
 }
 
 impl HostCallbacks {
-    pub fn new(callbacks: Global<JObject<'static>>, jvm: JavaVM) -> HostCallbacks {
-        HostCallbacks { callbacks, jvm }
+    fn new(jvm: JavaVM) -> HostCallbacks {
+        HostCallbacks { jvm }
     }
 }
 
@@ -679,7 +670,7 @@ impl HostTrait for HostCallbacks {
                     return Ok(());
                 };
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onAlert"),
                     jni_sig!("(Ljava/lang/String;)V"),
                     &[(&string).into()],
@@ -695,7 +686,7 @@ impl HostTrait for HostCallbacks {
             .attach_current_thread(|env| match load_status {
                 LoadStatus::Started => env
                     .call_method(
-                        self.callbacks.as_ref(),
+                        callback_ref(),
                         jni_str!("onLoadStarted"),
                         jni_sig!("()V"),
                         &[],
@@ -704,7 +695,7 @@ impl HostTrait for HostCallbacks {
                 LoadStatus::HeadParsed => Ok(()),
                 LoadStatus::Complete => env
                     .call_method(
-                        self.callbacks.as_ref(),
+                        callback_ref(),
                         jni_str!("onLoadEnded"),
                         jni_sig!("()V"),
                         &[],
@@ -727,7 +718,7 @@ impl HostTrait for HostCallbacks {
                     return Ok(());
                 };
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onTitleChanged"),
                     jni_sig!("(Ljava/lang/String;)V"),
                     &[(&title_string).into()],
@@ -746,7 +737,7 @@ impl HostTrait for HostCallbacks {
                 };
 
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onUrlChanged"),
                     jni_sig!("(Ljava/lang/String;)V"),
                     &[(&url_string).into()],
@@ -763,7 +754,7 @@ impl HostTrait for HostCallbacks {
                 let can_go_back = JValue::Bool(can_go_back as jboolean);
                 let can_go_forward = JValue::Bool(can_go_forward as jboolean);
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onHistoryChanged"),
                     jni_sig!("(ZZ)V"),
                     &[can_go_back, can_go_forward],
@@ -776,12 +767,7 @@ impl HostTrait for HostCallbacks {
     fn on_ime_show(&self, _: InputMethodControl) {
         self.jvm
             .attach_current_thread(|env| -> Result<(), Error> {
-                env.call_method(
-                    self.callbacks.as_ref(),
-                    jni_str!("onImeShow"),
-                    jni_sig!("()V"),
-                    &[],
-                )?;
+                env.call_method(callback_ref(), jni_str!("onImeShow"), jni_sig!("()V"), &[])?;
                 Ok(())
             })
             .unwrap();
@@ -790,12 +776,7 @@ impl HostTrait for HostCallbacks {
     fn on_ime_hide(&self) {
         self.jvm
             .attach_current_thread(|env| -> Result<(), Error> {
-                env.call_method(
-                    self.callbacks.as_ref(),
-                    jni_str!("onImeHide"),
-                    jni_sig!("()V"),
-                    &[],
-                )?;
+                env.call_method(callback_ref(), jni_str!("onImeHide"), jni_sig!("()V"), &[])?;
                 Ok(())
             })
             .unwrap();
@@ -818,7 +799,7 @@ impl HostTrait for HostCallbacks {
                 };
 
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onMediaSessionMetadata"),
                     jni_sig!("(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"),
                     &[(&title).into(), (&artist).into(), (&album).into()],
@@ -835,7 +816,7 @@ impl HostTrait for HostCallbacks {
                 let state = state as i32;
                 let state = JValue::Int(state as jint);
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onMediaSessionPlaybackStateChange"),
                     jni_sig!("(I)V"),
                     &[state],
@@ -862,7 +843,7 @@ impl HostTrait for HostCallbacks {
                 let playback_rate = JValue::Float(playback_rate as jfloat);
 
                 env.call_method(
-                    self.callbacks.as_ref(),
+                    callback_ref(),
                     jni_str!("onMediaSessionSetPositionState"),
                     jni_sig!("(FFF)V"),
                     &[duration, position, playback_rate],
