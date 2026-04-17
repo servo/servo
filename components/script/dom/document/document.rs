@@ -585,6 +585,8 @@ pub(crate) struct Document {
     /// waiting it will not do any new layout until the canvas images are up-to-date in
     /// the renderer.
     waiting_on_canvas_image_updates: Cell<bool>,
+    /// Whether we have already noted that the document element was removed.
+    root_removal_noted: Cell<bool>,
     /// The current rendering epoch, which is used to track updates in the renderer.
     ///
     ///   - Every display list update also advances the Epoch, so that the renderer knows
@@ -695,10 +697,18 @@ impl Document {
             None => {
                 // There is no parent so this is the Document node, so we
                 // behave as if we were called with the document element.
-                let document_element = match self.GetDocumentElement() {
-                    Some(element) => element,
-                    None => return,
+                let Some(document_element) = self.GetDocumentElement() else {
+                    // Trigger update if the document element was removed.
+                    if !self.root_removal_noted.get() {
+                        self.add_restyle_reason(RestyleReason::DOMChanged);
+                        self.root_removal_noted.set(true);
+                    }
+                    return;
                 };
+                // This ensures that if the document element is removed in the future, it
+                // will trigger a new empty display list.
+                self.root_removal_noted.set(false);
+
                 if let Some(dirty_root) = self.dirty_root.get() {
                     // There was an existing dirty root so we mark its
                     // ancestors as dirty until the document element.
@@ -3631,6 +3641,7 @@ impl Document {
             pending_scroll_events: Default::default(),
             rendering_update_reasons: Default::default(),
             waiting_on_canvas_image_updates: Cell::new(false),
+            root_removal_noted: Cell::new(true),
             current_rendering_epoch: Default::default(),
             custom_element_reaction_stack,
             active_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),

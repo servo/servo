@@ -31,7 +31,7 @@ use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::ImageCache;
 use paint_api::CrossProcessPaintApi;
-use paint_api::display_list::ScrollType;
+use paint_api::display_list::{AxesScrollSensitivity, PaintDisplayListInfo, ScrollType};
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::{
@@ -164,6 +164,9 @@ pub struct LayoutThread {
 
     /// Is this the first reflow in this LayoutThread?
     have_ever_generated_display_list: Cell<bool>,
+
+    /// Whether the last display list we sent was effectively empty.
+    last_display_list_was_empty: Cell<bool>,
 
     /// Whether a new overflow calculation needs to happen due to changes to the fragment
     /// tree. This is set to true every time a restyle requests overflow calculation.
@@ -779,6 +782,7 @@ impl LayoutThread {
             font_context: config.font_context,
             have_added_user_agent_stylesheets: false,
             have_ever_generated_display_list: Cell::new(false),
+            last_display_list_was_empty: Cell::new(true),
             device_has_changed: false,
             need_overflow_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
@@ -965,6 +969,9 @@ impl LayoutThread {
             .as_document()
             .unwrap();
         let Some(root_element) = document.root_element() else {
+            if !self.last_display_list_was_empty.get() {
+                return self.clear_layout_trees_and_send_empty_display_list(&reflow_request);
+            }
             debug!("layout: No root node: bailing");
             return None;
         };
@@ -1416,7 +1423,7 @@ impl LayoutThread {
             .collect_unused_webrender_resources(false /* all */);
         self.paint_api
             .remove_unused_font_resources(self.webview_id.into(), keys, instance_keys);
-
+        self.last_display_list_was_empty.set(false);
         self.have_ever_generated_display_list.set(true);
         self.need_new_display_list.set(false);
         self.previously_highlighted_dom_node
@@ -1469,6 +1476,43 @@ impl LayoutThread {
             } else {
                 TimerMetadataReflowType::FirstReflow
             },
+        })
+    }
+
+    /// Clear all cached layout trees and send an empty display list to paint.
+    fn clear_layout_trees_and_send_empty_display_list(
+        &self,
+        reflow_request: &ReflowRequest,
+    ) -> Option<ReflowResult> {
+        // Clear layout trees.
+        self.box_tree.borrow_mut().take();
+        self.fragment_tree.borrow_mut().take();
+        self.stacking_context_tree.borrow_mut().take();
+
+        // Send empty display list.
+        let paint_info = PaintDisplayListInfo::new(
+            reflow_request.viewport_details,
+            Size2D::zero(),
+            self.id.into(),
+            reflow_request.epoch,
+            AxesScrollSensitivity {
+                x: ScrollType::InputEvents | ScrollType::Script,
+                y: ScrollType::InputEvents | ScrollType::Script,
+            },
+            !self.have_ever_generated_display_list.get(),
+        );
+        let mut builder = webrender_api::DisplayListBuilder::new(paint_info.pipeline_id);
+        builder.begin();
+        let (_, empty_display_list) = builder.end();
+
+        self.paint_api
+            .send_display_list(self.webview_id, &paint_info, empty_display_list);
+        self.last_display_list_was_empty.set(true);
+        self.have_ever_generated_display_list.set(true);
+
+        Some(ReflowResult {
+            reflow_phases_run: ReflowPhasesRun::BuiltDisplayList,
+            ..Default::default()
         })
     }
 }
