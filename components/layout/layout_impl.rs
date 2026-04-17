@@ -22,10 +22,10 @@ use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use icu_locid::subtags::Language;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleNode, IFrameSizes, Layout,
-    LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, OffsetParentResponse, PhysicalSides,
-    QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
-    ReflowStatistics, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    with_layout_state,
+    LayoutConfig, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
+    OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -86,6 +86,7 @@ use webrender_api::units::{DevicePixel, LayoutVector2D};
 use crate::accessibility_tree::AccessibilityTree;
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
+use crate::dom::NodeExt;
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_containing_block_query,
@@ -318,6 +319,33 @@ impl Layout for LayoutThread {
     fn remove_cached_image(&mut self, url: &ServoUrl) {
         let mut resolved_images_cache = self.resolved_images_cache.write();
         resolved_images_cache.remove(url);
+    }
+
+    fn node_rendering_type(
+        &self,
+        node: TrustedNodeAddress,
+        pseudo: Option<PseudoElement>,
+    ) -> NodeRenderingType {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+
+            // Nodes that are not currently styled are never being rendered.
+            if node
+                .as_element()
+                .is_none_or(|element| element.style_data().is_none())
+            {
+                return NodeRenderingType::NotRendered;
+            }
+
+            let node = match pseudo {
+                Some(pseudo) => node.with_pseudo(pseudo),
+                None => Some(node),
+            };
+            let Some(node) = node else {
+                return NodeRenderingType::NotRendered;
+            };
+            node.rendering_type()
+        })
     }
 
     /// Return the node corresponding to the containing block of the provided node.

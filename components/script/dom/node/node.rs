@@ -29,8 +29,8 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData,
-    HTMLMediaData, LayoutElementType, LayoutNodeType, PhysicalSides, SVGElementData,
-    SharedSelection, TrustedNodeAddress, with_layout_state,
+    HTMLMediaData, LayoutElementType, LayoutNodeType, NodeRenderingType, PhysicalSides,
+    SVGElementData, SharedSelection, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -631,6 +631,31 @@ impl Node {
                 None => return "ltr".to_owned(),
             }
         }
+    }
+
+    /// Implements the combination of:
+    ///  - <https://html.spec.whatwg.org/multipage/#being-rendered>
+    ///  - <https://html.spec.whatwg.org/multipage/#delegating-its-rendering-to-its-children>
+    pub(crate) fn is_being_rendered_or_delegates_rendering(
+        &self,
+        pseudo_element: Option<PseudoElement>,
+    ) -> bool {
+        matches!(
+            self.owner_window()
+                .layout()
+                .node_rendering_type(self.to_trusted_node_address(), pseudo_element),
+            NodeRenderingType::Rendered | NodeRenderingType::DelegatesRendering
+        )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#being-rendered>
+    pub(crate) fn is_being_rendered(&self, pseudo_element: Option<PseudoElement>) -> bool {
+        matches!(
+            self.owner_window()
+                .layout()
+                .node_rendering_type(self.to_trusted_node_address(), pseudo_element),
+            NodeRenderingType::Rendered
+        )
     }
 }
 
