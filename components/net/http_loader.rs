@@ -811,7 +811,7 @@ fn obtain_response_setup_router_callback(
 /// [HTTP fetch](https://fetch.spec.whatwg.org/#concept-http-fetch)
 #[async_recursion]
 #[allow(clippy::too_many_arguments)]
-pub async fn http_fetch(
+pub(crate) async fn http_fetch(
     fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     cors_flag: bool,
@@ -1066,7 +1066,7 @@ fn location_url_for_response(
     location
 }
 
-/// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
+/// [HTTP redirect fetch](https://fetch.spec.whatwg.org/#http-redirect-fetch)
 #[async_recursion]
 pub async fn http_redirect_fetch(
     fetch_params: &mut FetchParams,
