@@ -118,6 +118,8 @@ pub enum EmbedderToConstellationMessage {
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
     /// Activate or deactivate accessibility features for the given `WebView`.
     SetAccessibilityActive(WebViewId, bool),
+    /// Try to open the context menu corresponding to an input event.
+    ShowContextMenu(WebViewId, InputEventAndId, PaintHitTestResult),
 }
 
 pub enum UserContentManagerAction {

@@ -1059,6 +1059,25 @@ impl DocumentEventHandler {
         }
     }
 
+    /// Try to open the context menu corresponding to an input event.
+    pub(crate) fn show_context_menu(&self, input_event: &ConstellationInputEvent, can_gc: CanGc) {
+        // Hit test at the input event position.
+        let Some(hit_test_result) = self.window.hit_test_from_input_event(input_event) else {
+            return;
+        };
+
+        // Get browser element at the hit test location.
+        let element = hit_test_result
+            .node
+            .inclusive_ancestors(ShadowIncluding::Yes)
+            .find_map(DomRoot::downcast::<Element>);
+        let Some(element) = element else {
+            return;
+        };
+
+        self.maybe_show_context_menu(element.upcast(), &hit_test_result, input_event, can_gc);
+    }
+
     /// <https://www.w3.org/TR/pointerevents4/#maybe-show-context-menu>
     fn maybe_show_context_menu(
         &self,

@@ -36,6 +36,7 @@ use crate::painter::Painter;
 use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
 use crate::refresh_driver::BaseRefreshDriver;
+use crate::timer::TimerDriver;
 use crate::touch::{
     PendingTouchInputEvent, TouchHandler, TouchIdMoveTracking, TouchMoveAllowed, TouchSequenceState,
 };
@@ -133,19 +134,27 @@ impl WebViewRenderer {
         viewport_details: ViewportDetails,
         embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
         refresh_driver: Rc<BaseRefreshDriver>,
+        timer_driver: Rc<TimerDriver>,
         webrender_document: DocumentId,
     ) -> Self {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
         let rect = DeviceRect::from_origin_and_size(DevicePoint::origin(), size);
         let webview_id = renderer_webview.id();
+
+        let touch_handler = TouchHandler::new(
+            webview_id,
+            embedder_to_constellation_sender.clone(),
+            timer_driver,
+        );
+
         Self {
+            touch_handler,
             id: webview_id,
             webview: renderer_webview,
             root_pipeline_id: None,
             rect,
             pipelines: Default::default(),
-            touch_handler: TouchHandler::new(webview_id),
             pending_scroll_zoom_events: Default::default(),
             pending_wheel_events: Default::default(),
             page_zoom: DEFAULT_PAGE_ZOOM,
@@ -481,10 +490,25 @@ impl WebViewRenderer {
         event: TouchEvent,
         id: InputEventId,
     ) -> bool {
+        let event_and_id = InputEventAndId {
+            event: InputEvent::Touch(event),
+            id,
+        };
+
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_down(event.touch_id, point);
+
+        let hit_test_result = self.hit_test(render_api, point).into_iter().next();
+        let scale = self.device_pixels_per_page_pixel_not_including_pinch_zoom();
+        self.touch_handler.on_touch_down(
+            event.touch_id,
+            point,
+            event_and_id,
+            hit_test_result,
+            scale,
+        );
+
         self.send_touch_event(render_api, event, id)
     }
 
@@ -893,7 +917,7 @@ impl WebViewRenderer {
                     // scroll matters. That's why this is done here and not as soon as the touch
                     // starts.
                     self.touch_handler.set_hit_test_result_cache_value(
-                        hit_test_result.clone(),
+                        hit_test_result,
                         self.device_pixels_per_page_pixel(),
                     );
                     return Some(ScrollResult {

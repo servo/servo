@@ -108,6 +108,7 @@ impl MixedMessage {
                 ScriptThreadMessage::DestroyUserContentManager(..) => None,
                 ScriptThreadMessage::UpdatePinchZoomInfos(id, _) => Some(*id),
                 ScriptThreadMessage::SetAccessibilityActive(..) => None,
+                ScriptThreadMessage::ShowContextMenu(..) => None,
                 ScriptThreadMessage::TriggerGarbageCollection => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {

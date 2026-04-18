@@ -1979,6 +1979,14 @@ impl ScriptThread {
             ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch) => {
                 self.set_accessibility_active(pipeline_id, active, epoch);
             },
+            ScriptThreadMessage::ShowContextMenu(pipeline_id, input_event) => {
+                if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                    let can_gc = CanGc::from_cx(cx);
+                    document
+                        .event_handler()
+                        .show_context_menu(&input_event, can_gc);
+                }
+            },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(*GlobalScope::get_cx(), GCReason::API);
             },

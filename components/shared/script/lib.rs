@@ -324,6 +324,8 @@ pub enum ScriptThreadMessage {
     /// may be split across multiple script threads, and the pipelines in a script thread may belong
     /// to multiple webviews. So the simplest approach is to activate it for one pipeline at a time.
     SetAccessibilityActive(PipelineId, bool, Epoch),
+    /// Try to open the context menu corresponding to an input event.
+    ShowContextMenu(PipelineId, ConstellationInputEvent),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
 }
