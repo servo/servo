@@ -19,7 +19,6 @@ cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-http = "0.2"
 image = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
@@ -34,3 +33,9 @@ stylo_traits = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }
+warp = { version = "0.4.2", features = ["server"] }
+http = { workspace = true }
+http02 = { package = "http", version = "0.2" }
+tokio = { workspace = true }
+bytes = "1.0"
+url = { workspace = true }
