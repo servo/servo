@@ -13,6 +13,7 @@ pub enum Column {
     Name,
     KeyPath,
     AutoIncrement,
+    Deleted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +22,7 @@ pub struct Model {
     pub name: String,
     pub key_path: Option<Vec<u8>>,
     pub auto_increment: i32,
+    pub deleted: i32,
 }
 
 impl TryFrom<&Row<'_>> for Model {
@@ -32,6 +34,7 @@ impl TryFrom<&Row<'_>> for Model {
             name: value.get(1)?,
             key_path: value.get(2)?,
             auto_increment: value.get(3)?,
+            deleted: value.get(4)?,
         })
     }
 }

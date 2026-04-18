@@ -378,17 +378,15 @@ impl KvsEngine for SqliteEngine {
             "DELETE FROM object_data WHERE object_store_id = ?",
             params![object_store.id],
         )?;
-        let result = self.connection.execute(
-            "DELETE FROM object_store WHERE id = ?",
+
+        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
+        // Step 5. Remove store from this's object store set.
+        self.connection.execute(
+            "UPDATE object_store SET deleted = 1 WHERE id = ?",
             params![object_store.id],
         )?;
-        if result == 0 {
-            Err(Error::QueryReturnedNoRows)
-        } else if result > 1 {
-            Err(Error::QueryReturnedMoreThanOneRow)
-        } else {
-            Ok(())
-        }
+
+        Ok(())
     }
 
     fn close_store(&self, _store_name: &str) -> Result<(), Self::Error> {
@@ -629,7 +627,9 @@ impl KvsEngine for SqliteEngine {
     }
 
     fn object_store_names(&self) -> Result<Vec<String>, Self::Error> {
-        let mut stmt = self.connection.prepare("SELECT name FROM object_store")?;
+        let mut stmt = self
+            .connection
+            .prepare("SELECT name FROM object_store WHERE deleted = 0")?;
         stmt.query_map([], |row| row.get(0))?
             .collect::<Result<Vec<_>, _>>()
     }
@@ -935,12 +935,8 @@ mod tests {
         // Delete the store
         db.delete_store("test_store")
             .expect("Failed to delete store");
-        // Try to delete the same store again
-        let result = db.delete_store("test_store");
-        assert!(result.is_err());
-        // Try to delete a non-existing store
-        let result = db.delete_store("test_store");
-        // Should work as per spec
+        // Deleting a non-existent store should fail
+        let result = db.delete_store("nonexistent_store");
         assert!(result.is_err());
     }
 
