@@ -119,7 +119,7 @@ impl GlobalScope {
         let record = if compiled_script.get().is_null() {
             // Step 11.1. Set script's parse error and its error to rethrow to result[0].
             // Step 11.2. Return script.
-            Err(RethrowError::from_pending_exception(cx.into()))
+            Err(RethrowError::from_pending_exception(cx))
         } else {
             Ok(RootedTraceableBox::from_box(Heap::boxed(
                 compiled_script.get(),
@@ -264,7 +264,7 @@ impl GlobalScope {
             {
                 let module_error = module_tree.get_rethrow_error().borrow();
                 if module_error.is_some() {
-                    module_tree.report_error(self, CanGc::from_cx(cx));
+                    module_tree.report_error(cx, self);
                     return;
                 }
             }
@@ -275,15 +275,14 @@ impl GlobalScope {
             if let Some(record) = record {
                 // Step 7.2. Set evaluationPromise to record.Evaluate().
                 rooted!(&in(cx) let mut rval = UndefinedValue());
-                let evaluated =
-                    module_tree.execute_module(self, record, rval.handle_mut(), CanGc::from_cx(cx));
+                let evaluated = module_tree.execute_module(cx, self, record, rval.handle_mut());
 
                 // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
                 // with reason, report an exception given by reason for script's settings object's
                 // global object.
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(self, CanGc::from_cx(cx));
+                    module_tree.report_error(cx, self);
                 }
             }
         });

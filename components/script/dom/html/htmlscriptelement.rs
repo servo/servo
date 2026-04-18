@@ -1101,11 +1101,9 @@ impl HTMLScriptElement {
                 }
 
                 // Step 6."classic".3. Run the classic script given by el's result.
-                _ = self.owner_window().as_global_scope().run_a_classic_script(
-                    cx,
-                    script,
-                    RethrowErrors::No,
-                );
+                _ = self
+                    .owner_global()
+                    .run_a_classic_script(cx, script, RethrowErrors::No);
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());
@@ -1115,13 +1113,12 @@ impl HTMLScriptElement {
                 document.set_current_script(None);
 
                 // Step 6."module".2. Run the module script given by el's result.
-                self.owner_window()
-                    .as_global_scope()
+                self.owner_global()
                     .run_a_module_script(cx, module_tree, false);
             },
             Script::ImportMap(script) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
-                register_import_map(&self.owner_global(), script.import_map, CanGc::from_cx(cx));
+                register_import_map(cx, &self.owner_global(), script.import_map);
             },
         }
 
