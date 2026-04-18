@@ -75,10 +75,15 @@ impl HTMLElement {
             // Step 6. If command is "underline", and element has a style attribute that
             // sets "text-decoration" to some value containing "underline", delete "underline" from the value.
             CommandName::Underline => {
-                let property = CssPropertyName::TextDecorationLine;
-                if property.value_for_element(cx, self) == "underline" {
+                // First we need to check if text-decoration is only set to underline. If it is, remove the full
+                // shorthand. If that's not the case, we should only remove underline from the property
+                if CssPropertyName::TextDecoration.value_for_element(cx, self) == "underline" {
+                    CssPropertyName::TextDecoration.remove_from_element(cx, self);
+                } else if CssPropertyName::TextDecorationLine.value_for_element(cx, self) ==
+                    "underline"
+                {
                     // TODO: Only remove underline
-                    property.remove_from_element(cx, self);
+                    CssPropertyName::TextDecorationLine.remove_from_element(cx, self);
                 }
             },
             _ => {},
@@ -87,6 +92,12 @@ impl HTMLElement {
         // unset that property of element.
         if let Some(property) = command.relevant_css_property() {
             property.remove_from_element(cx, self);
+        }
+        // In case we have a completely style attribute, we need to completely remove it.
+        // Otherwise, when you call `innerHTML`, it would generate a `style=""`, which is
+        // not what the tests expect. They expect the whole attribute to be removed.
+        if element.has_empty_style_attribute() {
+            element.remove_attribute_by_name(&local_name!("style"), CanGc::from_cx(cx));
         }
         // Step 8. If element is a font element:
         if self.is::<HTMLFontElement>() {
@@ -120,30 +131,7 @@ impl HTMLElement {
         }
         // Step 11. Set the tag name of element to "span",
         // and return the one-node list consisting of the result.
-        //
-        // Yeah, here we are. The spec makes this look easy, but the way we
-        // model elements, it's not. We can't simply set the `local_name`,
-        // since the struct also must change. Therefore, instead of only
-        // changing the tag name, we perform all necessary changes to make
-        // it seem like we "changed it to a span". To do so, we move all
-        // of its children and copy its attributes, after which we remove
-        // the original node.
-        let document = node.owner_document();
-        let new_span = document.create_element(cx, "span");
-        let new_span_node = new_span.upcast::<Node>();
-        if node_parent
-            .InsertBefore(cx, new_span_node, Some(node))
-            .is_err()
-        {
-            unreachable!("Must always be able to insert");
-        }
-        for child in node.children() {
-            move_preserving_ranges(cx, &child, |cx| new_span_node.AppendChild(cx, &child));
-        }
-
-        element.copy_all_attributes_to_other_element(cx, &new_span);
-
-        node.remove_self(cx);
+        element.set_the_tag_name(cx, "span");
     }
 
     /// There is no specification for this implementation. Instead, it is

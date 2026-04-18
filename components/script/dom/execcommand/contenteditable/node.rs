@@ -654,7 +654,25 @@ where
         // and the last child of new parent is not a br,
         // call createElement("br") on the ownerDocument of new parent
         // and append the result as the last child of new parent.
-        // TODO
+        if !new_parent.is_inline_node() &&
+            new_parent
+                .rev_children()
+                .find(|child| child.is_visible())
+                .is_some_and(|child| child.is_inline_node()) &&
+            node_list
+                .iter()
+                .find(|node| node.is_visible())
+                .is_some_and(|node| node.is_inline_node()) &&
+            new_parent
+                .children()
+                .last()
+                .is_none_or(|last_child| !last_child.is::<HTMLBRElement>())
+        {
+            let new_br_element = new_parent.owner_document().create_element(cx, "br");
+            if new_parent.AppendChild(cx, new_br_element.upcast()).is_err() {
+                unreachable!("Must always be able to append");
+            }
+        }
         // Step 12.2. For each node in node list, append node as the last child of new parent, preserving ranges.
         for node in node_list {
             move_preserving_ranges(cx, &node, |cx| new_parent.AppendChild(cx, &node));
@@ -666,7 +684,32 @@ where
         // and the last member of node list is not a br,
         // call createElement("br") on the ownerDocument of new parent
         // and insert the result as the first child of new parent.
-        // TODO
+        if !new_parent.is_inline_node() &&
+            new_parent
+                .children()
+                .find(|child| child.is_visible())
+                .is_some_and(|child| child.is_inline_node()) &&
+            node_list
+                .iter()
+                .rev()
+                .find(|node| node.is_visible())
+                .is_some_and(|node| node.is_inline_node()) &&
+            node_list
+                .last()
+                .is_none_or(|last_child| !last_child.is::<HTMLBRElement>())
+        {
+            let new_br_element = new_parent.owner_document().create_element(cx, "br");
+            if new_parent
+                .InsertBefore(
+                    cx,
+                    new_br_element.upcast(),
+                    new_parent.GetFirstChild().as_deref(),
+                )
+                .is_err()
+            {
+                unreachable!("Must always be able to append");
+            }
+        }
         // Step 13.2. For each node in node list, in reverse order,
         // insert node as the first child of new parent, preserving ranges.
         let mut before = new_parent.GetFirstChild();
