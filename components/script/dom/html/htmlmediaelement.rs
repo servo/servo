@@ -50,7 +50,6 @@ use webrender_api::{
 };
 
 use crate::document_loader::{LoadBlocker, LoadType};
-use crate::dom::attr::Attr;
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
@@ -77,6 +76,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
@@ -3392,7 +3392,7 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

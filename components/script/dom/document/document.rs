@@ -135,6 +135,7 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -4023,7 +4024,7 @@ impl Document {
         })
     }
 
-    pub(crate) fn element_attr_will_change(&self, el: &Element, attr: &Attr) {
+    pub(crate) fn element_attr_will_change(&self, el: &Element, attr: AttrRef<'_>) {
         // FIXME(emilio): Kind of a shame we have to duplicate this.
         //
         // I'm getting rid of the whole hashtable soon anyway, since all it does
@@ -4062,6 +4063,7 @@ impl Document {
         if snapshot.attrs.is_none() {
             let attrs = el
                 .attrs()
+                .borrow()
                 .iter()
                 .map(|attr| (attr.identifier().clone(), attr.value().clone()))
                 .collect();

@@ -7,7 +7,6 @@ use js::context::JSContext;
 use script_bindings::root::DomRoot;
 use style::attr::AttrValue;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::{
     Castable, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId,
     NodeTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
@@ -15,6 +14,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -82,7 +82,7 @@ pub(crate) trait VirtualMethods {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         if let Some(s) = self.super_type() {
@@ -92,7 +92,7 @@ pub(crate) trait VirtualMethods {
 
     /// Returns `true` if given attribute `attr` affects style of the
     /// given element.
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match self.super_type() {
             Some(s) => s.attribute_affects_presentational_hints(attr),
             None => false,

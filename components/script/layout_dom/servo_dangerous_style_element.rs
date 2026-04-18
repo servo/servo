@@ -228,9 +228,8 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
     where
         F: FnMut(&style::LocalName),
     {
-        for attr in self.element.attrs() {
-            callback(style::values::GenericAtomIdent::cast(attr.local_name()))
-        }
+        self.element
+            .each_attr_name_for_layout(|name| callback(style::values::GenericAtomIdent::cast(name)))
     }
 
     fn each_part<F>(&self, mut callback: F)

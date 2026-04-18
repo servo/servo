@@ -148,7 +148,7 @@ fn start_element<S: Serializer>(element: &Element, serializer: &mut S) -> io::Re
     }
 
     // Collect all the "normal" attributes
-    attributes.extend(element.attrs().iter().map(|attr| {
+    attributes.extend(element.attrs().borrow().iter().map(|attr| {
         let qname = QualName::new(None, attr.namespace().clone(), attr.local_name().clone());
         let value = attr.value().clone();
         (qname, value)

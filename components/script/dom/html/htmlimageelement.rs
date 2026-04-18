@@ -41,7 +41,6 @@ use url::Url;
 use crate::css::parser_context_for_anonymous_content;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRect_Binding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
@@ -57,6 +56,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
@@ -1993,7 +1993,7 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()
@@ -2047,7 +2047,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => true,
             _ => self

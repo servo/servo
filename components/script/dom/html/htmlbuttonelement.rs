@@ -17,7 +17,6 @@ use style::selector_parser::PseudoElement;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
@@ -26,6 +25,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::commandevent::CommandEvent;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -366,7 +366,7 @@ impl VirtualMethods for HTMLButtonElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()
@@ -390,7 +390,7 @@ impl VirtualMethods for HTMLButtonElement {
                 self.validity_state(CanGc::from_cx(cx))
                     .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
             },
-            local_name!("type") => self.set_type(attr.Value(), CanGc::from_cx(cx)),
+            local_name!("type") => self.set_type(attr.to_dom_string(), CanGc::from_cx(cx)),
             local_name!("command") => self.set_type(
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("type")),

@@ -182,6 +182,7 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
         // > name in the list returned from getting the DOMStringMap's name-value pairs.
         self.as_element()
             .attrs()
+            .borrow()
             .iter()
             .find(|attr| to_camel_case(attr.local_name()).as_ref() == Some(&name))
             .map(|attr| DOMString::from(&**attr.value()))
@@ -194,6 +195,7 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
         // > pairs at that instant, in the order returned.
         self.as_element()
             .attrs()
+            .borrow()
             .iter()
             .filter_map(|attr| to_camel_case(attr.local_name()))
             .collect()

@@ -27,7 +27,6 @@ use stylo_atoms::Atom;
 use uuid::Uuid;
 
 use crate::document_loader::{LoadBlocker, LoadType};
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -45,6 +44,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
@@ -1240,7 +1240,7 @@ impl VirtualMethods for HTMLScriptElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

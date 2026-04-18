@@ -10,13 +10,13 @@ use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -104,7 +104,7 @@ impl VirtualMethods for HTMLBodyElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         if attr.local_name() == &local_name!("bgcolor") {
             return true;
         }
@@ -145,7 +145,12 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(..)) if name.starts_with("on") => {
                 let document = self.owner_document();

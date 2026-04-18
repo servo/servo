@@ -10,11 +10,11 @@ use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
 use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::element::AttributeMutation;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -157,7 +157,7 @@ impl SpecificInputType for RadioInputType {
         &self,
         cx: &mut JSContext,
         input: &HTMLInputElement,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         match *attr.local_name() {

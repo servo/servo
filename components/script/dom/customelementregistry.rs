@@ -890,7 +890,7 @@ pub(crate) fn upgrade_element(
     // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
     // attribute's namespace ».
     let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
-    for attr in element.attrs().iter() {
+    for attr in element.attrs().borrow().iter() {
         let local_name = attr.local_name().clone();
         let value = DOMString::from(&**attr.value());
         let namespace = attr.namespace().clone();

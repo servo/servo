@@ -26,7 +26,6 @@ use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, RenderingContext};
 use crate::conversions::Convert;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
@@ -46,6 +45,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
@@ -691,7 +691,7 @@ impl VirtualMethods for HTMLCanvasElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()
@@ -706,7 +706,7 @@ impl VirtualMethods for HTMLCanvasElement {
         };
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => true,
             _ => self

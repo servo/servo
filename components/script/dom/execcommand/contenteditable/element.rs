@@ -110,7 +110,7 @@ impl Element {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#modifiable-element>
     pub(crate) fn is_modifiable_element(&self) -> bool {
-        let attrs = self.attrs();
+        let attrs = self.attrs().borrow();
         let mut attrs = attrs.iter();
         let type_id = self.upcast::<Node>().type_id();
 
@@ -186,7 +186,7 @@ impl Element {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#simple-modifiable-element>
     pub(crate) fn is_simple_modifiable_element(&self) -> bool {
-        let attrs = self.attrs();
+        let attrs = self.attrs().borrow();
         let attr_count = attrs.len();
         let type_id = self.upcast::<Node>().type_id();
 
@@ -231,7 +231,8 @@ impl Element {
             return false;
         }
 
-        let only_attribute = attrs.first().expect("Size is 1").local_name();
+        let first_attr = attrs.first().expect("Size is 1");
+        let only_attribute = first_attr.local_name();
 
         // > It is an a element with exactly one attribute, which is href.
         if matches!(

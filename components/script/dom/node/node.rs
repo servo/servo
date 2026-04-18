@@ -2857,8 +2857,10 @@ impl Node {
                 // Step 3.1.2 If inclusiveDescendant is an element, then set the node document of each
                 // attribute in inclusiveDescendant’s attribute list to document.
                 if let Some(element) = descendant.downcast::<Element>() {
-                    for attribute in element.attrs().iter() {
-                        attribute.upcast::<Node>().set_owner_doc(document);
+                    for attribute in element.attrs().borrow().iter() {
+                        if let Some(attr) = attribute.as_attr() {
+                            attr.upcast::<Node>().set_owner_doc(document);
+                        }
                     }
                 }
             }
@@ -4397,7 +4399,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             (*element.namespace() == *other_element.namespace()) &&
                 (*element.prefix() == *other_element.prefix()) &&
                 (*element.local_name() == *other_element.local_name()) &&
-                (element.attrs().len() == other_element.attrs().len())
+                (element.attrs().borrow().len() == other_element.attrs().borrow().len())
         }
         fn is_equal_processinginstruction(node: &Node, other: &Node) -> bool {
             let pi = node.downcast::<ProcessingInstruction>().unwrap();
@@ -4421,9 +4423,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         fn is_equal_element_attrs(node: &Node, other: &Node) -> bool {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
-            assert!(element.attrs().len() == other_element.attrs().len());
-            element.attrs().iter().all(|attr| {
-                other_element.attrs().iter().any(|other_attr| {
+            assert!(element.attrs().borrow().len() == other_element.attrs().borrow().len());
+            element.attrs().borrow().iter().all(|attr| {
+                other_element.attrs().borrow().iter().any(|other_attr| {
                     (*attr.namespace() == *other_attr.namespace()) &&
                         (attr.local_name() == other_attr.local_name()) &&
                         (**attr.value() == **other_attr.value())
@@ -4537,7 +4539,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     // go through the attrs in order to see if self
                     // or other is first; spec is clear that we
                     // want value-equality, not reference-equality
-                    for attr in attrs.iter() {
+                    for attr in attrs.borrow().iter() {
                         if (*attr.namespace() == *a1.namespace()) &&
                             (attr.local_name() == a1.local_name()) &&
                             (**attr.value() == **a1.value())

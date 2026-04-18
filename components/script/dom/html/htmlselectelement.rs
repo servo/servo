@@ -6,7 +6,7 @@ use std::default::Default;
 use std::iter;
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -799,7 +799,7 @@ impl VirtualMethods for HTMLSelectElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         let could_have_had_embedder_control = self.may_have_embedder_control();
