@@ -153,13 +153,7 @@ skip = [
     "thiserror-impl",
 
     # duplicated by webdriver
-    "h2",
-    "headers",
-    "headers-core",
     "http",
-    "http-body",
-    "hyper",
-    "socket2",
 
     # duplicated by winit
     "block2",
