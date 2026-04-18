@@ -128,7 +128,7 @@ use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
-use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::{
     Document, DocumentSource, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
 };
@@ -2867,21 +2867,28 @@ impl ScriptThread {
             return;
         }
 
-        let focusable_area = browsing_context_id
-            .and_then(|browsing_context_id| {
-                document
-                    .iframes()
-                    .get(browsing_context_id)
-                    .map(|iframe| FocusableArea::Node {
-                        node: DomRoot::from_ref(iframe.element.upcast()),
-                        kind: Default::default(),
-                    })
+        // This is separate from the next few lines in order to drop the borrow
+        // on `document.iframes()`.
+        let iframe_element = browsing_context_id.and_then(|browsing_context_id| {
+            document
+                .iframes()
+                .get(browsing_context_id)
+                .map(|iframe| iframe.element.as_rooted())
+        });
+        let focusable_area = iframe_element
+            .map(|iframe_element| {
+                let kind = iframe_element.upcast::<Element>().focusable_area_kind();
+                FocusableArea::IFrameViewport {
+                    iframe_element,
+                    kind,
+                }
             })
             .unwrap_or(FocusableArea::Viewport);
 
-        focus_handler.focus(
-            FocusOperation::Focus(focusable_area),
-            FocusInitiator::Remote,
+        focus_handler.focus_update_steps(
+            focusable_area.focus_chain(),
+            focus_handler.current_focus_chain(),
+            &focusable_area,
             CanGc::from_cx(cx),
         );
     }
@@ -2907,7 +2914,8 @@ impl ScriptThread {
 
         // We ignore unfocus requests for top-level `Document`s as they *always* have focus.
         // Note that this does not take into account system focus.
-        if document.window().is_top_level() {
+        let window = document.window();
+        if window.is_top_level() {
             return;
         }
 
@@ -2921,9 +2929,11 @@ impl ScriptThread {
             );
             return;
         }
-        focus_handler.focus(
-            FocusOperation::Unfocus,
-            FocusInitiator::Remote,
+
+        focus_handler.focus_update_steps(
+            vec![],
+            focus_handler.current_focus_chain(),
+            &FocusableArea::Viewport,
             CanGc::from_cx(cx),
         );
     }
