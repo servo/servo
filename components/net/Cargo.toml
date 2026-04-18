@@ -76,7 +76,7 @@ servo-url = { workspace = true }
 sha2 = { workspace = true }
 tracing = { workspace = true, optional = true }
 time = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "fs"] }
 tokio-rustls = { workspace = true }
 tokio-stream = { workspace = true }
 tokio-util = { workspace = true, features = ["codec", "io"] }
