@@ -93,7 +93,7 @@ impl HTMLElement {
         if let Some(property) = command.relevant_css_property() {
             property.remove_from_element(cx, self);
         }
-        // In case we have a completely style attribute, we need to completely remove it.
+        // In case we have a completely empty style attribute, we need to completely remove it.
         // Otherwise, when you call `innerHTML`, it would generate a `style=""`, which is
         // not what the tests expect. They expect the whole attribute to be removed.
         if element.has_empty_style_attribute() {
