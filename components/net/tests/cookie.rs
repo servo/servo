@@ -222,11 +222,10 @@ fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str
     storage.push(cookie, url, source);
 }
 
-#[test]
-fn test_ip_cookie_bucket_collision_eviction() {
+fn assert_ip_cookie_bucket_collision_eviction(ip_a: &str, ip_b: &str) {
     let mut storage = CookieStorage::new(5);
-    let ip_a = ServoUrl::parse("http://192.168.0.1/path").unwrap();
-    let ip_b = ServoUrl::parse("http://10.0.0.1/path").unwrap();
+    let ip_a = ServoUrl::parse(ip_a).unwrap();
+    let ip_b = ServoUrl::parse(ip_b).unwrap();
     let source = CookieSource::HTTP;
 
     for i in 1..=3 {
@@ -242,6 +241,15 @@ fn test_ip_cookie_bucket_collision_eviction() {
     for i in 1..=3 {
         assert!(cookies_a.contains(&format!("a{i}=val{i}")));
     }
+}
+
+#[test]
+fn test_ip_cookie_bucket_collision_eviction() {
+    assert_ip_cookie_bucket_collision_eviction("http://192.168.0.1/path", "http://10.0.0.1/path");
+    assert_ip_cookie_bucket_collision_eviction(
+        "http://[2001:db8::1]/path",
+        "http://[2001:db8::2]/path",
+    );
 }
 
 #[test]
