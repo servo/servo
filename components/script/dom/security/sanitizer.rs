@@ -9,14 +9,15 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
-    SanitizerAttribute, SanitizerAttributeNamespace, SanitizerConfig, SanitizerElementNamespace,
-    SanitizerElementNamespaceWithAttributes, SanitizerElementWithAttributes, SanitizerMethods,
-    SanitizerPresets,
+    SanitizerAttribute, SanitizerAttributeNamespace, SanitizerConfig, SanitizerElement,
+    SanitizerElementNamespace, SanitizerElementNamespaceWithAttributes,
+    SanitizerElementWithAttributes, SanitizerMethods, SanitizerPresets,
 };
 use crate::dom::bindings::codegen::UnionTypes::SanitizerConfigOrSanitizerPresets;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -51,11 +52,11 @@ impl Sanitizer {
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-set-a-configuration>
     fn set_configuration(
         &self,
-        configuration: SanitizerConfig,
-        _allow_comments_and_data_attributes: bool,
+        mut configuration: SanitizerConfig,
+        allow_comments_pis_and_data_attributes: bool,
     ) -> bool {
-        // TODO:
-        // Step 1. Canonicalize configuration with allowCommentsAndDataAttributes.
+        // Step 1. Canonicalize configuration with allowCommentsPIsAndDataAttributes.
+        configuration.canonicalize(allow_comments_pis_and_data_attributes);
 
         // TODO:
         // Step 2. If configuration is not valid, then return false.
@@ -109,6 +110,491 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
 
         // Step 8. Return config.
         (*config).clone()
+    }
+}
+
+trait SanitizerConfigAlgorithm {
+    /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
+    fn canonicalize(&mut self, allow_comments_pis_and_data_attributes: bool);
+}
+
+impl SanitizerConfigAlgorithm for SanitizerConfig {
+    /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
+    fn canonicalize(&mut self, allow_comments_pis_and_data_attributes: bool) {
+        // Step 1. If neither configuration["elements"] nor configuration["removeElements"] exist,
+        // then set configuration["removeElements"] to « ».
+        if self.elements.is_none() && self.removeElements.is_none() {
+            self.removeElements = Some(Vec::new());
+        }
+
+        // TODO:
+        // Step 2. If neither configuration["processingInstructions"] nor
+        // configuration["removeProcessingInstructions"] exist:
+        // Step 2.1. If allowCommentsPIsAndDataAttributes is true, then set
+        // configuration["removeProcessingInstructions"] to « ».
+        // Step 2.2. Otherwise, set configuration["processingInstructions"] to « ».
+
+        // Step 3. If neither configuration["attributes"] nor configuration["removeAttributes"]
+        // exist, then set configuration["removeAttributes"] to « ».
+        if self.attributes.is_none() && self.removeAttributes.is_none() {
+            self.removeAttributes = Some(Vec::new());
+        }
+
+        // Step 4. If configuration["elements"] exists:
+        if let Some(elements) = &mut self.elements {
+            // Step 4.1. Let elements be « ».
+            // Step 4.2. For each element of configuration["elements"] do:
+            // Step 4.2.1. Append the result of canonicalize a sanitizer element with attributes
+            // element to elements.
+            // Step 4.3. Set configuration["elements"] to elements.
+            *elements = elements
+                .iter()
+                .cloned()
+                .map(SanitizerElementWithAttributes::canonicalize)
+                .collect();
+        }
+
+        // Step 5. If configuration["removeElements"] exists:
+        if let Some(remove_elements) = &mut self.removeElements {
+            // Step 5.1. Let elements be « ».
+            // Step 5.2. For each element of configuration["removeElements"] do:
+            // Step 5.2.1. Append the result of canonicalize a sanitizer element element to
+            // elements.
+            // Step 5.3. Set configuration["removeElements"] to elements.
+            *remove_elements = remove_elements
+                .iter()
+                .cloned()
+                .map(SanitizerElement::canonicalize)
+                .collect();
+        }
+
+        // Step 6. If configuration["replaceWithChildrenElements"] exists:
+        if let Some(replace_with_children_elements) = &mut self.replaceWithChildrenElements {
+            // Step 6.1. Let elements be « ».
+            // Step 6.2. For each element of configuration["replaceWithChildrenElements"] do:
+            // Step 6.2.1. Append the result of canonicalize a sanitizer element element to
+            // elements.
+            // Step 6.3. Set configuration["replaceWithChildrenElements"] to elements.
+            *replace_with_children_elements = replace_with_children_elements
+                .iter()
+                .cloned()
+                .map(SanitizerElement::canonicalize)
+                .collect();
+        }
+
+        // TODO:
+        // Step 7. If configuration["processingInstructions"] exists:
+        // Step 7.1. Let processingInstructions be « ».
+        // Step 7.2. For each pi of configuration["processingInstructions"]:
+        // Step 7.2.1. Append the result of canonicalize a sanitizer processing instruction pi
+        // to processingInstructions.
+        // Step 7.3. Set configuration["processingInstructions"] to processingInstructions.
+
+        // TODO:
+        // Step 8. If configuration["removeProcessingInstructions"] exists:
+        // Step 8.1. Let processingInstructions be « ».
+        // Step 8.2. For each pi of configuration["removeProcessingInstructions"]:
+        // Step 8.2.1. Append the result of canonicalize a sanitizer processing instruction
+        // pi to processingInstructions.
+        // Step 8.3. Set configuration["removeProcessingInstructions"] to processingInstructions.
+
+        // Step 9. If configuration["attributes"] exists:
+        if let Some(attributes) = &mut self.attributes {
+            // Step 9.1. Let attributes be « ».
+            // Step 9.2. For each attribute of configuration["attributes"] do:
+            // Step 9.2.1. Append the result of canonicalize a sanitizer attribute attribute to
+            // attributes.
+            // Step 9.3. Set configuration["attributes"] to attributes.
+            *attributes = attributes
+                .iter()
+                .cloned()
+                .map(SanitizerAttribute::canonicalize)
+                .collect();
+        }
+
+        // Step 10. If configuration["removeAttributes"] exists:
+        if let Some(remove_attributes) = &mut self.removeAttributes {
+            // Step 10.1. Let attributes be « ».
+            // Step 10.2. For each attribute of configuration["removeAttributes"] do:
+            // Step 10.2.1. Append the result of canonicalize a sanitizer attribute attribute to
+            // attributes.
+            // Step 10.3. Set configuration["removeAttributes"] to attributes.
+            *remove_attributes = remove_attributes
+                .iter()
+                .cloned()
+                .map(SanitizerAttribute::canonicalize)
+                .collect();
+        }
+
+        // Step 11. If configuration["comments"] does not exist, then set configuration["comments"]
+        // to allowCommentsPIsAndDataAttributes.
+        if self.comments.is_none() {
+            self.comments = Some(allow_comments_pis_and_data_attributes);
+        }
+
+        // Step 12. If configuration["attributes"] exists and configuration["dataAttributes"] does
+        // not exist, then set configuration["dataAttributes"] to allowCommentsPIsAndDataAttributes.
+        if self.attributes.is_some() && self.dataAttributes.is_none() {
+            self.dataAttributes = Some(allow_comments_pis_and_data_attributes);
+        }
+    }
+}
+
+trait Canonicalization {
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element-with-attributes>
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element>
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-attribute>
+    fn canonicalize(self) -> Self;
+}
+
+impl Canonicalization for SanitizerElementWithAttributes {
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element-with-attributes>
+    fn canonicalize(self) -> Self {
+        // Step 1. Let result be the result of canonicalize a sanitizer element with element.
+        let parent = match &self {
+            SanitizerElementWithAttributes::String(name) => SanitizerElement::String(name.clone()),
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                    name: dictionary.parent.name.clone(),
+                    namespace: dictionary.parent.namespace.as_ref().cloned(),
+                })
+            },
+        };
+        let canonicalized_parent = parent.canonicalize();
+        let mut result = SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
+            SanitizerElementNamespaceWithAttributes {
+                parent: SanitizerElementNamespace {
+                    name: canonicalized_parent.name().clone(),
+                    namespace: canonicalized_parent.namespace().cloned(),
+                },
+                attributes: None,
+                removeAttributes: None,
+            },
+        );
+
+        // Step 2. If element is a dictionary:
+        if matches!(
+            self,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(_)
+        ) {
+            // Step 2.1. If element["attributes"] exists:
+            if let Some(attributes) = self.attributes() {
+                // Step 2.1.1. Let attributes be « ».
+                // Step 2.1.2. For each attribute of element["attributes"]:
+                // Step 2.1.2.1. Append the result of canonicalize a sanitizer attribute with
+                // attribute to attributes.
+                let attributes = attributes
+                    .iter()
+                    .cloned()
+                    .map(|attribute| attribute.canonicalize())
+                    .collect();
+
+                // Step 2.1.3. Set result["attributes"] to attributes.
+                result.set_attributes(Some(attributes));
+            }
+
+            // Step 2.2. If element["removeAttributes"] exists:
+            if let Some(remove_attributes) = self.remove_attributes() {
+                // Step 2.2.1. Let attributes be « ».
+                // Step 2.2.2. For each attribute of element["removeAttributes"]:
+                // Step 2.2.2.1. Append the result of canonicalize a sanitizer attribute with
+                // attribute to attributes.
+                let attributes = remove_attributes
+                    .iter()
+                    .cloned()
+                    .map(|attribute| attribute.canonicalize())
+                    .collect();
+
+                // Step 2.2.3. Set result["removeAttributes"] to attributes.
+                result.set_remove_attributes(Some(attributes));
+            }
+        }
+
+        // Step 3. If neither result["attributes"] nor result["removeAttributes"] exist:
+        if result.attributes().is_none() && result.remove_attributes().is_none() {
+            // Step 3.1. Set result["removeAttributes"] to « ».
+            result.set_remove_attributes(Some(Vec::new()));
+        }
+
+        // Step 4. Return result.
+        result
+    }
+}
+
+impl Canonicalization for SanitizerElement {
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element>
+    fn canonicalize(self) -> Self {
+        // Return the result of canonicalize a sanitizer name with element and the HTML namespace as
+        // the default namespace.
+        self.canonicalize_name(Some(ns!(html).to_string()))
+    }
+}
+
+impl Canonicalization for SanitizerAttribute {
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-attribute>
+    fn canonicalize(self) -> Self {
+        // Return the result of canonicalize a sanitizer name with attribute and null as the default
+        // namespace.
+        self.canonicalize_name(None)
+    }
+}
+
+trait NameCanonicalization: NameMember {
+    fn new_dictionary(name: DOMString, namespace: Option<DOMString>) -> Self;
+    fn is_string(&self) -> bool;
+    fn is_dictionary(&self) -> bool;
+
+    /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-name>
+    fn canonicalize_name(mut self, default_namespace: Option<String>) -> Self {
+        // Step 1. Assert: name is either a DOMString or a dictionary.
+        assert!(self.is_string() || self.is_dictionary());
+
+        // Step 2. If name is a DOMString, then return «[ "name" → name, "namespace" →
+        // defaultNamespace]».
+        if self.is_string() {
+            return Self::new_dictionary(
+                self.name().clone(),
+                default_namespace.map(DOMString::from),
+            );
+        }
+
+        // Step 3. Assert: name is a dictionary and both name["name"] and name["namespace"] exist.
+        // NOTE: The latter is guaranteed by Rust type system.
+        assert!(self.is_dictionary());
+
+        // Step 4. If name["namespace"] is the empty string, then set it to null.
+        if self
+            .namespace()
+            .is_some_and(|namespace| namespace.str() == "")
+        {
+            self.set_namespace(None);
+        }
+
+        // Step 5. Return «[
+        // "name" → name["name"],
+        // "namespace" → name["namespace"]
+        // ]».
+        Self::new_dictionary(self.name().clone(), self.namespace().cloned())
+    }
+}
+
+impl NameCanonicalization for SanitizerElement {
+    fn new_dictionary(name: DOMString, namespace: Option<DOMString>) -> Self {
+        SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace { name, namespace })
+    }
+
+    fn is_string(&self) -> bool {
+        matches!(self, SanitizerElement::String(_))
+    }
+
+    fn is_dictionary(&self) -> bool {
+        matches!(self, SanitizerElement::SanitizerElementNamespace(_))
+    }
+}
+
+impl NameCanonicalization for SanitizerAttribute {
+    fn new_dictionary(name: DOMString, namespace: Option<DOMString>) -> Self {
+        SanitizerAttribute::SanitizerAttributeNamespace(SanitizerAttributeNamespace {
+            name,
+            namespace,
+        })
+    }
+
+    fn is_string(&self) -> bool {
+        matches!(self, SanitizerAttribute::String(_))
+    }
+
+    fn is_dictionary(&self) -> bool {
+        matches!(self, SanitizerAttribute::SanitizerAttributeNamespace(_))
+    }
+}
+
+/// Helper functions for accessing the "name" and "namespace" members of
+/// [`SanitizerElementWithAttributes`], [`SanitizerElement`] and [`SanitizerAttribute`].
+trait NameMember: Sized {
+    fn name(&self) -> &DOMString;
+    fn namespace(&self) -> Option<&DOMString>;
+
+    fn set_namespace(&mut self, namespace: Option<&str>);
+}
+
+impl NameMember for SanitizerElementWithAttributes {
+    fn name(&self) -> &DOMString {
+        match self {
+            SanitizerElementWithAttributes::String(name) => name,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                &dictionary.parent.name
+            },
+        }
+    }
+
+    fn namespace(&self) -> Option<&DOMString> {
+        match self {
+            SanitizerElementWithAttributes::String(_) => None,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.parent.namespace.as_ref()
+            },
+        }
+    }
+
+    fn set_namespace(&mut self, namespace: Option<&str>) {
+        match self {
+            SanitizerElementWithAttributes::String(name) => {
+                let new_instance =
+                    SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
+                        SanitizerElementNamespaceWithAttributes {
+                            parent: SanitizerElementNamespace {
+                                name: name.clone(),
+                                namespace: namespace.map(DOMString::from),
+                            },
+                            attributes: None,
+                            removeAttributes: None,
+                        },
+                    );
+                *self = new_instance;
+            },
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.parent.namespace = namespace.map(DOMString::from);
+            },
+        }
+    }
+}
+
+impl NameMember for SanitizerElement {
+    fn name(&self) -> &DOMString {
+        match self {
+            SanitizerElement::String(name) => name,
+            SanitizerElement::SanitizerElementNamespace(dictionary) => &dictionary.name,
+        }
+    }
+
+    fn namespace(&self) -> Option<&DOMString> {
+        match self {
+            SanitizerElement::String(_) => None,
+            SanitizerElement::SanitizerElementNamespace(dictionary) => {
+                dictionary.namespace.as_ref()
+            },
+        }
+    }
+
+    fn set_namespace(&mut self, namespace: Option<&str>) {
+        match self {
+            SanitizerElement::String(name) => {
+                let new_instance =
+                    SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                        name: name.clone(),
+                        namespace: namespace.map(DOMString::from),
+                    });
+                *self = new_instance;
+            },
+            SanitizerElement::SanitizerElementNamespace(dictionary) => {
+                dictionary.namespace = namespace.map(DOMString::from);
+            },
+        }
+    }
+}
+
+impl NameMember for SanitizerAttribute {
+    fn name(&self) -> &DOMString {
+        match self {
+            SanitizerAttribute::String(name) => name,
+            SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => &dictionary.name,
+        }
+    }
+
+    fn namespace(&self) -> Option<&DOMString> {
+        match self {
+            SanitizerAttribute::String(_) => None,
+            SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
+                dictionary.namespace.as_ref()
+            },
+        }
+    }
+
+    fn set_namespace(&mut self, namespace: Option<&str>) {
+        match self {
+            SanitizerAttribute::String(name) => {
+                let new_instance =
+                    SanitizerAttribute::SanitizerAttributeNamespace(SanitizerAttributeNamespace {
+                        name: name.clone(),
+                        namespace: namespace.map(DOMString::from),
+                    });
+                *self = new_instance;
+            },
+            SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
+                dictionary.namespace = namespace.map(DOMString::from);
+            },
+        }
+    }
+}
+
+/// Helper functions for accessing the "attributes" and "removeAttributes" members of
+/// [`SanitizerElementWithAttributes`].
+trait AttributeMember {
+    fn attributes(&self) -> Option<&Vec<SanitizerAttribute>>;
+    fn remove_attributes(&self) -> Option<&Vec<SanitizerAttribute>>;
+
+    fn set_attributes(&mut self, attributes: Option<Vec<SanitizerAttribute>>);
+    fn set_remove_attributes(&mut self, remove_attributes: Option<Vec<SanitizerAttribute>>);
+}
+
+impl AttributeMember for SanitizerElementWithAttributes {
+    fn attributes(&self) -> Option<&Vec<SanitizerAttribute>> {
+        match self {
+            SanitizerElementWithAttributes::String(_) => None,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.attributes.as_ref()
+            },
+        }
+    }
+
+    fn remove_attributes(&self) -> Option<&Vec<SanitizerAttribute>> {
+        match self {
+            SanitizerElementWithAttributes::String(_) => None,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.removeAttributes.as_ref()
+            },
+        }
+    }
+
+    fn set_attributes(&mut self, attributes: Option<Vec<SanitizerAttribute>>) {
+        match self {
+            SanitizerElementWithAttributes::String(name) => {
+                *self = SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
+                    SanitizerElementNamespaceWithAttributes {
+                        parent: SanitizerElementNamespace {
+                            name: name.clone(),
+                            namespace: None,
+                        },
+                        attributes,
+                        removeAttributes: None,
+                    },
+                );
+            },
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.attributes = attributes;
+            },
+        }
+    }
+
+    fn set_remove_attributes(&mut self, remove_attributes: Option<Vec<SanitizerAttribute>>) {
+        match self {
+            SanitizerElementWithAttributes::String(name) => {
+                *self = SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
+                    SanitizerElementNamespaceWithAttributes {
+                        parent: SanitizerElementNamespace {
+                            name: name.clone(),
+                            namespace: None,
+                        },
+                        attributes: None,
+                        removeAttributes: remove_attributes,
+                    },
+                );
+            },
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.removeAttributes = remove_attributes;
+            },
+        }
     }
 }
 
