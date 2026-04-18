@@ -141,6 +141,8 @@ mod from_script {
                     target!("RemoveBroadcastChannelNameInRouter")
                 },
                 Self::ScheduleBroadcast(..) => target!("ScheduleBroadcast"),
+                Self::RegisterInterest(..) => target!("RegisterInterest"),
+                Self::UnregisterInterest(..) => target!("UnregisterInterest"),
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),

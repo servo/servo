@@ -159,13 +159,13 @@ use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
 use servo_canvas_traits::webgl::WebGLThreads;
 use servo_config::{opts, pref};
 use servo_constellation_traits::{
-    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, DocumentState,
-    EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
-    LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
-    PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
-    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
-    WindowSizeType,
+    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
+    DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData,
+    IFrameSizeMsg, Job, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
+    PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
+    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TargetSnapshotParams,
+    TraversalDirection, UserContentManagerAction, WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use servo_wakelock::{WakeLockProvider, WakeLockType};
@@ -413,6 +413,9 @@ pub struct Constellation<STF, SWF> {
 
     /// Bookkeeping for BroadcastChannel functionnality.
     broadcast_channels: BroadcastChannels,
+
+    /// Tracks which pipelines have registered interest in each notification category.
+    pipeline_interests: FxHashMap<ConstellationInterest, FxHashSet<PipelineId>>,
 
     /// The set of all the pipelines in the browser.  (See the `pipeline` module
     /// for more details.)
@@ -714,6 +717,7 @@ where
                     message_ports: Default::default(),
                     message_port_routers: Default::default(),
                     broadcast_channels: Default::default(),
+                    pipeline_interests: Default::default(),
                     pipelines: Default::default(),
                     browsing_contexts: Default::default(),
                     pending_changes: vec![],
@@ -2012,6 +2016,20 @@ where
                     warn!("Unable to forward DOMMessage for postMessage call");
                 }
             },
+            ScriptToConstellationMessage::RegisterInterest(interest) => {
+                self.pipeline_interests
+                    .entry(interest)
+                    .or_default()
+                    .insert(source_pipeline_id);
+            },
+            ScriptToConstellationMessage::UnregisterInterest(interest) => {
+                if let Some(set) = self.pipeline_interests.get_mut(&interest) {
+                    set.remove(&source_pipeline_id);
+                    if set.is_empty() {
+                        self.pipeline_interests.remove(&interest);
+                    }
+                }
+            },
             ScriptToConstellationMessage::BroadcastStorageEvent(
                 storage,
                 url,
@@ -2646,7 +2664,17 @@ where
             );
         }
 
-        for pipeline in self.pipelines.values() {
+        let interested = match self
+            .pipeline_interests
+            .get(&ConstellationInterest::StorageEvent)
+        {
+            Some(set) => set,
+            None => return,
+        }
+        .iter()
+        .filter_map(|interested_id| self.pipelines.get(interested_id));
+
+        for pipeline in interested {
             if pipeline.id == pipeline_id || pipeline.url.origin() != origin {
                 continue;
             }
@@ -2953,6 +2981,12 @@ where
         let Some(pipeline) = self.pipelines.remove(&pipeline_id) else {
             return;
         };
+
+        // Clean up any registered interests for this pipeline.
+        self.pipeline_interests.retain(|_, set| {
+            set.remove(&pipeline_id);
+            !set.is_empty()
+        });
 
         // Now that the Script and Constellation parts of Servo no longer have a reference to
         // this pipeline, tell `Paint` that it has shut down. This is delayed until the
