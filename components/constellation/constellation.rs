@@ -2672,13 +2672,7 @@ where
             None => return,
         }
         .iter()
-        .filter_map(|interested_id| {
-            if *interested_id == pipeline_id {
-                None
-            } else {
-                self.pipelines.get(interested_id)
-            }
-        });
+        .filter_map(|interested_id| self.pipelines.get(interested_id));
 
         for pipeline in interested {
             if pipeline.id == pipeline_id || pipeline.url.origin() != origin {
