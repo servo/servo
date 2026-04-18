@@ -541,10 +541,7 @@ impl TaffyContainer {
 
                         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                             abs_pos_box.clone(),
-                            PhysicalRect::from_size(PhysicalSize::new(
-                                Au::from_f32_px(output.size.width),
-                                Au::from_f32_px(output.size.height),
-                            )),
+                            content_size,
                             LogicalVec2 {
                                 inline: resolve_alignment(
                                     child.style.clone_align_self().0,
