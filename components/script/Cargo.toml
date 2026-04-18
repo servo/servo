@@ -164,6 +164,7 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
+web_atoms = "0.2.4"
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }

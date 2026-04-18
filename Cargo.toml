@@ -363,12 +363,7 @@ codegen-units = 1
 # web_atoms = { path = "../html5ever/web_atoms" }
 # xml5ever = { path = "../html5ever/xml5ever" }
 # tendril = { path = "../html5ever/tendril" }
-html5ever = { git="https://github.com/simonwuelker/html5ever", branch="slotassignment" }
-markup5ever = { git="https://github.com/simonwuelker/html5ever", branch="slotassignment" }
-web_atoms = { git="https://github.com/simonwuelker/html5ever", branch="slotassignment" }
-xml5ever = { git="https://github.com/simonwuelker/html5ever", branch="slotassignment"}
-tendril = { git="https://github.com/simonwuelker/html5ever", branch="slotassignment" }
-
+#
 # For WebRender:
 #
 # webrender = { path = "../webrender/webrender" }

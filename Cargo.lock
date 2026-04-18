@@ -3714,7 +3714,8 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.39.0"
-source = "git+https://github.com/simonwuelker/html5ever?branch=slotassignment#67ba6c69214fab9eb7f31ffa0e00ca3beb7bfccc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46a1761807faccc9a19e86944bbf40610014066306f96edcdedc2fb714bcb7b8"
 dependencies = [
  "log",
  "markup5ever",
@@ -4970,11 +4971,12 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.39.0"
-source = "git+https://github.com/simonwuelker/html5ever?branch=slotassignment#67ba6c69214fab9eb7f31ffa0e00ca3beb7bfccc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7122d987ec5f704ee56f6e5b41a7d93722e9aae27ae07cafa4036c4d3f9757de"
 dependencies = [
  "log",
  "tendril",
- "web_atoms 0.2.4",
+ "web_atoms",
 ]
 
 [[package]]
@@ -8798,6 +8800,7 @@ dependencies = [
  "url",
  "urlpattern",
  "uuid",
+ "web_atoms",
  "webdriver",
  "webrender_api",
  "wgpu-core",
@@ -9559,7 +9562,7 @@ dependencies = [
  "url",
  "void",
  "walkdir",
- "web_atoms 0.2.3",
+ "web_atoms",
 ]
 
 [[package]]
@@ -9819,10 +9822,12 @@ dependencies = [
 [[package]]
 name = "tendril"
 version = "0.5.0"
-source = "git+https://github.com/simonwuelker/html5ever?branch=slotassignment#67ba6c69214fab9eb7f31ffa0e00ca3beb7bfccc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4790fc369d5a530f4b544b094e31388b9b3a37c0f4652ade4505945f5660d24"
 dependencies = [
  "encoding_rs",
  "new_debug_unreachable",
+ "utf-8",
 ]
 
 [[package]]
@@ -10548,6 +10553,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "utf-8"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
 name = "utf16_iter"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11018,20 +11029,9 @@ dependencies = [
 
 [[package]]
 name = "web_atoms"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57a9779e9f04d2ac1ce317aee707aa2f6b773afba7b931222bff6983843b1576"
-dependencies = [
- "phf",
- "phf_codegen",
- "string_cache",
- "string_cache_codegen",
-]
-
-[[package]]
-name = "web_atoms"
 version = "0.2.4"
-source = "git+https://github.com/simonwuelker/html5ever?branch=slotassignment#67ba6c69214fab9eb7f31ffa0e00ca3beb7bfccc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7cff6eef815df1834fd250e3a2ff436044d82a9f1bc1980ca1dbdf07effc538"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -12079,7 +12079,8 @@ checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
 [[package]]
 name = "xml5ever"
 version = "0.39.0"
-source = "git+https://github.com/simonwuelker/html5ever?branch=slotassignment#67ba6c69214fab9eb7f31ffa0e00ca3beb7bfccc"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ab627f34ff61b80d756180d556f9c68801d836d271b3b8c094504ceca69d221"
 dependencies = [
  "log",
  "markup5ever",
