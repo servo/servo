@@ -2385,7 +2385,7 @@ impl Document {
                 let document = document.root();
                 // Step 9.3. Let window be the Document's relevant global object.
                 let window = document.window();
-                if !window.is_alive() {
+                if !window.is_alive() || !document.is_window_relevant() {
                     return;
                 }
 
