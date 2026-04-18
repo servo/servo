@@ -16,7 +16,6 @@ use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::{Stylesheet, StylesheetInDocument, UrlExtraData};
 use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
@@ -33,6 +32,7 @@ use crate::dom::css::stylesheetcontentscache::{
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
@@ -362,7 +362,7 @@ impl VirtualMethods for HTMLStyleElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         if let Some(s) = self.super_type() {

@@ -2854,7 +2854,9 @@ impl Node {
                 // attribute in inclusiveDescendant’s attribute list to document.
                 if let Some(element) = descendant.downcast::<Element>() {
                     for attribute in element.attrs().iter() {
-                        attribute.upcast::<Node>().set_owner_doc(document);
+                        if let Some(attr) = attribute.as_attr() {
+                            attr.upcast::<Node>().set_owner_doc(document);
+                        }
                     }
                 }
             }
