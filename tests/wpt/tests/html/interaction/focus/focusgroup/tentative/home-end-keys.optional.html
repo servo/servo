@@ -16,195 +16,195 @@
 
 <!-- Basic toolbar -->
 <div focusgroup="toolbar">
-  <button id=tb1>tb1</button>
-  <button id=tb2>tb2</button>
-  <button id=tb3>tb3</button>
+  <button tabindex=0 id=tb1>tb1</button>
+  <button tabindex=0 id=tb2>tb2</button>
+  <button tabindex=0 id=tb3>tb3</button>
 </div>
 
 <!-- Wrapping tablist -->
 <div focusgroup="tablist">
-  <button id=tl1>tl1</button>
-  <button id=tl2>tl2</button>
-  <button id=tl3>tl3</button>
+  <button tabindex=0 id=tl1>tl1</button>
+  <button tabindex=0 id=tl2>tl2</button>
+  <button tabindex=0 id=tl3>tl3</button>
 </div>
 
 <!-- Block-only menu -->
 <div focusgroup="menu">
-  <button id=m1>m1</button>
-  <button id=m2>m2</button>
-  <button id=m3>m3</button>
+  <button tabindex=0 id=m1>m1</button>
+  <button tabindex=0 id=m2>m2</button>
+  <button tabindex=0 id=m3>m3</button>
 </div>
 
 <!-- Nested focusgroups -->
 <div focusgroup="toolbar" id="outer">
-  <button id=o1>o1</button>
+  <button tabindex=0 id=o1>o1</button>
   <div focusgroup="toolbar" id="inner">
-    <button id=i1>i1</button>
-    <button id=i2>i2</button>
-    <button id=i3>i3</button>
+    <button tabindex=0 id=i1>i1</button>
+    <button tabindex=0 id=i2>i2</button>
+    <button tabindex=0 id=i3>i3</button>
   </div>
-  <button id=o2>o2</button>
+  <button tabindex=0 id=o2>o2</button>
 </div>
 
 <!-- Focusgroup with focusgroupstart -->
 <div focusgroup="toolbar nomemory">
-  <button id=fs1>fs1</button>
-  <button id=fs2 focusgroupstart>fs2</button>
-  <button id=fs3>fs3</button>
+  <button tabindex=0 id=fs1>fs1</button>
+  <button tabindex=0 id=fs2 focusgroupstart>fs2</button>
+  <button tabindex=0 id=fs3>fs3</button>
 </div>
 
 <!-- Focusgroup with opted-out element -->
 <div focusgroup="toolbar">
-  <button id=oo1>oo1</button>
-  <button id=oo2>oo2</button>
+  <button tabindex=0 id=oo1>oo1</button>
+  <button tabindex=0 id=oo2>oo2</button>
   <span focusgroup="none">
-    <button id=oo_skip>oo_skip</button>
+    <button tabindex=0 id=oo_skip>oo_skip</button>
   </span>
-  <button id=oo3>oo3</button>
-  <button id=oo4>oo4</button>
+  <button tabindex=0 id=oo3>oo3</button>
+  <button tabindex=0 id=oo4>oo4</button>
 </div>
 
 <!-- Focusgroup with key conflict element -->
 <div focusgroup="toolbar">
-  <button id=kc1>kc1</button>
+  <button tabindex=0 id=kc1>kc1</button>
   <input id=kc2 type="text" value="text input">
-  <button id=kc3>kc3</button>
+  <button tabindex=0 id=kc3>kc3</button>
 </div>
 
 <!-- Focusgroup with other key conflict element types -->
 <div focusgroup="toolbar">
-  <button id=hc1>hc1</button>
+  <button tabindex=0 id=hc1>hc1</button>
   <select id=hc2><option>opt1</option></select>
   <textarea id=hc3>text</textarea>
-  <button id=hc4>hc4</button>
+  <button tabindex=0 id=hc4>hc4</button>
 </div>
 
 <script>
   // --- Basic Home/End in toolbar (inline, no wrap) ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('tb2'), kHome);
+    await focusAndSendHomeInput(document.getElementById('tb2'));
     assert_equals(document.activeElement.id, 'tb1');
   }, "Home moves focus to first item in toolbar");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('tb2'), kEnd);
+    await focusAndSendEndInput(document.getElementById('tb2'));
     assert_equals(document.activeElement.id, 'tb3');
   }, "End moves focus to last item in toolbar");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('tb1'), kHome);
+    await focusAndSendHomeInput(document.getElementById('tb1'));
     assert_equals(document.activeElement.id, 'tb1');
   }, "Home on first item stays on first item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('tb3'), kEnd);
+    await focusAndSendEndInput(document.getElementById('tb3'));
     assert_equals(document.activeElement.id, 'tb3');
   }, "End on last item stays on last item");
 
   // --- Home/End in wrapping tablist ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('tl3'), kHome);
+    await focusAndSendHomeInput(document.getElementById('tl3'));
     assert_equals(document.activeElement.id, 'tl1');
   }, "Home in tablist moves to first item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('tl1'), kEnd);
+    await focusAndSendEndInput(document.getElementById('tl1'));
     assert_equals(document.activeElement.id, 'tl3');
   }, "End in tablist moves to last item");
 
   // --- Home/End in block-only menu ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m3'), kHome);
+    await focusAndSendHomeInput(document.getElementById('m3'));
     assert_equals(document.activeElement.id, 'm1');
   }, "Home in block-only menu moves to first item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m1'), kEnd);
+    await focusAndSendEndInput(document.getElementById('m1'));
     assert_equals(document.activeElement.id, 'm3');
   }, "End in block-only menu moves to last item");
 
   // --- Home/End in nested focusgroups ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('i3'), kHome);
+    await focusAndSendHomeInput(document.getElementById('i3'));
     assert_equals(document.activeElement.id, 'i1');
   }, "Home in nested focusgroup moves to first item of inner group");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('i1'), kEnd);
+    await focusAndSendEndInput(document.getElementById('i1'));
     assert_equals(document.activeElement.id, 'i3');
   }, "End in nested focusgroup moves to last item of inner group");
 
   // --- Home/End ignores focusgroupstart ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('fs3'), kHome);
+    await focusAndSendHomeInput(document.getElementById('fs3'));
     assert_equals(document.activeElement.id, 'fs1');
   }, "Home goes to first item, not focusgroupstart item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('fs1'), kEnd);
+    await focusAndSendEndInput(document.getElementById('fs1'));
     assert_equals(document.activeElement.id, 'fs3');
   }, "End goes to last item, not focusgroupstart item");
 
   // --- Home/End with opted-out elements ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('oo4'), kHome);
+    await focusAndSendHomeInput(document.getElementById('oo4'));
     assert_equals(document.activeElement.id, 'oo1');
   }, "Home skips opted-out elements and reaches first item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('oo1'), kEnd);
+    await focusAndSendEndInput(document.getElementById('oo1'));
     assert_equals(document.activeElement.id, 'oo4');
   }, "End skips opted-out elements and reaches last item");
 
   // --- Home/End blocked inside key conflict elements ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('kc2'), kHome);
+    await focusAndSendHomeInput(document.getElementById('kc2'));
     assert_equals(document.activeElement.id, 'kc2');
   }, "Home inside text input does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('kc2'), kEnd);
+    await focusAndSendEndInput(document.getElementById('kc2'));
     assert_equals(document.activeElement.id, 'kc2');
   }, "End inside text input does not navigate focusgroup");
 
   // --- Home/End from a non-key-conflict element works ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('kc3'), kHome);
+    await focusAndSendHomeInput(document.getElementById('kc3'));
     assert_equals(document.activeElement.id, 'kc1');
   }, "Home from button navigates past key conflict element to first item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('kc1'), kEnd);
+    await focusAndSendEndInput(document.getElementById('kc1'));
     assert_equals(document.activeElement.id, 'kc3');
   }, "End from button navigates past key conflict element to last item");
 
   // --- Home/End blocked inside other key conflict element types ---
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('hc2'), kHome);
+    await focusAndSendHomeInput(document.getElementById('hc2'));
     assert_equals(document.activeElement.id, 'hc2');
   }, "Home inside select does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('hc2'), kEnd);
+    await focusAndSendEndInput(document.getElementById('hc2'));
     assert_equals(document.activeElement.id, 'hc2');
   }, "End inside select does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('hc3'), kHome);
+    await focusAndSendHomeInput(document.getElementById('hc3'));
     assert_equals(document.activeElement.id, 'hc3');
   }, "Home inside textarea does not navigate focusgroup");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('hc3'), kEnd);
+    await focusAndSendEndInput(document.getElementById('hc3'));
     assert_equals(document.activeElement.id, 'hc3');
   }, "End inside textarea does not navigate focusgroup");
 </script>

@@ -17,6 +17,28 @@
 
 const expandTests = [
   {
+    'name': 'expand float32 0D scalar to 0D',
+    'graph': {
+      'inputs': {
+        'expandInput': {
+          'data': [-6.461850643157959],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'expand',
+        'arguments': [{'input': 'expandInput'}, {'newShape': []}],
+        'outputs': 'expandOutput'
+      }],
+      'expectedOutputs': {
+        'expandOutput': {
+          'data': [-6.461850643157959],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'expand float32 0D scalar to 1D',
     'graph': {
       'inputs': {

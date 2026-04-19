@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#TheDProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#TheDProperty"/>
     <h:meta name="assert" content="Each path command interpolates."/>
   </metadata>
 
@@ -119,7 +119,7 @@
 
       // At progress 0.125/0.875, arc flags in path() should consider
       // non-zero interpolated values as one to match <path> behaviour.
-      // https://svgwg.org/specs/paths/#PathElement
+      // https://w3c.github.io/svgwg/specs/paths/#PathElement
       test_interpolation({
         property: 'd',
         from: 'path("M 100 400 A 10 20 30 1 0 140 450")',

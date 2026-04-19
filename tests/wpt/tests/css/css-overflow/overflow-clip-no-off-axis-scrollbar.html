@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>overflow: clip does not show an off-axis scrollbar</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#valdef-overflow-clip">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrollable">
+<meta name="assert" content="overflow: clip on one axis does not display a scrollbar on that axis when the other axis scrolls.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    background: #DDD;
+  }
+  .scroller-y {
+    overflow-y: scroll;
+    overflow-x: clip;
+  }
+  .scroller-x {
+    overflow-x: scroll;
+    overflow-y: clip;
+  }
+  .content { width: 200px; height: 200px; }
+</style>
+<div id="scroller-y" class="container scroller-y">
+  <div class="content"></div>
+</div>
+<div id="scroller-x" class="container scroller-x">
+  <div class="content"></div>
+</div>
+<script>
+  test(() => {
+    const scrollerY = document.getElementById("scroller-y");
+    const scrollerX = document.getElementById("scroller-x");
+
+    const horizontalScrollbar = scrollerY.offsetHeight - scrollerY.clientHeight;
+    const verticalScrollbar = scrollerX.offsetWidth - scrollerX.clientWidth;
+
+    assert_equals(horizontalScrollbar, 0, "overflow-x: clip should not show a horizontal scrollbar.");
+    assert_equals(verticalScrollbar, 0, "overflow-y: clip should not show a vertical scrollbar.");
+  }, "overflow: clip on the off-axis does not display a scrollbar.");
+</script>

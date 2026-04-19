@@ -25,11 +25,11 @@
   promise_test(async t => {
     var nonitem1 = document.getElementById("nonitem1");
 
-    await focusAndKeyPress(nonitem1, kArrowDown);
+    await focusAndSendDirectionalInput(nonitem1, kDown);
     assert_equals(document.activeElement, nonitem1);
 
-    await focusAndKeyPress(nonitem1, kArrowRight);
+    await focusAndSendDirectionalInput(nonitem1, kRight);
     assert_equals(document.activeElement, nonitem1);
-  }, "When the focus is set on a focusable element that isn't a focusgroup item, an arrow key press shouldn't move the focus at all.");
+  }, "When the focus is set on a focusable element that isn't a focusgroup item, directional input shouldn't move the focus at all.");
 
 </script>

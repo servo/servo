@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>cross-fade() respects orientation for cross-origin images even with image-orientation: none (ref)</title>
+<style>
+  .ref {
+    width: 50px;
+    height: 100px;
+    /* This is same-origin so it respects orientation by default (from-image) */
+    background-image: url("image-orientation/support/exif-orientation-6-ru.jpg");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+</style>
+<p>The image below should be rotated (50x100) because it is cross-origin, despite image-orientation: none.</p>
+<div class="ref"></div>

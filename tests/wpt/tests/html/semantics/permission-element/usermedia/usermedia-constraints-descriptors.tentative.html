@@ -27,6 +27,8 @@ function run_test(video, audio, expected_video, expected_audio, description) {
     }
 
     await Promise.all(permissions);
+    // Wait until the element is clickable.
+    await new Promise(resolve => t.step_timeout(resolve, 600));
     await test_driver.click(usermedia);
 
     const e = await stream_promise;

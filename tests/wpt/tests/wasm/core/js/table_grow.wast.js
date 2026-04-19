@@ -22,7 +22,7 @@ assert_return(() => call($1, "grow", [1, null]), "table_grow.wast:21", 0);
 assert_return(() => call($1, "size", []), "table_grow.wast:22", 1);
 
 // table_grow.wast:23
-assert_return(() => call($1, "get", [0]), "table_grow.wast:23", null);
+assert_return(() => call($1, "get", [0]), "table_grow.wast:23", "ref.null");
 
 // table_grow.wast:24
 assert_return(() => call($1, "set", [0, hostref(2)]), "table_grow.wast:24");
@@ -136,13 +136,13 @@ let $$5 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x8c\x80\x80\x80\x00\x02\x
 let $5 = instance($$5);
 
 // table_grow.wast:107
-assert_return(() => call($5, "check-table-null", [0, 9]), "table_grow.wast:107", null);
+assert_return(() => call($5, "check-table-null", [0, 9]), "table_grow.wast:107", "ref.null");
 
 // table_grow.wast:108
 assert_return(() => call($5, "grow", [10]), "table_grow.wast:108", 10);
 
 // table_grow.wast:109
-assert_return(() => call($5, "check-table-null", [0, 19]), "table_grow.wast:109", null);
+assert_return(() => call($5, "check-table-null", [0, 19]), "table_grow.wast:109", "ref.null");
 
 // table_grow.wast:112
 let $$6 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x01\x85\x80\x80\x80\x00\x01\x60\x00\x01\x7f\x03\x82\x80\x80\x80\x00\x01\x00\x04\x84\x80\x80\x80\x00\x01\x70\x00\x01\x07\x90\x80\x80\x80\x00\x02\x05\x74\x61\x62\x6c\x65\x01\x00\x04\x67\x72\x6f\x77\x00\x00\x0a\x8f\x80\x80\x80\x00\x01\x89\x80\x80\x80\x00\x00\xd0\x70\x41\x01\xfc\x0f\x00\x0b", "table_grow.wast:112");

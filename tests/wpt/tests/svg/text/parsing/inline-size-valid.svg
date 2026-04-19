@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Text: parsing inline-size with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#InlineSizeProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#InlineSizeProperty"/>
     <h:link rel="help" href="https://drafts.csswg.org/css-logical/#dimension-properties"/>
     <h:meta name="assert" content="inline-size supports the full grammar 'auto | length-percentage'"/>
   </metadata>

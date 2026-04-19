@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing fill-rule with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#FillRuleProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#FillRuleProperty"/>
     <h:meta name="assert" content="fill-rule supports the full grammar 'nonzero | evenodd'."/>
   </metadata>
   <g id="target"></g>

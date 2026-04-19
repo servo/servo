@@ -1,10 +1,17 @@
-globalThis.assertSpeculationRulesIsSupported = () => {
+globalThis.assertSpeculationRulesIsSupported = (...types) => {
   assert_implements(
       'supports' in HTMLScriptElement,
       'HTMLScriptElement.supports must be supported');
   assert_implements(
       HTMLScriptElement.supports('speculationrules'),
       '<script type="speculationrules"> must be supported');
+  for (const type of types) {
+    if (type === 'prerender') {
+      assert_implements(
+          'prerendering' in document,
+          'Prerendering must be supported (document.prerendering)');
+    }
+  }
 };
 
 // If you want access to these, be sure to include

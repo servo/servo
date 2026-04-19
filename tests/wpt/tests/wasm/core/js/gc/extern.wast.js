@@ -13,16 +13,16 @@ run(() => call($1, "init", [hostref(0)]), "extern.wast:37");
 assert_return(() => call($1, "internalize", [hostref(1)]), "extern.wast:39", hostref(1));
 
 // extern.wast:40
-assert_return(() => call($1, "internalize", [null]), "extern.wast:40", null);
+assert_return(() => call($1, "internalize", [null]), "extern.wast:40", "ref.null");
 
 // extern.wast:42
 assert_return(() => call($1, "externalize", [hostref(2)]), "extern.wast:42", hostref(2));
 
 // extern.wast:43
-assert_return(() => call($1, "externalize", [null]), "extern.wast:43", null);
+assert_return(() => call($1, "externalize", [null]), "extern.wast:43", "ref.null");
 
 // extern.wast:45
-assert_return(() => call($1, "externalize-i", [0]), "extern.wast:45", null);
+assert_return(() => call($1, "externalize-i", [0]), "extern.wast:45", "ref.null");
 
 // extern.wast:46
 assert_return(() => call($1, "externalize-i", [1]), "extern.wast:46", "ref.extern");
@@ -37,10 +37,10 @@ assert_return(() => call($1, "externalize-i", [3]), "extern.wast:48", "ref.exter
 assert_return(() => call($1, "externalize-i", [4]), "extern.wast:49", "ref.extern");
 
 // extern.wast:50
-assert_return(() => call($1, "externalize-i", [5]), "extern.wast:50", null);
+assert_return(() => call($1, "externalize-i", [5]), "extern.wast:50", "ref.null");
 
 // extern.wast:52
-assert_return(() => call($1, "externalize-ii", [0]), "extern.wast:52", null);
+assert_return(() => call($1, "externalize-ii", [0]), "extern.wast:52", "ref.null");
 
 // extern.wast:53
 assert_return(() => call($1, "externalize-ii", [1]), "extern.wast:53", "ref.i31");
@@ -55,6 +55,6 @@ assert_return(() => call($1, "externalize-ii", [3]), "extern.wast:55", "ref.arra
 assert_return(() => call($1, "externalize-ii", [4]), "extern.wast:56", hostref(0));
 
 // extern.wast:57
-assert_return(() => call($1, "externalize-ii", [5]), "extern.wast:57", null);
+assert_return(() => call($1, "externalize-ii", [5]), "extern.wast:57", "ref.null");
 reinitializeRegistry();
 })();

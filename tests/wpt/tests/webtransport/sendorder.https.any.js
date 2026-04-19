@@ -32,10 +32,13 @@ promise_test(async t => {
 
   // Create a bidirectional stream with sendorder
   const {readable, writable} = await wt.createBidirectionalStream();
-  assert_equals(writable.sendOrder, null);
+  assert_equals(writable.sendOrder, 0);
   // modify it
   writable.sendOrder = 4;
   assert_equals(writable.sendOrder, 4);
+  // Test null coercion: long long converts null via ToNumber(null) = +0
+  writable.sendOrder = null;
+  assert_equals(writable.sendOrder, 0);
 }, 'WebTransport client should be able to modify unset sendOrder after stream creation');
 
 promise_test(async t => {
@@ -49,8 +52,8 @@ promise_test(async t => {
   // modify it
   writable.sendOrder = 5;
   assert_equals(writable.sendOrder, 5);
-  writable.sendOrder = null;
-  assert_equals(writable.sendOrder, null);
+  writable.sendOrder = 0;
+  assert_equals(writable.sendOrder, 0);
   // Note: this doesn't verify the underlying stack actually changes priority, just the API
   // for controlling sendOrder
 }, 'WebTransport client should be able to modify existing sendOrder after stream creation');

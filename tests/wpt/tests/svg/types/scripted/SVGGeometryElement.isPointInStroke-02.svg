@@ -3,8 +3,8 @@
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGeometryElement"/>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__isPointInStroke"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#InterfaceSVGGeometryElement"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGGeometryElement__isPointInStroke"/>
   </metadata>
   <circle id="circle" cx="6" cy="10" r="5" stroke="blue" stroke-width="1" stroke-dasharray="10 21.4159" fill="none"/>
   <script>

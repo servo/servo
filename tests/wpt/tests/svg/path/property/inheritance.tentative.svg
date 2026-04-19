@@ -3,7 +3,7 @@
      xmlns:h="http://www.w3.org/1999/xhtml">
   <title>Inheritance of path properties</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthProperty"/>
     <h:meta name="assert" content="path-length does not inherit."/>
   </metadata>
   <g id="container">

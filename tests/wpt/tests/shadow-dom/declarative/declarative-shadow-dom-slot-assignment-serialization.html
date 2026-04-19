@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Declarative Shadow DOM: shadowrootslotassignment serialization via getHTML
+</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://github.com/whatwg/html/pull/12267" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="wrapper"></div>
+
+<script>
+  // Serialization order: mode, delegatesFocus, serializable, slotAssignment, clonable
+
+  test((t) => {
+    t.add_cleanup(() => wrapper.replaceChildren());
+    wrapper.setHTMLUnsafe(
+      `<div id="host"><template shadowrootmode="open" shadowrootserializable shadowrootslotassignment="manual"></template></div>`,
+    );
+    const host = wrapper.querySelector("#host");
+    assert_equals(host.shadowRoot.slotAssignment, "manual");
+    assert_equals(
+      host.getHTML({ serializableShadowRoots: true }),
+      `<template shadowrootmode="open" shadowrootserializable="" shadowrootslotassignment="manual"></template>`,
+    );
+  }, "shadowrootslotassignment=manual is serialized and appears before shadowrootclonable and shadowrootserializable");
+
+  test((t) => {
+    t.add_cleanup(() => wrapper.replaceChildren());
+    wrapper.setHTMLUnsafe(
+      `<div id="host"><template shadowrootmode="open" shadowrootserializable shadowrootslotassignment="named"></template></div>`,
+    );
+    const host = wrapper.querySelector("#host");
+    assert_equals(host.shadowRoot.slotAssignment, "named");
+    assert_equals(
+      host.getHTML({ serializableShadowRoots: true }),
+      `<template shadowrootmode="open" shadowrootserializable=""></template>`,
+    );
+  }, "shadowrootslotassignment=named is not serialized as it's the default");
+
+  test((t) => {
+    t.add_cleanup(() => wrapper.replaceChildren());
+    wrapper.setHTMLUnsafe(
+      `<div id="host"><template shadowrootmode="open" shadowrootdelegatesfocus shadowrootserializable shadowrootclonable shadowrootslotassignment="manual"></template></div>`,
+    );
+    const host = wrapper.querySelector("#host");
+    assert_equals(host.shadowRoot.slotAssignment, "manual");
+    assert_equals(
+      host.getHTML({ serializableShadowRoots: true }),
+      `<template shadowrootmode="open" shadowrootdelegatesfocus="" shadowrootserializable="" shadowrootslotassignment="manual" shadowrootclonable=""></template>`,
+    );
+  }, "shadowrootslotassignment=manual serializes between shadowrootdelegatesfocus and shadowrootclonable");
+</script>

@@ -1,30 +1,79 @@
 /*
-  Focusgroup-specific test assertion helpers.
+  Focusgroup-specific test helpers.
 
   This file depends on focus-utils.js being loaded first for generic
   primitives (key constants, focusAndKeyPress, sendTabForward, etc.).
+
+  Direction constants (kRight, kLeft, kUp, kDown) map to platform keys
+  via DirectionalInputMap.  Override the map for alternative input
+  methods (e.g. spatial nav).
 */
 
-// Test bidirectional directional (arrow) navigation through a list of elements in visual order.
-// Tests forward navigation with kArrowRight and backward navigation with kArrowLeft.
-// At boundaries, verifies focus does not move (unless wrap is expected).
-async function assert_arrow_navigation_bidirectional(elements, shouldWrap = false) {
+const kUp = "up";
+const kDown = "down";
+const kLeft = "left";
+const kRight = "right";
+
+// TODO: Query the platform/user-agent/WebDriver for the correct
+// directional input mapping instead of assuming arrow keys.  See
+// https://github.com/WebKit/standards-positions/issues/171#issuecomment-4199418777
+const DirectionalInputMap = {
+  [kUp]:    kArrowUp,
+  [kDown]:  kArrowDown,
+  [kLeft]:  kArrowLeft,
+  [kRight]: kArrowRight,
+  home:  kHome,
+  end:   kEnd,
+};
+
+function keyForDirection(direction) {
+  const key = DirectionalInputMap[direction];
+  if (!key) {
+    throw new Error(`Unknown direction: "${direction}"`);
+  }
+  return key;
+}
+
+async function focusAndSendDirectionalInput(element, direction) {
+  return focusAndKeyPress(element, keyForDirection(direction));
+}
+
+// Send a directional key without targeting a specific element.  Use this
+// for shadow-DOM elements where test_driver.send_keys() cannot reach the
+// target inside a shadow root.
+async function sendDirectionalKey(direction) {
+  return sendKey(keyForDirection(direction));
+}
+
+async function focusAndSendHomeInput(element) {
+  return focusAndKeyPress(element, keyForDirection("home"));
+}
+
+async function focusAndSendEndInput(element) {
+  return focusAndKeyPress(element, keyForDirection("end"));
+}
+
+// Test forward and backward navigation through a list of elements in
+// visual order.  Tests forward navigation with kRight and backward
+// navigation with kLeft.  At boundaries, verifies focus does not move
+// (unless wrap is expected).
+async function assert_directional_navigation_bidirectional(elements, shouldWrap = false) {
   // Test forward navigation.
   for (let i = 0; i < elements.length; i++) {
-    await focusAndKeyPress(elements[i], kArrowRight);
+    await focusAndSendDirectionalInput(elements[i], kRight);
     const nextIndex = shouldWrap ? (i + 1) % elements.length : Math.min(i + 1, elements.length - 1);
     const expectedElement = elements[nextIndex];
     assert_equals(document.activeElement, expectedElement,
-      `From ${elements[i].id}, right arrow should move to ${expectedElement.id}`);
+      `From ${elements[i].id}, right should move to ${expectedElement.id}`);
   }
 
   // Test backward navigation.
   for (let i = elements.length - 1; i >= 0; i--) {
-    await focusAndKeyPress(elements[i], kArrowLeft);
+    await focusAndSendDirectionalInput(elements[i], kLeft);
     const prevIndex = shouldWrap ? (i - 1 + elements.length) % elements.length : Math.max(i - 1, 0);
     const expectedElement = elements[prevIndex];
     assert_equals(document.activeElement, expectedElement,
-      `From ${elements[i].id}, left arrow should move to ${expectedElement.id}`);
+      `From ${elements[i].id}, left should move to ${expectedElement.id}`);
   }
 }
 
@@ -57,7 +106,6 @@ async function assert_focusgroup_shift_tab_navigation(elements) {
     return;
   }
 
-  // Focus the first element to establish starting point.
   elements[0].focus();
   assert_equals(document.activeElement, elements[0],
     `Failed to focus starting element ${elements[0].id}`);
@@ -69,14 +117,12 @@ async function assert_focusgroup_shift_tab_navigation(elements) {
   }
 }
 
-// Assert that arrow keys do not move focus from the given element.
-async function assert_arrow_keys_do_not_move_focus(element) {
-  const arrows = [kArrowRight, kArrowLeft, kArrowDown, kArrowUp];
-  const arrowNames = ['right', 'left', 'down', 'up'];
+async function assert_directional_input_does_not_move_focus(element) {
+  const directions = [kRight, kLeft, kDown, kUp];
 
-  for (let i = 0; i < arrows.length; i++) {
-    await focusAndKeyPress(element, arrows[i]);
+  for (const direction of directions) {
+    await focusAndSendDirectionalInput(element, direction);
     assert_equals(document.activeElement, element,
-      `Arrow ${arrowNames[i]} should not move focus from ${element.id}`);
+      `Direction ${direction} should not move focus from ${element.id}`);
   }
 }

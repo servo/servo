@@ -54,18 +54,18 @@
     var r3c2 = document.getElementById("r3c2");
     var r4c6 = document.getElementById("r4c6");
 
-    await focusAndKeyPress(r3c2, kArrowRight);
+    await focusAndSendDirectionalInput(r3c2, kRight);
     assert_equals(document.activeElement, r1c4);
 
-    await focusAndKeyPress(r1c4, kArrowRight);
+    await focusAndSendDirectionalInput(r1c4, kRight);
     assert_equals(document.activeElement, r1c5);
 
-    await focusAndKeyPress(r4c6, kArrowRight);
+    await focusAndSendDirectionalInput(r4c6, kRight);
     assert_equals(document.activeElement, r1c1);
 
-    await focusAndKeyPress(r2c3, kArrowRight);
+    await focusAndSendDirectionalInput(r2c3, kRight);
     assert_equals(document.activeElement, r1c4);
-  }, "A right arrow press should move the focus to the next column, dealing correctly with the empty spaces.");
+  }, "Navigating right should move the focus to the next column, dealing correctly with the empty spaces.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
@@ -77,26 +77,26 @@
     var r4c1 = document.getElementById("r4c1");
     var r4c6 = document.getElementById("r4c6");
 
-    await focusAndKeyPress(r2c3, kArrowDown);
+    await focusAndSendDirectionalInput(r2c3, kDown);
     assert_equals(document.activeElement, r4c1);
 
-    await focusAndKeyPress(r1c5, kArrowDown);
+    await focusAndSendDirectionalInput(r1c5, kDown);
     assert_equals(document.activeElement, r4c1);
 
-    await focusAndKeyPress(r1c6, kArrowDown);
+    await focusAndSendDirectionalInput(r1c6, kDown);
     assert_equals(document.activeElement, r4c6);
 
     // Goes to r1c1 because it flows to the first cell of the first column when
     // on the last cell of the last column.
-    await focusAndKeyPress(r1c7, kArrowDown);
+    await focusAndSendDirectionalInput(r1c7, kDown);
     assert_equals(document.activeElement, r1c1);
 
-    await focusAndKeyPress(r4c6, kArrowDown);
+    await focusAndSendDirectionalInput(r4c6, kDown);
     assert_equals(document.activeElement, r1c7);
 
-    await focusAndKeyPress(r1c4, kArrowDown);
+    await focusAndSendDirectionalInput(r1c4, kDown);
     assert_equals(document.activeElement, r4c1);
-  }, "A down arrow press should move the focus to the right cell on the next row, dealing correctly with empty spaces.");
+  }, "Navigating down should move the focus to the right cell on the next row, dealing correctly with empty spaces.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
@@ -106,18 +106,18 @@
     var r4c1 = document.getElementById("r4c1");
     var r4c6 = document.getElementById("r4c6");
 
-    await focusAndKeyPress(r1c1, kArrowLeft);
+    await focusAndSendDirectionalInput(r1c1, kLeft);
     assert_equals(document.activeElement, r4c6);
 
-    await focusAndKeyPress(r3c1, kArrowLeft);
+    await focusAndSendDirectionalInput(r3c1, kLeft);
     assert_equals(document.activeElement, r1c4);
 
-    await focusAndKeyPress(r1c4, kArrowLeft);
+    await focusAndSendDirectionalInput(r1c4, kLeft);
     assert_equals(document.activeElement, r1c3);
 
-    await focusAndKeyPress(r4c1, kArrowLeft);
+    await focusAndSendDirectionalInput(r4c1, kLeft);
     assert_equals(document.activeElement, r1c4);
-  }, "A left arrow press should move to the previous column, dealing correctly with the empty spaces.");
+  }, "Navigating left should move to the previous column, dealing correctly with the empty spaces.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
@@ -127,20 +127,20 @@
     var r4c1 = document.getElementById("r4c1");
     var r4c6 = document.getElementById("r4c6");
 
-    await focusAndKeyPress(r1c7, kArrowUp);
+    await focusAndSendDirectionalInput(r1c7, kUp);
     assert_equals(document.activeElement, r4c6);
 
-    await focusAndKeyPress(r4c6, kArrowUp);
+    await focusAndSendDirectionalInput(r4c6, kUp);
     assert_equals(document.activeElement, r1c6);
 
-    await focusAndKeyPress(r1c6, kArrowUp);
+    await focusAndSendDirectionalInput(r1c6, kUp);
     assert_equals(document.activeElement, r4c1);
 
-    await focusAndKeyPress(r4c1, kArrowUp);
+    await focusAndSendDirectionalInput(r4c1, kUp);
     assert_equals(document.activeElement, r3c1);
 
-    await focusAndKeyPress(r1c1, kArrowUp);
+    await focusAndSendDirectionalInput(r1c1, kUp);
     assert_equals(document.activeElement, r1c7);
-  }, "An up arrow press should move the focus to the right cell on the previous row, dealing correctly with empty spaces.");
+  }, "Navigating up should move the focus to the right cell on the previous row, dealing correctly with empty spaces.");
 
 </script>

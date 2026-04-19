@@ -1456,7 +1456,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     try {
       let mlTensor =
           await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
-      await mlContext.exportToGPU(mlTensor);
+      mlContext.exportToGPU(mlTensor);
     } catch (e) {
       if (e.name === 'NotSupportedError' || e.name === 'TypeError') {
         isExportToGPUSupported = false;
@@ -1505,7 +1505,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const mlTensor = await mlContext.createExportableTensor(mlTensorDescriptor,
       gpuDevice);
 
-    const gpuTensorBuffer = await mlContext.exportToGPU(mlTensor);
+    const gpuTensorBuffer = mlContext.exportToGPU(mlTensor);
 
     assert_equals(
         gpuTensorBuffer.usage,
@@ -1521,7 +1521,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
 
     const mlTensor = await mlContext.createTensor({dataType, shape});
 
-    await promise_rejects_js(t, TypeError, mlContext.exportToGPU(mlTensor));
+    assert_throws_js(TypeError, () => mlContext.exportToGPU(mlTensor));
   }, `${testName} / export wrong tensor`);
 
   promise_test(async t => {
@@ -1536,7 +1536,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const mlTensor =
         await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
 
-    await mlContext.exportToGPU(mlTensor);
+    mlContext.exportToGPU(mlTensor);
   }, `${testName} / export big tensor`)
 
   promise_test(async () => {
@@ -1551,7 +1551,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const inputData = new typedArray(sizeOfShape(shape)).fill(1.0);
     mlContext.writeTensor(mlTensor, inputData);
 
-    const gpuTensorBuffer = await mlContext.exportToGPU(mlTensor);
+    const gpuTensorBuffer = mlContext.exportToGPU(mlTensor);
     gpuTensorBuffer.destroy();
 
     await assert_tensor_data_equals(mlContext, mlTensor, inputData);
@@ -1569,7 +1569,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const inputData = new typedArray(sizeOfShape(shape)).fill(1.0);
     mlContext.writeTensor(mlTensor, inputData);
 
-    const gpuTensorBuffer = await mlContext.exportToGPU(mlTensor);
+    const gpuTensorBuffer = mlContext.exportToGPU(mlTensor);
     mlTensor.destroy();
 
     await assert_gpu_buffer_data_equals(gpuDevice, gpuTensorBuffer, inputData);
@@ -1582,7 +1582,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
 
     const mlTensor =
         await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
-    await mlContext.exportToGPU(mlTensor);
+    mlContext.exportToGPU(mlTensor);
     assert_throws_js(
         TypeError,
         () => mlContext.writeTensor(
@@ -1597,13 +1597,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const mlTensor =
         await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
 
-    // Second call rejects because the first export is still pending and multiple
-    // exports aren’t allowed.
-    let export_promise = mlContext.exportToGPU(mlTensor);
-    await promise_rejects_js(t, TypeError, mlContext.exportToGPU(mlTensor));
-
-    let gpuTensorBuffer1 = await export_promise;
-    let gpuTensorBuffer2 = await mlContext.exportToGPU(mlTensor);
+    let gpuTensorBuffer1 = mlContext.exportToGPU(mlTensor);
+    let gpuTensorBuffer2 = mlContext.exportToGPU(mlTensor);
     assert_equals(
         gpuTensorBuffer1, gpuTensorBuffer2, 'Same buffers should be returned.');
   }, `${testName} / export twice`);
@@ -1623,8 +1618,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     let mlTensorOutput =
         await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
 
-    let gpuTensorBufferInput = await mlContext.exportToGPU(mlTensorInput);
-    let gpuTensorBufferOutput = await mlContext.exportToGPU(mlTensorOutput);
+    let gpuTensorBufferInput = mlContext.exportToGPU(mlTensorInput);
+    let gpuTensorBufferOutput = mlContext.exportToGPU(mlTensorOutput);
 
     dispatchGPU(
         gpuDevice, gpuComputePipeline, gpuTensorBufferInput,
@@ -1637,8 +1632,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const inputData2 = new typedArray(sizeOfShape(shape)).fill(2.0);
     mlContext.writeTensor(mlTensorInput, inputData2);
 
-    gpuTensorBufferInput = await mlContext.exportToGPU(mlTensorInput);
-    gpuTensorBufferOutput = await mlContext.exportToGPU(mlTensorOutput);
+    gpuTensorBufferInput = mlContext.exportToGPU(mlTensorInput);
+    gpuTensorBufferOutput = mlContext.exportToGPU(mlTensorOutput);
 
     dispatchGPU(
         gpuDevice, gpuComputePipeline, gpuTensorBufferInput,
@@ -1663,8 +1658,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     let mlTensorOutput = await mlContext.createExportableTensor(
         {dataType, shape, readable: true}, gpuDevice);
 
-    let gpuTensorBufferInput = await mlContext.exportToGPU(mlTensorInput);
-    let gpuTensorBufferOutput = await mlContext.exportToGPU(mlTensorOutput);
+    let gpuTensorBufferInput = mlContext.exportToGPU(mlTensorInput);
+    let gpuTensorBufferOutput = mlContext.exportToGPU(mlTensorOutput);
 
     gpuTensorBufferInput.destroy();
     gpuTensorBufferOutput.destroy();
@@ -1697,8 +1692,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     let mlTensorOutput =
         await mlContext.createExportableTensor({dataType, shape}, gpuDevice);
 
-    let gpuTensorBufferInput = await mlContext.exportToGPU(mlTensorInput);
-    let gpuTensorBufferOutput = await mlContext.exportToGPU(mlTensorOutput);
+    let gpuTensorBufferInput = mlContext.exportToGPU(mlTensorInput);
+    let gpuTensorBufferOutput = mlContext.exportToGPU(mlTensorOutput);
 
     dispatchGPU(
         gpuDevice, gpuComputePipeline, gpuTensorBufferInput,
@@ -1716,8 +1711,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
           'output': mlTensorInput,
         });
 
-    gpuTensorBufferInput = await mlContext.exportToGPU(mlTensorInput);
-    gpuTensorBufferOutput = await mlContext.exportToGPU(mlTensorOutput);
+    gpuTensorBufferInput = mlContext.exportToGPU(mlTensorInput);
+    gpuTensorBufferOutput = mlContext.exportToGPU(mlTensorOutput);
 
     dispatchGPU(
         gpuDevice, gpuComputePipeline, gpuTensorBufferInput,
@@ -1741,7 +1736,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const inputData = new typedArray(sizeOfShape(shape)).fill(1.0);
     anotherMLContext.writeTensor(mlTensor, inputData);
 
-    const gpuTensorBuffer = await anotherMLContext.exportToGPU(mlTensor);
+    const gpuTensorBuffer = anotherMLContext.exportToGPU(mlTensor);
 
     anotherMLContext.destroy();
 
@@ -1764,7 +1759,7 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
     const inputData = new typedArray(sizeOfShape(shape)).fill(1.0);
     anotherMLContext.writeTensor(mlTensor, inputData);
 
-    const gpuTensorBuffer = await anotherMLContext.exportToGPU(mlTensor);
+    const gpuTensorBuffer = anotherMLContext.exportToGPU(mlTensor);
 
     anotherGPUDevice.destroy();
 
@@ -1790,8 +1785,8 @@ const testExportToGPU = (testName, dataType, powerPreference) => {
 
     anotherGPUDevice.destroy();
 
-    await promise_rejects_dom(
-        t, 'InvalidStateError', anotherMLContext.exportToGPU(mlTensor));
+    assert_throws_dom(
+        'InvalidStateError', () => anotherMLContext.exportToGPU(mlTensor));
   }, `${testName} / destroy device before export`);
 };
 

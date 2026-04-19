@@ -19,26 +19,26 @@
         initial-value: 0;
     }
     @function --f() {
-        result: random(element-shared, 1, 1e6);
+        result: random(--foo property-index-scoped, 1, 1e6);
     }
     @function --g() {
-        result: random(element-shared, 1, 1e6);
+        result: random(--foo property-index-scoped, 1, 1e6);
     }
     @function --locals() {
-        --x: random(element-shared, 1, 1e6);
-        --y: random(element-shared, 1, 1e6);
+        --x: random(--foo property-index-scoped, 1, 1e6);
+        --y: random(--foo property-index-scoped, 1, 1e6);
         result: var(--x) var(--y);
     }
     @function --locals-position-registered() returns <number>+ {
-        --x: random(element-shared, 1, 1e6);
+        --x: random(--foo property-index-scoped, 1, 1e6);
         result: var(--x) var(--x);
     }
     @function --f-locals() {
-        --x: random(element-shared, 1, 1e6);
+        --x: random(--foo property-index-scoped, 1, 1e6);
         result: var(--x);
     }
     @function --g-locals() {
-        --x: random(element-shared, 1, 1e6);
+        --x: random(--foo property-index-scoped, 1, 1e6);
         result: var(--x);
     }
     @function --f-arguments(--x <number>) {
@@ -47,25 +47,25 @@
     @function --g-arguments(--x <number>) {
         result: var(--x);
     }
-    @function --f-default-arguments(--x <number>: random(element-shared, 1, 1e6)) {
+    @function --f-default-arguments(--x <number>: random(--foo property-index-scoped, 1, 1e6)) {
         result: var(--x);
     }
-    @function --g-default-arguments(--x <number>: random(element-shared, 1, 1e6)) {
+    @function --g-default-arguments(--x <number>: random(--foo property-index-scoped, 1, 1e6)) {
         result: var(--x);
     }
     @function --f-locals-arguments(--x <number>) {
-        --x: random(element-shared, 1, 1e6);
+        --x: random(--foo property-index-scoped, 1, 1e6);
         result: var(--x);
     }
     @function --g-locals-arguments(--x <number>) {
-        --x: random(element-shared, 1, 1e6);
+        --x: random(--foo property-index-scoped, 1, 1e6);
         result: var(--x);
     }
     @function --f-number() returns <number> {
-        result: random(element-shared, 1, 1e6);
+        result: random(--foo property-index-scoped, 1, 1e6);
     }
     @function --g-number() returns <number> {
-        result: random(element-shared, 1, 1e6);
+        result: random(--foo property-index-scoped, 1, 1e6);
     }
 </style>
 <script>
@@ -248,11 +248,11 @@ test(() => {
 
   try {
     const el1 = document.createElement('div');
-    el1.style.setProperty('--number', '--f-arguments(random(element-shared, 1, 1e6))');
+    el1.style.setProperty('--number', '--f-arguments(random(--foo property-index-scoped, 1, 1e6))');
     holder.appendChild(el1);
 
     const el2 = document.createElement('div');
-    el2.style.setProperty('--number', '--g-arguments(random(element-shared, 1, 1e6))');
+    el2.style.setProperty('--number', '--g-arguments(random(--foo property-index-scoped, 1, 1e6))');
     holder.appendChild(el2);
 
     const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');

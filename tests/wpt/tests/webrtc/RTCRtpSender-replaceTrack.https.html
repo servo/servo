@@ -197,7 +197,7 @@
     const [track1] = stream1.getTracks();
     const stream2 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
-    const [track2] = stream1.getTracks();
+    const [track2] = stream2.getTracks();
 
     const transceiver = pc.addTransceiver(track1);
     const { sender } = transceiver;
@@ -233,7 +233,7 @@
     const [track1] = stream1.getTracks();
     const stream2 = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
-    const [track2] = stream1.getTracks();
+    const [track2] = stream2.getTracks();
 
     const transceiver = pc.addTransceiver(track1);
     const { sender } = transceiver;

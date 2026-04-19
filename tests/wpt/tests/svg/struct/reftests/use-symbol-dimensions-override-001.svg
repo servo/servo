@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
      xmlns:h="http://www.w3.org/1999/xhtml" width="800" height="600">
   <title>'width' and 'height' from &#x3c;use&#x3e; overrides values on referenced &#x3c;symbol&#x3e;</title>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseLayout"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#UseLayout"/>
   <h:link rel="match" href="reference/green-100x100.svg"/>
   <defs>
     <symbol id="s" width="10" height="10">

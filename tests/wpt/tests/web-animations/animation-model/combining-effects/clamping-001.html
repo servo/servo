@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>keyframe clamping</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+const values = [
+  // #1, correct result is -1 + 1 = 0, passes
+  // if keyframes are erroneously clamped 0 + 1 = 1, fails
+  // if keyframes are erroneously clamped as positive number 0 + 1 = 1, fails
+  // if keyframes are erroneously clamped to one or below, -1 + 1 = 0, passes (false negative, caught by tests #5 and #6)
+  [-1, 1, 0],
+
+  // #2, correct result is 1 + -1 = 0, passes
+  // if keyframes are erroneously clamped zero-to-one 1 + 0 = 1, fails
+  // if keyframes are erroneously clamped as positive number 1 + 0 = 1, fails
+  // if keyframes are erroneously clamped to one or below, -1 + 1 = 0 passes (false negative, caught by tests #5 and #6)
+  [1, -1, 0],
+
+  // #3, correct result is -2 + 2 = 0, passes
+  // if keyframes are erroneously clamped zero-to-one 0 + 1 = 1, fails
+  // if keyframes are erroneously clamped as positive number 0 + 2 = 2 clamped to 1, fails
+  // if keyframes are erroneously clamped to one or below, -2 + 1 = -1 clamped to 0 passes (false negative, caught by tests #5 and #6)
+  [-2, 2, 0],
+
+  // #4, correct result is 2 + -2 = 0, passes
+  // if keyframes are erroneously clamped zero-to-one 1 + 0 = 1, fails
+  // if keyframes are erroneously clamped as positive number 2 + 0 = 2 clamped to 1, fails
+  // if keyframes are erroneously clamped to one or below, 1 + -2 = -1 clamped to 0 (false negative, caught by tests #5 and #6)
+  [2, -2, 0],
+
+  // #5, correct result is 2 + -1 = 1, passes
+  // if keyframes are erroneously clamped zero-to-one 1 + 0 = 1, passes (false negative, caught by tests #1 through #4)
+  // if keyframes are erroneously clamped as positive number 2 + 0 = 2 clamped to 1, passes (false negative, caught by tests #1 through #4)
+  // if keyframes are erroneously clamped to one or below, 1 + -1 = 0 fails
+  [2, -1, 1],
+
+  // #6, correct result is -1 + 2 = 1, passes
+  // if keyframes are erroneously clamped zero-to-one 0 + 1 = 1, passes (false negative, caught by tests #1 through #4)
+  // if keyframes are erroneously clamped as positive number 0 + 2 = 2 clamped to 1, passes (false negative, caught by tests #1 through #4)
+  // if keyframes are erroneously clamped to one or below, -1 + 1 = 0 fails
+  [-1, 2, 1],
+
+  // #7, correct result is -100% + 100% = 0, passes
+  // if keyframes are erroneously clamped 0 + 1 = 1, fails
+  // if keyframes are erroneously clamped as positive number 0 + 1 = 1, fails
+  // if keyframes are erroneously clamped to one or below, -1 + 1 = 0, passes (false negative, caught by tests #11 and #12)
+  ["-100%", "100%", 0],
+
+  // #8, correct result is 100% + -100% = 0, passes
+  // if keyframes are erroneously clamped zero-to-one 1 + 0 = 1, fails
+  // if keyframes are erroneously clamped as positive number 1 + 0 = 1, fails
+  // if keyframes are erroneously clamped to one or below, -1 + 1 = 0 passes (false negative, caught by tests #11 and #12)
+  ["100%", "-100%", 0],
+
+  // #9, correct result is -200% + 200% = 0, passes
+  // if keyframes are erroneously clamped zero-to-one 0 + 1 = 1, fails
+  // if keyframes are erroneously clamped as positive number 0 + 2 = 2 clamped to 1, fails
+  // if keyframes are erroneously clamped to one or below, -2 + 1 = -1 clamped to 0 passes (false negative, caught by tests #11 and #12)
+  ["-200%", "200%", 0],
+
+  // #10, correct result is 200% + -200% = 0, passes
+  // if keyframes are erroneously clamped zero-to-one 1 + 0 = 1, fails
+  // if keyframes are erroneously clamped as positive number 2 + 0 = 2 clamped to 1, fails
+  // if keyframes are erroneously clamped to one or below, 1 + -2 = -1 clamped to 0 (false negative, caught by tests #11 and #12)
+  ["200%", "-200%", 0],
+
+  // #11, correct result is 200% + -100% = 1, passes
+  // if keyframes are erroneously clamped zero-to-one 1 + 0 = 1, passes (false negative, caught by tests #7 through #10)
+  // if keyframes are erroneously clamped as positive number 2 + 0 = 2 clamped to 1, passes (false negative, caught by tests #7 through #10)
+  // if keyframes are erroneously clamped to one or below, 1 + -1 = 0 fails
+  ["200%", "-100%", 1],
+
+  // #12, correct result is -100% + 200% = 1, passes
+  // if keyframes are erroneously clamped zero-to-one 0 + 1 = 1, passes (false negative, caught by tests #7 through #10)
+  // if keyframes are erroneously clamped as positive number 0 + 2 = 2 clamped to 1, passes (false negative, caught by tests #7 through #10)
+  // if keyframes are erroneously clamped to one or below, -1 + 1 = 0 fails
+  ["-100%", "200%", 1]
+]
+
+values.forEach( (value,index) => {
+  test((t) => {
+    const element = createDiv(t);
+    const underlyingAnimation = element.animate({
+      opacity: [value[0], value[0]]
+    }, Infinity);
+    const compositedAnimation = element.animate({
+      opacity: [value[1], value[1]],
+      composite: "add",
+    }, Infinity);
+    const actual = Number(getComputedStyle(element).getPropertyValue("opacity"));
+    const expected = value[2];
+    assert_equals(actual, expected);
+  }, `${index+1}. opacity keyframes should not clamp before compositing, replace ${value[0]} + add ${value[1]} = ${value[2]}`);
+});
+
+</script>

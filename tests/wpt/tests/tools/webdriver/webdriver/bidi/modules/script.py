@@ -227,7 +227,9 @@ class Script(BidiModule):
             assert isinstance(realm["origin"], str)
             assert isinstance(realm["type"], str)
             if "owners" in realm:
-                assert isinstance(realm["owners"], str)
+                assert isinstance(realm["owners"], list)
+                for owner in realm["owners"]:
+                    assert isinstance(owner, str)
             if "context" in realm:
                 assert isinstance(realm["context"], str)
             if "sandbox" in realm:

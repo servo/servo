@@ -34,6 +34,12 @@ input, datalist {
   <option>six</option>
 </datalist>
 
+<input id=input3 list=datalist3>
+<datalist id=datalist3>
+  <option class=one disabled>one</option>
+  <option class=two>two</option>
+</datalist>
+
 <script>
 const Enter = '\uE007';
 const Escape = '\uE00C';
@@ -64,21 +70,22 @@ promise_test(async () => {
   input.focus();
   assert_true(datalist.matches(':popover-open'),
     'Datalist should open after focusing input.');
-  assert_true(optionOne.matches(':active-option'),
-    'First option should be active after opening popover.');
-  assert_false(optionTwo.matches(':active-option'),
-    'Second option should not be active after opening popover.');
 
   await pressKey(ArrowDown);
+  assert_true(optionOne.matches(':active-option'),
+    'First option should be active after pressing arrow down once.');
+  assert_false(optionTwo.matches(':active-option'),
+    'Second option should not be active after pressing arrow down once.');
+  await pressKey(ArrowDown);
   assert_false(optionOne.matches(':active-option'),
-    'First option should not be active after pressing arrow down once.');
+    'First option should not be active after pressing arrow down twice.');
   assert_true(optionTwo.matches(':active-option'),
-    'Second option should be active after pressing arrow down once.');
+    'Second option should be active after pressing arrow down twice.');
   await pressKey(ArrowDown);
   assert_true(optionOne.matches(':active-option'),
-    'First option should be active after pressing arrow down twice.');
+    'First option should be active after pressing arrow down thrice.');
   assert_false(optionTwo.matches(':active-option'),
-    'Second option should not be active after pressing arrow down twice.');
+    'Second option should not be active after pressing arrow down thrice.');
 
   await pressKey(ArrowUp);
   assert_false(optionOne.matches(':active-option'),
@@ -141,8 +148,9 @@ promise_test(async () => {
 
 promise_test(async () => {
   input2.focus();
+  await pressKey(ArrowDown);
   assert_equals(datalist2.querySelector(':active-option').textContent, 'one',
-    'option one should be active when opening the picker.');
+    'option one should be active after first arrow down.');
   assert_equals(datalist2.scrollTop, 0,
     'Datalist should not be scrolled at the start of the test.');
 
@@ -164,6 +172,17 @@ promise_test(async () => {
   assert_equals(datalist2.scrollTop, 0,
     'Datalist should not be scrolled after arrowing up to the top.');
 }, 'Options should be scrolled into view when arrowed to.');
+
+promise_test(async () => {
+  const input = document.getElementById('input3');
+  const datalist = document.getElementById('datalist3');
+  const optionTwo = datalist.querySelector('.two');
+
+  input.focus();
+  await pressKey(ArrowDown);
+  assert_equals(document.querySelector(':active-option'), optionTwo,
+    'option two should be active after arrow down.');
+}, 'Disabled options should not match :active-option.');
 
 // TODO(crbug.com/453705243): Add tests for these cases:
 // - Modifier keys

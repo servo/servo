@@ -1,0 +1,91 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <title>Single-axis scroll containers visually clamp disabled axes on dynamic style changes</title>
+  <link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollto">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5572">
+  <link rel="match" href="single-axis-overflow-scroll-to-clip-ref.html">
+  <meta name="assert" content="A scroller with overflow: hidden has one of its axes set to overflow: clip. It repaints with the axis set to overflow: clip at a scroll offset of 0.">
+  <style>
+    body {
+      margin: 0;
+    }
+
+    #clipper {
+      width: 100px;
+      height: 100px;
+      overflow: hidden;
+    }
+
+    #scroller {
+      width: 100px;
+      height: 160px;
+      overflow: hidden;
+      scrollbar-width: none;
+    }
+
+    #scroller::-webkit-scrollbar {
+      display: none;
+    }
+
+    #content {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      background: rgb(0, 0, 255);
+    }
+
+    #top-band {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 300px;
+      height: 50px;
+      background: rgb(0, 255, 0);
+    }
+
+    #x-marker {
+      position: absolute;
+      top: 50px;
+      left: 40px;
+      width: 20px;
+      height: 50px;
+      background: rgb(255, 255, 0);
+    }
+  </style>
+</head>
+<body>
+  <div id="clipper">
+    <div id="scroller">
+      <div id="content">
+        <div id="top-band"></div>
+        <div id="x-marker"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.documentElement.addEventListener('TestRendered', () => {
+      const scroller = document.getElementById('scroller');
+
+      // Paint the scrolled state first, then change overflow so the test
+      // exercises a visual reset, not just the final computed values.
+      scroller.scrollTo(40, 50);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scroller.style.overflowX = 'hidden';
+          scroller.style.overflowY = 'clip';
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              document.documentElement.classList.remove('reftest-wait');
+            });
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

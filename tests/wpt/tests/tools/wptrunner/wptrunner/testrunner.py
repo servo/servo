@@ -972,7 +972,7 @@ class TestRunnerManager(threading.Thread):
             # TODO(web-platform-tests/wpt#48030): Consider removing the
             # `stop(force=...)` argument.
             if self.browser:
-                self.browser.stop(force=True)
+                self.browser.stop(force=force)
         except (OSError, PermissionError):
             self.logger.error("Failed to stop either the runner or the browser process",
                               exc_info=True)

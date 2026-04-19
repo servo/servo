@@ -13,11 +13,16 @@
     width: 100px;
     height: 30px;
   }
+
+  :default {
+    outline: 3px solid blue;
+  }
 </style>
 
 <form>
   <input name="field" value="value">
   <custom-submit></custom-submit>
+  <non-form-submit></non-form-submit>
 </form>
 
 <div id="outside"></div>
@@ -34,9 +39,18 @@ class CustomSubmitButton extends HTMLElement {
 }
 customElements.define('custom-submit', CustomSubmitButton);
 
+class NonFormAssociatedSubmit extends HTMLElement {
+  constructor() {
+    super();
+    this.attachInternals({ behaviors: [new HTMLSubmitButtonBehavior()] });
+  }
+}
+customElements.define('non-form-submit', NonFormAssociatedSubmit);
+
 const form = document.querySelector('form');
 const outside = document.querySelector('#outside');
 const customSubmit = form.querySelector('custom-submit');
+const nonFormSubmit = form.querySelector('non-form-submit');
 const defaultInput = form.querySelector('input');
 
 function reset() {
@@ -61,8 +75,21 @@ function reset() {
   customSubmit.submitBehavior.name = '';
   customSubmit.submitBehavior.value = '';
 
+  form.appendChild(nonFormSubmit);
   form.appendChild(customSubmit);
   form.prepend(defaultInput);
+}
+
+// Creates a native <button type="submit"> and adds it to the form.
+function addNativeSubmitButton({prepend = false} = {}) {
+  const nativeButton = document.createElement('button');
+  nativeButton.type = 'submit';
+  if (prepend) {
+    form.prepend(nativeButton);
+  } else {
+    form.appendChild(nativeButton);
+  }
+  return nativeButton;
 }
 
 // Clicks an element and returns whether the form's submit event fired.
@@ -217,6 +244,34 @@ promise_test(async t => {
 
 promise_test(async t => {
   t.add_cleanup(reset);
+  let submitted = false;
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitted = true;
+  }, { once: true });
+  defaultInput.focus();
+  await test_driver.send_keys(defaultInput, '\uE007');
+  assert_true(submitted,
+    'Pressing Enter in a text field should trigger implicit submission via custom submit button');
+}, 'Custom element with HTMLSubmitButtonBehavior participates in implicit submission');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let clickFired = false;
+  customSubmit.addEventListener('click', () => {
+    clickFired = true;
+  }, { once: true });
+  form.onsubmit = (e) => {
+    e.preventDefault();
+  };
+  defaultInput.focus();
+  await test_driver.send_keys(defaultInput, '\uE007');
+  assert_true(clickFired,
+    'Implicit submission should dispatch a click event on the custom submit button');
+}, 'Implicit submission dispatches click on custom element with HTMLSubmitButtonBehavior');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
   let submitEventFired = false;
   let submitEventTarget = null;
 
@@ -359,17 +414,7 @@ test(t => {
 
 test(t => {
   t.add_cleanup(reset);
-  class NonFormAssociatedSubmit extends HTMLElement {
-    constructor() {
-      super();
-      this.attachInternals({ behaviors: [new HTMLSubmitButtonBehavior()] });
-    }
-  }
-  customElements.define('non-form-submit', NonFormAssociatedSubmit);
-
-  const nonFormElement = document.createElement('non-form-submit');
-  form.appendChild(nonFormElement);
-  assert_false(clickSubmitsForm(nonFormElement),
+  assert_false(clickSubmitsForm(nonFormSubmit),
     'Form should not be submitted by non-form-associated element');
 }, 'Non-form-associated custom element with HTMLSubmitButtonBehavior does not submit');
 
@@ -414,5 +459,57 @@ promise_test(async t => {
   assert_true(submitted,
     'User click on custom submit button should submit form');
 }, 'User-initiated click submits form via HTMLSubmitButtonBehavior');
+
+test(t => {
+  t.add_cleanup(reset);
+  const nativeButton = addNativeSubmitButton({prepend: true});
+
+  assert_true(nativeButton.matches(':default'),
+    'Native button should match :default when it appears first');
+}, 'Native button takes precedence over custom element when first in DOM');
+
+test(t => {
+  t.add_cleanup(reset);
+  const nativeButton = addNativeSubmitButton();
+
+  assert_true(customSubmit.matches(':default'),
+    'Custom element should match :default when it appears first');
+  assert_false(nativeButton.matches(':default'),
+    'Native button should not match :default when custom element is first');
+}, 'Custom element takes precedence over native button when first in DOM');
+
+test(t => {
+  t.add_cleanup(reset);
+
+  assert_equals(getComputedStyle(customSubmit).outlineColor, 'rgb(0, 0, 255)',
+    'Custom element matching :default should have blue outline');
+}, 'Styling via :default selector applies to custom submit button');
+
+test(t => {
+  t.add_cleanup(reset);
+
+  assert_true(customSubmit.matches(':default'), 'Custom should initially match :default');
+  customSubmit.submitBehavior.disabled = true;
+  assert_true(customSubmit.matches(':default'),
+    'Disabled custom element should still match :default, like native disabled submit buttons');
+}, 'Disabled custom element still matches :default');
+
+test(t => {
+  t.add_cleanup(reset);
+  const secondSubmit = document.createElement('custom-submit');
+  form.appendChild(secondSubmit);
+  customSubmit.submitBehavior.disabled = true;
+
+  assert_true(customSubmit.matches(':default'),
+    'Disabled first custom submit should still match :default');
+  assert_false(secondSubmit.matches(':default'),
+    'Second custom submit should not match :default when first is still default');
+}, 'Two custom submit buttons: disabled first is still :default');
+
+test(t => {
+  t.add_cleanup(reset);
+  assert_false(nonFormSubmit.matches(':default'),
+    'Non-form-associated element should not match :default');
+}, 'Non-form-associated custom element with HTMLSubmitButtonBehavior does not match :default');
 
 </script>

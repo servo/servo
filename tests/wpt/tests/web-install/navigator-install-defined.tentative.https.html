@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>navigator.install() is defined</title>
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/WebInstall/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+test(function() {
+  assert_true(typeof navigator.install === 'function',
+      'navigator.install should be defined');
+}, 'navigator.install() is defined.');
+</script>
+</body>

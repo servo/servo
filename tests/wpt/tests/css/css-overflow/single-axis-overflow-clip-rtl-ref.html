@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Single-axis scroll containers: Clipped X Rendering RTL (Reference)</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5572">
+<style>
+  #scroller {
+    width: 100px;
+    height: 100px;
+    direction: rtl;
+    overflow-x: hidden; /* Reference standard */
+    overflow-y: scroll;
+    scrollbar-width: none;
+  }
+  #content {
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(to right, lightcoral, lightblue);
+    color: black;
+    font-family: sans-serif;
+    font-size: 20px;
+  }
+</style>
+<div id="scroller">
+  <div id="content">RTL gradient and text</div>
+</div>

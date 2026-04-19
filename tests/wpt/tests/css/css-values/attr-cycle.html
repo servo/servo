@@ -139,4 +139,16 @@
 
   /* No cycle, wrong attr syntax in attribute */
   test_attr_no_cycle('--x', 'attr(data-foo type(*), abc)', 'attr(data-foo', 'abc');
+
+  /* Multiple attributes cycling simultaneously in bare attr() form */
+  attrElem.setAttribute('data-bar', 'attr(data-foo) attr(data-bar)');
+  test_attr_no_cycle('--x', 'attr(data-foo type(*), abc)', 'attr(data-bar type(*), fallback)', 'abc');
+  attrElem.removeAttribute('data-bar');
+
+  /* Transitive cycle through var() */
+  attrElem.setAttribute('data-bar', 'attr(data-foo, 10px)');
+  attrElem.style.setProperty('--x', 'attr(data-bar type(<length>))');
+  test_attr_cycle('width', 'attr(data-foo type(<length>))', 'var(--x)');
+  attrElem.style.setProperty('--x', null);
+  attrElem.removeAttribute('data-bar');
 </script>

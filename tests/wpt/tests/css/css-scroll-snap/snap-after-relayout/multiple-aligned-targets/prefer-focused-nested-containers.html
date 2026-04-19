@@ -101,7 +101,7 @@
               /*aligned_elements_y=*/[leftcontainer, rightcontainer],
               /*axis=*/"y",
               /*expected_target_x=*/null,
-              /*expected_target_x=*/leftcontainer);
+              /*expected_target_y=*/leftcontainer);
 
           focusAndAssert(righttarget1, /*preventScroll=*/true);
           await runScrollSnapSelectionVerificationTest(t, outercontainer,
@@ -109,7 +109,7 @@
               /*aligned_elements_y=*/[leftcontainer, rightcontainer],
               /*axis=*/"y",
               /*expected_target_x=*/null,
-              /*expected_target_x=*/rightcontainer);
+              /*expected_target_y=*/rightcontainer);
         }, "Snap container prefers focused nested snap target.");
       }
     </script>

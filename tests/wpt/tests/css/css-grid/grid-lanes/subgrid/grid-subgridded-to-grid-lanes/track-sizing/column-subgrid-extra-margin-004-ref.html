@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<style>
+.grid {
+  display: inline-grid;
+  grid-template-columns: 50px 50px 80px auto;
+  grid-template-rows: auto;
+  border: 1px solid;
+}
+item {
+  height: 40px;
+  background: grey;
+}
+.stretch {
+  justify-self: stretch;
+  background: green;
+}
+</style>
+<div class="grid">
+  <item style="width:10px">1</item>
+  <item style="width:10px">2</item>
+  <item class="stretch">3</item>
+  <item style="width:10px">4</item>
+</div>
+</html>

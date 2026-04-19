@@ -1,0 +1,109 @@
+<!doctype html>
+<body>
+<script>
+  // This helper is loaded as the "middle frame" (B) in a nested A->B->C setup.
+  // It hosts an inner iframe C with focus-without-user-activation policy denied,
+  // and responds to messages from the top frame to test focus delegation.
+  //
+  // URL parameter: ?child_origin=<origin> to load C from a different origin.
+  // If omitted, C is loaded from the same origin as B.
+  const params = new URLSearchParams(location.search);
+  const childOrigin = params.get("child_origin") || "";
+
+  const input = document.createElement("input");
+  input.id = "middle-input";
+  document.body.appendChild(input);
+
+  const innerIframe = document.createElement("iframe");
+  innerIframe.id = "inner-iframe";
+  innerIframe.allow = "focus-without-user-activation 'none'";
+  innerIframe.src = childOrigin +
+    "/permissions-policy/experimental-features/resources/" +
+    "focus-without-user-activation-focused-frame-helper.html";
+  document.body.appendChild(innerIframe);
+
+  function isFocused(element) {
+    return document.activeElement === element;
+  }
+
+  innerIframe.addEventListener("load", () => {
+    window.parent.postMessage({action: "ready"}, "*");
+
+    window.addEventListener("message", async (e) => {
+      if (e.source === innerIframe.contentWindow) return;
+
+      const action = e.data.action;
+
+      if (action === "delegate-focus-to-child") {
+        innerIframe.focus();
+        e.source.postMessage({
+          action: action,
+          iframeFocused: isFocused(innerIframe)
+        }, "*");
+      } else if (action === "delegate-focus-to-child-via-window") {
+        innerIframe.contentWindow.focus();
+        e.source.postMessage({
+          action: action,
+          childHasFocus: innerIframe.contentDocument &&
+            innerIframe.contentDocument.hasFocus()
+        }, "*");
+      } else if (action === "child-steal-focus") {
+        innerIframe.contentWindow.postMessage({action: "focus-input1"}, "*");
+        const childResponse = await new Promise(resolve => {
+          function handler(evt) {
+            if (evt.source === innerIframe.contentWindow &&
+                evt.data && evt.data.action === "focus-input1") {
+              window.removeEventListener("message", handler);
+              resolve(evt.data);
+            }
+          }
+          window.addEventListener("message", handler);
+        });
+        e.source.postMessage({
+          action: action,
+          childStoleFocus: childResponse.focused
+        }, "*");
+      } else if (action === "focus-input") {
+        input.focus();
+        e.source.postMessage({
+          action: action,
+          focused: isFocused(input)
+        }, "*");
+      } else if (action === "focus-child-element-via-contentdocument") {
+        // B calls iframeC.contentDocument.getElementById('input1').focus().
+        // The focus setter is B (the caller), not C (the element's owner),
+        // so the policy check should use B's frame for the ancestry check.
+        const childInput =
+            innerIframe.contentDocument.getElementById("input1");
+        childInput.focus();
+        e.source.postMessage({
+          action: action,
+          childElementFocused: innerIframe.contentDocument.activeElement ===
+            childInput
+        }, "*");
+      } else if (action === "child-focus-parent-element") {
+        // Ask C (policy denied) to focus B's input via
+        // parent.document.getElementById().focus().
+        innerIframe.contentWindow.postMessage({
+          action: "focus-parent-element",
+          elementId: "middle-input"
+        }, "*");
+        const childResponse = await new Promise(resolve => {
+          function handler(evt) {
+            if (evt.source === innerIframe.contentWindow &&
+                evt.data && evt.data.action === "focus-parent-element") {
+              window.removeEventListener("message", handler);
+              resolve(evt.data);
+            }
+          }
+          window.addEventListener("message", handler);
+        });
+        e.source.postMessage({
+          action: action,
+          childFocusedParent: childResponse.focused
+        }, "*");
+      }
+    });
+  });
+</script>
+</body>

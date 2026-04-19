@@ -12,6 +12,9 @@
   test_valid_selector(`div ${pseudo}`);
   test_valid_selector(`::part(my-part)${pseudo}`);
 
+  test_valid_selector("::highlight(multi\\ word)");
+  test_valid_selector("::highlight(\\31\\32\\33)", "::highlight(\\31 23)");
+
   test_invalid_selector("::highlight");
   test_invalid_selector(`::before${pseudo}`);
   test_invalid_selector(`${pseudo}.a`);

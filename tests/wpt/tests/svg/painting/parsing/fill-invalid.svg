@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing fill with invalid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#FillProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#FillProperty"/>
     <h:meta name="assert" content="fill supports only the paint grammar 'none | color | url [none | color]? | context-fill | context-stroke'."/>
   </metadata>
   <g id="target"></g>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Inline-flex column container should size to image after async load</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-cross-item">
+<link rel="match" href="inline-flex-column-image-load-ref.html">
+<meta name="assert" content="
+  An inline-flex container with flex-direction: column should update its
+  width when a child image finishes loading asynchronously.
+">
+<style>
+.parent {
+    display: inline-flex;
+    flex-direction: column;
+    background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="parent">
+    <img id="img">
+</div>
+<script>
+var img = document.getElementById('img');
+img.onload = function() {
+    document.documentElement.classList.remove('reftest-wait');
+};
+// Force layout before setting src so image loads asynchronously
+document.body.offsetHeight;
+// 100x100 green PNG
+img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAZklEQVR42u3BAQEAAACCIP+vbkhAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB8GUk4AAFt3lJRAAAAAElFTkSuQmCC';
+</script>

@@ -23,6 +23,8 @@ promise_test(async (t) => {
     test_driver.set_permission({name: 'microphone'}, 'granted')
   ]);
 
+  // Wait until the element is clickable.
+  await new Promise(resolve => t.step_timeout(resolve, 600));
   await test_driver.click(usermedia);
 
   // Wait a bit to see if 'onstream' fires.
@@ -48,6 +50,8 @@ promise_test(async (t) => {
     test_driver.set_permission({name: 'microphone'}, 'granted')
   ]);
 
+  // Wait until the element is clickable.
+  await new Promise(resolve => t.step_timeout(resolve, 600));
   await test_driver.click(usermedia);
 
   // Wait a bit to see if 'onstream' fires.
@@ -68,6 +72,8 @@ promise_test(async (t) => {
   });
 
   await test_driver.set_permission({name: 'camera'}, 'granted');
+  // Wait until the element is clickable.
+  await new Promise(resolve => t.step_timeout(resolve, 600));
   await test_driver.click(usermedia);
 
   const e = await stream_promise;

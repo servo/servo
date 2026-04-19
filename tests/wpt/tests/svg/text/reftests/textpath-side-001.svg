@@ -5,7 +5,7 @@
   <metadata>
     <html:link rel="author" title="Tavmjong Bah" href="mailto:tavmjong@free.fr"/>
     <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
-    <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElementSideAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementSideAttribute"/>
     <html:link rel="help" href="https://github.com/w3c/svgwg/issues/1068"/>
     <html:link rel="match" href="textpath-side-001-ref.svg"/>
     <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-100"/>

@@ -14,7 +14,7 @@
   @font-face {
     font-family: my-font;
     font-stretch: 30%;
-    font-stretch: random(element-shared, 0%, 10%);
+    font-stretch: random(--foo element-scoped, 0%, 10%);
   }
   @font-palette-values --palette {
     font-family: my-font;
@@ -32,18 +32,18 @@
   const rules = test_sheet.sheet.cssRules;
   test(() => {
     assert_equals(rules[0].style.fontWeight, "300");
-  }, "random() should not be allowed in @font-face descriptors");
+  }, "random() should not be allowed in @font-face font-weight descriptor");
 
   test(() => {
     assert_equals(rules[1].style.fontStretch, "30%");
-  }, "element-shared random() should not be allowed in @font-face descriptors");
+  }, "element-scoped random() should not be allowed in @font-face font-stretch descriptor");
 
   test(() => {
     assert_equals(rules[2].basePalette, "3");
-  }, "random()");
+  }, "random() should not be allowed in @font-palette-values base-palette descriptor, check total");
 
   test(() => {
     const swashValues = rules[3].swash.values();
     assert_equals(swashValues.next().value, undefined);
-  }, "element-shared ");
+  }, "random() should not be allowed in @font-palette-values base-palette descriptor");
 </script>

@@ -9,6 +9,6 @@ def main(request, response):
     response.headers.set(b"Cache-Control", b"max-age=2592000, immutable")
     response.headers.set(b"Pragma", b"no-cache")
 
-    # Include a timestamp to verify caching behavior
-    import time
-    response.content = f"Timestamp: {time.time()}".encode('utf-8')
+    # Include a unique token to verify caching behavior
+    import uuid
+    response.content = f"Token: {uuid.uuid4()}".encode('utf-8')

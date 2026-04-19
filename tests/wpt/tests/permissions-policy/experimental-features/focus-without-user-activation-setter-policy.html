@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>focus-without-user-activation: setter's policy is checked, not target's</title>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="./resources/common.js"></script>
+
+  <script>
+    "use strict";
+
+    const delegation_helper_url =
+      "/permissions-policy/experimental-features/resources/" +
+      "focus-without-user-activation-focused-frame-delegation-helper.html";
+
+    // Creates A -> B (policy allowed) -> C (policy denied) nesting.
+    async function createDelegationIframe(t) {
+      const iframe = createIframe(document.body, {
+        src: delegation_helper_url,
+        allow: "focus-without-user-activation *"
+      });
+      const ready = new Promise(resolve => {
+        function handler(e) {
+          if (e.source === iframe.contentWindow &&
+              e.data && e.data.action === "ready") {
+            window.removeEventListener("message", handler);
+            resolve();
+          }
+        }
+        window.addEventListener("message", handler);
+      });
+      await wait_for_load(iframe);
+      await ready;
+      t.add_cleanup(() => iframe.remove());
+      return iframe;
+    }
+
+    // Test 1: C (denied) tries to focus B's (allowed) element. Blocked
+    // because the setter's (C's) policy is checked, not the target's (B's).
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+      const result = await sendAndReceive(iframe, {
+        action: "child-focus-parent-element"
+      });
+      assert_false(result.childFocusedParent,
+        "Child C with policy denied should not be able to focus " +
+        "parent B's element");
+    }, "Setter with policy denied cannot focus element in " +
+       "parent with policy allowed");
+
+    // Test 2: B (allowed) focuses C's (denied) element via contentDocument.
+    // Allowed because the setter's (B's) policy is checked, not the
+    // target's (C's).
+    promise_test(async (t) => {
+      const iframe = await createDelegationIframe(t);
+      const result = await sendAndReceive(iframe, {
+        action: "focus-child-element-via-contentdocument"
+      });
+      assert_true(result.childElementFocused,
+        "Setter B with policy allowed should be able to focus " +
+        "child C's element via contentDocument even though C's " +
+        "policy is denied");
+    }, "Setter with policy allowed can focus child element with " +
+       "policy denied via contentDocument");
+  </script>
+</body>

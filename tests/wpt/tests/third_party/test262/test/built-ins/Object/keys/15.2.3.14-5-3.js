@@ -1,0 +1,34 @@
+// Copyright (c) 2012 Ecma International.  All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+es5id: 15.2.3.14-5-3
+description: >
+    Object.keys - non-enumerable own data property of 'O' is not
+    defined in returned array
+---*/
+
+var obj = {
+  prop1: 1001,
+  prop2: 1002
+};
+
+Object.defineProperty(obj, "prop3", {
+  value: 1003,
+  enumerable: true,
+  configurable: true
+});
+
+Object.defineProperty(obj, "prop4", {
+  value: 1004,
+  enumerable: false,
+  configurable: true
+});
+
+var arr = Object.keys(obj);
+
+for (var p in arr) {
+  if (arr.hasOwnProperty(p)) {
+    assert.notSameValue(arr[p], "prop4", 'arr[p]');
+  }
+}

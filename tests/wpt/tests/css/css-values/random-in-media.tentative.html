@@ -7,5 +7,5 @@
 <script src="/css/mediaqueries/resources/matchmedia-utils.js"></script>
 <script>
   query_should_be_unknown("(width > random(10px, 30px))");
-  query_should_be_unknown("(width > random(element-shared, 10px, 30px))");
+  query_should_be_unknown("(width > random(--foo, 10px, 30px))");
 </script>

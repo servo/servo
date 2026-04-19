@@ -147,13 +147,61 @@ def number_interval(start: float, end: float) -> Callable[[Any], None]:
     return _
 
 
+def assert_bytes_value(bytes_value):
+    assert bytes_value["type"] in ["string", "base64"]
+    any_string(bytes_value["value"])
+
+
+def assert_cookie(actual, expected=None):
+    recursive_compare(
+        {
+            "domain": any_string,
+            "httpOnly": any_bool,
+            "name": any_string,
+            "path": any_string,
+            "sameSite": any_string,
+            "secure": any_bool,
+            "size": any_int,
+            "value": assert_bytes_value,
+        },
+        actual,
+    )
+
+    # expiry is optional.
+    if "expiry" in actual:
+        any_int(actual["expiry"])
+
+    if expected is None:
+        return
+
+    if "domain" in expected:
+        assert actual["domain"] == expected["domain"]
+    if "expiry" in expected:
+        assert actual.get("expiry") == expected["expiry"]
+    if "httpOnly" in expected:
+        assert actual["httpOnly"] == expected["httpOnly"]
+    if "name" in expected:
+        assert actual["name"] == expected["name"]
+    if "path" in expected:
+        assert actual["path"] == expected["path"]
+    if "sameSite" in expected:
+        assert actual["sameSite"] == expected["sameSite"]
+    if "secure" in expected:
+        assert actual["secure"] == expected["secure"]
+    if "size" in expected:
+        assert actual["size"] == expected["size"]
+    if "value" in expected:
+        assert actual["value"] == expected["value"]
+
+
 def assert_cookies(cookies, expected_cookies):
     assert len(cookies) == len(expected_cookies)
 
     expected = sorted(expected_cookies, key=lambda cookie: cookie["name"])
     actual = sorted(cookies, key=lambda cookie: cookie["name"])
 
-    recursive_compare(expected, actual)
+    for actual_cookie, expected_cookie in zip(actual, expected):
+        assert_cookie(actual_cookie, expected_cookie)
 
 
 def assert_handle(obj: Mapping[str, Any], should_contain_handle: bool) -> None:

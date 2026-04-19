@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathSegment"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/specs/paths/#InterfaceSVGPathSegment"/>
   </metadata>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>

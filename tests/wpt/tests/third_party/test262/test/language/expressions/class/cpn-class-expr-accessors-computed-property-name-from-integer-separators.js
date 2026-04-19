@@ -1,0 +1,91 @@
+// This file was procedurally generated from the following sources:
+// - src/computed-property-names/computed-property-name-from-integer-separators.case
+// - src/computed-property-names/evaluation/class-expression-accessors.template
+/*---
+description: Computed property name from integer with separators (ComputedPropertyName in ClassExpression)
+esid: prod-ComputedPropertyName
+features: [computed-property-names]
+flags: [generated]
+info: |
+    ClassExpression:
+      classBindingIdentifier opt ClassTail
+
+    ClassTail:
+      ClassHeritage opt { ClassBody opt }
+
+    ClassBody:
+      ClassElementList
+
+    ClassElementList:
+      ClassElement
+
+    ClassElement:
+      MethodDefinition
+
+    MethodDefinition:
+      PropertyName ...
+      get PropertyName ...
+      set PropertyName ...
+
+    PropertyName:
+      ComputedPropertyName
+
+    ComputedPropertyName:
+      [ AssignmentExpression ]
+---*/
+
+
+let C = class {
+  get [1_2_3_4_5_6_7_8]() {
+    return 1_2_3_4_5_6_7_8;
+  }
+
+  set [1_2_3_4_5_6_7_8](v) {
+    return 1_2_3_4_5_6_7_8;
+  }
+
+  static get [1_2_3_4_5_6_7_8]() {
+    return 1_2_3_4_5_6_7_8;
+  }
+
+  static set [1_2_3_4_5_6_7_8](v) {
+    return 1_2_3_4_5_6_7_8;
+  }
+};
+
+let c = new C();
+
+assert.sameValue(
+  c[1_2_3_4_5_6_7_8],
+  1_2_3_4_5_6_7_8
+);
+assert.sameValue(
+  c[1_2_3_4_5_6_7_8] = 1_2_3_4_5_6_7_8,
+  1_2_3_4_5_6_7_8
+);
+
+assert.sameValue(
+  C[1_2_3_4_5_6_7_8],
+  1_2_3_4_5_6_7_8
+);
+assert.sameValue(
+  C[1_2_3_4_5_6_7_8] = 1_2_3_4_5_6_7_8,
+  1_2_3_4_5_6_7_8
+);
+assert.sameValue(
+  c[String(1_2_3_4_5_6_7_8)],
+  1_2_3_4_5_6_7_8
+);
+assert.sameValue(
+  c[String(1_2_3_4_5_6_7_8)] = 1_2_3_4_5_6_7_8,
+  1_2_3_4_5_6_7_8
+);
+
+assert.sameValue(
+  C[String(1_2_3_4_5_6_7_8)],
+  1_2_3_4_5_6_7_8
+);
+assert.sameValue(
+  C[String(1_2_3_4_5_6_7_8)] = 1_2_3_4_5_6_7_8,
+  1_2_3_4_5_6_7_8
+);

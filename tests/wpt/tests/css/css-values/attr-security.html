@@ -20,7 +20,7 @@
     --str: text;
     --true: true;
     --some-string: attr(data-foo);
-    --some-string-list: "https://does-not-exist2.test/404.png" attr(data-foo);
+    --some-string-list: "https://does-not-exist-2.test/404.png" attr(data-foo);
     --some-other-url: attr(data-foo);
     --image-set-valid:  url("https://does-not-exist.test/404.png") type(attr(data-foo));
     --image-set-invalid: attr(data-foo type(<url>)) 1x;
@@ -37,11 +37,17 @@
     function test_attr(property, attrString, attrValue, expectedValue) {
         var elem = document.getElementById("attr");
         elem.setAttribute("data-foo", attrValue);
-        elem.style.setProperty(property, attrString);
+
+        elem.style.setProperty("--unregistered", attrString);
+        let value = window.getComputedStyle(elem).getPropertyValue("--unregistered");
 
         test(() => {
+          // Skip tests that include unsupported functions, since they are not violation of attr() security.
+          if (value == "" || CSS.supports(`${property} : ${value}`)) {
+            elem.style.setProperty(property, attrString);
             assert_equals(window.getComputedStyle(elem).getPropertyValue(property),
                           expectedValue);
+          }
         }, `'${property}: ${attrString}' with data-foo="${attrValue}"`);
 
         elem.style.setProperty(property, null);
@@ -66,38 +72,41 @@
       elem.style.setProperty(customPropertyName, null);
     }
 
+    const url = "https://does-not-exist.test/404.png";
+    const url2 = "https://does-not-exist-2.test/404.png";
+
     // Direct use.
     test_attr('--x',
-              'image-set(attr(data-foo))',
-              'https://does-not-exist.test/404.png',
-              'image-set("https://does-not-exist.test/404.png")');
+              `image-set(attr(data-foo))`,
+              url,
+              `image-set("${url}")`);
     test_attr('background-image',
-              'image-set(attr(data-foo))',
-              'https://does-not-exist.test/404.png',
+              `image-set(attr(data-foo))`,
+              url,
               'none');
     test_attr('background-image',
-              'image-set("https://does-not-exist.test/404.png")',
-              'https://does-not-exist.test/404.png',
-              'image-set(url("https://does-not-exist.test/404.png") 1dppx)');
+              `image-set("${url}")`,
+              url,
+              `image-set(url("${url}") 1dppx)`);
 
     test_attr('--x',
-              'src(attr(data-foo))',
-              'https://does-not-exist.test/404.png',
-              'src("https://does-not-exist.test/404.png")');
+              `src(attr(data-foo))`,
+              url,
+              `src("${url}")`);
     test_attr('background-image',
-              'src(attr(data-foo))',
-              'https://does-not-exist.test/404.png',
-              'none');
+              `src(attr(data-foo))`,
+              url,
+              `none`);
     test_attr('background-image',
-              'src("https://does-not-exist.test/404.png")',
-              'https://does-not-exist.test/404.png',
-              'src(url("https://does-not-exist.test/404.png"))');
+              `src("${url}")`,
+              url,
+              `src(url("${url}"))`);
 
     // The following string() function is under discussion in the working group and does not exist yet.
     test_attr('--x',
-              'src(string("https://does-not-exist.test" attr(data-foo)))',
+              `src(string("https://does-not-exist.test" attr(data-foo)))`,
               '/404.png',
-              'src(string("https://does-not-exist.test" "/404.png"))');
+              `src(string("https://does-not-exist.test" "/404.png"))`);
     test_attr('background-image',
               'src(string("https://does-not-exist.test" attr(data-foo)))',
               '/404.png',
@@ -105,168 +114,168 @@
     test_attr('background-image',
               'src(string("https://does-not-exist.test/""404.png"))',
               '/404.png',
-              'src(url("https://does-not-exist.test/404.png"))');
+              `src(url("${url}"))`);
 
     test_attr('--x',
-              'attr(data-foo type(<url>))',
-              'url(https://does-not-exist.test/404.png)',
-              'url("https://does-not-exist.test/404.png")');
+              `attr(data-foo type(<url>))`,
+              `url(${url})`,
+              `url("${url}")`);
     test_attr('background-image',
-              'attr(data-foo type(<url>))',
-              'url(https://does-not-exist.test/404.png)',
-              'none');
+              `attr(data-foo type(<url>))`,
+              `url(${url})`,
+              `none`);
     test_attr('background-image',
-              'url("https://does-not-exist.test/404.png")',
-              'url(https://does-not-exist.test/404.png)',
-              'url("https://does-not-exist.test/404.png")');
+              `url("${url}")`,
+              `url(${url})`,
+              `url("${url}")`);
 
     test_attr('--x',
-              'image(attr(data-foo))',
-              'https://does-not-exist.test/404.png',
-              'image("https://does-not-exist.test/404.png")');
+              `image(attr(data-foo))`,
+              url,
+              `image("${url}")`);
     test_attr('background-image',
-              'image(attr(data-foo))',
-              'https://does-not-exist.test/404.png',
+              `image(attr(data-foo))`,
+              url,
               'none');
     test_attr('background-image',
-              'image("https://does-not-exist.test/404.png")',
-              'https://does-not-exist.test/404.png',
-              'image(url("https://does-not-exist.test/404.png"))');
+              `image("${url}")`,
+              url,
+              `image(url("${url}"))`);
 
     test_attr('background-image',
-              'url(https://does-not-exist.test/404.png), attr(data-foo type(<image>))',
-              'linear-gradient(#000000, #ffffff)',
-              'url("https://does-not-exist.test/404.png"), linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255))');
+              `url(${url}), attr(data-foo type(<image>))`,
+              `linear-gradient(#000000, #ffffff)`,
+              `url("${url}"), linear-gradient(rgb(0, 0, 0), rgb(255, 255, 255))`);
 
     // The remaining tests use image-set(), but should be equivalent for image() etc.
 
     // Test in a fallback.
     test_attr('--x',
-              'image-set(var(--y, attr(data-foo)))',
-              'https://does-not-exist.test/404.png',
-              'image-set("https://does-not-exist.test/404.png")');
+              `image-set(var(--y, attr(data-foo)))`,
+              url,
+              `image-set("${url}")`);
     test_attr('background-image',
-              'image-set(var(--y, attr(data-foo)))',
-              'https://does-not-exist.test/404.png',
+              `image-set(var(--y, attr(data-foo)))`,
+              url,
               'none');
 
     // Test via a registered custom property.
     test_attr('--x',
-              'image-set(var(--some-string))',
-              'https://does-not-exist.test/404.png',
-              'image-set("https://does-not-exist.test/404.png")');
+              `image-set(var(--some-string))`,
+              url,
+              `image-set("${url}")`);
     test_attr('background-image',
-              'image-set(var(--some-string))',
-              'https://does-not-exist.test/404.png',
+              `image-set(var(--some-string))`,
+              url,
               'none');
 
     // Test via a registered custom property (list).
     test_attr('--x',
-              'image-set(var(--some-string-list))',
-              'https://does-not-exist.test/404.png',
-              'image-set("https://does-not-exist2.test/404.png" "https://does-not-exist.test/404.png")');
+              `image-set(var(--some-string-list))`,
+              url,
+              `image-set("${url2}" "${url}")`);
     test_attr('background-image',
-              'image-set(var(--some-string-list))',
-              'https://does-not-exist.test/404.png',
+              `image-set(var(--some-string-list))`,
+              url,
               'none');
-    test_registered_custom_property('--registered-url', '<url>', 'url("https://does-not-exist.test/empty-url")', 'https://does-not-exist.test/404.png', 'url("https://does-not-exist.test/empty-url")');
+    test_registered_custom_property('--registered-url', '<url>', `url("${url2}")`, '${url}', `url("${url2}")`);
     test_registered_custom_property('--registered-color', '<color>', 'red', 'blue', 'rgb(0, 0, 255)');
 
     // Test via a non-registered custom property.
     test_attr('--x',
-              'image-set(var(--some-other-url))',
-              'https://does-not-exist.test/404.png',
-              'image-set("https://does-not-exist.test/404.png")');
+              `image-set(var(--some-other-url))`,
+              url,
+              `image-set("${url}")`);
     test_attr('background-image',
-              'image-set(var(--some-other-url))',
-              'https://does-not-exist.test/404.png',
+              `image-set(var(--some-other-url))`,
+              url,
               'none');
 
     // Test multiple token substitution
     test_attr('background-image',
-              'attr(data-foo type(*))',
-              'url(https://does-not-exist.test/404.png), linear-gradient(black, white)',
+              `attr(data-foo type(*))`,
+              `url(${url}), linear-gradient(black, white)`,
               'none');
 
     // Test total attr()-tainting for substitution values
     test_attr('background-image',
-              'image-set(var(--image-set-valid))',
+              `image-set(var(--image-set-valid))`,
               'image/jpeg',
               'none');
     test_attr('background-image',
-              'image-set(var(--image-set-invalid))',
-              'https://does-not-exist.test/404.png',
+              `image-set(var(--image-set-invalid))`,
+              url,
               'none');
 
     // Test attr-tainting carries through if() function.
     test_attr('--x',
-              'image-set(if(style(--true): attr(data-foo);))',
-              'https://does-not-exist.test/404.png',
-              'image-set("https://does-not-exist.test/404.png")');
+              `image-set(if(style(--true): attr(data-foo);))`,
+              url,
+              `image-set("${url}")`);
     test_attr('background-image',
               'image-set(if(style(--true): attr(data-foo);))',
-              'https://does-not-exist.test/404.png',
+              url,
               'none');
     test_attr('background-image',
               `image-set(
-                if(style(--true): url(https://does-not-exist-2.test/404.png);
+                if(style(--true): url(${url2});
                    else: attr(data-foo);))`,
-              'https://does-not-exist-2.test/404.png',
-              'image-set(url("https://does-not-exist-2.test/404.png") 1dppx)');
+              url2,
+              `image-set(url("${url2}") 1dppx)`);
     test_attr('background-image',
               `image-set(
-                if(style(--some-string): url(https://does-not-exist.test/404.png);))`,
-              'https://does-not-exist.test/404.png',
+                if(style(--some-string): url(${url});))`,
+              url,
               'none');
     test_attr('background-image',
               `image-set(
-                if(style(--condition-val: attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+                if(style(--condition-val: attr(data-foo type(*))): url(${url});))`,
               '3',
               'none');
     test_attr('background-image',
               `image-set(
-                if(style(--condition-val: attr(data-foo type(*))): url(https://does-not-exist.test/404.png);
-                   style(--true): url(https://does-not-exist.test/404.png);
-                   else: url(https://does-not-exist.test/404.png);))`,
+                if(style(--condition-val: attr(data-foo type(*))): url(${url});
+                   style(--true): url(${url});
+                   else: url(${url});))`,
               '1',
               'none');
     test_attr('background-image',
-              `image-set(if(style(--true): url(https://does-not-exist.test/404.png);
-                            style(--condition-val): url(https://does-not-exist.test/404.png);
-                            else: url(https://does-not-exist.test/404.png);))`,
+              `image-set(if(style(--true): url(${url});
+                            style(--condition-val): url(${url});
+                            else: url(${url});))`,
               'attr(data-foo type(*))',
-              'image-set(url("https://does-not-exist.test/404.png") 1dppx)');
+              `image-set(url("${url}") 1dppx)`);
     test_attr('background-image',
               `image-set(
-                if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(https://does-not-exist.test/404.png);))`,
+                if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(${url});))`,
               '3',
               'none');
     test_attr('--x',
-              `image-set(if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(https://does-not-exist.test/404.png);))`,
+              `image-set(if(style(--condition-val: if(style(--true): attr(data-foo type(*));)): url(${url});))`,
               '3',
-              'image-set(url(https://does-not-exist.test/404.png))');
+              `image-set(url(${url}))`);
     test_attr('--x',
-              `image-set(if(style(--condition-val >= attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+              `image-set(if(style(--condition-val >= attr(data-foo type(*))): url(${url});))`,
               '3',
-              'image-set(url(https://does-not-exist.test/404.png))');
+              `image-set(url(${url}))`);
     test_attr('background-image',
               `image-set(
-                if(style(--condition-val >= attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
-              '3',
-              'none');
-    test_attr('background-image',
-              `image-set(
-                if(style(--condition-val < attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+                if(style(--condition-val >= attr(data-foo type(*))): url(${url});))`,
               '3',
               'none');
     test_attr('background-image',
               `image-set(
-                if(style(--str < attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+                if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
               '3',
               'none');
     test_attr('background-image',
               `image-set(
-                if(style(--condition-val < attr(data-foo type(*))): url(https://does-not-exist.test/404.png);))`,
+                if(style(--str < attr(data-foo type(*))): url(${url});))`,
+              '3',
+              'none');
+    test_attr('background-image',
+              `image-set(
+                if(style(--condition-val < attr(data-foo type(*))): url(${url});))`,
               'text',
               'none');
 </script>

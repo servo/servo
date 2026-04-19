@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing text-rendering with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#TextRenderingProperty"/>
     <h:meta name="assert" content="text-rendering supports the full grammar 'auto | optimizeSpeed | optimizeLegibility | geometricPrecision'."/>
   </metadata>
   <g id="target"></g>
