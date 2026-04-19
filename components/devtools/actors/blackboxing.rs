@@ -56,12 +56,12 @@ impl Actor for BlackboxingActor {
         let blackbox_request: BlackboxRequest =
             serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
 
-        let (start, end) = match &blackbox_request.range[..] {
-            [] => ((0, 0), (u32::MAX, u32::MAX)),
-            [range] => (
+        let range = match &blackbox_request.range[..] {
+            [] => None,
+            [range] => Some((
                 (range.start.line, range.start.column),
                 (range.end.line, range.end.column),
-            ),
+            )),
             _ => {
                 log::warn!(
                     "Expected 0 or 1 range elements, got {:?}",
@@ -80,8 +80,8 @@ impl Actor for BlackboxingActor {
             .ok_or(ActorError::Internal)?;
 
         let control_msg = match msg_type {
-            "blackbox" => DevtoolScriptControlMsg::Blackbox(source.spidermonkey_id, start, end),
-            "unblackbox" => DevtoolScriptControlMsg::Unblackbox(source.spidermonkey_id, start, end),
+            "blackbox" => DevtoolScriptControlMsg::Blackbox(source.spidermonkey_id, range),
+            "unblackbox" => DevtoolScriptControlMsg::Unblackbox(source.spidermonkey_id, range),
             _ => unreachable!(),
         };
         source

@@ -7,6 +7,7 @@
 [Exposed=DebuggerGlobalScope]
 interface DebuggerBlackboxEvent : Event {
     readonly attribute unsigned long spidermonkeyId;
+    readonly attribute boolean coversFullSource;
 };
 
 partial interface DebuggerBlackboxEvent {

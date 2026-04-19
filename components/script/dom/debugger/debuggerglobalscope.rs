@@ -364,15 +364,13 @@ impl DebuggerGlobalScope {
     pub(crate) fn fire_blackbox(
         &self,
         spidermonkey_id: u32,
-        start: (u32, u32),
-        end: (u32, u32),
+        range: Option<((u32, u32), (u32, u32))>,
         can_gc: CanGc,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerBlackboxEvent::new(
             self.upcast(),
             spidermonkey_id,
-            start,
-            end,
+            range,
             can_gc,
         ));
         assert!(
@@ -384,15 +382,13 @@ impl DebuggerGlobalScope {
     pub(crate) fn fire_unblackbox(
         &self,
         spidermonkey_id: u32,
-        start: (u32, u32),
-        end: (u32, u32),
+        range: Option<((u32, u32), (u32, u32))>,
         can_gc: CanGc,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerUnblackboxEvent::new(
             self.upcast(),
             spidermonkey_id,
-            start,
-            end,
+            range,
             can_gc,
         ));
         assert!(

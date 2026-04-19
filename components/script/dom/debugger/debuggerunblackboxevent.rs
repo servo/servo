@@ -18,6 +18,9 @@ use crate::script_runtime::CanGc;
 pub(crate) struct DebuggerUnblackboxEvent {
     event: Event,
     spidermonkey_id: u32,
+    covers_full_source: bool,
+
+    // Only relevant if covers_full_source is false
     start_line: u32,
     start_column: u32,
     end_line: u32,
@@ -28,21 +31,32 @@ impl DebuggerUnblackboxEvent {
     pub(crate) fn new(
         debugger_global: &GlobalScope,
         spidermonkey_id: u32,
-        start: (u32, u32),
-        end: (u32, u32),
+        range: Option<((u32, u32), (u32, u32))>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let result = Box::new(Self {
-            event: Event::new_inherited(),
-            spidermonkey_id,
-            start_line: start.0,
-            start_column: start.1,
-            end_line: end.0,
-            end_column: end.1,
-        });
+        let result = match range {
+            Some(((start_line, start_column), (end_line, end_column))) => Self {
+                event: Event::new_inherited(),
+                spidermonkey_id,
+                covers_full_source: false,
+                start_line,
+                start_column,
+                end_line,
+                end_column,
+            },
+            None => Self {
+                event: Event::new_inherited(),
+                spidermonkey_id,
+                covers_full_source: true,
+                start_line: 0,
+                start_column: 0,
+                end_line: 0,
+                end_column: 0,
+            },
+        };
 
-        let result = reflect_dom_object(result, debugger_global, can_gc);
-        result.event.init_event("unblackbox".into(), false, false);
+        let result = reflect_dom_object(Box::new(result), debugger_global, can_gc);
+        result.event.init_event("blackbox".into(), false, false);
 
         result
     }
@@ -52,6 +66,10 @@ impl DebuggerUnblackboxEventMethods<crate::DomTypeHolder> for DebuggerUnblackbox
     // check-tidy: no specs after this line
     fn SpidermonkeyId(&self) -> u32 {
         self.spidermonkey_id
+    }
+
+    fn CoversFullSource(&self) -> bool {
+        self.covers_full_source
     }
 
     fn Start(&self) -> DebuggerSourceLocation {
