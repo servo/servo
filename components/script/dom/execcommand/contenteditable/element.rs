@@ -6,7 +6,7 @@ use html5ever::{LocalName, local_name};
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::attr::AttrValue;
-use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationId};
+use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationId, ShorthandId};
 use style::values::specified::TextDecorationLine;
 use style::values::specified::box_::DisplayOutside;
 
@@ -257,22 +257,20 @@ impl Element {
         let read_lock = shared_lock.read();
         let style = declarations.read_with(&read_lock);
 
-        if style.len() != 1 {
-            return false;
-        }
-
         // > It is a b or strong element with exactly one attribute, which is style,
         // > and the style attribute sets exactly one CSS property
         // > (including invalid or unrecognized properties), which is "font-weight".
         if matches!(*self.local_name(), local_name!("b") | local_name!("strong")) {
-            return style.contains(PropertyDeclarationId::Longhand(LonghandId::FontWeight));
+            return style.len() == 1 &&
+                style.contains(PropertyDeclarationId::Longhand(LonghandId::FontWeight));
         }
 
         // > It is an i or em element with exactly one attribute, which is style,
         // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
         // > which is "font-style".
         if matches!(*self.local_name(), local_name!("i") | local_name!("em")) {
-            return style.contains(PropertyDeclarationId::Longhand(LonghandId::FontStyle));
+            return style.len() == 1 &&
+                style.contains(PropertyDeclarationId::Longhand(LonghandId::FontStyle));
         }
 
         let a_font_or_span = matches!(
@@ -290,27 +288,35 @@ impl Element {
             local_name!("s") | local_name!("strike") | local_name!("u")
         );
         if a_font_or_span || s_strike_or_u {
-            if let Some((text_decoration, _)) = style.get(PropertyDeclarationId::Longhand(
-                LonghandId::TextDecorationLine,
-            )) {
-                // > It is an a, font, s, span, strike, or u element with exactly one attribute,
-                // > which is style, and the style attribute sets exactly one CSS property
-                // > (including invalid or unrecognized properties), which is "text-decoration",
-                // > which is set to "line-through" or "underline" or "overline" or "none".
-                return matches!(
-                    text_decoration,
-                    PropertyDeclaration::TextDecorationLine(
-                        TextDecorationLine::LINE_THROUGH |
-                            TextDecorationLine::UNDERLINE |
-                            TextDecorationLine::OVERLINE |
-                            TextDecorationLine::NONE
-                    )
-                );
-            } else {
+            // Note that the shorthand "text-decoration" expands to 3 longhands. Hence we check if the length
+            // is 3 here, instead of 1.
+            if style.len() == 3 &&
+                style
+                    .shorthand_to_css(ShorthandId::TextDecoration, &mut String::new())
+                    .is_ok()
+            {
+                if let Some((text_decoration, _)) = style.get(PropertyDeclarationId::Longhand(
+                    LonghandId::TextDecorationLine,
+                )) {
+                    // > It is an a, font, s, span, strike, or u element with exactly one attribute,
+                    // > which is style, and the style attribute sets exactly one CSS property
+                    // > (including invalid or unrecognized properties), which is "text-decoration",
+                    // > which is set to "line-through" or "underline" or "overline" or "none".
+                    return matches!(
+                        text_decoration,
+                        PropertyDeclaration::TextDecorationLine(
+                            TextDecorationLine::LINE_THROUGH |
+                                TextDecorationLine::UNDERLINE |
+                                TextDecorationLine::OVERLINE |
+                                TextDecorationLine::NONE
+                        )
+                    );
+                }
+            } else if a_font_or_span {
                 // > It is an a, font, or span element with exactly one attribute, which is style,
                 // > and the style attribute sets exactly one CSS property (including invalid or unrecognized properties),
                 // > and that property is not "text-decoration".
-                return a_font_or_span;
+                return style.len() == 1;
             }
         }
 

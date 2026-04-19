@@ -600,7 +600,7 @@ where
     let new_parent = new_parent.or_else(|| {
         node_list
             .last()
-            .and_then(|first| first.GetNextSibling())
+            .and_then(|last| last.GetNextSibling())
             .filter(|next_of_last| next_of_last.is_editable() && sibling_criteria(next_of_last))
     });
     // Step 8. Otherwise, run new parent instructions, and let new parent be the result.
@@ -970,7 +970,9 @@ impl Node {
             let has_command_value = command_value.is_some();
             propagated_value = command_value.or(propagated_value);
             // Step 11.4. Let children be the children of current ancestor.
-            let children = current_ancestor_node.children();
+            let children = current_ancestor_node
+                .children()
+                .collect::<Vec<DomRoot<Node>>>();
             // Step 11.5. If the specified command value of current ancestor for command is not null, clear the value of current ancestor.
             if has_command_value {
                 if let Some(html_element) = current_ancestor.downcast::<HTMLElement>() {
@@ -1165,19 +1167,22 @@ impl Node {
             NodeOrString::Node(DomRoot::from_ref(self)),
             NodeOrString::String("span".to_owned()),
         ) {
-            for child in self.children() {
-                // Step 7.1. Let children be all children of node, omitting any that are Elements whose
-                // specified command value for command is neither null nor equivalent to new value.
-                if let Some(child_element) = child.downcast::<Element>() {
-                    let specified_value = child_element.specified_command_value(command);
-                    if specified_value.is_some() &&
-                        !command.are_equivalent_values(specified_value.as_ref(), Some(new_value))
-                    {
-                        continue;
-                    }
-                }
-                // Step 7.2. Force the value of each node in children,
-                // with command and new value as in this invocation of the algorithm.
+            // Step 7.1. Let children be all children of node, omitting any that are Elements whose
+            // specified command value for command is neither null nor equivalent to new value.
+            let children = self
+                .children()
+                .filter(|child| {
+                    !child.downcast::<Element>().is_some_and(|child_element| {
+                        let specified_value = child_element.specified_command_value(command);
+                        specified_value.is_some() &&
+                            !command
+                                .are_equivalent_values(specified_value.as_ref(), Some(new_value))
+                    })
+                })
+                .collect::<Vec<DomRoot<Node>>>();
+            // Step 7.2. Force the value of each node in children,
+            // with command and new value as in this invocation of the algorithm.
+            for child in children {
                 child.force_the_value(cx, command, Some(new_value));
             }
             // Step 7.3. Abort this algorithm.
@@ -1357,19 +1362,23 @@ impl Node {
             new_parent.remove_self(cx);
             // Step 21.3. Let children be all children of node,
             // omitting any that are Elements whose specified command value for command is neither null nor equivalent to new value.
-            for child in self.children() {
-                if child.downcast::<Element>().is_some_and(|child_element| {
-                    let specified_command_value = child_element.specified_command_value(command);
-                    specified_command_value.is_some() &&
-                        !command.are_equivalent_values(
-                            specified_command_value.as_ref(),
-                            Some(new_value),
-                        )
-                }) {
-                    continue;
-                }
-                // Step 21.4. Force the value of each node in children,
-                // with command and new value as in this invocation of the algorithm.
+            let children = self
+                .children()
+                .filter(|child| {
+                    !child.downcast::<Element>().is_some_and(|child_element| {
+                        let specified_command_value =
+                            child_element.specified_command_value(command);
+                        specified_command_value.is_some() &&
+                            !command.are_equivalent_values(
+                                specified_command_value.as_ref(),
+                                Some(new_value),
+                            )
+                    })
+                })
+                .collect::<Vec<DomRoot<Node>>>();
+            // Step 21.4. Force the value of each node in children,
+            // with command and new value as in this invocation of the algorithm.
+            for child in children {
                 child.force_the_value(cx, command, Some(new_value));
             }
         }
