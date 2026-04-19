@@ -265,4 +265,42 @@ promise_test(async (t) => {
   }
 }, 'max-message-size with a (non-zero) value larger than canSendSize provided by the remote peer');
 
+promise_test(async (t) => {
+  const offerer = new RTCPeerConnection();
+  t.add_cleanup(() => offerer.close());
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => answerer.close());
+  exchangeIceCandidates(offerer, answerer);
+
+  const dc = offerer.createDataChannel('large');
+  const openPromise = new Promise(resolve => {
+    dc.onopen = () => {
+      resolve();
+    }
+  });
+  await offerer.setLocalDescription();
+  await answerer.setRemoteDescription(offerer.localDescription);
+  await answerer.setLocalDescription();
+  await offerer.setRemoteDescription(answerer.localDescription);
+  await openPromise;
+  assert_equals(dc.readyState, 'open');
+  assert_throws_js(TypeError, () =>
+    dc.send(new Uint8Array(offerer.sctp.maxMessageSize + 65536)));
+  assert_throws_js(TypeError, () =>
+    dc.send(new Blob([new Uint8Array(offerer.sctp.maxMessageSize + 65536)])));
+
+  const dc2 = answerer.createDataChannel('alsolarge');
+  const openPromise2 = new Promise(resolve => {
+    dc2.onopen = () => {
+      resolve();
+    }
+  });
+  await openPromise2;
+  assert_equals(dc2.readyState, 'open');
+  assert_throws_js(TypeError, () =>
+    dc2.send(new Uint8Array(offerer.sctp.maxMessageSize + 65536)));
+  assert_throws_js(TypeError, () =>
+    dc2.send(new Blob([new Uint8Array(offerer.sctp.maxMessageSize + 65536)])));
+}, `datachannel.send throws range error when trying to send a message greater than max-message-size`);
+
 </script>

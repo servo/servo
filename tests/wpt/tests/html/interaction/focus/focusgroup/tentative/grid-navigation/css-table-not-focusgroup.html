@@ -26,8 +26,8 @@
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
 
-    await focusAndKeyPress(r1c1, kArrowRight);
+    await focusAndSendDirectionalInput(r1c1, kRight);
     assert_equals(document.activeElement, r1c1);
-  }, "Validates that a CSS table that doesn't have the focusgroup=grid attribute set doesn't allow arrow-keys navigation");
+  }, "Validates that a CSS table that doesn't have the focusgroup=grid attribute set doesn't allow directional navigation");
 
 </script>

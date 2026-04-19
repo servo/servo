@@ -1299,6 +1299,58 @@ const reduceLogSumExpTests = [
         }
       }
     }
+  },
+  {
+    'name':
+        'reduceLogSumExp avoids overflows caused by taking the exp of large inputs',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [100.0],
+          'descriptor': {shape: [1], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'axes': [0], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [100.0],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'reduceLogSumExp avoids underflows caused by taking the log of small inputs',
+    'graph': {
+      'inputs': {
+        'reduceLogSumExpInput': {
+          'data': [-100.0],
+          'descriptor': {shape: [1], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSumExp',
+        'arguments': [
+          {'input': 'reduceLogSumExpInput'},
+          {'options': {'axes': [0], 'keepDimensions': false}}
+        ],
+        'outputs': 'reduceLogSumExpOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumExpOutput': {
+          'data': [-100.0],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
   }
 ];
 

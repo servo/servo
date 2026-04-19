@@ -18,13 +18,15 @@ body {
   font-family: system-ui, sans-serif;
 }
 
-.outer {
+.outer,
+.outer-ne {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
   gap: .5em;
 }
 
-.outer div {
+.outer div,
+.outer-ne div {
   border-left: 1em solid var(--c);
   color: white;
 }
@@ -41,11 +43,25 @@ body {
     background: green;
   }
 }
+
+.outer-ne div::before {
+  content: attr(style);
+	display: block;
+  padding: .5em;
+  background: green;
+}
+
+@container style(--c: black) {
+  .outer-ne div::before {
+    background: red;
+  }
+}
 </style>
 
 <body>
   <p>All items should have a green background:</p>
   <div class="outer">
+    <!-- All the colors here should "equal" black. -->
     <div style="--c: black"></div>
     <div style="--c: #000"></div>
     <div style="--c: #000f"></div>
@@ -64,5 +80,16 @@ body {
     <div style="--c: lab(0 0 0)"></div>
     <div style="--c: oklch(0 0 0)"></div>
     <div style="--c: oklab(from black l a b)"></div>
+  </div>
+  <hr>
+  <div class="outer-ne">
+    <!-- Although these render as black, they are not considered equal to it,
+         so the container-style query to set a red background does NOT apply. -->
+    <div style="--c: hwb(none 0 100)"></div>
+    <div style="--c: hsl(none 0 0)"></div>
+    <div style="--c: color(srgb none 0 0)"></div>
+    <div style="--c: color(srgb-linear 0 none 0)"></div>
+    <div style="--c: oklch(0 0 none)"></div>
+    <div style="--c: oklab(0 none none)"></div>
   </div>
 </body>

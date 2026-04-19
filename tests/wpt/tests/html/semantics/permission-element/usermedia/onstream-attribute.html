@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTMLUserMediaElement: onstream attribute</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    test(() => {
+      const element = document.createElement("usermedia");
+      element.setConstraints({ video: true });
+      assert_true("onstream" in element, "onstream should be in element");
+
+      let called = false;
+      element.onstream = () => {
+        called = true;
+      };
+      element.dispatchEvent(new Event("stream"));
+      assert_true(called, "onstream IDL attribute should work");
+    }, "onstream IDL attribute");
+
+    test(() => {
+      const container = document.createElement("div");
+      container.innerHTML = '<usermedia onstream="window.onstream_called = true"></usermedia>';
+      const element = container.firstChild;
+
+      window.onstream_called = false;
+      element.dispatchEvent(new Event("stream"));
+      assert_true(window.onstream_called, "onstream HTML attribute should work");
+    }, "onstream HTML attribute");
+
+    test(() => {
+      const element = document.createElement("usermedia");
+      let called = false;
+      element.addEventListener("stream", () => {
+        called = true;
+      });
+      element.dispatchEvent(new Event("stream"));
+      assert_true(called, 'addEventListener("stream") should work');
+    }, "addEventListener stream");
+  </script>
+</body>

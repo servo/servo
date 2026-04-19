@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: auto-placed subgrid extra margin across multiple tracks (columns)</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-extra-margin-002-ref.html">
+<style>
+.grid-lanes {
+  display: inline grid-lanes;
+  grid-template-columns: repeat(4, auto);
+  border: 1px solid;
+}
+item {
+  width: 10px;
+  height: 40px;
+  background: grey;
+}
+.subgrid {
+  display: grid;
+  grid: auto / subgrid;
+  grid-column: span 2;
+  padding-left: 50px;
+  padding-right: 40px;
+  background: yellow;
+}
+</style>
+<div class="grid-lanes">
+  <item>1</item>
+  <item>2</item>
+  <item>3</item>
+  <item>4</item>
+  <div class="subgrid"></div>
+</div>
+</html>

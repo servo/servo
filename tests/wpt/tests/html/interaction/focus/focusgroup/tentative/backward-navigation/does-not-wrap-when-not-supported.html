@@ -21,11 +21,11 @@
   promise_test(async t => {
     var item1 = document.getElementById("item1");
 
-    await focusAndKeyPress(item1, kArrowUp);
+    await focusAndSendDirectionalInput(item1, kUp);
     assert_equals(document.activeElement, item1);
 
-    await focusAndKeyPress(item1, kArrowLeft);
+    await focusAndSendDirectionalInput(item1, kLeft);
     assert_equals(document.activeElement, item1);
-  }, "When the focus is set on the first item of a focusgroup, a backward arrow key press shouldn't move the focus since there aren't any previous item.");
+  }, "When the focus is set on the first item of a focusgroup, backward directional input shouldn't move the focus since there aren't any previous item.");
 
 </script>

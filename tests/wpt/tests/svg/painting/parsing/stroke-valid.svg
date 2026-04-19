@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing stroke with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty"/>
     <h:meta name="assert" content="stroke supports the full paint grammar 'none | color | url [none | color]? | context-fill | context-stroke'."/>
   </metadata>
   <g id="target"></g>

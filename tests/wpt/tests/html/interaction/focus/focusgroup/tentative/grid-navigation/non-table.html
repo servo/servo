@@ -20,7 +20,7 @@
   promise_test(async t => {
     var nonitem1 = document.getElementById("nonitem1");
 
-    await focusAndKeyPress(nonitem1, kArrowRight);
+    await focusAndSendDirectionalInput(nonitem1, kRight);
     assert_equals(document.activeElement, nonitem1);
   }, "Validates that focusgroup=grid set on a non table layout doesn't become a grid focusgroup nor a linear one.");
 

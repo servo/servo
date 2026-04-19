@@ -1,0 +1,112 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>HTMLUserMediaElement setConstraints() behavior combinations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <script>
+    const testCases = [
+      // type="camera"
+      { type: 'camera', video: undefined, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: 'camera', video: true, audio: undefined, expVideo: 1, expAudio: 0 },
+      { type: 'camera', video: true, audio: false, expVideo: 1, expAudio: 0 },
+      { type: 'camera', video: true, audio: true, expVideo: 1, expAudio: 0 },
+      { type: 'camera', video: false, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: 'camera', video: false, audio: false, expVideo: 0, expAudio: 0 },
+      { type: 'camera', video: false, audio: true, expVideo: 0, expAudio: 0 },
+      { type: 'camera', video: undefined, audio: false, expVideo: 0, expAudio: 0 },
+      { type: 'camera', video: undefined, audio: true, expVideo: 0, expAudio: 0 },
+
+      // type="microphone"
+      { type: 'microphone', video: undefined, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: 'microphone', video: undefined, audio: true, expVideo: 0, expAudio: 1 },
+      { type: 'microphone', video: false, audio: true, expVideo: 0, expAudio: 1 },
+      { type: 'microphone', video: true, audio: true, expVideo: 0, expAudio: 1 },
+      { type: 'microphone', video: undefined, audio: false, expVideo: 0, expAudio: 0 },
+      { type: 'microphone', video: false, audio: false, expVideo: 0, expAudio: 0 },
+      { type: 'microphone', video: true, audio: false, expVideo: 0, expAudio: 0 },
+      { type: 'microphone', video: false, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: 'microphone', video: true, audio: undefined, expVideo: 0, expAudio: 0 },
+
+      // type="camera microphone"
+      { type: "camera microphone", video: undefined, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: "camera microphone", video: true, audio: undefined, expVideo: 1, expAudio: 0 },
+      { type: "camera microphone", video: true, audio: false, expVideo: 1, expAudio: 0 },
+      { type: "camera microphone", video: true, audio: true, expVideo: 1, expAudio: 1 },
+      { type: "camera microphone", video: false, audio: true, expVideo: 0, expAudio: 1 },
+      { type: "camera microphone", video: false, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: "camera microphone", video: false, audio: false, expVideo: 0, expAudio: 0 },
+      { type: "camera microphone", video: undefined, audio: true, expVideo: 0, expAudio: 1 },
+      { type: "camera microphone", video: undefined, audio: false, expVideo: 0, expAudio: 0 },
+
+      // No type attribute (null)
+      { type: null, video: undefined, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: null, video: true, audio: undefined, expVideo: 1, expAudio: 0 },
+      { type: null, video: true, audio: false, expVideo: 1, expAudio: 0 },
+      { type: null, video: true, audio: true, expVideo: 1, expAudio: 1 },
+      { type: null, video: false, audio: true, expVideo: 0, expAudio: 1 },
+      { type: null, video: false, audio: undefined, expVideo: 0, expAudio: 0 },
+      { type: null, video: false, audio: false, expVideo: 0, expAudio: 0 },
+      { type: null, video: undefined, audio: true, expVideo: 0, expAudio: 1 },
+      { type: null, video: undefined, audio: false, expVideo: 0, expAudio: 0 },
+    ];
+
+    promise_test(async (t) => {
+      await test_driver.set_permission({ name: "camera" }, "granted");
+      await test_driver.set_permission({ name: "microphone" }, "granted");
+
+      for (let i = 0; i < testCases.length; i++) {
+        const testCase = testCases[i];
+        const { type, video, audio, expVideo, expAudio } = testCase;
+        const testName = `Case ${i}: type='${type}', video=${video}, audio=${audio}`;
+
+        const usermedia = document.createElement("usermedia");
+        if (type !== null) {
+          usermedia.setAttribute("type", type);
+        }
+        document.body.appendChild(usermedia);
+
+        const stream_promise = new Promise((resolve) => {
+          usermedia.onstream = resolve;
+        });
+
+        usermedia.setConstraints({ video: video, audio: audio });
+
+        // should_trigger is true if the element has at least one permission descriptor.
+        const should_trigger = (type !== null) || (video === true) || (audio === true);
+
+        // Wait until the element is clickable.
+        await new Promise(r => t.step_timeout(r, 600));
+
+        if (should_trigger) {
+          await test_driver.click(usermedia);
+          await stream_promise;
+        } else {
+          await test_driver.click(usermedia);
+          // Wait a bit to ensure no stream event is fired
+          await new Promise(r => t.step_timeout(r, 200));
+        }
+
+        const stream = usermedia.stream;
+        if (expVideo || expAudio) {
+          assert_true(stream instanceof MediaStream, `${testName}: stream type check`);
+          assert_equals(stream.getVideoTracks().length, expVideo, `${testName}: video tracks mismatch`);
+          assert_equals(stream.getAudioTracks().length, expAudio, `${testName}: audio tracks mismatch`);
+        } else {
+          assert_equals(stream, null, `${testName}: stream should be null`);
+          if (should_trigger) {
+            assert_true(usermedia.error !== null && usermedia.error !== undefined, `${testName}: error attribute should be set`);
+          }
+        }
+
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        document.body.removeChild(usermedia);
+      }
+    }, "HTMLUserMediaElement setConstraints() combinations consolidated");
+  </script>
+</body>

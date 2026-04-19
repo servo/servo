@@ -4,8 +4,8 @@
   <html:script src="/resources/testharness.js"/>
   <html:script src="/resources/testharnessreport.js"/>
   <html:link rel="stylesheet" href="/fonts/ahem.css"/>
-  <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElement"/>
-  <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextElementTextLengthAttribute"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElement"/>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextElementTextLengthAttribute"/>
   <defs>
     <path id="p" d="M0,25h100"/>
   </defs>

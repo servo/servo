@@ -24,7 +24,7 @@
   promise_test(async t => {
     var item2 = document.getElementById("item2");
 
-    await focusAndKeyPress(item2, kArrowLeft);
+    await focusAndSendDirectionalInput(item2, kLeft);
     assert_equals(document.activeElement, item2);
   }, "When the focus is set on an element in a nested focusgroup that doesn't support the navigation direction, focus should remain on that element and not ascend to the parent focusgroup.");
 

@@ -29,31 +29,31 @@
   promise_test(async t => {
     var r1c3 = document.getElementById("r1c3");
 
-    await focusAndKeyPress(r1c3, kArrowRight);
+    await focusAndSendDirectionalInput(r1c3, kRight);
     assert_equals(document.activeElement, r1c3);
-  }, "A right arrow press should not wrap the focus to the first column when only vertical wrap is supported by the focusgroup.");
+  }, "Navigating right should not wrap the focus to the first column when only vertical wrap is supported by the focusgroup.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
     var r2c1 = document.getElementById("r2c1");
 
-    await focusAndKeyPress(r2c1, kArrowDown);
+    await focusAndSendDirectionalInput(r2c1, kDown);
     assert_equals(document.activeElement, r1c1);
-  }, "When on the last row, a down arrow press should move the focus to first row if the focusgroup wraps vertically.");
+  }, "When on the last row, navigating down should move the focus to first row if the focusgroup wraps vertically.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
 
-    await focusAndKeyPress(r1c1, kArrowLeft);
+    await focusAndSendDirectionalInput(r1c1, kLeft);
     assert_equals(document.activeElement, r1c1);
-  }, "A left arrow press should not wrap the focus to the last column when only vertical wrap is supported by the focusgroup.");
+  }, "Navigating left should not wrap the focus to the last column when only vertical wrap is supported by the focusgroup.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
     var r2c1 = document.getElementById("r2c1");
 
-    await focusAndKeyPress(r1c1, kArrowUp);
+    await focusAndSendDirectionalInput(r1c1, kUp);
     assert_equals(document.activeElement, r2c1);
-  }, "When on the first row, an up arrow press should move the focus to last row if the focusgroup wraps vertically.");
+  }, "When on the first row, navigating up should move the focus to last row if the focusgroup wraps vertically.");
 
 </script>

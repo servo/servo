@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets with concurrent modulepreload</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Create a shadow root referencing a CSS URL that hasn't been fetched yet.
+    // A placeholder should appear. Then add a <link rel=modulepreload as=style>
+    // for the same URL. After the preload completes and the module callback
+    // fires, the placeholder should be replaced with the real sheet.
+    const cssUrl = "./support/styles-green.css?modulepreload-async";
+    const { shadowRoot, testElement } = createStylesheetHost(cssUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "Before preload: expected 1 placeholder.");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 0,
+      "Before preload: placeholder should be empty.");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 0)",
+      "No styles applied from empty placeholder.");
+
+    // Now trigger the modulepreload.
+    const link = document.createElement("link");
+    link.rel = "modulepreload";
+    link.as = "style";
+    link.href = cssUrl;
+    const loadPromise = new Promise((resolve, reject) => {
+      link.onload = resolve;
+      link.onerror = reject;
+    });
+    document.head.appendChild(link);
+    await loadPromise;
+
+    // The modulepreload put the module in the map. Wait for the
+    // adopted stylesheet to be asynchronously updated.
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    assertSheetRule(shadowRoot, 0, "span { color: green; }", "After preload");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 128, 0)",
+      "Green styles should be applied after modulepreload completes.");
+  }, "Modulepreload after shadow root creation resolves the placeholder.");
+</script>
+</body>

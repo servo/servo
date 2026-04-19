@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - unused preloads with various as/crossorigin</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// Verify basic interface shape before any preloads are added.
+test(() => {
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+  assert_true('SpeculationData' in window, "SpeculationData should exist");
+  assert_true('PreloadData' in window, "PreloadData should exist");
+
+  const speculations = performance.getSpeculations();
+  assert_not_equals(speculations, null);
+  assert_not_equals(speculations, undefined);
+  assert_true('preloads' in speculations, "should have preloads");
+  assert_true(Array.isArray(speculations.preloads), "preloads should be array");
+  assert_array_equals(speculations.preloads, [],
+    "preloads should be empty when page has no preloads");
+}, "performance.getSpeculations() basic interface");
+
+// Test matrix: combinations of "as" and "crossorigin" for unused preloads.
+const testCases = [
+  {as: 'script', crossorigin: null},
+  {as: 'script', crossorigin: 'anonymous'},
+  {as: 'script', crossorigin: 'use-credentials'},
+  {as: 'style',  crossorigin: null},
+  {as: 'style',  crossorigin: 'anonymous'},
+  {as: 'style',  crossorigin: 'use-credentials'},
+  {as: 'fetch',  crossorigin: null},
+  {as: 'fetch',  crossorigin: 'anonymous'},
+  {as: 'fetch',  crossorigin: 'use-credentials'},
+];
+
+for (const {as, crossorigin} of testCases) {
+  const coLabel = crossorigin === null ? 'no crossorigin' :
+                                         `crossorigin=${crossorigin}`;
+  promise_test(async t => {
+    const tag = `${as}-${crossorigin}-unused`;
+    const href = supportFileUrl(as, tag);
+    await addPreloadAndWait({t, as, crossorigin, href});
+
+    const preload = findPreloadByUrl(performance.getSpeculations().preloads, tag);
+    assert_not_equals(preload, undefined, "preload entry should exist");
+    assert_equals(preload.as, as, `as should be '${as}'`);
+    assert_equals(preload.crossorigin, expectedCrossOriginMode(crossorigin),
+      `crossorigin should be '${expectedCrossOriginMode(crossorigin)}'`);
+    assert_equals(preload.used, null, "unused preload should have used=null");
+  }, `Unused preload: as=${as}, ${coLabel}`);
+}
+</script>
+</body>

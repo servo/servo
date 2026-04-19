@@ -53,6 +53,21 @@ assert.sameValue(1, 1);
 """, includes=None, negative=None, is_module=True, is_only_strict=False)
     ),
     (
+        "flags-async.js",
+        """/*---
+description: Test with async flag
+flags: [async]
+---*/
+assert.sameValue(1, 1);
+""",
+        TestRecord("""/*---
+description: Test with async flag
+flags: [async]
+---*/
+assert.sameValue(1, 1);
+""", includes=None, negative=None, is_module=False, is_only_strict=False, is_async=True)
+    ),
+    (
         "flags-onlyStrict.js",
         """/*---
 description: Test with onlyStrict flag

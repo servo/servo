@@ -1,0 +1,49 @@
+<!doctype html>
+<body>
+<script>
+  // This helper is loaded inside an iframe with focus-without-user-activation
+  // policy denied. It responds to messages from the parent to perform focus
+  // actions and report back whether focus succeeded.
+  const input1 = document.createElement("input");
+  input1.id = "input1";
+  document.body.appendChild(input1);
+
+  const input2 = document.createElement("input");
+  input2.id = "input2";
+  document.body.appendChild(input2);
+
+  function isFocused(element) {
+    return document.activeElement === element;
+  }
+
+  window.addEventListener("message", (e) => {
+    const action = e.data.action;
+    if (action === "focus-input1") {
+      input1.focus();
+      e.source.postMessage({
+        action: action,
+        focused: isFocused(input1)
+      }, "*");
+    } else if (action === "focus-input2") {
+      input2.focus();
+      e.source.postMessage({
+        action: action,
+        focused: isFocused(input2)
+      }, "*");
+    } else if (action === "focus-parent-element") {
+      const el = parent.document.getElementById(e.data.elementId);
+      el.focus();
+      e.source.postMessage({
+        action: action,
+        focused: (parent.document.activeElement === el)
+      }, "*");
+    } else if (action === "focus-window") {
+      window.focus();
+      e.source.postMessage({
+        action: action,
+        focused: document.hasFocus()
+      }, "*");
+    }
+  });
+</script>
+</body>

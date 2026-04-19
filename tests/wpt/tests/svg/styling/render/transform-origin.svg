@@ -3,7 +3,7 @@
      xmlns:xlink="http://www.w3.org/1999/xlink"
      width="300" height="200" viewBox="0 0 300 200">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#RequiredProperties"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/styling.html#RequiredProperties"/>
     <h:link rel="match" href="transform-origin-ref.svg"/>
     <h:meta name="assert" content="The transform-origin property impacts SVG rendering."/>
   </metadata>

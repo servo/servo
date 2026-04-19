@@ -3,7 +3,7 @@
   <title>CSS path-length property</title>
   <metadata>
     <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
-    <html:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute"/>
     <html:link rel="match" href="path-length-css-property-ref.tentative.svg"/>
   </metadata>
   <style>

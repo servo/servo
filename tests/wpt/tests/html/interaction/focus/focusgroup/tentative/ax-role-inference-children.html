@@ -42,7 +42,7 @@
 
 <!-- Native child semantics (link) should be preserved -->
 <div id=fgNativeChild focusgroup="radiogroup">
-  <a href="#" id=nativeChild>Link</a>
+  <a tabindex=0 href="#" id=nativeChild>Link</a>
 </div>
 
 <!-- Native child semantics (input) should be preserved -->
@@ -52,62 +52,62 @@
 
 <!-- Button child should be inferred (tablist) -->
 <div id=fgButtonTablist focusgroup="tablist">
-  <button id=buttonTabChild>Tab</button>
+  <button tabindex=0 id=buttonTabChild>Tab</button>
 </div>
 
 <!-- Button child should be inferred (radiogroup) -->
 <div id=fgButtonRadiogroup focusgroup="radiogroup">
-  <button id=buttonRadioChild>Radio</button>
+  <button tabindex=0 id=buttonRadioChild>Radio</button>
 </div>
 
 <!-- Button child should be inferred (menu) -->
 <div id=fgButtonMenu focusgroup="menu">
-  <button id=buttonMenuChild>Menu Item</button>
+  <button tabindex=0 id=buttonMenuChild>Menu Item</button>
 </div>
 
 <!-- Button child should be inferred (menubar) -->
 <div id=fgButtonMenubar focusgroup="menubar">
-  <button id=buttonMenubarChild>Menu Item</button>
+  <button tabindex=0 id=buttonMenubarChild>Menu Item</button>
 </div>
 
 <!-- Button child with explicit role should be preserved -->
 <div id=fgButtonExplicit focusgroup="tablist">
-  <button id=buttonExplicitChild role="listitem">List Item</button>
+  <button tabindex=0 id=buttonExplicitChild role="listitem">List Item</button>
 </div>
 
 <!-- Popup button child should be inferred (menu) -->
 <div id=fgPopupButtonMenu focusgroup="menu">
-  <button id=popupButtonMenuChild aria-haspopup="menu">Submenu</button>
+  <button tabindex=0 id=popupButtonMenuChild aria-haspopup="menu">Submenu</button>
 </div>
 
 <!-- Popup button child should be inferred (menubar) -->
 <div id=fgPopupButtonMenubar focusgroup="menubar">
-  <button id=popupButtonMenubarChild aria-haspopup="menu">Submenu</button>
+  <button tabindex=0 id=popupButtonMenubarChild aria-haspopup="menu">Submenu</button>
 </div>
 
 <!-- Popup button child should be inferred (tablist) -->
 <div id=fgPopupButtonTablist focusgroup="tablist">
-  <button id=popupButtonTablistChild aria-haspopup="menu">Tab with popup</button>
+  <button tabindex=0 id=popupButtonTablistChild aria-haspopup="menu">Tab with popup</button>
 </div>
 
 <!-- Popup button child should be inferred (radiogroup) -->
 <div id=fgPopupButtonRadiogroup focusgroup="radiogroup">
-  <button id=popupButtonRadiogroupChild aria-haspopup="menu">Radio with popup</button>
+  <button tabindex=0 id=popupButtonRadiogroupChild aria-haspopup="menu">Radio with popup</button>
 </div>
 
 <!-- Popup button with explicit role should be preserved -->
 <div id=fgPopupButtonExplicit focusgroup="menubar">
-  <button id=popupButtonExplicitChild aria-haspopup="menu" role="listitem">List Item</button>
+  <button tabindex=0 id=popupButtonExplicitChild aria-haspopup="menu" role="listitem">List Item</button>
 </div>
 
 <!-- aria-haspopup="listbox" also produces kPopUpButton; should infer menuitem -->
 <div id=fgPopupButtonListbox focusgroup="menubar">
-  <button id=popupButtonListboxChild aria-haspopup="listbox">Options</button>
+  <button tabindex=0 id=popupButtonListboxChild aria-haspopup="listbox">Options</button>
 </div>
 
 <!-- aria-haspopup="dialog" produces kButton (not kPopUpButton); should still infer -->
 <div id=fgPopupButtonDialog focusgroup="menubar">
-  <button id=popupButtonDialogChild aria-haspopup="dialog">Open Dialog</button>
+  <button tabindex=0 id=popupButtonDialogChild aria-haspopup="dialog">Open Dialog</button>
 </div>
 
 <script>

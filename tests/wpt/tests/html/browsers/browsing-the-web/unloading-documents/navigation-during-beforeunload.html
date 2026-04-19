@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that beforeunload in one frame does not block navigation in sibling or parent frames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+// Test 1: Navigation of a sibling iframe should not be blocked by another iframe's beforeunload.
+promise_test(async test => {
+    const frame1 = document.createElement("iframe");
+    const frame2 = document.createElement("iframe");
+    document.body.appendChild(frame1);
+    document.body.appendChild(frame2);
+
+    // Wait for both frames to load about:blank.
+    await new Promise(resolve => test.step_timeout(resolve, 0));
+
+    // Set up a beforeunload listener on frame1 that tries to navigate frame2.
+    let frame2NavigationStarted = false;
+    frame1.contentWindow.addEventListener("beforeunload", () => {
+        // During frame1's beforeunload, try to navigate frame2.
+        frame2.contentWindow.location.href = "support/navigation-target.html";
+        frame2NavigationStarted = true;
+    });
+
+    // Navigate frame1, which will trigger its beforeunload.
+    const frame2LoadPromise = new Promise(resolve => {
+        frame2.addEventListener("load", resolve);
+    });
+    frame1.contentWindow.location.href = "support/navigation-target.html";
+
+    // frame2 should successfully navigate.
+    await frame2LoadPromise;
+    assert_true(frame2NavigationStarted, "beforeunload handler ran");
+    assert_true(frame2.contentWindow.location.href.includes("navigation-target.html"),
+        "Sibling iframe should have navigated to navigation-target.html");
+
+    frame1.remove();
+    frame2.remove();
+}, "Navigating a sibling iframe during another iframe's beforeunload should not be blocked");
+
+// Test 2: Navigation of the frame being unloaded should be blocked during its own beforeunload.
+promise_test(async test => {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+
+    await new Promise(resolve => test.step_timeout(resolve, 0));
+
+    frame.contentWindow.addEventListener("beforeunload", () => {
+        // Try to navigate the same frame during its own beforeunload - should be blocked.
+        frame.contentWindow.location.href = "support/navigation-target2.html";
+    });
+
+    const loadPromise = new Promise(resolve => {
+        frame.addEventListener("load", resolve);
+    });
+
+    // Navigate frame - its beforeunload tries to redirect to a different page instead.
+    frame.contentWindow.location.href = "support/navigation-target.html";
+
+    await loadPromise;
+    // The original navigation should have proceeded, not the one from beforeunload.
+    assert_true(frame.contentWindow.location.href.endsWith("navigation-target.html"),
+        "Frame should have navigated to navigation-target.html, not navigation-target2.html");
+
+    frame.remove();
+}, "Navigating the same frame during its own beforeunload should be blocked");
+
+// Test 3: Navigation of the parent frame should not be blocked during a child's beforeunload.
+promise_test(async test => {
+    // Run this test inside a container iframe so that navigating the parent
+    // doesn't navigate the test harness away.
+    const container = document.createElement("iframe");
+    container.src = "support/navigation-during-beforeunload-container.html";
+
+    const result = await new Promise(resolve => {
+        window.addEventListener("message", function handler(event) {
+            if (event.data && event.data.type === "navigation-during-beforeunload-result") {
+                window.removeEventListener("message", handler);
+                resolve(event.data);
+            }
+        });
+        document.body.appendChild(container);
+    });
+
+    assert_equals(result.status, "complete", "Inner test ran to completion");
+    assert_true(result.triedToNavigateParent, "beforeunload handler ran and tried to navigate parent");
+    assert_false(result.parentNavigationBlocked,
+        "Parent frame navigation should not have been blocked during child's beforeunload");
+
+    container.remove();
+}, "Navigating the parent frame during a child's beforeunload should not be blocked");
+</script>
+</body>

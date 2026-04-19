@@ -97,10 +97,10 @@ test(() => {
 
   try {
     const el1 = document.createElement('div');
-    el1.style.setProperty('--number', 'if(style(--unknown): ; else: random(element-shared, 1, 100000);)');
+    el1.style.setProperty('--number', 'if(style(--unknown): ; else: random(--foo property-index-scoped, 1, 100000);)');
     holder.appendChild(el1);
     const el2 = document.createElement('div');
-    el2.style.setProperty('--number', 'if(style(--unknown): ; else: random(element-shared, 1, 100000);)');
+    el2.style.setProperty('--number', 'if(style(--unknown): ; else: random(--foo property-index-scoped, 1, 100000);)');
     holder.appendChild(el2);
 
     const elComputedValue1 = getComputedStyle(el1).getPropertyValue('--number');
@@ -113,6 +113,6 @@ test(() => {
   } finally {
     document.body.removeChild(holder);
   }
-}, `element-shared random() with same property name on different elements in if() declaration value should be equal`);
+}, `random() with same property name on different elements in if() declaration value should be equal`);
 
 </script>

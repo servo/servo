@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>keyframe clamping</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+test(t => {
+  const element = createDiv(t);
+  const timing = {
+    duration: 1000,
+    easing: "steps(1, jump-both)"
+  };
+  const frames = [{ opacity:-0.5}, {opacity:2}];
+  const effect = new KeyframeEffect(element, frames, timing);
+  const animation = new Animation(effect, document.timeline);
+  animation.startTime = 0;
+  animation.currentTime = 500;
+  const actual = Number(getComputedStyle(element).getPropertyValue("opacity"));
+  const expected = 0.75;
+  assert_equals(actual, expected);
+}, "opacity should not clamp number keyframe values");
+
+test(t => {
+  const element = createDiv(t);
+  const timing = {
+    duration: 1000,
+    easing: "steps(1, jump-both)"
+  };
+  const frames = [{ opacity:"-50%"}, {opacity:"200%"}];
+  const effect = new KeyframeEffect(element, frames, timing);
+  const animation = new Animation(effect, document.timeline);
+  animation.startTime = 0;
+  animation.currentTime = 500;
+  const actual = Number(getComputedStyle(element).getPropertyValue("opacity"));
+  const expected = 0.75;
+  assert_equals(actual, expected);
+}, "opacity should not clamp percentage keyframe values");
+
+</script>

@@ -57,28 +57,28 @@
     var item8 = document.getElementById("item8");
     var item9 = document.getElementById("item9");
 
-    await focusAndKeyPress(item1, kArrowRight);
+    await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should navigate to nested item");
 
-    await focusAndKeyPress(item2, kArrowRight);
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item3, "Should navigate to item in section");
 
-    await focusAndKeyPress(item3, kArrowRight);
+    await focusAndSendDirectionalInput(item3, kRight);
     assert_equals(document.activeElement, item4, "Should navigate to item in article");
 
-    await focusAndKeyPress(item4, kArrowRight);
+    await focusAndSendDirectionalInput(item4, kRight);
     assert_equals(document.activeElement, item5, "Should navigate to deeply nested item");
 
-    await focusAndKeyPress(item5, kArrowRight);
+    await focusAndSendDirectionalInput(item5, kRight);
     assert_equals(document.activeElement, item6, "Should navigate to item in nav");
 
-    await focusAndKeyPress(item6, kArrowRight);
+    await focusAndSendDirectionalInput(item6, kRight);
     assert_equals(document.activeElement, item7, "Should navigate to focusable div");
 
-    await focusAndKeyPress(item7, kArrowRight);
+    await focusAndSendDirectionalInput(item7, kRight);
     assert_equals(document.activeElement, item8, "Should navigate to summary");
 
-    await focusAndKeyPress(item8, kArrowRight);
+    await focusAndSendDirectionalInput(item8, kRight);
     assert_equals(document.activeElement, item9, "Should navigate to final item");
   }, "Navigation should work with items in various container types");
 
@@ -88,11 +88,11 @@
     var item9 = document.getElementById("item9");
 
     await focusAndWait(item9);
-    await focusAndKeyPress(item9, kArrowLeft);
+    await focusAndSendDirectionalInput(item9, kLeft);
     assert_equals(document.activeElement, item8, "Should navigate backward from final item");
 
     var current = document.activeElement;
-    await focusAndKeyPress(current, kArrowLeft);
+    await focusAndSendDirectionalInput(current, kLeft);
     assert_equals(document.activeElement, item7, "Should navigate backward to focusable div");
   }, "Backward navigation should work with various container types");
 
@@ -100,7 +100,7 @@
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    await focusAndKeyPress(item1, kArrowDown);
+    await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2, "Vertical navigation should work with different container types");
   }, "Vertical navigation should work with various container types");
 

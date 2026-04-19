@@ -29,16 +29,16 @@
     var r2c1 = document.getElementById("r2c1");
     var r2c2 = document.getElementById("r2c2");
 
-    await focusAndKeyPress(r1c1, kArrowRight);
+    await focusAndSendDirectionalInput(r1c1, kRight);
     assert_equals(document.activeElement, r1c2);
 
-    await focusAndKeyPress(r1c2, kArrowDown);
+    await focusAndSendDirectionalInput(r1c2, kDown);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r2c2, kArrowLeft);
+    await focusAndSendDirectionalInput(r2c2, kLeft);
     assert_equals(document.activeElement, r2c1);
 
-    await focusAndKeyPress(r2c1, kArrowUp);
+    await focusAndSendDirectionalInput(r2c1, kUp);
     assert_equals(document.activeElement, r1c1);
   }, "Tests that grid focusgroups also work on CSS tables (i.e.: 'display: table'). The implementation relies on the layout objects, so the other tests that covers HTML tables don't need to be duplicated to test the same cases with CSS tables.");
 

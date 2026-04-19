@@ -79,4 +79,22 @@ test(() => {
   assert_equals(document.activeElement, b1,
     'Focus should be restored to the previously focused element.');
 }, 'Focus restore should always occur for modal dialogs.');
+
+test(() => {
+  b1.focus();
+  const dialog = document.getElementById('mydialog2');
+  dialog.showModal();
+  assert_equals(document.activeElement, dialog,
+    'The dialog should be focused after showModal() because it has no interactive descendants.');
+  dialog.close();
+  assert_equals(document.activeElement, b1,
+    'Focus should be restored, showModal().');
+
+  dialog.show();
+  assert_equals(document.activeElement, dialog,
+    'The dialog should be focused after show() because it has no interactive descendants.');
+  dialog.close();
+  assert_equals(document.activeElement, b1,
+    'Focus should be restored, show().');
+}, 'Focus restore should work when the dialog itself is focused.');
 </script>

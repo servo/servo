@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Crash test: gap decorations in fragmented flex with skipped lines</title>
+<link rel="help" href="https://issues.chromium.org/u/1/issues/489948958">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  .multi-column {
+    column-width: 140px;
+  }
+
+  #flexbox {
+    display: flex;
+    flex-wrap: wrap;
+    row-rule: 1px solid gold;
+  }
+
+  .item {
+    height: 50px;
+    width: 70px;
+    border: 1px solid;
+  }
+</style>
+
+<body class=multi-column>
+  <div id=flexbox>
+    <div class=item></div>
+    <div class=item>This item has enough text content to make it taller than the others and cause fragmentation across columns.</div>
+    <div class=item></div>
+    <div class=item></div>
+    <div class=item></div>
+    <div class=item></div>
+  </div>
+</body>

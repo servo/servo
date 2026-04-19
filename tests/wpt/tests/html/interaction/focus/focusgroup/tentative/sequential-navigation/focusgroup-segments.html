@@ -15,13 +15,13 @@
 <div id=before tabindex=0>Before toolbar</div>
 
 <div id=toolbar focusgroup="toolbar inline block wrap" aria-label="Text formatting">
-  <button id=bold type="button" focusgroupstart>Bold (priority)</button>
-  <button id=italic type="button">Italic</button>
+  <button tabindex=0 id=bold type="button" focusgroupstart>Bold (priority)</button>
+  <button tabindex=0 id=italic type="button">Italic</button>
   <span id=help-group focusgroup="none" aria-label="Help group">
-    <button id=help type="button">Help</button>
-    <button id=shortcuts type="button">Shortcuts</button>
+    <button tabindex=0 id=help type="button">Help</button>
+    <button tabindex=0 id=shortcuts type="button">Shortcuts</button>
   </span>
-  <button id=underline type="button" focusgroupstart>Underline (priority)</button>
+  <button tabindex=0 id=underline type="button" focusgroupstart>Underline (priority)</button>
 </div>
 
 <div id=after tabindex=0>After toolbar</div>
@@ -30,16 +30,16 @@
 <div id=before2 tabindex=0>Before complex</div>
 
 <div id=complex-focusgroup focusgroup="toolbar nomemory">
-  <button id=item1 focusgroupstart>Item 1 (priority)</button>
+  <button tabindex=0 id=item1 focusgroupstart>Item 1 (priority)</button>
   <div id=nested-opt-out focusgroup="none">
-    <button id=opted-out-1>Opted out 1</button>
+    <button tabindex=0 id=opted-out-1>Opted out 1</button>
     <div id=deeply-nested focusgroup="none">
-      <button id=deeply-opted-out>Deeply opted out</button>
+      <button tabindex=0 id=deeply-opted-out>Deeply opted out</button>
     </div>
-    <button id=opted-out-2>Opted out 2</button>
+    <button tabindex=0 id=opted-out-2>Opted out 2</button>
   </div>
-  <button id=item2 focusgroupstart>Item 2 (priority)</button>
-  <button id=item3>Item 3</button>
+  <button tabindex=0 id=item2 focusgroupstart>Item 2 (priority)</button>
+  <button tabindex=0 id=item3>Item 3</button>
 </div>
 
 <div id=after2 tabindex=0>After complex</div>
@@ -93,15 +93,15 @@
 
     await focusAndWait(bold);
 
-    await focusAndKeyPress(bold, kArrowRight);
-    assert_equals(document.activeElement, italic, "Arrow right should move from Bold to Italic");
+    await focusAndSendDirectionalInput(bold, kRight);
+    assert_equals(document.activeElement, italic, "Right should move from Bold to Italic");
 
-    await focusAndKeyPress(italic, kArrowRight);
-    assert_equals(document.activeElement, underline, "Arrow right should skip opted-out span and move to Underline");
+    await focusAndSendDirectionalInput(italic, kRight);
+    assert_equals(document.activeElement, underline, "Right should skip opted-out span and move to Underline");
 
-    await focusAndKeyPress(underline, kArrowLeft);
-    assert_equals(document.activeElement, italic, "Arrow left should skip opted-out span and move to Italic");
-  }, "Arrow key navigation treats opted-out elements as if they don't exist");
+    await focusAndSendDirectionalInput(underline, kLeft);
+    assert_equals(document.activeElement, italic, "Left should skip opted-out span and move to Italic");
+  }, "Directional input navigation treats opted-out elements as if they don't exist");
 
   promise_test(async t => {
     var before2 = document.getElementById("before2");
@@ -138,10 +138,10 @@
 
     await focusAndWait(help);
 
-    await focusAndKeyPress(help, kArrowRight);
-    assert_equals(document.activeElement, help, "Arrow keys should not work within opted-out section");
+    await focusAndSendDirectionalInput(help, kRight);
+    assert_equals(document.activeElement, help, "Directional input should not work within opted-out section");
 
-    await focusAndKeyPress(help, kArrowDown);
-    assert_equals(document.activeElement, help, "Vertical arrow keys should not work within opted-out section");
-  }, "Arrow keys do not work within opted-out focusgroup sections");
+    await focusAndSendDirectionalInput(help, kDown);
+    assert_equals(document.activeElement, help, "Vertical directional input should not work within opted-out section");
+  }, "Directional input does not work within opted-out focusgroup sections");
 </script>

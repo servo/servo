@@ -22,7 +22,7 @@ function getNextWindowMessageFromFrame(frame) {
 }
 
 promise_setup(async () => {
-  assertSpeculationRulesIsSupported()
+  assertSpeculationRulesIsSupported('prerender')
   await test_driver.set_rph_registration_mode('autoAccept');
   await test_driver.bless('handler registration');
 });

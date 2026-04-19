@@ -29,5 +29,21 @@ test_invalid_value('width', 'random(fixed 0.5px, 1px, 2px)');
 test_invalid_value('width', 'random(fixed 0.5%, 1px, 2px)');
 test_invalid_value('width', 'random(fixed -1, 1px, 2px)');
 test_invalid_value('width', 'random(10deg, 20deg)');
+test_invalid_value('width', 'random(element-scoped --foo, 1px, 2px)');
+test_invalid_value('width', 'random(element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(foo element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(element-scoped 1px, 2px)');
+test_invalid_value('width', 'random(--foo element-scoped element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped --foo, 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(--foo element-scoped property-scoped element-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(foo property-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped 1px, 2px)');
+test_invalid_value('width', 'random(property-scoped property-index-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped --foo, 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(foo property-index-scoped, 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped 1px, 2px)');
+test_invalid_value('width', 'random(property-index-scoped property-scoped, 1px, 2px)');
 
 </script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Flexbox Test: checkbox and radio with percentage width should allow flex shrink</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.flex {
+  display: flex;
+  width: 200px;
+}
+</style>
+</head>
+<body>
+<div class="flex" id="checkbox-flex">
+  <input type="checkbox" id="checkbox" style="width: 100%;">
+  <div id="checkbox-sibling" style="width: 40px; height: 20px; flex-shrink: 1;"></div>
+</div>
+<div class="flex" id="radio-flex">
+  <input type="radio" id="radio" style="width: 100%;">
+  <div id="radio-sibling" style="width: 40px; height: 20px; flex-shrink: 1;"></div>
+</div>
+<script>
+test(function() {
+  assert_greater_than(document.getElementById("checkbox-sibling").offsetWidth, 0,
+    "Sibling of checkbox with width:100% should have non-zero width");
+}, "Checkbox with percentage width in flex container should shrink to allow siblings to render");
+
+test(function() {
+  assert_less_than(document.getElementById("checkbox").offsetWidth, 200,
+    "Checkbox with width:100% should shrink below container width when there are siblings");
+}, "Checkbox with percentage width should participate in flex shrink");
+
+test(function() {
+  assert_greater_than(document.getElementById("radio-sibling").offsetWidth, 0,
+    "Sibling of radio with width:100% should have non-zero width");
+}, "Radio with percentage width in flex container should shrink to allow siblings to render");
+
+test(function() {
+  assert_less_than(document.getElementById("radio").offsetWidth, 200,
+    "Radio with width:100% should shrink below container width when there are siblings");
+}, "Radio with percentage width should participate in flex shrink");
+</script>
+</body>
+</html>

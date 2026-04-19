@@ -3,91 +3,88 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <link rel="help" href="https://www.w3.org/TR/SMIL/smil-timing.html#q22">
-<svg height="0">
-  <rect id="valid" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:30:01" fill="freeze"/>
-  </rect>
-  <rect id="invalidMinHHMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="01:99:01" fill="freeze"/>
-  </rect>
-  <rect id="invalidMinMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="99:01" fill="freeze"/>
-  </rect>
-  <rect id="invalidSecHHMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="01:30:99" fill="freeze"/>
-  </rect>
-  <rect id="invalidSecMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="30:99" fill="freeze"/>
-  </rect>
-  <rect id="boundaryValid" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:59:59" fill="freeze"/>
-  </rect>
-  <!-- Fractional seconds: dur="00:00:01.50" is 1.5s, so at t=1s animation should be partway through -->
-  <rect id="fractionalSecHHMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:00:01.50" fill="freeze"/>
-  </rect>
-  <!-- Fractional seconds in MM:SS form: dur="00:01.50" is 1.5s -->
-  <rect id="fractionalSecMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:01.50" fill="freeze"/>
-  </rect>
-  <!-- Fractional seconds near 60 boundary: dur="00:00:59.50" should be valid (59.5s < 60) -->
-  <rect id="fractionalSecBoundaryHHMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:00:59.50" fill="freeze"/>
-  </rect>
-  <!-- Fractional seconds near 60 boundary in MM:SS: dur="00:59.50" should be valid (59.5s < 60) -->
-  <rect id="fractionalSecBoundaryMMSS" fill="green" width="20" height="20">
-    <animate attributeName="x" from="0" to="200" begin="0s" dur="00:59.50" fill="freeze"/>
-  </rect>
-</svg>
+<svg height="0"></svg>
 <script>
-async_test(t => {
-  window.onload = t.step_func(() => {
-    let svg = document.querySelector("svg");
-    svg.pauseAnimations();
-    svg.setCurrentTime(60);
+const TESTS = [
+  // Valid dur="00:30:01" (30 min 1 sec). At t=60s the animation should be running.
+  { value: "00:30:01" },
+  // Valid boundary dur="00:59:59". Should animate.
+  { value: "00:59:59" },
+  // Fractional seconds in HH:MM:SS form: dur="00:00:01.50" is 1.5s.
+  // At t=60s, animation should be fully done (fill="freeze" at to=200).
+  { value: "00:00:01.50", frozen: true },
+  // Fractional seconds in MM:SS form: dur="00:01.50" is 1.5s
+  { value: "00:01.50", frozen: true },
+  // Fractional seconds near 60 boundary in HH:MM:SS form: dur="00:00:59.50" is 59.5s.
+  { value: "00:00:59.50", frozen: true },
+  // Fractional seconds near 60 boundary in MM:SS form: dur="00:59.50" is 59.5s.
+  { value: "00:59.50", frozen: true },
+  // More than 99 hours. Should animate.
+  { value: "101:00:01" },
 
-    requestAnimationFrame(t.step_func_done(() => {
-      // Valid dur="00:30:01" (30 min 1 sec). At t=60s the animation should be running.
-      assert_not_equals(document.getElementById("valid").x.animVal.value, 0,
-        'dur="00:30:01" should be valid and animate');
+  // Invalid minutes in HH:MM:SS form.
+  { value: "01:99:01", error: "minutes > 59 in HH:MM:SS" },
+  // Invalid minutes in MM:SS form.
+  { value: "99:01", error: "minutes > 59 in MM:SS" },
+  // Invalid seconds in HH:MM:SS form.
+  { value: "01:30:99", error: "seconds > 59 in HH:MM:SS" },
+  // Invalid seconds in MM:SS form.
+  { value: "30:99", error: "seconds > 59 in MM:SS" },
+  // Invalid fraction, no digits after full stop.
+  { value: "00:59:59.", error: "a fraction needs to have at least one digit" },
+  // Invalid seconds in HH:MM:SS.ff form. No leading zero.
+  { value: "00:59:9.9", error: "seconds < 10 should have a leading zero" },
+  // Missing seconds in HH:MM:SS.ff form.
+  { value: "00:59:.9", error: "seconds needs to be specified" },
+  // Invalid seconds in HH:MM:SS form.
+  { value: "00:59:009", error: "seconds without fraction should be two digits" },
+  // Missing hour field in HH:MM:SS form.
+  { value: ":30:01", error: "hours can't be missing in HH:MM:SS" },
+  // Missing minutes field in HH:MM:SS form.
+  { value: "01::01", error: "minutes can't be missing in HH:MM:SS" },
+  // Single digit minutes field in MM:SS form.
+  { value: "5:30", error: "minutes should always be two digits" },
+];
 
-      // Invalid minutes in HH:MM:SS form.
-      assert_equals(document.getElementById("invalidMinHHMMSS").x.animVal.value, 0,
-        'dur="01:99:01" should be invalid (minutes > 59 in HH:MM:SS)');
+promise_setup(async () => {
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const template = document.createElementNS(svgNs, 'rect');
+  [['fill', 'green'], ['width', '20'], ['height', '20'], ['class', 'test']].forEach(([name, value]) => {
+    template.setAttribute(name, value);
+  });
+  const anim = template.appendChild(document.createElementNS(svgNs, 'animate'));
+  [['attributeName', 'x'], ['from', '0'], ['to', '200'], ['fill', 'freeze']].forEach(([name, value]) => {
+    anim.setAttribute(name, value);
+  });
+  const svgRoot = document.querySelector('svg');
+  TESTS.forEach(test => {
+    const testElement = template.cloneNode(true);
+    const testAnimate = testElement.firstElementChild;
+    testAnimate.setAttribute('dur', test.value);
+    svgRoot.appendChild(testElement);
 
-      // Invalid minutes in MM:SS form.
-      assert_equals(document.getElementById("invalidMinMMSS").x.animVal.value, 0,
-        'dur="99:01" should be invalid (minutes > 59 in MM:SS)');
+    promise_test(async () => {
+      if (test.error) {
+        assert_equals(testElement.x.animVal.value, 0,
+                      `dur="${test.value}" should be invalid (${test.error})`);
+      } else {
+        if (test.frozen) {
+          assert_equals(testElement.x.animVal.value, 200,
+                        `dur="${test.value}" should be valid and animate (frozen)`);
+        } else {
+          assert_not_equals(testElement.x.animVal.value, 0,
+                            `dur="${test.value}" should be valid and animate`);
+        }
+      }
+    }, `${document.title}, dur="${test.value}"`);
+  });
+  svgRoot.pauseAnimations();
+  svgRoot.setCurrentTime(60);
 
-      // Invalid seconds in HH:MM:SS form.
-      assert_equals(document.getElementById("invalidSecHHMMSS").x.animVal.value, 0,
-        'dur="01:30:99" should be invalid (seconds > 59 in HH:MM:SS)');
-
-      // Invalid seconds in MM:SS form.
-      assert_equals(document.getElementById("invalidSecMMSS").x.animVal.value, 0,
-        'dur="30:99" should be invalid (seconds > 59 in MM:SS)');
-
-      // Valid boundary dur="00:59:59". Should animate.
-      assert_not_equals(document.getElementById("boundaryValid").x.animVal.value, 0,
-        'dur="00:59:59" should be valid and animate');
-
-      // Fractional seconds in HH:MM:SS form: dur="00:00:01.50" is 1.5s.
-      // At t=60s, animation should be fully done (fill="freeze" at to=200).
-      assert_equals(document.getElementById("fractionalSecHHMMSS").x.animVal.value, 200,
-        'dur="00:00:01.50" should be valid and include fractional seconds');
-
-      // Fractional seconds in MM:SS form: dur="00:01.50" is 1.5s.
-      assert_equals(document.getElementById("fractionalSecMMSS").x.animVal.value, 200,
-        'dur="00:01.50" should be valid and include fractional seconds');
-
-      // Fractional seconds near 60 boundary in HH:MM:SS form: dur="00:00:59.50" is 59.5s.
-      assert_equals(document.getElementById("fractionalSecBoundaryHHMMSS").x.animVal.value, 200,
-        'dur="00:00:59.50" should be valid (59.5 < 60)');
-
-      // Fractional seconds near 60 boundary in MM:SS form: dur="00:59.50" is 59.5s.
-      assert_equals(document.getElementById("fractionalSecBoundaryMMSS").x.animVal.value, 200,
-        'dur="00:59.50" should be valid (59.5 < 60)');
-    }));
+  return new Promise(resolve => {
+    window.addEventListener('load', () => {
+      requestAnimationFrame(resolve);
+    }, {once: true});
   });
 });
 </script>

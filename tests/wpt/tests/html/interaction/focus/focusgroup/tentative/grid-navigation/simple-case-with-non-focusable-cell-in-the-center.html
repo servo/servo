@@ -35,32 +35,32 @@
     var r2c1 = document.getElementById("r2c1");
     var r2c3 = document.getElementById("r2c3");
 
-    await focusAndKeyPress(r2c1, kArrowRight);
+    await focusAndSendDirectionalInput(r2c1, kRight);
     assert_equals(document.activeElement, r2c3);
-  }, "A right arrow press should move the focus to the next column, skipping the non-focusable cell.");
+  }, "Navigating right should move the focus to the next column, skipping the non-focusable cell.");
 
   promise_test(async t => {
     var r1c2 = document.getElementById("r1c2");
     var r3c2 = document.getElementById("r3c2");
 
-    await focusAndKeyPress(r1c2, kArrowDown);
+    await focusAndSendDirectionalInput(r1c2, kDown);
     assert_equals(document.activeElement, r3c2);
-  }, "A down arrow press should move the focus to the next row, skipping the non-focusable cell.");
+  }, "Navigating down should move the focus to the next row, skipping the non-focusable cell.");
 
   promise_test(async t => {
     var r2c1 = document.getElementById("r2c1");
     var r2c3 = document.getElementById("r2c3");
 
-    await focusAndKeyPress(r2c3, kArrowLeft);
+    await focusAndSendDirectionalInput(r2c3, kLeft);
     assert_equals(document.activeElement, r2c1);
-  }, "A left arrow press should move to the previous column, skipping the non-focusable cell.");
+  }, "Navigating left should move to the previous column, skipping the non-focusable cell.");
 
   promise_test(async t => {
     var r1c2 = document.getElementById("r1c2");
     var r3c2 = document.getElementById("r3c2");
 
-    await focusAndKeyPress(r3c2, kArrowUp);
+    await focusAndSendDirectionalInput(r3c2, kUp);
     assert_equals(document.activeElement, r1c2);
-  }, "An up arrow press should move the focus to the previous row, skipping the non-focusable cell.");
+  }, "Navigating up should move the focus to the previous row, skipping the non-focusable cell.");
 
 </script>

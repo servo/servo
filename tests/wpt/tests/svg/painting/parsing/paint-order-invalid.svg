@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: parsing paint-order with invalid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#PaintOrderProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintOrderProperty"/>
     <h:meta name="assert" content="paint-order supports only the grammar 'normal | [ fill || stroke || markers ]'."/>
     <h:meta name="assert" content="paint-order uses the shortest serialization."/>
   </metadata>

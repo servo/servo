@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets with modulepreload (basic)</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Modulepreload a CSS file and wait for it to complete. Then create a
+    // shadow root referencing the same URL. Because the module is already in
+    // the module map, the sheet should be available synchronously.
+    const cssUrl = "./support/styles.css?modulepreload-basic";
+
+    const link = document.createElement("link");
+    link.rel = "modulepreload";
+    link.as = "style";
+    link.href = cssUrl;
+    const loadPromise = new Promise((resolve, reject) => {
+      link.onload = resolve;
+      link.onerror = reject;
+    });
+    document.head.appendChild(link);
+    await loadPromise;
+
+    const { shadowRoot, testElement } = createStylesheetHost(cssUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "adoptedStyleSheets should have one entry.");
+    assert_equals(shadowRoot.adoptedStyleSheets[0].cssRules.length, 1,
+      "The sheet should already have rules (no empty placeholder).");
+    assertSheetRule(shadowRoot, 0, "span { color: blue; }", "Preloaded sheet");
+    assert_equals(getComputedStyle(testElement).color, "rgb(0, 0, 255)",
+      "Blue styles from the preloaded module should be applied immediately.");
+  }, "Modulepreloaded CSS module is available synchronously for shadowrootadoptedstylesheets.");
+</script>
+</body>

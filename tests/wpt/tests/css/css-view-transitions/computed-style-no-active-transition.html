@@ -81,7 +81,32 @@
   }, 'Values of VT pseudo properties with author stylesheet outside of ' +
        'an active view transition');
 
-  // TODO(crbug.com/487213151): Add tests of inherited properties from
-  // parent VT-pseudos.
+
+  test(t => {
+    document.documentElement.classList.add('stylized');
+    t.add_cleanup(() => {
+      document.documentElement.classList.remove('stylized');
+    });
+    const inheritedPropertiesRoot = {
+        'animation-duration': '0.25s',
+        'animation-fill-mode': 'both'
+    };
+    const inheritedPropertiesFoo = {
+        'animation-duration': '3s',
+        'animation-fill-mode': 'forwards'
+    };
+    const expected_values = {
+      '::view-transition-group(root)': inheritedPropertiesRoot,
+      '::view-transition-image-pair(root)': inheritedPropertiesRoot,
+      '::view-transition-old(root)': inheritedPropertiesRoot,
+      '::view-transition-new(root)': inheritedPropertiesRoot,
+      '::view-transition-group(foo)': inheritedPropertiesFoo,
+      '::view-transition-image-pair(foo)': inheritedPropertiesFoo,
+      '::view-transition-old(foo)': inheritedPropertiesFoo,
+      '::view-transition-new(foo)': inheritedPropertiesFoo
+    };
+    runTests(expected_values);
+  }, 'Value of inherited VT pseudo properties');
+
 </script>
 </html>

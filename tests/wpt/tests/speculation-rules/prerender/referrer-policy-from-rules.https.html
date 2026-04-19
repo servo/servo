@@ -17,7 +17,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 subsetTest(promise_test, async t => {
   const {exec, tryToActivate} = await create_prerendered_page(

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Test Reference: flex last baseline with multiple order values</title>
+  <style>
+    .outer {
+        display: flex;
+        align-items: last baseline;
+        height: 100px;
+        border: 1px solid black;
+    }
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        width: 60px;
+    }
+    .flex > div {
+        width: 60px;
+    }
+    .a { font-size: 10px; background: lightblue; }
+    .b { font-size: 20px; background: lightyellow; }
+    .c { font-size: 30px; background: lightgreen; }
+  </style>
+</head>
+<body>
+  <p>Test passes if "Ref" is aligned to the baseline of "C" (the large green text).</p>
+  <div class="outer">
+      <div class="flex">
+          <div class="a">A</div>
+          <div class="b">B</div>
+          <div class="c">C</div>
+      </div>
+      <div>Ref</div>
+  </div>
+</body>
+</html>

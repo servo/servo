@@ -10,13 +10,13 @@ let $1 = instance($$1);
 run(() => call($1, "init", [hostref(1)]), "table_get.wast:23");
 
 // table_get.wast:25
-assert_return(() => call($1, "get-externref", [0]), "table_get.wast:25", null);
+assert_return(() => call($1, "get-externref", [0]), "table_get.wast:25", "ref.null");
 
 // table_get.wast:26
 assert_return(() => call($1, "get-externref", [1]), "table_get.wast:26", hostref(1));
 
 // table_get.wast:28
-assert_return(() => call($1, "get-funcref", [0]), "table_get.wast:28", null);
+assert_return(() => call($1, "get-funcref", [0]), "table_get.wast:28", "ref.null");
 
 // table_get.wast:29
 assert_return(() => call($1, "is_null-funcref", [1]), "table_get.wast:29", 0);

@@ -26,43 +26,43 @@
 <script>
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g1'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('g1'), kRight);
     assert_equals(document.activeElement.id, 'g2');
-  }, "grid: ArrowRight moves to next column");
+  }, "grid: Right moves to next column");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g2'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('g2'), kLeft);
     assert_equals(document.activeElement.id, 'g1');
-  }, "grid: ArrowLeft moves to previous column");
+  }, "grid: Left moves to previous column");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('g1'), kDown);
     assert_equals(document.activeElement.id, 'g3');
-  }, "grid: ArrowDown moves to same column next row");
+  }, "grid: Down moves to same column next row");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g3'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('g3'), kUp);
     assert_equals(document.activeElement.id, 'g1');
-  }, "grid: ArrowUp moves to same column previous row");
+  }, "grid: Up moves to same column previous row");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g2'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('g2'), kRight);
     assert_equals(document.activeElement.id, 'g2');
-  }, "grid: ArrowRight does not wrap at row end");
+  }, "grid: Right does not wrap at row end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g1'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('g1'), kLeft);
     assert_equals(document.activeElement.id, 'g1');
-  }, "grid: ArrowLeft does not wrap at row start");
+  }, "grid: Left does not wrap at row start");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g3'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('g3'), kDown);
     assert_equals(document.activeElement.id, 'g3');
-  }, "grid: ArrowDown does not wrap at column end");
+  }, "grid: Down does not wrap at column end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('g1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('g1'), kUp);
     assert_equals(document.activeElement.id, 'g1');
-  }, "grid: ArrowUp does not wrap at column start");
+  }, "grid: Up does not wrap at column start");
 
 </script>

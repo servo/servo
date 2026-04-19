@@ -1,6 +1,7 @@
 <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
-  <title>Width and Height as presentation attributes on nested svg</title>
-  <html:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#TermPresentationAttribute"/>
+  <title>Width and Height style properties do not apply on nested svg</title>
+  <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/styling.html#TermPresentationAttribute"/>
+  <html:link rel="help" href="https://github.com/w3c/svgwg/pull/1059"/>
   <html:link rel="match"  href="nested-svg-sizing-with-use-expected.svg" />
   <defs>
     <svg id="target" style="width:50px; height:50px;">

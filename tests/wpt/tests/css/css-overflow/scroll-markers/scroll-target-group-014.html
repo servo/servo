@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll-target-group: auto with container-type: inline-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-target-group">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #nav {
+    scroll-target-group: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: white;
+  }
+
+  #nav a {
+    display: block;
+    padding: 5px;
+  }
+
+  #nav a:target-current {
+    background-color: yellow;
+  }
+
+  #container {
+    container-type: inline-size;
+    margin-top: 50px;
+  }
+
+  #scroller {
+    height: 400px;
+    overflow: scroll;
+    border: 1px solid black;
+  }
+
+  section {
+    height: 600px;
+    border: 1px solid red;
+  }
+</style>
+<div id="nav">
+  <a id="link1" href="#s1">Section 1</a>
+  <a id="link2" href="#s2">Section 2</a>
+  <a id="link3" href="#s3">Section 3</a>
+</div>
+<div id="scroller">
+  <div id="container">
+    <section id="s1">Section 1</section>
+    <section id="s2">Section 2</section>
+    <section id="s3">Section 3</section>
+  </div>
+</div>
+<script>
+  promise_test(async () => {
+    const scroller = document.getElementById('scroller');
+    const link1 = document.getElementById('link1');
+    const link2 = document.getElementById('link2');
+    const link3 = document.getElementById('link3');
+
+    // Wait for initial scroll marker update.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    assert_true(link1.matches(':target-current'), "Link 1 should be active initially");
+
+    scroller.scrollTop = 700;
+    // Wait for scroll update and snapshot.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    assert_true(link2.matches(':target-current'), "Link 2 should be active after scroll");
+    assert_false(link1.matches(':target-current'), "Link 1 should not be active after scroll");
+
+    scroller.scrollTop = 1300;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    assert_true(link3.matches(':target-current'), "Link 3 should be active after further scroll");
+  }, "scroll-target-group: auto updates :target-current with container-type: inline-size");
+</script>

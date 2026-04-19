@@ -10,7 +10,7 @@
 <body>
 <script>
 setup(() => {
-  assertSpeculationRulesIsSupported();
+  assertSpeculationRulesIsSupported('prerender');
   assert_implements_optional(
       'plugins' in navigator, 'navigator.plugins is not provided.'
     );

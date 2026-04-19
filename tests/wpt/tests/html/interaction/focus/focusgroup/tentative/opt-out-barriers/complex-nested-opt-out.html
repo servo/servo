@@ -53,13 +53,13 @@
     const item3 = document.getElementById("item3");
     const item4 = document.getElementById("item4");
 
-    await focusAndKeyPress(item1, kArrowRight);
+    await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should navigate to item2");
 
-    await focusAndKeyPress(item2, kArrowRight);
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item3, "Should skip entire opted-out section (including nested scope) and navigate to item3");
 
-    await focusAndKeyPress(item3, kArrowRight);
+    await focusAndSendDirectionalInput(item3, kRight);
     assert_equals(document.activeElement, item4, "Should navigate to deeply nested item4");
   }, "Outer focusgroup navigation skips opted-out subtree");
 
@@ -69,15 +69,15 @@
     const double_optout = document.getElementById("double_optout");
 
     await focusAndWait(optout_item1);
-    await focusAndKeyPress(optout_item1, kArrowRight);
-    assert_equals(document.activeElement, optout_item1, "Arrow keys should not move within opted-out generic subtree");
+    await focusAndSendDirectionalInput(optout_item1, kRight);
+    assert_equals(document.activeElement, optout_item1, "Directional input should not move within opted-out generic subtree");
 
     await focusAndWait(optout_item2);
-    await focusAndKeyPress(optout_item2, kArrowRight);
-    assert_equals(document.activeElement, optout_item2, "Arrow keys should not move within opted-out generic subtree (nested)");
+    await focusAndSendDirectionalInput(optout_item2, kRight);
+    assert_equals(document.activeElement, optout_item2, "Directional input should not move within opted-out generic subtree (nested)");
 
     await focusAndWait(double_optout);
-    await focusAndKeyPress(double_optout, kArrowRight);
+    await focusAndSendDirectionalInput(double_optout, kRight);
     assert_equals(document.activeElement, double_optout, "Double opt-out still blocks navigation");
   }, "Opt-out subtree blocks navigation for its own items");
 
@@ -87,13 +87,13 @@
     const nested_item2 = document.getElementById("nested_optout_item2");
 
     await focusAndWait(nested_item1);
-    await focusAndKeyPress(nested_item1, kArrowDown);
+    await focusAndSendDirectionalInput(nested_item1, kDown);
     assert_equals(document.activeElement, nested_item2, "Nested focusgroup should allow forward navigation inside opt-out subtree");
 
-    await focusAndKeyPress(nested_item2, kArrowUp);
+    await focusAndSendDirectionalInput(nested_item2, kUp);
     assert_equals(document.activeElement, nested_item1, "Nested focusgroup should allow backward navigation inside opt-out subtree");
 
-    await focusAndKeyPress(nested_item1, kArrowUp);
+    await focusAndSendDirectionalInput(nested_item1, kUp);
     assert_equals(document.activeElement, nested_item1, "Backward navigation inside nested scope should not jump to outer items");
   }, "Nested focusgroup inside opted-out subtree still works internally");
 
@@ -103,10 +103,10 @@
     const item4 = document.getElementById("item4");
 
     await focusAndWait(item4);
-    await focusAndKeyPress(item4, kArrowLeft);
+    await focusAndSendDirectionalInput(item4, kLeft);
     assert_equals(document.activeElement, item3, "Should navigate backward to item3");
 
-    await focusAndKeyPress(item3, kArrowLeft);
+    await focusAndSendDirectionalInput(item3, kLeft);
     assert_equals(document.activeElement, item2, "Should skip opted-out section backward and navigate to item2");
   }, "Backward outer navigation skips opted-out subtree");
 

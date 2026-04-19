@@ -3,7 +3,7 @@
      xmlns:h="http://www.w3.org/1999/xhtml">
     <title>SVG Test: focus - default value of tabindex</title>
     <metadata>
-        <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#Focus"/>
+        <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#Focus"/>
     </metadata>
     <a id="test1" href="#"></a>
     <rect id="test2"></rect>

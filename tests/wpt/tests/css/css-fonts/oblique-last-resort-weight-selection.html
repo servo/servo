@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Fonts: weight selection among last-resort oblique faces</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-style-matching">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-synthesis-style">
+<meta name="assert" content="When italic is requested with font-synthesis-style:oblique-only and only oblique faces exist, the best weight match is selected among the penalized last-resort candidates">
+<link rel="match" href="oblique-last-resort-weight-selection-ref.html">
+
+<style>
+/*
+ * font-family 'test' has two oblique faces (both penalized as last resort when italic
+ * is requested with font-synthesis-style:oblique-only).
+ *
+ * Face 1 (declared first): oblique 14deg–30deg, weight 400
+ *   Good weight match for the request (w400). No size-adjust → full 50px glyphs.
+ *
+ * Face 2 (declared second): oblique 5deg–14deg, weight 700
+ *   Poor weight match. size-adjust:50% → 25px glyphs if erroneously selected.
+ *
+ * WebKit builds the capabilities vector in reverse declaration order, so Face 2
+ * is iterated first in FontSelectionAlgorithm. This makes the test deterministic:
+ *
+ *   With slope.minimum:
+ *     Face 2 yields value=5 (its slope minimum). Face 1's range [14,30] does not
+ *     contain 5, so Face 1 is eliminated. Only Face 2 (w700) survives; its 50%
+ *     size-adjust produces 25px glyphs. ← INCORRECT
+ *
+ *   With clamp(requestSlope, slope.minimum, slope.maximum):
+ *     Face 2 yields clamp(14,5,14)=14. Face 1 yields clamp(14,14,30)=14. Both
+ *     ranges contain 14, so both survive the slope filter. Weight matching then
+ *     selects Face 1 (w400 = requested weight) → full 50px glyphs. ← CORRECT
+ */
+@font-face {
+  font-family: test;
+  font-style: oblique 14deg 30deg;
+  font-weight: 400;
+  src: url("resources/markA.ttf");
+}
+@font-face {
+  font-family: test;
+  font-style: oblique 5deg 14deg;
+  font-weight: 700;
+  src: url("resources/markA.ttf");
+  size-adjust: 50%;
+}
+
+div { font: 50px test; }
+</style>
+
+<!--
+  Requesting italic + font-synthesis-style:oblique-only + font-weight:400.
+  Both oblique faces are penalized (penalizeObliqueFontSelection=true).
+  Among last-resort faces, CSS weight matching must select Face 1 (w400).
+  Correct result: full-size (50px) 'A' glyph from markA.ttf with no size-adjust.
+-->
+<div style="font-style: italic; font-synthesis-style: oblique-only; font-weight: 400">A</div>

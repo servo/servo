@@ -20,10 +20,10 @@
   promise_test(async t => {
     var item1 = document.getElementById("item1");
 
-    await focusAndKeyPress(item1, kArrowUp);
+    await focusAndSendDirectionalInput(item1, kUp);
     assert_equals(document.activeElement, item1);
 
-    await focusAndKeyPress(item1, kArrowLeft);
+    await focusAndSendDirectionalInput(item1, kLeft);
     assert_equals(document.activeElement, item1);
   }, "When the focus is set on the only focusgroup item, the focus shouldn't move and we shouldn't get stuck in an infinite loop.");
 

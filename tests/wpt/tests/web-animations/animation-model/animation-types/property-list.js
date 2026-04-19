@@ -408,7 +408,7 @@ const gCSSProperties1 = {
     ]
   },
   'color-interpolation': {
-    // https://svgwg.org/svg2-draft/painting.html#ColorInterpolationProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#ColorInterpolationProperty
     types: [
       { type: 'discrete', options: [ [ 'linearrgb', 'auto' ] ] }
     ]
@@ -515,16 +515,16 @@ const gCSSProperties1 = {
     ]
   },
   'fill': {
-    // https://svgwg.org/svg2-draft/painting.html#FillProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#FillProperty
     types: [
     ]
   },
   'fill-opacity': {
-    // https://svgwg.org/svg2-draft/painting.html#FillOpacityProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#FillOpacityProperty
     types: [ 'opacity' ]
   },
   'fill-rule': {
-    // https://svgwg.org/svg2-draft/painting.html#FillRuleProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#FillRuleProperty
     types: [
       { type: 'discrete', options: [ [ 'evenodd', 'nonzero' ] ] }
     ]
@@ -962,7 +962,7 @@ const gCSSProperties2 = {
     ]
   },
   'marker-end': {
-    // https://svgwg.org/specs/markers/#MarkerEndProperty
+    // https://w3c.github.io/svgwg/specs/markers/#MarkerEndProperty
     types: [
       { type: 'discrete',
         options: [ [ 'url("http://localhost/test-1")',
@@ -970,7 +970,7 @@ const gCSSProperties2 = {
     ]
   },
   'marker-mid': {
-    // https://svgwg.org/specs/markers/#MarkerMidProperty
+    // https://w3c.github.io/svgwg/specs/markers/#MarkerMidProperty
     types: [
       { type: 'discrete',
         options: [ [ 'url("http://localhost/test-1")',
@@ -978,7 +978,7 @@ const gCSSProperties2 = {
     ]
   },
   'marker-start': {
-    // https://svgwg.org/specs/markers/#MarkerStartProperty
+    // https://w3c.github.io/svgwg/specs/markers/#MarkerStartProperty
     types: [
       { type: 'discrete',
         options: [ [ 'url("http://localhost/test-1")',
@@ -1258,13 +1258,13 @@ const gCSSProperties2 = {
     ]
   },
   'paint-order': {
-    // https://svgwg.org/svg2-draft/painting.html#PaintOrderProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintOrderProperty
     types: [
       { type: 'discrete', options: [ [ 'fill', 'stroke' ] ] }
     ]
   },
   'path-length': {
-    // https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute
+    // https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute
     types: [ 'positiveNumber' ],
     setup: t => {
       return createElement(t, 'path');
@@ -1297,7 +1297,7 @@ const gCSSProperties2 = {
     ]
   },
   'pointer-events': {
-    // https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty
+    // https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProperty
     types: [
       { type: 'discrete', options: [ [ 'fill', 'none' ] ] }
     ]
@@ -1413,21 +1413,21 @@ const gCSSProperties2 = {
     ]
   },
   'shape-rendering': {
-    // https://svgwg.org/svg2-draft/painting.html#ShapeRenderingProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#ShapeRenderingProperty
     types: [
       { type: 'discrete', options: [ [ 'optimizeSpeed', 'crispEdges' ] ] }
     ]
   },
   'stop-color': {
-    // https://svgwg.org/svg2-draft/pservers.html#StopColorProperty
+    // https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopColorProperty
     types: [ 'color' ]
   },
   'stop-opacity': {
-    // https://svgwg.org/svg2-draft/pservers.html#StopOpacityProperty
+    // https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopOpacityProperty
     types: [ 'opacity' ]
   },
   'stroke': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty
     types: [
     ]
   },
@@ -1436,25 +1436,25 @@ const gCSSProperties2 = {
     types: [ 'color' ]
   },
   'stroke-dasharray': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeDasharrayProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeDasharrayProperty
     types: [
       'dasharray',
       { type: 'discrete', options: [ [ 'none', '10px, 20px' ] ] }
     ]
   },
   'stroke-dashoffset': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeDashoffsetProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeDashoffsetProperty
     types: [
     ]
   },
   'stroke-linecap': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeLinecapProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeLinecapProperty
     types: [
       { type: 'discrete', options: [ [ 'round', 'square' ] ] }
     ]
   },
   'stroke-linejoin': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeLinejoinProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeLinejoinProperty
     types: [
       { type: 'discrete', options: [ [ 'round', 'miter' ] ] }
     ],
@@ -1463,15 +1463,15 @@ const gCSSProperties2 = {
     }
   },
   'stroke-miterlimit': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeMiterlimitProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeMiterlimitProperty
     types: [ 'positiveNumber' ]
   },
   'stroke-opacity': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeOpacityProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeOpacityProperty
     types: [ 'opacity' ]
   },
   'stroke-width': {
-    // https://svgwg.org/svg2-draft/painting.html#StrokeWidthProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeWidthProperty
     types: [
     ]
   },
@@ -1494,7 +1494,7 @@ const gCSSProperties2 = {
     ]
   },
   'text-anchor': {
-    // https://svgwg.org/svg2-draft/text.html#TextAnchorProperty
+    // https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchorProperty
     types: [
       { type: 'discrete', options: [ [ 'middle', 'end' ] ] }
     ]
@@ -1585,7 +1585,7 @@ const gCSSProperties2 = {
     ]
   },
   'text-rendering': {
-    // https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty
+    // https://w3c.github.io/svgwg/svg2-draft/painting.html#TextRenderingProperty
     types: [
       { type: 'discrete', options: [ [ 'optimizeSpeed', 'optimizeLegibility' ] ] }
     ]
@@ -1669,7 +1669,7 @@ const gCSSProperties2 = {
     types: [ 'scaleList' ]
   },
   'vector-effect': {
-    // https://svgwg.org/svg2-draft/coords.html#VectorEffectProperty
+    // https://w3c.github.io/svgwg/svg2-draft/coords.html#VectorEffectProperty
     types: [
       { type: 'discrete', options: [ [ 'none', 'non-scaling-stroke' ] ] },
     ]

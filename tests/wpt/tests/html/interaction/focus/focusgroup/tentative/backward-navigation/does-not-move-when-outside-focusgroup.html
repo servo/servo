@@ -22,11 +22,11 @@
   promise_test(async t => {
     var out = document.getElementById("out");
 
-    await focusAndKeyPress(out, kArrowUp);
+    await focusAndSendDirectionalInput(out, kUp);
     assert_equals(document.activeElement, out);
 
-    await focusAndKeyPress(out, kArrowLeft);
+    await focusAndSendDirectionalInput(out, kLeft);
     assert_equals(document.activeElement, out);
-  }, "When the focus is set on an element outside of the focusgroup, an arrow keypress shouldn't move the focus at all.");
+  }, "When the focus is set on an element outside of the focusgroup, directional input shouldn't move the focus at all.");
 
 </script>

@@ -265,6 +265,10 @@ function test_image_type_parsing() {
     "image-set(url(example.png) 1x type('image/jpeg'))",
     'image-set(url("example.png") 1x type("image/jpeg"))'
   );
+  test_valid_value_variants(
+    'background-image',
+    'image-set(url("x") 1x type("a\\""))',
+  );
 
   test_invalid_value_variants(
     'background-image',

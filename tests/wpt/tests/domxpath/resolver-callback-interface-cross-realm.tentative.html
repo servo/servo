@@ -79,7 +79,7 @@ function assert_reports_exception(fn) {
   resolverGlobalObject.removeEventListener("error", onErrorHandler);
 
   assert_equals(typeof error, "object");
-  assert_equals(error.constructor, evaluateGlobalObject.TypeError);
+  assert_equals(error.constructor, resolverGlobalObject.TypeError);
 }
 
 function bind_evaluate(resolver) {

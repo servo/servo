@@ -31,10 +31,10 @@
     var item1 = document.getElementById("item1");
     var item3 = document.getElementById("item3");
 
-    await focusAndKeyPress(item1, kArrowUp);
+    await focusAndSendDirectionalInput(item1, kUp);
     assert_equals(document.activeElement, item3);
 
-    await focusAndKeyPress(item1, kArrowUp);
+    await focusAndSendDirectionalInput(item1, kUp);
     assert_equals(document.activeElement, item3);
   }, "When the focus is set on the first item of an extending focusgroup while there are other non-item elements before, we should still be able to wrap to the last item. Also, if the last item has other non-item elements after itself, skipping these non-item elements shouldn't be an issue.");
 

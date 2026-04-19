@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>data: URI stylesheets in quirks mode</title>
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-stylesheet">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<!--
+  Quirk: If the document has been set to quirks mode, has the same origin as the
+  URL of the external resource, and the Content-Type metadata of the external
+  resource is not a supported style sheet type, the user agent must instead
+  assume it to be text/css.
+
+  [otherwise]:
+
+  If the resource's Content-Type metadata is not text/css, then set success to
+  false.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function iframeWith(linkHref, quirks) {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    const html = quirks ? "<body>test</body>" : "<!DOCTYPE html><body>test</body>";
+    const blob = new Blob([html], { type: "text/html" });
+    iframe.src = URL.createObjectURL(blob);
+    iframe.onload = () => resolve(iframe);
+    document.body.appendChild(iframe);
+  }).then(iframe => {
+    return new Promise(resolve => {
+      const doc = iframe.contentDocument;
+      const link = doc.createElement("link");
+      link.rel = "stylesheet";
+      link.href = linkHref;
+      link.onload = () => resolve({ iframe, event: "load" });
+      link.onerror = () => resolve({ iframe, event: "error" });
+      doc.head.appendChild(link);
+    });
+  });
+}
+
+promise_test(async t => {
+  const { iframe, event } = await iframeWith("data:text/css,body { background: green }", true);
+  t.add_cleanup(() => iframe.remove());
+  const doc = iframe.contentDocument;
+  assert_equals(doc.compatMode, "BackCompat", "iframe should be in quirks mode");
+  assert_equals(event, "load");
+  assert_equals(getComputedStyle(doc.body).backgroundColor, "rgb(0, 128, 0)");
+}, "data: URI stylesheet with text/css loads in quirks mode");
+
+promise_test(async t => {
+  const { iframe, event } = await iframeWith("data:text/plain,body { background: green }", true);
+  t.add_cleanup(() => iframe.remove());
+  const doc = iframe.contentDocument;
+  assert_equals(doc.compatMode, "BackCompat", "iframe should be in quirks mode");
+  assert_equals(event, "load");
+  assert_equals(getComputedStyle(doc.body).backgroundColor, "rgb(0, 128, 0)");
+}, "data: URI stylesheet with text/plain loads in quirks mode");
+
+promise_test(async t => {
+  const { iframe, event } = await iframeWith("data:text/plain,body { background: green }", false);
+  t.add_cleanup(() => iframe.remove());
+  const doc = iframe.contentDocument;
+  assert_equals(doc.compatMode, "CSS1Compat", "iframe should be in standards mode");
+  assert_equals(event, "error");
+  assert_not_equals(getComputedStyle(doc.body).backgroundColor, "rgb(0, 128, 0)");
+}, "data: URI stylesheet with text/plain is blocked in standards mode");
+</script>
+</body>

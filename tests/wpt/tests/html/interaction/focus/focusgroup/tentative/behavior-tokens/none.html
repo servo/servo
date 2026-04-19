@@ -13,34 +13,34 @@
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div focusgroup="none">
-  <button id=n1>n1</button>
-  <button id=n2>n2</button>
+  <button tabindex=0 id=n1>n1</button>
+  <button tabindex=0 id=n2>n2</button>
 </div>
 
 <script>
 
   promise_test(async t => {
     const n1 = document.getElementById('n1');
-    await focusAndKeyPress(n1, kArrowRight);
+    await focusAndSendDirectionalInput(n1, kRight);
     assert_equals(document.activeElement.id, 'n1');
-  }, "none: ArrowRight blocked");
+  }, "none: Right blocked");
 
   promise_test(async t => {
     const n1 = document.getElementById('n1');
-    await focusAndKeyPress(n1, kArrowLeft);
+    await focusAndSendDirectionalInput(n1, kLeft);
     assert_equals(document.activeElement.id, 'n1');
-  }, "none: ArrowLeft blocked");
+  }, "none: Left blocked");
 
   promise_test(async t => {
     const n1 = document.getElementById('n1');
-    await focusAndKeyPress(n1, kArrowDown);
+    await focusAndSendDirectionalInput(n1, kDown);
     assert_equals(document.activeElement.id, 'n1');
-  }, "none: ArrowDown blocked");
+  }, "none: Down blocked");
 
   promise_test(async t => {
     const n1 = document.getElementById('n1');
-    await focusAndKeyPress(n1, kArrowUp);
+    await focusAndSendDirectionalInput(n1, kUp);
     assert_equals(document.activeElement.id, 'n1');
-  }, "none: ArrowUp blocked");
+  }, "none: Up blocked");
 
 </script>

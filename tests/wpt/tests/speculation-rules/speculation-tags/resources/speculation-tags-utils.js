@@ -49,6 +49,7 @@
 
         const extraConfig = {};
         const preloadingType = getPreloadingType();
+        assertSpeculationRulesIsSupported(preloadingType);
         const preloadedRC = await referrerRC.helper.createContext({
             executorCreator(url) {
               return referrerRC.executeScript((preloadingType, tag, url, expectedTag) => {
@@ -91,6 +92,7 @@
 
         const extraConfig = {};
         const preloadingType = getPreloadingType();
+        assertSpeculationRulesIsSupported(preloadingType);
         const preloadedRC = await referrerRC.helper.createContext({
             executorCreator(url) {
               return referrerRC.executeScript((preloadingType, tag, url) => {
