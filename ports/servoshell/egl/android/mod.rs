@@ -37,10 +37,10 @@ thread_local! {
     pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
 }
 
-static CALLBACK_OBJ: OnceLock<Global<JObject<'static>>> = OnceLock::new();
+static CALLBACK_OBJECT: OnceLock<Global<JObject<'static>>> = OnceLock::new();
 
 fn callback_ref() -> &'static JObject<'static> {
-    CALLBACK_OBJ.get().expect("Servo init failed").as_ref()
+    CALLBACK_OBJECT.get().expect("Servo init failed").as_ref()
 }
 
 struct InitOptions {
@@ -151,10 +151,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
         let callbacks: Global<JObject<'static>> = env.new_global_ref(callbacks_obj)?;
 
-        assert!(CALLBACK_OBJ.set(callbacks).is_ok());
+        CALLBACK_OBJECT
+            .set(callbacks)
+            .expect("CALLBACK_OBJECT was already initialized.");
 
         let jvm = env.get_java_vm()?;
-
         let event_loop_waker = Box::new(WakeupCallback::new(jvm.clone()));
 
         let host = Rc::new(HostCallbacks::new(jvm));
@@ -266,8 +267,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_loadUri<'local>(
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
         debug!("loadUri");
-        let url = url.to_string();
-        call(env, |s| s.load_uri(&url));
+        call(env, |s| s.load_uri(&url.to_string()));
         Ok(())
     })
     .resolve::<ThrowRuntimeExAndDefault>()
