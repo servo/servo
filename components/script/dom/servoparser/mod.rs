@@ -2109,34 +2109,28 @@ fn attach_declarative_shadow_inner(
 
     let template_element = template.downcast::<HTMLTemplateElement>().unwrap();
 
-    // Step 3. Let mode be template start tag's shadowrootmode attribute's value.
-    // Step 4. Let clonable be true if template start tag has a shadowrootclonable attribute; otherwise false.
-    // Step 5. Let delegatesfocus be true if template start tag
-    // has a shadowrootdelegatesfocus attribute; otherwise false.
-    // Step 6. Let serializable be true if template start tag
-    // has a shadowrootserializable attribute; otherwise false.
+    // Step 3. Let mode be templateStartTag's shadowrootmode attribute's value.
+    // Step 4. Let slotAssignment be "named".
+    // Step 5. If templateStartTag's shadowrootslotassignment attribute is in
+    // the Manual state, then set slotAssignment to "manual".
+    // Step 6. Let clonable be true if templateStartTag has a shadowrootclonable attribute; otherwise false.
+    // Step 7. Let serializable be true if templateStartTag has a shadowrootserializable
+    // attribute; otherwise false.
+    // Step 8. Let delegatesFocus be true if templateStartTag has a shadowrootdelegatesfocus
+    // attribute; otherwise false.
     let mut shadow_root_mode = ShadowRootMode::Open;
+    let mut slot_assignment_mode = SlotAssignmentMode::Named;
     let mut clonable = false;
     let mut delegatesfocus = false;
     let mut serializable = false;
 
-    let attributes: Vec<ElementAttribute> = attributes
-        .iter()
-        .map(|attr| {
-            ElementAttribute::new(
-                attr.name.clone(),
-                DOMString::from(String::from(attr.value.clone())),
-            )
-        })
-        .collect();
-
     attributes
         .iter()
-        .for_each(|attr: &ElementAttribute| match attr.name.local {
+        .for_each(|attr: &Attribute| match attr.name.local {
             local_name!("shadowrootmode") => {
-                if attr.value.str().eq_ignore_ascii_case("open") {
+                if attr.value.eq_ignore_ascii_case("open") {
                     shadow_root_mode = ShadowRootMode::Open;
-                } else if attr.value.str().eq_ignore_ascii_case("closed") {
+                } else if attr.value.eq_ignore_ascii_case("closed") {
                     shadow_root_mode = ShadowRootMode::Closed;
                 } else {
                     unreachable!("shadowrootmode value is not open nor closed");
@@ -2151,6 +2145,11 @@ fn attach_declarative_shadow_inner(
             local_name!("shadowrootserializable") => {
                 serializable = true;
             },
+            local_name!("shadowrootslotassignment") => {
+                if attr.value.eq_ignore_ascii_case("manual") {
+                    slot_assignment_mode = SlotAssignmentMode::Manual;
+                }
+            },
             _ => {},
         });
 
@@ -2163,7 +2162,7 @@ fn attach_declarative_shadow_inner(
         clonable,
         serializable,
         delegatesfocus,
-        SlotAssignmentMode::Named,
+        slot_assignment_mode,
     ) {
         Ok(shadow_root) => {
             // Step 8.3. Set shadow's declarative to true.

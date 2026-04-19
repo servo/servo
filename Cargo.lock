@@ -8800,6 +8800,7 @@ dependencies = [
  "url",
  "urlpattern",
  "uuid",
+ "web_atoms",
  "webdriver",
  "webrender_api",
  "wgpu-core",
@@ -11028,9 +11029,9 @@ dependencies = [
 
 [[package]]
 name = "web_atoms"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57a9779e9f04d2ac1ce317aee707aa2f6b773afba7b931222bff6983843b1576"
+checksum = "d7cff6eef815df1834fd250e3a2ff436044d82a9f1bc1980ca1dbdf07effc538"
 dependencies = [
  "phf",
  "phf_codegen",
