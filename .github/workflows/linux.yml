@@ -289,7 +289,6 @@ jobs:
           # lld seems to use less memory and prevents OOM errors during linking.
           # We can remove this after upgrading to Rust 1.90, where lld will be the default.
           RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
-          MOZJS_FROM_SOURCE: "1"
           LLVM_OBJDUMP: llvm-objdump-14
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
