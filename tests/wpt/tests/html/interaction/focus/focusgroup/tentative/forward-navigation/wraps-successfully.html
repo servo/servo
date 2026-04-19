@@ -22,11 +22,11 @@
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    await focusAndKeyPress(item2, kArrowDown);
+    await focusAndSendDirectionalInput(item2, kDown);
     assert_equals(document.activeElement, item1);
 
-    await focusAndKeyPress(item2, kArrowRight);
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item1);
-  }, "When the focus is set on the last item of a focusgroup that supports wrapping in the axis of the arrow key pressed, the focus should move back to the first item.");
+  }, "When the focus is set on the last item of a focusgroup that supports wrapping in the axis of the directional input, the focus should move back to the first item.");
 
 </script>

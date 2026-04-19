@@ -32,9 +32,8 @@ function assertSheetRule(shadowRoot, index, expectedCssText, description) {
   );
 }
 
-// Awaits the import of the given URL(s) and waits for the completion
-// callbacks to fire. The PendingModuleEntry callback is posted via
-// PostTask, so two rAF waits are needed to ensure the task queue is
+// Awaits the import of the given URL(s) and waits for the adopted stylesheet
+// updates to be applied. Two rAF waits are needed to ensure the task queue is
 // drained. TODO: Remove double rAF when placeholders are dropped.
 async function fetchAndWait(...urls) {
   await Promise.all(

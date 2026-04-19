@@ -34,10 +34,10 @@
     var item3 = document.getElementById("item3");
     var optout_item1 = document.getElementById("optout_item1");
 
-    await focusAndKeyPress(item1, kArrowRight);
+    await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should navigate to item2");
 
-    await focusAndKeyPress(item2, kArrowRight);
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item3, "Should skip opted-out section and navigate to item3");
 
     assert_not_equals(document.activeElement, optout_item1, "Should not navigate to opted-out item");
@@ -50,10 +50,10 @@
     var optout_item1 = document.getElementById("optout_item1");
 
     await focusAndWait(item4);
-    await focusAndKeyPress(item4, kArrowLeft);
+    await focusAndSendDirectionalInput(item4, kLeft);
     assert_equals(document.activeElement, item3, "Should navigate to item3");
 
-    await focusAndKeyPress(item3, kArrowLeft);
+    await focusAndSendDirectionalInput(item3, kLeft);
     assert_equals(document.activeElement, item2, "Should skip opted-out section and navigate to item2");
 
     assert_not_equals(document.activeElement, optout_item1, "Should not navigate to opted-out item from reverse");
@@ -66,11 +66,11 @@
     await focusAndWait(optout_item1);
     assert_equals(document.activeElement, optout_item1, "Should be able to manually focus opted-out item");
 
-    await focusAndKeyPress(optout_item1, kArrowRight);
-    assert_equals(document.activeElement, optout_item1, "Arrow keys should not work within opted-out section");
+    await focusAndSendDirectionalInput(optout_item1, kRight);
+    assert_equals(document.activeElement, optout_item1, "Directional input should not work within opted-out section");
 
-    await focusAndKeyPress(optout_item1, kArrowDown);
-    assert_equals(document.activeElement, optout_item1, "Vertical arrow keys should not work within opted-out section");
-  }, "Arrow keys should not work within opted-out focusgroup sections");
+    await focusAndSendDirectionalInput(optout_item1, kDown);
+    assert_equals(document.activeElement, optout_item1, "Vertical directional input should not work within opted-out section");
+  }, "Directional input should not work within opted-out focusgroup sections");
 
 </script>

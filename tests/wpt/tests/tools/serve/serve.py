@@ -2,6 +2,7 @@
 
 import abc
 import argparse
+import html
 import importlib
 import json
 import logging
@@ -333,8 +334,18 @@ class Test262WindowHandler(HtmlWrapperHandler):
     wrapper = """<!doctype html>
 <meta charset=utf-8>
 <title>Test</title>
-<script src="/resources/test262/testharness.js"></script>
+<script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script>
+const t = async_test(document.title);
+window.test262HarnessDone = t.step_func_done(function(status, message) {
+    if (status === 1) {
+        throw new Error(message || "Test failed");
+    } else if (status === 2) {
+        throw new Error(message || "Harness Error");
+    }
+});
+</script>
 %(meta)s
 %(script)s
 <div id=log></div>
@@ -359,40 +370,72 @@ class Test262WindowTestBaseHandler(HtmlWrapperHandler):
 <script src="/resources/test262/test262-provider.js"></script>
 %(meta)s
 %(script)s"""
+    # The base wrapper for Test262 tests.
+    # It injects the reporter, the Test262 harness, and the provider.
     wrapper = pre_wrapper + """<body><script>test262Setup()</script>
-<script src="%(path)s"></script>
-<script>test262Done()</script></body>"""
+<script src="%(path)s" onerror="test262ScriptError()"></script></body>"""
 
-    def _get_metadata(self, request):
+    def _get_test_record(self, request):
         path = self._get_filesystem_path(request)
         with open(path, encoding='utf-8') as f:
-            test_record = test262_parse(logging.getLogger(), f.read(), path)
-        yield from (('script', "/third_party/test262/harness/%s" % filename)
-                    for filename in (test_record.includes or []))
+            return test262_parse(logging.getLogger(), f.read(), path)
 
-        expected_error = (test_record.negative or {}).get('type', None)
-        if expected_error is not None:
-            yield ('negative', expected_error)
+    def _get_meta(self, request):
+        yield from super()._get_meta(request)
+        test_record = self._get_test_record(request)
+        if test_record is None:
+            return
 
-    def _meta_replacement(self, key: str, value: str) -> Optional[str]:
-        if key == 'negative':
-            return """<script>test262Negative('%s')</script>""" % value
-        return None
+        # Pass negative test metadata (type and phase) to the reporter to enable validation.
+        if test_record.negative:
+            yield "<script>test262Negative('%s', '%s')</script>" % (test_record.negative.get("type"), test_record.negative.get("phase"))
+
+        # Signal to the reporter if this is an async test.
+        if test_record.is_async:
+            yield "<script>test262IsAsync(true)</script>"
+
+    def _get_script(self, request):
+        yield from super()._get_script(request)
+        test_record = self._get_test_record(request)
+        if test_record is None:
+            return
+
+        # Include any harness files specified in the 'includes' frontmatter attribute.
+        for filename in (test_record.includes or []):
+            yield '<script src="/third_party/test262/harness/%s"></script>' % html.escape(filename)
+
+        # If it's an async test, the harness must wait for a print() signal,
+        # provided by Test262's doneprintHandle.js.
+        if test_record.is_async:
+            yield '<script src="/third_party/test262/harness/doneprintHandle.js"></script>'
+
+
+
 
 
 class Test262WindowTestHandler(Test262WindowTestBaseHandler):
+    # Handler for standard window tests.
     path_replace = [(".test262-test.html", ".js")]
 
 
 class Test262WindowModuleHandler(Test262WindowHandler):
+    # Landing page for module tests (wraps further).
     path_replace = [(".test262-module.html", ".js", ".test262-module-test.html")]
 
 class Test262WindowModuleTestHandler(Test262WindowTestBaseHandler):
+    # Specialized Handler for Test262 module tests using dynamic import().
     path_replace = [(".test262-module-test.html", ".js")]
-    wrapper = Test262WindowTestHandler.pre_wrapper + """<body>
+    wrapper = Test262WindowTestBaseHandler.pre_wrapper + """<body>
+<script>window.__test262IsModule = true;</script>
 <script type="module">
   test262Setup();
-  import("%(path)s").then(() => test262Done());
+  import("%(path)s").then(() => {
+    if (!window.test262Async) {
+      test262Done();
+    }
+  }).catch(error => {
+    setTimeout(() => { throw error; });
+  });
 </script>
 </body>"""
 

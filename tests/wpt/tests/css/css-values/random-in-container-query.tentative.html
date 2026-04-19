@@ -15,7 +15,7 @@
   #container {
     container-type: size;
     --length: 30px;
-    --unregistered: random(element-shared, 30px, 10px);
+    --unregistered: random(--foo, 30px, 10px);
   }
   #target {
     --test1: true;
@@ -26,25 +26,25 @@
     --test6: true;
     --test7: true;
   }
-  @container style(--length: random(element-shared, 30px, 10px)) {
+  @container style(--length: random(--foo, 30px, 10px)) {
     #target { --test1: false; }
   }
   @container style(--length: var(--unregistered)) {
     #target { --test2: false; }
   }
-  @container style(--length = random(element-shared, 30px, 10px)) {
+  @container style(--length = random(--foo, 30px, 10px)) {
     #target { --test3: false; }
   }
   @container style(--unregistered = 30px) {
     #target { --test4: false; }
   }
-  @container style(random(element-shared, 30px, 10px) = random(element-shared, 30px, 10px)) {
+  @container style(random(--foo, 30px, 10px) = random(--foo, 30px, 10px)) {
     #target { --test5: false; }
   }
-  @container style(random(element-shared, 30px, 10px) <= random(element-shared, 30px, 10px) <= random(element-shared, 10px, 30px)) {
+  @container style(random(--foo, 30px, 10px) <= random(--foo, 30px, 10px) <= random(--foo, 10px, 30px)) {
     #target { --test6: false; }
   }
-  @container style(--length <= --length <= random(element-shared, 30px, 10px)) {
+  @container style(--length <= --length <= random(--foo, 30px, 10px)) {
     #target { --test7: false; }
   }
 </style>
@@ -55,7 +55,7 @@
   <div id="target"></div>
 </div>
 <script>
-  test_cq_condition_unknown("(width: random(element-shared, 10px, 30px))");
+  test_cq_condition_unknown("(width: random(--foo, 10px, 30px))");
   test_cq_condition_unknown("(height: random(10px, 30px))");
 
   test(() => {

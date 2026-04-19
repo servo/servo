@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<title>CSS Fonts reference: weight selection among last-resort oblique faces</title>
+
+<style>
+@font-face {
+  font-family: ref;
+  src: url("resources/markA.ttf");
+}
+
+div { font: 50px ref; }
+</style>
+
+<!-- Expected: full-size 50px 'A' from markA.ttf (Face 1, w400, no size-adjust selected) -->
+<div>A</div>

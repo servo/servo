@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Shapes: polygon() rounding clamping</title>
+<link rel="author" title="Jason Leo" href="mailto:cgqaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#funcdef-basic-shape-polygon">
+<link rel="match" href="polygon-function-rounding-clamp-ref.html">
+<meta name="assert" content="The rounding radius of a polygon() is clamped so it never exceeds tan(angle/2) * segment / 2 for either adjacent line segment.">
+<meta name="fuzzy" content="maxDifference=0-35;totalPixels=0-500">
+<style>
+.test {
+    display: inline-block;
+    width: 200px;
+    height: 200px;
+    background: green;
+    margin: 10px;
+}
+
+/* Rectangle: round 320px, clamped to 100px at 90-degree vertices. */
+.t1 {
+    clip-path: polygon(round 320px, 0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Pentagon: round 320px, overclamped at each vertex. */
+.t2 {
+    clip-path: polygon(round 320px, 50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+}
+
+/* Isosceles triangle: round 200px, overclamped at each vertex. */
+.t3 {
+    clip-path: polygon(round 200px, 50% 0%, 0% 100%, 100% 100%);
+}
+
+/* Equilateral triangle: round 280px, overclamped at 60-degree vertices. */
+.t4 {
+    height: auto;
+    aspect-ratio: 1 / sin(60deg);
+    clip-path: polygon(round 280px, 50% 0%, 0% 100%, 100% 100%);
+}
+
+/* Diamond: round 300px, clamped at 90-degree vertices. */
+.t5 {
+    clip-path: polygon(round 300px, 50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+</style>
+<p>The test passes if all five shapes match their references.</p>
+<div class="test t1"></div>
+<div class="test t2"></div>
+<div class="test t3"></div>
+<div class="test t4"></div>
+<div class="test t5"></div>

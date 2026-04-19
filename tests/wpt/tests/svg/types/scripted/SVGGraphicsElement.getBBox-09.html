@@ -41,10 +41,10 @@
 function assert_bbox(id, expected_x, expected_y, expected_w, expected_h, options) {
   var el = document.getElementById(id);
   var bbox = options ? el.getBBox(options) : el.getBBox();
-  assert_equals(bbox.x, expected_x, "x");
-  assert_equals(bbox.y, expected_y, "y");
-  assert_equals(bbox.width, expected_w, "width");
-  assert_equals(bbox.height, expected_h, "height");
+  assert_approx_equals(bbox.x, expected_x, 0.01, "x");
+  assert_approx_equals(bbox.y, expected_y, 0.01, "y");
+  assert_approx_equals(bbox.width, expected_w, 0.01, "width");
+  assert_approx_equals(bbox.height, expected_h, 0.01, "height");
 }
 
 // ========================================================================
@@ -98,12 +98,12 @@ test(function() {
 }, "stroked zero-length line: stroke bbox same as fill bbox");
 
 test(function() {
-  assert_bbox("stroked_horiz", 10, 20, 40, 0, {stroke: true});
-}, "stroked horizontal line: stroke bbox same as fill bbox");
+  assert_bbox("stroked_horiz", 10, 18, 40, 4, {stroke: true});
+}, "stroked horizontal line: stroke-width wide");
 
 test(function() {
-  assert_bbox("stroked_vert", 10, 20, 0, 40, {stroke: true});
-}, "stroked vertical line: stroke bbox same as fill bbox");
+  assert_bbox("stroked_vert", 8, 20, 4, 40, {stroke: true});
+}, "stroked vertical line: stroke-width wide");
 
 test(function() {
   // Zero-width rect: not rendered → (0,0,0,0) even with stroke option.
@@ -130,8 +130,8 @@ test(function() {
 }, "stroked path MoveTo only with round linecap: stroke bbox same as fill bbox");
 
 test(function() {
-  assert_bbox("stroked_zero_line", 10, 20, 0, 0, {stroke: true});
-}, "stroked zero-length path segment with round linecap: stroke bbox same as fill bbox");
+  assert_bbox("stroked_zero_line", 8, 18, 4, 4, {stroke: true});
+}, "stroked zero-length path segment with round linecap: stroke-width wide");
 
 test(function() {
   // Ellipse with rx=0, ry=30: not rendered → (0,0,0,0).
@@ -139,28 +139,18 @@ test(function() {
 }, "stroked ellipse with zero rx: not rendered, stroke bbox is all zeros");
 
 test(function() {
-  assert_bbox("stroked_horiz_path", 10, 20, 40, 0, {stroke: true});
-}, "stroked horizontal path with butt linecap: stroke bbox same as fill bbox");
+  assert_bbox("stroked_horiz_path", 10, 18, 40, 4, {stroke: true});
+}, "stroked horizontal path with butt linecap: stroke-width wide");
 
 // --- Combined fill+stroke option ---
 
 test(function() {
-  var el = document.getElementById("stroked_point");
-  var bbox = el.getBBox({fill: true, stroke: true});
-  assert_equals(bbox.x, 10, "x");
-  assert_equals(bbox.y, 20, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
+  assert_bbox("stroked_point", 10, 20, 0, 0, {fill: true, stroke: true});
 }, "stroked zero-length line: fill+stroke bbox same as fill bbox");
 
 test(function() {
-  var el = document.getElementById("stroked_point");
-  var bbox = el.getBBox({fill: false, stroke: false});
   // With both fill and stroke false, the bbox should be (0, 0, 0, 0).
-  assert_equals(bbox.x, 0, "x");
-  assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
+  assert_bbox("stroked_point", 0, 0, 0, 0, {fill: false, stroke: false});
 }, "zero-length line with fill:false stroke:false returns empty bbox");
 
 // ========================================================================
@@ -182,12 +172,7 @@ test(function() {
 }, "positioned empty text element has zero-area bbox");
 
 test(function() {
-  var el = document.getElementById("text_display_none");
-  var bbox = el.getBBox();
   // Per resolution (issue #1018): non-rendered elements return zero bbox.
-  assert_equals(bbox.x, 0, "x");
-  assert_equals(bbox.y, 0, "y");
-  assert_equals(bbox.width, 0, "width");
-  assert_equals(bbox.height, 0, "height");
+  assert_bbox("text_display_none", 0, 0, 0, 0);
 }, "display:none text element returns zero bbox");
 </script>

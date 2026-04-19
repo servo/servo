@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml"
      class="reftest-wait">
   <title>SVG Pattern: Inherited pattern removed after style change</title>
-  <h:link rel="help" href="https://svgwg.org/svg2-draft/pservers.html"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html"/>
   <h:link rel="match" href="reference/green-100x100.svg"/>
   <h:script src="/common/rendering-utils.js"/>
   <h:script src="/common/reftest-wait.js"/>

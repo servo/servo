@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2017852">
+<title>Check that isContentEditable = true for elements in design mode document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="ceInherit">
+  <template shadowrootmode="open">
+    <span id="inShadow"></span>
+  </template>
+</div>
+<div contenteditable="false" id="ceFalse"></div>
+
+<script>
+  document.designMode = "on";
+  test(() => {
+    assert_true(ceInherit.isContentEditable, "Element in designMode document should have isContentEditable = true");
+  }, "isContentEditable for contenteditable=inherit in design mode");
+  test(() => {
+    assert_false(ceFalse.isContentEditable, "Element with contenteditable=false in designMode document should have isContentEditable = false");
+  }, "isContentEditable for contenteditable=false in design mode");
+  test(() => {
+    let shadowElem = ceInherit.shadowRoot.getElementById("inShadow");
+    assert_false(shadowElem.isContentEditable, "isContentEditable should not be inherited through shadow DOM");
+  }, "isContentEditable for element in shadow DOM in design mode");
+  test(t => {
+    t.add_cleanup(() => { document.designMode = "on"; });
+    document.designMode = "off";
+    assert_false(ceInherit.isContentEditable, "isContentEditable should return to false when designMode is turned off");
+  }, "isContentEditable after turning design mode off");
+</script>

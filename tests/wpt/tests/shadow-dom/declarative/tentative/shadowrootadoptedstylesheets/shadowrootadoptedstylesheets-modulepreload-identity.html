@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets modulepreload identity with import()</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Modulepreload a CSS file, then also import() it. Then create a shadow
+    // root referencing the same URL. All three should yield the same
+    // CSSStyleSheet object from the shared module map.
+    const cssUrl = "./support/styles-red.css?modulepreload-identity";
+
+    const link = document.createElement("link");
+    link.rel = "modulepreload";
+    link.as = "style";
+    link.href = cssUrl;
+    const loadPromise = new Promise((resolve, reject) => {
+      link.onload = resolve;
+      link.onerror = reject;
+    });
+    document.head.appendChild(link);
+    await loadPromise;
+
+    const importedModule = await import(cssUrl, { with: { type: "css" } });
+    const importedSheet = importedModule.default;
+
+    const { shadowRoot, testElement } = createStylesheetHost(cssUrl);
+
+    assert_equals(shadowRoot.adoptedStyleSheets.length, 1,
+      "adoptedStyleSheets should have one entry.");
+    assert_equals(shadowRoot.adoptedStyleSheets[0], importedSheet,
+      "The shadow root's sheet should be the same object as the import()'d sheet.");
+    assertSheetRule(shadowRoot, 0, "span { color: red; }", "Identity check");
+    assert_equals(getComputedStyle(testElement).color, "rgb(255, 0, 0)",
+      "Red styles should be applied.");
+  }, "Modulepreload, import(), and shadowrootadoptedstylesheets all share the same CSSStyleSheet.");
+</script>
+</body>

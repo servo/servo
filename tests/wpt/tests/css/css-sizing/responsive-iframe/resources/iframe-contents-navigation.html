@@ -11,6 +11,8 @@ body { margin: 0; }
 window.addEventListener('message', (e) => {
   if (e.data === 'navigate') {
     window.location.href = 'iframe-contents-slow.html';
+  } else if (e.data === 'unsized') {
+    window.location.href = 'iframe-contents-unsized.html';
   }
 });
 </script>

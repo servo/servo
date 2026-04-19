@@ -38,15 +38,15 @@
     const inner1 = sr.getElementById('inner1');
     const inner2 = sr.getElementById('inner2');
 
-    await focusAndKeyPress(outer1, kArrowRight);
+    await focusAndSendDirectionalInput(outer1, kRight);
     assert_equals(document.activeElement, outer2, 'Outer navigation skips inner shadow scope');
     assert_equals(deepActiveElement(), outer2, 'Deep active element is outer2 after outer navigation');
 
     await focusAndWait(inner1);
-    await sendKey(kArrowRight);
+    await sendDirectionalKey(kRight);
     assert_equals(sr.activeElement, inner2, 'Inner navigation advances');
     assert_equals(deepActiveElement(), inner2, 'Deep active element is inner2');
-    await sendKey(kArrowRight);
+    await sendDirectionalKey(kRight);
     assert_equals(sr.activeElement, inner2, 'No wrap inside inner scope');
     assert_equals(deepActiveElement(), inner2, 'Deep active element remains inner2');
   }, 'Nested shadow focusgroup is isolated from outer scope navigation');

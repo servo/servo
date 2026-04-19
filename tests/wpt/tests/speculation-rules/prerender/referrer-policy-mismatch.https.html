@@ -12,7 +12,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 promise_test(async t => {
   const rcHelper = new PrerenderingRemoteContextHelper();

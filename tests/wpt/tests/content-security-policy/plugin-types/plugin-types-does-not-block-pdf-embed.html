@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <!--
+    Regression test: the deprecated 'plugin-types' CSP directive must not block
+    <embed> elements that load application/pdf content via a src URL.
+    See https://github.com/w3c/webappsec-csp/issues/424
+  -->
+  <embed src="resources/blank.pdf.py" type="application/pdf">
+  <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+
+</html>

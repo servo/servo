@@ -48,21 +48,21 @@
     var r5c1 = document.getElementById("r5c1");
     var r5c2 = document.getElementById("r5c2");
 
-    await focusAndKeyPress(r2c1, kArrowRight);
+    await focusAndSendDirectionalInput(r2c1, kRight);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r2c2, kArrowRight);
+    await focusAndSendDirectionalInput(r2c2, kRight);
     assert_equals(document.activeElement, r2c3);
 
-    await focusAndKeyPress(r3c1, kArrowRight);
+    await focusAndSendDirectionalInput(r3c1, kRight);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r4c1, kArrowRight);
+    await focusAndSendDirectionalInput(r4c1, kRight);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r5c1, kArrowRight);
+    await focusAndSendDirectionalInput(r5c1, kRight);
     assert_equals(document.activeElement, r5c2);
-  }, "A right arrow press should move the focus to the next column, dealing correctly with rowspans.");
+  }, "Navigating right should move the focus to the next column, dealing correctly with rowspans.");
 
   promise_test(async t => {
     var r1c2 = document.getElementById("r1c2");
@@ -73,24 +73,24 @@
     var r5c2 = document.getElementById("r5c2");
     var r5c3 = document.getElementById("r5c3");
 
-    await focusAndKeyPress(r1c2, kArrowDown);
+    await focusAndSendDirectionalInput(r1c2, kDown);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r1c3, kArrowDown);
+    await focusAndSendDirectionalInput(r1c3, kDown);
     assert_equals(document.activeElement, r2c3);
 
-    await focusAndKeyPress(r2c2, kArrowDown);
+    await focusAndSendDirectionalInput(r2c2, kDown);
     assert_equals(document.activeElement, r5c2);
 
-    await focusAndKeyPress(r2c3, kArrowDown);
+    await focusAndSendDirectionalInput(r2c3, kDown);
     assert_equals(document.activeElement, r3c3);
 
-    await focusAndKeyPress(r3c3, kArrowDown);
+    await focusAndSendDirectionalInput(r3c3, kDown);
     assert_equals(document.activeElement, r4c3);
 
-    await focusAndKeyPress(r4c3, kArrowDown);
+    await focusAndSendDirectionalInput(r4c3, kDown);
     assert_equals(document.activeElement, r5c3);
-  }, "A down arrow press should move the focus to the right cell on the next row, dealing correctly with rowspans.");
+  }, "Navigating down should move the focus to the right cell on the next row, dealing correctly with rowspans.");
 
   promise_test(async t => {
     var r2c1 = document.getElementById("r2c1");
@@ -101,21 +101,21 @@
     var r5c3 = document.getElementById("r5c3");
     var r5c2 = document.getElementById("r5c2");
 
-    await focusAndKeyPress(r2c3, kArrowLeft);
+    await focusAndSendDirectionalInput(r2c3, kLeft);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r2c2, kArrowLeft);
+    await focusAndSendDirectionalInput(r2c2, kLeft);
     assert_equals(document.activeElement, r2c1);
 
-    await focusAndKeyPress(r3c3, kArrowLeft);
+    await focusAndSendDirectionalInput(r3c3, kLeft);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r4c3, kArrowLeft);
+    await focusAndSendDirectionalInput(r4c3, kLeft);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r5c3, kArrowLeft);
+    await focusAndSendDirectionalInput(r5c3, kLeft);
     assert_equals(document.activeElement, r5c2);
-  }, "A left arrow press should move to the previous column, dealing correctly with the rowspans.");
+  }, "Navigating left should move to the previous column, dealing correctly with the rowspans.");
 
   promise_test(async t => {
     var r1c2 = document.getElementById("r1c2");
@@ -127,23 +127,23 @@
     var r5c2 = document.getElementById("r5c2");
     var r5c3 = document.getElementById("r5c3");
 
-    await focusAndKeyPress(r5c2, kArrowUp);
+    await focusAndSendDirectionalInput(r5c2, kUp);
     assert_equals(document.activeElement, r2c2);
 
-    await focusAndKeyPress(r5c3, kArrowUp);
+    await focusAndSendDirectionalInput(r5c3, kUp);
     assert_equals(document.activeElement, r4c3);
 
-    await focusAndKeyPress(r2c2, kArrowUp);
+    await focusAndSendDirectionalInput(r2c2, kUp);
     assert_equals(document.activeElement, r1c2);
 
-    await focusAndKeyPress(r4c3, kArrowUp);
+    await focusAndSendDirectionalInput(r4c3, kUp);
     assert_equals(document.activeElement, r3c3);
 
-    await focusAndKeyPress(r3c3, kArrowUp);
+    await focusAndSendDirectionalInput(r3c3, kUp);
     assert_equals(document.activeElement, r2c3);
 
-    await focusAndKeyPress(r2c3, kArrowUp);
+    await focusAndSendDirectionalInput(r2c3, kUp);
     assert_equals(document.activeElement, r1c3);
-  }, "An up arrow press should move the focus to the right cell on the previous row, dealing correctly with rowspans.");
+  }, "Navigating up should move the focus to the right cell on the previous row, dealing correctly with rowspans.");
 
 </script>

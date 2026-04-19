@@ -2,8 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
   <g id="testmeta">
     <title>Margin, border, and padding should not be supported in &lt;text></title>
-    <html:link rel="help"
-          href="https://svgwg.org/svg2-draft/text.html#TextPropertiesAdaptions" />
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPropertiesAdaptions" />
     <html:link rel="match"  href="no-margin-border-padding-ref.svg" />
   </g>
 

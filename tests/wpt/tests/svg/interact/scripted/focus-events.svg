@@ -3,7 +3,7 @@
      xmlns:h="http://www.w3.org/1999/xhtml">
     <title>Focus management</title>
     <metadata>
-        <h:link rel="help" href="https://svgwg.org/svg2-draft/interact.html#Focus"/>
+        <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/interact.html#Focus"/>
     </metadata>
     <a id="a1" href="#"></a>
     <a id="a2" href="#"></a>

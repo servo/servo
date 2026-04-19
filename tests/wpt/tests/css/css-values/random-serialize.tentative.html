@@ -8,21 +8,32 @@
 <script>
 
 test_valid_value('width', 'random(0px, 100px)');
-test_valid_value('width', 'random(0px, 100px, 50px)');
-test_valid_value('width', 'random(--foo, 0px, 100px)');
-test_valid_value('width', 'random(auto, 0px, 100px)', 'random(0px, 100px)');
-test_valid_value('width', 'random(--foo element-shared, 0px, 100px)');
-test_valid_value('width', 'random(auto element-shared, 0px, 100px)', 'random(element-shared, 0px, 100px)');
-test_valid_value('width', 'random(element-shared --foo, 0px, 100px)', 'random(--foo element-shared, 0px, 100px)');
-test_valid_value('width', 'random(element-shared auto, 0px, 100px)', 'random(element-shared, 0px, 100px)');
 test_valid_value('width', 'random(fixed 0.5, 0px, 100px)');
-test_valid_value('width', 'random(--foo, 0px, 100px, 50px)');
-test_valid_value('width', 'random(auto, 0px, 100px, 50px)', 'random(0px, 100px, 50px)');
-test_valid_value('width', 'random(--foo element-shared, 0px, 100px, 50px)');
-test_valid_value('width', 'random(auto element-shared, 0px, 100px, 50px)', 'random(element-shared, 0px, 100px, 50px)');
-test_valid_value('width', 'random(element-shared --foo, 0px, 100px, 50px)', 'random(--foo element-shared, 0px, 100px, 50px)');
-test_valid_value('width', 'random(element-shared auto, 0px, 100px, 50px)', 'random(element-shared, 0px, 100px, 50px)');
-test_valid_value('width', 'random(fixed 0.5, 0px, 100px, 50px)');
+test_valid_value('width', 'random(auto, 0px, 100px)', 'random(0px, 100px)');
+test_valid_value('width', 'random(--foo, 0px, 100px)');
+test_valid_value('width', 'random(--foo element-scoped, 0px, 100px)');
+test_valid_value('width', 'random(--foo property-scoped, 0px, 100px)');
+test_valid_value('width', 'random(--foo property-index-scoped, 0px, 100px)');
+test_valid_value('width', 'random(--foo element-scoped property-scoped, 0px, 100px)');
+test_valid_value('width', 'random(--foo property-scoped element-scoped, 0px, 100px)',
+                          'random(--foo element-scoped property-scoped, 0px, 100px)');
+test_valid_value('width', 'random(--foo element-scoped property-index-scoped, 0px, 100px)');
+test_valid_value('width', 'random(--foo property-index-scoped element-scoped , 0px, 100px)',
+                          'random(--foo element-scoped property-index-scoped, 0px, 100px)');
+
+test_valid_value('width', 'random(0px, 100px, 3px)');
+test_valid_value('width', 'random(fixed 0.5, 0px, 100px, 3px)');
+test_valid_value('width', 'random(auto, 0px, 100px, 3px)', 'random(0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo element-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo property-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo property-index-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo element-scoped property-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo property-scoped element-scoped , 0px, 100px, 3px)',
+                          'random(--foo element-scoped property-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo element-scoped property-index-scoped, 0px, 100px, 3px)');
+test_valid_value('width', 'random(--foo property-index-scoped element-scoped , 0px, 100px, 3px)',
+                          'random(--foo element-scoped property-index-scoped, 0px, 100px, 3px)');
 
 // Test consistent types
 test_valid_value('width', 'random(10px, 20%)');

@@ -8,7 +8,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 function runTest(test_file, expectation, description) {
   promise_test(async t => {

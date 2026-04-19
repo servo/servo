@@ -31,16 +31,14 @@ promise_test(async (t) => {
 
 <dl>
   <dt contenteditable></dt>
-  <dialog id=test2 open></dialog>
+  <dialog id=test2></dialog>
 </dl>
 
 <script>
 promise_test(async (t) => {
   // This test case is pulled from `dialog-closewatcher-crash.html`. It is
   // constructed such that this happens:
-  //  1. The dialog `open` attribute is removed, which (depending on whether
-  //     https://github.com/whatwg/html/pull/10124 behavior is happening) calls
-  //     the close() steps.
+  //  1. close() is called.
   //  2. the last step of close() is to restore focus to the previously-focused
   //     element.
   //  3. Changing focus triggers the `focusin` event, which calls `showModal()`.
@@ -51,15 +49,16 @@ promise_test(async (t) => {
   // the dialog to be closed.
   const dialog = document.querySelector('dialog#test2');
   const controller = new AbortController();
+  document.querySelector('dt').focus();
   document.querySelector('dl').addEventListener("focusin", () => {
     dialog.showModal();
   },{signal:controller.signal});
+  dialog.showModal();
   // This will trigger the focus-the-previous-element behavior, which will fire
   // the `focusin` event.
-  dialog.open = false;
+  dialog.close();
   await new Promise(resolve => {
     document.defaultView.requestIdleCallback(() => {
-      window.getSelection().addRange(document.createRange());
       dialog.close();
       resolve();
     });

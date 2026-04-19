@@ -635,7 +635,7 @@ cases:
         - expected: cors
       script-text-module-import-static.sub.html:
         - expected: cors
-      # https://svgwg.org/svg2-draft/linking.html#processingURL-fetch
+      # https://w3c.github.io/svgwg/svg2-draft/linking.html#processingURL-fetch
       svg-image.sub.html:
         - expected: no-cors
         - expected: cors

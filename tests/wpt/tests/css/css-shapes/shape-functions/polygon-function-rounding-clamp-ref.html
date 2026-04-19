@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>CSS Shapes: polygon() rounding clamping reference</title>
+<style>
+.test {
+    display: inline-block;
+    width: 200px;
+    height: 200px;
+    background: green;
+    margin: 10px;
+}
+
+/* Rectangle: exact clamped radius = tan(45deg) * 200/2 = 100px. */
+.t1 {
+    clip-path: polygon(round 100px, 0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Pentagon and isosceles triangle: vertices have non-uniform angles, so
+   use round 9999px which must clamp to the same max as the test file. */
+.t2 {
+    clip-path: polygon(round 9999px, 50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+}
+
+.t3 {
+    clip-path: polygon(round 9999px, 50% 0%, 0% 100%, 100% 100%);
+}
+
+/* Equilateral triangle: exact clamped radius = tan(30deg) * 200/2. */
+.t4 {
+    height: auto;
+    aspect-ratio: 1 / sin(60deg);
+    clip-path: polygon(round calc(tan(30deg) * 100px), 50% 0%, 0% 100%, 100% 100%);
+}
+
+/* Diamond: exact clamped radius = tan(45deg) * 100*sqrt(2)/2 = 50*sqrt(2). */
+.t5 {
+    clip-path: polygon(round calc(50px * sqrt(2)), 50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+</style>
+<p>The test passes if all five shapes match their references.</p>
+<div class="test t1"></div>
+<div class="test t2"></div>
+<div class="test t3"></div>
+<div class="test t4"></div>
+<div class="test t5"></div>

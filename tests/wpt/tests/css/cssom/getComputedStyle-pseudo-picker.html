@@ -17,6 +17,10 @@ select::picker(select) {
 #test-select::picker(select) {
   background-color: rgb(0, 128, 0);
 }
+
+#test-div::picker(select) {
+  background-color: rgb(0, 0, 255);
+}
 </style>
 
 <select id="test-select">
@@ -24,6 +28,8 @@ select::picker(select) {
 </select>
 
 <div id="test-div"></div>
+
+<div id="test-div-no-rules"></div>
 
 <script>
 test(() => {
@@ -35,8 +41,14 @@ test(() => {
 test(() => {
   const div = document.getElementById('test-div');
   const style = getComputedStyle(div, '::picker(select)');
-  assert_equals(style.length, 0);
-}, '::picker(select) on non-select element returns empty style');
+  assert_equals(style.backgroundColor, 'rgb(0, 0, 255)');
+}, '::picker(select) on non-select element resolves the style');
+
+test(() => {
+  const div = document.getElementById('test-div-no-rules');
+  const style = getComputedStyle(div, '::picker(select)');
+  assert_equals(style.backgroundColor, 'rgba(0, 0, 0, 0)');
+}, '::picker(select) on non-select element with no rules resolves the style');
 
 [
   "::picker",

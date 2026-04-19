@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>HTML Test: focusgroup - Arrow keys follow the focused element's writing direction.</title>
-<meta name="assert" content="In a focusgroup with mixed writing directions, arrow keys follow the focused element's inherited writing direction. An RTL item uses ArrowLeft for forward and ArrowRight for backward, even inside an LTR focusgroup container, and vice versa.">
+<title>HTML Test: focusgroup - Directional input follows the focused element's writing direction.</title>
+<meta name="assert" content="In a focusgroup with mixed writing directions, directional input follows the focused element's inherited writing direction. An RTL item uses Left for forward and Right for backward, even inside an LTR focusgroup container, and vice versa.">
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
@@ -10,11 +10,11 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
-<script src="../../resources/focusgroup-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
 
 <!-- LTR container with items 1-2 inside an RTL wrapper.
-     item1/item2 inherit dir="rtl" → ArrowLeft is forward for them.
-     item3-5 are LTR → ArrowRight is forward for them. -->
+     item1/item2 inherit dir="rtl" → Left is forward for them.
+     item3-5 are LTR → Right is forward for them. -->
 <div id=ltr-group focusgroup="toolbar">
   <div dir="rtl">
     <span id=item1 tabindex=0>One</span>
@@ -26,8 +26,8 @@
 </div>
 
 <!-- RTL container with items r2-r3 inside an LTR wrapper.
-     r1 inherits dir="rtl" → ArrowLeft is forward.
-     r2/r3 inherit dir="ltr" → ArrowRight is forward for them. -->
+     r1 inherits dir="rtl" → Left is forward.
+     r2/r3 inherit dir="ltr" → Right is forward for them. -->
 <div id=rtl-group dir="rtl" focusgroup="toolbar">
   <span id=r1 tabindex=0>One</span>
   <div dir="ltr">
@@ -39,118 +39,118 @@
 <script>
 
   // --- LTR container with RTL wrapper ---
-  // item1 and item2 inherit RTL, so ArrowLeft is their forward key.
+  // item1 and item2 inherit RTL, so Left is their forward key.
 
   promise_test(async t => {
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    // item1 is RTL: ArrowLeft = forward inline.
-    await focusAndKeyPress(item1, kArrowLeft);
+    // item1 is RTL: Left = forward inline.
+    await focusAndSendDirectionalInput(item1, kLeft);
     assert_equals(document.activeElement, item2,
-      "ArrowLeft should move forward from RTL item1");
-  }, "LTR container: ArrowLeft (forward in RTL) from item1 moves to item2.");
+      "Left should move forward from RTL item1");
+  }, "LTR container: Left (forward in RTL) from item1 moves to item2.");
 
   promise_test(async t => {
     var item2 = document.getElementById("item2");
     var item3 = document.getElementById("item3");
 
-    // item2 is RTL: ArrowLeft = forward inline, crosses into LTR sibling.
-    await focusAndKeyPress(item2, kArrowLeft);
+    // item2 is RTL: Left = forward inline, crosses into LTR sibling.
+    await focusAndSendDirectionalInput(item2, kLeft);
     assert_equals(document.activeElement, item3,
-      "ArrowLeft should move forward from RTL item2 into LTR item3");
-  }, "LTR container: ArrowLeft (forward in RTL) from item2 crosses to LTR item3.");
+      "Left should move forward from RTL item2 into LTR item3");
+  }, "LTR container: Left (forward in RTL) from item2 crosses to LTR item3.");
 
   promise_test(async t => {
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    // item2 is RTL: ArrowRight = backward inline.
-    await focusAndKeyPress(item2, kArrowRight);
+    // item2 is RTL: Right = backward inline.
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item1,
-      "ArrowRight should move backward from RTL item2");
-  }, "LTR container: ArrowRight (backward in RTL) from item2 moves to item1.");
+      "Right should move backward from RTL item2");
+  }, "LTR container: Right (backward in RTL) from item2 moves to item1.");
 
-  // item3-5 are LTR: ArrowRight = forward, ArrowLeft = backward.
+  // item3-5 are LTR: Right = forward, Left = backward.
 
   promise_test(async t => {
     var item3 = document.getElementById("item3");
     var item4 = document.getElementById("item4");
 
-    await focusAndKeyPress(item3, kArrowRight);
+    await focusAndSendDirectionalInput(item3, kRight);
     assert_equals(document.activeElement, item4,
-      "ArrowRight should move forward from LTR item3");
-  }, "LTR container: ArrowRight from LTR item3 moves to item4.");
+      "Right should move forward from LTR item3");
+  }, "LTR container: Right from LTR item3 moves to item4.");
 
   promise_test(async t => {
     var item4 = document.getElementById("item4");
     var item5 = document.getElementById("item5");
 
-    await focusAndKeyPress(item4, kArrowRight);
+    await focusAndSendDirectionalInput(item4, kRight);
     assert_equals(document.activeElement, item5,
-      "ArrowRight should move forward from LTR item4");
-  }, "LTR container: ArrowRight from LTR item4 moves to item5.");
+      "Right should move forward from LTR item4");
+  }, "LTR container: Right from LTR item4 moves to item5.");
 
   promise_test(async t => {
     var item4 = document.getElementById("item4");
     var item5 = document.getElementById("item5");
 
-    await focusAndKeyPress(item5, kArrowLeft);
+    await focusAndSendDirectionalInput(item5, kLeft);
     assert_equals(document.activeElement, item4,
-      "ArrowLeft should move backward from LTR item5");
-  }, "LTR container: ArrowLeft from LTR item5 moves to item4.");
+      "Left should move backward from LTR item5");
+  }, "LTR container: Left from LTR item5 moves to item4.");
 
   promise_test(async t => {
     var item2 = document.getElementById("item2");
     var item3 = document.getElementById("item3");
 
-    // item3 is LTR: ArrowLeft = backward, crosses back into RTL wrapper.
-    await focusAndKeyPress(item3, kArrowLeft);
+    // item3 is LTR: Left = backward, crosses back into RTL wrapper.
+    await focusAndSendDirectionalInput(item3, kLeft);
     assert_equals(document.activeElement, item2,
-      "ArrowLeft should move backward from LTR item3 into RTL item2");
-  }, "LTR container: ArrowLeft from LTR item3 crosses back to RTL item2.");
+      "Left should move backward from LTR item3 into RTL item2");
+  }, "LTR container: Left from LTR item3 crosses back to RTL item2.");
 
   // --- RTL container with LTR wrapper ---
-  // r1 inherits RTL: ArrowLeft = forward. r2/r3 inherit LTR: ArrowRight = forward.
+  // r1 inherits RTL: Left = forward. r2/r3 inherit LTR: Right = forward.
 
   promise_test(async t => {
     var r1 = document.getElementById("r1");
     var r2 = document.getElementById("r2");
 
-    // r1 is RTL: ArrowLeft = forward inline.
-    await focusAndKeyPress(r1, kArrowLeft);
+    // r1 is RTL: Left = forward inline.
+    await focusAndSendDirectionalInput(r1, kLeft);
     assert_equals(document.activeElement, r2,
-      "ArrowLeft should move forward from RTL r1 into LTR wrapper");
-  }, "RTL container: ArrowLeft (forward in RTL) from r1 moves to LTR r2.");
+      "Left should move forward from RTL r1 into LTR wrapper");
+  }, "RTL container: Left (forward in RTL) from r1 moves to LTR r2.");
 
   promise_test(async t => {
     var r2 = document.getElementById("r2");
     var r3 = document.getElementById("r3");
 
-    // r2 is LTR: ArrowRight = forward inline.
-    await focusAndKeyPress(r2, kArrowRight);
+    // r2 is LTR: Right = forward inline.
+    await focusAndSendDirectionalInput(r2, kRight);
     assert_equals(document.activeElement, r3,
-      "ArrowRight should move forward from LTR r2");
-  }, "RTL container: ArrowRight (forward in LTR) from r2 moves to r3.");
+      "Right should move forward from LTR r2");
+  }, "RTL container: Right (forward in LTR) from r2 moves to r3.");
 
   promise_test(async t => {
     var r1 = document.getElementById("r1");
     var r2 = document.getElementById("r2");
 
-    // r2 is LTR: ArrowLeft = backward inline.
-    await focusAndKeyPress(r2, kArrowLeft);
+    // r2 is LTR: Left = backward inline.
+    await focusAndSendDirectionalInput(r2, kLeft);
     assert_equals(document.activeElement, r1,
-      "ArrowLeft should move backward from LTR r2 to RTL r1");
-  }, "RTL container: ArrowLeft (backward in LTR) from r2 moves to r1.");
+      "Left should move backward from LTR r2 to RTL r1");
+  }, "RTL container: Left (backward in LTR) from r2 moves to r1.");
 
   promise_test(async t => {
     var r2 = document.getElementById("r2");
     var r3 = document.getElementById("r3");
 
-    // r3 is LTR: ArrowLeft = backward inline.
-    await focusAndKeyPress(r3, kArrowLeft);
+    // r3 is LTR: Left = backward inline.
+    await focusAndSendDirectionalInput(r3, kLeft);
     assert_equals(document.activeElement, r2,
-      "ArrowLeft should move backward from LTR r3");
-  }, "RTL container: ArrowLeft (backward in LTR) from r3 moves to r2.");
+      "Left should move backward from LTR r3");
+  }, "RTL container: Left (backward in LTR) from r3 moves to r2.");
 
 </script>

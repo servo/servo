@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: @font-face src parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#request-url-modifiers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function test_font_face_src(description, src, valid) {
+  test(t => {
+    const style = document.createElement("style");
+    style.textContent = `@font-face { font-family: "Test"; src: ${src}; }`;
+    document.head.appendChild(style);
+    t.add_cleanup(() => style.remove());
+    const rule = style.sheet.cssRules[0];
+    if (valid) {
+      assert_not_equals(rule.style.getPropertyValue("src"), "", "should be valid");
+    } else {
+      assert_equals(rule.style.getPropertyValue("src"), "", "should be invalid");
+    }
+  }, description);
+}
+
+// Valid modifiers in @font-face src
+test_font_face_src(
+  "cross-origin(anonymous) in @font-face src",
+  'url("fonts/Ahem.ttf" cross-origin(anonymous))',
+  true);
+
+test_font_face_src(
+  "referrer-policy(no-referrer) in @font-face src",
+  'url("fonts/Ahem.ttf" referrer-policy(no-referrer))',
+  true);
+
+test_font_face_src(
+  "integrity() in @font-face src",
+  'url("fonts/Ahem.ttf" integrity("sha384-foobar"))',
+  true);
+
+test_font_face_src(
+  "multiple modifiers in @font-face src",
+  'url("fonts/Ahem.ttf" cross-origin(anonymous) referrer-policy(no-referrer))',
+  true);
+
+test_font_face_src(
+  "modifiers with format() in @font-face src",
+  'url("fonts/Ahem.ttf" cross-origin(anonymous)) format("truetype")',
+  true);
+
+// Invalid modifiers
+test_font_face_src(
+  "duplicate cross-origin in @font-face src",
+  'url("fonts/Ahem.ttf" cross-origin(anonymous) cross-origin(anonymous))',
+  false);
+
+test_font_face_src(
+  "unknown modifier in @font-face src",
+  'url("fonts/Ahem.ttf" foobar(baz))',
+  false);
+</script>

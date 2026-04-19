@@ -3,7 +3,7 @@
      xmlns:html="http://www.w3.org/1999/xhtml">
   <title>SVGGeometryElement.prototype.getPointAtLength clamps its argument to [0, length]</title>
   <metadata>
-    <html:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getPointAtLength"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGGeometryElement__getPointAtLength"/>
     <html:meta name="assert" content="SVGGeometryElement.prototype.getPointAtLength clamps its argument."/>
   </metadata>
   <g stroke="blue">

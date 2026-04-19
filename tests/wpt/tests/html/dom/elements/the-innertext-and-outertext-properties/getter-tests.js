@@ -242,6 +242,7 @@ testText("<div><p>abc</p>def", "abc\n\ndef", "Blank line after <p>");
 testText("<div><p>abc<p></p><p></p><p>def", "abc\n\ndef", "One blank line between <p>s, ignoring empty <p>s");
 testText("<div style='visibility:hidden'><p><span style='visibility:visible'>abc</span></p>\n<div style='visibility:visible'>def</div>",
      "abc\ndef", "Invisible <p> doesn't induce extra line breaks");
+testText("<div><pre>abc\n\n</pre><p>def", "abc\n\n\n\ndef", "<pre> trailing newlines don't suppress <p> blank line");
 testText("<div>abc<div style='margin:2em'>def", "abc\ndef", "No blank lines around <div> with margin");
 testText("<div>123<span style='display:inline-block'>abc</span>def", "123abcdef", "No newlines at display:inline-block boundary");
 testText("<div>123<span style='display:inline-block'> abc </span>def", "123abcdef", "Leading/trailing space removal at display:inline-block boundary");

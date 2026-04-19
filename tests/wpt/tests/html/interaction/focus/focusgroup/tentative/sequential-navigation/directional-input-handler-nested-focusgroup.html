@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native directional input handlers with nested focusgroups</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="Native directional input handler detection considers the nearest focusgroup owner's enabled axes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id="outer" focusgroup="toolbar inline block">
+  <button tabindex=0 id="btn1">Button 1</button>
+  <div id="inner" focusgroup="toolbar inline">
+    <button tabindex=0 id="btn2">Button 2</button>
+    <input id="search" type="text" placeholder="Search">
+    <button tabindex=0 id="btn3">Button 3</button>
+  </div>
+  <button tabindex=0 id="btn4">Button 4</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    const btn2 = document.getElementById("btn2");
+    const search = document.getElementById("search");
+
+    // Directional navigation TO native directional input handler works, FROM does not.
+    await focusAndSendDirectionalInput(btn2, kRight);
+    assert_equals(document.activeElement, search);
+    await assert_directional_input_does_not_move_focus(search);
+  }, "Native directional input handler detection respects nested focusgroup's enabled axes");
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("btn1");
+    const btn2 = document.getElementById("btn2");
+    const search = document.getElementById("search");
+    const btn4 = document.getElementById("btn4");
+
+    // Directional navigation in outer and inner focusgroups.
+    await focusAndSendDirectionalInput(btn1, kDown);
+    assert_equals(document.activeElement, btn4);
+    await focusAndSendDirectionalInput(btn2, kRight);
+    assert_equals(document.activeElement, search);
+  }, "Directional navigation works in both outer and inner nested focusgroups");
+
+</script>

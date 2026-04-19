@@ -13,41 +13,41 @@
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div focusgroup="menubar">
-  <button id=mb1>mb1</button>
-  <button id=mb2>mb2</button>
-  <button id=mb3>mb3</button>
+  <button tabindex=0 id=mb1>mb1</button>
+  <button tabindex=0 id=mb2>mb2</button>
+  <button tabindex=0 id=mb3>mb3</button>
 </div>
 
 <script>
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mb1'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('mb1'), kRight);
     assert_equals(document.activeElement.id, 'mb2');
-  }, "menubar: ArrowRight navigates to the next item");
+  }, "menubar: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mb2'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('mb2'), kLeft);
     assert_equals(document.activeElement.id, 'mb1');
-  }, "menubar: ArrowLeft navigates to the previous item");
+  }, "menubar: Left navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mb1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('mb1'), kDown);
     assert_equals(document.activeElement.id, 'mb1');
-  }, "menubar: ArrowDown blocked");
+  }, "menubar: Down blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mb1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('mb1'), kUp);
     assert_equals(document.activeElement.id, 'mb1');
-  }, "menubar: ArrowUp blocked");
+  }, "menubar: Up blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mb3'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('mb3'), kRight);
     assert_equals(document.activeElement.id, 'mb1');
-  }, "menubar: ArrowRight wraps at end");
+  }, "menubar: Right wraps at end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mb1'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('mb1'), kLeft);
     assert_equals(document.activeElement.id, 'mb3');
-  }, "menubar: ArrowLeft wraps at start");
+  }, "menubar: Left wraps at start");
 
 </script>

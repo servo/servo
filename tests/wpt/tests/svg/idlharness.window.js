@@ -2,7 +2,7 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 
-// https://svgwg.org/svg2-draft/
+// https://w3c.github.io/svgwg/svg2-draft/
 
 'use strict';
 

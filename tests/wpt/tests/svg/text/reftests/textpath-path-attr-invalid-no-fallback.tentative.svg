@@ -2,8 +2,8 @@
   <title>Invalid `path` attribute does not fallback to `href`</title>
   <metadata>
     <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
-    <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElementPathAttribute"/>
-    <html:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataErrorHandling"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathDataErrorHandling"/>
     <html:link rel="help" href="https://github.com/w3c/svgwg/issues/393"/>
     <html:link rel="match" href="textpath-path-attr-empty-ref.tentative.svg"/>
   </metadata>

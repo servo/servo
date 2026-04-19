@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>navigator.install() requires user activation</title>
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/WebInstall/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async function(t) {
+  await promise_rejects_dom(t, 'NotAllowedError', navigator.install(),
+      'navigator.install() without user activation should reject with ' +
+      'NotAllowedError');
+}, 'navigator.install() rejects with NotAllowedError without a user ' +
+   'activation.');
+
+promise_test(async function(t) {
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.install('https://example.com'),
+      'navigator.install(url) without user activation should reject with ' +
+      'NotAllowedError');
+}, 'navigator.install(url) rejects with NotAllowedError without a user ' +
+   'activation.');
+
+promise_test(async function(t) {
+  await promise_rejects_dom(t, 'NotAllowedError',
+      navigator.install('https://example.com', 'https://example.com'),
+      'navigator.install(url, id) without user activation should reject ' +
+      'with NotAllowedError');
+}, 'navigator.install(url, manifest_id) rejects with NotAllowedError ' +
+   'without a user activation.');
+</script>
+</body>

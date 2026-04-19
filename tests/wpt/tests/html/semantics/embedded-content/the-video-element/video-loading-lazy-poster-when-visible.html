@@ -34,22 +34,27 @@
   document.body.appendChild(video);
 
   // Step 1: Not visible => check that poster hasn't loaded.
-  t.step_timeout(() => {
-    assert_equals(posterEntries.length, 0, "Poster should not be fetched when not visible");
+  const step1Start = performance.now();
+  t.step_wait_func(
+    () => posterEntries.length > 0 || performance.now() - step1Start > 300,
+    () => {
+      assert_equals(posterEntries.length, 0, "Poster should not be fetched when not visible");
 
-    // Step 2: Scroll into view => poster should load.
-    const entriesBeforeScroll = posterEntries.length;
-    video.scrollIntoView();
+      // Step 2: Scroll into view => poster should load.
+      const entriesBeforeScroll = posterEntries.length;
+      video.scrollIntoView();
 
-    t.step_timeout(() => {
-      assert_greater_than(
-        posterEntries.length,
-        entriesBeforeScroll,
-        "Poster should be fetched after scrolling into view"
+      t.step_wait_func_done(
+        () => posterEntries.length > entriesBeforeScroll,
+        () => observer.disconnect(),
+        "Poster should be fetched after scrolling into view",
+        3000,
+        50
       );
-      observer.disconnect();
-      t.done();
-    }, 100);
-  }, 2000);
+    },
+    "Wait for initial poster fetch opportunity while offscreen",
+    1000,
+    50
+  );
 </script>
 </body>

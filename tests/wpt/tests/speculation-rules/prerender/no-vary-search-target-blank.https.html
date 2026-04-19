@@ -45,7 +45,7 @@
 
 <body></body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 function prerender_no_vary_search_test(description, noVarySearch, prefetchQuery, navigateQuery, shouldUse) {
   promise_test(async t => {

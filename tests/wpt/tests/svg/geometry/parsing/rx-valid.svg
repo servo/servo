@@ -4,7 +4,7 @@
      width="800px" height="8000px">
   <title>SVG Geometry Properties: parsing rx with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html#RX"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#RX"/>
     <h:meta name="assert" content="rx supports the full grammar '&lt;length-percentage&gt; | auto'."/>
   </metadata>
   <g id="target"></g>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <div id="container"></div>
+  <img name="target" data-target>
+</body>
+
+<script>
+  test(() => {
+      let shadowRoot = container.attachShadow({mode: "open"});
+      let div = document.createElement("div");
+      shadowRoot.appendChild(div);
+
+      let target = document.querySelector('[data-target]');
+
+      assert_equals(window.target, target);
+      let nameMap = document.getElementsByName("target");
+      assert_equals(nameMap.length, 1);
+      assert_equals(nameMap[0], target);
+
+      div.moveBefore(target, null);
+
+      assert_equals(window.target, undefined);
+      nameMap = document.getElementsByName("target");
+      assert_equals(nameMap.length, 0);
+  }, 'moveBefore() correctly updates name map');
+</script>

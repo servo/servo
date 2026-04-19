@@ -11,7 +11,7 @@
 <script>
 "use strict";
 
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 // Test that tags are sent for prerendering with target_hint.
 promise_test(async t => {

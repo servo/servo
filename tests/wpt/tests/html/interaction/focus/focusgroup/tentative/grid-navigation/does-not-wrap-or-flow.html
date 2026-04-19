@@ -29,29 +29,29 @@
   promise_test(async t => {
     var r1c3 = document.getElementById("r1c3");
 
-    await focusAndKeyPress(r1c3, kArrowRight);
+    await focusAndSendDirectionalInput(r1c3, kRight);
     assert_equals(document.activeElement, r1c3);
-  }, "A right arrow press should not move the focus when it is at the last column and the focusgroup doesn't wrap or flow.");
+  }, "Navigating right should not move the focus when it is at the last column and the focusgroup doesn't wrap or flow.");
 
   promise_test(async t => {
     var r2c1 = document.getElementById("r2c1");
 
-    await focusAndKeyPress(r2c1, kArrowDown);
+    await focusAndSendDirectionalInput(r2c1, kDown);
     assert_equals(document.activeElement, r2c1);
-  }, "A down arrow press should not move the focus when it is at the last row and the focusgroup doesn't wrap or flow.");
+  }, "Navigating down should not move the focus when it is at the last row and the focusgroup doesn't wrap or flow.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
 
-    await focusAndKeyPress(r1c1, kArrowLeft);
+    await focusAndSendDirectionalInput(r1c1, kLeft);
     assert_equals(document.activeElement, r1c1);
-  }, "A left arrow press should not move the focus when it is at the first column and the focusgroup doesn't wrap or flow.");
+  }, "Navigating left should not move the focus when it is at the first column and the focusgroup doesn't wrap or flow.");
 
   promise_test(async t => {
     var r1c1 = document.getElementById("r1c1");
 
-    await focusAndKeyPress(r1c1, kArrowUp);
+    await focusAndSendDirectionalInput(r1c1, kUp);
     assert_equals(document.activeElement, r1c1);
-  }, "An up arrow press should not move the focus when it is at the first row and the focusgroup doesn't wrap or flow.");
+  }, "Navigating up should not move the focus when it is at the first row and the focusgroup doesn't wrap or flow.");
 
 </script>

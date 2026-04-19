@@ -1,4 +1,5 @@
 import asyncio
+from urllib.parse import urlencode
 
 import pytest
 
@@ -226,7 +227,7 @@ async def test_request_cookies(
     events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     await bidi_session.script.evaluate(
-        expression="document.cookie = 'foo=bar';",
+        expression="document.cookie = 'foo=bar; Path=/;';",
         target=ContextTarget(top_context["context"]),
         await_promise=False,
     )
@@ -237,16 +238,27 @@ async def test_request_cookies(
 
     assert len(events) == 1
     expected_request = {
-        "cookies": ({"name": "foo", "value": {"type": "string", "value": "bar"}},),
+        "cookies": (
+            {
+                "httpOnly": False,
+                "name": "foo",
+                "path": "/",
+                "sameSite": "default",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "bar"},
+            },
+        ),
         "method": "GET",
         "url": text_url,
     }
     assert_before_request_sent_event(
-        events[0], expected_event={"request": expected_request, "redirectCount": 0}
+        events[0],
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
 
     await bidi_session.script.evaluate(
-        expression="document.cookie = 'fuu=baz';",
+        expression="document.cookie = 'fuu=baz; Path=/;';",
         target=ContextTarget(top_context["context"]),
         await_promise=False,
     )
@@ -256,18 +268,104 @@ async def test_request_cookies(
     await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 2
-
     expected_request = {
         "cookies": (
-            {"name": "foo", "value": {"type": "string", "value": "bar"}},
-            {"name": "fuu", "value": {"type": "string", "value": "baz"}},
+            {
+                "httpOnly": False,
+                "name": "foo",
+                "path": "/",
+                "sameSite": "default",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "bar"},
+            },
+            {
+                "httpOnly": False,
+                "name": "fuu",
+                "path": "/",
+                "sameSite": "default",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "baz"},
+            },
         ),
         "method": "GET",
         "url": text_url,
     }
     assert_before_request_sent_event(
-        events[1], expected_event={"request": expected_request, "redirectCount": 0}
+        events[1],
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
+
+    await bidi_session.storage.delete_cookies()
+
+
+async def test_request_cookie_same_name_different_host(
+    bidi_session,
+    new_tab,
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    domain_value,
+    setup_network_test,
+):
+    # Set a cookie on the main origin.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(
+            PAGE_EMPTY_HTML, query=urlencode({"pipe": "header(Set-Cookie, foo=bar)"})
+        ),
+        wait="complete",
+    )
+
+    # Set a cookie with the same name on a different origin.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(
+            PAGE_EMPTY_HTML,
+            domain="alt",
+            query=urlencode({"pipe": "header(Set-Cookie, foo=baz)"}),
+        ),
+        wait="complete",
+    )
+
+    network_events = await setup_network_test(
+        events=[BEFORE_REQUEST_SENT_EVENT],
+        context=new_tab["context"],
+    )
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
+
+    text_url = url(PAGE_EMPTY_TEXT)
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+    await fetch(text_url, context=new_tab)
+    await wait_for_future_safe(on_before_request_sent)
+
+    expected_request = {
+        # Only the cookie from the request's host should be included, not the
+        # one from a different host that happens to share the same name.
+        "cookies": (
+
+            {
+                "domain": domain_value(),
+                "httpOnly": False,
+                "name": "foo",
+                "path": "/webdriver/tests/bidi/network/support",
+                "sameSite": "default",
+                "secure": False,
+                "size": 6,
+                "value": {"type": "string", "value": "bar"},
+            },
+        ),
+        "method": "GET",
+        "url": text_url,
+    }
+    assert_before_request_sent_event(
+        events[0],
+        expected_event={"request": expected_request, "redirectCount": 0},
+    )
+
+    await bidi_session.storage.delete_cookies()
 
 
 async def test_request_timing_info(

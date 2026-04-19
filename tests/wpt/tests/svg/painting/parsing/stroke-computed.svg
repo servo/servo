@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: getComputedStyle().stroke</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#StrokeProperty"/>
     <h:meta name="assert" content="stroke computed value is as specified, with url values absolute."/>
   </metadata>
   <g id="target"></g>

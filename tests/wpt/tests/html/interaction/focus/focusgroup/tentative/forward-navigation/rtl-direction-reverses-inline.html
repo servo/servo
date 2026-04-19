@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>HTML Test: focusgroup - In RTL, ArrowLeft moves focus forward inline.</title>
-<meta name="assert" content="In an RTL focusgroup, the ArrowLeft key should move focus forward (inline-end) and ArrowRight should move focus backward (inline-start), reversing the LTR default.">
+<title>HTML Test: focusgroup - In RTL, Left moves focus forward inline.</title>
+<meta name="assert" content="In an RTL focusgroup, the Left key should move focus forward (inline-end) and Right should move focus backward (inline-start), reversing the LTR default.">
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
@@ -10,7 +10,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
-<script src="../../resources/focusgroup-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
 
 <div dir="rtl" focusgroup="toolbar inline block">
   <span id=item1 tabindex=0>item1</span>
@@ -24,40 +24,40 @@
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    // In RTL, ArrowLeft is forward inline (towards inline-end).
-    await focusAndKeyPress(item1, kArrowLeft);
+    // In RTL, Left is forward inline (towards inline-end).
+    await focusAndSendDirectionalInput(item1, kLeft);
     assert_equals(document.activeElement, item2,
-      "ArrowLeft should move forward inline in RTL");
-  }, "ArrowLeft moves focus to the next item in an RTL focusgroup.");
+      "Left should move forward inline in RTL");
+  }, "Left moves focus to the next item in an RTL focusgroup.");
 
   promise_test(async t => {
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    // In RTL, ArrowRight is backward inline (towards inline-start).
-    await focusAndKeyPress(item2, kArrowRight);
+    // In RTL, Right is backward inline (towards inline-start).
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item1,
-      "ArrowRight should move backward inline in RTL");
-  }, "ArrowRight moves focus to the previous item in an RTL focusgroup.");
+      "Right should move backward inline in RTL");
+  }, "Right moves focus to the previous item in an RTL focusgroup.");
 
   promise_test(async t => {
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    // ArrowDown should still move forward (block axis is unaffected by RTL).
-    await focusAndKeyPress(item1, kArrowDown);
+    // Down should still move forward (block axis is unaffected by RTL).
+    await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2,
-      "ArrowDown should move forward block in RTL (unchanged)");
-  }, "ArrowDown moves focus forward in an RTL focusgroup (block axis unaffected).");
+      "Down should move forward block in RTL (unchanged)");
+  }, "Down moves focus forward in an RTL focusgroup (block axis unaffected).");
 
   promise_test(async t => {
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    // ArrowUp should still move backward (block axis is unaffected by RTL).
-    await focusAndKeyPress(item2, kArrowUp);
+    // Up should still move backward (block axis is unaffected by RTL).
+    await focusAndSendDirectionalInput(item2, kUp);
     assert_equals(document.activeElement, item1,
-      "ArrowUp should move backward block in RTL (unchanged)");
-  }, "ArrowUp moves focus backward in an RTL focusgroup (block axis unaffected).");
+      "Up should move backward block in RTL (unchanged)");
+  }, "Up moves focus backward in an RTL focusgroup (block axis unaffected).");
 
 </script>

@@ -39,15 +39,15 @@
     await focusAndWait(item1);
     assert_equals(sr.activeElement, item1, 'Initial focus on item1 (shadow)');
     assert_equals(deepActiveElement(), item1, 'Deep active element is item1');
-    await sendKey(kArrowRight);
+    await sendDirectionalKey(kRight);
     assert_equals(sr.activeElement, item2, 'Advance to item2');
     assert_equals(deepActiveElement(), item2, 'Deep active element is item2');
 
-    await sendKey(kArrowRight);
+    await sendDirectionalKey(kRight);
     assert_equals(sr.activeElement, item3, 'Advance to item3');
     assert_equals(deepActiveElement(), item3, 'Deep active element is item3');
 
-    await sendKey(kArrowRight);
+    await sendDirectionalKey(kRight);
     assert_equals(sr.activeElement, item3, 'No wrap; remains on item3');
     assert_equals(deepActiveElement(), item3, 'Deep active element remains item3');
   }, 'Shadow host focusgroup scopes shadow root items for navigation');

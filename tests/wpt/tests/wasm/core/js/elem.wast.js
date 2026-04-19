@@ -630,10 +630,10 @@ let m = $69;
 register("exporter", m)
 
 // elem.wast:1016
-assert_return(() => call(m, "get", [0]), "elem.wast:1016", null);
+assert_return(() => call(m, "get", [0]), "elem.wast:1016", "ref.null");
 
 // elem.wast:1017
-assert_return(() => call(m, "get", [1]), "elem.wast:1017", null);
+assert_return(() => call(m, "get", [1]), "elem.wast:1017", "ref.null");
 
 // elem.wast:1019
 assert_return(() => call(m, "set", [0, hostref(42)]), "elem.wast:1019");
@@ -654,7 +654,7 @@ let $$82 = module("\x00\x61\x73\x6d\x01\x00\x00\x00\x02\x94\x80\x80\x80\x00\x01\
 let $70 = instance($$82);
 
 // elem.wast:1029
-assert_return(() => call(m, "get", [0]), "elem.wast:1029", null);
+assert_return(() => call(m, "get", [0]), "elem.wast:1029", "ref.null");
 
 // elem.wast:1030
 assert_return(() => call(m, "get", [1]), "elem.wast:1030", hostref(137));

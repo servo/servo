@@ -1,0 +1,404 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<x-component id="outerA">
+<template shadowRootMode="open">
+    <button id="button" command="--foo" commandFor="middleA">Do Foo</button>
+    <x-component id="middleA">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerA">
+        <x-component id="innerA">
+        <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+            <div id="targetDiv"></div>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerA = document.getElementById("outerA");
+    const button = outerA.shadowRoot.getElementById("button");
+    const middleA = outerA.shadowRoot.getElementById("middleA");
+    const innerA = middleA.shadowRoot.getElementById("innerA");
+    const targetDiv = innerA.shadowRoot.getElementById("targetDiv");
+    let targetDivCommandEventCount = 0;
+    let middleACommandEventCount = 0;
+
+    outerA.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on outer component.");
+    });
+
+    innerA.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on inner component.");
+    });
+
+    targetDiv.addEventListener("command", (e) => {
+        targetDivCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+        assert_array_equals(e.composedPath(), [targetDiv, innerA.shadowRoot, middleA, outerA.shadowRoot],
+            "Event path should include only tree of target and tree of source");
+    });
+
+    middleA.addEventListener("command", (e) => {
+        middleACommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, middleA,
+                "target for event listener on middleA is middleA");
+        assert_equals(e.source, button,
+                "source for event listener on middleA is button");
+    });
+
+    button.click();
+    assert_equals(targetDivCommandEventCount, 1, "Command handler on targetDiv should have been called");
+    assert_equals(middleACommandEventCount, 1, "Command handler on middleA should have been called");
+}, "Event propagates to source's shadow tree only; target in deeper shadow root");
+</script>
+
+<x-component id="outerB">
+<template shadowRootMode="open">
+    <div id="targetDiv"></div>
+    <x-component id="middleB">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerB">
+        <x-component id="innerB">
+        <template shadowRootMode="open" shadowRootReferenceTarget="button">
+            <button id="button" command="--foo">Do Foo</button>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerB = document.getElementById("outerB");
+    const targetDiv = outerB.shadowRoot.getElementById("targetDiv");
+    const middleB = outerB.shadowRoot.getElementById("middleB");
+    const innerB = middleB.shadowRoot.getElementById("innerB");
+    const button = innerB.shadowRoot.getElementById("button");
+    assert_true(button instanceof HTMLButtonElement);
+    button.commandForElement = targetDiv;
+    let targetDivCommandEventCount = 0;
+
+    outerB.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on outer component.");
+    });
+
+    middleB.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on middle component.");
+    });
+
+    innerB.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on inner component.");
+    });
+
+    targetDiv.addEventListener("command", (e) => {
+        targetDivCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, middleB,
+                "source for event listener on targetDiv is middleB");
+        assert_array_equals(e.composedPath(), [targetDiv, outerB.shadowRoot],
+                "Event path should include only tree of target, excluding source if source is not a shadow-including ancestor");
+    });
+    button.click()
+    assert_equals(targetDivCommandEventCount, 1, "Command handler on targetDiv should have been called");
+}, "Event propagates to source's shadow tree only; source in deeper shadow root");
+</script>
+
+<x-component id="outerC">
+    <template shadowRootMode="open">
+        <button id="button" command="--foo" commandFor="outerMiddleC">Do Foo</button>
+        <x-component id="outerMiddleC">
+            <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+                <x-component id="innerMiddleC">
+                    <template shadowRootMode="open">
+                        <x-component id="innerC">
+                            <template shadowRootMode="open">
+                                <slot id="innerCSlot"><!--innerMiddleCSlot with targetDiv--></slot>
+                            </template>
+                            <slot id="innerMiddleCSlot"><!--targetDiv--></slot>
+                        </x-component>
+                    </template>
+                    <div id="targetDiv"></div>
+                </x-component>
+            </template>
+        </x-component>
+    </template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerC = document.getElementById("outerC");
+    const button = outerC.shadowRoot.getElementById("button");
+    const outerMiddleC = outerC.shadowRoot.getElementById("outerMiddleC");
+    const innerMiddleC = outerMiddleC.shadowRoot.getElementById("innerMiddleC");
+    const targetDiv = outerMiddleC.shadowRoot.getElementById("targetDiv");
+    const innerC = innerMiddleC.shadowRoot.getElementById("innerC");
+    const innerMiddleCSlot = innerMiddleC.shadowRoot.getElementById("innerMiddleCSlot");
+    const innerCSlot = innerC.shadowRoot.getElementById("innerCSlot");
+    let outerMiddleCCommandEventCount = 0;
+    let targetDivCommandEventCount = 0;
+
+    outerC.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on outer component.");
+    });
+
+    outerMiddleC.addEventListener("command", (e) => {
+        outerMiddleCCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, outerMiddleC,
+                    "target for event listener on outerMiddleC is outerMiddleC");
+        assert_equals(e.source, button,
+                    "source for event listener on outerMiddleC is button");
+    });
+
+    innerMiddleC.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on inner middle component.");
+    });
+
+    innerC.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on inner component.");
+    });
+
+    targetDiv.addEventListener("command", (e) => {
+        targetDivCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+        assert_array_equals(e.composedPath(), [targetDiv, innerMiddleCSlot, innerCSlot, innerC.shadowRoot,innerC,
+                innerMiddleC.shadowRoot, innerMiddleC, outerMiddleC.shadowRoot, outerMiddleC, outerC.shadowRoot],
+                "Event path should include all shadows and shadow hosts up through the root of the source");
+    });
+
+    button.click()
+    assert_equals(outerMiddleCCommandEventCount, 1, "Command handler on outerMiddleC should have been called");
+    assert_equals(targetDivCommandEventCount, 1, "Command handler on targetDiv should have been called");
+}, "Event path includes all shadow hosts and shadow roots up to the root of the source, but non-bubbling event fires only Non-bubbling event fires only where currentTarget == retargeted original target");
+</script>
+
+<x-component id="outerD">
+    <template shadowRootMode="open">
+        <button id="button" command="--foo" commandFor="outerMiddleD">Do Foo</button>
+        <x-component id="outerMiddleD">
+            <template shadowRootMode="open" shadowRootReferenceTarget="innerMiddleD">
+                <x-component id="innerMiddleD">
+                    <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+                        <x-component id="innerD">
+                            <template shadowRootMode="open">
+                                <slot id="innerDSlot"><!--targetDiv--></slot>
+                            </template>
+                            <div id="targetDiv"></div>
+                        </x-component>
+                    </template>
+                </x-component>
+            </template>
+        </x-component>
+    </template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerD = document.getElementById("outerD");
+    const button = outerD.shadowRoot.getElementById("button");
+    const outerMiddleD = outerD.shadowRoot.getElementById("outerMiddleD");
+    const innerMiddleD = outerMiddleD.shadowRoot.getElementById("innerMiddleD");
+    const targetDiv = innerMiddleD.shadowRoot.getElementById("targetDiv");
+    const innerD = innerMiddleD.shadowRoot.getElementById("innerD");
+    const innerDSlot = innerD.shadowRoot.getElementById("innerDSlot");
+    let outerMiddleDCommandEventCount = 0;
+    let targetDivCommandEventCount = 0;
+
+    outerD.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on outer component.");
+    });
+
+    outerMiddleD.addEventListener("command", (e) => {
+        outerMiddleDCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, outerMiddleD,
+                    "target for event listener on outerMiddleD is outerMiddleD");
+        assert_equals(e.source, button,
+                    "source for event listener on outerMiddleD is button");
+    });
+
+    innerMiddleD.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on inner middle component.");
+    });
+
+    innerD.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on innerD component.");
+    });
+
+    targetDiv.addEventListener("command", (e) => {
+        targetDivCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv,
+                        "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                        "source for event listener on targetDiv is button");
+        assert_array_equals(e.composedPath(), [targetDiv, innerDSlot, innerD.shadowRoot, innerD,
+                innerMiddleD.shadowRoot, outerMiddleD, outerD.shadowRoot],
+                "Event path skips root containing neither source nor target");
+    });
+
+    button.click()
+    assert_equals(outerMiddleDCommandEventCount, 1, "Command handler on outerMiddleD should have been called");
+    assert_equals(targetDivCommandEventCount, 1, "Command handler on targetDiv should have been called");
+}, "Event path skips root containing neither source nor target. Non-bubbling event fires only where currentTarget == retargeted original target");
+</script>
+
+<button id="buttonE" command="--foo" commandFor="innerE">Do Foo</button>
+<x-component id="innerE">
+    <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+        <div id="targetDiv"></div>
+    </template>
+</x-component>
+
+<script>
+test((t) => {
+    const button = document.getElementById("buttonE");
+    const innerE = document.getElementById("innerE");
+    const targetDiv = innerE.shadowRoot.getElementById("targetDiv");
+    let innerECommandEventCount = 0;
+    let targetDivCommandEventCount = 0;
+
+    document.body.addEventListener("command", (e) => {
+        assert_unreached("non-bubbling command event should not fire on document.body.");
+    });
+
+    document.documentElement.addEventListener("command", (e) => {
+        assert_unreached("non-bubbling command event should not fire on document.documentElement.");
+    });
+
+    document.addEventListener("command", (e) => {
+        assert_unreached("non-bubbling command event should not fire on document.");
+    });
+
+    window.addEventListener("command", (e) => {
+        assert_unreached("non-bubbling command event should not fire on window.");
+    });
+
+    innerE.addEventListener("command", (e) => {
+        innerECommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, innerE,
+                    "target for event listener on innerE is innerE");
+        assert_equals(e.source, button,
+                    "source for event listener on innerE is button");
+    });
+
+    targetDiv.addEventListener("command", (e) => {
+        targetDivCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+        assert_array_equals(e.composedPath(), [targetDiv, innerE.shadowRoot, innerE,
+                document.body, document.documentElement, document, window],
+                "Event path goes all the way to the window since the source isn't in a shadow");
+    });
+
+    button.click();
+    assert_equals(innerECommandEventCount, 1, "Command handler on innerE should have been called");
+    assert_equals(targetDivCommandEventCount, 1, "Command handler on targetDiv should have been called");
+}, "Event path should go all the way to window if source is not in a shadow, but should only fire when currentTarget == retargeted original target");
+</script>
+
+<x-component id="outerF">
+<template shadowRootMode="open">
+    <button id="button">Do Foo</button>
+    <x-component id="middleF">
+    <template shadowRootMode="open">
+        <x-component id="innerF">
+        <template shadowRootMode="open">
+            <div id="targetDiv">Target div</div>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerF = document.getElementById("outerF");
+    const button = outerF.shadowRoot.getElementById("button");
+    const middleF = outerF.shadowRoot.getElementById("middleF");
+    const innerF = middleF.shadowRoot.getElementById("innerF");
+    const targetDiv = innerF.shadowRoot.getElementById("targetDiv");
+    let targetDivCommandEventCount = 0;
+    let targetDivFirstChildCommandEventCount = 0;
+    let middleFCommandEventCount = 0;
+
+    outerF.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on outer component.");
+    });
+
+    innerF.addEventListener("command", (e) => {
+        assert_unreached("Command event should not fire on inner component.");
+    });
+
+    targetDiv.addEventListener("command", (e) => {
+        targetDivCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+        assert_array_equals(e.composedPath(), [targetDiv, innerF.shadowRoot, middleF, outerF.shadowRoot],
+            "Event path should include only tree of target and tree of source");
+    });
+
+    targetDiv.firstChild.addEventListener("command", (e) => {
+        targetDivFirstChildCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, targetDiv.firstChild,
+                "target for event listener on targetDiv's first child is targetDiv's first child");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv's first child is button");
+        assert_array_equals(e.composedPath(), [targetDiv.firstChild, targetDiv, innerF.shadowRoot, middleF, outerF.shadowRoot],
+            "Event path should include only tree of target and tree of source, even when event is dispatched on text node");
+    });
+
+    middleF.addEventListener("command", (e) => {
+        middleFCommandEventCount++;
+        assert_true(e instanceof CommandEvent);
+        assert_equals(e.target, middleF,
+                "target for event listener on middleF is middleF");
+        assert_equals(e.source, button,
+                "source for event listener on middleF is button");
+    });
+
+    const commandEvent = new CommandEvent("command", {source: button});
+    targetDiv.dispatchEvent(commandEvent);
+    assert_equals(targetDivCommandEventCount, 1, "Command handler on targetDiv should have been called");
+    assert_equals(targetDivFirstChildCommandEventCount, 0, "Command handler on targetDiv's first child should not have been called");
+    assert_equals(middleFCommandEventCount, 1, "Command handler on middleF should have been called");
+
+    const commandEvent2 = new CommandEvent("command", {source: button});
+    targetDiv.firstChild.dispatchEvent(commandEvent2);
+    assert_equals(targetDivCommandEventCount, 1, "Non-bubbling event doesn't bubble to parent when is dispatched on text node");
+    assert_equals(targetDivFirstChildCommandEventCount, 1, "Command handler on targetDiv's first child should have been called when event is dispatched on text node");
+    assert_equals(middleFCommandEventCount, 2, "Command handler on middleF should have been called when event is dispatched on text node");
+}, "Event propagates to source tree when source is given in synthetic event, even without reference target");
+</script>
+
+</body>
+
+</html>

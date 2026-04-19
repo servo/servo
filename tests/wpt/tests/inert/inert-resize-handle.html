@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#inert">
+<link rel="author" href="github.com/vmpstr">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<style>
+  #container {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+    resize: both;
+    border: 1px solid black;
+  }
+</style>
+
+<div id="container"></div>
+
+<script>
+promise_test(async (t) => {
+  const container = document.getElementById('container');
+
+  // Ensure the element is rendered and the resize handle is present.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const rect = container.getBoundingClientRect();
+  const x = Math.round(rect.right - 5);
+  const y_start = Math.round(rect.bottom - 5);
+  const y_mid = Math.round(rect.bottom + 50);
+  const y_end = Math.round(rect.bottom + 100);
+
+  let resizePromise = new Promise(resolve => {
+    new ResizeObserver((entries, observer) => {
+      observer.disconnect();
+      resolve();
+    }).observe(container);
+  });
+
+  let actions = new test_driver.Actions();
+  await actions
+    .pointerMove(x, y_start)
+    .pointerDown()
+    .pointerMove(x, y_mid)
+    .pointerUp()
+    .send();
+
+  await resizePromise;
+
+  const width1 = container.offsetWidth;
+  const height1 = container.offsetHeight;
+  assert_greater_than(height1, 200, "Height should have increased after first drag");
+  assert_greater_than(width1, 200, "Width should have increased after first drag");
+
+  // Add inert and try to resize again from the mid point.
+  container.inert = true;
+
+  // Make sure the new style/inert state is propagated to the compositor.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  let pointerupPromise = new Promise(resolve => window.addEventListener('pointerup', resolve, {once: true}));
+
+  let actions2 = new test_driver.Actions();
+  await actions2
+    .pointerMove(x, y_mid)
+    .pointerDown()
+    .pointerMove(x, y_end)
+    .pointerUp()
+    .send();
+
+  await pointerupPromise;
+
+  const width2 = container.offsetWidth;
+  const height2 = container.offsetHeight;
+
+  assert_equals(height2, height1, "Height should not change when dragging while inert");
+  assert_equals(width2, width1, "Width should not change when dragging while inert");
+}, "Resize handle should not be interactive after element becomes inert");
+</script>

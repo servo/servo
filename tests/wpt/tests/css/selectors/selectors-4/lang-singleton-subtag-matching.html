@@ -11,8 +11,9 @@
 <body>
 
 <div lang="fr-x"></div>
-<div lang="fr-x-xenomorph"></div>
-<div lang="fr-xenomorph"></div>
+<div lang="fr-x-standard"></div>
+<div lang="fr-standard"></div>
+<div lang="fr-ninechars"></div>
 <div lang="cocoa-1-bar"></div>
 <div lang="cocoa-a-bar"></div>
 <div lang="en-x-private"></div>
@@ -26,18 +27,22 @@
 
 test(function() {
     assert_equals(document.querySelectorAll(':lang(fr-x)').length, 2);
-}, ':lang(fr-x) matches lang="fr-x" and lang="fr-x-xenomorph" (singleton "x" matches)');
+}, ':lang(fr-x) matches lang="fr-x" and lang="fr-x-standard" (singleton "x" matches)');
 
 test(function() {
     assert_equals(document.querySelectorAll(':lang(fr-x)').length, 2);
     var matched = document.querySelectorAll(':lang(fr-x)');
     assert_equals(matched[0].getAttribute('lang'), 'fr-x');
-    assert_equals(matched[1].getAttribute('lang'), 'fr-x-xenomorph');
+    assert_equals(matched[1].getAttribute('lang'), 'fr-x-standard');
 }, ':lang(fr-x) matches the correct elements');
 
 test(function() {
-    assert_equals(document.querySelectorAll(':lang(fr-xenomorph)').length, 1);
-}, ':lang(fr-xenomorph) only matches lang="fr-xenomorph" (not lang="fr-x-xenomorph")');
+    assert_equals(document.querySelectorAll(':lang(fr-standard)').length, 1);
+}, ':lang(fr-standard) only matches lang="fr-standard" (not lang="fr-x-standard")');
+
+test(function() {
+    assert_equals(document.querySelectorAll(':lang(fr)').length, 3);
+}, ':lang(fr) does not match lang="fr-ninechars" (subtag exceeds 8-char limit)');
 
 test(function() {
     assert_equals(document.querySelectorAll(':lang(cocoa-1)').length, 1);

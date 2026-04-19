@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="assert" content="A variant of two-consecutive-resnaps.html but with scroll-snap-align: end">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#re-snap" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2020227">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#scroller {
+  scroll-snap-type: both mandatory;
+  overflow: scroll;
+  width: 200px;
+  height: 180px;
+  position: relative;
+  scrollbar-width: none;
+}
+.child {
+  scroll-snap-align: end;
+  width: 100%;
+  height: 40px;
+  position: absolute;
+}
+#spacer {
+  width: 1000px;
+  height: 1000px;
+}
+</style>
+<div id="scroller">
+  <div class="child" style="top:   0px; background-color: blue;">1</div>
+  <div class="child" style="top:  40px; background-color: green;">2</div>
+  <div class="child" style="top:  80px; background-color: yellow;">3</div>
+  <div class="child" style="top: 120px; background-color: blue;">4</div>
+  <div class="child" style="top: 160px; background-color: green;">5</div>
+  <div class="child" style="top: 200px; background-color: yellow;">6</div>
+  <div class="child" style="top: 240px; background-color: blue;">7</div>
+  <div class="child" style="top: 280px; background-color: green;">8</div>
+  <div class="child" style="top: 320px; background-color: yellow;">9</div>
+  <div id="spacer"></div>
+</div>
+<script>
+promise_test(async () => {
+  assert_equals(scroller.scrollTop, 0);
+
+  const scrollendPromise = new Promise(resolve => {
+    scroller.addEventListener("scrollend", resolve);
+  });
+
+  // Scroll to the 7th child.
+  scroller.children[6].scrollIntoView({ block: "start", behavior: "instant" });
+  await scrollendPromise;
+  assert_greater_than(scroller.scrollTop, 0,
+    "The scroll position should have changed");
+
+  const previousPosition = scroller.scrollTop;
+
+  // Change the scroll container width once and do
+  // getComputedStyle() to trigger a re-snapping.
+  scroller.style.width = "201px";
+  getComputedStyle(scroller).width;
+
+  // Then do it again.
+  scroller.style.width = "200px";
+  getComputedStyle(scroller).width;
+
+  // Give a chance to scroll if it happens.
+  await new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+
+  assert_equals(scroller.scrollTop, previousPosition,
+    "Should stay at the last snap point");
+}, "Keep the same snap position while two consecutive re-snappings");
+</script>
