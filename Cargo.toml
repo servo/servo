@@ -46,6 +46,7 @@ bitflags = "2.11"
 brotli = "8.0.2"
 bytemuck = "1"
 byteorder = "1.5"
+bytes = "1.0"
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
@@ -208,7 +209,7 @@ utf-8 = "0.7"
 uuid = { version = "1.23.0", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"
-webdriver = "0.53.0"
+webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
