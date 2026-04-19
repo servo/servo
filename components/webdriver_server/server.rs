@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// The code in this file was initially forked from the server module of the webdriver crate.
+// https://github.com/mozilla-firefox/firefox/blob/63719d122f9214f37fd1d285a91897b8345b88b0/testing/webdriver/src/server.rs
+
 use std::marker::PhantomData;
 use std::net::{SocketAddr, TcpListener as StdTcpListener};
 use std::sync::mpsc::{Receiver, Sender, channel};
