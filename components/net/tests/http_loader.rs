@@ -41,7 +41,7 @@ use net_traits::request::{
     TraversableForUserPrompts, create_request_body_with_content,
 };
 use net_traits::response::{Response, ResponseBody};
-use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
+use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy, get_current_locale};
 use parking_lot::{Mutex, RwLock};
 use servo_base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -202,7 +202,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
-    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US"));
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
@@ -360,7 +360,7 @@ fn test_request_and_response_data_with_network_messages() {
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
-    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US"));
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 

@@ -41,7 +41,7 @@ use net_traits::request::{
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{
     FetchTaskTarget, IncludeSubdomains, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-    ResourceTimingType,
+    ResourceTimingType, get_current_locale,
 };
 use parking_lot::Mutex;
 use servo_arc::Arc as ServoArc;
@@ -1449,7 +1449,7 @@ fn test_fetch_with_devtools() {
 
     headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
 
-    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US"));
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 
     headers.typed_insert::<UserAgent>(DEFAULT_USER_AGENT.parse().unwrap());
 
