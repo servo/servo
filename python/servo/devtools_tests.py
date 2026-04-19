@@ -1283,14 +1283,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
             # Blackbox the entire source
             blackboxing_actor = devtools.watcher.get_blackboxing_actor()["blackboxing"]["actor"]
-            devtools.client.send_receive(
-                {
-                    "to": blackboxing_actor,
-                    "type": "blackbox",
-                    "range": [],
-                    "url": url
-                }
-            )
+            devtools.client.send_receive({"to": blackboxing_actor, "type": "blackbox", "range": [], "url": url})
 
             # Set a breakpoint and confirm that we will not pause
             trigger = lambda: set_breakpoint(devtools, url, line, column)

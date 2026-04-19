@@ -8,6 +8,7 @@ const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
 const frameActorsToFrames = new Map;
 const environmentActorsToEnvironments = new Map;
+const blackboxing = new Map;
 
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#155>
 // Possible values for the `why.type` attribute in "paused" event
@@ -344,6 +345,10 @@ function handlePauseAndRespond(frame, pauseReason) {
         return undefined;
     }
 
+    if (frame) {
+
+    }
+
     let frameActorId = createFrameActor(frame, pipelineId);
 
     // <https://github.com/mozilla-firefox/firefox/blob/63719d122f9214f37fd1d285a91897b8345b88b0/js/src/doc/Debugger/Debugger.Script.md?plain=1#L293-L303>
@@ -609,3 +614,46 @@ addEventListener("getEnvironment", event => {
     const actor = createEnvironmentActor(frame.environment);
     getEnvironmentResult(actor);
 });
+
+addEventListener("blackbox", event => {
+  if (event.coversFullSource) {
+    // Blackbox the entire source
+    blackboxing.set(event.spidermonkeyId, []);
+  } else {
+    // Blackbox a part of the source
+    blackboxing.getOrInsert(event.spidermonkeyId, []).push({
+      start: event.start,
+      end: event.end
+    });
+  }
+});
+
+addEventListener("unblackbox", event => {
+    if (event.coversFullSource) {
+    // Unblackbox the entire source
+        blackboxing.delete(event.spidermonkeyId);
+    } else {
+        // Unblackbox an earlier range of the source
+        const array = blackboxing.get(event.spidermonkeyId);
+        const index = array.findIndex(range => range.start.line === event.start.line
+                && range.start.column === event.start.column
+                && range.end.line === event.end.line
+                && range.end.column === event.end.column
+        );
+        if (index !== -1) array.splice(index, 1);
+    }
+});
+
+function isBlackBoxed(spidermonkeyId, line, column) {
+    const sourceBlackboxing = blackboxing.get(spidermonkeyId);
+
+    if (sourceBlackboxing == undefined) {
+        return false;
+    } else if (sourceBlackboxing.length === 0) {
+        return true;
+    }
+
+    // TODO
+
+    return false;
+}
