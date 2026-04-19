@@ -13,7 +13,7 @@ interface Gamepad {
     readonly attribute DOMHighResTimeStamp timestamp;
     readonly attribute DOMString mapping;
     readonly attribute Float64Array axes;
-    [SameObject] readonly attribute GamepadButtonList buttons;
+    readonly attribute any buttons;
     [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
 };
 
