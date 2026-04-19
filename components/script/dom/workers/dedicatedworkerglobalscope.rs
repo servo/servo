@@ -48,6 +48,7 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::htmlscriptelement::Script;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -56,7 +57,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_module::{ModuleFetchClient, ModuleOwner, fetch_a_module_worker_script_graph};
+use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -499,6 +500,7 @@ impl DedicatedWorkerGlobalScope {
                     Some(worker_id),
                 );
                 let scope = global.upcast::<WorkerGlobalScope>();
+                let global_scope = global.upcast::<GlobalScope>();
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
@@ -525,14 +527,18 @@ impl DedicatedWorkerGlobalScope {
                             );
                         },
                         WorkerType::Module => {
+                            let worker_scope = DomRoot::from_ref(scope);
                             fetch_a_module_worker_script_graph(
                                 cx,
+                                global_scope,
                                 worker_url.url(),
                                 fetch_client,
-                                ModuleOwner::Worker(Trusted::new(scope)),
                                 Destination::Worker,
                                 referrer,
                                 credentials,
+                                move |cx, module_tree| {
+                                    worker_scope.on_complete(cx, module_tree.map(Script::Module));
+                                },
                             );
                         },
                     }

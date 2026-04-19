@@ -222,6 +222,36 @@ fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str
     storage.push(cookie, url, source);
 }
 
+fn assert_ip_cookie_bucket_collision_eviction(ip_a: &str, ip_b: &str) {
+    let mut storage = CookieStorage::new(5);
+    let ip_a = ServoUrl::parse(ip_a).unwrap();
+    let ip_b = ServoUrl::parse(ip_b).unwrap();
+    let source = CookieSource::HTTP;
+
+    for i in 1..=3 {
+        add_cookie_to_storage(&mut storage, &ip_a, &format!("a{i}=val{i}"));
+    }
+
+    for i in 1..=5 {
+        add_cookie_to_storage(&mut storage, &ip_b, &format!("b{i}=val{i}"));
+    }
+
+    let cookies_a = storage.cookies_for_url(&ip_a, source).unwrap();
+    assert_eq!(cookies_a.split("; ").count(), 3);
+    for i in 1..=3 {
+        assert!(cookies_a.contains(&format!("a{i}=val{i}")));
+    }
+}
+
+#[test]
+fn test_ip_cookie_bucket_collision_eviction() {
+    assert_ip_cookie_bucket_collision_eviction("http://192.168.0.1/path", "http://10.0.0.1/path");
+    assert_ip_cookie_bucket_collision_eviction(
+        "http://[2001:db8::1]/path",
+        "http://[2001:db8::2]/path",
+    );
+}
+
 #[test]
 fn test_insecure_cookies_cannot_evict_secure_cookie() {
     let mut storage = CookieStorage::new(5);
@@ -393,7 +423,7 @@ fn test_cookie_eviction_expired() {
         );
         vec.push(st);
     }
-    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2027 21:06:29 GMT".to_owned());
+    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2127 21:06:29 GMT".to_owned());
     let r = add_retrieve_cookies(
         "https://home.example.org:8888/cookie-parser?0001",
         &vec,
@@ -407,13 +437,13 @@ fn test_cookie_eviction_all_secure_one_nonsecure() {
     let mut vec = Vec::new();
     for i in 1..5 {
         let st = format!(
-            "extra{}=bar; Secure; expires=Sun, 18-Apr-2026 21:06:29 GMT",
+            "extra{}=bar; Secure; expires=Sun, 18-Apr-2126 21:06:29 GMT",
             i
         );
         vec.push(st);
     }
-    vec.push("foo=bar; expires=Sun, 18-Apr-2026 21:06:29 GMT".to_owned());
-    vec.push("foo2=bar; Secure; expires=Sun, 18-Apr-2028 21:06:29 GMT".to_owned());
+    vec.push("foo=bar; expires=Sun, 18-Apr-2126 21:06:29 GMT".to_owned());
+    vec.push("foo2=bar; Secure; expires=Sun, 18-Apr-2128 21:06:29 GMT".to_owned());
     let r = add_retrieve_cookies(
         "https://home.example.org:8888/cookie-parser?0001",
         &vec,
@@ -430,12 +460,12 @@ fn test_cookie_eviction_all_secure_new_nonsecure() {
     let mut vec = Vec::new();
     for i in 1..6 {
         let st = format!(
-            "extra{}=bar; Secure; expires=Sun, 18-Apr-2026 21:06:29 GMT",
+            "extra{}=bar; Secure; expires=Sun, 18-Apr-2126 21:06:29 GMT",
             i
         );
         vec.push(st);
     }
-    vec.push("foo=bar; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+    vec.push("foo=bar; expires=Sun, 18-Apr-2177 21:06:29 GMT".to_owned());
     let r = add_retrieve_cookies(
         "https://home.example.org:8888/cookie-parser?0001",
         &vec,
@@ -451,10 +481,10 @@ fn test_cookie_eviction_all_secure_new_nonsecure() {
 fn test_cookie_eviction_all_nonsecure_new_secure() {
     let mut vec = Vec::new();
     for i in 1..6 {
-        let st = format!("extra{}=bar; expires=Sun, 18-Apr-2026 21:06:29 GMT", i);
+        let st = format!("extra{}=bar; expires=Sun, 18-Apr-2126 21:06:29 GMT", i);
         vec.push(st);
     }
-    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2177 21:06:29 GMT".to_owned());
     let r = add_retrieve_cookies(
         "https://home.example.org:8888/cookie-parser?0001",
         &vec,
@@ -470,10 +500,10 @@ fn test_cookie_eviction_all_nonsecure_new_secure() {
 fn test_cookie_eviction_all_nonsecure_new_nonsecure() {
     let mut vec = Vec::new();
     for i in 1..6 {
-        let st = format!("extra{}=bar; expires=Sun, 18-Apr-2026 21:06:29 GMT", i);
+        let st = format!("extra{}=bar; expires=Sun, 18-Apr-2126 21:06:29 GMT", i);
         vec.push(st);
     }
-    vec.push("foo=bar; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+    vec.push("foo=bar; expires=Sun, 18-Apr-2177 21:06:29 GMT".to_owned());
     let r = add_retrieve_cookies(
         "https://home.example.org:8888/cookie-parser?0001",
         &vec,

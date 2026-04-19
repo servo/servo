@@ -2,18 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::local_name;
+use html5ever::{LocalName, local_name};
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::attr::AttrValue;
 use style::properties::{LonghandId, PropertyDeclaration, PropertyDeclarationId};
 use style::values::specified::TextDecorationLine;
 use style::values::specified::box_::DisplayOutside;
 
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::execcommand::commands::fontsize::font_size_to_css_font;
+use crate::dom::execcommand::contenteditable::node::move_preserving_ranges;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::node::node::{Node, NodeTraits};
 
@@ -158,6 +162,18 @@ impl Element {
         false
     }
 
+    pub(crate) fn has_empty_style_attribute(&self) -> bool {
+        let style_attribute = self.style_attribute().borrow();
+        style_attribute.as_ref().is_some_and(|declarations| {
+            let document = self.owner_document();
+            let shared_lock = document.style_shared_lock();
+            let read_lock = shared_lock.read();
+            let style = declarations.read_with(&read_lock);
+
+            style.is_empty()
+        })
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#simple-modifiable-element>
     pub(crate) fn is_simple_modifiable_element(&self) -> bool {
         let attrs = self.attrs();
@@ -194,19 +210,10 @@ impl Element {
             // > with exactly one attribute, which is style,
             // > which sets no CSS properties (including invalid or unrecognized properties).
             if attr_count == 1 &&
-                attrs.first().expect("Size is 1").local_name() == &local_name!("style")
+                attrs.first().expect("Size is 1").local_name() == &local_name!("style") &&
+                self.has_empty_style_attribute()
             {
-                let style_attribute = self.style_attribute().borrow();
-                if style_attribute.as_ref().is_some_and(|declarations| {
-                    let document = self.owner_document();
-                    let shared_lock = document.style_shared_lock();
-                    let read_lock = shared_lock.read();
-                    let style = declarations.read_with(&read_lock);
-
-                    style.is_empty()
-                }) {
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -308,5 +315,39 @@ impl Element {
         }
 
         false
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#set-the-tag-name>
+    pub(crate) fn set_the_tag_name(&self, cx: &mut JSContext, new_name: &str) -> DomRoot<Element> {
+        // Step 1. If element is an HTML element with local name equal to new name, return element.
+        if self.local_name() == &LocalName::from(new_name) {
+            return DomRoot::from_ref(self);
+        }
+        // Step 2. If element's parent is null, return element.
+        let node = self.upcast::<Node>();
+        let Some(parent) = node.GetParentNode() else {
+            return DomRoot::from_ref(self);
+        };
+        // Step 3. Let replacement element be the result of calling createElement(new name) on the ownerDocument of element.
+        let document = node.owner_document();
+        let replacement = document.create_element(cx, new_name);
+        let replacement_node = replacement.upcast::<Node>();
+        // Step 4. Insert replacement element into element's parent immediately before element.
+        if parent
+            .InsertBefore(cx, replacement_node, Some(node))
+            .is_err()
+        {
+            unreachable!("Must always be able to insert");
+        }
+        // Step 5. Copy all attributes of element to replacement element, in order.
+        self.copy_all_attributes_to_other_element(cx, &replacement);
+        // Step 6. While element has children, append the first child of element as the last child of replacement element, preserving ranges.
+        for child in node.children() {
+            move_preserving_ranges(cx, &child, |cx| replacement_node.AppendChild(cx, &child));
+        }
+        // Step 7. Remove element from its parent.
+        node.remove_self(cx);
+        // Step 8. Return replacement element.
+        replacement
     }
 }
