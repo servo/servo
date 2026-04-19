@@ -14,4 +14,5 @@ name = "servo_wakelock"
 path = "lib.rs"
 
 [dependencies]
+embedder_traits = { workspace = true }
 serde = { workspace = true }
