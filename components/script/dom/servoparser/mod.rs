@@ -2124,7 +2124,7 @@ fn attach_declarative_shadow_inner(
     let mut delegatesfocus = false;
     let mut serializable = false;
 
-   attributes
+    attributes
         .iter()
         .for_each(|attr: &Attribute| match attr.name.local {
             local_name!("shadowrootmode") => {
@@ -2149,7 +2149,7 @@ fn attach_declarative_shadow_inner(
                 if attr.value.eq_ignore_ascii_case("manual") {
                     slot_assignment_mode = SlotAssignmentMode::Manual;
                 }
-            }
+            },
             _ => {},
         });
 
