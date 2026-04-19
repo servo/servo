@@ -29,6 +29,8 @@ GSTREAMER_URL = f"{DEPS_URL}/gstreamer-1.0-msvc-x86_64-1.22.8.msi"
 GSTREAMER_DEVEL_URL = f"{DEPS_URL}/gstreamer-1.0-devel-msvc-x86_64-1.22.8.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 
+SCOOP_BUCKETS = ["versions"]
+SCOOP_DEPENDENCIES = ["cmake", "llvm", "ninja", "wixtoolset3"]
 WINGET_DEPENDENCIES = ["Kitware.CMake", "LLVM.LLVM", "Ninja-build.Ninja", "WiXToolset.WiXToolset"]
 
 
@@ -76,6 +78,28 @@ def _choco_install(force: bool = False) -> None:
         raise e
 
 
+def _scoop_install() -> None:
+    try:
+        scoop = shutil.which("scoop")
+        if scoop is None:
+            raise FileNotFoundError("Could not find scoop executable.")
+        output = subprocess.check_output([scoop, "bucket", "list"], encoding="utf-8")
+        installed_buckets = set()
+        for line in output.splitlines():
+            stripped_line = line.strip()
+            if not stripped_line or stripped_line.startswith(("Name", "----")):
+                continue
+            installed_buckets.add(stripped_line.split(maxsplit=1)[0])
+        for bucket in SCOOP_BUCKETS:
+            if bucket not in installed_buckets:
+                print(f"Adding Scoop bucket '{bucket}'...")
+                subprocess.check_call([scoop, "bucket", "add", bucket])
+        subprocess.check_call([scoop, "install", *SCOOP_DEPENDENCIES])
+    except subprocess.CalledProcessError as e:
+        print("Could not run scoop.  Follow manual build setup instructions.")
+        raise e
+
+
 class Windows(Base):
     def __init__(self, triple: str) -> None:
         super().__init__(triple)
@@ -106,6 +130,9 @@ class Windows(Base):
         # If `winget` works well in practice, we could switch the default in the future.
         if shutil.which("choco") is not None:
             _choco_install(force)
+        elif shutil.which("scoop") is not None:
+            # Scoop does not have a `force` mode comparable to Chocolatey or Winget.
+            _scoop_install()
         else:
             _winget_import(force, yes)
 
