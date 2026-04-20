@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use rusqlite::Connection;
-use servo_base::generic_channel;
+use servo_base::generic_channel::{self, GenericCallback};
 use servo_base::id::{BrowsingContextId, PipelineNamespace, PipelineNamespaceId, WebViewId};
 use servo_url::ServoUrl;
 use storage::ClientStorageThreadFactory;
@@ -247,23 +247,25 @@ fn test_local_persistence_and_estimate() {
         origin.clone(),
     );
 
-    assert!(!handle.persisted(origin.clone()).recv().unwrap().unwrap());
-    assert!(
-        !handle
-            .persist(origin.clone(), false)
-            .recv()
-            .unwrap()
-            .unwrap()
-    );
-    assert!(!handle.persisted(origin.clone()).recv().unwrap().unwrap());
-    assert!(
-        handle
-            .persist(origin.clone(), true)
-            .recv()
-            .unwrap()
-            .unwrap()
-    );
-    assert!(handle.persisted(origin.clone()).recv().unwrap().unwrap());
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persisted(origin.clone(), cb).unwrap();
+    assert!(!rx.recv().unwrap().unwrap());
+
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persist(origin.clone(), false, cb).unwrap();
+    assert!(!rx.recv().unwrap().unwrap());
+
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persisted(origin.clone(), cb).unwrap();
+    assert!(!rx.recv().unwrap().unwrap());
+
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persist(origin.clone(), true, cb).unwrap();
+    assert!(rx.recv().unwrap().unwrap());
+
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persisted(origin.clone(), cb).unwrap();
+    assert!(rx.recv().unwrap().unwrap());
 
     let path = handle
         .create_database(storage_proxy_map.bottle_id, "estimate".to_string())
@@ -273,7 +275,9 @@ fn test_local_persistence_and_estimate() {
     let payload = vec![0x5a; 8192];
     std::fs::write(path.join("payload.bin"), &payload).unwrap();
 
-    let (usage, quota) = handle.estimate(origin).recv().unwrap().unwrap();
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.estimate(origin, cb).unwrap();
+    let (usage, quota) = rx.recv().unwrap().unwrap();
     assert!(usage >= payload.len() as u64);
     assert!(quota > usage);
 }
@@ -287,13 +291,15 @@ fn test_storage_manager_operations_fail_for_opaque_origins() {
 
     let origin = ServoUrl::parse("data:text/plain,hello").unwrap().origin();
 
-    assert!(handle.persisted(origin.clone()).recv().unwrap().is_err());
-    assert!(
-        handle
-            .persist(origin.clone(), true)
-            .recv()
-            .unwrap()
-            .is_err()
-    );
-    assert!(handle.estimate(origin).recv().unwrap().is_err());
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persisted(origin.clone(), cb).unwrap();
+    assert!(rx.recv().unwrap().is_err());
+
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.persist(origin.clone(), true, cb).unwrap();
+    assert!(rx.recv().unwrap().is_err());
+
+    let (cb, rx) = GenericCallback::new_blocking().unwrap();
+    handle.estimate(origin, cb).unwrap();
+    assert!(rx.recv().unwrap().is_err());
 }

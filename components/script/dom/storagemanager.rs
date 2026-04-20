@@ -5,8 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use servo_base::generic_channel::{GenericCallback, GenericSend};
-use storage_traits::client_storage::ClientStorageThreadMessage;
+use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
@@ -15,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::StorageManagerBinding::{
     StorageEstimate, StorageManagerMethods,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -163,10 +162,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
 
         if global
             .storage_threads()
-            .send(ClientStorageThreadMessage::Persisted {
-                origin: global.origin().immutable().clone(),
-                sender: callback.clone(),
-            })
+            .persisted(global.origin().immutable().clone(), callback.clone())
             .is_err()
         {
             if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
@@ -197,56 +193,42 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         }
 
         // Step 5. Otherwise, run these steps in parallel:
-        let response_task_source = global
-            .task_manager()
-            .database_access_task_source()
-            .to_sendable();
-        let request_task_source = global.task_manager().database_access_task_source();
-        let trusted_manager = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        // Step 5.1. Let permission be the result of requesting permission to use
+        // "persistent-storage".
+        let permission = request_permission_to_use(PermissionName::Persistent_storage, &global);
 
-        request_task_source.queue(task!(storage_manager_persist_request: move || {
-            let manager = trusted_manager.root();
-            let mut handler = StorageManagerBooleanResponseHandler::new(
-                trusted_promise,
-                response_task_source,
-            );
+        // Step 5.2. Let bucket be shelf’s bucket map["default"].
+        // Step 5.3. Let persisted be true if bucket’s mode is "persistent"; otherwise false.
+        // It will be false when there’s an internal error.
+        // Step 5.4. If persisted is false and permission is "granted", then:
+        // Step 5.4.1. Set bucket’s mode to "persistent".
+        // Step 5.4.2. If there was no internal error, then set persisted to true.
+        // Step 5.5. Queue a storage task with global to resolve promise with persisted.
+        let mut handler = StorageManagerBooleanResponseHandler::new(
+            TrustedPromise::new(promise.clone()),
+            global
+                .task_manager()
+                .database_access_task_source()
+                .to_sendable(),
+        );
+        let callback = GenericCallback::new(move |message| {
+            handler.handle(message.unwrap_or_else(|error| Err(error.to_string())));
+        })
+        .expect("Could not create StorageManager persist callback");
 
-            // Step 5.1. Let permission be the result of requesting permission to use
-            // "persistent-storage".
-            let permission = request_permission_to_use(
-                PermissionName::Persistent_storage,
-                &manager.global(),
-            );
-
-            // Step 5.2. Let bucket be shelf’s bucket map["default"].
-            // Step 5.3. Let persisted be true if bucket’s mode is "persistent"; otherwise false.
-            // It will be false when there’s an internal error.
-            // Step 5.4. If persisted is false and permission is "granted", then:
-            // Step 5.4.1. Set bucket’s mode to "persistent".
-            // Step 5.4.2. If there was no internal error, then set persisted to true.
-            // Step 5.5. Queue a storage task with global to resolve promise with persisted.
-            let callback = GenericCallback::new(move |message| {
-                handler.handle(message.unwrap_or_else(|error| Err(error.to_string())));
-            })
-            .expect("Could not create StorageManager persist callback");
-
-            if manager
-                .global()
-                .storage_threads()
-                .send(ClientStorageThreadMessage::Persist {
-                    origin: manager.global().origin().immutable().clone(),
-                    permission_granted: permission == PermissionState::Granted,
-                    sender: callback.clone(),
-                })
-                .is_err()
-            {
-                if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned()))
-                {
-                    error!("Failed to deliver StorageManager persist error: {error}");
-                }
+        if global
+            .storage_threads()
+            .persist(
+                global.origin().immutable().clone(),
+                permission == PermissionState::Granted,
+                callback.clone(),
+            )
+            .is_err()
+        {
+            if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {
+                error!("Failed to deliver StorageManager persist error: {error}");
             }
-        }));
+        }
 
         // Step 6. Return promise.
         promise
@@ -292,10 +274,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
 
         if global
             .storage_threads()
-            .send(ClientStorageThreadMessage::Estimate {
-                origin: global.origin().immutable().clone(),
-                sender: callback.clone(),
-            })
+            .estimate(global.origin().immutable().clone(), callback.clone())
             .is_err()
         {
             if let Err(error) = callback.send(Err("Failed to queue storage task".to_owned())) {

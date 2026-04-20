@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::fmt::Debug;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::{fs, thread};
 
 use log::warn;
@@ -16,11 +17,11 @@ use storage_traits::client_storage::{
 };
 use uuid::Uuid;
 
-/// <https://storage.spec.whatwg.org/#storage-endpoint-quota>
-///
-/// A storage endpoint also has a quota, which is null or a number representing a recommended
-/// quota (in bytes) for each storage bottle corresponding to this storage endpoint.
-const STORAGE_ENDPOINT_QUOTA_BYTES: u64 = 5 * 1024 * 1024;
+/// <https://storage.spec.whatwg.org/#storage-quota>
+/// The storage quota of a storage shelf is an implementation-defined conservative estimate of the
+/// total amount of byttes it can hold. We use 10 GiB per shelf, matching Firefox's documented
+/// limit (<https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria>).
+const STORAGE_SHELF_QUOTA_BYTES: u64 = 10 * 1024 * 1024 * 1024;
 
 trait RegistryEngine {
     type Error: Debug;
@@ -263,20 +264,15 @@ fn create_a_storage_bucket(
 }
 
 /// <https://storage.spec.whatwg.org/#create-a-storage-shelf>
-///
-/// To create a storage shelf, given a storage type type, run these steps:
-///
-/// Let shelf be a new storage shelf.
-///
-/// Set shelf’s bucket map["default"] to the result of running create a storage bucket with type.
-///
-/// Return shelf.
 fn create_a_storage_shelf(
     shed: i64,
     origin: &ImmutableOrigin,
     storage_type: StorageType,
     tx: &Transaction,
 ) -> rusqlite::Result<StorageShelf> {
+    // To create a storage shelf, given a storage type type, run these steps:
+    // Step 1. Let shelf be a new storage shelf.
+    // Step 2.  Set shelf’s bucket map["default"] to the result of running create a storage bucket with type.
     let shelf_id: i64 = tx.query_row(
         "INSERT INTO shelves (shed_id, origin) VALUES (?1, ?2)
          ON CONFLICT(shed_id, origin) DO UPDATE SET origin = excluded.origin
@@ -285,6 +281,7 @@ fn create_a_storage_shelf(
         |row| row.get(0),
     )?;
 
+    // Step 3. Return shelf.
     Ok(StorageShelf {
         default_bucket_id: create_a_storage_bucket(shelf_id, storage_type, tx)?,
     })
@@ -336,7 +333,7 @@ fn bucket_mode(bucket_id: i64, tx: &Transaction) -> rusqlite::Result<Mode> {
         [bucket_id],
         |row| row.get(0),
     )?;
-    Ok(mode.parse::<Mode>().unwrap_or_default())
+    Ok(Mode::from_str(&mode).unwrap_or_default())
 }
 
 /// <https://storage.spec.whatwg.org/#dom-storagemanager-persist>
@@ -390,16 +387,8 @@ fn storage_usage_for_bucket(bucket_id: i64, tx: &Transaction) -> Result<u64, Str
 ///
 /// Directly or indirectly revealing available storage space can lead to fingerprinting and leaking
 /// information outside the scope of the origin involved.
-fn storage_quota_for_bucket(bucket_id: i64, tx: &Transaction) -> Result<u64, String> {
-    let bottle_count: u64 = tx
-        .query_row(
-            "SELECT COUNT(*) FROM bottles WHERE bucket_id = ?1;",
-            [bucket_id],
-            |row| row.get(0),
-        )
-        .map_err(|error| error.to_string())?;
-
-    Ok(bottle_count.saturating_mul(STORAGE_ENDPOINT_QUOTA_BYTES))
+fn storage_quota_for_bucket(_bucket_id: i64, _tx: &Transaction) -> Result<u64, String> {
+    Ok(STORAGE_SHELF_QUOTA_BYTES)
 }
 
 /// <https://storage.spec.whatwg.org/#storage-usage>

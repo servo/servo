@@ -482,9 +482,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://storage.spec.whatwg.org/#api>
-    fn Storage(&self) -> DomRoot<StorageManager> {
+    fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
         self.storage
-            .or_init(|| StorageManager::new(&self.global(), CanGc::note()))
+            .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>

@@ -6,7 +6,9 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericReceiver, GenericSender, SendResult,
+};
 use servo_base::id::WebViewId;
 use servo_url::ImmutableOrigin;
 
@@ -69,33 +71,35 @@ impl ClientStorageThreadHandle {
         receiver
     }
 
-    pub fn persisted(&self, origin: ImmutableOrigin) -> GenericReceiver<Result<bool, String>> {
-        let (sender, receiver) = GenericCallback::new_blocking().unwrap();
-        let message = ClientStorageThreadMessage::Persisted { origin, sender };
-        self.sender.send(message).unwrap();
-        receiver
+    pub fn persisted(
+        &self,
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<bool, String>>,
+    ) -> SendResult {
+        self.sender
+            .send(ClientStorageThreadMessage::Persisted { origin, sender })
     }
 
     pub fn persist(
         &self,
         origin: ImmutableOrigin,
         permission_granted: bool,
-    ) -> GenericReceiver<Result<bool, String>> {
-        let (sender, receiver) = GenericCallback::new_blocking().unwrap();
-        let message = ClientStorageThreadMessage::Persist {
+        sender: GenericCallback<Result<bool, String>>,
+    ) -> SendResult {
+        self.sender.send(ClientStorageThreadMessage::Persist {
             origin,
             permission_granted,
             sender,
-        };
-        self.sender.send(message).unwrap();
-        receiver
+        })
     }
 
-    pub fn estimate(&self, origin: ImmutableOrigin) -> GenericReceiver<Result<(u64, u64), String>> {
-        let (sender, receiver) = GenericCallback::new_blocking().unwrap();
-        let message = ClientStorageThreadMessage::Estimate { origin, sender };
-        self.sender.send(message).unwrap();
-        receiver
+    pub fn estimate(
+        &self,
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<(u64, u64), String>>,
+    ) -> SendResult {
+        self.sender
+            .send(ClientStorageThreadMessage::Estimate { origin, sender })
     }
 }
 
@@ -156,7 +160,7 @@ impl Mode {
 impl FromStr for Mode {
     type Err = ();
 
-    /// <https://storage.spec.whatwg.org/#bucket>
+    /// <https://storage.spec.whatwg.org/#bucket-mode>
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
             "best-effort" => Ok(Mode::BestEffort),

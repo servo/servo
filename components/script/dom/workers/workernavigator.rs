@@ -119,9 +119,9 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     /// <https://storage.spec.whatwg.org/#api>
-    fn Storage(&self) -> DomRoot<StorageManager> {
+    fn Storage(&self, cx: &mut js::context::JSContext) -> DomRoot<StorageManager> {
         self.storage
-            .or_init(|| StorageManager::new(&self.global(), CanGc::note()))
+            .or_init(|| StorageManager::new(&self.global(), CanGc::from_cx(cx)))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu

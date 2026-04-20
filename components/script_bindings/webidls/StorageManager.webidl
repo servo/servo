@@ -6,15 +6,20 @@
 
 [SecureContext]
 interface mixin NavigatorStorage {
-  [SameObject] readonly attribute StorageManager storage;
+  [SameObject, Pref="dom_storage_manager_api_enabled"] readonly attribute StorageManager storage;
 };
 Navigator includes NavigatorStorage;
 WorkerNavigator includes NavigatorStorage;
 
 [SecureContext, Exposed=(Window,Worker)]
 interface StorageManager {
+  [NewObject]
   Promise<boolean> persisted();
-  [Exposed=Window] Promise<boolean> persist();
+
+  [Exposed=Window, NewObject]
+  Promise<boolean> persist();
+
+  [NewObject]
   Promise<StorageEstimate> estimate();
 };
 
