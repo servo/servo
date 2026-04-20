@@ -42,6 +42,8 @@ pub struct Reflector<T = ()> {
     object: Heap<*mut JSObject>,
     /// Associated memory size (of rust side). Used for memory reporting to SM.
     size: T,
+    /// Cached prototype ID for fast type checks.
+    proto_id: Cell<u16>,
 }
 
 unsafe impl<T> js::gc::Traceable for Reflector<T> {
@@ -60,6 +62,18 @@ impl<T> Reflector<T> {
     pub fn get_jsobject(&self) -> HandleObject<'_> {
         // We're rooted, so it's safe to hand out a handle to object in Heap
         unsafe { HandleObject::from_raw(self.object.handle()) }
+    }
+
+    /// Get the cached prototype ID.
+    #[inline]
+    pub fn proto_id(&self) -> u16 {
+        self.proto_id.get()
+    }
+
+    /// Set the cached prototype ID.
+    #[inline]
+    pub fn set_proto_id(&self, id: u16) {
+        self.proto_id.set(id);
     }
 
     /// Initialize the reflector. (May be called only once.)
@@ -88,6 +102,7 @@ impl<T: AssociatedMemorySize> Reflector<T> {
     pub fn new() -> Reflector<T> {
         Reflector {
             object: Heap::default(),
+            proto_id: Cell::new(u16::MAX),
             size: T::default(),
         }
     }

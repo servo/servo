@@ -51,6 +51,11 @@ impl<T: ToJSValConvertible + ?Sized> SafeToJSValConvertible for T {
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(_: &'static DOMClass) -> bool;
+
+    /// First prototype ID in the DFS-ordered range for this interface and its descendants.
+    const PROTO_FIRST: u16 = 0;
+    /// Last prototype ID in the DFS-ordered range for this interface and its descendants.
+    const PROTO_LAST: u16 = u16::MAX;
 }
 
 /// A trait to mark an IDL interface as deriving from another one.
