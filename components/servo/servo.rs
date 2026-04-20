@@ -844,8 +844,6 @@ impl Servo {
         let preferences = builder.preferences.map(|opts| *opts);
         servo_config::prefs::set(preferences.unwrap_or_default());
 
-        net::connector::prewarm_tls();
-
         use std::sync::atomic::Ordering;
 
         style::context::DEFAULT_DISABLE_STYLE_SHARING_CACHE.store(
@@ -949,6 +947,8 @@ impl Servo {
             public_storage_threads.clone(),
             private_storage_threads.clone(),
         );
+
+        net::connector::prewarm_tls();
 
         if opts::get().multiprocess {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
