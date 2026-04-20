@@ -92,7 +92,11 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
         let height = self.height as u32;
         let depth = self.depth as u32;
         let level = self.level as u32;
-        if width > max_size || height > max_size || level > max_size {
+        // The maximum width/height/depth values at level 0 are GL_MAX_3D_TEXTURE_SIZE,
+        // and per https://wikis.khronos.org/opengl/Texture#Texture_completeness,
+        // the ones at level N must be half of those at level N-1.
+        let max_size_for_level = max_size / 2u32.pow(level);
+        if width > max_size_for_level || height > max_size_for_level || depth > max_size_for_level {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::TextureTooBig);
         }
