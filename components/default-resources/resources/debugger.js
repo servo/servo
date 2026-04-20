@@ -168,6 +168,7 @@ function extractOwnProperties(obj, depth) {
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
 previewers.Function.push(function FunctionPreviewer(obj, depth) {
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     let function_details = {
         name: obj.name,
         displayName: obj.displayName,
@@ -177,10 +178,9 @@ previewers.Function.push(function FunctionPreviewer(obj, depth) {
     }
 
     if (depth > 1) {
-        return { kind: "Object", function: function_details };
+        return { kind: "Object", function: function_details, ownPropertiesLength };
     }
 
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     return {
         kind: "Object",
         ownProperties,
@@ -225,11 +225,12 @@ previewers.Array.push(function ArrayPreviewer(obj, depth) {
 // Generic fallback for object previewer
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
 previewers.Object.push(function ObjectPreviewer(obj, depth) {
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
+
     if (depth > 1) {
-       return { kind: "Object" };
+       return { kind: "Object", ownPropertiesLength };
     }
 
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
     return {
         kind: "Object",
         ownProperties,
