@@ -1300,6 +1300,14 @@ impl VirtualMethods for HTMLElement {
                     element.update_nonce_internal_slot("".to_owned(), cx.no_gc());
                 },
             },
+            // containertiming is not in html5ever, so for now we check manually
+            (name, mutation) if &**name == "containertiming" => {
+                let node = self.upcast::<Node>();
+                let enabled = matches!(mutation, AttributeMutation::Set(..));
+                for descendant in node.traverse_preorder(ShadowIncluding::No) {
+                    descendant.set_has_container_timing(enabled);
+                }
+            },
             _ => {},
         }
     }
