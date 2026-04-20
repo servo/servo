@@ -1,6 +1,5 @@
 # lines starting with # are comments
 # This file contains the absolute minimum packages required to build Servo on Linux
-
 # Please keep these in sync with the packages in the book, using the instructions in the README.md
 # in this folder.
 build-essential
