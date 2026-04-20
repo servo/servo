@@ -1731,17 +1731,20 @@ impl InlineFormattingContextLayout<'_> {
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
     /// segment to the current line, if it fits within the containing block and float
     /// placement boundaries, or do a line break and then commit the segment.
-    fn process_soft_wrap_opportunity(&mut self) {
+    fn process_soft_wrap_opportunity(&mut self) -> bool {
         if self.current_line_segment.line_items.is_empty() {
-            return;
+            return true;
         }
         if self.text_wrap_mode == TextWrapMode::Nowrap {
-            return;
+            return true;
         }
+        let mut stays_on_current_line = true;
         if !self.unbreakable_segment_fits_on_line() {
+            stays_on_current_line = false;
             self.process_line_break(false /* forced_line_break */);
         }
         self.commit_current_segment_to_line();
+        stays_on_current_line
     }
 
     /// Commit the current unbrekable segment to the current line. In addition, this will
