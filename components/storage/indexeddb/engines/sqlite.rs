@@ -773,7 +773,7 @@ mod tests {
     }
 
     fn get_pool() -> Arc<ThreadPool> {
-        ThreadPool::new(servo_base::threadpool::ThreadPoolType::Test)
+        ThreadPool::current_threadpool()
     }
 
     fn create_db(

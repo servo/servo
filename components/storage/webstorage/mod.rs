@@ -229,7 +229,7 @@ impl WebStorageManager {
             local_storage_origins,
             session_data: FxHashMap::default(),
             config_dir,
-            thread_pool: ThreadPool::new(servo_base::threadpool::ThreadPoolType::WebStorage),
+            thread_pool: ThreadPool::current_threadpool(),
             environments: FxHashMap::default(),
         }
     }
