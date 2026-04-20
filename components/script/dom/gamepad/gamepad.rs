@@ -19,7 +19,7 @@ use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -67,7 +67,7 @@ impl Gamepad {
         connected: bool,
         timestamp: f64,
         mapping_type: String,
-        buttons: RootVec<GamepadButton>,
+        buttons: &[&GamepadButton],
         pose: Option<&GamepadPose>,
         hand: GamepadHand,
         axis_bounds: (f64, f64),
@@ -84,7 +84,10 @@ impl Gamepad {
             mapping_type,
             axes: HeapBufferSource::default(),
             frozen_buttons: CachedFrozenArray::new(),
-            buttons,
+            buttons: buttons
+                .iter()
+                .map(|button| Dom::from_ref(*button))
+                .collect(),
             pose: pose.map(Dom::from_ref),
             hand,
             axis_bounds,
@@ -112,6 +115,7 @@ impl Gamepad {
         can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
         let buttons = Gamepad::init_buttons(window, can_gc);
+        rooted_vec!(let buttons <- buttons.iter().map(DomRoot::as_traced));
         let vibration_actuator =
             GamepadHapticActuator::new(window, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };
@@ -123,7 +127,7 @@ impl Gamepad {
                 true,
                 0.,
                 mapping_type,
-                buttons,
+                buttons.r(),
                 None,
                 GamepadHand::_empty,
                 axis_bounds,
@@ -210,8 +214,8 @@ impl Gamepad {
 
     /// Initialize the standard buttons for a gamepad.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
-    pub(crate) fn init_buttons(window: &Window, can_gc: CanGc) -> RootVec<GamepadButton> {
-        let standard_buttons = &[
+    fn init_buttons(window: &Window, can_gc: CanGc) -> Vec<DomRoot<GamepadButton>> {
+        vec![
             GamepadButton::new(window, false, false, can_gc), // Bottom button in right cluster
             GamepadButton::new(window, false, false, can_gc), // Right button in right cluster
             GamepadButton::new(window, false, false, can_gc), // Left button in right cluster
@@ -229,11 +233,7 @@ impl Gamepad {
             GamepadButton::new(window, false, false, can_gc), // Left button in left cluster
             GamepadButton::new(window, false, false, can_gc), // Right button in left cluster
             GamepadButton::new(window, false, false, can_gc), // Center button in center cluster
-        ];
-        standard_buttons
-            .iter()
-            .map(|button| Dom::from_ref(&**button))
-            .collect()
+        ]
     }
 
     pub(crate) fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
@@ -323,6 +323,7 @@ impl Gamepad {
                 // TODO: Determine a way of getting touch capability for button
                 if let Some(button) = self.buttons.get(button_index) {
                     button.update(pressed, /*touched*/ pressed, normalized_value);
+                    self.frozen_buttons.clear();
                 }
             } else {
                 warn!("Button value is not finite!");
