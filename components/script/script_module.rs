@@ -19,26 +19,24 @@ use indexmap::IndexMap;
 use indexmap::map::Entry;
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
-use js::gc::MutableHandleValue;
+use js::gc::{HandleObject, MutableHandleValue};
 use js::jsapi::{
-    CallArgs, CompileJsonModule1, CompileModule1, ExceptionStackBehavior,
-    GetFunctionNativeReserved, GetModuleResolveHook, Handle as RawHandle,
-    HandleValue as RawHandleValue, Heap, JS_ClearPendingException, JS_GetFunctionObject,
-    JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook,
-    SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
-    ThrowOnModuleEvaluationFailure, Value,
+    CallArgs, ExceptionStackBehavior, GetFunctionNativeReserved, GetModuleResolveHook,
+    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_GetFunctionObject,
+    JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour,
+    ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook, SetModuleMetadataHook,
+    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException, ModuleEvaluate};
 use js::rust::wrappers2::{
-    DefineFunctionWithReserved, GetModuleRequestSpecifier, GetModuleRequestType,
-    JS_DefineProperty4, JS_NewStringCopyN, ModuleLink,
+    CompileJsonModule1, CompileModule1, DefineFunctionWithReserved, GetModuleRequestSpecifier,
+    GetModuleRequestType, JS_ClearPendingException, JS_DefineProperty4, JS_GetPendingException,
+    JS_NewStringCopyN, JS_SetPendingException, ModuleEvaluate, ModuleLink,
+    ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
-    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, ToString,
-    transform_str_to_source_text,
+    CompileOptionsWrapper, Handle, HandleValue, ToString, transform_str_to_source_text,
 };
 use mime::Mime;
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -85,13 +83,17 @@ use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::realms::{InRealm, enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
+use crate::realms::{InRealm, enter_auto_realm};
+use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task::NonSendTaskBox;
 
-pub(crate) fn gen_type_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> RethrowError {
-    rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    error.to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), can_gc);
+pub(crate) fn gen_type_error(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    error: Error,
+) -> RethrowError {
+    rooted!(&in(cx) let mut thrown = UndefinedValue());
+    error.to_jsval(cx.into(), global, thrown.handle_mut(), CanGc::from_cx(cx));
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -100,11 +102,11 @@ pub(crate) fn gen_type_error(global: &GlobalScope, error: Error, can_gc: CanGc) 
 pub(crate) struct ModuleObject(RootedTraceableBox<Heap<*mut JSObject>>);
 
 impl ModuleObject {
-    pub(crate) fn new(obj: RustHandleObject) -> ModuleObject {
+    pub(crate) fn new(obj: HandleObject) -> ModuleObject {
         ModuleObject(RootedTraceableBox::from_box(Heap::boxed(obj.get())))
     }
 
-    pub(crate) fn handle(&'_ self) -> js::gc::HandleObject<'_> {
+    pub(crate) fn handle(&'_ self) -> HandleObject<'_> {
         self.0.handle()
     }
 }
@@ -118,10 +120,10 @@ impl RethrowError {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn from_pending_exception(cx: SafeJSContext) -> Self {
-        rooted!(in(*cx) let mut exception = UndefinedValue());
-        assert!(unsafe { JS_GetPendingException(*cx, exception.handle_mut()) });
-        unsafe { JS_ClearPendingException(*cx) };
+    pub(crate) fn from_pending_exception(cx: &mut JSContext) -> Self {
+        rooted!(&in(cx) let mut exception = UndefinedValue());
+        assert!(unsafe { JS_GetPendingException(cx, exception.handle_mut()) });
+        unsafe { JS_ClearPendingException(cx) };
 
         Self::new(Heap::boxed(exception.get()))
     }
@@ -283,9 +285,8 @@ impl ModuleTree {
     #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
-    /// Although the CanGc argument appears unused, it represents the GC operations that
-    /// can occur as part of compiling a script.
     fn create_a_javascript_module_script(
+        cx: &mut JSContext,
         source: Rc<DOMString>,
         global: &GlobalScope,
         url: &ServoUrl,
@@ -293,10 +294,12 @@ impl ModuleTree {
         external: bool,
         line_number: u32,
         introduction_type: Option<&'static CStr>,
-        _can_gc: CanGc,
     ) -> Self {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
 
         let owner = Trusted::new(global);
 
@@ -322,9 +325,9 @@ impl ModuleTree {
 
         unsafe {
             // Step 7. Let result be ParseModule(source, settings's realm, script).
-            rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+            rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
             module_script.set(CompileModule1(
-                *cx,
+                cx,
                 compile_options.ptr,
                 &mut transform_str_to_source_text(&module_source.source.str()),
             ));
@@ -362,17 +365,18 @@ impl ModuleTree {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
-    /// Although the CanGc argument appears unused, it represents the GC operations that
-    /// can occur as part of compiling a script.
     fn create_a_json_module_script(
+        cx: &mut JSContext,
         source: &str,
         global: &GlobalScope,
         url: &ServoUrl,
         introduction_type: Option<&'static CStr>,
-        _can_gc: CanGc,
     ) -> Self {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
 
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
@@ -390,12 +394,12 @@ impl ModuleTree {
 
         let compile_options = fill_module_compile_options(cx, url, introduction_type, 1);
 
-        rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+        rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
 
         unsafe {
             // Step 5. Let result be ParseJSONModule(source).
             module_script.set(CompileJsonModule1(
-                *cx,
+                cx,
                 compile_options.ptr,
                 &mut transform_str_to_source_text(source),
             ));
@@ -419,43 +423,39 @@ impl ModuleTree {
     }
 
     /// Execute the provided module, storing the evaluation return value in the provided
-    /// mutable handle. Although the CanGc appears unused, it represents the GC operations
-    /// possible when evluating arbitrary JS.
+    /// mutable handle.
     #[expect(unsafe_code)]
     pub(crate) fn execute_module(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
-        module_record: js::gc::HandleObject,
+        module_record: HandleObject,
         mut eval_result: MutableHandleValue,
-        _can_gc: CanGc,
     ) -> Result<(), RethrowError> {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
 
         unsafe {
-            let ok = ModuleEvaluate(*cx, module_record, eval_result.reborrow());
+            let ok = ModuleEvaluate(cx, module_record, eval_result.reborrow());
             assert!(ok, "module evaluation failed");
 
-            rooted!(in(*cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
+            rooted!(&in(cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
             if eval_result.is_object() {
                 evaluation_promise.set(eval_result.to_object());
             }
 
             let throw_result = ThrowOnModuleEvaluationFailure(
-                *cx,
-                evaluation_promise.handle().into(),
+                cx,
+                evaluation_promise.handle(),
                 ModuleErrorBehaviour::ThrowModuleErrorsSync,
             );
             if !throw_result {
                 warn!("fail to evaluate module");
 
-                rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
-                JS_ClearPendingException(*cx);
-
-                Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
-                    exception.get(),
-                ))))
+                Err(RethrowError::from_pending_exception(cx))
             } else {
                 debug!("module evaluated successfully");
                 Ok(())
@@ -464,19 +464,20 @@ impl ModuleTree {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn report_error(&self, cx: &mut JSContext, global: &GlobalScope) {
         let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
-            let ar = enter_realm(global);
+            let mut realm = enter_auto_realm(cx, global);
+            let cx = &mut realm.current_realm();
+
+            let in_realm_proof = cx.into();
+            let in_realm = InRealm::Already(&in_realm_proof);
+
             unsafe {
-                JS_SetPendingException(
-                    *GlobalScope::get_cx(),
-                    exception.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
+                JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
             }
-            report_pending_exception(GlobalScope::get_cx(), InRealm::Entered(&ar), can_gc);
+            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
         }
     }
 
@@ -808,6 +809,7 @@ impl FetchResponseListener for ModuleContext {
                 }
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+                    cx,
                     Rc::new(DOMString::from(source_text.clone())),
                     &global,
                     &final_url,
@@ -815,7 +817,6 @@ impl FetchResponseListener for ModuleContext {
                     true,
                     1,
                     self.introduction_type,
-                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
@@ -824,11 +825,11 @@ impl FetchResponseListener for ModuleContext {
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
                 let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+                    cx,
                     &source_text,
                     &global,
                     &final_url,
                     self.introduction_type,
-                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
@@ -1152,11 +1153,11 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
             true
         },
         Err(error) => {
-            let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
+            let resolution_error = gen_type_error(cx, &global_scope, error);
 
             unsafe {
                 JS_SetPendingException(
-                    cx.raw_cx(),
+                    cx,
                     resolution_error.handle(),
                     ExceptionStackBehavior::Capture,
                 );
@@ -1344,6 +1345,7 @@ pub(crate) fn fetch_inline_module_script(
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+        cx,
         module_script_text,
         global,
         &url,
@@ -1351,7 +1353,6 @@ pub(crate) fn fetch_inline_module_script(
         false,
         line_number,
         introduction_type,
-        CanGc::from_cx(cx),
     ));
     let fetch_client = ModuleFetchClient::from_global_scope(global);
 
@@ -1427,7 +1428,7 @@ fn fetch_the_descendants_and_link_module_script(
 
             // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
             if !link {
-                let exception = RethrowError::from_pending_exception(cx.into());
+                let exception = RethrowError::from_pending_exception(cx);
                 fulfilled_module.set_rethrow_error(exception);
             }
 
@@ -1622,15 +1623,13 @@ pub(crate) fn fetch_a_single_module_script(
     })
 }
 
-#[expect(unsafe_code)]
 fn fill_module_compile_options(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     url: &ServoUrl,
     introduction_type: Option<&'static CStr>,
     line_number: u32,
 ) -> CompileOptionsWrapper {
-    let mut options =
-        unsafe { CompileOptionsWrapper::new_raw(*cx, cformat!("{url}"), line_number) };
+    let mut options = CompileOptionsWrapper::new(cx, cformat!("{url}"), line_number);
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);
     }
@@ -1698,29 +1697,25 @@ impl ImportMap {
 
 /// <https://html.spec.whatwg.org/multipage/#register-an-import-map>
 pub(crate) fn register_import_map(
+    cx: &mut JSContext,
     global: &GlobalScope,
     result: Fallible<ImportMap>,
-    can_gc: CanGc,
 ) {
     match result {
         Ok(new_import_map) => {
             // Step 2. Merge existing and new import maps, given global and result's import map.
-            merge_existing_and_new_import_maps(global, new_import_map, can_gc);
+            merge_existing_and_new_import_maps(global, new_import_map);
         },
         Err(exception) => {
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
-            throw_dom_exception(GlobalScope::get_cx(), global, exception, can_gc);
+            throw_dom_exception(cx.into(), global, exception, CanGc::from_cx(cx));
         },
     }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#merge-existing-and-new-import-maps>
-fn merge_existing_and_new_import_maps(
-    global: &GlobalScope,
-    new_import_map: ImportMap,
-    can_gc: CanGc,
-) {
+fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: ImportMap) {
     // Step 1. Let newImportMapScopes be a deep copy of newImportMap's scopes.
     let new_import_map_scopes = new_import_map.scopes;
 
@@ -1776,7 +1771,6 @@ fn merge_existing_and_new_import_maps(
                 global,
                 scope_imports,
                 &old_import_map.scopes[&scope_prefix],
-                can_gc,
             );
             old_import_map
                 .scopes
@@ -1826,12 +1820,8 @@ fn merge_existing_and_new_import_maps(
 
     // Step 7. Set oldImportMap's imports to the result of merge module specifier maps,
     // given newImportMapImports and oldImportMap's imports.
-    let merged_module_specifier_map = merge_module_specifier_maps(
-        global,
-        new_import_map_imports,
-        &old_import_map.imports,
-        can_gc,
-    );
+    let merged_module_specifier_map =
+        merge_module_specifier_maps(global, new_import_map_imports, &old_import_map.imports);
     old_import_map.imports = merged_module_specifier_map;
 
     // https://html.spec.whatwg.org/multipage/#the-resolution-algorithm
@@ -1846,7 +1836,6 @@ fn merge_module_specifier_maps(
     global: &GlobalScope,
     new_map: ModuleSpecifierMap,
     old_map: &ModuleSpecifierMap,
-    _can_gc: CanGc,
 ) -> ModuleSpecifierMap {
     // Step 1. Let mergedMap be a deep copy of oldMap.
     let mut merged_map = old_map.clone();

@@ -151,7 +151,7 @@ fn inner_module_loading(
 
             if jsstr.is_null() {
                 // 1. Let error be ThrowCompletion(a newly created SyntaxError object).
-                let error = RethrowError::from_pending_exception(cx.into());
+                let error = RethrowError::from_pending_exception(cx);
 
                 // See Step 7. of `host_load_imported_module`.
                 state.load_state.as_ref().inspect(|load_state| {
@@ -341,7 +341,7 @@ fn continue_dynamic_import(
             // b. If link is an abrupt completion, then
             if !link {
                 // i. Perform ! Call(promiseCapability.[[Reject]], undefined, « link.[[Value]] »).
-                let exception = RethrowError::from_pending_exception(cx.into());
+                let exception = RethrowError::from_pending_exception(cx);
                 inner_promise.reject(cx.into(), exception.handle(), CanGc::from_cx(cx));
 
                 // ii. Return NormalCompletion(undefined).
@@ -355,7 +355,7 @@ fn continue_dynamic_import(
             assert!(unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) });
 
             if !rval.is_object() {
-                let error = RethrowError::from_pending_exception(cx.into());
+                let error = RethrowError::from_pending_exception(cx);
                 return inner_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
             }
             evaluate_promise.set(rval.to_object());
@@ -471,7 +471,7 @@ pub(crate) fn host_load_imported_module(
 
     // Step 9 If the previous step threw an exception, then:
     if let Err(error) = url {
-        let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
+        let resolution_error = gen_type_error(cx, &global_scope, error);
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
@@ -524,9 +524,9 @@ pub(crate) fn host_load_imported_module(
             let completion = match module_tree {
                 // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
                 None => Err(gen_type_error(
+                    cx,
                     &global_scope,
                     Error::Type(c"Module fetching failed".to_owned()),
-                    CanGc::from_cx(cx),
                 )),
                 Some(module_tree) => {
                     // Step 3. Otherwise, if moduleScript's parse error is not null, then:
