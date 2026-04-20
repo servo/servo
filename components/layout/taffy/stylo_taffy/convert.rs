@@ -155,7 +155,7 @@ pub fn aspect_ratio(input: stylo::AspectRatio) -> Option<f32> {
 #[inline]
 pub fn content_alignment(input: stylo::ContentDistribution) -> Option<taffy::AlignContent> {
     match input.primary().value() {
-        stylo::AlignFlags::NORMAL => None,
+        stylo::AlignFlags::NORMAL => Some(taffy::AlignContent::Stretch),
         stylo::AlignFlags::AUTO => None,
         stylo::AlignFlags::START => Some(taffy::AlignContent::Start),
         stylo::AlignFlags::END => Some(taffy::AlignContent::End),

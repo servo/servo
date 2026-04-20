@@ -384,6 +384,14 @@ impl IndependentFormattingContext {
         )
     }
 
+    #[inline]
+    pub(crate) fn is_grid(&self) -> bool {
+        matches!(
+            &self.contents,
+            IndependentFormattingContextContents::Grid(_)
+        )
+    }
+
     #[servo_tracing::instrument(
         name = "IndependentFormattingContext::layout_without_caching",
         skip_all
