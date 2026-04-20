@@ -16,6 +16,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::text::is_bidi_control;
 use style::Zero;
 use style::computed_values::text_rendering::T as TextRendering;
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
@@ -278,19 +279,14 @@ impl TextRunSegment {
 
         let text_style = parent_style.get_inherited_text().clone();
         let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
-            text_style.overflow_wrap == OverflowWrap::Anywhere ||
+            text_style.overflow_wrap == OverflowWrap::Anywhere || // NOTE: still needed.
             text_style.overflow_wrap == OverflowWrap::BreakWord;
 
         // Determine whether we're allowed to break at any character boundary. The following conditions are:
         // 1. if `overflow_wrap: anywhere`
-        // 2. `white-space-collapse` is not `preserve`, because according to https://www.w3.org/TR/css-text-3/#white-space-property,
-        // "Lines only break at forced line breaks; content that does not fit within the block container overflows it."
-        // 3. if `white-space: break-spaces`, then we're not allowed to break anywhere.
-        // there's actually no mention of this in the CSS specs, rather this behavior is claimed by this WPT test:
-        // https://wpt.fyi/results/css/css-text/white-space/break-spaces-with-overflow-wrap-004.html
+        // 2. `text-wrap-mode: wrap`
         let is_overflow_wrap_anywhere = text_style.overflow_wrap == OverflowWrap::Anywhere &&
-            text_style.white_space_collapse != WhiteSpaceCollapse::Preserve &&
-            text_style.white_space_collapse != WhiteSpaceCollapse::BreakSpaces;
+            text_style.text_wrap_mode == TextWrapMode::Wrap;
 
         let mut last_slice = self.byte_range.start..self.byte_range.start;
         for break_index in linebreak_iter {
@@ -344,7 +340,6 @@ impl TextRunSegment {
             }
 
             // Only advance the last slice if we are not going to try to expand the slice.
-            let prev_last_slice = last_slice.clone();
             last_slice = slice.start..*break_index;
 
             // Push the non-whitespace part of the range.
@@ -354,20 +349,23 @@ impl TextRunSegment {
                 // if there are no otherwise-acceptable break points in the line.""
                 // Therefore, if `overflow-wrap: anywhere`, shape each character individually.
                 if is_overflow_wrap_anywhere {
-                    for (index, character) in word.char_indices() {
+                    let sub_word = &formatting_context_text[slice.clone()];
+                    for (index, character) in sub_word.char_indices() {
                         // If true, then this is the last character in the current `word` slice.
                         // Therefore, this `GlyphStore` ends with a softwrap opportunity defined by icu (UAX#14 linebreak opportunity).
-                        let end_of_word =
-                            prev_last_slice.end + index + character.len_utf8() >= *break_index;
-                        if !end_of_word || !ends_with_whitespace {
-                            self.shape_and_push_range(
-                                &(prev_last_slice.end + index..
-                                    prev_last_slice.end + index + character.len_utf8()),
-                                formatting_context_text,
-                                &options,
-                                end_of_word,
-                            );
+                        let mut end_of_word =
+                            slice.start + index + character.len_utf8() >= *break_index;
+
+                        if ends_with_whitespace {
+                            end_of_word =
+                                slice.start + index + character.len_utf8() + 1 >= slice.end;
                         }
+                        self.shape_and_push_range(
+                            &(slice.start + index..slice.start + index + character.len_utf8()),
+                            formatting_context_text,
+                            &options,
+                            end_of_word,
+                        );
                     }
                 } else {
                     self.shape_and_push_range(&slice, formatting_context_text, &options, true);
@@ -393,7 +391,7 @@ impl TextRunSegment {
                         &(index..index + character.len_utf8()),
                         formatting_context_text,
                         &options,
-                        true,
+                        true, // Although this is not a linebreaking opportunity defined in UAX#14, we still set this to true.
                     );
                 }
                 continue;
@@ -402,16 +400,6 @@ impl TextRunSegment {
             self.shape_and_push_range(&whitespace, formatting_context_text, &options);
         }
     }
-}
-
-/// A single item in a [`TextRun`].
-#[derive(Debug, MallocSizeOf)]
-pub(crate) enum TextRunItem {
-    /// A hard line break i.e. a "\n" as other types line breaks are normalized to "\n".
-    LineBreak { character_index: usize },
-    /// Any other text for which a font can be matched. We store a `Box` here as [`TextRunSegment`]
-    /// is quite a bit larger than the other enum variants.
-    TextSegment(Box<TextRunSegment>),
 }
 
 /// A single item in a [`TextRun`].
@@ -618,6 +606,7 @@ impl TextRun {
             false => SegmentStartSoftWrapPolicy::FollowLinebreaker,
         };
 
+        let mut previous_segment_has_uax_14_linebreak = false;
         for item in self.items.iter() {
             match item {
                 // If this whitespace forces a line break, queue up a hard line break the next time we
@@ -628,7 +617,12 @@ impl TextRun {
                     ifc.defer_forced_line_break_at_character_offset(*character_index);
                 },
                 TextRunItem::TextSegment(segment) => {
-                    segment.layout_into_line_items(self, soft_wrap_policy, ifc)
+                    previous_segment_has_uax_14_linebreak = segment.layout_into_line_items(
+                        self,
+                        soft_wrap_policy,
+                        ifc,
+                        previous_segment_has_uax_14_linebreak,
+                    );
                 },
             }
             soft_wrap_policy = SegmentStartSoftWrapPolicy::FollowLinebreaker;
