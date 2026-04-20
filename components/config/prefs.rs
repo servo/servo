@@ -325,23 +325,15 @@ pub struct Preferences {
     /// The background color of shell's viewport. This will be used by OpenGL's `glClearColor`.
     pub shell_background_color_rgba: [f64; 4],
     pub webgl_testing_context_creation_error: bool,
+    /// Maximum number of workers for the main thread pool
+    pub threadpools_workers_max: u64,
     /// Number of workers per threadpool, if we fail to detect how much
     /// parallelism is available at runtime.
     pub threadpools_fallback_worker_num: u64,
-    /// Maximum number of workers for the Image Cache thread pool
-    pub threadpools_image_cache_workers_max: u64,
-    /// Maximum number of workers for the IndexedDB thread pool
-    pub threadpools_indexeddb_workers_max: u64,
-    /// Maximum number of workers for the Web Storage thread pool
-    pub threadpools_webstorage_workers_max: u64,
     /// Maximum number of workers for the Networking async runtime thread pool
     pub threadpools_async_runtime_workers_max: u64,
     /// Maximum number of workers for webrender
     pub threadpools_webrender_workers_max: u64,
-    /// Enforce a single threadpool for many parts of servo
-    pub threadpools_single_pool: bool,
-    /// Max number the single thread pool is if
-    pub threadpools_single_pool_max: u64,
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
     /// order to set the value to the default value for the given platform.
     pub user_agent: String,
@@ -506,14 +498,10 @@ impl Preferences {
             network_use_webpki_roots: false,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
+            threadpools_workers_max: 4,
             threadpools_async_runtime_workers_max: 6,
             threadpools_fallback_worker_num: 3,
-            threadpools_image_cache_workers_max: 4,
-            threadpools_indexeddb_workers_max: 4,
-            threadpools_webstorage_workers_max: 4,
             threadpools_webrender_workers_max: 4,
-            threadpools_single_pool: false,
-            threadpools_single_pool_max: 8,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
             viewport_meta_enabled: false,

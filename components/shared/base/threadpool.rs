@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
-use log::{debug, error};
-use servo_config::{opts, pref};
+use log::debug;
+use servo_config::pref;
 
 /// The state of the thread-pool used by CoreResource.
 struct ThreadPoolState {
@@ -51,81 +51,33 @@ impl ThreadPoolState {
     }
 }
 
-/// The type of the ThreadPool to spawn.
-pub enum ThreadPoolType {
-    ImageCache,
-    IndexedDB,
-    WebStorage,
-    Test,
-}
-
 /// Threadpools used throughout servo (except layout/stylo and webrender).
 pub struct ThreadPool {
     pool: rayon::ThreadPool,
     state: Arc<Mutex<ThreadPoolState>>,
 }
 
-/// Get number of threads and names for [`ThreadPoolType`].
-fn get_pool_create_information(t: &ThreadPoolType) -> (usize, String) {
-    let max_thread_count = thread::available_parallelism()
-        .map(|i| i.get())
-        .unwrap_or(pref!(threadpools_fallback_worker_num) as usize);
-
-    match t {
-        ThreadPoolType::ImageCache => (
-            max_thread_count.min(pref!(threadpools_image_cache_workers_max).max(1) as usize),
-            "ImageCache".to_owned(),
-        ),
-        ThreadPoolType::IndexedDB => (
-            max_thread_count.min(pref!(threadpools_indexeddb_workers_max).max(1) as usize),
-            "IndexedDB".to_owned(),
-        ),
-        ThreadPoolType::WebStorage => (
-            max_thread_count.min(pref!(threadpools_webstorage_workers_max).max(1) as usize),
-            "WebStorage".to_owned(),
-        ),
-        ThreadPoolType::Test => (1, "TestPool".to_owned()),
-    }
-}
-
 static GLOBAL_THREADPOOL: OnceLock<Arc<ThreadPool>> = OnceLock::new();
 
 impl ThreadPool {
-    /// Create a new ThreadPool from type.
-    pub fn new(t: ThreadPoolType) -> Arc<Self> {
-        if pref!(threadpools_single_pool) && !opts::get().multiprocess {
-            let pool = GLOBAL_THREADPOOL.get_or_init(|| {
-                let paralellism = thread::available_parallelism()
-                    .map(|i| i.get())
-                    .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-                    .min(pref!(threadpools_single_pool_max) as usize);
-                let pool = rayon::ThreadPoolBuilder::new()
-                    .thread_name(move |i| format!("GlobalPool#{i}"))
-                    .num_threads(paralellism)
-                    .build()
-                    .unwrap();
-                Arc::new(Self {
-                    pool,
-                    state: Arc::new(Mutex::new(ThreadPoolState::new())),
-                })
-            });
-            pool.clone()
-        } else {
-            if opts::get().multiprocess {
-                error!(
-                    "Single threadpool and multiprocess are incompatible. Falling back to separate threadpools"
-                );
-            }
-            let (num_threads, pool_name) = get_pool_create_information(&t);
-            debug!("Creating new ThreadPool with {num_threads} threads!");
+    /// Gets the current threadpool for the process.
+    pub fn current_threadpool() -> Arc<Self> {
+        let pool = GLOBAL_THREADPOOL.get_or_init(|| {
+            let paralellism = thread::available_parallelism()
+                .map(|i| i.get())
+                .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+                .min(pref!(threadpools_workers_max) as usize);
             let pool = rayon::ThreadPoolBuilder::new()
-                .thread_name(move |i| format!("{pool_name}#{i}"))
-                .num_threads(num_threads)
+                .thread_name(move |i| format!("GlobalPool#{i}"))
+                .num_threads(paralellism)
                 .build()
                 .unwrap();
-            let state = Arc::new(Mutex::new(ThreadPoolState::new()));
-            Arc::new(Self { pool, state })
-        }
+            Arc::new(Self {
+                pool,
+                state: Arc::new(Mutex::new(ThreadPoolState::new())),
+            })
+        });
+        pool.clone()
     }
 
     /// Spawn work on the thread-pool, if still active.

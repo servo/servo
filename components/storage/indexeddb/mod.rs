@@ -832,7 +832,7 @@ impl IndexedDBManager {
             manager_sender,
             idb_base_dir,
             databases: HashMap::new(),
-            thread_pool: ThreadPool::new(servo_base::threadpool::ThreadPoolType::IndexedDB),
+            thread_pool: ThreadPool::current_threadpool(),
             serial_number_counter: 0,
             connection_queues: Default::default(),
             connections: Default::default(),

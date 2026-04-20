@@ -650,11 +650,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         preferences.js_ion_enabled = false;
     }
 
-    // For embedded systems we want to save threads.
-    if cfg!(target_os = "android") || cfg!(target_env = "ohos") {
-        preferences.threadpools_single_pool = true;
-    }
-
     // Make sure the default window size is not larger than any provided screen size.
     let default_window_size = Size2D::new(1024, 740);
     let default_window_size = cmd_args
