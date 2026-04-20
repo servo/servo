@@ -82,7 +82,7 @@ use std::sync::Arc;
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, GlyphStore};
+use fonts::{FontMetrics, FontRef, GlyphStore};
 use icu_locid::LanguageIdentifier;
 use icu_locid::subtags::{Language, language};
 use icu_properties::{self, LineBreak as ICULineBreak};
@@ -129,7 +129,7 @@ use crate::flow::{
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
+    BaseFragmentInfo, BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
@@ -462,6 +462,16 @@ struct LineUnderConstruction {
 
     /// Whether the current line is for a block-level box.
     for_block_level: bool,
+
+    /// The starting character offset of this line.
+    ///
+    /// This is used to generate empty `TextRunLineItem` to hold text carets on otherwise
+    /// empty lines.
+    ///
+    /// TODO: This is only guaranteed to be accurate for the first line or when the previous line
+    /// ended with a hard line break. Eventually this should be updated during content processing so
+    /// that text carets work outside of text inputs.
+    starting_character_offset: usize,
 }
 
 impl LineUnderConstruction {
@@ -476,6 +486,7 @@ impl LineUnderConstruction {
             placement_among_floats: OnceCell::new(),
             line_items: Vec::new(),
             for_block_level: false,
+            starting_character_offset: 0,
         }
     }
 
@@ -786,6 +797,10 @@ struct InlineContainerState {
     /// is vertical).
     pub baseline_offset: Au,
 
+    /// The primary font used for this container, if one exists. This is the font that is
+    /// used when not falling back.
+    default_font: Option<FontRef>,
+
     /// The font metrics of the non-fallback font for this container.
     font_metrics: Arc<FontMetrics>,
 }
@@ -850,7 +865,11 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// as soon as we encounter the `<br>` the `<span>`'s ending inline borders would be
     /// placed on the second line, because we add those borders in
     /// [`InlineFormattingContextLayout::finish_inline_box()`].
-    linebreak_before_new_content: bool,
+    ///
+    /// If this field is `Some`, a hard line break should be processed before any new content. The
+    /// `usize` stores the character offset of the originating hard line break, which is used to
+    /// generate placeholders for carets on otherwise empty lines.
+    force_line_break_before_new_content: Option<usize>,
 
     /// When a `<br>` element has `clear`, this needs to be applied after the linebreak,
     /// which will be processed *after* the `<br>` element is processed. This member
@@ -934,10 +953,7 @@ impl InlineFormattingContextLayout<'_> {
             containing_block,
             self.layout_context,
             self.current_inline_container_state(),
-            inline_box
-                .default_font
-                .as_ref()
-                .map(|font| font.metrics.clone()),
+            inline_box.default_font.clone(),
         );
 
         self.depends_on_block_constraints |= inline_box
@@ -1028,6 +1044,9 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn finish_last_line(&mut self) {
+        // First, process any deferred forced line breaks.
+        self.possibly_flush_deferred_forced_line_break();
+
         // We are at the end of the IFC, and we need to do a few things to make sure that
         // the current segment is committed and that the final line is finished.
         //
@@ -1048,6 +1067,8 @@ impl InlineFormattingContextLayout<'_> {
     /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
     /// [`InlineFormattingContextLayout`] preparing it for laying out a new line.
     fn finish_current_line_and_reset(&mut self, last_line_or_forced_line_break: bool) {
+        self.possibly_push_empty_text_run_to_line_for_text_caret();
+
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
         let (inline_start_position, justification_adjustment) = self
             .calculate_current_line_inline_start_and_justification_adjustment(
@@ -1480,7 +1501,7 @@ impl InlineFormattingContextLayout<'_> {
         inline_would_overflow
     }
 
-    fn defer_forced_line_break(&mut self) {
+    fn defer_forced_line_break_at_character_offset(&mut self, line_break_offset: usize) {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
@@ -1488,7 +1509,7 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         // Defer the actual line break until we've cleared all ending inline boxes.
-        self.linebreak_before_new_content = true;
+        self.force_line_break_before_new_content = Some(line_break_offset);
 
         // In quirks mode, the line-height isn't automatically added to the line. If we consider a
         // forced line break a kind of preserved white space, quirks mode requires that we add the
@@ -1513,13 +1534,15 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn possibly_flush_deferred_forced_line_break(&mut self) {
-        if !self.linebreak_before_new_content {
+        let Some(line_break_character_offset) = self.force_line_break_before_new_content.take()
+        else {
             return;
-        }
+        };
 
         self.commit_current_segment_to_line();
         self.process_line_break(true /* forced_line_break */);
-        self.linebreak_before_new_content = false;
+
+        self.current_line.starting_character_offset = line_break_character_offset + 1;
     }
 
     fn push_line_item_to_unbreakable_segment(&mut self, line_item: LineItem) {
@@ -1606,31 +1629,48 @@ impl InlineFormattingContextLayout<'_> {
         ));
     }
 
-    /// If the current unbreakable line segment is empty and this [`InlineFormattingContext`] has a
-    /// selection, push [`LineItem::TextRun`]. This is used as a placeholder for rendering cursors
-    /// on empty lines.
-    fn possibly_push_empty_text_run_to_unbreakable_segment(
-        &mut self,
-        text_run: &TextRun,
-        info: &Arc<FontAndScriptInfo>,
-        offsets: Option<TextRunOffsets>,
-    ) {
-        if offsets.is_none() || self.current_line_segment.has_content {
+    /// If the current line is empty and this [`InlineFormattingContext`] has a selection, push an
+    /// empty [`LineItem::TextRun`] so that text carets can be placed on otherwise empty lines.
+    fn possibly_push_empty_text_run_to_line_for_text_caret(&mut self) {
+        let line_start_offset = self.current_line.starting_character_offset;
+        let Some(shared_selection) = self.ifc.shared_selection.clone() else {
+            return;
+        };
+        let offsets = TextRunOffsets {
+            shared_selection,
+            character_range: line_start_offset..line_start_offset + 1,
+        };
+
+        // If the last content line item is a text item, then the placeholder for the text caret is not necessary.
+        if self
+            .current_line
+            .line_items
+            .iter()
+            .rev()
+            .find(|line_item| line_item.is_in_flow_content())
+            .is_some_and(|line_item| matches!(line_item, LineItem::TextRun(..)))
+        {
             return;
         }
+
+        let inline_container_state = self.current_inline_container_state();
+        let Some(font) = inline_container_state.default_font.clone() else {
+            return;
+        };
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             self.current_inline_box_identifier(),
             TextRunLineItem {
                 text: Default::default(),
-                base_fragment_info: text_run.base_fragment_info,
-                inline_styles: text_run.inline_styles.clone(),
-                info: info.clone(),
-                offsets: offsets.map(Box::new),
+                base_fragment_info: BaseFragmentInfo::anonymous(),
+                inline_styles: self.ifc.shared_inline_styles.clone(),
+                info: Arc::new(FontAndScriptInfo::simple_for_font(font)),
+                offsets: Some(Box::new(offsets)),
                 is_empty_for_text_cursor: true,
             },
         ));
         self.current_line_segment.has_content = true;
+        self.commit_current_segment_to_line();
     }
 
     fn update_unbreakable_segment_for_new_content(
@@ -1939,9 +1979,7 @@ impl InlineFormattingContext {
 
         // It's unfortunate that it isn't possible to get this during IFC text processing, but in
         // that situation the style of the containing block is unknown.
-        let default_font_metrics =
-            get_font_for_first_font_for_style(style, &layout_context.font_context)
-                .map(|font| font.metrics.clone());
+        let default_font = get_font_for_first_font_for_style(style, &layout_context.font_context);
 
         let style_text = containing_block.style.get_inherited_text();
         let mut inline_container_state_flags = InlineContainerStateFlags::empty();
@@ -1970,12 +2008,12 @@ impl InlineFormattingContext {
                 style.to_arc(),
                 inline_container_state_flags,
                 None, /* parent_container */
-                default_font_metrics,
+                default_font,
             ),
             inline_box_state_stack: Vec::new(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
-            linebreak_before_new_content: false,
+            force_line_break_before_new_content: None,
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
             depends_on_block_constraints: false,
@@ -2158,17 +2196,23 @@ impl InlineContainerState {
         style: ServoArc<ComputedValues>,
         flags: InlineContainerStateFlags,
         parent_container: Option<&InlineContainerState>,
-        font_metrics: Option<Arc<FontMetrics>>,
+        default_font: Option<FontRef>,
     ) -> Self {
-        let font_metrics = font_metrics.unwrap_or_else(FontMetrics::empty);
+        let font_metrics = default_font
+            .as_ref()
+            .map(|font| font.metrics.clone())
+            .unwrap_or_else(FontMetrics::empty);
         let mut baseline_offset = Au::zero();
-        let mut strut_block_sizes = Self::get_block_sizes_with_style(
-            effective_baseline_shift(&style, parent_container),
-            &style,
-            &font_metrics,
-            &font_metrics,
-            &flags,
-        );
+        let mut strut_block_sizes = {
+            Self::get_block_sizes_with_style(
+                effective_baseline_shift(&style, parent_container),
+                &style,
+                &font_metrics,
+                &font_metrics,
+                &flags,
+            )
+        };
+
         if let Some(parent_container) = parent_container {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
@@ -2194,6 +2238,7 @@ impl InlineContainerState {
             nested_strut_block_sizes: nested_block_sizes,
             strut_block_sizes,
             baseline_offset,
+            default_font,
             font_metrics,
         }
     }
