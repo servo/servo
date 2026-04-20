@@ -431,12 +431,14 @@ static RUSTLS_PLATFORM_VERIFIER_CACHE: LazyLock<Arc<rustls_platform_verifier::Ve
         )
     });
 
+/// Prewarm the TLS stack to speed up the first connection
+///
+/// Currently, this force-seeds the crypto provider (from aws_lc_rs),
+/// which on my system takes around 30-50ms according to samply, spent in
+/// `tree_jitter_initialize_once`. If we don't call this function, then
+/// the initialization will happen much later, on a tokio runtime thread.
 #[inline]
 pub fn prewarm_tls() {
-    if !pref!(network_tls_prewarm_enabled) {
-        return;
-    }
-
     #[servo_tracing::instrument]
     fn prewarm_tls_impl() {
         let mut sink = [0u8; 32];
