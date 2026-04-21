@@ -37,7 +37,7 @@ arboard = "3"
 argon2 = { version = "0.5", features = ["alloc"] }
 arrayvec = "0.7"
 async-tungstenite = { version = "0.34", features = ["tokio-rustls-webpki-roots"] }
-atomic_refcell = "0.1.13"
+atomic_refcell = "0.1.14"
 aws-lc-rs = { version = "1.16", default-features = false, features = ["aws-lc-sys"] }
 backtrace = "0.3"
 base64 = "0.22.1"
