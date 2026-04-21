@@ -155,6 +155,8 @@ pub fn aspect_ratio(input: stylo::AspectRatio) -> Option<f32> {
 #[inline]
 pub fn content_alignment(input: stylo::ContentDistribution) -> Option<taffy::AlignContent> {
     match input.primary().value() {
+        // <https://www.w3.org/TR/css-align-3/#distribution-grid>
+        // Normal behaves as stretch for grid containers. 
         stylo::AlignFlags::NORMAL => Some(taffy::AlignContent::Stretch),
         stylo::AlignFlags::AUTO => None,
         stylo::AlignFlags::START => Some(taffy::AlignContent::Start),
