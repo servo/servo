@@ -13,6 +13,7 @@ use embedder_traits::resources::{self, Resource};
 use js::context::JSContext;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
+use net_traits::response::HttpsState;
 use profile_traits::{mem, time};
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
 use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
@@ -117,6 +118,7 @@ impl DebuggerGlobalScope {
                 None,
                 false,
                 None, // font_context
+                HttpsState::None,
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),

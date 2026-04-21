@@ -11,6 +11,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use net_traits::response::HttpsState;
 use profile_traits::{mem, time};
 use script_traits::Painter;
 use servo_base::generic_channel::{GenericCallback, GenericSender};
@@ -123,6 +124,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 false,
                 None, // font_context
+                HttpsState::None,
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
