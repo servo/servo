@@ -40,6 +40,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct QueueEntry {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry-buffer>
     #[ignore_malloc_size_of = "HeapBufferSource"]
@@ -52,12 +53,12 @@ pub(crate) struct QueueEntry {
 
 impl QueueEntry {
     pub(crate) fn new(
-        buffer: HeapBufferSource<ArrayBufferU8>,
+        buffer: RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>,
         byte_offset: usize,
         byte_length: usize,
     ) -> QueueEntry {
         QueueEntry {
-            buffer,
+            buffer: *buffer.into_box(),
             byte_offset,
             byte_length,
         }
@@ -74,6 +75,7 @@ pub(crate) enum ReaderType {
 
 /// <https://streams.spec.whatwg.org/#pull-into-descriptor>
 #[derive(Eq, JSTraceable, MallocSizeOf, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct PullIntoDescriptor {
     #[ignore_malloc_size_of = "HeapBufferSource"]
     /// <https://streams.spec.whatwg.org/#pull-into-descriptor-buffer>
@@ -267,11 +269,12 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn perform_pull_into(
         &self,
         cx: &mut JSContext,
         read_into_request: &ReadIntoRequest,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: &HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
     ) {
         // Let stream be controller.[[stream]].
@@ -328,7 +331,7 @@ impl ReadableByteStreamController {
                 // reader type  "byob"
                 let buffer_byte_length = buffer.byte_length();
                 let pull_into_descriptor = PullIntoDescriptor {
-                    buffer,
+                    buffer: *buffer.into_box(),
                     buffer_byte_length: buffer_byte_length as u64,
                     byte_offset: byte_offset as u64,
                     byte_length: byte_length as u64,
@@ -501,10 +504,11 @@ impl ReadableByteStreamController {
             }
 
             // Set firstDescriptor’s buffer to ! TransferArrayBuffer(firstDescriptor’s buffer).
-            first_descriptor.buffer = first_descriptor
+            first_descriptor.buffer = *first_descriptor
                 .buffer
                 .transfer_array_buffer(cx.into())
-                .expect("TransferArrayBuffer failed");
+                .expect("TransferArrayBuffer failed")
+                .into_box();
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, bytesWritten).
@@ -554,6 +558,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-closed-state>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn respond_in_closed_state(&self, cx: &mut JSContext) -> Fallible<()> {
         let pending_pull_intos = self.pending_pull_intos.borrow();
         let first_descriptor = pending_pull_intos.first().unwrap();
@@ -605,6 +610,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-readable-state>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn respond_in_readable_state(&self, cx: &mut JSContext, bytes_written: u64) -> Fallible<()> {
         let pending_pull_intos = self.pending_pull_intos.borrow();
         let first_descriptor = pending_pull_intos.first().unwrap();
@@ -700,7 +706,7 @@ impl ReadableByteStreamController {
     pub(crate) fn respond_with_new_view(
         &self,
         cx: &mut JSContext,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: &HeapBufferSource<ArrayBufferViewU8>,
     ) -> Fallible<()> {
         let view_byte_length;
         {
@@ -769,9 +775,10 @@ impl ReadableByteStreamController {
             view_byte_length = view.byte_length();
 
             // Set firstDescriptor’s buffer to ? TransferArrayBuffer(view.[[ViewedArrayBuffer]]).
-            first_descriptor.buffer = view
+            first_descriptor.buffer = *view
                 .get_array_buffer_view_buffer(cx.into())
-                .transfer_array_buffer(cx.into())?;
+                .transfer_array_buffer(cx.into())?
+                .into_box();
         }
 
         // Perform ? ReadableByteStreamControllerRespondInternal(controller, viewByteLength).
@@ -968,10 +975,11 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn enqueue(
         &self,
         cx: &mut JSContext,
-        chunk: HeapBufferSource<ArrayBufferViewU8>,
+        chunk: RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>,
     ) -> Fallible<()> {
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
@@ -1013,10 +1021,11 @@ impl ReadableByteStreamController {
                 self.invalidate_byob_request();
 
                 // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
-                first_descriptor.buffer = first_descriptor
+                first_descriptor.buffer = *first_descriptor
                     .buffer
                     .transfer_array_buffer(cx.into())
-                    .expect("TransferArrayBuffer failed");
+                    .expect("TransferArrayBuffer failed")
+                    .into_box();
 
                 // If firstPendingPullInto’s reader type is "none",
                 if first_descriptor.reader_type.is_none() {
@@ -1172,7 +1181,7 @@ impl ReadableByteStreamController {
         &self,
         cx: &mut js::context::JSContext,
         pull_into_descriptor: &PullIntoDescriptor,
-    ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
+    ) -> Fallible<RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>> {
         // Let bytesFilled be pullIntoDescriptor’s bytes filled.
         let bytes_filled = pull_into_descriptor.bytes_filled.get();
 
@@ -1196,7 +1205,7 @@ impl ReadableByteStreamController {
         Ok(create_buffer_source_with_constructor(
             cx,
             &pull_into_descriptor.view_constructor,
-            &buffer,
+            &*buffer,
             pull_into_descriptor.byte_offset as usize,
             (bytes_filled / element_size) as usize,
         )
@@ -1204,6 +1213,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-process-pull-into-descriptors-using-queue>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn process_pull_into_descriptors_using_queue(
         &self,
         cx: &mut js::context::JSContext,
@@ -1465,9 +1475,10 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue-chunk-to-queue>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn enqueue_chunk_to_queue(
         &self,
-        buffer: HeapBufferSource<ArrayBufferU8>,
+        buffer: RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>,
         byte_offset: usize,
         byte_length: usize,
     ) {
@@ -1504,6 +1515,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn fill_read_request_from_queue(
         &self,
         cx: &mut JSContext,
@@ -1517,6 +1529,7 @@ impl ReadableByteStreamController {
         // Let entry be controller.[[queue]][0].
         // Remove entry from controller.[[queue]].
         let entry = self.remove_entry();
+        //FIXME: use first() and remove afterwards?
 
         // Set controller.[[queueTotalSize]] to controller.[[queueTotalSize]] − entry’s byte length.
         self.queue_total_size
@@ -1756,6 +1769,7 @@ impl ReadableByteStreamController {
     }
 
     // <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontroller-releasesteps
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn perform_release_steps(&self) -> Fallible<()> {
         // If this.[[pendingPullIntos]] is not empty,
         let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
@@ -1816,6 +1830,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn perform_pull_steps(&self, cx: &mut JSContext, read_request: &ReadRequest) {
         // Let stream be this.[[stream]].
         let stream = self.stream.get().unwrap();
@@ -1855,7 +1870,7 @@ impl ReadableByteStreamController {
                     // view constructor %Uint8Array%
                     // reader type  "default"
                     let pull_into_descriptor = PullIntoDescriptor {
-                        buffer,
+                        buffer: *buffer.into_box(),
                         buffer_byte_length: auto_allocate_chunk_size,
                         byte_length: auto_allocate_chunk_size,
                         byte_offset: 0,

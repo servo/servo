@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
@@ -44,10 +46,13 @@ impl ReadableStreamBYOBRequest {
         self.controller.set(controller);
     }
 
-    pub(crate) fn set_view(&self, view: Option<HeapBufferSource<ArrayBufferViewU8>>) {
+    pub(crate) fn set_view(
+        &self,
+        view: Option<RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>>>,
+    ) {
         match view {
             Some(view) => {
-                *self.view.borrow_mut() = view;
+                *self.view.borrow_mut() = *view.into_box();
             },
             None => {
                 *self.view.borrow_mut() = HeapBufferSource::<ArrayBufferViewU8>::default();
@@ -55,8 +60,8 @@ impl ReadableStreamBYOBRequest {
         }
     }
 
-    pub(crate) fn get_view(&self) -> HeapBufferSource<ArrayBufferViewU8> {
-        self.view.borrow().clone()
+    pub(crate) fn get_view(&self) -> Ref<'_, HeapBufferSource<ArrayBufferViewU8>> {
+        self.view.borrow()
     }
 }
 
@@ -121,6 +126,6 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
         }
 
         // Return ? ReadableByteStreamControllerRespondWithNewView(this.[[controller]], view).
-        controller.respond_with_new_view(cx, view)
+        controller.respond_with_new_view(cx, &view)
     }
 }

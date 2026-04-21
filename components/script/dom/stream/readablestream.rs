@@ -1057,7 +1057,7 @@ impl ReadableStream {
         &self,
         cx: &mut JSContext,
         read_into_request: &ReadIntoRequest,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: &HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
     ) {
         match self.controller.borrow().as_ref() {
