@@ -11,7 +11,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::{Heap, JSObject, Value};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -21,6 +21,8 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
+use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
+use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
 use servo_constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -39,7 +41,7 @@ use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
@@ -215,7 +217,9 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]
     queued_worker_tasks: DomRefCell<Vec<MessageData>>,
-    debugger_global: Dom<DebuggerGlobalScope>,
+
+    #[ignore_malloc_size_of = "Measured by the JS engine"]
+    debugger_global: Heap<Value>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -280,7 +284,6 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
-        debugger_global: &DebuggerGlobalScope,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -305,7 +308,7 @@ impl DedicatedWorkerGlobalScope {
             browsing_context,
             control_receiver,
             queued_worker_tasks: Default::default(),
-            debugger_global: Dom::from_ref(debugger_global),
+            debugger_global: Heap::default(),
         }
     }
 
@@ -350,9 +353,21 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
             font_context,
-            debugger_global,
         ));
-        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
+        let scope = DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
+        let _realm = enter_realm(&*scope);
+
+        // Convert the debugger global’s reflector to a Value, wrapping it from its originating realm (debugger realm)
+        // into the active realm (debuggee realm) so that it can be passed across compartments.
+        rooted!(&in(cx) let mut wrapped_global: Value);
+        debugger_global.reflector().safe_to_jsval(
+            cx.into(),
+            wrapped_global.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        scope.debugger_global.set(*wrapped_global);
+
+        scope
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -674,7 +689,14 @@ impl DedicatedWorkerGlobalScope {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _bool_val) => {},
                 DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
-                    self.debugger_global.fire_eval(
+                    let debugger_global_handle =
+                        script_bindings::root::rooted_heap_handle(self, |this| {
+                            &this.debugger_global
+                        });
+                    let debugger_global: DomRoot<DebuggerGlobalScope> =
+                        root_from_handlevalue(debugger_global_handle, cx.into())
+                            .expect("msut be a debugger global scope");
+                    debugger_global.fire_eval(
                         cx,
                         code.into(),
                         id,
