@@ -170,12 +170,6 @@ impl CssPropertyName {
             .Style(CanGc::from_cx(cx))
             .RemoveProperty(cx, self.property_name());
     }
-
-    pub(crate) fn value_for_element(&self, cx: &mut JSContext, element: &HTMLElement) -> DOMString {
-        element
-            .Style(CanGc::from_cx(cx))
-            .GetPropertyValue(self.property_name())
-    }
 }
 
 #[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq)]

@@ -6,6 +6,7 @@ use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::properties::{LonghandId, PropertyDeclarationId, ShorthandId};
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -26,6 +27,54 @@ use crate::script_runtime::CanGc;
 impl HTMLElement {
     pub(crate) fn local_name(&self) -> &str {
         self.upcast::<Element>().local_name()
+    }
+
+    fn remove_value_from_text_decoration(&self, cx: &mut JSContext, value: &str) {
+        let element = self.upcast::<Element>();
+        let mut original_value = String::new();
+        let property;
+
+        // Ensure that style borrow is dropped before writing new value for style
+        {
+            let style_attribute = element.style_attribute().borrow();
+            let Some(declarations) = style_attribute.as_ref() else {
+                return;
+            };
+            let document = element.owner_document();
+            let shared_lock = document.style_shared_lock();
+            let read_lock = shared_lock.read();
+            let style = declarations.read_with(&read_lock);
+
+            // First we need to check if text-decoration is set as shorthand.
+            // If that's not the case, we should only remove underline from text-decoration-line
+            if style
+                .shorthand_to_css(ShorthandId::TextDecoration, &mut original_value)
+                .is_ok()
+            {
+                property = CssPropertyName::TextDecoration;
+            } else if let Some((text_decoration, _)) = style.get(PropertyDeclarationId::Longhand(
+                LonghandId::TextDecorationLine,
+            )) {
+                if text_decoration.to_css(&mut original_value).is_ok() {
+                    property = CssPropertyName::TextDecorationLine;
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+
+        let new_value = original_value
+            .replace(&format!(" {} ", value), " ")
+            .replace(&format!(" {}", value), "")
+            .replace(&format!("{} ", value), "")
+            .replace(value, "");
+        if new_value.is_empty() {
+            property.remove_from_element(cx, self);
+        } else {
+            property.set_for_element(cx, self, new_value.into());
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#clear-the-value>
@@ -66,25 +115,12 @@ impl HTMLElement {
             // that sets "text-decoration" to some value containing "line-through",
             // delete "line-through" from the value.
             CommandName::Strikethrough => {
-                let property = CssPropertyName::TextDecorationLine;
-                if property.value_for_element(cx, self) == "line-through" {
-                    // TODO: Only remove line-through
-                    property.remove_from_element(cx, self);
-                }
+                self.remove_value_from_text_decoration(cx, "line-through");
             },
             // Step 6. If command is "underline", and element has a style attribute that
             // sets "text-decoration" to some value containing "underline", delete "underline" from the value.
             CommandName::Underline => {
-                // First we need to check if text-decoration is only set to underline. If it is, remove the full
-                // shorthand. If that's not the case, we should only remove underline from the property
-                if CssPropertyName::TextDecoration.value_for_element(cx, self) == "underline" {
-                    CssPropertyName::TextDecoration.remove_from_element(cx, self);
-                } else if CssPropertyName::TextDecorationLine.value_for_element(cx, self) ==
-                    "underline"
-                {
-                    // TODO: Only remove underline
-                    CssPropertyName::TextDecorationLine.remove_from_element(cx, self);
-                }
+                self.remove_value_from_text_decoration(cx, "underline");
             },
             _ => {},
         }
