@@ -643,7 +643,7 @@ where
             let end_offset = range.end_offset();
 
             if end_container == parent_of_new_parent && end_offset == new_parent.index() {
-                range.set_start(&end_container, end_offset + 1);
+                range.set_end(&end_container, end_offset + 1);
             }
         }
     }
