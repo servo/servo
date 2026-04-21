@@ -66,9 +66,9 @@ impl HTMLElement {
         }
 
         let new_value = original_value
-            .replace(&format!(" {} ", value), " ")
-            .replace(&format!(" {}", value), "")
-            .replace(&format!("{} ", value), "")
+            .replace(&format!(" {value} "), " ")
+            .replace(&format!(" {value}"), "")
+            .replace(&format!("{value} "),  "")
             .replace(value, "");
         if new_value.is_empty() {
             property.remove_from_element(cx, self);
