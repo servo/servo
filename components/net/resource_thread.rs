@@ -773,6 +773,7 @@ impl CoreResourceManager {
         let request = request_builder.build();
         let url = request.current_url();
         let target_webview_id = request.target_webview_id;
+        let is_for_main_frame = matches!(request.destination, Destination::Document);
         let embedder_proxy = self.embedder_proxy.clone();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
@@ -858,7 +859,7 @@ impl CoreResourceManager {
             };
 
             // Forward error to embedder
-            if !response.status.is_success() {
+            if !response.status.is_success() && is_for_main_frame {
                 if let Some(target_webview_id) = target_webview_id {
                     if let Some(status_code) = response.status.try_code() {
                         embedder_proxy.send(NetToEmbedderMsg::RequestError(

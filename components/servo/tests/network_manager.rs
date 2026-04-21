@@ -104,12 +104,10 @@ fn test_clear_cache() {
 #[test]
 fn test_network_error() {
     let has_run = Arc::new(AtomicBool::new(false));
-    let has_run_notify_error = Arc::new(AtomicBool::new(false));
     let servo_test = ServoTest::new();
     let servo = servo_test.servo();
 
     struct NetworkErrorDelegate {
-        has_run_notify_error: Arc<AtomicBool>,
         has_run: Arc<AtomicBool>,
     }
 
@@ -117,8 +115,6 @@ fn test_network_error() {
         fn notify_load_status_changed(&self, _webview: servo::WebView, status: servo::LoadStatus) {
             if let servo::LoadStatus::Failed(status_code) = status {
                 assert_eq!(status_code, StatusCode::NOT_FOUND);
-                self.has_run_notify_error
-                    .store(true, std::sync::atomic::Ordering::SeqCst);
                 self.has_run
                     .store(true, std::sync::atomic::Ordering::SeqCst);
             }
@@ -126,7 +122,6 @@ fn test_network_error() {
     }
 
     let delegate = Rc::new(NetworkErrorDelegate {
-        has_run_notify_error: has_run_notify_error.clone(),
         has_run: has_run.clone(),
     });
     let _webview = WebViewBuilder::new(servo, servo_test.rendering_context.clone())
@@ -150,5 +145,52 @@ fn test_network_error() {
     servo_test.spin(move || !has_run_clone.load(std::sync::atomic::Ordering::SeqCst));
 
     let _ = server.close();
-    assert!(has_run_notify_error.load(std::sync::atomic::Ordering::SeqCst));
+}
+
+#[test]
+fn test_no_network_error_in_iframe() {
+    let has_run = Arc::new(AtomicBool::new(false));
+    let servo_test = ServoTest::new();
+    let servo = servo_test.servo();
+
+    static MESSAGE: &'static [u8] = b"<iframe src=\"example.com\"></iframe>";
+    struct NetworkErrorDelegate {
+        has_run: Arc<AtomicBool>,
+    }
+
+    impl WebViewDelegate for NetworkErrorDelegate {
+        fn notify_load_status_changed(&self, _webview: servo::WebView, status: servo::LoadStatus) {
+            if let servo::LoadStatus::Complete = status {
+                self.has_run
+                    .store(true, std::sync::atomic::Ordering::SeqCst);
+            } else if let servo::LoadStatus::Failed(_status_code) = status {
+                assert!(false);
+            }
+        }
+    }
+
+    let delegate = Rc::new(NetworkErrorDelegate {
+        has_run: has_run.clone(),
+    });
+    let _webview = WebViewBuilder::new(servo, servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .build();
+    servo_test.spin(move || false);
+
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let _webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.as_url().clone())
+        .build();
+
+    let has_run_clone = has_run.clone();
+    servo_test.spin(move || !has_run_clone.load(std::sync::atomic::Ordering::SeqCst));
+
+    let _ = server.close();
 }
