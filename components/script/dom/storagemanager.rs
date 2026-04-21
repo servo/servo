@@ -150,10 +150,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         // Step 5.2. Queue a storage task with global to resolve promise with persisted.
         let mut handler = StorageManagerBooleanResponseHandler::new(
             TrustedPromise::new(promise.clone()),
-            global
-                .task_manager()
-                .database_access_task_source()
-                .to_sendable(),
+            global.task_manager().storage_task_source().to_sendable(),
         );
         let callback = GenericCallback::new(move |message| {
             handler.handle(message.unwrap_or_else(|error| Err(error.to_string())));
@@ -206,10 +203,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         // Step 5.5. Queue a storage task with global to resolve promise with persisted.
         let mut handler = StorageManagerBooleanResponseHandler::new(
             TrustedPromise::new(promise.clone()),
-            global
-                .task_manager()
-                .database_access_task_source()
-                .to_sendable(),
+            global.task_manager().storage_task_source().to_sendable(),
         );
         let callback = GenericCallback::new(move |message| {
             handler.handle(message.unwrap_or_else(|error| Err(error.to_string())));
@@ -262,10 +256,7 @@ impl StorageManagerMethods<crate::DomTypeHolder> for StorageManager {
         // Step 5.5. Otherwise, queue a storage task with global to resolve promise with dictionary.
         let mut handler = StorageManagerEstimateResponseHandler::new(
             TrustedPromise::new(promise.clone()),
-            global
-                .task_manager()
-                .database_access_task_source()
-                .to_sendable(),
+            global.task_manager().storage_task_source().to_sendable(),
         );
         let callback = GenericCallback::new(move |message| {
             handler.handle(message.unwrap_or_else(|error| Err(error.to_string())));
