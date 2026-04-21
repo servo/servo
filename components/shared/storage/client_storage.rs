@@ -3,9 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
+use servo_base::generic_channel::{
+    self, GenericCallback, GenericReceiver, GenericSender, SendResult,
+};
 use servo_base::id::WebViewId;
 use servo_url::ImmutableOrigin;
 
@@ -67,6 +70,37 @@ impl ClientStorageThreadHandle {
         self.sender.send(message).unwrap();
         receiver
     }
+
+    pub fn persisted(
+        &self,
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<bool, String>>,
+    ) -> SendResult {
+        self.sender
+            .send(ClientStorageThreadMessage::Persisted { origin, sender })
+    }
+
+    pub fn persist(
+        &self,
+        origin: ImmutableOrigin,
+        permission_granted: bool,
+        sender: GenericCallback<Result<bool, String>>,
+    ) -> SendResult {
+        self.sender.send(ClientStorageThreadMessage::Persist {
+            origin,
+            permission_granted,
+            sender,
+        })
+    }
+
+    pub fn estimate(
+        &self,
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<(u64, u64), String>>,
+    ) -> SendResult {
+        self.sender
+            .send(ClientStorageThreadMessage::Estimate { origin, sender })
+    }
 }
 
 impl From<ClientStorageThreadHandle> for GenericSender<ClientStorageThreadMessage> {
@@ -106,7 +140,7 @@ impl StorageType {
 }
 
 /// <https://storage.spec.whatwg.org/#bucket-mode>
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Mode {
     /// It is initially "best-effort".
     #[default]
@@ -119,6 +153,19 @@ impl Mode {
         match self {
             Mode::BestEffort => "best-effort",
             Mode::Persistent => "persistent",
+        }
+    }
+}
+
+impl FromStr for Mode {
+    type Err = ();
+
+    /// <https://storage.spec.whatwg.org/#bucket-mode>
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "best-effort" => Ok(Mode::BestEffort),
+            "persistent" => Ok(Mode::Persistent),
+            _ => Err(()),
         }
     }
 }
@@ -200,6 +247,18 @@ pub enum ClientStorageThreadMessage {
         name: String,
         sender: GenericSender<Result<(), String>>,
     },
-    /// Send a reply when done cleaning up thread resources and then shut it down
+    Persisted {
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<bool, String>>,
+    },
+    Persist {
+        origin: ImmutableOrigin,
+        permission_granted: bool,
+        sender: GenericCallback<Result<bool, String>>,
+    },
+    Estimate {
+        origin: ImmutableOrigin,
+        sender: GenericCallback<Result<(u64, u64), String>>,
+    },
     Exit(GenericSender<()>),
 }

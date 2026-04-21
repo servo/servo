@@ -126,6 +126,7 @@ WEBIDL_STANDARDS = [
     b"//fetch.spec.whatwg.org",
     b"//html.spec.whatwg.org",
     b"//streams.spec.whatwg.org",
+    b"//storage.spec.whatwg.org",
     b"//url.spec.whatwg.org",
     b"//urlpattern.spec.whatwg.org",
     b"//xhr.spec.whatwg.org",
