@@ -11,7 +11,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
-use js::jsapi::{Heap, JSObject, Value};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -21,8 +21,6 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
-use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
-use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, PipelineId, ScriptEventLoopId, WebViewId};
 use servo_constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -217,9 +215,6 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]
     queued_worker_tasks: DomRefCell<Vec<MessageData>>,
-
-    #[ignore_malloc_size_of = "Measured by the JS engine"]
-    debugger_global: Heap<Value>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -308,7 +303,6 @@ impl DedicatedWorkerGlobalScope {
             browsing_context,
             control_receiver,
             queued_worker_tasks: Default::default(),
-            debugger_global: Heap::default(),
         }
     }
 
@@ -355,17 +349,9 @@ impl DedicatedWorkerGlobalScope {
             font_context,
         ));
         let scope = DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
-        let _realm = enter_realm(&*scope);
-
-        // Convert the debugger global’s reflector to a Value, wrapping it from its originating realm (debugger realm)
-        // into the active realm (debuggee realm) so that it can be passed across compartments.
-        rooted!(&in(cx) let mut wrapped_global: Value);
-        debugger_global.reflector().safe_to_jsval(
-            cx.into(),
-            wrapped_global.handle_mut(),
-            CanGc::from_cx(cx),
-        );
-        scope.debugger_global.set(*wrapped_global);
+        scope
+            .upcast::<WorkerGlobalScope>()
+            .init_debugger_global(debugger_global, cx);
 
         scope
     }
@@ -686,27 +672,9 @@ impl DedicatedWorkerGlobalScope {
         }
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
-            MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _bool_val) => {},
-                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
-                    let debugger_global_handle =
-                        script_bindings::root::rooted_heap_handle(self, |this| {
-                            &this.debugger_global
-                        });
-                    let debugger_global: DomRoot<DebuggerGlobalScope> =
-                        root_from_handlevalue(debugger_global_handle, cx.into())
-                            .expect("msut be a debugger global scope");
-                    debugger_global.fire_eval(
-                        cx,
-                        code.into(),
-                        id,
-                        Some(self.upcast::<WorkerGlobalScope>().worker_id()),
-                        frame_actor_id,
-                        reply,
-                    );
-                },
-                _ => debug!("got an unusable devtools control message inside the worker!"),
-            },
+            MixedMessage::Devtools(msg) => self
+                .upcast::<WorkerGlobalScope>()
+                .handle_devtools_message(msg, cx),
             MixedMessage::Worker(DedicatedWorkerScriptMsg::CommonWorker(linked_worker, msg)) => {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
                 self.handle_script_event(msg, cx);

@@ -11,7 +11,7 @@ use crossbeam_channel::{Receiver, Sender, after};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
-use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, Value};
+use js::jsapi::{JS_AddInterruptCallback, JSContext};
 use js::jsval::UndefinedValue;
 use net_traits::CustomResponseMediator;
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -19,8 +19,6 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
 use rand::random;
-use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
-use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericReceiver, GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::PipelineId;
 use servo_config::pref;
@@ -184,9 +182,6 @@ pub(crate) struct ServiceWorkerGlobalScope {
     /// currently only used to signal shutdown.
     #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
-
-    #[ignore_malloc_size_of = "Measured by the JS engine"]
-    debugger_global: Heap<Value>,
 }
 
 impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
@@ -267,7 +262,6 @@ impl ServiceWorkerGlobalScope {
             swmanager_sender,
             scope_url,
             control_receiver,
-            debugger_global: Heap::default(),
         }
     }
 
@@ -303,16 +297,9 @@ impl ServiceWorkerGlobalScope {
             font_context,
         ));
         let scope = ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
-
-        // Convert the debugger global’s reflector to a Value, wrapping it from its originating realm (debugger realm)
-        // into the active realm (debuggee realm) so that it can be passed across compartments.
-        rooted!(&in(cx) let mut wrapped_global: Value);
-        debugger_global.reflector().safe_to_jsval(
-            cx.into(),
-            wrapped_global.handle_mut(),
-            CanGc::from_cx(cx),
-        );
-        scope.debugger_global.set(*wrapped_global);
+        scope
+            .upcast::<WorkerGlobalScope>()
+            .init_debugger_global(debugger_global, cx);
 
         scope
     }
@@ -502,27 +489,9 @@ impl ServiceWorkerGlobalScope {
 
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
         match msg {
-            MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
-                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
-                    let debugger_global_handle =
-                        script_bindings::root::rooted_heap_handle(self, |this| {
-                            &this.debugger_global
-                        });
-                    let debugger_global: DomRoot<DebuggerGlobalScope> =
-                        root_from_handlevalue(debugger_global_handle, cx.into())
-                            .expect("must be a debugger global scope");
-                    debugger_global.fire_eval(
-                        cx,
-                        code.into(),
-                        id,
-                        Some(self.upcast::<WorkerGlobalScope>().worker_id()),
-                        frame_actor_id,
-                        reply,
-                    );
-                },
-                _ => debug!("got an unusable devtools control message inside the worker!"),
-            },
+            MixedMessage::Devtools(msg) => self
+                .upcast::<WorkerGlobalScope>()
+                .handle_devtools_message(msg, cx),
             MixedMessage::ServiceWorker(msg) => {
                 self.handle_script_event(msg, cx);
             },

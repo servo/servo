@@ -16,6 +16,7 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::jsapi::JSContext as RawJSContext;
+use js::jsapi::{Heap, Value};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
@@ -26,6 +27,9 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
+use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
+use script_bindings::reflector::DomObject;
+use script_bindings::root::rooted_heap_handle;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineId, PipelineNamespace};
@@ -59,6 +63,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
@@ -319,6 +324,9 @@ pub(crate) struct WorkerGlobalScope {
     /// <https://w3c.github.io/reporting/#windoworworkerglobalscope-endpoints>
     #[no_trace]
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
+
+    #[ignore_malloc_size_of = "Measured by the JS engine"]
+    debugger_global: Heap<Value>,
 }
 
 impl WorkerGlobalScope {
@@ -384,6 +392,7 @@ impl WorkerGlobalScope {
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
             endpoints_list: Default::default(),
+            debugger_global: Default::default(),
         }
     }
 
@@ -1052,6 +1061,51 @@ impl WorkerGlobalScope {
             .cancel_all_tasks_and_ignore_future_tasks();
         if let Some(factory) = self.upcast::<GlobalScope>().get_existing_indexeddb() {
             factory.abort_pending_upgrades();
+        }
+    }
+
+    pub(super) fn init_debugger_global(
+        &self,
+        debugger_global: &DebuggerGlobalScope,
+        cx: &mut js::context::JSContext,
+    ) {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+
+        // Convert the debugger global’s reflector to a Value, wrapping it from its originating realm (debugger realm)
+        // into the active realm (debuggee realm) so that it can be passed across compartments.
+        rooted!(&in(cx) let mut wrapped_global: Value);
+        debugger_global.reflector().safe_to_jsval(
+            cx.into(),
+            wrapped_global.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        self.debugger_global.set(*wrapped_global);
+    }
+
+    pub(super) fn handle_devtools_message(
+        &self,
+        msg: DevtoolScriptControlMsg,
+        cx: &mut js::context::JSContext,
+    ) {
+        match msg {
+            DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},
+            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+                let debugger_global_handle = rooted_heap_handle(self, |this| &this.debugger_global);
+                let debugger_global =
+                    root_from_handlevalue::<DebuggerGlobalScope>(debugger_global_handle, cx.into())
+                        .expect("must be a debugger global scope");
+
+                debugger_global.fire_eval(
+                    cx,
+                    code.into(),
+                    id,
+                    Some(self.worker_id()),
+                    frame_actor_id,
+                    reply,
+                );
+            },
+            _ => debug!("got an unusable devtools control message inside the worker!"),
         }
     }
 }
