@@ -122,7 +122,7 @@ use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::inline::line::TextRunOffsets;
-use crate::flow::inline::text_run::FontAndScriptInfo;
+use crate::flow::inline::text_run::{FontAndScriptInfo, TextRunItem, TextRunSegment};
 use crate::flow::{
     BlockLevelBox, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
     compute_inline_content_sizes_for_block_level_boxes, layout_block_level_child,
@@ -2132,15 +2132,15 @@ impl InlineFormattingContext {
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
                 let parent_style = text_run.inline_styles.style.borrow();
-                text_run.shaped_text.iter().all(|segment| {
-                    segment.runs.iter().all(|run| {
+                text_run.items.iter().all(|item| match item {
+                    TextRunItem::LineBreak { .. } => false,
+                    TextRunItem::TextSegment(segment) => segment.runs.iter().all(|run| {
                         run.is_whitespace() &&
-                            !run.is_single_preserved_newline() &&
                             !matches!(
                                 parent_style.get_inherited_text().white_space_collapse,
                                 WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
                             )
-                    })
+                    }),
                 })
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => true,
@@ -2751,64 +2751,16 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
                 let parent_style = text_run.inline_styles.style.borrow();
-                for segment in text_run.shaped_text.iter() {
-                    let style_text = parent_style.get_inherited_text();
-                    let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
-
-                    // TODO: This should take account whether or not the first and last character prevent
-                    // linebreaks after atomics as in layout.
-                    let break_at_start =
-                        segment.break_at_start && self.had_content_yet_for_min_content;
-
-                    for (run_index, run) in segment.runs.iter().enumerate() {
-                        // Break before each unbreakable run in this TextRun, except the first unless the
-                        // linebreaker was set to break before the first run.
-                        if can_wrap && (run_index != 0 || break_at_start) {
-                            self.line_break_opportunity();
-                        }
-
-                        let advance = run.total_advance();
-                        if run.is_whitespace() {
+                for item in text_run.items.iter() {
+                    match item {
+                        TextRunItem::LineBreak { .. } => {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
-                            if run.is_single_preserved_newline() {
-                                self.forced_line_break();
-                                continue;
-                            }
-                            if !matches!(
-                                style_text.white_space_collapse,
-                                WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-                            ) {
-                                if self.had_content_yet_for_min_content {
-                                    if can_wrap {
-                                        self.line_break_opportunity();
-                                    } else {
-                                        self.pending_whitespace.min_content += advance;
-                                    }
-                                }
-                                if self.had_content_yet_for_max_content {
-                                    self.pending_whitespace.max_content += advance;
-                                }
-                                continue;
-                            }
-                            if can_wrap {
-                                self.pending_whitespace.max_content += advance;
-                                self.commit_pending_whitespace();
-                                self.line_break_opportunity();
-                                continue;
-                            }
-                        }
-
-                        self.commit_pending_whitespace();
-                        self.add_inline_size(advance);
-
-                        // Typically whitespace glyphs are placed in a separate store,
-                        // but for `white-space: break-spaces` we place the first whitespace
-                        // with the preceding text. That prevents a line break before that
-                        // first space, but we still need to allow a line break after it.
-                        if can_wrap && run.ends_with_whitespace() {
-                            self.line_break_opportunity();
-                        }
+                            self.forced_line_break();
+                        },
+                        TextRunItem::TextSegment(segment) => {
+                            self.process_text_segment(&parent_style, segment)
+                        },
                     }
                 }
             },
@@ -2862,6 +2814,64 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 self.forced_line_break();
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => {},
+        }
+    }
+
+    fn process_text_segment(
+        &mut self,
+        parent_style: &atomic_refcell::AtomicRef<'_, ServoArc<ComputedValues>>,
+        segment: &TextRunSegment,
+    ) {
+        let style_text = parent_style.get_inherited_text();
+        let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
+
+        // TODO: This should take account whether or not the first and last character prevent
+        // linebreaks after atomics as in layout.
+        let break_at_start = segment.break_at_start && self.had_content_yet_for_min_content;
+
+        for (run_index, run) in segment.runs.iter().enumerate() {
+            // Break before each unbreakable run in this TextRun, except the first unless the
+            // linebreaker was set to break before the first run.
+            if can_wrap && (run_index != 0 || break_at_start) {
+                self.line_break_opportunity();
+            }
+
+            let advance = run.total_advance();
+            if run.is_whitespace() {
+                if !matches!(
+                    style_text.white_space_collapse,
+                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+                ) {
+                    if self.had_content_yet_for_min_content {
+                        if can_wrap {
+                            self.line_break_opportunity();
+                        } else {
+                            self.pending_whitespace.min_content += advance;
+                        }
+                    }
+                    if self.had_content_yet_for_max_content {
+                        self.pending_whitespace.max_content += advance;
+                    }
+                    continue;
+                }
+                if can_wrap {
+                    self.pending_whitespace.max_content += advance;
+                    self.commit_pending_whitespace();
+                    self.line_break_opportunity();
+                    continue;
+                }
+            }
+
+            self.commit_pending_whitespace();
+            self.add_inline_size(advance);
+
+            // Typically whitespace glyphs are placed in a separate store,
+            // but for `white-space: break-spaces` we place the first whitespace
+            // with the preceding text. That prevents a line break before that
+            // first space, but we still need to allow a line break after it.
+            if can_wrap && run.ends_with_whitespace() {
+                self.line_break_opportunity();
+            }
         }
     }
 
