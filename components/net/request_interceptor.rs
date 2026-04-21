@@ -51,7 +51,7 @@ impl RequestInterceptor {
         while let Some(message) = receiver.recv().await {
             match message {
                 WebResourceResponseMsg::Start(webresource_response) => {
-                    let timing = context.timing.lock().clone();
+                    let timing = context.timing.inner().clone();
                     let mut response_override =
                         Response::new(webresource_response.url.into(), timing);
                     response_override.headers = webresource_response.headers;

@@ -32,14 +32,13 @@ use net_traits::request::{
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
-    set_default_accept_language,
+    ResourceFetchTimingContainer, ResourceTimeValue, ResourceTimingType, WebSocketDomAction,
+    WebSocketNetworkEvent, set_default_accept_language,
 };
 use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
-use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::CallbackSetter;
 use servo_base::id::PipelineId;
 use servo_url::{Host, ServoUrl};
@@ -104,7 +103,7 @@ pub struct FetchContext {
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,
-    pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
+    pub timing: ResourceFetchTimingContainer,
     pub protocols: Arc<ProtocolRegistry>,
     pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
     pub ca_certificates: CACertificates<'static>,
@@ -179,11 +178,10 @@ pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
-    {
-        let mut timing_guard = context.timing.lock();
-        timing_guard.set_attribute(ResourceAttribute::FetchStart);
-        timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
-    }
+    context.timing.set_attributes(&[
+        ResourceAttribute::FetchStart,
+        ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
+    ]);
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await
 }
 
@@ -554,7 +552,7 @@ pub async fn main_fetch(
             if let Some((response, preload_id)) =
                 fetch_params.preload_response_candidate.response().await
             {
-                response.get_resource_timing().lock().preloaded = true;
+                response.get_resource_timing().inner().preloaded = true;
                 context
                     .preloaded_resources
                     .lock()
