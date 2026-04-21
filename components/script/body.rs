@@ -839,7 +839,7 @@ fn run_package_data_algorithm(
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
-        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime, can_gc),
+        BodyType::FormData => run_form_data_algorithm(*cx, &global, bytes, mime),
         BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes, can_gc),
         BodyType::Bytes => run_bytes_data_algorithm(cx, bytes, can_gc),
     }
@@ -1017,10 +1017,10 @@ fn append_multipart_nodes(
 
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A2>
 fn run_form_data_algorithm(
+    cx: &mut js::context::JSContext,
     root: &GlobalScope,
     bytes: Vec<u8>,
     mime: &[u8],
-    can_gc: CanGc,
 ) -> Fallible<FetchedData> {
     // The formData() method steps are to return the result of running consume body
     // with this and the following steps given a byte sequence bytes:
@@ -1048,7 +1048,7 @@ fn run_form_data_algorithm(
             let closing_boundary = format!("--{}--", boundary.as_str()).into_bytes();
             let trimmed_bytes = bytes.strip_suffix(b"\r\n").unwrap_or(&bytes);
             if trimmed_bytes == closing_boundary {
-                let formdata = FormData::new(None, root, can_gc);
+                let formdata = FormData::new(cx, None, root);
                 return Ok(FetchedData::FormData(formdata));
             }
         }
@@ -1061,9 +1061,9 @@ fn run_form_data_algorithm(
         // a more detailed parsing specification is to be written. Volunteers welcome.
 
         // Return a new FormData object, appending each entry, resulting from the parsing operation, to its entry list.
-        let formdata = FormData::new(None, root, can_gc);
+        let formdata = FormData::new(cx, None, root);
 
-        append_multipart_nodes(root, &formdata, nodes, can_gc)?;
+        append_multipart_nodes(root, &formdata, nodes, CanGc::from_cx(cx))?;
 
         return Ok(FetchedData::FormData(formdata));
     }
@@ -1074,7 +1074,7 @@ fn run_form_data_algorithm(
         //
         // Return a new FormData object whose entry list is entries.
         let entries = form_urlencoded::parse(&bytes);
-        let formdata = FormData::new(None, root, can_gc);
+        let formdata = FormData::new(cx, None, root);
         for (k, e) in entries {
             formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
         }

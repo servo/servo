@@ -293,16 +293,16 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit>
-    fn Submit(&self, can_gc: CanGc) {
+    fn Submit(&self, cx: &mut JSContext) {
         self.submit(
+            cx,
             SubmittedFrom::FromForm,
             FormSubmitterElement::Form(self),
-            can_gc,
         );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-requestsubmit>
-    fn RequestSubmit(&self, submitter: Option<&HTMLElement>, can_gc: CanGc) -> Fallible<()> {
+    fn RequestSubmit(&self, cx: &mut JSContext, submitter: Option<&HTMLElement>) -> Fallible<()> {
         let submitter: FormSubmitterElement = match submitter {
             Some(submitter_element) => {
                 // Step 1.1
@@ -358,7 +358,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             },
         };
         // Step 3
-        self.submit(SubmittedFrom::NotFromForm, submitter, can_gc);
+        self.submit(cx, SubmittedFrom::NotFromForm, submitter);
         Ok(())
     }
 
@@ -368,7 +368,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-elements>
-    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLFormControlsCollection> {
+    fn Elements(&self, cx: &mut JSContext) -> DomRoot<HTMLFormControlsCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ElementsFilter {
             form: DomRoot<HTMLFormElement>,
@@ -431,7 +431,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 form: DomRoot::from_ref(self),
             });
             let window = self.owner_window();
-            HTMLFormControlsCollection::new(&window, self, filter, can_gc)
+            HTMLFormControlsCollection::new(cx, &window, self, filter)
         }))
     }
 
@@ -441,8 +441,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-item>
-    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<Element>> {
-        let elements = self.Elements(can_gc);
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Element>> {
+        let elements = self.Elements(cx);
         elements.IndexedGetter(index)
     }
 
@@ -654,12 +654,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity>
     fn CheckValidity(&self, cx: &mut JSContext) -> bool {
-        self.static_validation(CanGc::from_cx(cx)).is_ok()
+        self.static_validation(cx).is_ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
     fn ReportValidity(&self, cx: &mut JSContext) -> bool {
-        self.interactive_validation(CanGc::from_cx(cx)).is_ok()
+        self.interactive_validation(cx).is_ok()
     }
 }
 
@@ -735,9 +735,9 @@ impl HTMLFormElement {
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub(crate) fn submit(
         &self,
+        cx: &mut JSContext,
         submit_method_flag: SubmittedFrom,
         submitter: FormSubmitterElement,
-        can_gc: CanGc,
     ) {
         // Step 1
         if self.upcast::<Element>().cannot_navigate() {
@@ -769,7 +769,7 @@ impl HTMLFormElement {
             // Step 6.2
             self.firing_submission_events.set(true);
             // Step 6.3
-            if !submitter.no_validate(self) && self.interactive_validation(can_gc).is_err() {
+            if !submitter.no_validate(self) && self.interactive_validation(cx).is_err() {
                 self.firing_submission_events.set(false);
                 return;
             }
@@ -795,10 +795,10 @@ impl HTMLFormElement {
                 true,
                 true,
                 submitter_button.map(DomRoot::from_ref),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
-            event.fire(self.upcast::<EventTarget>(), can_gc);
+            event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
 
             // Step 6.6
             self.firing_submission_events.set(false);
@@ -816,7 +816,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 8
-        let mut form_data = match self.get_form_dataset(Some(submitter), Some(encoding), can_gc) {
+        let mut form_data = match self.get_form_dataset(cx, Some(submitter), Some(encoding)) {
             Some(form_data) => form_data,
             None => return,
         };
@@ -931,13 +931,13 @@ impl HTMLFormElement {
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
                 load_data.method = Method::POST;
                 self.submit_entity_body(
+                    cx,
                     &mut form_data,
                     load_data,
                     enctype,
                     encoding,
                     target_window,
                     history_handling,
-                    can_gc,
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
@@ -985,13 +985,13 @@ impl HTMLFormElement {
     #[allow(clippy::too_many_arguments)]
     fn submit_entity_body(
         &self,
+        cx: &mut JSContext,
         form_data: &mut [FormDatum],
         mut load_data: LoadData,
         enctype: FormEncType,
         encoding: &'static Encoding,
         target: &Window,
         history_handling: NavigationHistoryBehavior,
-        can_gc: CanGc,
     ) {
         let boundary = generate_boundary();
         let bytes = match enctype {
@@ -1029,7 +1029,7 @@ impl HTMLFormElement {
         let global = self.global();
 
         let request_body = bytes
-            .extract(&global, false, can_gc)
+            .extract(&global, false, CanGc::from_cx(cx))
             .expect("Couldn't extract body.")
             .into_net_request_body()
             .0;
@@ -1152,12 +1152,12 @@ impl HTMLFormElement {
 
     /// Interactively validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
-    fn interactive_validation(&self, can_gc: CanGc) -> Result<(), ()> {
+    fn interactive_validation(&self, cx: &mut JSContext) -> Result<(), ()> {
         // Step 1 - 2: Statically validate the constraints of form,
         // and let `unhandled invalid controls` be the list of elements
         // returned if the result was negative.
         // If the result was positive, then return that result.
-        let unhandled_invalid_controls = match self.static_validation(can_gc) {
+        let unhandled_invalid_controls = match self.static_validation(cx) {
             Ok(()) => return Ok(()),
             Err(err) => err,
         };
@@ -1178,7 +1178,7 @@ impl HTMLFormElement {
                     // some other action that brings the element to the user's attention.
 
                     // Here we run focusing steps and scroll element into view.
-                    html_elem.Focus(&FocusOptions::default(), can_gc);
+                    html_elem.Focus(&FocusOptions::default(), CanGc::from_cx(cx));
                     first = false;
                 }
             }
@@ -1192,7 +1192,7 @@ impl HTMLFormElement {
 
     /// Statitically validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
-    fn static_validation(&self, can_gc: CanGc) -> Result<(), Vec<DomRoot<Element>>> {
+    fn static_validation(&self, cx: &mut JSContext) -> Result<(), Vec<DomRoot<Element>>> {
         // Step 1-3
         let invalid_controls = self
             .controls
@@ -1200,7 +1200,7 @@ impl HTMLFormElement {
             .iter()
             .filter_map(|field| {
                 if let Some(element) = field.downcast::<Element>() {
-                    if element.is_invalid(true, can_gc) {
+                    if element.is_invalid(true, CanGc::from_cx(cx)) {
                         Some(DomRoot::from_ref(element))
                     } else {
                         None
@@ -1222,7 +1222,7 @@ impl HTMLFormElement {
                 // field, with the cancelable attribute initialized to true.
                 let not_canceled = field
                     .upcast::<EventTarget>()
-                    .fire_cancelable_event(atom!("invalid"), can_gc);
+                    .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
                 // Step 6.2: If notCanceled is true, then add field to unhandled invalid controls.
                 if not_canceled {
                     return Some(field);
@@ -1240,9 +1240,9 @@ impl HTMLFormElement {
     /// 5.x substeps are mostly handled inside element-specific methods
     fn get_unclean_dataset(
         &self,
+        cx: &mut JSContext,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-        can_gc: CanGc,
     ) -> Vec<FormDatum> {
         let mut data_set = Vec::new();
         for child in self.controls.borrow().iter() {
@@ -1291,7 +1291,7 @@ impl HTMLFormElement {
                         if custom.is_form_associated_custom_element() {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
                             let internals =
-                                custom.upcast::<Element>().ensure_element_internals(can_gc);
+                                custom.upcast::<Element>().ensure_element_internals(CanGc::from_cx(cx));
                             internals.perform_entry_construction(&mut data_set);
                             // Otherwise no form value has been set so there is nothing to do.
                         }
@@ -1329,9 +1329,9 @@ impl HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     pub(crate) fn get_form_dataset(
         &self,
+        cx: &mut JSContext,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
-        can_gc: CanGc,
     ) -> Option<Vec<FormDatum>> {
         // Step 1
         if self.constructing_entry_list.get() {
@@ -1342,26 +1342,26 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let ret = self.get_unclean_dataset(submitter, encoding, can_gc);
+        let ret = self.get_unclean_dataset(cx,submitter, encoding);
 
         let window = self.owner_window();
 
         // Step 6
-        let form_data = FormData::new(Some(ret), &window.global(), can_gc);
+        let form_data = FormData::new(cx, Some(ret), &window.global());
 
         // Step 7
         let event = FormDataEvent::new(
+            cx,
             &window,
             atom!("formdata"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             &form_data,
-            can_gc,
         );
 
         event
             .upcast::<Event>()
-            .fire(self.upcast::<EventTarget>(), can_gc);
+            .fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
 
         // Step 8
         self.constructing_entry_list.set(false);
