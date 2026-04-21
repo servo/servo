@@ -60,6 +60,7 @@ pub(crate) struct AudioBuffer {
 }
 
 impl AudioBuffer {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
         number_of_channels: u32,
         length: u32,

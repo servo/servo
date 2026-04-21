@@ -1073,7 +1073,7 @@ impl ReadableStream {
         &self,
         cx: SafeJSContext,
         read_into_request: &ReadIntoRequest,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: &HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
         can_gc: CanGc,
     ) {

@@ -149,7 +149,7 @@ impl ImageData {
                 reflector_: Reflector::new(),
                 width,
                 height,
-                data,
+                data: *data.into_box(),
                 pixel_format,
                 color_space,
             }),

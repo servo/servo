@@ -65,13 +65,11 @@ impl ReadIntoRequest {
             },
             ReadIntoRequest::ByteTee {
                 byte_tee_read_into_request,
-            } => {
-                byte_tee_read_into_request.enqueue_chunk_steps(
-                    HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
-                        RootedTraceableBox::from_box(Heap::boxed(chunk.get().to_object())),
-                    )),
-                )
-            },
+            } => byte_tee_read_into_request.enqueue_chunk_steps(RootedTraceableBox::new(
+                HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
+                    Heap::boxed(chunk.get().to_object()),
+                )),
+            )),
         }
     }
 
@@ -105,10 +103,10 @@ impl ReadIntoRequest {
             } => match chunk {
                 Some(chunk) => byte_tee_read_into_request
                     .close_steps(
-                        Some(HeapBufferSource::<ArrayBufferViewU8>::new(
-                            BufferSource::ArrayBufferView(RootedTraceableBox::from_box(
-                                Heap::boxed(chunk.get().to_object()),
-                            )),
+                        Some(RootedTraceableBox::new(
+                            HeapBufferSource::<ArrayBufferViewU8>::new(
+                                BufferSource::ArrayBufferView(Heap::boxed(chunk.get().to_object())),
+                            ),
                         )),
                         can_gc,
                     )
@@ -323,7 +321,7 @@ impl ReadableStreamBYOBReader {
     pub(crate) fn read(
         &self,
         cx: SafeJSContext,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: &HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
         read_into_request: &ReadIntoRequest,
         can_gc: CanGc,
@@ -509,7 +507,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let read_into_request = ReadIntoRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamBYOBReaderRead(this, view, options["min"], readIntoRequest).
-        self.read(cx.into(), view, min, &read_into_request, CanGc::from_cx(cx));
+        self.read(
+            cx.into(),
+            &view,
+            min,
+            &read_into_request,
+            CanGc::from_cx(cx),
+        );
 
         // Return promise.
         promise

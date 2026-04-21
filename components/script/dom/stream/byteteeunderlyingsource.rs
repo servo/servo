@@ -236,7 +236,7 @@ impl ByteTeeUnderlyingSource {
 
     pub(crate) fn pull_with_byob_reader(
         &self,
-        view: HeapBufferSource<ArrayBufferViewU8>,
+        view: &HeapBufferSource<ArrayBufferViewU8>,
         for_branch2: bool,
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -373,7 +373,7 @@ impl ByteTeeUnderlyingSource {
                         // Otherwise, perform pullWithBYOBReader, given byobRequest.[[view]] and false.
                         let view = request.get_view();
 
-                        self.pull_with_byob_reader(view, false, cx, &self.stream.global(), can_gc);
+                        self.pull_with_byob_reader(&view, false, cx, &self.stream.global(), can_gc);
                     },
                 }
 
@@ -414,7 +414,7 @@ impl ByteTeeUnderlyingSource {
                         // Otherwise, perform pullWithBYOBReader, given byobRequest.[[view]] and true.
                         let view = request.get_view();
 
-                        self.pull_with_byob_reader(view, true, cx, &self.stream.global(), can_gc);
+                        self.pull_with_byob_reader(&view, true, cx, &self.stream.global(), can_gc);
                     },
                 }
 
