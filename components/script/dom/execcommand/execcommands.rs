@@ -120,6 +120,7 @@ impl Document {
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontsize" => CommandName::FontSize,
+            "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,
             "underline" => CommandName::Underline,
             _ => return None,
