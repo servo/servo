@@ -258,11 +258,7 @@ impl Canonicalization for SanitizerElementWithAttributes {
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
                 SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
                     name: std::mem::take(&mut dictionary.parent.name),
-                    namespace: dictionary
-                        .parent
-                        .namespace
-                        .as_mut()
-                        .map(|namespace| std::mem::take(namespace)),
+                    namespace: dictionary.parent.namespace.as_mut().map(std::mem::take),
                 })
             },
         };
@@ -271,9 +267,7 @@ impl Canonicalization for SanitizerElementWithAttributes {
             SanitizerElementNamespaceWithAttributes {
                 parent: SanitizerElementNamespace {
                     name: std::mem::take(canonicalized_parent.name_mut()),
-                    namespace: canonicalized_parent
-                        .namespace_mut()
-                        .map(|namespace| std::mem::take(namespace)),
+                    namespace: canonicalized_parent.namespace_mut().map(std::mem::take),
                 },
                 attributes: None,
                 removeAttributes: None,
@@ -384,8 +378,7 @@ trait NameCanonicalization: NameMember {
         // ]».
         Self::new_dictionary(
             std::mem::take(self.name_mut()),
-            self.namespace_mut()
-                .map(|namespace| std::mem::take(namespace)),
+            self.namespace_mut().map(std::mem::take),
         )
     }
 }
