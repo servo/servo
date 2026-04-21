@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -41,13 +41,13 @@ impl SharedWorker {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         port: &MessagePort,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<SharedWorker> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(SharedWorker::new_inherited(port)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -62,7 +62,6 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         options: StringOrSharedWorkerOptions,
     ) -> Fallible<DomRoot<SharedWorker>> {
         let global = window.upcast::<GlobalScope>();
-        let can_gc = CanGc::from_cx(cx);
 
         // Step 1. Let compliantScriptURL be the result of invoking the get trusted type
         // compliant string algorithm with TrustedScriptURL, this's relevant global object,
@@ -98,7 +97,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         };
 
         // Step 6. Let outsidePort be a new MessagePort in outsideSettings's realm.
-        let outside_port = MessagePort::new(global, can_gc);
+        let outside_port = MessagePort::new(global, CanGc::from_cx(cx));
         global.track_message_port(&outside_port, None);
 
         // Step 7. Set this's port to outsidePort.
@@ -114,7 +113,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
 
         // TODO Step 11
 
-        Ok(SharedWorker::new(global, proto, &outside_port, can_gc))
+        Ok(SharedWorker::new(global, proto, &outside_port, cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-sharedworker-port>

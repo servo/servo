@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#shared-workers-and-the-sharedworker-interface
-[Exposed=Window]
+[Pref="dom_sharedworker_enabled", Exposed=Window]
 interface SharedWorker : EventTarget {
   [Throws] constructor((TrustedScriptURL or USVString) scriptURL, optional (DOMString or SharedWorkerOptions) options = {});
 

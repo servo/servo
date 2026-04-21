@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#sharedworkerglobalscope
-[Global=(Worker,SharedWorker), Exposed=SharedWorker]
+[Pref="dom_sharedworker_enabled", Global=(Worker,SharedWorker), Exposed=SharedWorker]
 interface SharedWorkerGlobalScope : WorkerGlobalScope {
   [Replaceable] readonly attribute DOMString name;
 
