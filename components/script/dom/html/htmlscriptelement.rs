@@ -438,6 +438,9 @@ impl FetchResponseListener for ClassicContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
+        // Resource timing is expected to be available before "error" or "load" events are fired.
+        network_listener::submit_timing(cx, &self, &response, &timing);
+
         let elem = self.elem.root();
 
         match (response.as_ref(), self.status.as_ref()) {
@@ -446,9 +449,6 @@ impl FetchResponseListener for ClassicContext {
                 // Step 6, response is an error.
                 *elem.result.borrow_mut() = Some(Err(()));
                 finish_fetching_a_script(&elem, self.kind, cx);
-
-                // Resource timing is expected to be available before "error" or "load" events are fired.
-                network_listener::submit_timing(cx, &self, &response, &timing);
                 return;
             },
             _ => {},
@@ -522,8 +522,6 @@ impl FetchResponseListener for ClassicContext {
         *elem.result.borrow_mut() = Some(Ok(Script::Classic(script)));
         finish_fetching_a_script(&elem, self.kind, cx);
         // }
-
-        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
