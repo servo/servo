@@ -179,7 +179,7 @@ pub struct Preferences {
     // feature: ServiceWorker | #36538 | Web/API/Service_Worker_API
     pub dom_serviceworker_enabled: bool,
     pub dom_serviceworker_timeout_seconds: i64,
-    // feature: SharedWorker | Web/API/SharedWorker
+    // feature: SharedWorker | #7458 | Web/API/SharedWorker
     pub dom_sharedworker_enabled: bool,
     pub dom_servo_helpers_enabled: bool,
     pub dom_servoparser_async_html_tokenizer_enabled: bool,
