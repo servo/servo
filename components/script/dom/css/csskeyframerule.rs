@@ -16,7 +16,7 @@ use super::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSS
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframeRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
@@ -44,18 +44,18 @@ impl CSSKeyframeRule {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         keyframerule: Arc<Locked<Keyframe>>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSKeyframeRule> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSKeyframeRule::new_inherited(
                 parent_stylesheet,
                 keyframerule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 

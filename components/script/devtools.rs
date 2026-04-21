@@ -323,9 +323,8 @@ fn build_rule_map(
     ancestors: &[AncestorData],
     map: &mut HashMap<usize, MatchedRule>,
 ) {
-    let can_gc = CanGc::from_cx(cx);
     for i in 0..list.Length() {
-        let Some(rule) = list.Item(i, can_gc) else {
+        let Some(rule) = list.Item(cx, i) else {
             continue;
         };
 
@@ -364,9 +363,8 @@ fn find_rule_by_block_id(
     list: &crate::dom::css::cssrulelist::CSSRuleList,
     target_block_id: usize,
 ) -> Option<DomRoot<CSSStyleRule>> {
-    let can_gc = CanGc::from_cx(cx);
     for i in 0..list.Length() {
-        let Some(rule) = list.Item(i, can_gc) else {
+        let Some(rule) = list.Item(cx, i) else {
             continue;
         };
 
@@ -408,7 +406,7 @@ pub(crate) fn handle_get_selectors(
             let Some(stylesheet) = owner.stylesheet_at(i) else {
                 continue;
             };
-            let Ok(list) = stylesheet.GetCssRules(CanGc::from_cx(cx)) else {
+            let Ok(list) = stylesheet.GetCssRules(cx) else {
                 continue;
             };
             build_rule_map(cx, &list, i, &[], &mut decl_map);
@@ -453,7 +451,7 @@ pub(crate) fn handle_get_stylesheet_style(
         let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(matched_rule.stylesheet_index)?;
-        let list = stylesheet.GetCssRules(CanGc::from_cx(cx)).ok()?;
+        let list = stylesheet.GetCssRules(cx).ok()?;
 
         let style_rule = find_rule_by_block_id(cx, &list, matched_rule.block_id)?;
         let declaration = style_rule.Style(cx);

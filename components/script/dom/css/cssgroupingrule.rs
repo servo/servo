@@ -20,7 +20,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSGroupingRule {
@@ -49,10 +48,10 @@ impl CSSGroupingRule {
                 unreachable!()
             };
             CSSRuleList::new(
+                cx,
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Rules(rules),
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -93,11 +92,11 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
             _ => None,
         };
         self.rulelist(cx).insert_rule(
+            cx,
             &rule,
             index,
             containing_rule_types,
             parse_relative_rule_type,
-            CanGc::from_cx(cx),
         )
     }
 

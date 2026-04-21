@@ -6,6 +6,7 @@ use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use itertools::izip;
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 use script_bindings::str::DOMString;
 use servo_arc::Arc;
@@ -22,11 +23,10 @@ use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::ElementStylesheetLoader;
 
 unsafe_no_jsmanaged_fields!(RulesSource);
@@ -87,15 +87,15 @@ impl CSSRuleList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rules: RulesSource,
-        can_gc: CanGc,
     ) -> DomRoot<CSSRuleList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -103,11 +103,11 @@ impl CSSRuleList {
     /// for keyframes-backed rules.
     pub(crate) fn insert_rule(
         &self,
+        cx: &mut JSContext,
         rule: &DOMString,
         idx: u32,
         containing_rule_types: CssRuleTypes,
         parse_relative_rule_type: Option<CssRuleType>,
-        can_gc: CanGc,
     ) -> Fallible<u32> {
         self.parent_stylesheet.will_modify();
         let css_rules = if let RulesSource::Rules(rules) = &*self.rules.borrow() {
@@ -159,7 +159,7 @@ impl CSSRuleList {
 
         let parent_stylesheet = &*self.parent_stylesheet;
         parent_stylesheet.will_modify();
-        let dom_rule = CSSRule::new_specific(window, parent_stylesheet, new_rule, can_gc);
+        let dom_rule = CSSRule::new_specific(cx, window, parent_stylesheet, new_rule);
         self.dom_rules
             .borrow_mut()
             .insert(index, MutNullableDom::new(Some(&*dom_rule)));
@@ -211,7 +211,7 @@ impl CSSRuleList {
         }
     }
 
-    pub(crate) fn item(&self, idx: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
+    pub(crate) fn item(&self, cx: &mut JSContext, idx: u32) -> Option<DomRoot<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
@@ -223,10 +223,10 @@ impl CSSRuleList {
                             rules.read_with(&guard).0[idx as usize].clone()
                         };
                         CSSRule::new_specific(
+                            cx,
                             self.global().as_window(),
                             parent_stylesheet,
                             rule,
-                            can_gc,
                         )
                     },
                     RulesSource::Keyframes(ref rules) => {
@@ -235,10 +235,10 @@ impl CSSRuleList {
                             rules.read_with(&guard).keyframes[idx as usize].clone()
                         };
                         DomRoot::upcast(CSSKeyframeRule::new(
+                            cx,
                             self.global().as_window(),
                             parent_stylesheet,
                             rule,
-                            can_gc,
                         ))
                     },
                 }
@@ -298,8 +298,8 @@ impl CSSRuleList {
 
 impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
     /// <https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1>
-    fn Item(&self, idx: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
-        self.item(idx, can_gc)
+    fn Item(&self, cx: &mut JSContext, idx: u32) -> Option<DomRoot<CSSRule>> {
+        self.item(cx, idx)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssrulelist-length>
@@ -308,7 +308,7 @@ impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<CSSRule>> {
-        self.Item(index, can_gc)
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<CSSRule>> {
+        self.Item(cx, index)
     }
 }

@@ -6,6 +6,7 @@ use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
@@ -155,16 +156,16 @@ impl CSSStyleSheet {
         )
     }
 
-    fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
+    fn rulelist(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
         self.rule_list.or_init(|| {
             let sheet = self.style_stylesheet.borrow();
             let guard = sheet.shared_lock.read();
             let rules = sheet.contents(&guard).rules.clone();
             CSSRuleList::new(
+                cx,
                 self.global().as_window(),
                 self,
                 RulesSource::Rules(rules),
-                can_gc,
             )
         })
     }
@@ -199,12 +200,12 @@ impl CSSStyleSheet {
         self.origin_clean.set(origin_clean);
     }
 
-    pub(crate) fn medialist(&self, can_gc: CanGc) -> DomRoot<MediaList> {
+    pub(crate) fn medialist(&self, cx: &mut JSContext) -> DomRoot<MediaList> {
         MediaList::new(
+            cx,
             self.global().as_window(),
             self,
             self.style_stylesheet().media.clone(),
-            can_gc,
         )
     }
 
@@ -363,15 +364,15 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
-    fn GetCssRules(&self, can_gc: CanGc) -> Fallible<DomRoot<CSSRuleList>> {
+    fn GetCssRules(&self, cx: &mut JSContext) -> Fallible<DomRoot<CSSRuleList>> {
         if !self.origin_clean.get() {
             return Err(Error::Security(None));
         }
-        Ok(self.rulelist(can_gc))
+        Ok(self.rulelist(cx))
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule>
-    fn InsertRule(&self, rule: DOMString, index: u32, can_gc: CanGc) -> Fallible<u32> {
+    fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
             return Err(Error::Security(None));
@@ -382,12 +383,12 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             return Err(Error::NotAllowed(None));
         }
 
-        self.rulelist(can_gc)
-            .insert_rule(&rule, index, CssRuleTypes::default(), None, can_gc)
+        self.rulelist(cx)
+            .insert_rule(cx, &rule, index, CssRuleTypes::default(), None)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule>
-    fn DeleteRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
+    fn DeleteRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
         // Step 1. If the origin-clean flag is unset, throw a SecurityError exception.
         if !self.origin_clean.get() {
             return Err(Error::Security(None));
@@ -397,17 +398,17 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         if self.disallow_modification() {
             return Err(Error::NotAllowed(None));
         }
-        self.rulelist(can_gc).remove_rule(index)
+        self.rulelist(cx).remove_rule(index)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-rules>
-    fn GetRules(&self, can_gc: CanGc) -> Fallible<DomRoot<CSSRuleList>> {
-        self.GetCssRules(can_gc)
+    fn GetRules(&self, cx: &mut JSContext) -> Fallible<DomRoot<CSSRuleList>> {
+        self.GetCssRules(cx)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-removerule>
-    fn RemoveRule(&self, index: u32, can_gc: CanGc) -> ErrorResult {
-        self.DeleteRule(index, can_gc)
+    fn RemoveRule(&self, cx: &mut JSContext, index: u32) -> ErrorResult {
+        self.DeleteRule(cx, index)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-addrule>
@@ -434,10 +435,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         };
 
         // > 6. Let *index* be *optionalIndex* if provided, or the number of CSS rules in the stylesheet otherwise.
-        let index = optional_index.unwrap_or_else(|| self.rulelist(CanGc::from_cx(cx)).Length());
+        let index = optional_index.unwrap_or_else(|| self.rulelist(cx).Length());
 
         // > 7. Call `insertRule()`, with *rule* and *index* as arguments.
-        self.InsertRule(rule, index, CanGc::from_cx(cx))?;
+        self.InsertRule(cx, rule, index)?;
 
         // > 8. Return -1.
         Ok(-1)

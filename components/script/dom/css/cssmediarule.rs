@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
@@ -14,12 +15,11 @@ use super::cssconditionrule::CSSConditionRule;
 use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::medialist::MediaList;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSMediaRule {
@@ -41,25 +41,25 @@ impl CSSMediaRule {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         mediarule: Arc<MediaRule>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSMediaRule> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
             window,
-            can_gc,
+            cx,
         )
     }
 
-    fn medialist(&self, can_gc: CanGc) -> DomRoot<MediaList> {
+    fn medialist(&self, cx: &mut JSContext) -> DomRoot<MediaList> {
         self.media_list.or_init(|| {
             MediaList::new(
+                cx,
                 self.global().as_window(),
                 self.css_condition_rule.parent_stylesheet(),
                 self.media_rule.borrow().media_queries.clone(),
-                can_gc,
             )
         })
     }
@@ -98,7 +98,7 @@ impl SpecificCSSRule for CSSMediaRule {
 
 impl CSSMediaRuleMethods<crate::DomTypeHolder> for CSSMediaRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media>
-    fn Media(&self, can_gc: CanGc) -> DomRoot<MediaList> {
-        self.medialist(can_gc)
+    fn Media(&self, cx: &mut JSContext) -> DomRoot<MediaList> {
+        self.medialist(cx)
     }
 }

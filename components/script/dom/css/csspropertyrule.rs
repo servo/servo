@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::{CssRuleType, PropertyRule};
@@ -13,11 +14,10 @@ use style_traits::ToCss;
 use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSPropertyRuleBinding::CSSPropertyRuleMethods;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSPropertyRule {
@@ -36,15 +36,15 @@ impl CSSPropertyRule {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         property_rule: Arc<PropertyRule>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(parent_stylesheet, property_rule)),
             window,
-            can_gc,
+            cx,
         )
     }
 
