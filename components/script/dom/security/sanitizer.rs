@@ -249,23 +249,31 @@ trait Canonicalization {
 
 impl Canonicalization for SanitizerElementWithAttributes {
     /// <https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-element-with-attributes>
-    fn canonicalize(self) -> Self {
+    fn canonicalize(mut self) -> Self {
         // Step 1. Let result be the result of canonicalize a sanitizer element with element.
-        let parent = match &self {
-            SanitizerElementWithAttributes::String(name) => SanitizerElement::String(name.clone()),
+        let parent = match &mut self {
+            SanitizerElementWithAttributes::String(name) => {
+                SanitizerElement::String(std::mem::take(name))
+            },
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
                 SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                    name: dictionary.parent.name.clone(),
-                    namespace: dictionary.parent.namespace.as_ref().cloned(),
+                    name: std::mem::take(&mut dictionary.parent.name),
+                    namespace: dictionary
+                        .parent
+                        .namespace
+                        .as_mut()
+                        .map(|namespace| std::mem::take(namespace)),
                 })
             },
         };
-        let canonicalized_parent = parent.canonicalize();
+        let mut canonicalized_parent = parent.canonicalize();
         let mut result = SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
             SanitizerElementNamespaceWithAttributes {
                 parent: SanitizerElementNamespace {
-                    name: canonicalized_parent.name().clone(),
-                    namespace: canonicalized_parent.namespace().cloned(),
+                    name: std::mem::take(canonicalized_parent.name_mut()),
+                    namespace: canonicalized_parent
+                        .namespace_mut()
+                        .map(|namespace| std::mem::take(namespace)),
                 },
                 attributes: None,
                 removeAttributes: None,
@@ -353,7 +361,7 @@ trait NameCanonicalization: NameMember {
         // defaultNamespace]».
         if self.is_string() {
             return Self::new_dictionary(
-                self.name().clone(),
+                std::mem::take(self.name_mut()),
                 default_namespace.map(DOMString::from),
             );
         }
@@ -374,7 +382,11 @@ trait NameCanonicalization: NameMember {
         // "name" → name["name"],
         // "namespace" → name["namespace"]
         // ]».
-        Self::new_dictionary(self.name().clone(), self.namespace().cloned())
+        Self::new_dictionary(
+            std::mem::take(self.name_mut()),
+            self.namespace_mut()
+                .map(|namespace| std::mem::take(namespace)),
+        )
     }
 }
 
@@ -413,7 +425,9 @@ impl NameCanonicalization for SanitizerAttribute {
 /// [`SanitizerElementWithAttributes`], [`SanitizerElement`] and [`SanitizerAttribute`].
 trait NameMember: Sized {
     fn name(&self) -> &DOMString;
+    fn name_mut(&mut self) -> &mut DOMString;
     fn namespace(&self) -> Option<&DOMString>;
+    fn namespace_mut(&mut self) -> Option<&mut DOMString>;
 
     fn set_namespace(&mut self, namespace: Option<&str>);
 }
@@ -428,11 +442,29 @@ impl NameMember for SanitizerElementWithAttributes {
         }
     }
 
+    fn name_mut(&mut self) -> &mut DOMString {
+        match self {
+            SanitizerElementWithAttributes::String(name) => name,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                &mut dictionary.parent.name
+            },
+        }
+    }
+
     fn namespace(&self) -> Option<&DOMString> {
         match self {
             SanitizerElementWithAttributes::String(_) => None,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
                 dictionary.parent.namespace.as_ref()
+            },
+        }
+    }
+
+    fn namespace_mut(&mut self) -> Option<&mut DOMString> {
+        match self {
+            SanitizerElementWithAttributes::String(_) => None,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.parent.namespace.as_mut()
             },
         }
     }
@@ -468,11 +500,27 @@ impl NameMember for SanitizerElement {
         }
     }
 
+    fn name_mut(&mut self) -> &mut DOMString {
+        match self {
+            SanitizerElement::String(name) => name,
+            SanitizerElement::SanitizerElementNamespace(dictionary) => &mut dictionary.name,
+        }
+    }
+
     fn namespace(&self) -> Option<&DOMString> {
         match self {
             SanitizerElement::String(_) => None,
             SanitizerElement::SanitizerElementNamespace(dictionary) => {
                 dictionary.namespace.as_ref()
+            },
+        }
+    }
+
+    fn namespace_mut(&mut self) -> Option<&mut DOMString> {
+        match self {
+            SanitizerElement::String(_) => None,
+            SanitizerElement::SanitizerElementNamespace(dictionary) => {
+                dictionary.namespace.as_mut()
             },
         }
     }
@@ -502,11 +550,27 @@ impl NameMember for SanitizerAttribute {
         }
     }
 
+    fn name_mut(&mut self) -> &mut DOMString {
+        match self {
+            SanitizerAttribute::String(name) => name,
+            SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => &mut dictionary.name,
+        }
+    }
+
     fn namespace(&self) -> Option<&DOMString> {
         match self {
             SanitizerAttribute::String(_) => None,
             SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
                 dictionary.namespace.as_ref()
+            },
+        }
+    }
+
+    fn namespace_mut(&mut self) -> Option<&mut DOMString> {
+        match self {
+            SanitizerAttribute::String(_) => None,
+            SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
+                dictionary.namespace.as_mut()
             },
         }
     }
