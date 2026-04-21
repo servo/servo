@@ -424,7 +424,6 @@ impl NameCanonicalization for SanitizerAttribute {
 /// Helper functions for accessing the "name" and "namespace" members of
 /// [`SanitizerElementWithAttributes`], [`SanitizerElement`] and [`SanitizerAttribute`].
 trait NameMember: Sized {
-    fn name(&self) -> &DOMString;
     fn name_mut(&mut self) -> &mut DOMString;
     fn namespace(&self) -> Option<&DOMString>;
     fn namespace_mut(&mut self) -> Option<&mut DOMString>;
@@ -433,15 +432,6 @@ trait NameMember: Sized {
 }
 
 impl NameMember for SanitizerElementWithAttributes {
-    fn name(&self) -> &DOMString {
-        match self {
-            SanitizerElementWithAttributes::String(name) => name,
-            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
-                &dictionary.parent.name
-            },
-        }
-    }
-
     fn name_mut(&mut self) -> &mut DOMString {
         match self {
             SanitizerElementWithAttributes::String(name) => name,
@@ -493,13 +483,6 @@ impl NameMember for SanitizerElementWithAttributes {
 }
 
 impl NameMember for SanitizerElement {
-    fn name(&self) -> &DOMString {
-        match self {
-            SanitizerElement::String(name) => name,
-            SanitizerElement::SanitizerElementNamespace(dictionary) => &dictionary.name,
-        }
-    }
-
     fn name_mut(&mut self) -> &mut DOMString {
         match self {
             SanitizerElement::String(name) => name,
@@ -543,13 +526,6 @@ impl NameMember for SanitizerElement {
 }
 
 impl NameMember for SanitizerAttribute {
-    fn name(&self) -> &DOMString {
-        match self {
-            SanitizerAttribute::String(name) => name,
-            SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => &dictionary.name,
-        }
-    }
-
     fn name_mut(&mut self) -> &mut DOMString {
         match self {
             SanitizerAttribute::String(name) => name,
