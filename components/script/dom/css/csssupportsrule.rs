@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use servo_arc::Arc;
 use style::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, SupportsRule};
@@ -13,11 +14,10 @@ use style_traits::ToCss;
 use super::cssconditionrule::CSSConditionRule;
 use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSSupportsRule {
@@ -40,18 +40,18 @@ impl CSSSupportsRule {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSSupportsRule> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSSupportsRule::new_inherited(
                 parent_stylesheet,
                 supportsrule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
