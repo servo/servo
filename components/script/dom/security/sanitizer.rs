@@ -444,7 +444,7 @@ impl NameMember for SanitizerElementWithAttributes {
                     SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
                         SanitizerElementNamespaceWithAttributes {
                             parent: SanitizerElementNamespace {
-                                name: name.clone(),
+                                name: std::mem::take(name),
                                 namespace: namespace.map(DOMString::from),
                             },
                             attributes: None,
@@ -482,7 +482,7 @@ impl NameMember for SanitizerElement {
             SanitizerElement::String(name) => {
                 let new_instance =
                     SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                        name: name.clone(),
+                        name: std::mem::take(name),
                         namespace: namespace.map(DOMString::from),
                     });
                 *self = new_instance;
@@ -516,7 +516,7 @@ impl NameMember for SanitizerAttribute {
             SanitizerAttribute::String(name) => {
                 let new_instance =
                     SanitizerAttribute::SanitizerAttributeNamespace(SanitizerAttributeNamespace {
-                        name: name.clone(),
+                        name: std::mem::take(name),
                         namespace: namespace.map(DOMString::from),
                     });
                 *self = new_instance;
@@ -563,7 +563,7 @@ impl AttributeMember for SanitizerElementWithAttributes {
                 *self = SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
                     SanitizerElementNamespaceWithAttributes {
                         parent: SanitizerElementNamespace {
-                            name: name.clone(),
+                            name: std::mem::take(name),
                             namespace: None,
                         },
                         attributes,
@@ -583,7 +583,7 @@ impl AttributeMember for SanitizerElementWithAttributes {
                 *self = SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(
                     SanitizerElementNamespaceWithAttributes {
                         parent: SanitizerElementNamespace {
-                            name: name.clone(),
+                            name: std::mem::take(name),
                             namespace: None,
                         },
                         attributes: None,
