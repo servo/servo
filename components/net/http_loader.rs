@@ -54,8 +54,8 @@ use net_traits::response::{
 };
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
-    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue, TlsSecurityInfo,
-    TlsSecurityState,
+    ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer, ResourceTimeValue,
+    TlsSecurityInfo, TlsSecurityState,
 };
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -63,7 +63,6 @@ use profile_traits::path;
 #[cfg(feature = "tracing")]
 use profile_traits::trace_span;
 use rustc_hash::FxHashMap;
-use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId};
@@ -587,18 +586,13 @@ async fn obtain_response(
             )
     };
 
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::DomainLookupStart);
-
     // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
     // fetch passes the timing allow check
     let connect_start = CrossProcessInstant::now();
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::ConnectStart(connect_start));
+    context.timing.set_attributes(&[
+        ResourceAttribute::DomainLookupStart,
+        ResourceAttribute::ConnectStart(connect_start),
+    ]);
 
     // TODO: We currently don't know when the handhhake before the connection is done
     // so our best bet would be to set `secure_connection_start` here when we are currently
@@ -606,7 +600,6 @@ async fn obtain_response(
     if url.scheme() == "https" {
         context
             .timing
-            .lock()
             .set_attribute(ResourceAttribute::SecureConnectionStart);
     }
 
@@ -619,7 +612,6 @@ async fn obtain_response(
     let connect_end = CrossProcessInstant::now();
     context
         .timing
-        .lock()
         .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
     let request_id = request_id.map(|v| v.to_owned());
@@ -892,7 +884,6 @@ pub(crate) async fn http_fetch(
         //   secure_connection_start)
         context
             .timing
-            .lock()
             .set_attribute(ResourceAttribute::RequestStart);
 
         // Step 4.3. Set response and internalResponse to the result of
@@ -989,19 +980,18 @@ pub(crate) async fn http_fetch(
     response.return_internal = true;
     context
         .timing
-        .lock()
         .set_attribute(ResourceAttribute::RedirectCount(
             fetch_params.request.redirect_count as u16,
         ));
 
-    response.resource_timing = Arc::clone(&context.timing);
+    response.resource_timing = context.timing.clone();
 
     // Step 6
     response
 }
 
 // Convenience struct that implements Drop, for setting redirectEnd on function return
-struct RedirectEndTimer(Option<Arc<Mutex<ResourceFetchTiming>>>);
+struct RedirectEndTimer(Option<ResourceFetchTimingContainer>);
 
 impl RedirectEndTimer {
     fn neuter(&mut self) {
@@ -1014,8 +1004,7 @@ impl Drop for RedirectEndTimer {
         let RedirectEndTimer(resource_fetch_timing_opt) = self;
 
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
-            t.lock()
-                .set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
+            t.set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
         })
     }
 }
@@ -1107,30 +1096,14 @@ pub async fn http_redirect_fetch(
 
     // Step 1 of https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     // TODO: check origin and timing allow check
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::RedirectStart(
-            RedirectStartValue::FetchStart,
-        ));
-
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::FetchStart);
-
     // start_time should equal redirect_start if nonzero; else fetch_start
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
-
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::StartTime(
-            ResourceTimeValue::RedirectStart,
-        )); // updates start_time only if redirect_start is nonzero (implying TAO)
+    // updates start_time only if redirect_start is nonzero (implying TAO)
+    context.timing.set_attributes(&[
+        ResourceAttribute::RedirectStart(RedirectStartValue::FetchStart),
+        ResourceAttribute::FetchStart,
+        ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
+        ResourceAttribute::StartTime(ResourceTimeValue::RedirectStart),
+    ]);
 
     // Step 7: If request’s redirect count is 20, then return a network error.
     if request.redirect_count >= 20 {
@@ -1240,12 +1213,9 @@ pub async fn http_redirect_fetch(
     .await;
 
     // TODO: timing allow check
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::RedirectEnd(
-            RedirectEndValue::ResponseEnd,
-        ));
+    context.timing.set_attribute(ResourceAttribute::RedirectEnd(
+        RedirectEndValue::ResponseEnd,
+    ));
     redirect_end_timer.neuter();
 
     fetch_response
@@ -1890,7 +1860,7 @@ fn cross_origin_resource_policy_check(
 }
 
 // Convenience struct that implements Done, for setting responseEnd on function return
-struct ResponseEndTimer(Option<Arc<Mutex<ResourceFetchTiming>>>);
+struct ResponseEndTimer(Option<ResourceFetchTimingContainer>);
 
 impl ResponseEndTimer {
     fn neuter(&mut self) {
@@ -1903,7 +1873,7 @@ impl Drop for ResponseEndTimer {
         let ResponseEndTimer(resource_fetch_timing_opt) = self;
 
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
-            t.lock().set_attribute(ResourceAttribute::ResponseEnd);
+            t.set_attribute(ResourceAttribute::ResponseEnd);
         })
     }
 }
@@ -2077,10 +2047,10 @@ async fn http_network_fetch(
     });
 
     if !(is_same_origin || req_origin_in_timing_allow || wildcard_present) {
-        context.timing.lock().mark_timing_check_failed();
+        context.timing.inner().mark_timing_check_failed();
     }
 
-    let timing = context.timing.lock().clone();
+    let timing = context.timing.inner().clone();
     let mut response = Response::new(url.clone(), timing);
 
     if let Some(handshake_info) = res.extensions().get::<TlsHandshakeInfo>() {
@@ -2179,9 +2149,7 @@ async fn http_network_fetch(
                     &devtools_request,
                     devtools_chan,
                 );
-                timing_ptr2
-                    .lock()
-                    .set_attribute(ResourceAttribute::ResponseEnd);
+                timing_ptr2.set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender2.send(Data::Done);
                 future::ready(Ok(()))
             })
@@ -2200,9 +2168,7 @@ async fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
-                timing_ptr3
-                    .lock()
-                    .set_attribute(ResourceAttribute::ResponseEnd);
+                timing_ptr3.set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender3.send(Data::Done);
             }),
     );

@@ -22,11 +22,12 @@ use tokio::sync::oneshot::Sender as TokioSender;
 use url::Position;
 use uuid::Uuid;
 
+use crate::ReferrerPolicy;
 use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::pub_domains::is_same_site;
+use crate::resource_fetch_timing::ResourceTimingType;
 use crate::response::{HttpsState, RedirectTaint, Response};
-use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differentiate one network request from another.
