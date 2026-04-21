@@ -1825,7 +1825,8 @@ impl FlexItem<'_> {
             // If the child is a grid container, we need to pass definite size
             // for align-content: stretch to work.
             let is_grid = self.box_.independent_formatting_context.is_grid();
-            let main_size = if is_grid || self.flex_base_size_is_definite ||
+            let main_size = if is_grid ||
+                self.flex_base_size_is_definite ||
                 flex_context
                     .container_inner_size_constraint
                     .main
