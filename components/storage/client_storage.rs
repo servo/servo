@@ -88,6 +88,7 @@ impl SqliteEngine {
             [],
         )?;
 
+        // Note: indices required for ON CONFLICT to work.
         connection.execute(
             r#"CREATE UNIQUE INDEX IF NOT EXISTS idx_sheds_local
         ON sheds(storage_type) WHERE browsing_context IS NULL;"#,
@@ -110,6 +111,7 @@ impl SqliteEngine {
             [],
         )?;
 
+        // Note: name is to support https://wicg.github.io/storage-buckets/
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS buckets (
             id INTEGER PRIMARY KEY,
@@ -123,6 +125,7 @@ impl SqliteEngine {
             [],
         )?;
 
+        // Note: quota not in db, hardcoded at https://storage.spec.whatwg.org/#storage-endpoint-quota
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS bottles (
                     id INTEGER PRIMARY KEY,
@@ -170,6 +173,7 @@ impl SqliteEngine {
                 ON shelves(origin, shed_id);
             "#,
         )?;
+        // TODO: Delete expired and non-persistent buckets on startup
         Ok(())
     }
 }
@@ -416,6 +420,7 @@ fn directory_size(path: &PathBuf) -> Result<u64, String> {
 impl RegistryEngine for SqliteEngine {
     type Error = rusqlite::Error;
 
+    /// Create a database for the indexedDB endpoint.
     fn create_database(
         &mut self,
         bottle_id: i64,
@@ -462,6 +467,7 @@ impl RegistryEngine for SqliteEngine {
         Ok(path)
     }
 
+    /// Delete a database for the indexedDB endpoint.
     fn delete_database(
         &mut self,
         bottle_id: i64,
@@ -489,6 +495,9 @@ impl RegistryEngine for SqliteEngine {
         if tx.changes() == 0 {
             return Err(ClientStorageErrorr::DatabaseDoesNotExist);
         }
+        // Note: directory deleted through SQL cascade.
+
+        // Delete the directory on disk
         std::fs::remove_dir_all(&path).map_err(|_| ClientStorageErrorr::DirectoryDeletionFailed)?;
 
         tx.commit()?;
