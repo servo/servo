@@ -73,6 +73,7 @@ pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
     pub ratio: Option<CSSFloat>,
+    pub has_viewbox: bool,
 }
 
 impl NaturalSizes {
@@ -90,6 +91,7 @@ impl NaturalSizes {
             width: Some(Au::from_f32_px(width)),
             height: Some(Au::from_f32_px(height)),
             ratio,
+            has_viewbox: false,
         }
     }
 
@@ -108,6 +110,7 @@ impl NaturalSizes {
             width: None,
             height: None,
             ratio: None,
+            has_viewbox: false,
         }
     }
 }
@@ -194,6 +197,7 @@ impl ReplacedContents {
                     // See /components/script/resources/media-controls.css
                     height: Some(Au::from_px(40)),
                     ratio: None,
+                    has_viewbox: false,
                 };
                 (ReplacedContentKind::Audio, natural_size)
             } else {
@@ -266,6 +270,7 @@ impl ReplacedContents {
             width: width.map(|w| Au::from_f32_px(w.px())),
             height: height.map(|h| Au::from_f32_px(h.px())),
             ratio,
+            has_viewbox: svg_data.view_box.is_some(),
         };
 
         let svg_source = match svg_data.source {
@@ -568,20 +573,21 @@ impl ReplacedContents {
                     return vec![];
                 };
 
-                // TODO: This is incorrect if the SVG has a viewBox.
-                base.rect = PhysicalSize::new(
-                    vector_image
-                        .metadata
-                        .width
-                        .try_into()
-                        .map_or(MAX_AU, Au::from_px),
-                    vector_image
-                        .metadata
-                        .height
-                        .try_into()
-                        .map_or(MAX_AU, Au::from_px),
-                )
-                .into();
+                if !self.natural_size.has_viewbox {
+                    base.rect = PhysicalSize::new(
+                        vector_image
+                            .metadata
+                            .width
+                            .try_into()
+                            .map_or(MAX_AU, Au::from_px),
+                        vector_image
+                            .metadata
+                            .height
+                            .try_into()
+                            .map_or(MAX_AU, Au::from_px),
+                    )
+                    .into();
+                }
 
                 let scale = layout_context.style_context.device_pixel_ratio();
                 let raster_size = Size2D::new(
