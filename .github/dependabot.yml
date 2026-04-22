@@ -52,6 +52,11 @@ updates:
     objc2-related:
       patterns:
         - "objc2*"
+    rustls-webpki-related:
+      patterns:
+        - rustls-webpki
+        - webpki-roots
+        - webpki-root-certs
     sea-query-related:
       patterns:
         - "sea-query"
