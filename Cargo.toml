@@ -372,8 +372,10 @@ codegen-units = 1
 #
 # Or for mozjs:
 #
-mozjs = { path = "../mozjs/mozjs" }
-mozjs_sys = { path = "../mozjs/mozjs-sys" }
+# mozjs = { path = "../mozjs/mozjs" }
+# mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git = "https://github.com/jdm/mozjs", branch = "rooted-traceable-into-box" }
+mozjs_sys = { git = "https://github.com/jdm/mozjs", branch = "rooted-traceable-into-box" }
 #
 # Or for CSP crate:
 # content-security-policy = { path = "../rust-content-security-policy" }
