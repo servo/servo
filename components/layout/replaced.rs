@@ -73,7 +73,6 @@ pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
     pub ratio: Option<CSSFloat>,
-    pub has_viewbox: bool,
 }
 
 impl NaturalSizes {
@@ -91,7 +90,6 @@ impl NaturalSizes {
             width: Some(Au::from_f32_px(width)),
             height: Some(Au::from_f32_px(height)),
             ratio,
-            has_viewbox: false,
         }
     }
 
@@ -110,7 +108,6 @@ impl NaturalSizes {
             width: None,
             height: None,
             ratio: None,
-            has_viewbox: false,
         }
     }
 }
@@ -144,7 +141,10 @@ pub(crate) enum ReplacedContentKind {
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(VideoInfo),
-    SVGElement(Option<VectorImage>),
+    SVGElement {
+        vector_image: Option<VectorImage>,
+        has_viewbox: bool,
+    },
     Audio,
 }
 
@@ -197,7 +197,6 @@ impl ReplacedContents {
                     // See /components/script/resources/media-controls.css
                     height: Some(Au::from_px(40)),
                     ratio: None,
-                    has_viewbox: false,
                 };
                 (ReplacedContentKind::Audio, natural_size)
             } else {
@@ -270,7 +269,6 @@ impl ReplacedContents {
             width: width.map(|w| Au::from_f32_px(w.px())),
             height: height.map(|h| Au::from_f32_px(h.px())),
             ratio,
-            has_viewbox: svg_data.view_box.is_some(),
         };
 
         let svg_source = match svg_data.source {
@@ -306,7 +304,13 @@ impl ReplacedContents {
             _ => unreachable!("SVG element can't contain a raster image."),
         });
 
-        (ReplacedContentKind::SVGElement(vector_image), natural_size)
+        (
+            ReplacedContentKind::SVGElement {
+                vector_image,
+                has_viewbox: svg_data.view_box.is_some(),
+            },
+            natural_size,
+        )
     }
 
     fn from_content_property(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
@@ -568,12 +572,15 @@ impl ReplacedContents {
                     url: None,
                 }))]
             },
-            ReplacedContentKind::SVGElement(vector_image) => {
+            ReplacedContentKind::SVGElement {
+                vector_image,
+                has_viewbox,
+            } => {
                 let Some(vector_image) = vector_image else {
                     return vec![];
                 };
 
-                if !self.natural_size.has_viewbox {
+                if !has_viewbox {
                     base.rect = PhysicalSize::new(
                         vector_image
                             .metadata
