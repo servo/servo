@@ -236,7 +236,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             for element in config_replace_with_children_elements {
                 // Step 15.1.1. If the built-in non-replaceable elements list contains element, then
                 // return false.
-                if built_in_non_replaceable_elements_list().contains(element) {
+                if built_in_non_replaceable_elements_list().contains_name(element) {
                     return false;
                 }
             }
@@ -303,7 +303,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                         // Step 16.2.1.3. If the intersection of config["attributes"] and
                         // element["attributes"] with default « » is not empty, then return false.
                         if config_attributes
-                            .is_intersection_non_empty(element.attributes().unwrap_or(&Vec::new()))
+                            .is_intersection_non_empty(element.attributes().unwrap_or_default())
                         {
                             return false;
                         }
@@ -312,9 +312,9 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                         // subset of config["attributes"], then return false.
                         if !element
                             .remove_attributes()
-                            .unwrap_or(&Vec::new())
+                            .unwrap_or_default()
                             .iter()
-                            .all(|entry| config_attributes.contains(entry))
+                            .all(|entry| config_attributes.contains_name(entry))
                         {
                             return false;
                         }
@@ -393,7 +393,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                             .as_ref()
                             .is_some_and(|config_remove_attributes| {
                                 config_remove_attributes.is_intersection_non_empty(
-                                    element.attributes().unwrap_or(&Vec::new()),
+                                    element.attributes().unwrap_or_default(),
                                 )
                             })
                         {
@@ -408,7 +408,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                             .as_ref()
                             .is_some_and(|config_remove_attributes| {
                                 config_remove_attributes.is_intersection_non_empty(
-                                    element.remove_attributes().unwrap_or(&Vec::new()),
+                                    element.remove_attributes().unwrap_or_default(),
                                 )
                             })
                         {
@@ -724,12 +724,12 @@ impl NameCanonicalization for SanitizerAttribute {
 }
 
 /// Supporting algorithms on lists of elements and lists of attributes, from the specification.
-trait NameList<T>
+trait NameSlice<T>
 where
     T: NameMember + Canonicalization + Clone,
 {
     /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-contains>
-    fn contains<S: NameMember>(&self, other: &S) -> bool;
+    fn contains_name<S: NameMember>(&self, other: &S) -> bool;
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-has-duplicates>
     fn has_duplicates(&self) -> bool;
@@ -742,12 +742,12 @@ where
         S: NameMember + Canonicalization + Clone;
 }
 
-impl<T> NameList<T> for Vec<T>
+impl<T> NameSlice<T> for [T]
 where
     T: NameMember + Canonicalization + Clone,
 {
     /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-contains>
-    fn contains<S: NameMember>(&self, other: &S) -> bool {
+    fn contains_name<S: NameMember>(&self, other: &S) -> bool {
         // A Sanitizer name list contains an item if there exists an entry of list that is an
         // ordered map, and where item["name"] equals entry["name"] and item["namespace"] equals
         // entry["namespace"].
@@ -972,28 +972,28 @@ impl NameMember for SanitizerAttribute {
 /// Helper functions for accessing the "attributes" and "removeAttributes" members of
 /// [`SanitizerElementWithAttributes`].
 trait AttributeMember {
-    fn attributes(&self) -> Option<&Vec<SanitizerAttribute>>;
-    fn remove_attributes(&self) -> Option<&Vec<SanitizerAttribute>>;
+    fn attributes(&self) -> Option<&[SanitizerAttribute]>;
+    fn remove_attributes(&self) -> Option<&[SanitizerAttribute]>;
 
     fn set_attributes(&mut self, attributes: Option<Vec<SanitizerAttribute>>);
     fn set_remove_attributes(&mut self, remove_attributes: Option<Vec<SanitizerAttribute>>);
 }
 
 impl AttributeMember for SanitizerElementWithAttributes {
-    fn attributes(&self) -> Option<&Vec<SanitizerAttribute>> {
+    fn attributes(&self) -> Option<&[SanitizerAttribute]> {
         match self {
             SanitizerElementWithAttributes::String(_) => None,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
-                dictionary.attributes.as_ref()
+                dictionary.attributes.as_deref()
             },
         }
     }
 
-    fn remove_attributes(&self) -> Option<&Vec<SanitizerAttribute>> {
+    fn remove_attributes(&self) -> Option<&[SanitizerAttribute]> {
         match self {
             SanitizerElementWithAttributes::String(_) => None,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
-                dictionary.removeAttributes.as_ref()
+                dictionary.removeAttributes.as_deref()
             },
         }
     }
