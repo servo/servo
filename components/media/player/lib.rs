@@ -6,8 +6,6 @@ use std::ops::Range;
 use std::time::Duration;
 
 pub extern crate ipc_channel;
-#[macro_use]
-extern crate serde_derive;
 extern crate servo_media_streams as streams;
 extern crate servo_media_traits;
 
@@ -17,6 +15,7 @@ pub mod metadata;
 pub mod video;
 
 use ipc_channel::ipc::{self, IpcSender};
+use serde::{Deserialize, Serialize};
 use servo_media_traits::MediaInstance;
 use streams::registry::MediaStreamId;
 

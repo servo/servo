@@ -14,8 +14,7 @@ name = "servo_media_player"
 path = "lib.rs"
 
 [dependencies]
-serde = "1.0.66"
-serde_derive = "1.0.66"
+serde = { workspace = true, features = ["derive"] }
 ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }

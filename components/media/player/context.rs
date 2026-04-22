@@ -12,6 +12,7 @@
 //! trait object to its `player` instance.
 
 use malloc_size_of_derive::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum GlContext {

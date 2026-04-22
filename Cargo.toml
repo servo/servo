@@ -47,6 +47,7 @@ brotli = "8.0.2"
 bytemuck = "1"
 byteorder = "1.5"
 bytes = "1.0"
+byte-slice-cast = "1.2.3"
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
@@ -114,6 +115,7 @@ js = { package = "mozjs", version = "=0.15.8", default-features = false, feature
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
+lru = "0.17"
 log = "0.4.29"
 mach2 = "0.6"
 malloc_size_of_derive = "0.1"
@@ -129,6 +131,7 @@ nix = "0.30"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
 num-bigint-dig = "0.8"
+num-complex = "0.4.6"
 num-derive = "0.4.2"
 num-traits = "0.2"
 num_cpus = "1.17.0"
@@ -149,6 +152,7 @@ postcard = { version = "1.1.3", default-features = false, features = ["use-std"]
 proc-macro2 = "1"
 quote = "1"
 rand = "0.9"
+rangemap = "1.7.1"
 raw-window-handle = "0.6"
 rayon = "1"
 read-fonts = "0.35.0"
@@ -171,6 +175,7 @@ servo_arc = { git = "https://github.com/servo/stylo", rev = "a556f4cbd15fc289039
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
+speexdsp-resampler = "0.1.0"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 string_cache = "0.9"
@@ -223,6 +228,7 @@ wio = "0.2"
 wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xml5ever = "0.39"
+yuv = { version = "0.8.13", features = ["rayon"] }
 
 ############################################################################################
 ## Workspace-local dependencies

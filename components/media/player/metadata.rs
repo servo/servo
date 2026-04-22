@@ -4,6 +4,8 @@
 
 use std::time;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Metadata {
     pub duration: Option<time::Duration>,

@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Sender};
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, LazyLock, Mutex, OnceLock, Weak};
 use std::thread;
 use std::vec::Vec;
 
@@ -30,7 +30,6 @@ use ipc_channel::ipc::IpcSender;
 use log::warn;
 use media_stream::GStreamerMediaStream;
 use mime::Mime;
-use once_cell::sync::{Lazy, OnceCell};
 use registry_scanner::GSTREAMER_REGISTRY_SCANNER;
 use servo_media::{Backend, BackendDeInit, BackendInit, MediaInstanceError, SupportsMediaType};
 use servo_media_audio::context::{AudioContext, AudioContextOptions};
@@ -48,10 +47,10 @@ use servo_media_streams::{MediaOutput, MediaSocket, MediaStreamType};
 use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance};
 use servo_media_webrtc::{WebRtcBackend, WebRtcController, WebRtcSignaller};
 
-static BACKEND_BASE_TIME: Lazy<gstreamer::ClockTime> =
-    Lazy::new(|| gstreamer::SystemClock::obtain().time());
+static BACKEND_BASE_TIME: LazyLock<gstreamer::ClockTime> =
+    LazyLock::new(|| gstreamer::SystemClock::obtain().time());
 
-static BACKEND_THREAD: OnceCell<bool> = OnceCell::new();
+static BACKEND_THREAD: OnceLock<bool> = OnceLock::new();
 
 pub type WeakMediaInstance = Weak<Mutex<dyn MediaInstance>>;
 pub type WeakMediaInstanceHashMap = HashMap<ClientContextId, Vec<(usize, WeakMediaInstance)>>;

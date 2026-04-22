@@ -3,9 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[macro_use]
-extern crate serde_derive;
-
-#[macro_use]
 extern crate servo_media_derive;
 
 extern crate servo_media_player as player;

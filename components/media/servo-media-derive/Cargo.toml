@@ -15,6 +15,6 @@ proc-macro = true
 path = "lib.rs"
 
 [dependencies]
-syn = "2"
-quote = "1"
-proc-macro2 = "1"
+syn = { workspace = true }
+quote = { workspace = true }
+proc-macro2 = { workspace = true }
