@@ -103,7 +103,9 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         if url_changed {
             let new_url_string = new_url.as_ref().map(Url::to_string).unwrap_or_default();
             *self.current_url.borrow_mut() = new_url;
-            self.host.on_url_changed(new_url_string);
+            if self.has_platform_focus() {
+                self.host.on_url_changed(new_url_string);
+            }
         }
 
         let new_back_forward = (
@@ -318,6 +320,7 @@ impl App {
         window_handle: WindowHandle,
         viewport_rect: Rect<i32, DevicePixel>,
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+        window_id: Option<ServoShellWindowId>,
     ) {
         let viewport_size = viewport_rect.size;
         let refresh_driver = Rc::new(VsyncRefreshDriver::default());
@@ -330,7 +333,7 @@ impl App {
             )
             .expect("Could not create RenderingContext"),
         );
-        let id = ServoShellWindowId::next();
+        let id = window_id.unwrap_or(ServoShellWindowId::next());
         let platform_window = Rc::new(EmbeddedPlatformWindow {
             id,
             host: self.host.clone(),

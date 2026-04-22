@@ -83,6 +83,8 @@ struct Index {
           .width('12%')
           .onClick((event) => {
             const new_id = this.tablist[this.tablist.length-1]+1;
+            // the order is important as setting the new index will automatically create a new surface.
+            servoshell.nextWindowId(new_id);
             this.currentIndex = this.tablist.push(new_id) - 1;
           })
         Button('⇦')

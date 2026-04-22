@@ -61,9 +61,9 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
+use std::sync::{LazyLock, Once, OnceLock, mpsc};
 use std::{fs, thread};
 
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -101,8 +101,7 @@ use xcomponent_sys::{
 use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
-use crate::running_app_state::RunningAppState;
-use crate::window::{ServoShellWindow, ServoShellWindowId};
+use crate::window::ServoShellWindowId;
 
 /// Queue length for the thread-safe function to submit URL updates to ArkTS
 const UPDATE_URL_QUEUE_SIZE: usize = 1;
@@ -123,6 +122,7 @@ static TERMINATE_CALLBACK: OnceLock<
 static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
+static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
 
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
@@ -493,6 +493,9 @@ impl ServoAction {
                     window_handle,
                     viewport_rect,
                     hidpi_factor,
+                    Some(ServoShellWindowId::from(
+                        NEXT_WINDOW_ID.load(std::sync::atomic::Ordering::SeqCst),
+                    )),
                 );
             },
             RemovePlatformWindow(arkts_index, arkts_ids) => {
@@ -972,6 +975,11 @@ fn focus_webview(index: u32, arkts_ids: Vec<u32>) {
 #[napi]
 fn delete_webview(index: u32, arkts_ids: Vec<u32>) {
     call(ServoAction::RemovePlatformWindow(index, arkts_ids)).expect("Could not delete webview");
+}
+
+#[napi]
+fn next_window_id(id: u32) {
+    NEXT_WINDOW_ID.store(id.into(), std::sync::atomic::Ordering::SeqCst);
 }
 
 struct OhosImeOptions {
