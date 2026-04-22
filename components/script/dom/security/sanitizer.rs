@@ -789,7 +789,7 @@ where
 
         // Step 5. Return the intersection of set A and set B.
         // NOTE: Instead of returning the intersection itself, return true if the intersection is
-        // empty, and false otherwise.
+        // non-empty, and false otherwise.
         a.filter(|entry| {
             b.iter()
                 .any(|other| entry.name() == other.name() && entry.namespace() == other.namespace())
