@@ -378,6 +378,10 @@ struct CmdArgs {
     #[bpaf(argument("~/.config/servo"))]
     config_dir: Option<PathBuf>,
 
+    /// Use temporary storage (data on disk will not persist across restarts).
+    #[bpaf(long)]
+    temporary_storage: bool,
+
     ///
     ///  Run as a content process and connect to the given pipe.
     #[bpaf(argument("servo-ipc-channel.abcdefg"))]
@@ -634,6 +638,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
                 fs::create_dir_all(config_dir).expect("Could not create config_dir");
             }
         });
+    let temporary_storage = cmd_args.temporary_storage;
     if let Some(ref time_profiler_trace_path) = cmd_args.profiler_trace_path {
         let mut path = PathBuf::from(time_profiler_trace_path);
         path.pop();
@@ -706,6 +711,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
         config_dir,
+        temporary_storage,
         shaders_path: cmd_args.shaders,
         certificate_path: cmd_args
             .certificate_path

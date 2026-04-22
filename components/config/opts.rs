@@ -60,6 +60,9 @@ pub struct Opts {
     /// Directory for a default config directory
     pub config_dir: Option<PathBuf>,
 
+    /// Use temporary storage (data on disk will not persist across restarts).
+    pub temporary_storage: bool,
+
     /// Path to PEM encoded SSL CA certificate store.
     pub certificate_path: Option<String>,
 
@@ -222,6 +225,7 @@ impl Default for Opts {
             sandbox: false,
             debug: Default::default(),
             config_dir: None,
+            temporary_storage: false,
             shaders_path: None,
             certificate_path: None,
             ignore_certificate_errors: false,

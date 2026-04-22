@@ -19,7 +19,11 @@ fn install_test_namespace() {
 }
 
 fn registry_db_path(tmp_dir: &tempfile::TempDir) -> PathBuf {
-    tmp_dir.path().join("clientstorage").join("reg.sqlite")
+    tmp_dir
+        .path()
+        .join("clientstorage")
+        .join("default_v1")
+        .join("reg.sqlite")
 }
 
 fn open_registry(tmp_dir: &tempfile::TempDir) -> Connection {
@@ -42,7 +46,7 @@ fn obtain_bottle_map(
 
 #[test]
 fn test_exit() {
-    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(None);
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(None, false);
 
     let (sender, receiver) = generic_channel::channel().unwrap();
     handle
@@ -60,7 +64,7 @@ fn test_workflow() {
     install_test_namespace();
     let tmp_dir = tempfile::tempdir().unwrap();
     let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
 
     let url = ServoUrl::parse("https://example.com").unwrap();
 
@@ -124,7 +128,7 @@ fn test_repeated_local_obtain_reuses_same_logical_rows() {
     install_test_namespace();
     let tmp_dir = tempfile::tempdir().unwrap();
     let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
     let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
@@ -179,7 +183,7 @@ fn test_repeated_session_obtain_reuses_same_logical_rows() {
     install_test_namespace();
     let tmp_dir = tempfile::tempdir().unwrap();
     let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
     let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
@@ -235,7 +239,7 @@ fn test_local_persistence_and_estimate() {
     install_test_namespace();
     let tmp_dir = tempfile::tempdir().unwrap();
     let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
     let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
@@ -287,7 +291,7 @@ fn test_storage_manager_operations_fail_for_opaque_origins() {
     install_test_namespace();
     let tmp_dir = tempfile::tempdir().unwrap();
     let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()));
+        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
 
     let origin = ServoUrl::parse("data:text/plain,hello").unwrap().origin();
 

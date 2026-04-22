@@ -642,19 +642,25 @@ impl RegistryEngine for SqliteEngine {
 }
 
 pub trait ClientStorageThreadFactory {
-    fn new(config_dir: Option<PathBuf>) -> Self;
+    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> Self;
 }
 
 impl ClientStorageThreadFactory for ClientStorageThreadHandle {
-    fn new(config_dir: Option<PathBuf>) -> ClientStorageThreadHandle {
+    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> ClientStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
 
-        let storage_dir = config_dir
+        let base_dir = config_dir
             .unwrap_or_else(|| {
                 let tmp_dir = tempfile::tempdir().unwrap();
                 tmp_dir.path().to_path_buf()
             })
             .join("clientstorage");
+        let storage_dir = if temporary_storage {
+            let unique_id = uuid::Uuid::new_v4().to_string();
+            base_dir.join("temporary").join(unique_id)
+        } else {
+            base_dir.join("default_v1")
+        };
         std::fs::create_dir_all(&storage_dir)
             .expect("Failed to create ClientStorage storage directory");
         let sender_clone = generic_sender.clone();
