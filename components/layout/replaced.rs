@@ -141,7 +141,10 @@ pub(crate) enum ReplacedContentKind {
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(VideoInfo),
-    SVGElement(Option<VectorImage>),
+    SVGElement {
+        vector_image: Option<VectorImage>,
+        has_viewbox: bool,
+    },
     Audio,
 }
 
@@ -301,7 +304,13 @@ impl ReplacedContents {
             _ => unreachable!("SVG element can't contain a raster image."),
         });
 
-        (ReplacedContentKind::SVGElement(vector_image), natural_size)
+        (
+            ReplacedContentKind::SVGElement {
+                vector_image,
+                has_viewbox: svg_data.view_box.is_some(),
+            },
+            natural_size,
+        )
     }
 
     fn from_content_property(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
@@ -563,25 +572,29 @@ impl ReplacedContents {
                     url: None,
                 }))]
             },
-            ReplacedContentKind::SVGElement(vector_image) => {
+            ReplacedContentKind::SVGElement {
+                vector_image,
+                has_viewbox,
+            } => {
                 let Some(vector_image) = vector_image else {
                     return vec![];
                 };
 
-                // TODO: This is incorrect if the SVG has a viewBox.
-                base.rect = PhysicalSize::new(
-                    vector_image
-                        .metadata
-                        .width
-                        .try_into()
-                        .map_or(MAX_AU, Au::from_px),
-                    vector_image
-                        .metadata
-                        .height
-                        .try_into()
-                        .map_or(MAX_AU, Au::from_px),
-                )
-                .into();
+                if !has_viewbox {
+                    base.rect = PhysicalSize::new(
+                        vector_image
+                            .metadata
+                            .width
+                            .try_into()
+                            .map_or(MAX_AU, Au::from_px),
+                        vector_image
+                            .metadata
+                            .height
+                            .try_into()
+                            .map_or(MAX_AU, Au::from_px),
+                    )
+                    .into();
+                }
 
                 let scale = layout_context.style_context.device_pixel_ratio();
                 let raster_size = Size2D::new(
