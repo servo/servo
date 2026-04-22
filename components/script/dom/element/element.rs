@@ -4509,14 +4509,14 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         if let Some(f) = self.as_maybe_form_control() {
             // TODO: The valid state of ancestors might be wrong if the form control element
             // has a fieldset ancestor, for instance: `<form><fieldset><input>`,
             // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
-            f.unbind_form_control_from_tree(can_gc);
+            f.unbind_form_control_from_tree(CanGc::from_cx(cx));
         }
 
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
@@ -4527,17 +4527,17 @@ impl VirtualMethods for Element {
 
         let fullscreen = doc.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
-            doc.exit_fullscreen(can_gc);
+            doc.exit_fullscreen(CanGc::from_cx(cx));
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(ref shadow_root) = self.containing_shadow_root() {
                 // Only unregister the element id if the node was disconnected from it's shadow root
                 // (as opposed to the whole shadow tree being disconnected as a whole)
                 if !self.upcast::<Node>().is_in_a_shadow_tree() {
-                    shadow_root.unregister_element_id(self, value.clone(), can_gc);
+                    shadow_root.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
                 }
             } else {
-                doc.unregister_element_id(self, value.clone(), can_gc);
+                doc.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
             }
         }
         if let Some(ref value) = self.name_attribute() {

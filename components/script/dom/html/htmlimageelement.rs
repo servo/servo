@@ -2131,15 +2131,9 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-img-element:html-element-removing-steps>
-    fn unbind_from_tree(&self, context: &UnbindContext, _can_gc: CanGc) {
-        // TODO: https://github.com/servo/servo/issues/42837
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
-        self.super_type()
-            .unwrap()
-            .unbind_from_tree(context, CanGc::from_cx(cx));
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
         let document = self.owner_document();
         document.unregister_responsive_image(self);
 

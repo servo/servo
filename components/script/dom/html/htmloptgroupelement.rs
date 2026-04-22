@@ -147,13 +147,13 @@ impl VirtualMethods for HTMLOptGroupElement {
         self.update_select_validity(CanGc::from_cx(cx));
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
-                .validity_state(can_gc)
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                .validity_state(CanGc::from_cx(cx))
+                .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
         }
     }
 }

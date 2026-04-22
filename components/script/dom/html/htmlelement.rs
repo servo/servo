@@ -1326,7 +1326,7 @@ impl VirtualMethods for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage#dom-trees:concept-node-remove-ext>
     ///
     /// TODO: These are the node removal steps, so this should be done for all Nodes.
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         // 1. Let document be removedNode's node document.
         let document = self.owner_document();
 
@@ -1356,7 +1356,7 @@ impl VirtualMethods for HTMLElement {
         // corresponding HTML element removing steps given removedNode, isSubtreeRoot, and
         // oldAncestor.
         if let Some(super_type) = self.super_type() {
-            super_type.unbind_from_tree(context, can_gc);
+            super_type.unbind_from_tree(cx, context);
         }
 
         // 4. If removedNode is a form-associated element with a non-null form owner and removedNode

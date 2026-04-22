@@ -1883,8 +1883,8 @@ impl VirtualMethods for HTMLFormElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         // Collect the controls to reset because reset_form_owner
         // will mutably borrow self.controls
@@ -1901,7 +1901,7 @@ impl VirtualMethods for HTMLFormElement {
             control
                 .as_maybe_form_control()
                 .expect("Element must be a form control")
-                .reset_form_owner(can_gc);
+                .reset_form_owner(CanGc::from_cx(cx));
         }
     }
 
