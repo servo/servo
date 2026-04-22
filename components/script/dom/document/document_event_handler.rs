@@ -12,10 +12,10 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
-    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId, InputEventId,
+    InputEventOutcome, InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, UntrustedNodeAddress, WebViewPoint, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -59,8 +59,8 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
-use crate::dom::document::FireMouseEventType;
 use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
+use crate::dom::document::{Document, FireMouseEventType};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
@@ -79,6 +79,49 @@ use crate::dom::types::{
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
+use crate::timers::OneshotTimerHandle;
+
+/// Long-press duration threshold for context menu (500ms)
+const LONG_PRESS_DURATION_MS: u64 = 500;
+/// Maximum movement allowed during long-press detection (10 CSS pixels)
+const LONG_PRESS_MOVE_THRESHOLD: f32 = 10.0;
+
+/// State for tracking an active long-press gesture for context menu.
+#[derive(JSTraceable, MallocSizeOf)]
+struct LongPressState {
+    /// Timer handle for the long-press callback.
+    timer: OneshotTimerHandle,
+    /// Touch ID being tracked.
+    #[no_trace]
+    #[ignore_malloc_size_of = "TouchId is from embedder_traits"]
+    touch_id: TouchId,
+    /// Start point of the touch.
+    #[no_trace]
+    #[ignore_malloc_size_of = "Point2D is from euclid"]
+    start_point: Point2D<f32, CSSPixel>,
+}
+
+/// Callback structure for the long-press context menu timer.
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct LongPressContextMenuCallback {
+    #[ignore_malloc_size_of = "Document pointers are handled elsewhere"]
+    pub(crate) document: Trusted<Document>,
+    #[no_trace]
+    #[ignore_malloc_size_of = "TouchId is from embedder_traits"]
+    pub(crate) touch_id: TouchId,
+    #[no_trace]
+    #[ignore_malloc_size_of = "Point2D is from euclid"]
+    pub(crate) point: Point2D<f32, CSSPixel>,
+}
+
+impl LongPressContextMenuCallback {
+    pub(crate) fn invoke(self, cx: &mut JSContext) {
+        let document = self.document.root();
+        document
+            .event_handler()
+            .handle_long_press_context_menu(self.touch_id, self.point, cx);
+    }
+}
 
 /// A data structure used for tracking the current click count. This can be
 /// reset to 0 if a mouse button event happens at a sufficient distance or time
@@ -200,6 +243,8 @@ pub(crate) struct DocumentEventHandler {
     access_key_handlers: DomRefCell<FxHashMap<NoTrace<Code>, Dom<HTMLElement>>>,
     /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
     sequential_focus_navigation_starting_point: MutNullableDom<Node>,
+    /// Long-press state for context menu detection.
+    long_press_state: DomRefCell<Option<LongPressState>>,
 }
 
 impl DocumentEventHandler {
@@ -224,6 +269,7 @@ impl DocumentEventHandler {
             next_touch_pointer_id: Cell::new(1),
             access_key_handlers: Default::default(),
             sequential_focus_navigation_starting_point: Default::default(),
+            long_press_state: Default::default(),
         }
     }
 
@@ -1115,6 +1161,150 @@ impl DocumentEventHandler {
         };
     }
 
+    /// Start the long-press timer for context menu detection.
+    fn start_long_press_timer(&self, touch_id: TouchId, point: Point2D<f32, CSSPixel>) {
+        // Cancel any existing timer first
+        self.cancel_long_press_timer();
+
+        // Schedule the callback
+        let callback = crate::timers::OneshotTimerCallback::LongPressContextMenu(
+            LongPressContextMenuCallback {
+                document: Trusted::new(&*self.window.Document()),
+                touch_id,
+                point,
+            },
+        );
+
+        let handle = self
+            .window
+            .as_global_scope()
+            .schedule_callback(callback, Duration::from_millis(LONG_PRESS_DURATION_MS));
+
+        // Store the long-press state
+        *self.long_press_state.borrow_mut() = Some(LongPressState {
+            timer: handle,
+            touch_id,
+            start_point: point,
+        });
+    }
+
+    /// Cancel the long-press timer if one is active.
+    fn cancel_long_press_timer(&self) {
+        if let Some(state) = self.long_press_state.borrow_mut().take() {
+            self.window
+                .as_global_scope()
+                .unschedule_callback(state.timer);
+        }
+    }
+
+    /// Handle the long-press context menu timer callback.
+    pub(crate) fn handle_long_press_context_menu(
+        &self,
+        touch_id: TouchId,
+        point: Point2D<f32, CSSPixel>,
+        cx: &mut JSContext,
+    ) {
+        // Only trigger if this touch is still the one we're tracking
+        let is_tracked = self
+            .long_press_state
+            .borrow()
+            .as_ref()
+            .is_some_and(|state| state.touch_id == touch_id);
+
+        if !is_tracked {
+            return;
+        }
+
+        // Clear the long-press state
+        *self.long_press_state.borrow_mut() = None;
+
+        // Hit test at the touch point
+        let Some(hit_test_result) = self.window.hit_test_from_point_in_viewport(point) else {
+            return;
+        };
+
+        let Some(el) = hit_test_result
+            .node
+            .inclusive_ancestors(ShadowIncluding::Yes)
+            .find_map(DomRoot::downcast::<Element>)
+        else {
+            return;
+        };
+
+        // Remove the touch_id from the active ones.
+        let mut active_touch_points = self.active_touch_points.borrow_mut();
+        if let Some(index) = active_touch_points
+            .iter()
+            .position(|point| point.Identifier() == touch_id.0)
+        {
+            active_touch_points.swap_remove(index);
+            self.remove_pointer_id_for_touch(touch_id.0);
+        }
+
+        // Create a synthetic input event for the context menu
+        // (using empty keyboard modifiers for touch)
+        let touch_event =
+            EmbedderTouchEvent::new(TouchEventType::Down, touch_id, WebViewPoint::Page(point));
+        let input_event = ConstellationInputEvent {
+            hit_test_result: None,
+            event: InputEventAndId::from(InputEvent::Touch(touch_event)),
+            pressed_mouse_buttons: 0,
+            active_keyboard_modifiers: Modifiers::empty(),
+        };
+
+        self.maybe_show_context_menu(
+            el.upcast(),
+            &hit_test_result,
+            &input_event,
+            CanGc::from_cx(cx),
+        );
+    }
+
+    /// Updates the state managing the context menu triggered by touch events.
+    fn update_touch_context_state(
+        &self,
+        event: &EmbedderTouchEvent,
+        hit_test_result: &HitTestResult,
+    ) {
+        match event.event_type {
+            TouchEventType::Down => {
+                // Start the long-press timer for context menu detection
+                self.start_long_press_timer(event.touch_id, hit_test_result.point_in_frame);
+            },
+            TouchEventType::Move => {
+                // Check if this is the tracked touch and if moved too far
+                if self
+                    .long_press_state
+                    .borrow()
+                    .as_ref()
+                    .is_some_and(|state| {
+                        if state.touch_id == event.touch_id {
+                            let dx = hit_test_result.point_in_frame.x - state.start_point.x;
+                            let dy = hit_test_result.point_in_frame.y - state.start_point.y;
+                            let distance = (dx * dx + dy * dy).sqrt();
+                            distance > LONG_PRESS_MOVE_THRESHOLD
+                        } else {
+                            false
+                        }
+                    })
+                {
+                    self.cancel_long_press_timer();
+                }
+            },
+            TouchEventType::Up | TouchEventType::Cancel => {
+                // Cancel the long-press timer if this is the tracked touch
+                if self
+                    .long_press_state
+                    .borrow()
+                    .as_ref()
+                    .is_some_and(|state| state.touch_id == event.touch_id)
+                {
+                    self.cancel_long_press_timer();
+                }
+            },
+        }
+    }
+
     fn handle_touch_event(
         &self,
         cx: &mut JSContext,
@@ -1126,6 +1316,8 @@ impl DocumentEventHandler {
             self.update_active_touch_points_when_early_return(event);
             return Default::default();
         };
+
+        self.update_touch_context_state(&event, &hit_test_result);
 
         let TouchId(identifier) = event.touch_id;
 
