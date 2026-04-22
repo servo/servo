@@ -8,15 +8,12 @@ pub extern crate servo_media_streams as streams;
 pub extern crate servo_media_traits as traits;
 pub extern crate servo_media_webrtc as webrtc;
 
-extern crate once_cell;
-
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 
 use audio::context::{AudioContext, AudioContextOptions};
 use audio::sink::AudioSinkError;
-use once_cell::sync::OnceCell;
 use player::audio::AudioRenderer;
 use player::context::PlayerGLContext;
 use player::ipc_channel::ipc::IpcSender;
@@ -31,7 +28,7 @@ use webrtc::{WebRtcController, WebRtcSignaller};
 
 pub struct ServoMedia(Box<dyn Backend>);
 
-static INSTANCE: OnceCell<Arc<ServoMedia>> = OnceCell::new();
+static INSTANCE: OnceLock<Arc<ServoMedia>> = OnceLock::new();
 
 pub trait BackendInit {
     fn init() -> Box<dyn Backend>;

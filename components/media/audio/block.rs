@@ -8,6 +8,7 @@ use std::ops::*;
 
 use byte_slice_cast::*;
 use euclid::default::Vector3D;
+use serde::{Deserialize, Serialize};
 use smallvec::{SmallVec, smallvec};
 
 use crate::graph::{PortIndex, PortKind};

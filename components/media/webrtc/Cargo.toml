@@ -13,6 +13,6 @@ description.workspace = true
 path = "lib.rs"
 
 [dependencies]
-log = "0.4"
+log = { workspace = true }
 servo-media-streams = { workspace = true }
-uuid = { version = "1.4", features = ["v4"] }
+uuid = { workspace = true, features = ["v4"] }

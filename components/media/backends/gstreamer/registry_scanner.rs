@@ -4,14 +4,13 @@
 
 use std::collections::HashSet;
 use std::str::FromStr;
-
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 // The GStreamer registry holds the metadata of the set of plugins available in the host.
 // This scanner is used to lazily analyze the registry and to provide information about
 // the set of supported mime types and codecs that the backend is able to deal with.
-pub static GSTREAMER_REGISTRY_SCANNER: Lazy<GStreamerRegistryScanner> =
-    Lazy::new(GStreamerRegistryScanner::new);
+pub static GSTREAMER_REGISTRY_SCANNER: LazyLock<GStreamerRegistryScanner> =
+    LazyLock::new(GStreamerRegistryScanner::new);
 
 pub struct GStreamerRegistryScanner {
     supported_mime_types: HashSet<&'static str>,

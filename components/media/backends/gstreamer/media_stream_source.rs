@@ -9,7 +9,6 @@ use glib::subclass::prelude::*;
 use gstreamer::prelude::*;
 use gstreamer::subclass::prelude::*;
 use gstreamer_base::UniqueFlowCombiner;
-use once_cell::sync::Lazy;
 use servo_media_player::PlayerError;
 use servo_media_streams::{MediaStream, MediaStreamType};
 use url::Url;
@@ -18,9 +17,11 @@ use crate::media_stream::{GStreamerMediaStream, RTP_CAPS_OPUS, RTP_CAPS_VP8};
 
 // Implementation sub-module of the GObject
 mod imp {
+    use std::sync::LazyLock;
+
     use super::*;
 
-    static AUDIO_SRC_PAD_TEMPLATE: Lazy<gstreamer::PadTemplate> = Lazy::new(|| {
+    static AUDIO_SRC_PAD_TEMPLATE: LazyLock<gstreamer::PadTemplate> = LazyLock::new(|| {
         gstreamer::PadTemplate::new(
             "audio_src",
             gstreamer::PadDirection::Src,
@@ -30,7 +31,7 @@ mod imp {
         .expect("Could not create audio src pad template")
     });
 
-    static VIDEO_SRC_PAD_TEMPLATE: Lazy<gstreamer::PadTemplate> = Lazy::new(|| {
+    static VIDEO_SRC_PAD_TEMPLATE: LazyLock<gstreamer::PadTemplate> = LazyLock::new(|| {
         gstreamer::PadTemplate::new(
             "video_src",
             gstreamer::PadDirection::Src,
@@ -226,7 +227,7 @@ mod imp {
     // corresponding values of the properties.
     impl ObjectImpl for ServoMediaStreamSrc {
         fn properties() -> &'static [glib::ParamSpec] {
-            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+            static PROPERTIES: LazyLock<Vec<glib::ParamSpec>> = LazyLock::new(|| {
                 vec![
                     // Let playbin3 know we are a live source.
                     glib::ParamSpecBoolean::builder("is-live")
@@ -254,20 +255,21 @@ mod imp {
     // Implementation of gstreamer::Element virtual methods
     impl ElementImpl for ServoMediaStreamSrc {
         fn metadata() -> Option<&'static gstreamer::subclass::ElementMetadata> {
-            static ELEMENT_METADATA: Lazy<gstreamer::subclass::ElementMetadata> = Lazy::new(|| {
-                gstreamer::subclass::ElementMetadata::new(
-                    "Servo Media Stream Source",
-                    "Source/Audio/Video",
-                    "Feed player with media stream data",
-                    "Servo developers",
-                )
-            });
+            static ELEMENT_METADATA: LazyLock<gstreamer::subclass::ElementMetadata> =
+                LazyLock::new(|| {
+                    gstreamer::subclass::ElementMetadata::new(
+                        "Servo Media Stream Source",
+                        "Source/Audio/Video",
+                        "Feed player with media stream data",
+                        "Servo developers",
+                    )
+                });
 
             Some(&*ELEMENT_METADATA)
         }
 
         fn pad_templates() -> &'static [gstreamer::PadTemplate] {
-            static PAD_TEMPLATES: Lazy<Vec<gstreamer::PadTemplate>> = Lazy::new(|| {
+            static PAD_TEMPLATES: LazyLock<Vec<gstreamer::PadTemplate>> = LazyLock::new(|| {
                 // Add pad templates for our audio and video source pads.
                 // These are later used for actually creating the pads and beforehand
                 // already provide information to GStreamer about all possible
