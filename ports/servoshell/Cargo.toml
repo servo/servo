@@ -54,7 +54,7 @@ media-gstreamer = ["servo/media-gstreamer"]
 native-bluetooth = ["servo/native-bluetooth"]
 profilemozjs = ["servo/profilemozjs"]
 refcell_backtrace = ["servo/refcell_backtrace"]
-tracing = ["dep:tracing", "dep:tracing-subscriber", "servo/tracing"]
+tracing = ["dep:tracing", "dep:tracing-subscriber", "servo/tracing", "profile_traits/tracing"]
 tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 vello = ["servo/vello"]
@@ -75,6 +75,7 @@ keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 mime_guess = { workspace = true }
+profile_traits = { workspace = true }
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }

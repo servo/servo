@@ -180,6 +180,13 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     preferences.set_value("viewport_meta_enabled", servo::PrefValue::Bool(true));
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+    profile_traits::info_event!(
+        "servoshell::startup_tracing_initialized",
+        wallclock_ns = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(0)
+    );
 
     let (display_handle, window_handle) = unsafe {
         (

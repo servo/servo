@@ -9063,6 +9063,7 @@ dependencies = [
  "servo",
  "servo-allocator",
  "servo-base",
+ "servo-profile-traits",
  "servo-webdriver-server",
  "signal-hook-registry",
  "surfman",
