@@ -5,5 +5,6 @@
 pub(crate) mod defaultparagraphseparator;
 pub(crate) mod delete;
 pub(crate) mod fontsize;
+pub(crate) mod strikethrough;
 pub(crate) mod stylewithcss;
 pub(crate) mod underline;

@@ -21,6 +21,7 @@ use crate::dom::execcommand::commands::delete::execute_delete_command;
 use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
+use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
 use crate::dom::execcommand::commands::underline::execute_underline_command;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -372,6 +373,7 @@ impl CommandName {
             },
             CommandName::Delete => execute_delete_command(cx, document, selection),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
+            CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
             CommandName::Underline => execute_underline_command(cx, document, selection),
             _ => false,

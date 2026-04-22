@@ -1322,7 +1322,18 @@ impl Node {
             // and the effective command value of "strikethrough" for new parent is not "line-through",
             // set the "text-decoration" property of new parent to "line-through".
             CommandName::Strikethrough => {
-                // TODO
+                if new_value == "line-through" &&
+                    new_parent
+                        .upcast::<Node>()
+                        .effective_command_value(&CommandName::Strikethrough)
+                        .is_none_or(|value| value != "line-through")
+                {
+                    CssPropertyName::TextDecoration.set_for_element(
+                        cx,
+                        new_parent_html_element,
+                        new_value.clone(),
+                    );
+                }
             },
             // Step 19. If command is "underline", and new value is "underline",
             // and the effective command value of "underline" for new parent is not "underline",
@@ -2085,8 +2096,15 @@ impl Node {
             // Step 6. If command is "strikethrough",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "line-through",
             // return "line-through". Otherwise, return null.
-            // TODO
-            CommandName::Strikethrough => None,
+            CommandName::Strikethrough => Some("line-through".into()).filter(|_| {
+                self.inclusive_ancestors(ShadowIncluding::No).any(|node| {
+                    node.downcast::<Element>()
+                        .and_then(|element| {
+                            CssPropertyName::TextDecorationLine.resolved_value_for_node(element)
+                        })
+                        .is_some_and(|property| property.contains("line-through"))
+                })
+            }),
             // Step 7. If command is "underline",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
             // return "underline". Otherwise, return null.
