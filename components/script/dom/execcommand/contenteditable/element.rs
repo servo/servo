@@ -43,9 +43,15 @@ impl Element {
             },
             CommandName::Strikethrough => {
                 // Step 4. If command is "strikethrough", and element has a style attribute set, and that attribute sets "text-decoration":
-                // TODO
+                if let Some(value) = CssPropertyName::TextDecorationLine.value_set_for_style(self) {
+                    // Step 4.1. If element's style attribute sets "text-decoration" to a value containing "line-through", return "line-through".
+                    // Step 4.2. Return null.
+                    return Some("line-through".into()).filter(|_| value.contains("line-through"));
+                }
                 // Step 5. If command is "strikethrough" and element is an s or strike element, return "line-through".
-                // TODO
+                if matches!(*self.local_name(), local_name!("s") | local_name!("strike")) {
+                    return Some("line-through".into());
+                }
             },
             CommandName::Underline => {
                 // Step 6. If command is "underline", and element has a style attribute set, and that attribute sets "text-decoration":
