@@ -690,9 +690,9 @@ impl Window {
         self.webxr_registry.clone()
     }
 
-    fn new_paint_worklet(&self, can_gc: CanGc) -> DomRoot<Worklet> {
+    fn new_paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        Worklet::new(self, WorkletGlobalScopeType::Paint, can_gc)
+        Worklet::new(cx, self, WorkletGlobalScopeType::Paint)
     }
 
     pub(crate) fn register_image_cache_listener(
@@ -2453,9 +2453,8 @@ impl Window {
     }
 
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-    pub(crate) fn paint_worklet(&self) -> DomRoot<Worklet> {
-        self.paint_worklet
-            .or_init(|| self.new_paint_worklet(CanGc::deprecated_note()))
+    pub(crate) fn paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
+        self.paint_worklet.or_init(|| self.new_paint_worklet(cx))
     }
 
     pub(crate) fn has_document(&self) -> bool {
