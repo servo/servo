@@ -10,6 +10,8 @@ use script::layout_dom::ServoLayoutNode;
 use servo_base::Epoch;
 use style::dom::{NodeInfo, OpaqueNode};
 
+use crate::ArcRefCell;
+
 struct AccessibilityUpdate {
     accesskit_update: accesskit::TreeUpdate,
     nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
@@ -23,7 +25,7 @@ struct AccessibilityNode {
 
 #[derive(Debug)]
 pub struct AccessibilityTree {
-    nodes: FxHashMap<accesskit::NodeId, AccessibilityNode>,
+    nodes: FxHashMap<accesskit::NodeId, ArcRefCell<AccessibilityNode>>,
     accesskit_tree: accesskit::Tree,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
@@ -48,7 +50,7 @@ impl AccessibilityTree {
             tree_id,
             epoch,
         };
-        tree.nodes.insert(root_node.id, root_node);
+        tree.nodes.insert(root_node.id, ArcRefCell::new(root_node));
 
         tree
     }
@@ -59,16 +61,19 @@ impl AccessibilityTree {
     ) -> Option<accesskit::TreeUpdate> {
         let mut tree_update = AccessibilityUpdate::new(self.accesskit_tree.clone(), self.tree_id);
 
-        let root_dom_node_id = Self::to_accesskit_id(&root_dom_node.opaque());
-        let root_node = self
-            .nodes
-            .get_mut(&AccessibilityTree::ROOT_NODE_ID)
-            .unwrap();
-        root_node
-            .accesskit_node
-            .set_children(vec![root_dom_node_id]);
+        {
+            let root_dom_node_id = Self::to_accesskit_id(&root_dom_node.opaque());
+            let root_node_ref = self
+                .nodes
+                .get_mut(&AccessibilityTree::ROOT_NODE_ID)
+                .unwrap();
+            let mut root_node = root_node_ref.borrow_mut();
+            root_node
+                .accesskit_node
+                .set_children(vec![root_dom_node_id]);
 
-        tree_update.add(root_node);
+            tree_update.add(&root_node);
+        }
 
         self.update_node_and_children(root_dom_node, &mut tree_update);
         Some(tree_update.finalize())
@@ -81,7 +86,8 @@ impl AccessibilityTree {
     ) {
         // TODO: read accessibility damage from dom_node (right now, assume damage is complete)
 
-        let node = self.get_or_create_node_mut(dom_node);
+        let node_ref = self.get_or_create_node(dom_node);
+        let mut node = node_ref.borrow_mut();
         let accesskit_node = &mut node.accesskit_node;
 
         let mut new_children: Vec<accesskit::NodeId> = vec![];
@@ -103,19 +109,24 @@ impl AccessibilityTree {
             accesskit_node.set_role(Role::GenericContainer);
         }
 
-        tree_update.add(node);
+        tree_update.add(&node);
 
         for dom_child in dom_node.flat_tree_children() {
             self.update_node_and_children(&dom_child, tree_update);
         }
     }
 
-    fn get_or_create_node_mut(&mut self, dom_node: &ServoLayoutNode<'_>) -> &mut AccessibilityNode {
+    fn get_or_create_node(
+        &mut self,
+        dom_node: &ServoLayoutNode<'_>,
+    ) -> ArcRefCell<AccessibilityNode> {
         let id = Self::to_accesskit_id(&dom_node.opaque());
 
-        self.nodes
+        let node = self
+            .nodes
             .entry(id)
-            .or_insert_with(|| AccessibilityNode::new(id))
+            .or_insert_with(|| ArcRefCell::new(AccessibilityNode::new(id)));
+        node.clone()
     }
 
     fn to_accesskit_id(opaque: &OpaqueNode) -> accesskit::NodeId {
