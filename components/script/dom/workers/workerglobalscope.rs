@@ -15,6 +15,7 @@ use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
+use js::jsapi::JSContext as RawJSContext;
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
@@ -58,7 +59,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
-use crate::dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, interrupt_callback};
+use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
@@ -68,6 +69,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::ImageBitmap;
@@ -80,7 +82,7 @@ use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_w
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::realms::enter_auto_realm;
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm};
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
@@ -1008,8 +1010,10 @@ impl WorkerGlobalScope {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             dedicated.new_script_pair()
+        } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
+            shared.new_script_pair()
         } else {
-            panic!("need to implement a sender for SharedWorker/ServiceWorker")
+            panic!("need to implement a sender for ServiceWorker")
         }
     }
 
@@ -1050,6 +1054,20 @@ impl WorkerGlobalScope {
             factory.abort_pending_upgrades();
         }
     }
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { JSContext::from_ptr(cx) });
+    let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
+
+    // If we are running the debugger script, just exit immediately.
+    let Some(worker) = global.downcast::<WorkerGlobalScope>() else {
+        return false;
+    };
+
+    // A false response causes the script to terminate.
+    !worker.is_closing()
 }
 
 struct WorkerCspProcessor {
