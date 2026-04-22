@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::RefCell;
 
 use dom_struct::dom_struct;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -175,17 +174,14 @@ impl NodeList {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ChildrenList {
     node: Dom<Node>,
-    last_visited: MutNullableDom<Node>,
-    last_index: Cell<u32>,
+    cached_children: RefCell<Option<Vec<Dom<Node>>>>,
 }
 
 impl ChildrenList {
     pub(crate) fn new(node: &Node) -> ChildrenList {
-        let last_visited = node.GetFirstChild();
         ChildrenList {
             node: Dom::from_ref(node),
-            last_visited: MutNullableDom::new(last_visited.as_deref()),
-            last_index: Cell::new(0u32),
+            cached_children: RefCell::new(None),
         }
     }
 
@@ -194,181 +190,27 @@ impl ChildrenList {
     }
 
     pub(crate) fn item(&self, index: u32) -> Option<DomRoot<Node>> {
-        // This always start traversing the children from the closest element
-        // among parent's first and last children and the last visited one.
-        let len = self.len();
-        if index >= len {
-            return None;
-        }
-        if index == 0u32 {
-            // Item is first child if any, not worth updating last visited.
-            return self.node.GetFirstChild();
-        }
-        let last_index = self.last_index.get();
-        if index == last_index {
-            // Item is last visited child, no need to update last visited.
-            return Some(self.last_visited.get().unwrap());
-        }
-        let last_visited = if index - 1u32 == last_index {
-            // Item is last visited's next sibling.
-            self.last_visited.get().unwrap().GetNextSibling().unwrap()
-        } else if last_index > 0 && index == last_index - 1u32 {
-            // Item is last visited's previous sibling.
-            self.last_visited
-                .get()
-                .unwrap()
-                .GetPreviousSibling()
-                .unwrap()
-        } else if index > last_index {
-            if index == len - 1u32 {
-                // Item is parent's last child, not worth updating last visited.
-                return Some(self.node.GetLastChild().unwrap());
-            }
-            if index <= last_index + (len - last_index) / 2u32 {
-                // Item is closer to the last visited child and follows it.
-                self.last_visited
-                    .get()
-                    .unwrap()
-                    .inclusively_following_siblings()
-                    .nth((index - last_index) as usize)
-                    .unwrap()
-            } else {
-                // Item is closer to parent's last child and obviously
-                // precedes it.
+        self.cached_children
+            .borrow_mut()
+            .get_or_insert_with(|| {
                 self.node
-                    .GetLastChild()
-                    .unwrap()
-                    .inclusively_preceding_siblings()
-                    .nth((len - index - 1u32) as usize)
-                    .unwrap()
-            }
-        } else if index >= last_index / 2u32 {
-            // Item is closer to the last visited child and precedes it.
-            self.last_visited
-                .get()
-                .unwrap()
-                .inclusively_preceding_siblings()
-                .nth((last_index - index) as usize)
-                .unwrap()
-        } else {
-            // Item is closer to parent's first child and obviously follows it.
-            debug_assert!(index < last_index / 2u32);
-            self.node
-                .GetFirstChild()
-                .unwrap()
-                .inclusively_following_siblings()
-                .nth(index as usize)
-                .unwrap()
-        };
-        self.last_visited.set(Some(&last_visited));
-        self.last_index.set(index);
-        Some(last_visited)
+                    .children()
+                    .map(|child| Dom::from_ref(&*child))
+                    .collect()
+            })
+            .get(index as usize)
+            .map(|child| DomRoot::from_ref(&**child))
     }
 
     pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {
-        fn prepend(list: &ChildrenList, added: &[&Node], next: &Node) {
-            let len = added.len() as u32;
-            if len == 0u32 {
-                return;
-            }
-            let index = list.last_index.get();
-            if index < len {
-                list.last_visited.set(Some(added[index as usize]));
-            } else if index / 2u32 >= len {
-                // If last index is twice as large as the number of added nodes,
-                // updating only it means that less nodes will be traversed if
-                // caller is traversing the node list linearly.
-                list.last_index.set(len + index);
-            } else {
-                // If last index is not twice as large but still larger,
-                // it's better to update it to the number of added nodes.
-                list.last_visited.set(Some(next));
-                list.last_index.set(len);
-            }
-        }
-
-        fn replace(
-            list: &ChildrenList,
-            prev: Option<&Node>,
-            removed: &Node,
-            added: &[&Node],
-            next: Option<&Node>,
-        ) {
-            let index = list.last_index.get();
-            if removed == &*list.last_visited.get().unwrap() {
-                let visited = match (prev, added, next) {
-                    (None, _, None) => {
-                        // Such cases where parent had only one child should
-                        // have been changed into ChildrenMutation::ReplaceAll
-                        // by ChildrenMutation::replace().
-                        unreachable!()
-                    },
-                    (_, added, _) if !added.is_empty() => added[0],
-                    (_, _, Some(next)) => next,
-                    (Some(prev), _, None) => {
-                        list.last_index.set(index - 1u32);
-                        prev
-                    },
-                };
-                list.last_visited.set(Some(visited));
-            } else if added.len() != 1 {
-                // The replaced child isn't the last visited one, and there are
-                // 0 or more than 1 nodes to replace it. Special care must be
-                // given to update the state of that ChildrenList.
-                match (prev, next) {
-                    (Some(_), None) => {},
-                    (None, Some(next)) => {
-                        list.last_index.set(index - 1);
-                        prepend(list, added, next);
-                    },
-                    (Some(_), Some(_)) => {
-                        list.reset();
-                    },
-                    (None, None) => unreachable!(),
-                }
-            }
-        }
-
-        match *mutation {
-            ChildrenMutation::Append { .. } => {},
-            ChildrenMutation::Insert { .. } => {
-                self.reset();
-            },
-            ChildrenMutation::Prepend { added, next } => {
-                prepend(self, added, next);
-            },
-            ChildrenMutation::Replace {
-                prev,
-                removed,
-                added,
-                next,
-            } => {
-                replace(self, prev, removed, added, next);
-            },
-            ChildrenMutation::ReplaceAll { added, .. } => {
-                let len = added.len();
-                let index = self.last_index.get();
-                if len == 0 {
-                    self.last_visited.set(None);
-                    self.last_index.set(0u32);
-                } else if index < len as u32 {
-                    self.last_visited.set(Some(added[index as usize]));
-                } else {
-                    // Setting last visited to parent's last child serves no purpose,
-                    // so the middle is arbitrarily chosen here in case the caller
-                    // wants random access.
-                    let middle = len / 2;
-                    self.last_visited.set(Some(added[middle]));
-                    self.last_index.set(middle as u32);
-                }
-            },
+        match mutation {
+            ChildrenMutation::Append { .. } |
+            ChildrenMutation::Insert { .. } |
+            ChildrenMutation::Prepend { .. } |
+            ChildrenMutation::Replace { .. } |
+            ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
             ChildrenMutation::ChangeText => {},
         }
-    }
-
-    fn reset(&self) {
-        self.last_visited.set(self.node.GetFirstChild().as_deref());
-        self.last_index.set(0u32);
     }
 }
 
