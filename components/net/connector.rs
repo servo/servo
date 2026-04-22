@@ -487,12 +487,14 @@ impl CertificateVerificationOverrideVerifier {
                     #[cfg(target_os = "android")]
                     unreachable!("Android should always use the WebPKI verifier.");
                     #[cfg(not(target_os = "android"))]
-                    let verifier = rustls_platform_verifier::Verifier::new_with_extra_roots(
-                        _certificates,
-                        CRYPTO_PROVIDER_CACHE.clone(),
-                    )
-                    .expect("Could not initialize platform certificate verifier");
-                    Arc::new(verifier)
+                    {
+                        let verifier = rustls_platform_verifier::Verifier::new_with_extra_roots(
+                            _certificates,
+                            CRYPTO_PROVIDER_CACHE.clone(),
+                        )
+                        .expect("Could not initialize platform certificate verifier");
+                        Arc::new(verifier)
+                    }
                 },
             };
             verifier as Arc<dyn ServerCertVerifier>
