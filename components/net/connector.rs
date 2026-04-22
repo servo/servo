@@ -4,7 +4,7 @@
 
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 use std::{fmt, io};
 
@@ -377,6 +377,7 @@ pub enum CACertificates<'de> {
 /// FIXME: The `ignore_certificate_errors` argument ignores all certificate errors. This
 /// is used when running the WPT tests, because rustls currently rejects the WPT certificiate.
 /// See <https://github.com/servo/servo/issues/30080>
+#[servo_tracing::instrument(skip_all)]
 pub fn create_tls_config(
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
@@ -387,6 +388,8 @@ pub fn create_tls_config(
         ignore_certificate_errors,
         override_manager,
     );
+    // TODO: After <https://github.com/rustls/rustls-platform-verifier/pull/204> is merged,
+    // `dangerous` can be removed.
     rustls::ClientConfig::builder()
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(verifier))
@@ -402,6 +405,54 @@ where
 {
     fn execute(&self, fut: F) {
         spawn_task(fut);
+    }
+}
+
+static CRYPTO_PROVIDER_CACHE: LazyLock<Arc<CryptoProvider>> = LazyLock::new(|| {
+    CryptoProvider::get_default()
+        .cloned()
+        // The embedder should have initialized the default crypto provider before
+        // initializing servo, so this should never fail.
+        .unwrap_or_else(|| {
+            warn!("Default crypto provider not initialized before first access in connector.");
+            Arc::new(aws_lc_rs::default_provider())
+        })
+});
+
+/// A cache for the default rustls platform verifier.
+///
+/// Instantiating a new verifier can be expensive, since it can read through all certificates:
+/// <https://github.com/rustls/rustls-platform-verifier/blob/996b1c903491641b17b3c9afb65d1352f6fc6b76/rustls-platform-verifier/src/verification/others.rs#L92>
+static RUSTLS_PLATFORM_VERIFIER_CACHE: LazyLock<Arc<rustls_platform_verifier::Verifier>> =
+    LazyLock::new(|| {
+        Arc::new(
+            rustls_platform_verifier::Verifier::new(CRYPTO_PROVIDER_CACHE.clone())
+                .expect("Could not initialize platform certificate verifier"),
+        )
+    });
+
+/// Prewarm the TLS stack to speed up the first connection
+///
+/// Currently, this force-seeds the crypto provider (from aws_lc_rs),
+/// which on my system takes around 30-50ms according to samply, spent in
+/// `tree_jitter_initialize_once`. If we don't call this function, then
+/// the initialization will happen much later, on a tokio runtime thread.
+#[inline]
+pub fn prewarm_tls() {
+    #[servo_tracing::instrument]
+    fn prewarm_tls_impl() {
+        let mut sink = [0u8; 32];
+        // The first access can be slow, if the provider needs to gather entropy.
+        let _ = CRYPTO_PROVIDER_CACHE.secure_random.fill(&mut sink);
+        // Note: We don't need to explicitly force initialize RUSTLS_PLATFORM_VERIFIER_CACHE,
+        // since the resource manager thread will do that during startup.
+    }
+
+    if let Err(error) = std::thread::Builder::new()
+        .name("Net-TLS-prewarm".into())
+        .spawn(prewarm_tls_impl)
+    {
+        warn!("Failed to spawn thread to prewarm TLS: {error:?}");
     }
 }
 
@@ -428,25 +479,25 @@ impl CertificateVerificationOverrideVerifier {
         // on Android.
         let use_webpki_roots = cfg!(target_os = "android") || pref!(network_use_webpki_roots);
         let main_verifier = if !use_webpki_roots {
-            let crypto_provider = CryptoProvider::get_default()
-                .unwrap_or(&Arc::new(aws_lc_rs::default_provider()))
-                .clone();
             let verifier = match ca_certficates {
-                CACertificates::Default => rustls_platform_verifier::Verifier::new(crypto_provider),
+                CACertificates::Default => RUSTLS_PLATFORM_VERIFIER_CACHE.clone(),
                 // Android doesn't support `Verifier::new_with_extra_roots`, but currently Android
                 // never uses the platform verifier at all.
                 CACertificates::Override(_certificates) => {
                     #[cfg(target_os = "android")]
                     unreachable!("Android should always use the WebPKI verifier.");
                     #[cfg(not(target_os = "android"))]
-                    rustls_platform_verifier::Verifier::new_with_extra_roots(
-                        _certificates,
-                        crypto_provider,
-                    )
+                    {
+                        let verifier = rustls_platform_verifier::Verifier::new_with_extra_roots(
+                            _certificates,
+                            CRYPTO_PROVIDER_CACHE.clone(),
+                        )
+                        .expect("Could not initialize platform certificate verifier");
+                        Arc::new(verifier)
+                    }
                 },
-            }
-            .expect("Could not initialize platform certificate verifier");
-            Arc::new(verifier) as Arc<dyn ServerCertVerifier>
+            };
+            verifier as Arc<dyn ServerCertVerifier>
         } else {
             let mut root_store =
                 rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
