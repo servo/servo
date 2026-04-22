@@ -68,6 +68,23 @@ pub(crate) struct FontAndScriptInfo {
     pub text_rendering: TextRendering,
 }
 
+impl FontAndScriptInfo {
+    /// Creates a minimal [`FontAndScriptInfo`] for a single font, with generic language settings
+    /// and the default shaping configuration. This is only used to generate placeholders for
+    /// text carets on otherwise empty lines.
+    pub(crate) fn simple_for_font(font: FontRef) -> Self {
+        Self {
+            font,
+            script: Script::Common,
+            bidi_level: Level::ltr(),
+            language: Language::UND,
+            letter_spacing: None,
+            word_spacing: None,
+            text_rendering: TextRendering::Auto,
+        }
+    }
+}
+
 impl From<&FontAndScriptInfo> for ShapingOptions {
     fn from(info: &FontAndScriptInfo) -> Self {
         let mut flags = ShapingFlags::empty();
@@ -182,11 +199,8 @@ impl TextRunSegment {
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
-                ifc.possibly_push_empty_text_run_to_unbreakable_segment(
-                    text_run, &self.info, offsets,
-                );
+                ifc.defer_forced_line_break_at_character_offset(character_range_start);
                 character_range_start = new_character_range_end;
-                ifc.defer_forced_line_break();
                 continue;
             }
 

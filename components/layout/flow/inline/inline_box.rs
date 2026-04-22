@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
 use std::vec::IntoIter;
 
 use app_units::Au;
-use fonts::{FontMetrics, FontRef};
+use fonts::FontRef;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
@@ -221,7 +220,7 @@ impl InlineBoxContainerState {
         containing_block: &ContainingBlock,
         layout_context: &LayoutContext,
         parent_container: &InlineContainerState,
-        font_metrics: Option<Arc<FontMetrics>>,
+        default_font: Option<FontRef>,
     ) -> Self {
         let style = inline_box.base.style.clone();
         let pbm = inline_box
@@ -234,7 +233,7 @@ impl InlineBoxContainerState {
         }
 
         Self {
-            base: InlineContainerState::new(style, flags, Some(parent_container), font_metrics),
+            base: InlineContainerState::new(style, flags, Some(parent_container), default_font),
             identifier: inline_box.identifier,
             base_fragment_info: inline_box.base.base_fragment_info,
             pbm,
@@ -242,10 +241,11 @@ impl InlineBoxContainerState {
     }
 
     pub(super) fn calculate_space_above_baseline(&self) -> Au {
+        let font_metrics = &self.base.font_metrics;
         let (ascent, descent, line_gap) = (
-            self.base.font_metrics.ascent,
-            self.base.font_metrics.descent,
-            self.base.font_metrics.line_gap,
+            font_metrics.ascent,
+            font_metrics.descent,
+            font_metrics.line_gap,
         );
         let leading = line_gap - (ascent + descent);
         leading.scale_by(0.5) + ascent

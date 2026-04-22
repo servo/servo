@@ -771,6 +771,13 @@ pub(super) enum LineItem {
 }
 
 impl LineItem {
+    pub(crate) fn is_in_flow_content(&self) -> bool {
+        matches!(
+            self,
+            Self::TextRun(..) | Self::Atomic(..) | Self::BlockLevel(..)
+        )
+    }
+
     fn inline_box_identifier(&self) -> Option<InlineBoxIdentifier> {
         match self {
             LineItem::InlineStartBoxPaddingBorderMargin(identifier) => Some(*identifier),

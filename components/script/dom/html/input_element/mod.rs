@@ -131,6 +131,10 @@ pub(crate) struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: DomRefCell<InputType>,
 
+    /// Whether or not the [`InputType`] for this [`HTMLInputElement`] renders as
+    /// textual input. This is cached so that it can be read during layout.
+    is_textual_or_password: Cell<bool>,
+
     /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
@@ -188,6 +192,7 @@ impl HTMLInputElement {
                 document,
             ),
             input_type: DomRefCell::new(InputType::new_text()),
+            is_textual_or_password: Cell::new(true),
             placeholder: DomRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
@@ -826,25 +831,8 @@ impl HTMLInputElement {
     }
 
     /// Whether this input type renders as a basic text input widget.
-    ///
-    /// TODO(#38251): This should eventually only include `text`, `password`, `url`, `tel`,
-    /// and `email`, but the others do not yet have a custom shadow DOM implementation.
-    pub(crate) fn renders_as_text_input_widget(&self) -> bool {
-        matches!(
-            *self.input_type(),
-            InputType::Date(_) |
-                InputType::DatetimeLocal(_) |
-                InputType::Email(_) |
-                InputType::Month(_) |
-                InputType::Number(_) |
-                InputType::Password(_) |
-                InputType::Search(_) |
-                InputType::Tel(_) |
-                InputType::Text(_) |
-                InputType::Time(_) |
-                InputType::Url(_) |
-                InputType::Week(_)
-        )
+    pub(crate) fn is_textual_or_password(&self) -> bool {
+        self.is_textual_or_password.get()
     }
 
     fn may_have_embedder_control(&self) -> bool {
@@ -922,6 +910,9 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
     }
 
     pub(crate) fn selection_for_layout(self) -> Option<SharedSelection> {
+        if !self.unsafe_get().is_textual_or_password.get() {
+            return None;
+        }
         Some(self.unsafe_get().shared_selection.clone())
     }
 }
@@ -947,7 +938,7 @@ impl TextControlElement for HTMLInputElement {
     // Types omitted which could theoretically be included if they were
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
-        self.renders_as_text_input_widget() && !self.textinput.borrow().get_content().is_empty()
+        self.is_textual_or_password() && !self.textinput.borrow().get_content().is_empty()
     }
 
     fn has_uncollapsed_selection(&self) -> bool {
@@ -967,7 +958,7 @@ impl TextControlElement for HTMLInputElement {
         let offsets = self.textinput.borrow().sorted_selection_offsets_range();
         let (start, end) = (offsets.start.0, offsets.end.0);
         let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
-        let enabled = self.renders_as_text_input_widget() && self.upcast::<Element>().focus_state();
+        let enabled = self.is_textual_or_password() && self.upcast::<Element>().focus_state();
 
         let mut shared_selection = self.shared_selection.borrow_mut();
         if range == shared_selection.range && enabled == shared_selection.enabled {
@@ -2008,6 +1999,8 @@ impl VirtualMethods for HTMLInputElement {
 
                         *self.input_type.borrow_mut() =
                             InputType::new_from_atom(attr.value().as_atom());
+                        self.is_textual_or_password
+                            .set(self.input_type().is_textual_or_password());
 
                         let element = self.upcast::<Element>();
                         if self.input_type().is_textual() {
@@ -2074,10 +2067,12 @@ impl VirtualMethods for HTMLInputElement {
                             .as_specific()
                             .signal_type_change(self, CanGc::from_cx(cx));
                         *self.input_type.borrow_mut() = InputType::new_text();
-                        let el = self.upcast::<Element>();
+                        self.is_textual_or_password
+                            .set(self.input_type().is_textual_or_password());
 
-                        let read_write = !(self.ReadOnly() || el.disabled_state());
-                        el.set_read_write_state(read_write);
+                        let element = self.upcast::<Element>();
+                        let read_write = !(self.ReadOnly() || element.disabled_state());
+                        element.set_read_write_state(read_write);
                     },
                 }
 
