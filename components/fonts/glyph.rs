@@ -13,7 +13,7 @@ use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{Font, GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
+use crate::{GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
@@ -277,7 +277,6 @@ impl GlyphStore {
     /// multiple glyphs and multiple characters can produce one glyph. HarfBuzz just
     /// guarantees that the resulting character offsets are in monotone order.
     pub(crate) fn with_shaped_glyph_data(
-        font: &Font,
         text: &str,
         options: &ShapingOptions,
         shaped_glyph_data: &impl GlyphShapingResult,
@@ -325,7 +324,7 @@ impl GlyphStore {
                 return glyph_store;
             };
 
-            shaped_glyph.adjust_for_character(character, options, font);
+            shaped_glyph.adjust_for_character(character, options);
 
             // If the we are working from the end of the string to the start and
             // characters were skipped to produce this glyph, they belong to this
@@ -524,24 +523,12 @@ impl ShapedGlyph {
     }
 
     /// After shaping is complete, some glyphs need their spacing adjusted to take into
-    /// account `letter-spacing`, `word-spacing` and tabs.
-    ///
-    /// TODO: This should all likely move to layout. In particular, proper tab stops
-    /// are context sensitive and be based on the size of the space character in the
-    /// inline formatting context.
+    /// account `letter-spacing` and `word-spacing`.
     pub(crate) fn adjust_for_character(
         &mut self,
         character: char,
         shaping_options: &ShapingOptions,
-        font: &Font,
     ) {
-        // Treat tabs in pre-formatted text as a fixed number of spaces. The glyph id does
-        // not matter here as Servo doesn't render any glyphs for whitespace.
-        if character == '\t' {
-            self.glyph_id = font.glyph_index(' ').unwrap_or_default();
-            self.advance = font.metrics.space_advance * 8;
-        }
-
         if let Some(letter_spacing) = shaping_options.letter_spacing_for_character(character) {
             self.advance += letter_spacing;
         };

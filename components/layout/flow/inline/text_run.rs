@@ -29,6 +29,7 @@ use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::inline::line::TextRunOffsets;
+use crate::flow::inline::{LineBlockSizes, LineItem, SegmentContentFlags};
 use crate::fragment_tree::BaseFragmentInfo;
 
 // There are two reasons why we might want to break at the start:
@@ -201,8 +202,6 @@ impl TextRunSegment {
 
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
-            ifc.possibly_flush_deferred_forced_line_break();
-
             let new_character_range_end = character_range_start + run.character_count();
             let offsets = ifc
                 .ifc
@@ -380,6 +379,8 @@ impl TextRunSegment {
 pub(crate) enum TextRunItem {
     /// A hard line break i.e. a "\n" as other types line breaks are normalized to "\n".
     LineBreak { character_index: usize },
+    /// A preserved tab character that should advance the line to a tab stop.
+    Tab { bidi_level: Level },
     /// Any other text for which a font can be matched. We store a `Box` here as [`TextRunSegment`]
     /// is quite a bit larger than the other enum variants.
     TextSegment(Box<TextRunSegment>),
@@ -473,7 +474,7 @@ impl TextRun {
         let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
         let font_size = font_style.font_size.computed_size().into();
         let font_group = layout_context.font_context.font_group(font_style);
-        let inherited_text_style = parent_style.get_inherited_text().clone();
+        let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
         let letter_spacing = inherited_text_style
             .letter_spacing
@@ -510,6 +511,14 @@ impl TextRun {
                 finish_current_segment(&mut current, &mut results);
                 results.push(TextRunItem::LineBreak {
                     character_index: current_character_index,
+                });
+                continue;
+            }
+
+            if character == '\t' {
+                finish_current_segment(&mut current, &mut results);
+                results.push(TextRunItem::Tab {
+                    bidi_level: bidi_info.levels[current_byte_index],
                 });
                 continue;
             }
@@ -580,19 +589,55 @@ impl TextRun {
         };
 
         for item in self.items.iter() {
+            ifc.possibly_flush_deferred_forced_line_break();
+
             match item {
                 // If this whitespace forces a line break, queue up a hard line break the next time we
                 // see any content. We don't line break immediately, because we'd like to finish processing
                 // any ongoing inline boxes before ending the line.
                 TextRunItem::LineBreak { character_index } => {
-                    ifc.possibly_flush_deferred_forced_line_break();
                     ifc.defer_forced_line_break_at_character_offset(*character_index);
                 },
+                TextRunItem::Tab { bidi_level } => self.process_preserved_tab(ifc, *bidi_level),
                 TextRunItem::TextSegment(segment) => {
                     segment.layout_into_line_items(self, soft_wrap_policy, ifc)
                 },
             }
             soft_wrap_policy = SegmentStartSoftWrapPolicy::FollowLinebreaker;
+        }
+    }
+
+    fn process_preserved_tab(
+        &self,
+        ifc_layout: &mut InlineFormattingContextLayout,
+        bidi_level: Level,
+    ) {
+        let advance = ifc_layout
+            .ifc
+            .next_tab_stop_after_inline_advance(ifc_layout.potential_line_size().inline);
+        if advance.is_zero() {
+            return;
+        }
+
+        ifc_layout.update_unbreakable_segment_for_new_content(
+            &LineBlockSizes::zero(),
+            advance,
+            SegmentContentFlags::empty(),
+        );
+        ifc_layout.push_line_item_to_unbreakable_segment(LineItem::Tab {
+            inline_box_identifier: ifc_layout.current_inline_box_identifier(),
+            advance,
+            bidi_level,
+        });
+
+        if ifc_layout
+            .current_inline_container_state()
+            .style
+            .get_inherited_text()
+            .white_space_collapse ==
+            WhiteSpaceCollapse::BreakSpaces
+        {
+            ifc_layout.process_soft_wrap_opportunity();
         }
     }
 }

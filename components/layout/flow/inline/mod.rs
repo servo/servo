@@ -77,9 +77,10 @@ pub mod text_run;
 use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use app_units::{Au, MAX_AU};
+use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{FontMetrics, FontRef, GlyphStore};
@@ -161,6 +162,11 @@ pub(crate) struct InlineFormattingContext {
     /// share styles with all [`TextRun`] children.
     shared_inline_styles: SharedInlineStyles,
 
+    /// The default font that is used for the root of this [`InlineFormattingContext`]. This is the
+    /// font used when the font fallback code path is not taken. It may be `None` if no default
+    /// font was found (this typically means that no characters can be rendered).
+    default_font: Option<FontRef>,
+
     /// Whether this IFC contains the 1st formatted line of an element:
     /// <https://www.w3.org/TR/css-pseudo-4/#first-formatted-line>.
     has_first_formatted_line: bool,
@@ -180,6 +186,9 @@ pub(crate) struct InlineFormattingContext {
     /// node in the DOM, this will not be `None`.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
     shared_selection: Option<SharedSelection>,
+
+    /// The cached tab stop inline advance used when finding final tab stops for preserved tabs.
+    tab_stop_advance: OnceLock<Au>,
 }
 
 /// [`TextRun`] and `TextFragment`s need a handle on their parent inline box (or inline
@@ -1715,17 +1724,25 @@ impl InlineFormattingContextLayout<'_> {
         self.finish_current_line_and_reset(forced_line_break);
     }
 
-    fn unbreakable_segment_fits_on_line(&mut self) -> bool {
-        let potential_line_size = LogicalVec2 {
-            inline: self.current_line.inline_position + self.current_line_segment.inline_size -
-                self.current_line_segment.trailing_whitespace_size,
+    fn potential_line_size(&self) -> LogicalVec2<Au> {
+        LogicalVec2 {
+            inline: self.current_line.inline_position + self.current_line_segment.inline_size,
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
                 .resolve(),
-        };
+        }
+    }
 
-        !self.new_potential_line_size_causes_line_break(&potential_line_size)
+    fn unbreakable_segment_fits_on_line(&mut self) -> bool {
+        let potential_line_size_without_hanging_whitespace = self.potential_line_size() -
+            LogicalVec2 {
+                inline: self.current_line_segment.trailing_whitespace_size,
+                block: Au::zero(),
+            };
+        !self.new_potential_line_size_causes_line_break(
+            &potential_line_size_without_hanging_whitespace,
+        )
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
@@ -1927,16 +1944,23 @@ impl InlineFormattingContext {
             }
         }
 
+        let default_font = get_font_for_first_font_for_style(
+            &shared_inline_styles.style.borrow(),
+            &layout_context.font_context,
+        );
+
         InlineFormattingContext {
             text_content,
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             shared_inline_styles,
+            default_font,
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
             shared_selection: builder.shared_selection,
+            tab_stop_advance: Default::default(),
         }
     }
 
@@ -1977,10 +2001,6 @@ impl InlineFormattingContext {
 
         let style = containing_block.style;
 
-        // It's unfortunate that it isn't possible to get this during IFC text processing, but in
-        // that situation the style of the containing block is unknown.
-        let default_font = get_font_for_first_font_for_style(style, &layout_context.font_context);
-
         let style_text = containing_block.style.get_inherited_text();
         let mut inline_container_state_flags = InlineContainerStateFlags::empty();
         if inline_container_needs_strut(style, layout_context, None) {
@@ -2008,7 +2028,7 @@ impl InlineFormattingContext {
                 style.to_arc(),
                 inline_container_state_flags,
                 None, /* parent_container */
-                default_font,
+                self.default_font.clone(),
             ),
             inline_box_state_stack: Vec::new(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
@@ -2134,6 +2154,7 @@ impl InlineFormattingContext {
                 let parent_style = text_run.inline_styles.style.borrow();
                 text_run.items.iter().all(|item| match item {
                     TextRunItem::LineBreak { .. } => false,
+                    TextRunItem::Tab { .. } => false,
                     TextRunItem::TextSegment(segment) => segment.runs.iter().all(|run| {
                         run.is_whitespace() &&
                             !matches!(
@@ -2188,6 +2209,53 @@ impl InlineFormattingContext {
                 }),
             }
         }
+    }
+
+    pub(crate) fn next_tab_stop_after_inline_advance(&self, current_inline_advance: Au) -> Au {
+        let Some(font) = self.default_font.as_ref() else {
+            return Au::zero();
+        };
+
+        let tab_stop_advance = *self.tab_stop_advance.get_or_init(|| {
+            let root_style = self.shared_inline_styles.style.borrow();
+            let inherited_text_style = root_style.get_inherited_text();
+            let font_size = root_style.get_font().font_size.computed_size().into();
+            let letter_spacing = inherited_text_style
+                .letter_spacing
+                .0
+                .to_used_value(font_size);
+            let word_spacing = inherited_text_style.word_spacing.to_used_value(font_size);
+
+            match root_style.get_inherited_text().tab_size {
+                // Each "space" character in the tab is considered both a letter and a word separator for
+                // the purposes of applying word spacing and letter spacing.
+                style::values::generics::length::LengthOrNumber::Number(number_of_spaces) => {
+                    (font.metrics.space_advance + word_spacing + letter_spacing)
+                        .scale_by(number_of_spaces.0)
+                },
+                // When a length is provided we do not apply word spacing or letter spacing.
+                style::values::generics::length::LengthOrNumber::Length(length) => length.into(),
+            }
+        });
+
+        if tab_stop_advance.is_zero() {
+            return Au::zero();
+        }
+
+        // From <https://drafts.csswg.org/css-text-4/#ref-for-tab-size-dfn>
+        // > If this distance is less than 0.5ch, then the subsequent tab stop is used instead.
+        // From <https://drafts.csswg.org/css-values/#ch>
+        // > In the cases where it is impossible or impractical to determine the measure of the “0”
+        // > glyph, it must be assumed to be 0.5em wide by 1em tall.
+        let half_ch_advance = font
+            .metrics
+            .zero_horizontal_advance
+            .unwrap_or(font.metrics.em_size.scale_by(0.5))
+            .scale_by(0.5);
+        let number_of_tab_stops =
+            (current_inline_advance + half_ch_advance).to_f32_px() / tab_stop_advance.to_f32_px();
+        let number_of_tab_stops = number_of_tab_stops.ceil();
+        tab_stop_advance.scale_by(number_of_tab_stops) - current_inline_advance
     }
 }
 
@@ -2692,6 +2760,7 @@ struct ContentSizesComputation<'layout_data> {
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Au>,
+    /// Whether the inline content size depends on block constraints.
     depends_on_block_constraints: bool,
 }
 
@@ -2758,6 +2827,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                             // and start measuring from the inline origin once more.
                             self.forced_line_break();
                         },
+                        TextRunItem::Tab { .. } => {
+                            self.process_preserved_tab(&parent_style, inline_formatting_context)
+                        },
                         TextRunItem::TextSegment(segment) => {
                             self.process_text_segment(&parent_style, segment)
                         },
@@ -2819,7 +2891,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
     fn process_text_segment(
         &mut self,
-        parent_style: &atomic_refcell::AtomicRef<'_, ServoArc<ComputedValues>>,
+        parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
         segment: &TextRunSegment,
     ) {
         let style_text = parent_style.get_inherited_text();
@@ -2872,6 +2944,23 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             if can_wrap && run.ends_with_whitespace() {
                 self.line_break_opportunity();
             }
+        }
+    }
+
+    fn process_preserved_tab(
+        &mut self,
+        parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
+        inline_formatting_context: &InlineFormattingContext,
+    ) {
+        // If there is a preserved tab, that means that all whitespace is preserved.
+        self.commit_pending_whitespace();
+
+        self.current_line.min_content += inline_formatting_context
+            .next_tab_stop_after_inline_advance(self.current_line.min_content);
+        self.current_line.max_content += inline_formatting_context
+            .next_tab_stop_after_inline_advance(self.current_line.max_content);
+        if parent_style.get_inherited_text().text_wrap_mode == TextWrapMode::Wrap {
+            self.line_break_opportunity();
         }
     }
 
