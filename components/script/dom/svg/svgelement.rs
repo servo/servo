@@ -19,7 +19,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::document::Document;
-use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
@@ -187,12 +187,10 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         if !self.as_element().focus_state() {
             return;
         }
-        // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        self.owner_document().focus_handler().focus(
-            FocusOperation::Focus(FocusableArea::Viewport),
-            FocusInitiator::Local,
-            CanGc::from_cx(cx),
-        );
+        // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
+        self.owner_document()
+            .focus_handler()
+            .focus(FocusableArea::Viewport, CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>

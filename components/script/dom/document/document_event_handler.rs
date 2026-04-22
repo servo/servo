@@ -60,7 +60,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
-use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
@@ -406,6 +406,9 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         match &*document.focus_handler().focused_area() {
             FocusableArea::Node { node, .. } => DomRoot::from_ref(node.upcast()),
+            FocusableArea::IFrameViewport { iframe_element, .. } => {
+                DomRoot::from_ref(iframe_element.upcast())
+            },
             FocusableArea::Viewport => document
                 .GetBody()
                 .map(DomRoot::upcast)
@@ -920,11 +923,10 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    self.window.Document().focus_handler().focus(
-                        FocusOperation::Focus(node.find_click_focusable_area()),
-                        FocusInitiator::Local,
-                        CanGc::from_cx(cx),
-                    );
+                    self.window
+                        .Document()
+                        .focus_handler()
+                        .focus(node.find_click_focusable_area(), CanGc::from_cx(cx));
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -1442,11 +1444,9 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.focus_handler().focus(
-                    FocusOperation::Focus(FocusableArea::Viewport),
-                    FocusInitiator::Local,
-                    CanGc::from_cx(cx),
-                );
+                document
+                    .focus_handler()
+                    .focus(FocusableArea::Viewport, CanGc::from_cx(cx));
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,

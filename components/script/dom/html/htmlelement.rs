@@ -39,7 +39,7 @@ use crate::dom::css::cssstyledeclaration::{
 };
 use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
 use crate::dom::document::Document;
-use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::document_event_handler::character_to_code;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
@@ -498,12 +498,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         if !self.as_element().focus_state() {
             return;
         }
-        // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        self.owner_document().focus_handler().focus(
-            FocusOperation::Focus(FocusableArea::Viewport),
-            FocusInitiator::Local,
-            can_gc,
-        );
+        // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
+        self.owner_document()
+            .focus_handler()
+            .focus(FocusableArea::Viewport, can_gc);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
@@ -1348,7 +1346,7 @@ impl VirtualMethods for HTMLElement {
         {
             document
                 .focus_handler()
-                .set_focused_element(FocusableArea::Viewport);
+                .set_focused_area(FocusableArea::Viewport);
         }
 
         // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard
