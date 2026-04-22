@@ -21,6 +21,7 @@ use crate::dom::execcommand::commands::delete::execute_delete_command;
 use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
+use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
 use crate::dom::execcommand::commands::underline::execute_underline_command;
@@ -230,21 +231,42 @@ impl CommandName {
                 // > True if the CSS styling flag is true, otherwise false.
                 document.css_styling_flag()
             },
-            CommandName::FontSize => {
-                // Font size does not have a state defined for its command
-                false
-            },
             _ => {
-                // https://w3c.github.io/editing/docs/execCommand/#state
-                // > The state of a command is true if it is already in effect,
-                // > in some sense specific to the command.
+                // https://w3c.github.io/editing/docs/execCommand/#inline-formatting-command-definitions
+                // > If a command has inline command activated values defined, its state is true if either
+                // > no formattable node is effectively contained in the active range,
+                // > and the active range's start node's effective command value is one of the given values;
+                // > or if there is at least one formattable node effectively contained in the active range,
+                // > and all of them have an effective command value equal to one of the given values.
+                let inline_command_activated_values = self.inline_command_activated_values();
+                if inline_command_activated_values.is_empty() {
+                    return None;
+                }
                 let selection = document.GetSelection(CanGc::from_cx(cx))?;
                 let active_range = selection.active_range()?;
-                active_range
-                    .first_formattable_contained_node()
-                    .unwrap_or_else(|| active_range.start_container())
-                    .effective_command_value(self)
-                    .is_some()
+                let mut at_least_one_child_is_formattable = false;
+                let mut all_children_have_matching_command_values = true;
+                active_range.for_each_effectively_contained_child(|node| {
+                    if !node.is_formattable() {
+                        return;
+                    }
+                    at_least_one_child_is_formattable = true;
+                    all_children_have_matching_command_values &= node
+                        .effective_command_value(self)
+                        .is_some_and(|effective_value| {
+                            inline_command_activated_values.contains(&&*effective_value.str())
+                        });
+                });
+                if at_least_one_child_is_formattable {
+                    all_children_have_matching_command_values
+                } else {
+                    active_range
+                        .start_container()
+                        .effective_command_value(self)
+                        .is_some_and(|effective_value| {
+                            inline_command_activated_values.contains(&&*effective_value.str())
+                        })
+                }
             },
         })
     }
@@ -373,6 +395,7 @@ impl CommandName {
             },
             CommandName::Delete => execute_delete_command(cx, document, selection),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
+            CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
             CommandName::Underline => execute_underline_command(cx, document, selection),
