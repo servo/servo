@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use glib::subclass::prelude::*;
 use gstreamer::prelude::*;
@@ -17,7 +17,6 @@ use crate::media_stream::{GStreamerMediaStream, RTP_CAPS_OPUS, RTP_CAPS_VP8};
 
 // Implementation sub-module of the GObject
 mod imp {
-    use std::sync::LazyLock;
 
     use super::*;
 

@@ -18,7 +18,7 @@ glx = ["servo-media-gstreamer-render-unix/gl-x11"]
 wayland = ["servo-media-gstreamer-render-unix/gl-wayland"]
 
 [dependencies]
-byte-slice-cast = "1"
+byte-slice-cast = { workspace = true }
 glib = { workspace = true }
 glib-sys = { workspace = true }
 gstreamer = { workspace = true }
