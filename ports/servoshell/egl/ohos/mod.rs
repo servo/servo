@@ -261,13 +261,6 @@ fn init_app(
         };
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
-    profile_traits::info_event!(
-        "servoshell::startup_tracing_initialized",
-        wallclock_ns = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos() as u64)
-            .unwrap_or(0)
-    );
 
     if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
         preferences.set_value("viewport_meta_enabled", PrefValue::Bool(true));

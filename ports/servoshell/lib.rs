@@ -96,6 +96,20 @@ pub fn init_tracing(filter_directives: Option<&str>) {
         // <https://docs.rs/tracing/0.1.40/tracing/#consuming-log-records>
         tracing::subscriber::set_global_default(subscriber)
             .expect("Failed to set tracing subscriber");
+
+        // Capture a first event, including the explicit wallclock time.
+        // The event itself is useful when investigating startup time.
+        // `wallclock_ns` allows us to ground the time, so we can compare
+        // against an external timestamp from before starting servoshell.
+        // In practice, the perfetto timestamp seems to be the same, but
+        // we shouldn't assume this, since different backends may behave differently.
+        profile_traits::info_event!(
+            "servoshell::startup_tracing_initialized",
+            wallclock_ns = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|duration| duration.as_nanos() as u64)
+                .unwrap_or(0)
+        );
     }
 }
 

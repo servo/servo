@@ -34,20 +34,6 @@ pub fn main() {
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
-    // Capture a first event, including the explicit wallclock time.
-    // The event itself is useful when investigating startup time.
-    // `wallclock_ns` allows us to ground the time, so we can compare
-    // against an external timestamp from before starting servoshell.
-    // In practice, the perfetto timestamp seems to be the same, but
-    // we shouldn't assume this, since different backends may behave differently.
-    profile_traits::info_event!(
-        "servoshell::startup_tracing_initialized",
-        wallclock_ns = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos() as u64)
-            .unwrap_or(0)
-    );
-
     let clean_shutdown = servoshell_preferences.clean_shutdown;
     let event_loop = match servoshell_preferences.headless {
         true => ServoShellEventLoop::headless(),
