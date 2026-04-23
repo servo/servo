@@ -1888,14 +1888,14 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let mut clip_rect = LayoutRect::zero();
-        // Compute the union of all shadow bounds and their base rectangles for clipping.
-        for box_shadow in box_shadows.iter() {
-            let rect = if box_shadow.inset {
-                *self.padding_rect()
+        // Note: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
+        for box_shadow in box_shadows.iter().rev() {
+            let (rect, clip_mode) = if box_shadow.inset {
+                (*self.padding_rect(), BoxShadowClipMode::Inset)
             } else {
-                self.border_rect
+                (self.border_rect, BoxShadowClipMode::Outset)
             };
+
             let offset = LayoutVector2D::new(
                 box_shadow.base.horizontal.px(),
                 box_shadow.base.vertical.px(),
@@ -1905,19 +1905,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             let shifted = rect.translate(offset);
             let spread_rect = shifted.inflate(spread, spread);
             let shadow_rect = spread_rect.inflate(blur, blur);
-            clip_rect = clip_rect.union(&rect).union(&shadow_rect);
-        }
-        if clip_rect.is_empty() {
-            clip_rect = self.border_rect;
-        }
-        let common = builder.common_properties(clip_rect, &style);
-        // Note: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        for box_shadow in box_shadows.iter().rev() {
-            let (rect, clip_mode) = if box_shadow.inset {
-                (*self.padding_rect(), BoxShadowClipMode::Inset)
-            } else {
-                (self.border_rect, BoxShadowClipMode::Outset)
-            };
+            let common = builder.common_properties(rect.union(&shadow_rect), &style);
 
             builder.wr().push_box_shadow(
                 &common,
