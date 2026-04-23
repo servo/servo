@@ -2194,9 +2194,9 @@ impl VirtualMethods for HTMLInputElement {
         self.value_changed(CanGc::from_cx(cx));
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         let form_owner = self.form_owner();
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -2209,12 +2209,15 @@ impl VirtualMethods for HTMLInputElement {
             el.check_disabled_attribute();
         }
 
-        self.input_type()
-            .as_specific()
-            .unbind_from_tree(self, form_owner, context, can_gc);
+        self.input_type().as_specific().unbind_from_tree(
+            self,
+            form_owner,
+            context,
+            CanGc::from_cx(cx),
+        );
 
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 
     // This represents behavior for which the UIEvents spec and the

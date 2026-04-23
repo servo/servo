@@ -33,7 +33,6 @@ use crate::dom::node::{
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
@@ -258,9 +257,9 @@ impl VirtualMethods for SVGSVGElement {
         self.invalidate_cached_serialized_subtree();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext<'_>, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext<'_>) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
         let owner_window = self.owner_window();
         self.owner_window()

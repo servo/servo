@@ -21,7 +21,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::security::csp::CspReporting;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLBaseElement {
@@ -177,8 +176,8 @@ impl VirtualMethods for HTMLBaseElement {
         document.refresh_base_element();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         // > The base element becomes the first base element in tree order with an href content attribute in its Document.
         let document = self.owner_document();
