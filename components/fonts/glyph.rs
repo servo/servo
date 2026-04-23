@@ -243,10 +243,6 @@ pub struct GlyphStore {
     /// but that may not be the case with `white-space: break-spaces`.
     ends_with_whitespace: bool,
 
-    /// Whether or not this glyph store contains only a single glyph for a single
-    /// preserved newline.
-    is_single_preserved_newline: bool,
-
     /// Whether or not this [`GlyphStore`] has right-to-left text, which has implications
     /// about the order of the glyphs in the store.
     is_rtl: bool,
@@ -256,7 +252,7 @@ impl GlyphStore {
     /// Initializes the glyph store with the given capacity, but doesn't actually add any glyphs.
     ///
     /// Use the `add_*` methods to store glyph data.
-    pub(crate) fn new(text: &str, length: usize, options: &ShapingOptions) -> Self {
+    pub(crate) fn new(length: usize, options: &ShapingOptions) -> Self {
         Self {
             glyphs: Vec::with_capacity(length),
             detailed_glyphs: Default::default(),
@@ -269,7 +265,6 @@ impl GlyphStore {
             ends_with_whitespace: options
                 .flags
                 .contains(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG),
-            is_single_preserved_newline: text.len() == 1 && text.starts_with('\n'),
             is_rtl: options.flags.contains(ShapingFlags::RTL_FLAG),
         }
     }
@@ -303,7 +298,7 @@ impl GlyphStore {
         };
 
         let mut previous_character_offset = None;
-        let mut glyph_store = GlyphStore::new(text, shaped_glyph_data.len(), options);
+        let mut glyph_store = GlyphStore::new(shaped_glyph_data.len(), options);
         for mut shaped_glyph in shaped_glyph_data.iter() {
             // The glyph "cluster" (HarfBuzz terminology) is the byte offset in the string that
             // this glyph corresponds to. More than one glyph can share a cluster.
@@ -387,12 +382,6 @@ impl GlyphStore {
     #[inline]
     pub fn is_whitespace(&self) -> bool {
         self.is_whitespace
-    }
-
-    /// Whether or not this [`GlyphStore`] is a single preserved newline.
-    #[inline]
-    pub fn is_single_preserved_newline(&self) -> bool {
-        self.is_single_preserved_newline
     }
 
     /// Whether or not this [`GlyphStore`] ends with whitespace.
