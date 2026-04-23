@@ -35,7 +35,7 @@ pub struct HeadlessWindow {
 }
 
 impl HeadlessWindow {
-    #[servo::servo_tracing::instrument(level = "debug", skip_all)]
+    #[servo::servo_tracing::instrument(level = "debug", name = "HeadlessWindow::new", skip_all)]
     pub fn new(servoshell_preferences: &ServoShellPreferences) -> Rc<Self> {
         let size = servoshell_preferences.initial_window_size;
 

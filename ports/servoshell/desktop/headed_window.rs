@@ -105,7 +105,7 @@ pub struct HeadedWindow {
 }
 
 impl HeadedWindow {
-    #[servo::servo_tracing::instrument(level = "debug", skip_all)]
+    #[servo::servo_tracing::instrument(level = "debug", name = "HeadedWindow::new", skip_all)]
     pub(crate) fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
