@@ -52,6 +52,19 @@ macro_rules! __profiling_span {
     }};
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __profiling_event {
+    ($backend_macro:ident, $event_name:literal $(, $($fields:tt)+)?) => {{
+        #[cfg(feature = "tracing")]
+        $crate::servo_tracing::$backend_macro!(
+            name: $event_name,
+            servo_profiling = true
+            $(, $($fields)+)?
+        );
+    }};
+}
+
 /// Provides API compatible dummies for the tracing-rs APIs we use
 /// if tracing is disabled. Hence, nothing will be traced
 pub mod dummy_tracing {
@@ -169,6 +182,57 @@ macro_rules! debug_span {
 macro_rules! info_span {
     ($span_name:literal $(, $($fields:tt)+)?) => {
         $crate::__profiling_span!(info_span, $span_name $(, $($fields)+)?)
+    };
+}
+
+/// Emit an event at the trace level
+///
+/// This macro creates an Event for the purpose of instrumenting code to measure
+/// the execution time between events.
+///
+/// If the `tracing` feature (of the crate using this macro) is disabled, this
+/// macro expands to nothing.
+///
+/// Attention: This macro requires the user crate to have a `tracing` feature,
+/// which can be used to disable the effects of this macro.
+#[macro_export]
+macro_rules! trace_event {
+    ($event_name:literal $(, $($fields:tt)+)?) => {
+        $crate::__profiling_event!(trace, $event_name $(, $($fields)+)?)
+    };
+}
+
+/// Emit an event at the debug level
+///
+/// This macro creates an Event for the purpose of instrumenting code to measure
+/// the execution time between events.
+///
+/// If the `tracing` feature (of the crate using this macro) is disabled, this
+/// macro expands to nothing.
+///
+/// Attention: This macro requires the user crate to have a `tracing` feature,
+/// which can be used to disable the effects of this macro.
+#[macro_export]
+macro_rules! debug_event {
+    ($event_name:literal $(, $($fields:tt)+)?) => {
+        $crate::__profiling_event!(debug, $event_name $(, $($fields)+)?)
+    };
+}
+
+/// Emit an event at the info level
+///
+/// This macro creates an Event for the purpose of instrumenting code to measure
+/// the execution time between events.
+///
+/// If the `tracing` feature (of the crate using this macro) is disabled, this
+/// macro expands to nothing.
+///
+/// Attention: This macro requires the user crate to have a `tracing` feature,
+/// which can be used to disable the effects of this macro.
+#[macro_export]
+macro_rules! info_event {
+    ($event_name:literal $(, $($fields:tt)+)?) => {
+        $crate::__profiling_event!(info, $event_name $(, $($fields)+)?)
     };
 }
 

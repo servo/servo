@@ -260,6 +260,8 @@ fn init_app(
             ArgumentParsingResult::ErrorParsing => std::process::exit(1),
         };
 
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+
     if native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone {
         preferences.set_value("viewport_meta_enabled", PrefValue::Bool(true));
     }
@@ -272,7 +274,6 @@ fn init_app(
         }
     }
 
-    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
     #[cfg(target_env = "ohos")]
     crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
