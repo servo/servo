@@ -846,7 +846,7 @@ impl ToDOMHighResTimeStamp for Duration {
         // exactly representable f64 so WPT tests might occasionally corner-case on
         // rounding.  web-platform-tests/wpt#21526 wants us to use an integer number of
         // microseconds; the next divisor of milliseconds up from 5 microseconds is 10.
-        let microseconds_rounded = (self.whole_microseconds() as f64 / 10.).floor() * 10.;
-        Finite::wrap(microseconds_rounded / 1000.)
+        let microseconds_rounded = (self.whole_microseconds() / 10) * 10;
+        Finite::wrap(microseconds_rounded as f64 / 1000.0)
     }
 }
