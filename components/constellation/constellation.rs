@@ -1272,10 +1272,12 @@ where
         self.process_manager.register(&mut sel);
 
         let request = {
-            let oper = sel.select();
+            let oper =  {
+                let _span = profile_traits::trace_span!("handle_request::select").entered();
+                sel.select()
+            };
             let index = oper.index();
 
-            let _span = profile_traits::trace_span!("handle_request::select").entered();
             match index {
                 0 => oper
                     .recv(&self.namespace_receiver)
@@ -1349,6 +1351,7 @@ where
         }
     }
 
+    #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
         match message {
             SWManagerMsg::PostMessageToClient => {
