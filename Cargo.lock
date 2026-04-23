@@ -8687,6 +8687,7 @@ dependencies = [
  "servo-script-traits",
  "servo-storage-traits",
  "servo-timers",
+ "servo-tracing",
  "servo-url",
  "servo-wakelock",
  "servo-webgpu-traits",

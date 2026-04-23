@@ -63,6 +63,8 @@ pub use servo_config::{opts, pref, prefs};
 pub use servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
+#[doc(hidden)]
+pub use servo_tracing;
 pub use servo_url::ServoUrl;
 pub use style::Zero;
 pub use style_traits::CSSPixel;
