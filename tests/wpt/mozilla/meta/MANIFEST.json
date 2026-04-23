@@ -13375,6 +13375,60 @@
       }
      ]
     ],
+    "sequential-focus-navigation-across-documents-003.html": [
+     "16937fbd8fb9e92663e35c23611250960dd36e81",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-across-documents-004.html": [
+     "eebef72b924b09856e06d1369478fbcbe0e1ba2b",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-from-document-001.html": [
+     "a91b350c0e9a1fcf839376e2d8a275e39e45db16",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-from-document-002.html": [
+     "908174b1d645d9c95f466170a56640a1a691c31d",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-non-sequentially-focusable-starting-point-001.html": [
+     "741f66651c6bbf653ba5c7b2914fbb737a87fe71",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-non-sequentially-focusable-starting-point-002.html": [
+     "6179f03e1280e0d73d4a6a694d7453b2b4514490",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "sequential-focus-navigation-starting-point-001.html": [
      "4fecfba641a3acec0132d1d21fc862e02b182416",
      [

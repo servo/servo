@@ -62,7 +62,9 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{
+    FocusableArea, SequentialFocusNavigationMechanism, SequentialFocusNavigationSearch,
+};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
@@ -2053,7 +2055,6 @@ impl DocumentEventHandler {
         // > the user requested the previous control.
         //
         // Note: This is handled by the `direction` argument to this method.
-
         self.sequential_focus_navigation_loop(
             cx,
             starting_point,
@@ -2075,15 +2076,35 @@ impl DocumentEventHandler {
         // > starting point is in its Document's sequential focus navigation order.
         // > Otherwise, starting point is not in its Document's sequential focus navigation order;
         // > let selection mechanism be "DOM".
-        // TODO: Implement this.
+        let starting_point_is_navigable = starting_point
+            .as_ref()
+            .is_none_or(|starting_point| starting_point.is::<HTMLIFrameElement>());
+        let selection_mechanism = starting_point
+            .as_ref()
+            .and_then(|node| node.downcast::<Element>())
+            .filter(|element| element.is_sequentially_focusable())
+            .map(|element| {
+                SequentialFocusNavigationMechanism::Sequential(
+                    element.explicitly_set_tab_index().unwrap_or_default(),
+                )
+            })
+            .unwrap_or_else(|| {
+                if starting_point_is_navigable {
+                    SequentialFocusNavigationMechanism::Navigable
+                } else {
+                    SequentialFocusNavigationMechanism::Dom
+                }
+            });
 
         // > 5. Let candidate be the result of running the sequential navigation search algorithm
         // > with starting point, direction, and selection mechanism.
-        let candidate = starting_point
-            .map(|starting_point| {
-                self.find_element_for_tab_focus_following_element(direction, starting_point)
-            })
-            .unwrap_or_else(|| self.find_first_tab_focusable_element(direction));
+        let candidate = SequentialFocusNavigationSearch::new(
+            self.window.as_rooted(),
+            direction,
+            selection_mechanism,
+            starting_point,
+        )
+        .search();
 
         // > 6. If candidate is not null, then run the focusing steps for candidate and return.
         if let Some(candidate) = candidate {
@@ -2131,168 +2152,6 @@ impl DocumentEventHandler {
             .Document()
             .focus_handler()
             .sequentially_focus_parent_local_or_remote(cx, direction);
-    }
-
-    fn find_element_for_tab_focus_following_element(
-        &self,
-        direction: SequentialFocusDirection,
-        starting_point: DomRoot<Node>,
-    ) -> Option<DomRoot<Element>> {
-        let root_node = self.window.Document();
-        let focused_element_tab_index = starting_point
-            .downcast::<Element>()
-            .and_then(Element::explicitly_set_tab_index)
-            .unwrap_or_default();
-        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
-        let mut saw_focused_element = false;
-
-        for node in root_node
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-        {
-            if node == starting_point {
-                saw_focused_element = true;
-                continue;
-            }
-
-            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
-                continue;
-            };
-            if !candidate_element.is_sequentially_focusable() {
-                continue;
-            }
-
-            let candidate_element_tab_index = candidate_element
-                .explicitly_set_tab_index()
-                .unwrap_or_default();
-            let ordering =
-                compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
-            match direction {
-                SequentialFocusDirection::Forward => {
-                    // If moving forward the first element with equal tab index after the current
-                    // element is the winner.
-                    if saw_focused_element && ordering == Ordering::Equal {
-                        return Some(candidate_element);
-                    }
-                    // If the candidate element does not have a lesser tab index, then discard it.
-                    if ordering != Ordering::Less {
-                        continue;
-                    }
-                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
-                        // If this candidate has a tab index which is one greater than the current
-                        // tab index, then we know it is the winner, because we give precedence to
-                        // elements earlier in the DOM.
-                        if candidate_element_tab_index == focused_element_tab_index + 1 {
-                            return Some(candidate_element);
-                        }
-
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                        continue;
-                    };
-                    // If the candidate element has a lesser tab index than than the current winner,
-                    // then it becomes the winner.
-                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
-                        Ordering::Less
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index))
-                    }
-                },
-                SequentialFocusDirection::Backward => {
-                    // If moving backward the last element with an equal tab index that precedes
-                    // the focused element in the DOM is the winner.
-                    if !saw_focused_element && ordering == Ordering::Equal {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                        continue;
-                    }
-                    // If the candidate does not have a greater tab index, then discard it.
-                    if ordering != Ordering::Greater {
-                        continue;
-                    }
-                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                        continue;
-                    };
-                    // If the candidate element's tab index is not less than the current winner,
-                    // then it becomes the new winner. This means that when the tab indices are
-                    // equal, we give preference to the last one in DOM order.
-                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
-                        Ordering::Less
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index))
-                    }
-                },
-            }
-        }
-
-        Some(winning_node_and_tab_index?.0)
-    }
-
-    fn find_first_tab_focusable_element(
-        &self,
-        direction: SequentialFocusDirection,
-    ) -> Option<DomRoot<Element>> {
-        let root_node = self.window.Document();
-        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
-        for node in root_node
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-        {
-            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
-                continue;
-            };
-            if !candidate_element.is_sequentially_focusable() {
-                continue;
-            }
-
-            let candidate_element_tab_index = candidate_element
-                .explicitly_set_tab_index()
-                .unwrap_or_default();
-            match direction {
-                SequentialFocusDirection::Forward => {
-                    // We can immediately return the first time we find an element with the lowest
-                    // possible tab index (1). We are guaranteed not to find any lower tab index
-                    // and all other equal tab indices are later in the DOM.
-                    if candidate_element_tab_index == 1 {
-                        return Some(candidate_element);
-                    }
-
-                    // Only promote a candidate to the current winner if it has a lesser tab
-                    // index than the current winner or there is currently no winer.
-                    if winning_node_and_tab_index
-                        .as_ref()
-                        .is_none_or(|(_, winning_tab_index)| {
-                            compare_tab_indices(candidate_element_tab_index, *winning_tab_index) ==
-                                Ordering::Less
-                        })
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                    }
-                },
-                SequentialFocusDirection::Backward => {
-                    // Only promote a candidate to winner if it has tab index equal to or
-                    // greater than the winner's tab index. This gives precedence to elements
-                    // later in the DOM.
-                    if winning_node_and_tab_index
-                        .as_ref()
-                        .is_none_or(|(_, winning_tab_index)| {
-                            compare_tab_indices(candidate_element_tab_index, *winning_tab_index) !=
-                                Ordering::Less
-                        })
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                    }
-                },
-            }
-        }
-
-        Some(winning_node_and_tab_index?.0)
     }
 
     pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
