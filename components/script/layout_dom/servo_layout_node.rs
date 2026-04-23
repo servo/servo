@@ -28,7 +28,7 @@ use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeFlags, NodeTypeIdWrapper};
 use crate::layout_dom::{
-    ServoDangerousStyleElement, ServoDangerousStyleNode, ServoLayoutNodeChildrenIterator,
+    ServoDangerousStyleNode, ServoLayoutDomTypeBundle, ServoLayoutNodeChildrenIterator,
 };
 
 impl fmt::Debug for LayoutDom<'_, Node> {
@@ -113,10 +113,7 @@ impl<'dom> From<LayoutDom<'dom, Node>> for ServoLayoutNode<'dom> {
 }
 
 impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
-    type ConcreteDangerousStyleNode = ServoDangerousStyleNode<'dom>;
-    type ConcreteDangerousStyleElement = ServoDangerousStyleElement<'dom>;
-    type ConcreteLayoutElement = ServoLayoutElement<'dom>;
-    type ChildIterator = ServoLayoutNodeChildrenIterator<'dom>;
+    type ConcreteTypeBundle = ServoLayoutDomTypeBundle<'dom>;
 
     fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
         Some(
@@ -126,7 +123,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         )
     }
 
-    unsafe fn dangerous_style_node(self) -> Self::ConcreteDangerousStyleNode {
+    unsafe fn dangerous_style_node(self) -> ServoDangerousStyleNode<'dom> {
         self.node.into()
     }
 
@@ -224,11 +221,11 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         }
     }
 
-    fn flat_tree_children(&self) -> LayoutIterator<ServoLayoutNodeChildrenIterator<'dom>> {
+    fn flat_tree_children(&self) -> impl Iterator<Item = Self> {
         LayoutIterator(ServoLayoutNodeChildrenIterator::new_for_flat_tree(*self))
     }
 
-    fn dom_children(&self) -> LayoutIterator<ServoLayoutNodeChildrenIterator<'dom>> {
+    fn dom_children(&self) -> impl Iterator<Item = Self> {
         LayoutIterator(ServoLayoutNodeChildrenIterator::new_for_dom_tree(*self))
     }
 

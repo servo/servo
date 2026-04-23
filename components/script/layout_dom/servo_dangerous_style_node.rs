@@ -19,7 +19,7 @@ use super::{ServoDangerousStyleDocument, ServoDangerousStyleShadowRoot};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::node::{Node, NodeFlags};
-use crate::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};
+use crate::layout_dom::{ServoDangerousStyleElement, ServoLayoutDomTypeBundle, ServoLayoutNode};
 
 /// A wrapper around [`LayoutDom<_, Node>`] to be used with `stylo` and `selectors`.
 ///
@@ -75,9 +75,9 @@ impl<'dom> From<LayoutDom<'dom, Node>> for ServoDangerousStyleNode<'dom> {
 }
 
 impl<'dom> DangerousStyleNode<'dom> for ServoDangerousStyleNode<'dom> {
-    type ConcreteLayoutNode = ServoLayoutNode<'dom>;
+    type ConcreteTypeBundle = ServoLayoutDomTypeBundle<'dom>;
 
-    fn layout_node(&self) -> Self::ConcreteLayoutNode {
+    fn layout_node(&self) -> ServoLayoutNode<'dom> {
         self.node.into()
     }
 }

@@ -24,7 +24,8 @@ use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeFlags};
 use crate::layout_dom::{
-    ServoDangerousStyleElement, ServoDangerousStyleShadowRoot, ServoLayoutNode,
+    ServoDangerousStyleElement, ServoDangerousStyleShadowRoot, ServoLayoutDomTypeBundle,
+    ServoLayoutNode,
 };
 
 impl fmt::Debug for LayoutDom<'_, Element> {
@@ -72,8 +73,7 @@ impl<'dom> From<LayoutDom<'dom, Element>> for ServoLayoutElement<'dom> {
 }
 
 impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
-    type ConcreteLayoutNode = ServoLayoutNode<'dom>;
-    type ConcreteStyleElement = ServoDangerousStyleElement<'dom>;
+    type ConcreteTypeBundle = ServoLayoutDomTypeBundle<'dom>;
 
     fn with_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
         if pseudo_element.is_eager() &&
@@ -174,7 +174,7 @@ impl<'dom> LayoutElement<'dom> for ServoLayoutElement<'dom> {
                     },
                     PseudoElementCascadeType::Precomputed => context
                         .stylist
-                        .precomputed_values_for_pseudo::<Self::ConcreteStyleElement>(
+                        .precomputed_values_for_pseudo::<ServoDangerousStyleElement<'dom>>(
                         &context.guards,
                         &pseudo_element,
                         Some(base_style),

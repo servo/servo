@@ -16,7 +16,8 @@ use style::dom::TElement;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, SelectorImpl};
 
-use crate::{LayoutDataTrait, LayoutNode, LayoutNodeType, PseudoElementChain, StyleData};
+use crate::layout_dom::{DangerousStyleElementOf, LayoutElementOf, LayoutNodeOf};
+use crate::{LayoutDataTrait, LayoutDomTypeBundle, LayoutNodeType, PseudoElementChain, StyleData};
 
 /// A trait that exposes a DOM element to layout. Implementors of this trait must abide by certain
 /// safety requirements. Layout will only ever access and mutate each element from a single thread
@@ -28,12 +29,8 @@ use crate::{LayoutDataTrait, LayoutNode, LayoutNodeType, PseudoElementChain, Sty
 /// that API is marked as `unsafe` here. In general [`DangerousStyleElement`] should only be used
 /// when interfacing with the `stylo` and `selectors`.
 pub trait LayoutElement<'dom>: Copy + Debug + Send + Sync {
-    /// An associated type that refers to the concrete implementation of [`DangerousStyleElement`]
-    /// implemented in `script`.
-    type ConcreteStyleElement: DangerousStyleElement<'dom>;
-    /// An associated type that refers to the concrete implementation of [`LayoutNode`]
-    /// implemented in `script`.
-    type ConcreteLayoutNode: LayoutNode<'dom>;
+    /// The concrete implementation of [`LayoutDomTypeBundle`] implemented in `script`.
+    type ConcreteTypeBundle: LayoutDomTypeBundle<'dom>;
 
     /// Creates a new `LayoutElement` for the same `LayoutElement`
     /// with a different pseudo-element type.
@@ -53,7 +50,7 @@ pub trait LayoutElement<'dom>: Copy + Debug + Send + Sync {
 
     /// Return this [`LayoutElement`] as a [`LayoutNode`], preserving the internal
     /// pseudo-element chain.
-    fn as_node(&self) -> Self::ConcreteLayoutNode;
+    fn as_node(&self) -> LayoutNodeOf<'dom, Self::ConcreteTypeBundle>;
 
     /// Returns access to a version of this LayoutElement that can be used by stylo
     /// and selectors. This is dangerous as it allows more access to ancestor nodes
@@ -65,7 +62,9 @@ pub trait LayoutElement<'dom>: Copy + Debug + Send + Sync {
     /// This should only ever be called from the main script thread. It is never
     /// okay to explicitly create a node for style while any layout worker threads
     /// are running.
-    unsafe fn dangerous_style_element(self) -> Self::ConcreteStyleElement;
+    unsafe fn dangerous_style_element(
+        self,
+    ) -> DangerousStyleElementOf<'dom, Self::ConcreteTypeBundle>;
 
     /// Initialize this node with empty style and opaque layout data.
     fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self);
@@ -144,9 +143,8 @@ pub trait LayoutElement<'dom>: Copy + Debug + Send + Sync {
 pub trait DangerousStyleElement<'dom>:
     TElement + ::selectors::Element<Impl = SelectorImpl> + Send + Sync
 {
-    /// The concrete implementation of [`LayoutElement`] implemented in `script`.
-    type ConcreteLayoutElement: LayoutElement<'dom>;
-    /// The concrete implementation of [`LayoutNode`] implemented in `script`.
+    /// The concrete implementation of [`LayoutDomTypeBundle`] implemented in `script`.
+    type ConcreteTypeBundle: LayoutDomTypeBundle<'dom>;
     /// Get a handle to the original "safe" version of this element, a [`LayoutElement`].
-    fn layout_element(&self) -> Self::ConcreteLayoutElement;
+    fn layout_element(&self) -> LayoutElementOf<'dom, Self::ConcreteTypeBundle>;
 }
