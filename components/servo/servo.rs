@@ -834,7 +834,7 @@ impl Drop for ServoInner {
 pub struct Servo(Rc<ServoInner>);
 
 impl Servo {
-    #[servo_tracing::instrument(skip(builder))]
+    #[servo_tracing::instrument(name = "Servo::new", skip(builder))]
     fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
         let opts = builder.opts.map(|opts| *opts);

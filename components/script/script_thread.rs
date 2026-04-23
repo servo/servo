@@ -867,7 +867,7 @@ impl ScriptThread {
     }
 
     /// Creates a new script thread.
-    #[servo_tracing::instrument(level = "debug", skip_all)]
+    #[servo_tracing::instrument(name = "ScripThread::new", level = "debug", skip_all)]
     pub(crate) fn new(
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
