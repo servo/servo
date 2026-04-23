@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, ParserInput, serialize_identifier};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CSSBinding::PropertyDefinition;
 use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
 use style::stylesheets::{CssRuleType, UrlExtraData};
@@ -70,8 +71,8 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
-    fn PaintWorklet(win: &Window) -> DomRoot<Worklet> {
-        win.paint_worklet()
+    fn PaintWorklet(cx: &mut JSContext, win: &Window) -> DomRoot<Worklet> {
+        win.paint_worklet(cx)
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api/#the-registerproperty-function>

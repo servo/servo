@@ -20,7 +20,9 @@ use std::thread;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -41,7 +43,7 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, Wo
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
@@ -56,7 +58,6 @@ use crate::dom::workletglobalscope::{
 };
 use crate::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
 use crate::task::TaskBox;
@@ -107,15 +108,15 @@ impl Worklet {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        can_gc: CanGc,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Worklet::new_inherited(window, global_type)),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -134,13 +135,12 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
     /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
     fn AddModule(
         &self,
+        realm: &mut CurrentRealm,
         module_url: USVString,
         options: &WorkletOptions,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(realm);
 
         // Step 3.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {
@@ -148,7 +148,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
             Err(err) => {
                 // Step 4.
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
-                promise.reject_error(Error::Syntax(None), can_gc);
+                promise.reject_error(Error::Syntax(None), CanGc::from_cx(realm));
                 return promise;
             },
         };
@@ -534,14 +534,14 @@ impl WorkletThread {
     }
 
     /// The main event loop for a worklet thread
-    fn run(&mut self, cx: &mut js::context::JSContext) {
+    fn run(&mut self, cx: &mut JSContext) {
         loop {
             // The handler for data messages
             let message = self.role.receiver.recv().unwrap();
             match message {
                 // The whole point of this thread pool is to perform tasks!
                 WorkletData::Task(id, task) => {
-                    self.perform_a_worklet_task(id, task);
+                    self.perform_a_worklet_task(cx, id, task);
                 },
                 // To start swapping roles, get ready to perform an atomic swap,
                 // and block waiting for the other end to finish it.
@@ -615,7 +615,7 @@ impl WorkletThread {
 
     /// Perform a GC.
     #[expect(unsafe_code)]
-    fn gc(&mut self, cx: &mut js::context::JSContext) {
+    fn gc(&mut self, cx: &mut JSContext) {
         debug!(
             "BEGIN GC (usage = {}, threshold = {}).",
             self.current_memory_usage(),
@@ -641,7 +641,7 @@ impl WorkletThread {
         inherited_secure_context: Option<bool>,
         global_type: WorkletGlobalScopeType,
         base_url: ServoUrl,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> DomRoot<WorkletGlobalScope> {
         match self.global_scopes.entry(worklet_id) {
             hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
@@ -677,7 +677,7 @@ impl WorkletThread {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         debug!("Fetching from {}.", script_url);
         // Step 1.
@@ -742,9 +742,9 @@ impl WorkletThread {
     }
 
     /// Perform a task.
-    fn perform_a_worklet_task(&self, worklet_id: WorkletId, task: WorkletTask) {
+    fn perform_a_worklet_task(&self, cx: &mut JSContext, worklet_id: WorkletId, task: WorkletTask) {
         match self.global_scopes.get(&worklet_id) {
-            Some(global) => global.perform_a_worklet_task(task),
+            Some(global) => global.perform_a_worklet_task(cx, task),
             None => warn!("No such worklet as {:?}.", worklet_id),
         }
     }

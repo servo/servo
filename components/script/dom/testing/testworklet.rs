@@ -6,21 +6,21 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::realms::InRealm;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -37,35 +37,37 @@ impl TestWorklet {
         }
     }
 
-    fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<TestWorklet> {
-        let worklet = Worklet::new(window, WorkletGlobalScopeType::Test, can_gc);
-        reflect_dom_object_with_proto(
+    fn new(
+        cx: &mut JSContext,
+        window: &Window,
+        proto: Option<HandleObject>,
+    ) -> DomRoot<TestWorklet> {
+        let worklet = Worklet::new(cx, window, WorkletGlobalScopeType::Test);
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TestWorklet::new_inherited(&worklet)),
             window,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
 
 impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestWorklet>> {
-        Ok(TestWorklet::new(window, proto, can_gc))
+        Ok(TestWorklet::new(cx, window, proto))
     }
 
-    #[expect(non_snake_case)]
     fn AddModule(
         &self,
-        moduleURL: USVString,
+        realm: &mut CurrentRealm,
+        module_url: USVString,
         options: &WorkletOptions,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        self.worklet.AddModule(moduleURL, options, comp, can_gc)
+        self.worklet.AddModule(realm, module_url, options)
     }
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
