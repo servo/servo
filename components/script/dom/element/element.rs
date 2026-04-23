@@ -4509,7 +4509,7 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
         if let Some(f) = self.as_maybe_form_control() {

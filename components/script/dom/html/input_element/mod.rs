@@ -2199,7 +2199,7 @@ impl VirtualMethods for HTMLInputElement {
         self.value_changed(CanGc::from_cx(cx));
     }
 
-    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         let form_owner = self.form_owner();
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
