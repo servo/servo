@@ -24,7 +24,7 @@ use super::{
 use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::inline::line::TextRunOffsets;
-use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides};
+use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
@@ -228,10 +228,17 @@ impl Fragment {
         }
     }
 
+    /// > This padding represents, within the scrollable overflow rectangle, the box’s own padding
+    /// > so that when its content is scrolled to its end, there is padding between the edge of its
+    /// > in-flow (or floated) content and the border edge of the box. It typically ends up being
+    /// > exactly the same size as the box’s own padding, except in a few cases—​such as when an
+    /// > out-of-flow positioned element, or the visible overflow of a descendent, has already
+    /// > increased the size of the scrollable overflow rectangle outside the conceptual “content
+    /// > edge” of the scroll container’s content.
+    /// > <https://drafts.csswg.org/css-overflow-3/#scrollable>
     pub(crate) fn scrollable_overflow_padding_contribution_for_parent(
         &self,
-        padding: PhysicalSides<Au>,
-    ) -> PhysicalRect<Au> {
+    ) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let box_fragment = fragment.borrow();
@@ -240,18 +247,18 @@ impl Fragment {
                     .clone_position()
                     .is_absolutely_positioned()
                 {
-                    box_fragment.margin_rect().outer_rect(padding)
+                    Some(box_fragment.margin_rect())
                 } else {
-                    Rect::zero()
+                    None
                 }
             },
             // TODO: Using PositioningFragment's content rect are not correct, since it is not
             // representing the inline bounds of the underlying fragments correctly.
-            Fragment::Positioning(fragment) => fragment.borrow().base.rect.outer_rect(padding),
-            Fragment::AbsoluteOrFixedPositioned(_) |
-            Fragment::Text(..) |
-            Fragment::Image(..) |
-            Fragment::IFrame(..) => Rect::zero(),
+            Fragment::Positioning(fragment) => Some(fragment.borrow().base.rect),
+            Fragment::AbsoluteOrFixedPositioned(_) => None,
+            Fragment::Text(..) | Fragment::Image(..) | Fragment::IFrame(..) => {
+                Some(self.base()?.rect)
+            },
         }
     }
 

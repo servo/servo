@@ -260,9 +260,15 @@ impl BoxFragment {
         self
     }
 
-    /// Whether we should padding inflate children boxes, non-scrollable and input boxes container shouldn't be
-    /// padding inflated.
-    fn should_padding_inflate_children_boxes(&self) -> bool {
+    /// Whether we should include additional padding contribution to the scrollable overflow,
+    /// this padding is only relevant to the scrollable boxes. Additionally, single line text
+    /// input boxes shouldn't add a padding in the block direction to prevent block direction
+    /// scrolling.
+    /// TODO: We are currently also disabling the padding in the inline direction, as we
+    /// doesn't have a way to scroll the texttual input element in inline direction yet.
+    /// This is fine since all input element (except for texttual ones) aren't supposed
+    /// to be scrollable.
+    fn should_include_additional_padding(&self) -> bool {
         self.style().establishes_scroll_container(self.base.flags) &&
             !self.base.flags.intersects(FragmentFlags::IS_INPUT_ELEMENT)
     }
@@ -280,12 +286,6 @@ impl BoxFragment {
     pub(crate) fn calculate_scrollable_overflow(&mut self) {
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.base.rect.origin.to_vector();
-
-        let padding_inflation = if self.should_padding_inflate_children_boxes() {
-            Some(self.padding)
-        } else {
-            None
-        };
 
         // > The scrollable overflow area is the union of:
         // > * The scroll container’s own padding box.
@@ -328,8 +328,9 @@ impl BoxFragment {
                     .to_box2d()
                     .intersection_unchecked(&scrollable_overflow_clip);
 
-                // If the scrollable overflow of the child is wholly unreachable, we
-                // don't add its contribution to the parent's scrollable overflow.
+                // We are following the Chromium's behavior, if the scrollable overflow
+                // of the child is wholly unreachable, we don't add its contribution to
+                // the parent's scrollable overflow.
                 // TODO: However, this doesn't correctly consider the relative adjusted
                 // relative positioned CSS box, as it should consider its pre-adjusted
                 // position.
@@ -339,16 +340,22 @@ impl BoxFragment {
 
                 let mut scrollable_overflow_from_child = scrollable_overflow_from_child.to_rect();
 
-                // Additional padding necessary to enale scroll positions that satisfy the
+                // Additional padding necessary to enable scroll positions that satisfy the
                 // requirements of both `place-content: start` and `place-content: end` alignment.
-                if let Some(padding) = padding_inflation {
-                    let padding_contribution = child
-                        .scrollable_overflow_padding_contribution_for_parent(padding)
-                        .translate(content_origin);
+                if self.should_include_additional_padding() &&
+                    let Some(padding_contribution) =
+                        child.scrollable_overflow_padding_contribution_for_parent()
+                {
+                    let padding_contribution = padding_contribution
+                        .outer_rect(self.padding)
+                        .translate(content_origin)
+                        .to_box2d();
 
+                    // We clip the scrollable overflow again to ensure that there are no unreachable
+                    // overflow area.
                     scrollable_overflow_from_child = scrollable_overflow_from_child
-                        .union(&padding_contribution)
                         .to_box2d()
+                        .union(&padding_contribution)
                         .intersection_unchecked(&scrollable_overflow_clip)
                         .to_rect();
                 }
