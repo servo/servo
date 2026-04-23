@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cfg_if::cfg_if;
-use servo::profile_traits;
 
 #[cfg(test)]
 mod test;
@@ -104,7 +103,7 @@ pub fn init_tracing(filter_directives: Option<&str>) {
         // against an external timestamp from before starting servoshell.
         // In practice, the perfetto timestamp seems to be the same, but
         // we shouldn't assume this, since different backends may behave differently.
-        profile_traits::info_event!(
+        servo::profile_traits::info_event!(
             "servoshell::startup_tracing_initialized",
             wallclock_ns = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
