@@ -26,6 +26,12 @@ partial interface Performance {
 };
 
 // https://w3c.github.io/user-timing/#extensions-performance-interface
+dictionary PerformanceMarkOptions {
+    any detail;
+    DOMHighResTimeStamp startTime;
+};
+
+// https://w3c.github.io/user-timing/#extensions-performance-interface
 dictionary PerformanceMeasureOptions {
     any detail;
     (DOMString or DOMHighResTimeStamp) start;
@@ -35,8 +41,7 @@ dictionary PerformanceMeasureOptions {
 
 [Exposed=(Window,Worker)]
 partial interface Performance {
-  [Throws]
-  PerformanceMark mark(DOMString markName);
+  [Throws] PerformanceMark mark(DOMString markName, optional PerformanceMarkOptions markOptions = {});
   undefined clearMarks(optional DOMString markName);
   [Throws]
   PerformanceMeasure measure(DOMString measureName, optional (DOMString or PerformanceMeasureOptions) startOrMeasureOptions = {}, optional DOMString endMark);
