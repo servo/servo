@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 use dom_struct::dom_struct;
@@ -109,11 +110,84 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
     /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-get>
     fn Get(&self) -> SanitizerConfig {
         // Step 1. Let config be this’s configuration.
-        let config = self.configuration.borrow_mut();
+        let mut config = self.configuration.borrow_mut();
 
-        // TODO: Step 2 to Step 7
+        // Step 2. Assert: config is valid.
+        assert!(config.is_valid());
 
-        // Step 8. Return config.
+        match &mut config.elements {
+            // Step 3. If config["elements"] exists:
+            Some(config_elements) => {
+                // Step 3.1. For any element of config["elements"]:
+                for element in config_elements.iter_mut() {
+                    // Step 3.1.1. If element["attributes"] exists:
+                    if let Some(element_attributes) = &mut element.attributes_mut() {
+                        // Step 3.1.1.1. Set element["attributes"] to the result of sort in
+                        // ascending order element["attributes"], with attrA being less than item
+                        // attrB.
+                        element_attributes.sort_by(|item_a, item_b| item_a.compare(item_b));
+                    }
+
+                    // Step 3.1.2. If element["removeAttributes"] exists:
+                    if let Some(element_remove_attributes) = &mut element.remove_attributes_mut() {
+                        // Step 3.1.2.1. Set element["removeAttributes"] to the result of sort in
+                        // ascending order element["removeAttributes"], with attrA being less than
+                        // item attrB.
+                        element_remove_attributes.sort_by(|item_a, item_b| item_a.compare(item_b));
+                    }
+                }
+
+                // Step 3.2. Set config["elements"] to the result of sort in ascending order
+                // config["elements"], with elementA being less than item elementB.
+                config_elements.sort_by(|item_a, item_b| item_a.compare(item_b));
+            },
+            // Step 4. Otherwise:
+            None => {
+                // Step 4.1. Set config["removeElements"] to the result of sort in ascending order
+                // config["removeElements"], with elementA being less than item elementB.
+                if let Some(config_remove_elements) = &mut config.removeElements {
+                    config_remove_elements.sort_by(|item_a, item_b| item_a.compare(item_b));
+                }
+            },
+        }
+
+        // Step 5. If config["replaceWithChildrenElements"] exists:
+        if let Some(config_replace_with_children_elements) = &mut config.replaceWithChildrenElements
+        {
+            // Step 5.1.Set config["replaceWithChildrenElements"] to the result of sort in ascending
+            // order config["replaceWithChildrenElements"], with elementA being less than item
+            // elementB.
+            config_replace_with_children_elements.sort_by(|item_a, item_b| item_a.compare(item_b));
+        }
+
+        // TODO:
+        // Step 6. If config["processingInstructions"] exists:
+        // Step 6.1. Set config["processingInstructions"] to the result of sort in ascending order
+        // config["processingInstructions"], with piA["target"] being code unit less than
+        // piB["target"].
+        // Step 7. Otherwise:
+        // Step 7.1. Set config["removeProcessingInstructions"] to the result of sort in ascending
+        // order config["removeProcessingInstructions"], with piA["target"] being code unit less
+        // than piB["target"].
+
+        match &mut config.attributes {
+            // Step 8. If config["attributes"] exists:
+            Some(config_attributes) => {
+                // Step 8.1. Set config["attributes"] to the result of sort in ascending order
+                // config["attributes"], with attrA being less than item attrB.
+                config_attributes.sort_by(|item_a, item_b| item_a.compare(item_b));
+            },
+            // Step 9. Otherwise:
+            None => {
+                // Step 9.1. Set config["removeAttributes"] to the result of sort in ascending order
+                // config["removeAttributes"], with attrA being less than item attrB.
+                if let Some(config_remove_attributes) = &mut config.removeAttributes {
+                    config_remove_attributes.sort_by(|item_a, item_b| item_a.compare(item_b));
+                }
+            },
+        }
+
+        // Step 10. Return config.
         (*config).clone()
     }
 }
@@ -807,6 +881,56 @@ trait NameMember: Sized {
     fn namespace_mut(&mut self) -> Option<&mut DOMString>;
 
     fn set_namespace(&mut self, namespace: Option<&str>);
+
+    // <https://wicg.github.io/sanitizer-api/#sanitizerconfig-less-than-item>
+    fn is_less_than_item(&self, item_b: &Self) -> bool {
+        let item_a = self;
+        match item_a.namespace() {
+            // Step 1. If itemA["namespace"] is null:
+            None => {
+                // Step 1.1. If itemB["namespace"] is not null, then return true.
+                if item_b.namespace().is_some() {
+                    return true;
+                }
+            },
+            // Step 2. Otherwise:
+            Some(item_a_namespace) => {
+                // Step 2.1. If itemB["namespace"] is null, then return false.
+                if item_b.namespace().is_none() {
+                    return false;
+                }
+
+                // Step 2.2. If itemA["namespace"] is code unit less than itemB["namespace"], then
+                // return true.
+                if item_b
+                    .namespace()
+                    .is_some_and(|item_b_namespace| item_a_namespace < item_b_namespace)
+                {
+                    return true;
+                }
+
+                // Step 2.3. If itemA["namespace"] is not itemB["namespace"], then return false.
+                if item_b
+                    .namespace()
+                    .is_some_and(|item_b_namespace| item_a_namespace != item_b_namespace)
+                {
+                    return false;
+                }
+            },
+        }
+
+        // Step 3. Return itemA["name"] is code unit less than itemB["name"].
+        item_a.name() < item_b.name()
+    }
+
+    /// Wrapper of [`NameMember::is_less_than_item`] that returns [`std::cmp::Ordering`].
+    fn compare(&self, other: &Self) -> Ordering {
+        if self.is_less_than_item(other) {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    }
 }
 
 impl NameMember for SanitizerElementWithAttributes {
@@ -973,7 +1097,9 @@ impl NameMember for SanitizerAttribute {
 /// [`SanitizerElementWithAttributes`].
 trait AttributeMember {
     fn attributes(&self) -> Option<&[SanitizerAttribute]>;
+    fn attributes_mut(&mut self) -> Option<&mut Vec<SanitizerAttribute>>;
     fn remove_attributes(&self) -> Option<&[SanitizerAttribute]>;
+    fn remove_attributes_mut(&mut self) -> Option<&mut Vec<SanitizerAttribute>>;
 
     fn set_attributes(&mut self, attributes: Option<Vec<SanitizerAttribute>>);
     fn set_remove_attributes(&mut self, remove_attributes: Option<Vec<SanitizerAttribute>>);
@@ -989,11 +1115,29 @@ impl AttributeMember for SanitizerElementWithAttributes {
         }
     }
 
+    fn attributes_mut(&mut self) -> Option<&mut Vec<SanitizerAttribute>> {
+        match self {
+            SanitizerElementWithAttributes::String(_) => None,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.attributes.as_mut()
+            },
+        }
+    }
+
     fn remove_attributes(&self) -> Option<&[SanitizerAttribute]> {
         match self {
             SanitizerElementWithAttributes::String(_) => None,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
                 dictionary.removeAttributes.as_deref()
+            },
+        }
+    }
+
+    fn remove_attributes_mut(&mut self) -> Option<&mut Vec<SanitizerAttribute>> {
+        match self {
+            SanitizerElementWithAttributes::String(_) => None,
+            SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
+                dictionary.removeAttributes.as_mut()
             },
         }
     }
