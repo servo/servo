@@ -17,7 +17,6 @@ use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::{pref, prefs};
-use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -1889,14 +1888,24 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        let common = builder.common_properties(MaxRect::max_rect(), &style);
+        // Note: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in box_shadows.iter().rev() {
             let (rect, clip_mode) = if box_shadow.inset {
                 (*self.padding_rect(), BoxShadowClipMode::Inset)
             } else {
                 (self.border_rect, BoxShadowClipMode::Outset)
             };
+
+            let offset = LayoutVector2D::new(
+                box_shadow.base.horizontal.px(),
+                box_shadow.base.vertical.px(),
+            );
+            let spread = box_shadow.spread.px();
+            let blur = box_shadow.base.blur.px();
+            let shifted = rect.translate(offset);
+            let spread_rect = shifted.inflate(spread, spread);
+            let shadow_rect = spread_rect.inflate(blur, blur);
+            let common = builder.common_properties(rect.union(&shadow_rect), &style);
 
             builder.wr().push_box_shadow(
                 &common,
