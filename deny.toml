@@ -107,8 +107,9 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
-    # btleplug requires 0.19
+    # Duplicated by btleplug
     "jni",
+    "jni-sys",
 
     # Duplicated by egui
     "foldhash",
@@ -127,14 +128,6 @@ skip = [
 
     # Duplicated by winit.
     "windows-sys",
-    "windows-targets",
-    "windows_aarch64_gnullvm",
-    "windows_aarch64_msvc",
-    "windows_i686_gnu",
-    "windows_i686_msvc",
-    "windows_x86_64_gnu",
-    "windows_x86_64_gnullvm",
-    "windows_x86_64_msvc",
 
     # wgpu has the latest and greatest.
     "windows-core",
