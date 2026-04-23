@@ -192,6 +192,7 @@ impl ServoInner {
             .and_then(WebView::from_weak_handle)
     }
 
+    #[servo_tracing::instrument(level = "debug", skip_all)]
     fn spin_event_loop(&self) -> bool {
         if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
@@ -263,6 +264,7 @@ impl ServoInner {
         true
     }
 
+    #[servo_tracing::instrument(level = "debug", skip_all)]
     fn receive_one_message(&self) -> Option<Message> {
         let mut select = crossbeam_channel::Select::new();
         let embedder_receiver_index = select.recv(&self.embedder_receiver);
@@ -832,7 +834,7 @@ impl Drop for ServoInner {
 pub struct Servo(Rc<ServoInner>);
 
 impl Servo {
-    #[servo_tracing::instrument(skip(builder))]
+    #[servo_tracing::instrument(name = "Servo::new", skip(builder))]
     fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
         let opts = builder.opts.map(|opts| *opts);

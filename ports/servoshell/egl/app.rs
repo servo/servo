@@ -277,6 +277,7 @@ pub struct App {
 
 #[expect(unused)]
 impl App {
+    #[servo::servo_tracing::instrument(skip_all, name = "App::new", level = "info")]
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
         let mut servo_builder = ServoBuilder::default()
             .opts(init.opts)

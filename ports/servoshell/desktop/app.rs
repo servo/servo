@@ -129,6 +129,7 @@ impl App {
         self.state = AppState::Running(running_state);
     }
 
+    #[servo::servo_tracing::instrument(level = "debug", skip_all)]
     fn create_platform_window(
         &self,
         url: Url,
