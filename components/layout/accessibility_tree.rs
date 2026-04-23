@@ -12,6 +12,7 @@ use style::dom::{NodeInfo, OpaqueNode};
 
 struct AccessibilityUpdate {
     accesskit_update: accesskit::TreeUpdate,
+    nodes: FxHashMap<accesskit::NodeId, accesskit::Node>,
 }
 
 #[derive(Debug)]
@@ -26,25 +27,6 @@ pub struct AccessibilityTree {
     accesskit_tree: accesskit::Tree,
     tree_id: accesskit::TreeId,
     epoch: Epoch,
-}
-
-impl AccessibilityUpdate {
-    fn new(tree: accesskit::Tree, tree_id: accesskit::TreeId) -> Self {
-        Self {
-            accesskit_update: accesskit::TreeUpdate {
-                nodes: Default::default(),
-                tree: Some(tree),
-                focus: accesskit::NodeId(1),
-                tree_id,
-            },
-        }
-    }
-
-    fn add(&mut self, node: &AccessibilityNode) {
-        self.accesskit_update
-            .nodes
-            .push((node.id, node.accesskit_node.clone()));
-    }
 }
 
 impl AccessibilityTree {
@@ -89,7 +71,7 @@ impl AccessibilityTree {
         tree_update.add(root_node);
 
         self.update_node_and_children(root_dom_node, &mut tree_update);
-        Some(tree_update.accesskit_update)
+        Some(tree_update.finalize())
     }
 
     fn update_node_and_children(
@@ -152,4 +134,87 @@ impl AccessibilityNode {
             accesskit_node: accesskit::Node::new(Role::Unknown),
         }
     }
+
+    #[cfg(test)]
+    fn new_with_role(id: accesskit::NodeId, role: accesskit::Role) -> Self {
+        Self {
+            id,
+            accesskit_node: accesskit::Node::new(role),
+        }
+    }
+}
+
+impl AccessibilityUpdate {
+    fn new(tree: accesskit::Tree, tree_id: accesskit::TreeId) -> Self {
+        Self {
+            accesskit_update: accesskit::TreeUpdate {
+                nodes: vec![],
+                tree: Some(tree),
+                focus: accesskit::NodeId(1),
+                tree_id,
+            },
+            nodes: FxHashMap::default(),
+        }
+    }
+
+    fn add(&mut self, node: &AccessibilityNode) {
+        self.nodes.insert(node.id, node.accesskit_node.clone());
+    }
+
+    fn finalize(mut self) -> accesskit::TreeUpdate {
+        self.accesskit_update.nodes.extend(self.nodes.drain());
+        self.accesskit_update
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_accessibility_update_add_some_nodes_twice() {
+    let mut update = AccessibilityUpdate::new(
+        accesskit::Tree {
+            root: accesskit::NodeId(2),
+            toolkit_name: None,
+            toolkit_version: None,
+        },
+        accesskit::TreeId::ROOT,
+    );
+    update.add(&AccessibilityNode::new_with_role(
+        accesskit::NodeId(5),
+        Role::Paragraph,
+    ));
+    update.add(&AccessibilityNode::new_with_role(
+        accesskit::NodeId(3),
+        Role::GenericContainer,
+    ));
+    update.add(&AccessibilityNode::new_with_role(
+        accesskit::NodeId(4),
+        Role::Heading,
+    ));
+    update.add(&AccessibilityNode::new_with_role(
+        accesskit::NodeId(4),
+        Role::Heading,
+    ));
+    update.add(&AccessibilityNode::new_with_role(
+        accesskit::NodeId(3),
+        Role::ScrollView,
+    ));
+    let mut tree_update = update.finalize();
+    tree_update.nodes.sort_by_key(|(node_id, _node)| *node_id);
+    assert_eq!(
+        tree_update,
+        accesskit::TreeUpdate {
+            nodes: vec![
+                (accesskit::NodeId(3), accesskit::Node::new(Role::ScrollView)),
+                (accesskit::NodeId(4), accesskit::Node::new(Role::Heading)),
+                (accesskit::NodeId(5), accesskit::Node::new(Role::Paragraph)),
+            ],
+            tree: Some(accesskit::Tree {
+                root: accesskit::NodeId(2),
+                toolkit_name: None,
+                toolkit_version: None
+            }),
+            tree_id: accesskit::TreeId::ROOT,
+            focus: accesskit::NodeId(1),
+        }
+    );
 }
