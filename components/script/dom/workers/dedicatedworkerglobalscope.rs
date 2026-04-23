@@ -11,7 +11,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
-use js::jsapi::{Heap, JSContext as RawJSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -56,10 +56,10 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::enter_realm;
 use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{CanGc, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -788,22 +788,6 @@ impl DedicatedWorkerGlobalScope {
             ))
             .expect("Sending to parent failed");
     }
-}
-
-#[expect(unsafe_code)]
-pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-    let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
-
-    // If we are running the debugger script, just exit immediately.
-    let Some(worker) = global.downcast::<WorkerGlobalScope>() else {
-        assert!(global.is::<DebuggerGlobalScope>());
-        return false;
-    };
-
-    // A false response causes the script to terminate
-    assert!(worker.is::<DedicatedWorkerGlobalScope>());
-    !worker.is_closing()
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>

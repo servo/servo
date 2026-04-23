@@ -129,6 +129,7 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
 use crate::dom::types::{AbortSignal, DebuggerGlobalScope, MessageEvent};
@@ -2860,6 +2861,8 @@ impl GlobalScope {
             Some(window.event_loop_sender())
         } else if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
             dedicated.event_loop_sender()
+        } else if let Some(shared_worker) = self.downcast::<SharedWorkerGlobalScope>() {
+            Some(shared_worker.event_loop_sender())
         } else if let Some(service_worker) = self.downcast::<ServiceWorkerGlobalScope>() {
             Some(service_worker.event_loop_sender())
         } else {
