@@ -282,6 +282,14 @@ impl SiteDataManager {
         );
     }
 
+    /// Sets permission to accept third party cookies.
+    ///
+    /// `true` means third party cookies is accepted.
+    pub fn set_accept_third_party_cookies(&self, accept: bool) {
+        self.public_resource_threads
+            .set_accept_third_party_cookies(accept);
+    }
+
     /// Handle a cookie operation response from the resource thread.
     ///
     /// This is called by the event loop when an embedder cookie response is received.

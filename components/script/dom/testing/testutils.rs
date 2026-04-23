@@ -46,4 +46,10 @@ impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
 
         promise
     }
+
+    fn SetAcceptThirdPartyCookies(global: &GlobalScope, accept: bool) {
+        global
+            .resource_threads()
+            .set_accept_third_party_cookies(accept);
+    }
 }
