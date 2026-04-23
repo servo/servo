@@ -63,11 +63,11 @@ impl AccessibilityTree {
 
         {
             let root_dom_node_id = Self::to_accesskit_id(&root_dom_node.opaque());
-            let root_node_ref = self
+            let root_node = self
                 .nodes
                 .get_mut(&AccessibilityTree::ROOT_NODE_ID)
-                .unwrap();
-            let mut root_node = root_node_ref.borrow_mut();
+                .expect("Guaranteed by Self::new");
+            let mut root_node = root_node.borrow_mut();
             root_node
                 .accesskit_node
                 .set_children(vec![root_dom_node_id]);
@@ -86,8 +86,8 @@ impl AccessibilityTree {
     ) {
         // TODO: read accessibility damage from dom_node (right now, assume damage is complete)
 
-        let node_ref = self.get_or_create_node(dom_node);
-        let mut node = node_ref.borrow_mut();
+        let node = self.get_or_create_node(dom_node);
+        let mut node = node.borrow_mut();
         let accesskit_node = &mut node.accesskit_node;
 
         let mut new_children: Vec<accesskit::NodeId> = vec![];
