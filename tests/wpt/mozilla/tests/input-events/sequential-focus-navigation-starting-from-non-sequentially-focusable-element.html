@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>When navigating sequentially from a non-sequentially focusable element, the first sequentially focusable element in the direction should be focused</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input tabindex="100" id="input1">
+<input tabindex="1" id="input2">
+<input tabindex="-1" id="input3">
+<input tabindex="100" id="input4">
+<input tabindex="1" id="input5">
+
+<script>
+promise_test(async test => {
+    let tabKey = "\uE004";
+    let shiftKey = "\uE008";
+
+    input3.focus();
+    assert_equals(document.activeElement, input3);
+
+    await new test_driver.Actions()
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .send();
+
+    // The next sequentially focusable element should be focused, even though there is
+    // a following one with a lower tabindex.
+    assert_equals(document.activeElement, input4);
+
+    input3.focus();
+    assert_equals(document.activeElement, input3);
+
+    await new test_driver.Actions()
+        .keyDown(shiftKey)
+        .keyDown(tabKey)
+        .keyUp(tabKey)
+        .keyUp(shiftKey)
+        .send();
+
+    // The previous sequentially focusable element should be focused, even though there is
+    // a previous one with a higher tabindex.
+    assert_equals(document.activeElement, input2);
+});
+</script>
