@@ -8,13 +8,16 @@ use std::{env, fs};
 use chrono::Local;
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=SOURCE_DATE_EPOCH");
     let path = Path::new(&env::var_os("OUT_DIR").unwrap()).join("build_id.rs");
-    fs::write(
-        path,
-        format!(
-            "const BUILD_ID: &str = \"{}\";",
-            Local::now().format("%Y%m%d%H%M%S")
-        ),
-    )
-    .unwrap();
+    let timestamp = env::var_os("SOURCE_DATE_EPOCH")
+        .map(|s| {
+            s.to_str()
+                // if SOURCE_DATE_EPOCH is set, but not a valid str fail loudly
+                // instead of falling back.
+                .expect("SOURCE_DATE_EPOCH must be valid utf-8")
+                .to_owned()
+        })
+        .unwrap_or_else(|| Local::now().format("%Y%m%d%H%M%S").to_string());
+    fs::write(path, format!("const BUILD_ID: &str = \"{timestamp}\";",)).unwrap();
 }
