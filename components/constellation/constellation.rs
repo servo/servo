@@ -1272,7 +1272,7 @@ where
         self.process_manager.register(&mut sel);
 
         let request = {
-            let oper =  {
+            let oper = {
                 let _span = profile_traits::trace_span!("handle_request::select").entered();
                 sel.select()
             };
