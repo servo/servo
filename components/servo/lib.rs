@@ -48,6 +48,10 @@ pub use paint::WebRenderDebugOption;
 pub use paint_api::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
+// Expose our profile traits for servoshell, so we can instrument code there, but don't
+// add it as an official API.
+#[doc(hidden)]
+pub use profile_traits;
 // This should be replaced with an API on ServoBuilder.
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;

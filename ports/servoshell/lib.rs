@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cfg_if::cfg_if;
+use servo::profile_traits;
 
 #[cfg(test)]
 mod test;
