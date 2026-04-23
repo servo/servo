@@ -84,7 +84,7 @@ impl SessionContext {
                 ("network-event", true),
                 ("network-event-stacktrace", false),
                 ("reflow", true),
-                ("stylesheet", false),
+                ("stylesheet", true),
                 ("source", true),
                 ("thread-state", false),
                 ("server-sent-event", false),
@@ -385,6 +385,17 @@ impl Actor for WatcherActor {
                                     &mut request,
                                 );
                             }
+                        },
+                        "stylesheet" => {
+                            // TODO: Fetch actual stylesheets from the script thread.
+                            // For now, send an empty array.
+                            let empty: Vec<serde_json::Value> = vec![];
+                            browsing_context_actor.resources_array(
+                                empty,
+                                resource.into(),
+                                ResourceArrayType::Available,
+                                &mut request,
+                            );
                         },
                         "network-event" => {},
                         _ => warn!("resource {} not handled yet", resource),
