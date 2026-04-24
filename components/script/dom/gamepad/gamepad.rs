@@ -6,19 +6,20 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
+use js::rust::MutableHandleValue;
 use js::typedarray::{Float64, HeapFloat64Array};
 use script_bindings::trace::RootedTraceableBox;
 
-use super::gamepadbuttonlist::GamepadButtonList;
+use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
 use super::gamepadpose::GamepadPose;
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
-use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -45,7 +46,9 @@ pub(crate) struct Gamepad {
     mapping_type: String,
     #[ignore_malloc_size_of = "mozjs"]
     axes: HeapBufferSource<Float64>,
-    buttons: Dom<GamepadButtonList>,
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_buttons: CachedFrozenArray,
+    buttons: Vec<Dom<GamepadButton>>,
     pose: Option<Dom<GamepadPose>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     hand: GamepadHand,
@@ -64,7 +67,7 @@ impl Gamepad {
         connected: bool,
         timestamp: f64,
         mapping_type: String,
-        buttons: &GamepadButtonList,
+        buttons: &[&GamepadButton],
         pose: Option<&GamepadPose>,
         hand: GamepadHand,
         axis_bounds: (f64, f64),
@@ -80,7 +83,11 @@ impl Gamepad {
             timestamp: Cell::new(timestamp),
             mapping_type,
             axes: HeapBufferSource::default(),
-            buttons: Dom::from_ref(buttons),
+            frozen_buttons: CachedFrozenArray::new(),
+            buttons: buttons
+                .iter()
+                .map(|button| Dom::from_ref(*button))
+                .collect(),
             pose: pose.map(Dom::from_ref),
             hand,
             axis_bounds,
@@ -107,7 +114,8 @@ impl Gamepad {
         xr: bool,
         can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
-        let button_list = GamepadButtonList::init_buttons(window, can_gc);
+        let buttons = Gamepad::init_buttons(window, can_gc);
+        rooted_vec!(let buttons <- buttons.iter().map(DomRoot::as_traced));
         let vibration_actuator =
             GamepadHapticActuator::new(window, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };
@@ -119,7 +127,7 @@ impl Gamepad {
                 true,
                 0.,
                 mapping_type,
-                &button_list,
+                buttons.r(),
                 None,
                 GamepadHand::_empty,
                 axis_bounds,
@@ -168,8 +176,18 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
-    fn Buttons(&self) -> DomRoot<GamepadButtonList> {
-        DomRoot::from_ref(&*self.buttons)
+    fn Buttons(&self, cx: JSContext, retval: MutableHandleValue) {
+        self.frozen_buttons.get_or_init(
+            || {
+                self.buttons
+                    .iter()
+                    .map(|b| DomRoot::from_ref(&**b))
+                    .collect()
+            },
+            cx,
+            retval,
+            CanGc::deprecated_note(),
+        );
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-vibrationactuator>
@@ -192,6 +210,30 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
 impl Gamepad {
     pub(crate) fn gamepad_id(&self) -> u32 {
         self.gamepad_id
+    }
+
+    /// Initialize the standard buttons for a gamepad.
+    /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
+    fn init_buttons(window: &Window, can_gc: CanGc) -> Vec<DomRoot<GamepadButton>> {
+        vec![
+            GamepadButton::new(window, false, false, can_gc), // Bottom button in right cluster
+            GamepadButton::new(window, false, false, can_gc), // Right button in right cluster
+            GamepadButton::new(window, false, false, can_gc), // Left button in right cluster
+            GamepadButton::new(window, false, false, can_gc), // Top button in right cluster
+            GamepadButton::new(window, false, false, can_gc), // Top left front button
+            GamepadButton::new(window, false, false, can_gc), // Top right front button
+            GamepadButton::new(window, false, false, can_gc), // Bottom left front button
+            GamepadButton::new(window, false, false, can_gc), // Bottom right front button
+            GamepadButton::new(window, false, false, can_gc), // Left button in center cluster
+            GamepadButton::new(window, false, false, can_gc), // Right button in center cluster
+            GamepadButton::new(window, false, false, can_gc), // Left stick pressed button
+            GamepadButton::new(window, false, false, can_gc), // Right stick pressed button
+            GamepadButton::new(window, false, false, can_gc), // Top button in left cluster
+            GamepadButton::new(window, false, false, can_gc), // Bottom button in left cluster
+            GamepadButton::new(window, false, false, can_gc), // Left button in left cluster
+            GamepadButton::new(window, false, false, can_gc), // Right button in left cluster
+            GamepadButton::new(window, false, false, can_gc), // Center button in center cluster
+        ]
     }
 
     pub(crate) fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
@@ -279,8 +321,9 @@ impl Gamepad {
             if normalized_value.is_finite() {
                 let pressed = normalized_value >= BUTTON_PRESS_THRESHOLD;
                 // TODO: Determine a way of getting touch capability for button
-                if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
+                if let Some(button) = self.buttons.get(button_index) {
                     button.update(pressed, /*touched*/ pressed, normalized_value);
+                    self.frozen_buttons.clear();
                 }
             } else {
                 warn!("Button value is not finite!");
