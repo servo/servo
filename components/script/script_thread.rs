@@ -2248,26 +2248,18 @@ impl ScriptThread {
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
                 self.debugger_global.fire_get_possible_breakpoints(
-                    CanGc::from_cx(cx),
+                    cx,
                     spidermonkey_id,
                     result_sender,
                 );
             },
             DevtoolScriptControlMsg::SetBreakpoint(spidermonkey_id, script_id, offset) => {
-                self.debugger_global.fire_set_breakpoint(
-                    CanGc::from_cx(cx),
-                    spidermonkey_id,
-                    script_id,
-                    offset,
-                );
+                self.debugger_global
+                    .fire_set_breakpoint(cx, spidermonkey_id, script_id, offset);
             },
             DevtoolScriptControlMsg::ClearBreakpoint(spidermonkey_id, script_id, offset) => {
-                self.debugger_global.fire_clear_breakpoint(
-                    CanGc::from_cx(cx),
-                    spidermonkey_id,
-                    script_id,
-                    offset,
-                );
+                self.debugger_global
+                    .fire_clear_breakpoint(cx, spidermonkey_id, script_id, offset);
             },
             DevtoolScriptControlMsg::Interrupt => {
                 self.debugger_global.fire_interrupt(CanGc::from_cx(cx));
@@ -2282,18 +2274,12 @@ impl ScriptThread {
                 );
             },
             DevtoolScriptControlMsg::GetEnvironment(frame_actor_id, result_sender) => {
-                self.debugger_global.fire_get_environment(
-                    frame_actor_id,
-                    result_sender,
-                    CanGc::from_cx(cx),
-                );
+                self.debugger_global
+                    .fire_get_environment(cx, frame_actor_id, result_sender);
             },
             DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
-                self.debugger_global.fire_resume(
-                    resume_limit_type,
-                    frame_actor_id,
-                    CanGc::from_cx(cx),
-                );
+                self.debugger_global
+                    .fire_resume(cx, resume_limit_type, frame_actor_id);
                 self.debugger_paused.set(false);
             },
         }
