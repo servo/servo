@@ -2881,8 +2881,8 @@ impl Node {
             }
         }
 
-        old_doc.remove_script_and_layout_blocker();
-        document.remove_script_and_layout_blocker();
+        old_doc.remove_script_and_layout_blocker(cx);
+        document.remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity>
@@ -3251,8 +3251,8 @@ impl Node {
             }),
         );
 
-        parent_document.remove_script_and_layout_blocker();
-        from_document.remove_script_and_layout_blocker();
+        parent_document.remove_script_and_layout_blocker(cx);
+        from_document.remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
@@ -3303,7 +3303,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker();
+        parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
@@ -3417,7 +3417,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker();
+        parent.owner_doc().remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
