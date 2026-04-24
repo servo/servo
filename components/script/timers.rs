@@ -146,7 +146,7 @@ pub(crate) enum OneshotTimerCallback {
 impl OneshotTimerCallback {
     fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, cx: &mut JSContext) {
         match self {
-            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(CanGc::from_cx(cx)),
+            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(cx),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, cx),
             #[cfg(feature = "testbinding")]
