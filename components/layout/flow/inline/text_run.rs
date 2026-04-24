@@ -278,12 +278,9 @@ impl TextRunSegment {
 
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
-            let mut rev_char_indices = word.char_indices().rev().peekable();
+            let rev_char_indices = word.char_indices().rev().peekable();
 
             let mut ends_with_whitespace = false;
-            let ends_with_newline = rev_char_indices
-                .peek()
-                .is_some_and(|&(_, character)| character == '\n');
             if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
                 .take_while(|&(_, character)| char_is_whitespace(character))
                 .last()
@@ -291,14 +288,12 @@ impl TextRunSegment {
                 ends_with_whitespace = true;
                 whitespace.start = slice.start + first_white_space_index;
 
-                // If line breaking for a piece of text that has `white-space-collapse: break-spaces` there
-                // is a line break opportunity *after* every preserved space, but not before. This means
-                // that we should not split off the first whitespace, unless that white-space is a preserved
-                // newline.
+                // If line breaking for a piece of text that has `white-space-collapse:
+                // break-spaces` there is a line break opportunity *after* every preserved space,
+                // but not before. This means that we should not split off the first whitespace.
                 //
                 // An exception to this is if the style tells us that we can break in the middle of words.
                 if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
-                    first_white_space_character != '\n' &&
                     !can_break_anywhere
                 {
                     whitespace.start += first_white_space_character.len_utf8();
@@ -352,25 +347,7 @@ impl TextRunSegment {
                 continue;
             }
 
-            // The breaker breaks after every newline, so either there is none,
-            // or there is exactly one at the very end. In the latter case,
-            // split it into a different run. That's because shaping considers
-            // a newline to have the same advance as a space, but during layout
-            // we want to treat the newline as having no advance.
-            if ends_with_newline && whitespace.len() > 1 {
-                self.shape_and_push_range(
-                    &(whitespace.start..whitespace.end - 1),
-                    formatting_context_text,
-                    &options,
-                );
-                self.shape_and_push_range(
-                    &(whitespace.end - 1..whitespace.end),
-                    formatting_context_text,
-                    &options,
-                );
-            } else {
-                self.shape_and_push_range(&whitespace, formatting_context_text, &options);
-            }
+            self.shape_and_push_range(&whitespace, formatting_context_text, &options);
         }
     }
 }
