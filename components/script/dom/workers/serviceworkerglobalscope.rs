@@ -500,7 +500,7 @@ impl ServiceWorkerGlobalScope {
                 DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
                     if let Some(debugger_global) = self.debugger_global.as_deref() {
                         debugger_global.fire_eval(
-                            CanGc::from_cx(cx),
+                            cx,
                             code.into(),
                             id,
                             Some(self.upcast::<WorkerGlobalScope>().worker_id()),
