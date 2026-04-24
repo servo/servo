@@ -1159,7 +1159,7 @@ pub enum WakeLockType {
 ///
 /// Implementations are responsible for interacting with the OS to prevent
 /// the screen (or other resources) from sleeping while a wake lock is held.
-pub trait WakeLockProvider: Send + Sync {
+pub trait WakeLockDelegate: Send + Sync {
     /// Acquire a wake lock of the given type, preventing the associated
     /// resource from sleeping. Called when the aggregate lock count transitions
     /// from 0 to 1. Returns an error if the OS fails to grant the lock.

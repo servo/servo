@@ -4,21 +4,21 @@
 
 //! Platform abstraction for the Screen Wake Lock API.
 //!
-//! Defines [`WakeLockProvider`], a trait for acquiring and releasing OS-level
+//! Defines [`WakeLockDelegate`], a trait for acquiring and releasing OS-level
 //! wake locks. Platform-specific implementations will be added in follow-up
-//! work. For now, [`NoOpWakeLockProvider`] is the only implementation and
+//! work. For now, [`DefaultWakeLockDelegate`] is the only implementation and
 //! does nothing.
 //!
 //! <https://w3c.github.io/screen-wake-lock/>
 use std::error::Error;
 
-use embedder_traits::{WakeLockProvider, WakeLockType};
+use embedder_traits::{WakeLockDelegate, WakeLockType};
 
-/// A no-op [`WakeLockProvider`] used when no platform implementation is
+/// A no-op [`WakeLockDelegate`] used when no platform implementation is
 /// available. All operations succeed silently.
-pub struct NoOpWakeLockProvider;
+pub struct DefaultWakeLockDelegate;
 
-impl WakeLockProvider for NoOpWakeLockProvider {
+impl WakeLockDelegate for DefaultWakeLockDelegate {
     fn acquire(&self, _type_: WakeLockType) -> Result<(), Box<dyn Error>> {
         Ok(())
     }

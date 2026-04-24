@@ -111,7 +111,7 @@ use embedder_traits::{
     GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockProvider, WakeLockType,
+    NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
@@ -492,7 +492,7 @@ pub struct Constellation<STF, SWF> {
     screen_wake_lock_count: u32,
 
     /// Provider for OS-level screen wake lock acquisition and release.
-    wake_lock_provider: Box<dyn WakeLockProvider>,
+    wake_lock_provider: Box<dyn WakeLockDelegate>,
 
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
@@ -593,7 +593,7 @@ pub struct InitialConstellationState {
     pub async_runtime: Box<dyn AsyncRuntime>,
 
     /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
-    pub wake_lock_provider: Box<dyn WakeLockProvider>,
+    pub wake_lock_provider: Box<dyn WakeLockDelegate>,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not. A normal exit
