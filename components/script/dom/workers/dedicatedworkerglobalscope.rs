@@ -494,7 +494,7 @@ impl DedicatedWorkerGlobalScope {
                     cx,
                 );
                 debugger_global.fire_add_debuggee(
-                    CanGc::from_cx(cx),
+                    cx,
                     global.upcast(),
                     pipeline_id,
                     Some(worker_id),
