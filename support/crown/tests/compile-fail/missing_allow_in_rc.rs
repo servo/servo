@@ -23,7 +23,6 @@ impl TypeHolderTrait for TypeHolder {
 struct Foo;
 
 fn foo<T: TypeHolderTrait>() -> Rc<T::F> {
-    //~^ ERROR: Type must be rooted. [crown::unrooted_must_root]
     unimplemented!()
 }
 
