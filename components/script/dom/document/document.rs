@@ -3720,19 +3720,17 @@ impl Document {
             .set(self.script_and_layout_blockers.get() + 1);
     }
 
-    #[expect(unsafe_code)]
     /// Terminate the period in which JS or layout is disallowed from running.
     /// If no further blockers remain, any delayed tasks in the queue will
     /// be executed in queue order until the queue is empty.
-    pub(crate) fn remove_script_and_layout_blocker(&self) {
+    pub(crate) fn remove_script_and_layout_blocker(&self, cx: &mut js::context::JSContext) {
         assert!(self.script_and_layout_blockers.get() > 0);
         self.script_and_layout_blockers
             .set(self.script_and_layout_blockers.get() - 1);
         while self.script_and_layout_blockers.get() == 0 && !self.delayed_tasks.borrow().is_empty()
         {
             let task = self.delayed_tasks.borrow_mut().remove(0);
-            let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-            task.run_box(&mut cx);
+            task.run_box(cx);
         }
     }
 
