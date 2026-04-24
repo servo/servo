@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use servo_constellation_traits::BlobImpl;
 
@@ -14,7 +15,7 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -51,24 +52,23 @@ impl FormData {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, global, None, can_gc)
+        Self::new_with_proto(cx, form_datums, global, None)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<FormData> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(FormData::new_inherited(form_datums)),
             global,
-            proto,
-            can_gc,
+            proto,cx,
         )
     }
 }
@@ -76,9 +76,9 @@ impl FormData {
 impl FormDataMethods<crate::DomTypeHolder> for FormData {
     /// <https://xhr.spec.whatwg.org/#dom-formdata>
     fn Constructor<'a>(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         form: Option<&'a HTMLFormElement>,
         submitter: Option<&'a HTMLElement>,
     ) -> Fallible<DomRoot<FormData>> {
@@ -121,19 +121,18 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
                 .transpose()?;
 
             // Step 1.2. Let list be the result of constructing the entry list for form and submitter.
-            return match opt_form.get_form_dataset(submitter_element, None, can_gc) {
-                Some(form_datums) => Ok(FormData::new_with_proto(
+            return match opt_form.get_form_dataset(cx,submitter_element, None) {
+                Some(form_datums) => Ok(FormData::new_with_proto(cx,
                     Some(form_datums),
                     global,
                     proto,
-                    can_gc,
                 )),
                 // Step 1.3. If list is null, then throw an "InvalidStateError" DOMException.
                 None => Err(Error::InvalidState(None)),
             };
         }
 
-        Ok(FormData::new_with_proto(None, global, proto, can_gc))
+        Ok(FormData::new_with_proto(cx, None, global, proto))
     }
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-append>
