@@ -1853,8 +1853,8 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
     }
 
     let event_target = element.upcast::<EventTarget>();
-    event_target.fire_bubbling_event(atom!("input"), CanGc::from_cx(cx));
-    event_target.fire_bubbling_event(atom!("change"), CanGc::from_cx(cx));
+    event_target.fire_bubbling_event(cx, atom!("input"));
+    event_target.fire_bubbling_event(cx, atom!("change"));
 
     // Step 5. Run the unfocusing steps for the element.
     html_element.Blur(CanGc::from_cx(cx));
@@ -2003,9 +2003,9 @@ pub(crate) fn handle_element_click(
                     Some(option_element) => {
                         // Steps 8.2 - 8.4
                         let event_target = container.upcast::<EventTarget>();
-                        event_target.fire_event(atom!("mouseover"), CanGc::from_cx(cx));
-                        event_target.fire_event(atom!("mousemove"), CanGc::from_cx(cx));
-                        event_target.fire_event(atom!("mousedown"), CanGc::from_cx(cx));
+                        event_target.fire_event(cx, atom!("mouseover"));
+                        event_target.fire_event(cx, atom!("mousemove"));
+                        event_target.fire_event(cx, atom!("mousedown"));
 
                         // Step 8.5
                         match container.downcast::<HTMLElement>() {
@@ -2023,7 +2023,7 @@ pub(crate) fn handle_element_click(
                         // Step 8.6
                         if !is_disabled(&element) {
                             // Step 8.6.1
-                            event_target.fire_event(atom!("input"), CanGc::from_cx(cx));
+                            event_target.fire_event(cx, atom!("input"));
 
                             // Steps 8.6.2
                             let previous_selectedness = option_element.Selected();
@@ -2043,13 +2043,13 @@ pub(crate) fn handle_element_click(
 
                             // Step 8.6.4
                             if !previous_selectedness {
-                                event_target.fire_event(atom!("change"), CanGc::from_cx(cx));
+                                event_target.fire_event(cx, atom!("change"));
                             }
                         }
 
                         // Steps 8.7 - 8.8
-                        event_target.fire_event(atom!("mouseup"), CanGc::from_cx(cx));
-                        event_target.fire_event(atom!("click"), CanGc::from_cx(cx));
+                        event_target.fire_event(cx, atom!("mouseup"));
+                        event_target.fire_event(cx, atom!("click"));
 
                         Ok(None)
                     },

@@ -367,8 +367,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reset>
-    fn Reset(&self, can_gc: CanGc) {
-        self.reset(ResetFrom::FromForm, can_gc);
+    fn Reset(&self, cx: &mut js::context::JSContext) {
+        self.reset(cx, ResetFrom::FromForm);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-elements>
@@ -1230,7 +1230,7 @@ impl HTMLFormElement {
                 // field, with the cancelable attribute initialized to true.
                 let not_canceled = field
                     .upcast::<EventTarget>()
-                    .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
+                    .fire_cancelable_event(cx, atom!("invalid"));
                 // Step 6.2: If notCanceled is true, then add field to unhandled invalid controls.
                 if not_canceled {
                     return Some(field);
@@ -1379,7 +1379,7 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reset>
-    pub(crate) fn reset(&self, _reset_method_flag: ResetFrom, can_gc: CanGc) {
+    pub(crate) fn reset(&self, cx: &mut js::context::JSContext, _reset_method_flag: ResetFrom) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
@@ -1392,7 +1392,7 @@ impl HTMLFormElement {
         // with the bubbles and cancelable attributes initialized to true.
         let reset = self
             .upcast::<EventTarget>()
-            .fire_bubbling_cancelable_event(atom!("reset"), can_gc);
+            .fire_bubbling_cancelable_event(cx, atom!("reset"));
         if !reset {
             return;
         }
@@ -1405,7 +1405,7 @@ impl HTMLFormElement {
             .collect();
 
         for child in controls {
-            child.reset(can_gc);
+            child.reset(CanGc::from_cx(cx));
         }
         self.marked_for_reset.set(false);
     }

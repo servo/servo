@@ -1201,7 +1201,7 @@ impl ScriptThread {
             let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));
 
             // > 9. For each doc of docs, run the scroll steps for doc.
-            document.run_the_scroll_steps(CanGc::from_cx(cx));
+            document.run_the_scroll_steps(cx);
 
             // Media queries is only relevant when there are resizing.
             if resized {
@@ -1766,7 +1766,7 @@ impl ScriptThread {
                 cx,
             ),
             ScriptThreadMessage::UnloadDocument(pipeline_id) => {
-                self.handle_unload_document(pipeline_id, CanGc::from_cx(cx))
+                self.handle_unload_document(cx, pipeline_id)
             },
             ScriptThreadMessage::ResizeInactive(id, new_size) => {
                 self.handle_resize_inactive_msg(id, new_size)
@@ -2975,10 +2975,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_unload_document(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn handle_unload_document(&self, cx: &mut js::context::JSContext, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            document.unload(false, can_gc);
+            document.unload(cx, false);
         }
     }
 
@@ -3543,7 +3543,7 @@ impl ScriptThread {
             document.shared_declarative_refresh_steps(refresh_val.as_bytes());
         }
 
-        document.set_ready_state(DocumentReadyState::Loading, CanGc::from_cx(cx));
+        document.set_ready_state(cx, DocumentReadyState::Loading);
 
         self.documents
             .borrow_mut()

@@ -882,7 +882,7 @@ impl Window {
         // Step 3. Append the following session history traversal steps to traversable:
         // TODO
         // Step 3.2. Unload a document and its descendants given traversable's active document, null, and afterAllUnloads.
-        document.unload(false, CanGc::from_cx(cx));
+        document.unload(cx, false);
         // Step 3.1. Let afterAllUnloads be an algorithm step which destroys traversable.
         self.destroy_top_level_traversable(cx);
     }

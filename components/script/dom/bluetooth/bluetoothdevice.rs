@@ -237,7 +237,7 @@ impl BluetoothDevice {
 
         // Step 8.
         self.upcast::<EventTarget>()
-            .fire_bubbling_event(atom!("gattserverdisconnected"), CanGc::from_cx(cx));
+            .fire_bubbling_event(cx, atom!("gattserverdisconnected"));
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection

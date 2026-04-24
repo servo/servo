@@ -935,17 +935,15 @@ impl HTMLLinkElement {
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     pub(crate) fn fire_event_after_response(
         &self,
+        cx: &mut JSContext,
         response: Result<(), NetworkError>,
-        can_gc: CanGc,
     ) {
         // Step 3.1 If response is a network error, fire an event named error at el.
         // Otherwise, fire an event named load at el.
         if response.is_err() {
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("error"), can_gc);
+            self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
         } else {
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("load"), can_gc);
+            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
         }
     }
 
@@ -1054,8 +1052,7 @@ impl HTMLLinkElement {
                     false => atom!("load"),
                 };
 
-                link.upcast::<EventTarget>()
-                    .fire_event(event, CanGc::from_cx(cx));
+                link.upcast::<EventTarget>().fire_event(cx, event);
             },
         );
     }

@@ -811,61 +811,75 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_event(&self, cx: &mut js::context::JSContext, name: Atom) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_bubbling_event(&self, cx: &mut js::context::JSContext, name: Atom) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_cancelable_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: Atom,
+    ) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_bubbling_cancelable_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: Atom,
+    ) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_event_with_params(
         &self,
+        cx: &mut js::context::JSContext,
         name: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         composed: EventComposed,
-        can_gc: CanGc,
     ) -> bool {
-        let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
+        let event = Event::new(
+            &self.global(),
+            name,
+            bubbles,
+            cancelable,
+            CanGc::from_cx(cx),
+        );
         event.set_composed(composed.into());
-        event.fire(self, can_gc)
+        event.fire(self, CanGc::from_cx(cx))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>

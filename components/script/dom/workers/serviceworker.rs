@@ -77,15 +77,15 @@ impl ServiceWorker {
         )
     }
 
-    pub(crate) fn dispatch_simple_error(address: TrustedServiceWorkerAddress, can_gc: CanGc) {
+    pub(crate) fn dispatch_simple_error(cx: &mut JSContext, address: TrustedServiceWorkerAddress) {
         let service_worker = address.root();
-        service_worker.upcast().fire_event(atom!("error"), can_gc);
+        service_worker.upcast().fire_event(cx, atom!("error"));
     }
 
-    pub(crate) fn set_transition_state(&self, state: ServiceWorkerState, can_gc: CanGc) {
+    pub(crate) fn set_transition_state(&self, cx: &mut JSContext, state: ServiceWorkerState) {
         self.state.set(state);
         self.upcast::<EventTarget>()
-            .fire_event(atom!("statechange"), can_gc);
+            .fire_event(cx, atom!("statechange"));
     }
 
     pub(crate) fn get_script_url(&self) -> ServoUrl {
@@ -167,6 +167,6 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
 impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn run_once(self, cx: &mut JSContext) {
-        ServiceWorker::dispatch_simple_error(self.addr, CanGc::from_cx(cx));
+        ServiceWorker::dispatch_simple_error(cx, self.addr);
     }
 }

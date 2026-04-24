@@ -74,9 +74,9 @@ impl FileInputType {
 
     pub(crate) fn handle_file_picker_response(
         &self,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         response: Option<Vec<SelectedFile>>,
-        can_gc: CanGc,
     ) {
         let mut files = Vec::new();
 
@@ -107,7 +107,7 @@ impl FileInputType {
         files.extend(
             response_files
                 .into_iter()
-                .map(|file| File::new_from_selected(&window, file, can_gc)),
+                .map(|file| File::new_from_selected(&window, file, CanGc::from_cx(cx))),
         );
 
         // Only use the last file if this isn't a multi-select file input. This could
@@ -119,17 +119,17 @@ impl FileInputType {
                 .unwrap_or_default();
         }
 
-        self.set_files(&FileList::new(&window, files, can_gc));
+        self.set_files(&FileList::new(&window, files, CanGc::from_cx(cx)));
 
         let target = input.upcast::<EventTarget>();
         target.fire_event_with_params(
+            cx,
             atom!("input"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::Composed,
-            can_gc,
         );
-        target.fire_bubbling_event(atom!("change"), can_gc);
+        target.fire_bubbling_event(cx, atom!("change"));
     }
 }
 

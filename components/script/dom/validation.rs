@@ -45,7 +45,7 @@ pub(crate) trait Validatable {
         if self.is_instance_validatable() && !self.satisfies_constraints(CanGc::from_cx(cx)) {
             self.as_element()
                 .upcast::<EventTarget>()
-                .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
+                .fire_cancelable_event(cx, atom!("invalid"));
             false
         } else {
             true
@@ -68,7 +68,7 @@ pub(crate) trait Validatable {
         let report = self
             .as_element()
             .upcast::<EventTarget>()
-            .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
+            .fire_cancelable_event(cx, atom!("invalid"));
 
         // Step 1.2. If `report` is true, for the element,
         // report the problem, run focusing steps, scroll into view.

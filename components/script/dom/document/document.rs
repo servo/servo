@@ -901,7 +901,7 @@ impl Document {
                 // Step 4.6.2 Set document's page showing flag to true.
                 document.page_showing.set(true);
                 // Step 4.6.3 Update the visibility state of document to "visible".
-                document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::from_cx(cx));
+                document.update_visibility_state(cx, DocumentVisibilityState::Visible);
                 // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                 // global object with true.
                 let event = PageTransitionEvent::new(
@@ -1265,7 +1265,11 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
-    pub(crate) fn set_ready_state(&self, state: DocumentReadyState, can_gc: CanGc) {
+    pub(crate) fn set_ready_state(
+        &self,
+        cx: &mut js::context::JSContext,
+        state: DocumentReadyState,
+    ) {
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1291,7 +1295,7 @@ impl Document {
         self.ready_state.set(state);
 
         self.upcast::<EventTarget>()
-            .fire_event(atom!("readystatechange"), can_gc);
+            .fire_event(cx, atom!("readystatechange"));
     }
 
     /// Return whether scripting is enabled or not
@@ -1383,7 +1387,7 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps>
-    pub(crate) fn run_the_scroll_steps(&self, can_gc: CanGc) {
+    pub(crate) fn run_the_scroll_steps(&self, cx: &mut js::context::JSContext) {
         // Step 1: For each scrolling box `box` that was scrolled:
         //
         // Note: Since scrolling is currently synchronous (no scroll animations /
@@ -1445,7 +1449,7 @@ impl Document {
             // fire an event named type that bubbles at target.
             let event = pending_event.event.clone();
             if pending_event.target.is::<Document>() {
-                pending_event.target.fire_bubbling_event(event, can_gc);
+                pending_event.target.fire_bubbling_event(cx, event);
             }
             // Step 2.2: Otherwise, if type is "scrollsnapchange", then:
             //  ....
@@ -1456,7 +1460,7 @@ impl Document {
             //
             // Step 2.4: Otherwise, fire an event named type at target.
             else {
-                pending_event.target.fire_event(event, can_gc);
+                pending_event.target.fire_event(cx, event);
             }
         }
 
@@ -2050,7 +2054,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
-    pub(crate) fn unload(&self, recursive_flag: bool, can_gc: CanGc) {
+    pub(crate) fn unload(&self, cx: &mut js::context::JSContext, recursive_flag: bool) {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2066,14 +2070,14 @@ impl Document {
                 false,                  // bubbles
                 false,                  // cancelable
                 self.salvageable.get(), // persisted
-                can_gc,
+                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             self.window
-                .dispatch_event_with_target_override(event, can_gc);
+                .dispatch_event_with_target_override(event, CanGc::from_cx(cx));
             // Step 6 Update the visibility state of oldDocument to "hidden".
-            self.update_visibility_state(DocumentVisibilityState::Hidden, can_gc);
+            self.update_visibility_state(cx, DocumentVisibilityState::Hidden);
         }
         // Step 7
         if !self.fired_unload.get() {
@@ -2082,13 +2086,13 @@ impl Document {
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
             self.window
-                .dispatch_event_with_target_override(&event, can_gc);
+                .dispatch_event_with_target_override(&event, CanGc::from_cx(cx));
             self.fired_unload.set(true);
             // Step 9
             if has_listeners {
@@ -2105,7 +2109,7 @@ impl Document {
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                document.unload(true, can_gc);
+                document.unload(cx, true);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2207,7 +2211,7 @@ impl Document {
                 }
 
                 // Step 9.1. Update the current document readiness to "complete".
-                document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
+                document.set_ready_state(cx,DocumentReadyState::Complete);
 
                 // Step 9.2. If the Document object's browsing context is null, then abort these steps.
                 if document.browsing_context().is_none() {
@@ -2449,30 +2453,28 @@ impl Document {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(fire_dom_content_loaded_event: move |cx| {
-                let document = document.root();
+            .queue(task!(fire_dom_content_loaded_event: move |cx| {
+            let document = document.root();
 
-                // Step 6.1 Set the Document's load timing info's DOM content loaded event start time
-                // to the current high resolution time given the Document's relevant global object.
-                update_with_current_instant(&document.dom_content_loaded_event_start);
+            // Step 6.1 Set the Document's load timing info's DOM content loaded event start time
+            // to the current high resolution time given the Document's relevant global object.
+            update_with_current_instant(&document.dom_content_loaded_event_start);
 
-                // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
-                // attribute initialized to true.
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::from_cx(cx));
+            // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
+            // attribute initialized to true.
+            document.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("DOMContentLoaded"));
 
-                // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
-                // high resolution time given the Document's relevant global object.
-                update_with_current_instant(&document.dom_content_loaded_event_end);
+            // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
+            // high resolution time given the Document's relevant global object.
+            update_with_current_instant(&document.dom_content_loaded_event_end);
 
-                // TODO Step 6.4 Enable the client message queue of the ServiceWorkerContainer object whose associated
-                // service worker client is the Document object's relevant settings object.
+            // TODO Step 6.4 Enable the client message queue of the ServiceWorkerContainer object whose associated
+            // service worker client is the Document object's relevant settings object.
 
-                // TODO Step 6.5 Invoke WebDriver BiDi DOM content loaded with the Document's browsing context, and
-                // a new WebDriver BiDi navigation status whose id is the Document object's during-loading
-                // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
-                })
-            );
+            // TODO Step 6.5 Invoke WebDriver BiDi DOM content loaded with the Document's browsing context, and
+            // a new WebDriver BiDi navigation status whose id is the Document object's during-loading
+            // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
+            }));
 
         // html parsing has finished - set dom content loaded
         self.interactive_time
@@ -4474,7 +4476,11 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#visibility-state>
-    fn update_visibility_state(&self, visibility_state: DocumentVisibilityState, can_gc: CanGc) {
+    fn update_visibility_state(
+        &self,
+        cx: &mut js::context::JSContext,
+        visibility_state: DocumentVisibilityState,
+    ) {
         // Step 1 If document's visibility state equals visibilityState, then return.
         if self.visibility_state.get() == visibility_state {
             return;
@@ -4487,7 +4493,7 @@ impl Document {
             &self.global(),
             visibility_state,
             CrossProcessInstant::now(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         self.window
             .Performance()
@@ -4518,7 +4524,7 @@ impl Document {
 
         // Step 7 Fire an event named visibilitychange at document, with its bubbles attribute initialized to true.
         self.upcast::<EventTarget>()
-            .fire_bubbling_event(atom!("visibilitychange"), can_gc);
+            .fire_bubbling_event(cx, atom!("visibilitychange"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
@@ -4747,7 +4753,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 4. Parse HTML from string given document and compliantHTML.
         ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
         // Step 5. Return document.
-        document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
+        document.set_ready_state(cx, DocumentReadyState::Complete);
         Ok(document)
     }
 

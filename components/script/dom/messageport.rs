@@ -341,7 +341,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
-    fn Close(&self, can_gc: CanGc) {
+    fn Close(&self, cx: &mut JSContext) {
         // Set this's [[Detached]] internal slot value to true.
         self.detached.set(true);
 
@@ -349,7 +349,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         global.close_message_port(self.message_port_id());
 
         // If this is entangled, disentangle it.
-        global.disentangle_port(self, can_gc);
+        global.disentangle_port(cx, self);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>

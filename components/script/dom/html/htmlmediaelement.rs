@@ -876,10 +876,10 @@ impl HTMLMediaElement {
 
                     this.fulfill_in_flight_play_promises(|| {
                         // Step 2.3.1. Fire an event named timeupdate at the element.
-                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::from_cx(cx));
+                        this.upcast::<EventTarget>().fire_event(cx, atom!("timeupdate"));
 
                         // Step 2.3.2. Fire an event named pause at the element.
-                        this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::from_cx(cx));
+                        this.upcast::<EventTarget>().fire_event(cx, atom!("pause"));
 
                         // Step 2.3.3. Reject pending play promises with promises and an
                         // "AbortError" DOMException.
@@ -920,7 +920,7 @@ impl HTMLMediaElement {
 
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1. Fire an event named playing at the element.
-                    this.upcast::<EventTarget>().fire_event(atom!("playing"), CanGc::from_cx(cx));
+                    this.upcast::<EventTarget>().fire_event(cx, atom!("playing"));
 
                     // Step 2.2. Resolve pending play promises with promises.
                     // Done after running this closure in `fulfill_in_flight_play_promises`.
@@ -973,7 +973,7 @@ impl HTMLMediaElement {
                                 return;
                             }
 
-                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::from_cx(cx));
+                            this.upcast::<EventTarget>().fire_event(cx, atom!("loadeddata"));
                             // Once the readyState attribute reaches HAVE_CURRENT_DATA, after the
                             // loadeddata event has been fired, set the element's
                             // delaying-the-load-event flag to false.
@@ -1287,7 +1287,7 @@ impl HTMLMediaElement {
                 }
 
                 let source = trusted_source.root();
-                source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
+                source.upcast::<EventTarget>().fire_event(cx, atom!("error"));
             }));
 
         // Step 9.children.11. Await a stable state.
@@ -1632,7 +1632,7 @@ impl HTMLMediaElement {
                     this.show_poster.set(true);
 
                     // Step 5. Fire an event named error at the media element.
-                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
+                    this.upcast::<EventTarget>().fire_event(cx, atom!("error"));
 
                     if let Some(ref player) = *this.player.borrow() {
                         if let Err(error) = player.lock().unwrap().stop() {
@@ -1810,7 +1810,7 @@ impl HTMLMediaElement {
                     return;
                 }
 
-                this.upcast::<EventTarget>().fire_event(name, CanGc::from_cx(cx));
+                this.upcast::<EventTarget>().fire_event(cx, name);
             }));
     }
 
@@ -1957,8 +1957,7 @@ impl HTMLMediaElement {
         self.delay_load_event(false, cx);
 
         // Step 5. Fire an event named error at the media element.
-        self.upcast::<EventTarget>()
-            .fire_event(atom!("error"), CanGc::from_cx(cx));
+        self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
 
         // Step 6. Abort the overall resource selection algorithm.
     }
@@ -2300,7 +2299,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 3.1. Fire an event named timeupdate at the media element.
-                this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::from_cx(cx));
+                this.upcast::<EventTarget>().fire_event(cx, atom!("timeupdate"));
 
                 // Step 3.2. If the media element has ended playback, the direction of playback is
                 // forwards, and paused is false, then:
@@ -2311,7 +2310,7 @@ impl HTMLMediaElement {
                     this.paused.set(true);
 
                     // Step 3.2.2. Fire an event named pause at the media element.
-                    this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::from_cx(cx));
+                    this.upcast::<EventTarget>().fire_event(cx, atom!("pause"));
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
@@ -2320,7 +2319,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 3.3. Fire an event named ended at the media element.
-                this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::from_cx(cx));
+                this.upcast::<EventTarget>().fire_event(cx, atom!("ended"));
             }));
 
         // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>
@@ -3906,7 +3905,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // Step 1. Fire an event named progress at the media element.
             element
                 .upcast::<EventTarget>()
-                .fire_event(atom!("progress"), CanGc::from_cx(cx));
+                .fire_event(cx, atom!("progress"));
 
             // Step 2. Set the networkState to NETWORK_IDLE and fire an event named suspend at the
             // media element.
@@ -3914,7 +3913,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
             element
                 .upcast::<EventTarget>()
-                .fire_event(atom!("suspend"), CanGc::from_cx(cx));
+                .fire_event(cx, atom!("suspend"));
         } else if status.is_err() && element.ready_state.get() != ReadyState::HaveNothing {
             // => "If the connection is interrupted after some media data has been received..."
             element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, cx);

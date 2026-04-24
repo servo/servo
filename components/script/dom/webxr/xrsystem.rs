@@ -319,13 +319,11 @@ impl XRSystem {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(fire_sessionavailable_event: move || {
-                    // The sessionavailable event indicates user intent to enter an XR session
-                    let xr = xr.root();
-                        let _guard = ScriptThread::user_interacting_guard();
-                        xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::deprecated_note());
-                })
-            );
+            .queue(task!(fire_sessionavailable_event: move |cx| {
+                // The sessionavailable event indicates user intent to enter an XR session
+                let xr = xr.root();
+                    let _guard = ScriptThread::user_interacting_guard();
+                    xr.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("sessionavailable"));
+            }));
     }
 }

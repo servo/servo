@@ -115,8 +115,8 @@ impl Selection {
 
                     // Step 3. Otherwise, if target is a document, fire an event named selectionchange,
                     // which does not bubble and not cancelable, at target.
-                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::from_cx(cx));
-                })
+                    this.document.upcast::<EventTarget>().fire_event(cx, atom!("selectionchange"));
+                }),
             );
     }
 

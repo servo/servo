@@ -45,16 +45,16 @@ impl SpecificInputType for CheckboxInputType {
         // Step 2: Fire an event named input at the element with the bubbles and composed
         // attributes initialized to true.
         target.fire_event_with_params(
+            cx,
             atom!("input"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::Composed,
-            CanGc::from_cx(cx),
         );
 
         // Step 3: Fire an event named change at the element with the bubbles attribute
         // initialized to true.
-        target.fire_bubbling_event(atom!("change"), CanGc::from_cx(cx));
+        target.fire_bubbling_event(cx, atom!("change"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-pre-activation-behavior>

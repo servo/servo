@@ -486,7 +486,7 @@ impl ServoParser {
 
         // Step 2.
         self.document
-            .set_ready_state(DocumentReadyState::Interactive, CanGc::from_cx(cx));
+            .set_ready_state(cx, DocumentReadyState::Interactive);
 
         // Step 3.
         self.tokenizer.end(cx);
@@ -494,7 +494,7 @@ impl ServoParser {
 
         // Step 4.
         self.document
-            .set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
+            .set_ready_state(cx, DocumentReadyState::Complete);
     }
 
     // https://html.spec.whatwg.org/multipage/#active-parser
@@ -756,7 +756,7 @@ impl ServoParser {
 
         // Step 1.
         self.document
-            .set_ready_state(DocumentReadyState::Interactive, CanGc::from_cx(cx));
+            .set_ready_state(cx, DocumentReadyState::Interactive);
 
         // Step 2.
         self.tokenizer.end(cx);

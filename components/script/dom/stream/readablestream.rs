@@ -2381,7 +2381,7 @@ impl CrossRealmTransformReadable {
             self.controller.close(CanGc::from_cx(cx));
 
             // Disentangle port.
-            global.disentangle_port(port, CanGc::from_cx(cx));
+            global.disentangle_port(cx, port);
         }
 
         // Otherwise, if type is "error",
@@ -2390,7 +2390,7 @@ impl CrossRealmTransformReadable {
             self.controller.error(value.handle(), CanGc::from_cx(cx));
 
             // Disentangle port.
-            global.disentangle_port(port, CanGc::from_cx(cx));
+            global.disentangle_port(cx, port);
         }
     }
 
@@ -2415,7 +2415,7 @@ impl CrossRealmTransformReadable {
             .error(rooted_error.handle(), CanGc::from_cx(cx));
 
         // Disentangle port.
-        global.disentangle_port(port, CanGc::from_cx(cx));
+        global.disentangle_port(cx, port);
     }
 }
 

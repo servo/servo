@@ -159,7 +159,7 @@ impl UnderlyingSourceContainer {
                     port.pack_and_post_message_handling_error("error", reason, CanGc::from_cx(cx));
 
                 // Disentangle port.
-                self.global().disentangle_port(port, CanGc::from_cx(cx));
+                self.global().disentangle_port(cx, port);
 
                 let promise = Promise::new2(cx, &self.global());
 

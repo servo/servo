@@ -93,7 +93,7 @@ impl AudioTrackList {
         let task_source = global.task_manager().media_element_task_source();
         task_source.queue(task!(media_track_change: move |cx| {
             let this = this.root();
-            this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::from_cx(cx));
+            this.upcast::<EventTarget>().fire_event(cx, atom!("change"));
         }));
     }
 

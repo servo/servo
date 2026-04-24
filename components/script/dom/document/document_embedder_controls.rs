@@ -219,7 +219,7 @@ impl DocumentEmbedderControls {
                 ControlElement::FileInput(input_element),
                 EmbedderControlResponse::FilePicker(response),
             ) => {
-                input_element.handle_file_picker_response(response, CanGc::from_cx(cx));
+                input_element.handle_file_picker_response(cx, response);
             },
             (
                 ControlElement::ContextMenu(context_menu_nodes),

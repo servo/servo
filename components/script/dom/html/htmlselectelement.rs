@@ -533,18 +533,17 @@ impl HTMLSelectElement {
                 // Step 2. Fire an event named input at the select element, with the bubbles and composed
                 // attributes initialized to true.
                 this.upcast::<EventTarget>()
-                    .fire_event_with_params(
+                    .fire_event_with_params(cx,
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
                         EventComposed::Composed,
-                        CanGc::from_cx(cx),
                     );
 
                 // Step 3. Fire an event named change at the select element, with the bubbles attribute initialized
                 // to true.
                 this.upcast::<EventTarget>()
-                    .fire_bubbling_event(atom!("change"), CanGc::from_cx(cx));
+                    .fire_bubbling_event(cx, atom!("change"));
             }));
     }
 
