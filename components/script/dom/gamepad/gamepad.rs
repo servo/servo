@@ -2,18 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::rust::MutableHandleValue;
-use js::typedarray::{Float64, HeapFloat64Array};
-use script_bindings::trace::RootedTraceableBox;
 
 use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
 use super::gamepadpose::GamepadPose;
-use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
@@ -24,7 +21,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -45,10 +41,11 @@ pub(crate) struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     #[ignore_malloc_size_of = "mozjs"]
-    axes: HeapBufferSource<Float64>,
-    #[ignore_malloc_size_of = "mozjs"]
     frozen_buttons: CachedFrozenArray,
     buttons: Vec<Dom<GamepadButton>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_axes: CachedFrozenArray,
+    axes: RefCell<Vec<f64>>,
     pose: Option<Dom<GamepadPose>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
     hand: GamepadHand,
@@ -82,12 +79,13 @@ impl Gamepad {
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
             mapping_type,
-            axes: HeapBufferSource::default(),
             frozen_buttons: CachedFrozenArray::new(),
             buttons: buttons
                 .iter()
                 .map(|button| Dom::from_ref(*button))
                 .collect(),
+            frozen_axes: CachedFrozenArray::new(),
+            axes: RefCell::new(Vec::new()),
             pose: pose.map(Dom::from_ref),
             hand,
             axis_bounds,
@@ -137,7 +135,7 @@ impl Gamepad {
             window,
             can_gc,
         );
-        gamepad.init_axes(can_gc);
+        gamepad.init_axes();
         gamepad
     }
 }
@@ -169,10 +167,9 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>
-    fn Axes(&self, _cx: JSContext) -> RootedTraceableBox<HeapFloat64Array> {
-        self.axes
-            .get_typed_array()
-            .expect("Failed to get gamepad axes.")
+    fn Axes(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        self.frozen_axes
+            .get_or_init(|| self.axes.borrow().clone(), cx, retval, can_gc);
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
@@ -275,19 +272,15 @@ impl Gamepad {
 
     /// Initialize the number of axes in the "standard" gamepad mapping.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-axes>
-    fn init_axes(&self, can_gc: CanGc) {
-        let initial_axes: Vec<f64> = vec![
+    fn init_axes(&self) {
+        *self.axes.borrow_mut() = vec![
             0., // Horizontal axis for left stick (negative left/positive right)
             0., // Vertical axis for left stick (negative up/positive down)
             0., // Horizontal axis for right stick (negative left/positive right)
             0., // Vertical axis for right stick (negative up/positive down)
         ];
-        self.axes
-            .set_data(GlobalScope::get_cx(), &initial_axes, can_gc)
-            .expect("Failed to set axes data on gamepad.")
     }
 
-    #[expect(unsafe_code)]
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-axes>
     pub(crate) fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
         // Let normalizedValue be 2 (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum) − 1.
@@ -296,13 +289,8 @@ impl Gamepad {
         if denominator != 0.0 && denominator.is_finite() {
             let normalized_value: f64 = 2.0 * numerator / denominator - 1.0;
             if normalized_value.is_finite() {
-                let mut axis_vec = self
-                    .axes
-                    .typed_array_to_option()
-                    .expect("Axes have not been initialized!");
-                unsafe {
-                    axis_vec.as_mut_slice()[axis_index] = normalized_value;
-                }
+                self.axes.borrow_mut()[axis_index] = normalized_value;
+                self.frozen_axes.clear();
             } else {
                 warn!("Axis value is not finite!");
             }
