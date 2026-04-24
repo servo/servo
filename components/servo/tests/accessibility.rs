@@ -316,19 +316,8 @@ fn assert_tree_structure_and_get_root_web_area<'tree>(
     let graft_node = scroll_view_children[0];
     assert!(graft_node.is_graft());
 
-    let mut children: Vec<accesskit_consumer::Node<'_>> = graft_node.children().collect();
-    let mut root_web_area: Option<accesskit_consumer::Node> = None;
-    while !children.is_empty() {
-        let Some(child) = children.pop() else {
-            break;
-        };
-        if child.role() == Role::RootWebArea {
-            root_web_area = Some(child);
-            break;
-        }
-        children.extend(child.children());
-    }
-    root_web_area.expect("Should have a RootWebArea")
+    find_first_matching_node(graft_node, |node| node.role() == Role::RootWebArea)
+        .expect("Should have a RootWebArea")
 }
 
 fn find_first_matching_node(
