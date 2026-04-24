@@ -210,7 +210,7 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn fire_get_possible_breakpoints(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
         spidermonkey_id: u32,
         result_sender: GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>,
     ) {
@@ -223,17 +223,17 @@ impl DebuggerGlobalScope {
         let event = DomRoot::upcast::<Event>(DebuggerGetPossibleBreakpointsEvent::new(
             self.upcast(),
             spidermonkey_id,
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerGetPossibleBreakpointsEvent::new"
         );
     }
 
     pub(crate) fn fire_set_breakpoint(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
         spidermonkey_id: u32,
         script_id: u32,
         offset: u32,
@@ -243,10 +243,10 @@ impl DebuggerGlobalScope {
             spidermonkey_id,
             script_id,
             offset,
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerSetBreakpointEvent::new"
         );
     }
@@ -290,9 +290,9 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn fire_get_environment(
         &self,
+        cx: &mut JSContext,
         frame_actor_id: String,
         result_sender: GenericSender<String>,
-        can_gc: CanGc,
     ) {
         assert!(
             self.get_environment_result_sender
@@ -303,35 +303,35 @@ impl DebuggerGlobalScope {
         let event = DomRoot::upcast::<Event>(DebuggerGetEnvironmentEvent::new(
             self.upcast(),
             frame_actor_id.into(),
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerGetEnvironmentEvent::new"
         );
     }
 
     pub(crate) fn fire_resume(
         &self,
+        cx: &mut JSContext,
         resume_limit_type: Option<String>,
         frame_actor_id: Option<String>,
-        can_gc: CanGc,
     ) {
         let event = DomRoot::upcast::<Event>(DebuggerResumeEvent::new(
             self.upcast(),
             resume_limit_type.map(DOMString::from),
             frame_actor_id.map(DOMString::from),
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerResumeEvent::new"
         );
     }
 
     pub(crate) fn fire_clear_breakpoint(
         &self,
-        can_gc: CanGc,
+        cx: &mut JSContext,
         spidermonkey_id: u32,
         script_id: u32,
         offset: u32,
@@ -341,10 +341,10 @@ impl DebuggerGlobalScope {
             spidermonkey_id,
             script_id,
             offset,
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerClearBreakpointEvent::new"
         );
     }
