@@ -399,7 +399,7 @@ impl ServiceWorkerGlobalScope {
 
                 if let Some(debugger_global) = debugger_global.as_deref() {
                     debugger_global.fire_add_debuggee(
-                        CanGc::from_cx(cx),
+                        cx,
                         global_scope,
                         pipeline_id,
                         Some(worker_scope.worker_id()),
