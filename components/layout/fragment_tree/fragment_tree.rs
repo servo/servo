@@ -157,10 +157,12 @@ impl FragmentTree {
             if !first_root_fragment.is_root_element() {
                 return scrollable_overflow;
             }
-            first_root_fragment.clip_wholly_unreachable_scrollable_overflow(
-                scrollable_overflow,
-                self.initial_containing_block,
-            )
+            first_root_fragment
+                .clip_wholly_unreachable_scrollable_overflow(
+                    scrollable_overflow,
+                    self.initial_containing_block,
+                )
+                .unwrap_or_default()
         };
 
         self.scrollable_overflow.set(Some(scrollable_overflow()))

@@ -240,6 +240,7 @@ impl Fragment {
         &self,
     ) -> Option<PhysicalRect<Au>> {
         match self {
+            // TODO: This should consider the box in pre-relative-adjusted position state.
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let box_fragment = fragment.borrow();
                 if !box_fragment
