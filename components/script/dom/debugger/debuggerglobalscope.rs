@@ -179,7 +179,7 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn fire_eval(
         &self,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
         code: DOMString,
         debuggee_pipeline_id: PipelineId,
         debuggee_worker_id: Option<WorkerId>,
@@ -192,18 +192,21 @@ impl DebuggerGlobalScope {
                 .is_none()
         );
         let _realm = enter_realm(self);
-        let debuggee_pipeline_id =
-            crate::dom::pipelineid::PipelineId::new(self.upcast(), debuggee_pipeline_id, can_gc);
+        let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
+            self.upcast(),
+            debuggee_pipeline_id,
+            CanGc::from_cx(cx),
+        );
         let event = DomRoot::upcast::<Event>(DebuggerEvalEvent::new(
             self.upcast(),
             code,
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
             frame_actor_id.map(|id| id.into()),
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerEvalEvent::new"
         );
     }

@@ -675,7 +675,7 @@ impl DedicatedWorkerGlobalScope {
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _bool_val) => {},
                 DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
                     self.debugger_global.fire_eval(
-                        CanGc::from_cx(cx),
+                        cx,
                         code.into(),
                         id,
                         Some(self.upcast::<WorkerGlobalScope>().worker_id()),
