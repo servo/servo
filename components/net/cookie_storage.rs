@@ -41,7 +41,7 @@ impl CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
-            accept_third_party_cookies: Default::default(),
+            accept_third_party_cookies: true,
         }
     }
 
