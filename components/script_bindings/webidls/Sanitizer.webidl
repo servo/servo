@@ -20,9 +20,9 @@ interface Sanitizer {
   SanitizerConfig get();
 
   // Modify a Sanitizer's lists and fields:
-  // boolean allowElement(SanitizerElementWithAttributes element);
-  // boolean removeElement(SanitizerElement element);
-  // boolean replaceElementWithChildren(SanitizerElement element);
+  boolean allowElement(SanitizerElementWithAttributes element);
+  boolean removeElement(SanitizerElement element);
+  boolean replaceElementWithChildren(SanitizerElement element);
   // boolean allowAttribute(SanitizerAttribute attribute);
   // boolean removeAttribute(SanitizerAttribute attribute);
   // boolean setComments(boolean allow);
