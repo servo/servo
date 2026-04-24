@@ -19,9 +19,10 @@ use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
 use crate::dom::bindings::codegen::UnionTypes::SanitizerConfigOrSanitizerPresets;
 use crate::dom::bindings::domname::is_valid_attribute_local_name;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::types::Console;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -359,9 +360,14 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
             if element.attributes().is_some() ||
                 !element.remove_attributes().unwrap_or_default().is_empty()
             {
-                // TODO:
                 // Step 5.1.1. The user agent may report a warning to the console that this
                 // operation is not supported.
+                Console::internal_warn(
+                    &self.global(),
+                    "Do not support adding an element with attributes to a sanitizer \
+                        whose configuration[\"elements\"] does not exist."
+                        .into(),
+                );
 
                 // Step 5.1.2. Return false.
                 return false;
