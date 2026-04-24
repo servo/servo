@@ -407,12 +407,14 @@ enum KeyCacheState {
     PendingBatch,
     /// We have some keys in the cache.
     Ready(Vec<WebRenderImageKey>),
+    /// Currently filling images from the KeyCache. No new keys will be requested.
+    Processing,
 }
 
 impl KeyCacheState {
     fn size(&self) -> usize {
         match self {
-            KeyCacheState::PendingBatch => 0,
+            KeyCacheState::PendingBatch | KeyCacheState::Processing => 0,
             KeyCacheState::Ready(items) => items.len(),
         }
     }
@@ -507,7 +509,7 @@ impl ImageCacheStore {
             }
         };
         match self.key_cache.cache {
-            KeyCacheState::PendingBatch => {
+            KeyCacheState::PendingBatch | KeyCacheState::Processing => {
                 self.key_cache.images_pending_keys.push_back(pending_image);
             },
             KeyCacheState::Ready(ref mut cache) => match cache.pop() {
@@ -540,7 +542,8 @@ impl ImageCacheStore {
 
     /// Insert received keys into the cache and complete the loading of images.
     fn insert_keys_and_load_images(&mut self, image_keys: Vec<WebRenderImageKey>) {
-        if let KeyCacheState::PendingBatch = self.key_cache.cache {
+        if let KeyCacheState::Processing = self.key_cache.cache {
+            // We can set this now to ready as we have the exclusive write access.
             self.key_cache.cache = KeyCacheState::Ready(image_keys);
             let len = min(
                 self.key_cache.cache.size(),
@@ -554,6 +557,7 @@ impl ImageCacheStore {
             for key in images {
                 self.load_image_with_keycache(key);
             }
+            // It is important to fetch new image keys as we might have missed previous returns.
             if !self.key_cache.images_pending_keys.is_empty() {
                 self.paint_api
                     .generate_image_key_async(self.webview_id, self.pipeline_id);
@@ -1194,9 +1198,19 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
-    fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {
-        let mut store = self.store.lock();
-        store.insert_keys_and_load_images(image_keys);
+    /// This method does not block
+    fn dispatch_fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<WebRenderImageKey>) {
+        // This is safe to do because of the following reason.
+        // The only way this can be in a unwelcome state is the following chain of events
+        // dispatch_fill_key -> get_image_key -> fetch_image_keys -> insert_keys_and_load_images.
+        // However, we ignore all calls for this when the state is set to processing. Returning
+        // the state to anything else enforces that we have the exclusive write access to the KeyCache.
+        self.store.lock().key_cache.cache = KeyCacheState::Processing;
+
+        let store = self.store.clone();
+        self.thread_pool.spawn(move || {
+            store.lock().insert_keys_and_load_images(image_keys);
+        });
     }
 
     fn get_broken_image_icon(&self) -> Option<Arc<RasterImage>> {

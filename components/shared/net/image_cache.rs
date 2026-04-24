@@ -240,5 +240,5 @@ pub trait ImageCache: Sync + Send {
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);
 
     /// Fills the image cache with a batch of keys.
-    fn fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<ImageKey>);
+    fn dispatch_fill_key_cache_with_batch_of_keys(&self, image_keys: Vec<ImageKey>);
 }
