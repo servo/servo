@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::Compressi
 use crate::dom::bindings::codegen::Bindings::DecompressionStreamBinding::DecompressionStreamMethods;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::stream::compressionstream::{BROTLI_BUFFER_SIZE, convert_chunk_to_vec};
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
@@ -59,17 +59,17 @@ impl DecompressionStream {
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         transform: &TransformStream,
         format: CompressionFormat,
-        can_gc: CanGc,
     ) -> DomRoot<DecompressionStream> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DecompressionStream::new_inherited(transform, format)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -77,9 +77,9 @@ impl DecompressionStream {
 impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
     /// <https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         format: CompressionFormat,
     ) -> Fallible<DomRoot<DecompressionStream>> {
         // Step 1. If format is unsupported in DecompressionStream, then throw a TypeError.
@@ -87,9 +87,9 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, can_gc);
+        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
         let decompression_stream =
-            DecompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
+            DecompressionStream::new_with_proto(cx, global, proto, &transform, format);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // decompress and enqueue a chunk algorithm with this and chunk.
@@ -99,8 +99,7 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
-        let cx = GlobalScope::get_cx();
-        transform.set_up(cx, global, transformer_type, can_gc)?;
+        transform.set_up(cx, global, transformer_type)?;
 
         Ok(decompression_stream)
     }

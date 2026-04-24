@@ -15,14 +15,14 @@ use crate::dom::bindings::codegen::Bindings::TextDecoderBinding;
 use crate::dom::bindings::codegen::Bindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{TransformStream, TransformStreamDefaultController};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
 #[expect(unsafe_code)]
@@ -122,25 +122,24 @@ impl TextDecoderStream {
     }
 
     fn new_with_proto(
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         encoding: &'static Encoding,
         fatal: bool,
         ignoreBOM: bool,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         let decoder = Rc::new(TextDecoderCommon::new_inherited(encoding, fatal, ignoreBOM));
         let transformer_type = TransformerType::Decoder(decoder.clone());
 
-        let transform_stream = TransformStream::new_with_proto(global, None, can_gc);
-        transform_stream.set_up(cx, global, transformer_type, can_gc)?;
+        let transform_stream = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
+        transform_stream.set_up(cx, global, transformer_type)?;
 
-        Ok(reflect_dom_object_with_proto(
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(TextDecoderStream::new_inherited(decoder, &transform_stream)),
             global,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -148,9 +147,9 @@ impl TextDecoderStream {
 impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textdecoderstream>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoderStream>> {
@@ -164,13 +163,12 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         };
 
         Self::new_with_proto(
-            GlobalScope::get_cx(),
+            cx,
             global,
             proto,
             encoding,
             options.fatal,
             options.ignoreBOM,
-            can_gc,
         )
     }
 

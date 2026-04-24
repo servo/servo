@@ -23,13 +23,14 @@ use script_bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
+use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{GlobalScope, TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::{DomTypeHolder, DomTypes};
 
 /// String converted from an input JS Value
 enum ConvertedInput<'a> {
@@ -341,10 +342,9 @@ impl TextEncoderStream {
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoderstream>
     fn new_with_proto(
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoderStream>> {
         // Step 1. Set this’s encoder to an instance of the UTF-8 encoder.
         let encoder = Encoder::default();
@@ -356,29 +356,29 @@ impl TextEncoderStream {
         let transformer_type = TransformerType::Encoder(encoder);
 
         // Step 4. Let transformStream be a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, can_gc);
+        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
         // Step 5. Set up transformStream with transformAlgorithm set to transformAlgorithm
         //      and flushAlgorithm set to flushAlgorithm.
-        transform.set_up(cx, global, transformer_type, can_gc)?;
+        transform.set_up(cx, global, transformer_type)?;
 
         // Step 6. Set this’s transform to transformStream.
-        Ok(reflect_dom_object_with_proto(
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(TextEncoderStream::new_inherited(&transform)),
             global,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
 
-impl TextEncoderStreamMethods<DomTypeHolder> for TextEncoderStream {
+impl TextEncoderStreamMethods<crate::DomTypeHolder> for TextEncoderStream {
     /// <https://encoding.spec.whatwg.org/#dom-textencoderstream>
     fn Constructor(
-        global: &<DomTypeHolder as DomTypes>::GlobalScope,
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<<DomTypeHolder as DomTypes>::TextEncoderStream>> {
-        TextEncoderStream::new_with_proto(GlobalScope::get_cx(), global, proto, can_gc)
+    ) -> Fallible<DomRoot<TextEncoderStream>> {
+        TextEncoderStream::new_with_proto(cx, global, proto)
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
@@ -388,12 +388,12 @@ impl TextEncoderStreamMethods<DomTypeHolder> for TextEncoderStream {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>
-    fn Readable(&self) -> DomRoot<<DomTypeHolder as DomTypes>::ReadableStream> {
+    fn Readable(&self) -> DomRoot<ReadableStream> {
         self.transform.get_readable()
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-writable>
-    fn Writable(&self) -> DomRoot<<DomTypeHolder as DomTypes>::WritableStream> {
+    fn Writable(&self) -> DomRoot<WritableStream> {
         self.transform.get_writable()
     }
 }

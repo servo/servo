@@ -29,7 +29,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{AbortController, AbortSignal, TransformStream};
-use crate::realms::{InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for CloseAlgorithmFulfillmentHandler {}
@@ -442,10 +442,9 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     pub(crate) fn setup(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         stream: &WritableStream,
-        can_gc: CanGc,
     ) -> Result<(), Error> {
         // Assert: stream implements WritableStream.
         // Implied by stream type.
@@ -481,21 +480,21 @@ impl WritableStreamDefaultController {
         let backpressure = self.get_backpressure();
 
         // Perform ! WritableStreamUpdateBackpressure(stream, backpressure).
-        stream.update_backpressure(backpressure, global, can_gc);
+        stream.update_backpressure(backpressure, global, CanGc::from_cx(cx));
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
-        let start_promise = self.start_algorithm(cx, global, can_gc)?;
+        let start_promise = self.start_algorithm(cx.into(), global, CanGc::from_cx(cx))?;
 
         let rooted_default_controller = DomRoot::from_ref(self);
 
         // Upon fulfillment of startPromise,
-        rooted!(in(*cx) let mut fulfillment_handler = Some(StartAlgorithmFulfillmentHandler {
+        rooted!(&in(cx) let mut fulfillment_handler = Some(StartAlgorithmFulfillmentHandler {
             controller: Dom::from_ref(&rooted_default_controller),
         }));
 
         // Upon rejection of startPromise with reason r,
-        rooted!(in(*cx) let mut rejection_handler = Some(StartAlgorithmRejectionHandler {
+        rooted!(&in(cx) let mut rejection_handler = Some(StartAlgorithmRejectionHandler {
             controller: Dom::from_ref(&rooted_default_controller),
         }));
 
@@ -503,11 +502,14 @@ impl WritableStreamDefaultController {
             global,
             fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
             rejection_handler.take().map(|h| Box::new(h) as Box<_>),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        let realm = enter_realm(global);
-        let comp = InRealm::Entered(&realm);
-        start_promise.append_native_handler(&handler, comp, can_gc);
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
+        start_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
 
         Ok(())
     }
