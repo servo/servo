@@ -179,7 +179,7 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn fire_eval(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         code: DOMString,
         debuggee_pipeline_id: PipelineId,
         debuggee_worker_id: Option<WorkerId>,
