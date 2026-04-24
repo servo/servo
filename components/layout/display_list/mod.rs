@@ -1902,10 +1902,21 @@ impl<'a> BuilderForBoxFragment<'a> {
             );
             let spread = box_shadow.spread.px();
             let blur = box_shadow.base.blur.px();
-            let shifted = rect.translate(offset);
-            let spread_rect = shifted.inflate(spread, spread);
-            let shadow_rect = spread_rect.inflate(blur, blur);
-            let common = builder.common_properties(rect.union(&shadow_rect), &style);
+            // Match webrender's `fn add_box_shadow` in box_shadow.rs logic:
+            //
+            // shadow_rect = rect.translate(offset).inflate(spread_amount, spread_amount)
+            // blur_offset = (BLUR_SAMPLE_SCALE * blur).ceil()  (BLUR_SAMPLE_SCALE = 3.0)
+            // dest_rect = shadow_rect.inflate(blur_offset, blur_offset)
+            let spread_amount = match clip_mode {
+                BoxShadowClipMode::Outset => spread,
+                BoxShadowClipMode::Inset => -spread,
+            };
+            let blur_offset = (blur * 3.0).ceil();
+            let dest_rect = rect
+                .translate(offset)
+                .inflate(spread_amount, spread_amount)
+                .inflate(blur_offset, blur_offset);
+            let common = builder.common_properties(rect.union(&dest_rect), &style);
 
             builder.wr().push_box_shadow(
                 &common,
