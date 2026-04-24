@@ -1902,21 +1902,24 @@ impl<'a> BuilderForBoxFragment<'a> {
             );
             let spread = box_shadow.spread.px();
             let blur = box_shadow.base.blur.px();
-            // Match webrender's `fn add_box_shadow` in box_shadow.rs logic:
-            //
-            // shadow_rect = rect.translate(offset).inflate(spread_amount, spread_amount)
-            // blur_offset = (BLUR_SAMPLE_SCALE * blur).ceil()  (BLUR_SAMPLE_SCALE = 3.0)
-            // dest_rect = shadow_rect.inflate(blur_offset, blur_offset)
-            let spread_amount = match clip_mode {
-                BoxShadowClipMode::Outset => spread,
-                BoxShadowClipMode::Inset => -spread,
+            let clip_rect = match clip_mode {
+                // Inset shadows are always inside the rect.
+                BoxShadowClipMode::Inset => rect,
+                // Match webrender's `fn add_box_shadow` in box_shadow.rs logic:
+                //
+                // shadow_rect = rect.translate(offset).inflate(spread_amount, spread_amount)
+                // blur_offset = (BLUR_SAMPLE_SCALE * blur).ceil()  (BLUR_SAMPLE_SCALE = 3.0)
+                // dest_rect = shadow_rect.inflate(blur_offset, blur_offset)
+                BoxShadowClipMode::Outset => {
+                    let blur_offset = (blur * 3.0).ceil();
+                    let dest_rect = rect
+                        .translate(offset)
+                        .inflate(spread, spread)
+                        .inflate(blur_offset, blur_offset);
+                    rect.union(&dest_rect)
+                },
             };
-            let blur_offset = (blur * 3.0).ceil();
-            let dest_rect = rect
-                .translate(offset)
-                .inflate(spread_amount, spread_amount)
-                .inflate(blur_offset, blur_offset);
-            let common = builder.common_properties(rect.union(&dest_rect), &style);
+            let common = builder.common_properties(clip_rect, &style);
 
             builder.wr().push_box_shadow(
                 &common,
