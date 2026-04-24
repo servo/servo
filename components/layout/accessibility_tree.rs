@@ -99,30 +99,24 @@ impl AccessibilityTree {
             accesskit_node.set_children(new_children);
         }
 
-        match dom_node.type_id() {
-            Some(LayoutNodeType::Text) => {
-                accesskit_node.set_role(Role::TextRun);
-                let text_content = dom_node.text_content();
-                trace!("node text content = {text_content:?}");
-                // FIXME: this should take into account editing selection units (grapheme clusters?)
-                accesskit_node.set_value(&*text_content);
-            },
-            Some(LayoutNodeType::Element(_)) => {
-                let dom_element = dom_node
-                    .as_element()
-                    .expect("Should be able to convert to DOMLayoutElement based on type");
-                let local_name = dom_element.local_name().to_ascii_lowercase();
-                accesskit_node.set_html_tag(&*local_name);
-                if let Some(role) = HTML_ELEMENT_ROLE_MAPPINGS.get(&local_name) {
-                    accesskit_node.set_role(*role);
-                } else {
-                    accesskit_node.set_role(Role::GenericContainer);
-                }
-            },
-            None => {
-                accesskit_node.set_role(Role::GenericContainer);
-            },
+        if let Some(dom_element) = dom_node.as_element() {
+            accesskit_node.set_role(Role::GenericContainer);
+            let local_name = dom_element.local_name().to_ascii_lowercase();
+            accesskit_node.set_html_tag(&*local_name);
+            let role = HTML_ELEMENT_ROLE_MAPPINGS
+                .get(&local_name)
+                .unwrap_or(&Role::GenericContainer);
+            accesskit_node.set_role(*role);
+        } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
+            accesskit_node.set_role(Role::TextRun);
+            let text_content = dom_node.text_content();
+            trace!("node text content = {text_content:?}");
+            // FIXME: this should take into account editing selection units (grapheme clusters?)
+            accesskit_node.set_value(&*text_content);
+        } else {
+            accesskit_node.set_role(Role::GenericContainer);
         }
+
         // TODO: only return true if any update actually happened
         (node.id, true)
     }
