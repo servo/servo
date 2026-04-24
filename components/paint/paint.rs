@@ -422,9 +422,9 @@ impl Paint {
                     );
                 }
             },
-            PaintMessage::ScrollViewportByDelta(webview_id, delta) => {
+            PaintMessage::ScrollViewportByDelta(webview_id, delta, scroll_type) => {
                 if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
-                    painter.scroll_viewport_by_delta(webview_id, delta);
+                    painter.scroll_viewport_by_delta(webview_id, delta, scroll_type);
                 }
             },
             PaintMessage::UpdateEpoch {

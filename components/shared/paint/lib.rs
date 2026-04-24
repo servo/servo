@@ -113,10 +113,9 @@ pub enum PaintMessage {
         LayoutVector2D,
         ExternalScrollId,
     ),
-    /// Scroll the WebView's viewport by the given delta. This will also do panning
-    /// in the pinch zoom viewport if possible and the remaining delta will be used
-    /// to scroll the root layer.
-    ScrollViewportByDelta(WebViewId, LayoutVector2D),
+    /// Scroll the WebView's viewport by the given delta. Could be configured to limit
+    /// scroll to panning in the pinch zoom viewport, or with root layer.
+    ScrollViewportByDelta(WebViewId, LayoutVector2D, WebViewViewportScrollType),
     /// Update the rendering epoch of the given `Pipeline`.
     UpdateEpoch {
         /// The [`WebViewId`] that this display list belongs to.
@@ -295,11 +294,17 @@ impl CrossProcessPaintApi {
     ///
     /// Note the value provided here is in `DeviceIndependentPixels` and will first be
     /// converted to `DevicePixels` by the renderer.
-    pub fn scroll_viewport_by_delta(&self, webview_id: WebViewId, delta: LayoutVector2D) {
-        if let Err(error) = self
-            .0
-            .send(PaintMessage::ScrollViewportByDelta(webview_id, delta))
-        {
+    pub fn scroll_viewport_by_delta(
+        &self,
+        webview_id: WebViewId,
+        delta: LayoutVector2D,
+        scroll_type: WebViewViewportScrollType,
+    ) {
+        if let Err(error) = self.0.send(PaintMessage::ScrollViewportByDelta(
+            webview_id,
+            delta,
+            scroll_type,
+        )) {
             warn!("Error scroll viewport: {error}");
         }
     }
@@ -840,4 +845,13 @@ impl PinchZoomInfos {
             rect: Rect::from_size(size),
         }
     }
+}
+
+/// The scroll operation type for [`PaintMessage::ScrollViewportByDelta`].
+#[derive(Deserialize, IntoStaticStr, PartialEq, Serialize)]
+pub enum WebViewViewportScrollType {
+    /// Do pinch zoom panning and the remaining delta will be used to scroll the root layer.
+    Whole,
+    /// Do pinch zoom panning only.
+    PinchZoomOnly,
 }

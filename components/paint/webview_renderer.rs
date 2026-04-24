@@ -19,7 +19,7 @@ use paint_api::display_list::ScrollType;
 use paint_api::viewport_description::{
     DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, ViewportDescription,
 };
-use paint_api::{PipelineExitSource, SendableFrameTree, WebViewTrait};
+use paint_api::{PipelineExitSource, SendableFrameTree, WebViewTrait, WebViewViewportScrollType};
 use rustc_hash::FxHashMap;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_constellation_traits::{
@@ -913,6 +913,7 @@ impl WebViewRenderer {
     pub(crate) fn scroll_viewport_by_delta(
         &mut self,
         delta: LayoutVector2D,
+        scroll_type: WebViewViewportScrollType,
     ) -> (PinchZoomResult, Vec<ScrollResult>) {
         let device_pixels_per_page_pixel = self.device_pixels_per_page_pixel();
         let delta_in_device_pixels = delta.cast_unit() * device_pixels_per_page_pixel;
@@ -925,7 +926,13 @@ impl WebViewRenderer {
             true => PinchZoomResult::DidNotPinchZoom,
             false => PinchZoomResult::DidPinchZoom,
         };
-        if remaining == Vector2D::zero() {
+
+        if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
+            self.send_pinch_zoom_infos_to_script();
+        }
+
+        if scroll_type == WebViewViewportScrollType::PinchZoomOnly || remaining == Vector2D::zero()
+        {
             return (pinch_zoom_result, vec![]);
         }
 
@@ -955,10 +962,6 @@ impl WebViewRenderer {
         };
 
         self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
-
-        if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
-            self.send_pinch_zoom_infos_to_script();
-        }
 
         let scroll_result = ScrollResult {
             hit_test_result,

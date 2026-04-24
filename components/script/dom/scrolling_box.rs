@@ -244,7 +244,7 @@ impl ScrollingBox {
 
     /// Step 10 from <https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position>:
     // TODO: we are not considering the coordinate system of the element while deciding the scroll position.
-    fn calculate_scroll_position_one_axis(
+    pub(crate) fn calculate_scroll_position_one_axis(
         state: ScrollAxisState,
         element_start: f32,
         element_end: f32,

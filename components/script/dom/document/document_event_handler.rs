@@ -26,6 +26,7 @@ use js::context::JSContext;
 use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
+use paint_api::WebViewViewportScrollType;
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
@@ -2311,9 +2312,11 @@ impl DocumentEventHandler {
         let parent_pipeline = self.window.parent_info();
         if scrolling_box.is_viewport() && parent_pipeline.is_none() {
             let (_, delta) = calculate_current_scroll_offset_and_delta();
-            self.window
-                .paint_api()
-                .scroll_viewport_by_delta(self.window.webview_id(), delta);
+            self.window.paint_api().scroll_viewport_by_delta(
+                self.window.webview_id(),
+                delta,
+                WebViewViewportScrollType::Whole,
+            );
         }
 
         // If this is the viewport and we cannot scroll, try to ask a parent viewport to scroll,

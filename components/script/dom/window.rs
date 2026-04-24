@@ -3191,6 +3191,10 @@ impl Window {
         self.viewport_details.get()
     }
 
+    pub(crate) fn get_visual_viewport(&self) -> Option<DomRoot<VisualViewport>> {
+        self.visual_viewport.get()
+    }
+
     pub(crate) fn get_or_init_visual_viewport(&self, can_gc: CanGc) -> DomRoot<VisualViewport> {
         self.visual_viewport.or_init(|| {
             VisualViewport::new_from_layout_viewport(self, self.viewport_details().size, can_gc)
