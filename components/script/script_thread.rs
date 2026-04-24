@@ -3723,11 +3723,13 @@ impl ScriptThread {
             return;
         }
 
-        let document = self
-            .documents
-            .borrow()
-            .find_document(pipeline_id)
-            .expect("Got pipeline_id from self.documents");
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            if active {
+                error!("Trying to set accessibility active on stale document: {pipeline_id}");
+            }
+            return;
+        };
+
         document
             .window()
             .layout()
