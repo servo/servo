@@ -191,7 +191,7 @@ impl DebuggerGlobalScope {
                 .replace(Some(result_sender))
                 .is_none()
         );
-        let _realm = enter_realm(self);
+        let _realm = enter_auto_realm(cx, self);
         let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
             self.upcast(),
             debuggee_pipeline_id,
