@@ -14,6 +14,7 @@ use embedder_traits::JavaScriptErrorInfo;
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::error::{throw_range_error, throw_type_error};
+use js::gc::{HandleObject, HandleValue, MutableHandleValue};
 #[cfg(feature = "js_backtrace")]
 use js::jsapi::StackFormat as JSStackFormat;
 use js::jsapi::{ExceptionStackBehavior, JS_ClearPendingException, JS_IsExceptionPending};
@@ -21,7 +22,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
 use js::rust::wrappers2::JS_GetProperty;
-use js::rust::{HandleObject, HandleValue, MutableHandleValue, describe_scripted_caller};
+use js::rust::{describe_scripted_caller, error_info_from_exception_stack};
 use libc::c_uint;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
@@ -348,28 +349,34 @@ impl ErrorInfo {
 /// Report a pending exception, thereby clearing it.
 pub(crate) fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
     rooted!(in(*cx) let mut value = UndefinedValue());
-    if take_pending_exception(cx, value.handle_mut()) {
-        GlobalScope::from_safe_context(cx, realm).report_an_exception(cx, value.handle(), can_gc);
+    if let Some(error_info) = error_info_from_pending_exception(cx, value.handle_mut(), can_gc) {
+        GlobalScope::from_safe_context(cx, realm).report_an_error(
+            error_info,
+            value.handle(),
+            can_gc,
+        );
     }
 }
 
-fn take_pending_exception(cx: SafeJSContext, value: MutableHandleValue) -> bool {
+fn error_info_from_pending_exception(
+    cx: SafeJSContext,
+    value: MutableHandleValue,
+    _can_gc: CanGc,
+) -> Option<ErrorInfo> {
     unsafe {
         if !JS_IsExceptionPending(*cx) {
-            return false;
-        }
-    }
-
-    unsafe {
-        if !JS_GetPendingException(*cx, value) {
-            JS_ClearPendingException(*cx);
-            error!("Uncaught exception: JS_GetPendingException failed");
-            return false;
+            return None;
         }
 
-        JS_ClearPendingException(*cx);
+        let error_info = error_info_from_exception_stack(*cx, value.into())?;
+
+        Some(ErrorInfo {
+            message: error_info.message,
+            filename: error_info.filename,
+            lineno: error_info.line,
+            column: error_info.col,
+        })
     }
-    true
 }
 
 pub(crate) fn javascript_error_info_from_error_info(
@@ -417,11 +424,9 @@ pub(crate) fn take_and_report_pending_exception_for_api(
     let in_realm = InRealm::Already(&in_realm_proof);
 
     rooted!(&in(cx) let mut value = UndefinedValue());
-    if !take_pending_exception(cx.into(), value.handle_mut()) {
-        return None;
-    }
+    let error_info =
+        error_info_from_pending_exception(cx.into(), value.handle_mut(), CanGc::from_cx(cx))?;
 
-    let error_info = ErrorInfo::from_value(value.handle(), cx.into(), CanGc::from_cx(cx));
     let return_value = javascript_error_info_from_error_info(cx, &error_info, value.handle());
     GlobalScope::from_safe_context(cx.into(), in_realm).report_an_error(
         error_info,
