@@ -9,7 +9,6 @@ use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLSyncId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
