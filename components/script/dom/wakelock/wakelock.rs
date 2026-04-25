@@ -92,7 +92,7 @@ impl RoutedPromiseListener<AllowOrDeny> for WakeLock {
                 let global = self.global();
                 global.as_window().send_to_constellation(
                     ScriptToConstellationMessage::AcquireWakeLock(
-                        servo_wakelock::WakeLockType::Screen,
+                        embedder_traits::WakeLockType::Screen,
                     ),
                 );
 

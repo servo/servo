@@ -111,8 +111,8 @@ use embedder_traits::{
     GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverLoadStatus, WebDriverScriptCommand,
+    NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
+    WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -168,7 +168,6 @@ use servo_constellation_traits::{
     TraversalDirection, UserContentManagerAction, WindowSizeType,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use servo_wakelock::{WakeLockProvider, WakeLockType};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
@@ -493,7 +492,7 @@ pub struct Constellation<STF, SWF> {
     screen_wake_lock_count: u32,
 
     /// Provider for OS-level screen wake lock acquisition and release.
-    wake_lock_provider: Box<dyn WakeLockProvider>,
+    wake_lock_provider: Box<dyn WakeLockDelegate>,
 
     /// The image bytes associated with the BrokenImageIcon embedder resource.
     /// Read during startup and provided to image caches that are created
@@ -594,7 +593,7 @@ pub struct InitialConstellationState {
     pub async_runtime: Box<dyn AsyncRuntime>,
 
     /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
-    pub wake_lock_provider: Box<dyn WakeLockProvider>,
+    pub wake_lock_provider: Box<dyn WakeLockDelegate>,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not. A normal exit

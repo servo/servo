@@ -8886,6 +8886,7 @@ name = "servo-wakelock"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "servo-embedder-traits",
 ]
 
 [[package]]
