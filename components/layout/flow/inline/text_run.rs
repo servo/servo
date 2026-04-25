@@ -235,7 +235,20 @@ impl TextRunSegment {
                 uax_linebreak_encountered &= ifc.process_soft_wrap_opportunity(); // If false is returned, then it means linebreak occurs & we're at a new line.
             }
 
-            ifc.push_glyph_store_to_unbreakable_segment(run.clone(), text_run, &self.info, offsets);
+            if run.get_uax_linebreak_flag() ||
+                (!run.get_uax_linebreak_flag() && !uax_linebreak_encountered)
+            {
+                ifc.push_uncommited_glyph_stores_to_current_line_segment(text_run, &self.info);
+                ifc.push_glyph_store_to_unbreakable_segment(
+                    run.clone(),
+                    text_run,
+                    &self.info,
+                    offsets,
+                );
+            } else {
+                ifc.uncommited_glyph_stores
+                    .push((run.clone(), offsets.clone()));
+            }
             character_range_start = new_character_range_end;
         }
 

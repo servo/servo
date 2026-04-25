@@ -815,7 +815,7 @@ impl LineItem {
     }
 }
 
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct TextRunOffsets {
     /// The selection range of the containing inline formatting context.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]

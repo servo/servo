@@ -847,6 +847,20 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// Information about the unbreakable line segment currently being laid out into [`LineItem`]s.
     current_line_segment: UnbreakableSegmentUnderConstruction,
 
+    /// When a glyph store doesn't end with a UAX#14 linebreak opportunity,
+    /// don't push it to [`InlineFormattingContextLayout::current_line_segment`] yet.
+    /// To explain why, it is best to use an example:
+    ///
+    /// ```html
+    /// <div style="overflow-wrap: anywhere; word-break: break-spaces; width: 4ch"> XXXX</div
+    /// ```
+    ///
+    /// In the above example, the first line should only have the first whitespace character, while the second line contains the remaining (XXXX).
+    /// However, if we immediately push each "X"'s [`GlyphStore`], then the first line will be " XXX" and the second line will be "X", which is wrong.
+    ///
+    /// Therefore, if a glyph store doesn't end with a UAX#14 linebreak opportunity, temporarily store it here.
+    pub uncommited_glyph_stores: Vec<(Arc<GlyphStore>, Option<TextRunOffsets>)>,
+
     /// After a forced line break (for instance from a `<br>` element) we wait to actually
     /// break the line until seeing more content. This allows ongoing inline boxes to finish,
     /// since in the case where they have no more content they should not be on the next
@@ -899,6 +913,34 @@ struct InlineFormattingContextLayout<'layout_data> {
 }
 
 impl InlineFormattingContextLayout<'_> {
+    fn get_inline_advance_of_uncommited_glyph_stores(&self) -> Au {
+        let mut total_inline_advance = Au(0);
+        for (uncommited_glyph_store, _) in &self.uncommited_glyph_stores {
+            total_inline_advance += uncommited_glyph_store.total_advance();
+        }
+
+        total_inline_advance
+    }
+
+    fn push_uncommited_glyph_stores_to_current_line_segment(
+        &mut self,
+        text_run: &TextRun,
+        info: &Arc<FontAndScriptInfo>,
+    ) {
+        for i in 0..self.uncommited_glyph_stores.len() {
+            let (uncommited_glyph_store, uncommited_text_run_offset) =
+                &self.uncommited_glyph_stores[i];
+            self.push_glyph_store_to_unbreakable_segment(
+                uncommited_glyph_store.clone(),
+                text_run,
+                info,
+                uncommited_text_run_offset.clone(),
+            );
+        }
+
+        self.uncommited_glyph_stores = Vec::new();
+    }
+
     fn current_inline_container_state(&self) -> &InlineContainerState {
         match self.inline_box_state_stack.last() {
             Some(inline_box_state) => &inline_box_state.base,
@@ -1718,11 +1760,12 @@ impl InlineFormattingContextLayout<'_> {
     fn unbreakable_segment_fits_on_line(&mut self) -> bool {
         let potential_line_size = LogicalVec2 {
             inline: self.current_line.inline_position + self.current_line_segment.inline_size -
-                self.current_line_segment.trailing_whitespace_size,
+                self.current_line_segment.trailing_whitespace_size +
+                self.get_inline_advance_of_uncommited_glyph_stores(),
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
-                .resolve(),
+                .resolve(), // TODO(rtjkro): This function should also consider the max_block_size from uncommited glyph stores too.
         };
 
         !self.new_potential_line_size_causes_line_break(&potential_line_size)
@@ -2016,6 +2059,7 @@ impl InlineFormattingContext {
             inline_box_state_stack: Vec::new(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
+            uncommited_glyph_stores: Vec::new(),
             force_line_break_before_new_content: None,
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
