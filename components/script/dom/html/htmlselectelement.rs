@@ -904,8 +904,8 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
-        self.super_type().unwrap().handle_event(event, can_gc);
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
+        self.super_type().unwrap().handle_event(cx, event);
         if let Some(event) = event.downcast::<FocusEvent>() {
             if *event.upcast::<Event>().type_() != *"blur" {
                 self.owner_document()
@@ -976,7 +976,12 @@ impl Activatable for HTMLSelectElement {
         !self.upcast::<Element>().disabled_state()
     }
 
-    fn activation_behavior(&self, event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        event: &Event,
+        _target: &EventTarget,
+    ) {
         if !event.IsTrusted() {
             return;
         }

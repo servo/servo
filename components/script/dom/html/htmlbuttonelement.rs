@@ -479,7 +479,12 @@ impl Activatable for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:activation-behaviour>
-    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        event: &Event,
+        target: &EventTarget,
+    ) {
         // Step 2. If element's node document is not fully active, then return.
         if !target
             .downcast::<Node>()
@@ -497,14 +502,14 @@ impl Activatable for HTMLButtonElement {
                 owner.submit(
                     SubmittedFrom::NotFromForm,
                     FormSubmitterElement::Button(self),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 return;
             }
             // Step 3.2 If element's type attribute is in the Reset Button state, then reset
             // element's form owner and return.
             if button_type == ButtonType::Reset {
-                owner.reset(ResetFrom::NotFromForm, can_gc);
+                owner.reset(ResetFrom::NotFromForm, CanGc::from_cx(cx));
                 return;
             }
             // Step 3.3 If element's type attribute is in the Auto state, then return.
@@ -527,7 +532,7 @@ impl Activatable for HTMLButtonElement {
                 parent
                     .downcast::<HTMLInputElement>()
                     .expect("File select button should always be a child of an input element")
-                    .activation_behavior(event, target, can_gc);
+                    .activation_behavior(cx, event, target);
             }
 
             return;
@@ -556,10 +561,10 @@ impl Activatable for HTMLButtonElement {
                 Some(DomRoot::from_ref(self.upcast())),
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("command")),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             let event = event.upcast::<Event>();
-            if !event.fire(target.upcast::<EventTarget>(), can_gc) {
+            if !event.fire(target.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
                 return;
             }
             // Step 5.5 If target is not connected, then return.
@@ -574,7 +579,11 @@ impl Activatable for HTMLButtonElement {
             // TODO Steps 5.7, 5.8, 5.9
             // Step 5.10 Otherwise, if this standard defines command steps for target's local name,
             // then run the corresponding command steps given target, element, and command.
-            let _ = vtable_for(target_node).command_steps(DomRoot::from_ref(self), command, can_gc);
+            let _ = vtable_for(target_node).command_steps(
+                DomRoot::from_ref(self),
+                command,
+                CanGc::from_cx(cx),
+            );
         }
         // TODO Step 6 Otherwise, run the popover target attribute activation behavior given element
         // and event's target.

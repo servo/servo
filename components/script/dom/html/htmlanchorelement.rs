@@ -346,7 +346,12 @@ impl Activatable for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour>
-    fn activation_behavior(&self, event: &Event, target: &EventTarget, _: CanGc) {
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        event: &Event,
+        target: &EventTarget,
+    ) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;

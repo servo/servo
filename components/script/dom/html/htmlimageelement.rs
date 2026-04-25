@@ -2074,7 +2074,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if event.type_() != atom!("click") {
             return;
         }
@@ -2095,7 +2095,9 @@ impl VirtualMethods for HTMLImageElement {
             mouse_event.ClientX().to_f32().unwrap(),
             mouse_event.ClientY().to_f32().unwrap(),
         );
-        let bcr = self.upcast::<Element>().GetBoundingClientRect(can_gc);
+        let bcr = self
+            .upcast::<Element>()
+            .GetBoundingClientRect(CanGc::from_cx(cx));
         let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
 
         // Walk HTMLAreaElements
@@ -2106,7 +2108,7 @@ impl VirtualMethods for HTMLImageElement {
                 None => return,
             };
             if shp.hit_test(&point) {
-                element.activation_behavior(event, self.upcast(), can_gc);
+                element.activation_behavior(cx, event, self.upcast());
                 return;
             }
         }
