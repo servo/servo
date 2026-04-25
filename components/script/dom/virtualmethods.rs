@@ -149,9 +149,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// Called during event dispatch after the bubbling phase completes.
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event, can_gc);
+            s.handle_event(cx, event);
         }
     }
 

@@ -1450,7 +1450,12 @@ impl Activatable for HTMLElement {
     }
 
     // Basically used to make the HTMLSummaryElement activatable (which has no IDL definition)
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
         self.summary_activation_behavior();
     }
 }

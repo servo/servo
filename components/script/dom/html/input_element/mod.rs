@@ -2225,7 +2225,7 @@ impl VirtualMethods for HTMLInputElement {
     // Compare:
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
             event.mark_as_handled();
@@ -2237,7 +2237,7 @@ impl VirtualMethods for HTMLInputElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
-                self.handle_key_reaction(action, event, can_gc);
+                self.handle_key_reaction(action, event, CanGc::from_cx(cx));
             }
         } else if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
@@ -2250,7 +2250,7 @@ impl VirtualMethods for HTMLInputElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(action, event, can_gc);
+                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
@@ -2258,7 +2258,7 @@ impl VirtualMethods for HTMLInputElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(action, event, can_gc);
+                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionstart") {
@@ -2277,7 +2277,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.owner_document().event_handler().fire_clipboard_event(
                     None,
                     ClipboardEventType::Change,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
@@ -2296,10 +2296,10 @@ impl VirtualMethods for HTMLInputElement {
             self.handle_focus_event(event)
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
 
         if let Some(super_type) = self.super_type() {
-            super_type.handle_event(event, can_gc);
+            super_type.handle_event(cx, event);
         }
     }
 
@@ -2487,10 +2487,18 @@ impl Activatable for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
-    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc) {
-        self.input_type()
-            .as_specific()
-            .activation_behavior(self, event, target, can_gc)
+    fn activation_behavior(
+        &self,
+        _cx: &mut js::context::JSContext,
+        event: &Event,
+        target: &EventTarget,
+    ) {
+        self.input_type().as_specific().activation_behavior(
+            self,
+            event,
+            target,
+            CanGc::from_cx(_cx),
+        );
     }
 }
 

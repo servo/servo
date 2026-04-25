@@ -315,6 +315,11 @@ impl Event {
         legacy_output_did_listeners_throw: Option<&Cell<bool>>,
         can_gc: CanGc,
     ) -> bool {
+        // TODO https://github.com/servo/servo/issues/43234
+        #[allow(unsafe_code)]
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
         // > must perform the following activation notification steps before dispatching the event:
         // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
@@ -648,12 +653,12 @@ impl Event {
                 // navigation) should use the element the event was originally fired on.
                 if let Some(node) = original_target.downcast::<Node>() {
                     let vtable = vtable_for(node);
-                    vtable.handle_event(self, can_gc);
+                    vtable.handle_event(cx, self);
                 }
             } else if let Some(target) = self.GetTarget() {
                 if let Some(node) = target.downcast::<Node>() {
                     let vtable = vtable_for(node);
-                    vtable.handle_event(self, can_gc);
+                    vtable.handle_event(cx, self);
                 }
             }
         }
@@ -688,7 +693,7 @@ impl Event {
                 // Step 12.1. If event’s canceled flag is unset, then run activationTarget’s
                 // activation behavior with event.
                 if !self.DefaultPrevented() {
-                    activatable.activation_behavior(self, &target, can_gc);
+                    activatable.activation_behavior(cx, self, &target);
                 }
                 // Step 12.2. Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
                 // activationTarget’s legacy-canceled-activation behavior.

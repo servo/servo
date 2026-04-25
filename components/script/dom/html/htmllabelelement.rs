@@ -75,9 +75,14 @@ impl Activatable for HTMLLabelElement {
     // at all, we are free to do an implementation-dependent thing;
     // firing a click event is an example, and the precise details of that
     // click event (e.g. isTrusted) are not specified.
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
         if let Some(e) = self.GetControl() {
-            e.Click(can_gc);
+            e.Click(CanGc::from_cx(cx));
         }
     }
 }

@@ -734,7 +734,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     // copied and modified from htmlinputelement.rs
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
             event.mark_as_handled();
@@ -743,7 +743,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyboard_event);
-                self.handle_key_reaction(action, event, can_gc);
+                self.handle_key_reaction(action, event, CanGc::from_cx(cx));
             }
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
@@ -755,14 +755,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(action, event, can_gc);
+                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(action, event, can_gc);
+                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();
@@ -779,7 +779,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 self.owner_document().event_handler().fire_clipboard_event(
                     None,
                     ClipboardEventType::Change,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
@@ -792,17 +792,17 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
             if !flags.is_empty() {
                 event.mark_as_handled();
-                self.handle_text_content_changed(can_gc);
+                self.handle_text_content_changed(CanGc::from_cx(cx));
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(event);
         }
 
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
         if let Some(super_type) = self.super_type() {
-            super_type.handle_event(event, can_gc);
+            super_type.handle_event(cx, event);
         }
     }
 
