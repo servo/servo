@@ -41,7 +41,7 @@ impl HTMLBodyElement {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -73,11 +73,14 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     make_getter!(Background, "background");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-body-background>
-    fn SetBackground(&self, input: DOMString, can_gc: CanGc) {
+    fn SetBackground(&self, cx: &mut JSContext, input: DOMString) {
         let value =
             AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());
-        self.upcast::<Element>()
-            .set_attribute(&local_name!("background"), value, can_gc);
+        self.upcast::<Element>().set_attribute(
+            &local_name!("background"),
+            value,
+            CanGc::from_cx(cx),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
@@ -146,12 +149,7 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn attribute_mutated(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-        mutation: AttributeMutation,
-    ) {
+    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(..)) if name.starts_with("on") => {
                 let document = self.owner_document();

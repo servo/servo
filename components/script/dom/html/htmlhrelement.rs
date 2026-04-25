@@ -62,7 +62,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_getter!(Align, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-align
-    make_atomic_setter!(SetAlign, "align");
+    make_atomic_setter!(cx, SetAlign, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
     make_getter!(Color, "color");
@@ -74,19 +74,19 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_bool_getter!(NoShade, "noshade");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-noshade
-    make_bool_setter!(SetNoShade, "noshade");
+    make_bool_setter!(cx, SetNoShade, "noshade");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-size
     make_getter!(Size, "size");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-size
-    make_dimension_setter!(SetSize, "size");
+    make_dimension_setter!(cx, SetSize, "size");
 
     // <https://html.spec.whatwg.org/multipage/#dom-hr-width>
     make_getter!(Width, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-hr-width>
-    make_dimension_setter!(SetWidth, "width");
+    make_dimension_setter!(cx, SetWidth, "width");
 }
 
 /// The result of applying the presentational hint for the `size` attribute.
