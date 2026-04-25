@@ -710,14 +710,16 @@ impl Document {
                 self.root_removal_noted.set(false);
 
                 if let Some(dirty_root) = self.dirty_root.get() {
-                    // There was an existing dirty root so we mark its
-                    // ancestors as dirty until the document element.
-                    for ancestor in dirty_root
-                        .upcast::<Node>()
-                        .inclusive_ancestors_in_flat_tree()
-                    {
-                        if ancestor.is::<Element>() {
-                            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+                    if dirty_root.is_connected() {
+                        // There was an existing dirty root so we mark its
+                        // ancestors as dirty until the document element.
+                        for ancestor in dirty_root
+                            .upcast::<Node>()
+                            .inclusive_ancestors_in_flat_tree()
+                        {
+                            if ancestor.is::<Element>() {
+                                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+                            }
                         }
                     }
                 }
