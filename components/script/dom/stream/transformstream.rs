@@ -562,11 +562,11 @@ impl TransformStream {
         // cancelAlgorithm, readableHighWaterMark, readableSizeAlgorithm).
 
         let readable = create_readable_stream(
+            cx,
             global,
             UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise),
             Some(readable_size_algorithm),
             Some(readable_high_water_mark),
-            CanGc::from_cx(cx),
         );
         self.readable.set(Some(&readable));
 
