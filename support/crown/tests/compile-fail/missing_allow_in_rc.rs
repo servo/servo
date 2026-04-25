@@ -26,4 +26,9 @@ fn foo<T: TypeHolderTrait>() -> Rc<T::F> {
     unimplemented!()
 }
 
+fn bar<T: TypeHolderTrait>() {
+    let foo = foo::<T>();
+    //~^ ERROR: Expression of type std::rc::Rc
+}
+
 fn main() {}
