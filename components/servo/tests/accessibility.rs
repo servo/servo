@@ -201,6 +201,63 @@ fn test_accessibility_after_navigate_and_back() {
 
 // TODO(accessibility): write test for resend a11y tree when clicking back or forward
 
+#[test]
+fn test_accessibility_basic_mapping() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        builder.preferences(preferences)
+    });
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let mut element_role_pairs = VecDeque::from([
+        ("article", Role::Article),
+        ("aside", Role::Complementary),
+        ("footer", Role::ContentInfo),
+        ("h1", Role::Heading),
+        ("h2", Role::Heading),
+        ("h3", Role::Heading),
+        ("h4", Role::Heading),
+        ("h5", Role::Heading),
+        ("h6", Role::Heading),
+        ("header", Role::Banner),
+        ("hr", Role::Splitter),
+        ("main", Role::Main),
+        ("nav", Role::Navigation),
+        ("p", Role::Paragraph),
+    ]);
+
+    let mut url: String = "data:text/html,<!DOCTYPE html>".to_owned();
+    for (element, _) in element_role_pairs.iter() {
+        url.push_str(format!("<{element}></{element}>").as_str());
+    }
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(url.as_str()).unwrap())
+        .build();
+
+    webview.set_accessibility_active(true);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let tree = build_tree(updates);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    assert_eq!(root.children().len(), element_role_pairs.len());
+    for child in root.children() {
+        let Some((tag, role)) = element_role_pairs.pop_front() else {
+            panic!("Number of children of root node should match number of tag/role pairs");
+        };
+        assert_eq!(child.data().html_tag(), Some(tag));
+        assert_eq!(child.role(), role);
+    }
+    assert!(
+        element_role_pairs.is_empty(),
+        "Number of children of root node should match number of tag/role pairs"
+    );
+}
+
 fn wait_for_min_updates(
     servo_test: &ServoTest,
     delegate: Rc<WebViewDelegateImpl>,
@@ -266,13 +323,8 @@ fn assert_tree_structure_and_get_root_web_area<'tree>(
     let graft_node = scroll_view_children[0];
     assert!(graft_node.is_graft());
 
-    let graft_node_children: Vec<accesskit_consumer::Node<'_>> = graft_node.children().collect();
-    assert_eq!(graft_node_children.len(), 1);
-
-    let root_web_area = graft_node_children[0];
-    assert_eq!(root_web_area.role(), Role::RootWebArea);
-
-    root_web_area
+    find_first_matching_node(graft_node, |node| node.role() == Role::RootWebArea)
+        .expect("Should have a RootWebArea")
 }
 
 fn find_first_matching_node(
