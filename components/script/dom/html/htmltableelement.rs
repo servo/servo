@@ -471,15 +471,15 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     make_nonzero_dimension_setter!(SetWidth, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-table-align>
-    make_setter!(SetAlign, "align");
+    make_setter!(cx, SetAlign, "align");
     make_getter!(Align, "align");
 
     // <https://html.spec.whatwg.org/multipage/#dom-table-cellpadding>
-    make_setter!(SetCellPadding, "cellpadding");
+    make_setter!(cx, SetCellPadding, "cellpadding");
     make_getter!(CellPadding, "cellpadding");
 
     // <https://html.spec.whatwg.org/multipage/#dom-table-cellspacing>
-    make_setter!(SetCellSpacing, "cellspacing");
+    make_setter!(cx, SetCellSpacing, "cellspacing");
     make_getter!(CellSpacing, "cellspacing");
 }
 

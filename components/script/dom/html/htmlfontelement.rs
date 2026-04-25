@@ -5,6 +5,7 @@
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
@@ -43,7 +44,7 @@ impl HTMLFontElement {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -100,15 +101,15 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     make_getter!(Face, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_atomic_setter!(SetFace, "face");
+    make_atomic_setter!(cx, SetFace, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     make_getter!(Size, "size");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-font-size>
-    fn SetSize(&self, value: DOMString, can_gc: CanGc) {
+    fn SetSize(&self, cx: &mut JSContext, value: DOMString) {
         let element = self.upcast::<Element>();
-        element.set_attribute(&local_name!("size"), parse_size(&value), can_gc);
+        element.set_attribute(&local_name!("size"), parse_size(&value), CanGc::from_cx(cx));
     }
 }
 

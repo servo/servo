@@ -67,7 +67,7 @@ impl HTMLTableColElementMethods<crate::DomTypeHolder> for HTMLTableColElement {
     make_getter!(Width, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-col-width>
-    make_dimension_setter!(SetWidth, "width");
+    make_dimension_setter!(cx, SetWidth, "width");
 }
 
 impl<'dom> LayoutDom<'dom, HTMLTableColElement> {
