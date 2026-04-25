@@ -2497,7 +2497,7 @@ impl Activatable for HTMLInputElement {
             self,
             event,
             target,
-            CanGc::from_cx(_cx),
+            CanGc::from_cx(cx),
         );
     }
 }
