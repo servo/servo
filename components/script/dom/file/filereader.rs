@@ -483,9 +483,6 @@ impl FileReader {
         blob: &Blob,
         label: Option<DOMString>,
     ) -> ErrorResult {
-        let can_gc = CanGc::from_cx(cx);
-        let cx = GlobalScope::get_cx();
-
         // If fr’s state is "loading", throw an InvalidStateError DOMException.
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(Error::InvalidState(None));
@@ -501,10 +498,10 @@ impl FileReader {
         // See the note below in the error steps.
 
         // Let stream be the result of calling get stream on blob.
-        let stream = blob.get_stream(can_gc);
+        let stream = blob.get_stream(CanGc::from_cx(cx));
 
         // Let reader be the result of getting a reader from stream.
-        let reader = stream.and_then(|s| s.acquire_default_reader(can_gc))?;
+        let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
 
         let type_ = blob.Type();
 
@@ -527,7 +524,7 @@ impl FileReader {
 
         // Read all bytes from stream with reader.
         reader.read_all_bytes(
-            cx,
+            cx.into(),
             Rc::new(move |blob_contents| {
                 let global = filereader_success.global();
                 let task_manager = global.task_manager();
@@ -580,7 +577,7 @@ impl FileReader {
                     DOMErrorName::OperationError,
                 ));
             }),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }
