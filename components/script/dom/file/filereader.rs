@@ -392,18 +392,23 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    fn ReadAsArrayBuffer(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::ArrayBuffer, blob, None, can_gc)
+    fn ReadAsArrayBuffer(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        self.read(cx, FileReaderFunction::ArrayBuffer, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn ReadAsDataURL(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::DataUrl, blob, None, can_gc)
+    fn ReadAsDataURL(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        self.read(cx, FileReaderFunction::DataUrl, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::Text, blob, label, can_gc)
+    fn ReadAsText(
+        &self,
+        cx: &mut js::context::JSContext,
+        blob: &Blob,
+        label: Option<DOMString>,
+    ) -> ErrorResult {
+        self.read(cx, FileReaderFunction::Text, blob, label)
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-abort>
@@ -473,11 +478,12 @@ impl FileReader {
     /// <https://w3c.github.io/FileAPI/#readOperation>
     fn read(
         &self,
+        cx: &mut js::context::JSContext,
         function: FileReaderFunction,
         blob: &Blob,
         label: Option<DOMString>,
-        can_gc: CanGc,
     ) -> ErrorResult {
+        let can_gc = CanGc::from_cx(cx);
         let cx = GlobalScope::get_cx();
 
         // If fr’s state is "loading", throw an InvalidStateError DOMException.
