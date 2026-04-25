@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: Row-group color wins over table color</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#fixup-algorithm">
+<link rel="help" href="https://github.com/servo/servo/issues/43660">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: table; color: red">
+  <div style="display: table-row-group; color: green; font: 200px/1 Ahem">X</div>
+</div>
