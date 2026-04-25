@@ -228,6 +228,7 @@ impl Fragment {
         }
     }
 
+    /// From <https://drafts.csswg.org/css-overflow-3/#scrollable>:
     /// > This padding represents, within the scrollable overflow rectangle, the box’s own padding
     /// > so that when its content is scrolled to its end, there is padding between the edge of its
     /// > in-flow (or floated) content and the border edge of the box. It typically ends up being
@@ -235,7 +236,6 @@ impl Fragment {
     /// > out-of-flow positioned element, or the visible overflow of a descendent, has already
     /// > increased the size of the scrollable overflow rectangle outside the conceptual “content
     /// > edge” of the scroll container’s content.
-    /// > <https://drafts.csswg.org/css-overflow-3/#scrollable>
     pub(crate) fn scrollable_overflow_padding_contribution_for_parent(
         &self,
     ) -> Option<PhysicalRect<Au>> {
