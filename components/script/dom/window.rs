@@ -58,6 +58,7 @@ use net_traits::image_cache::{
     ImageResponse, PendingImageId, PendingImageResponse, RasterizationCompleteResponse,
 };
 use net_traits::request::Referrer;
+use net_traits::response::HttpsState;
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
@@ -3677,6 +3678,7 @@ impl Window {
         inherited_secure_context: Option<bool>,
         theme: Theme,
         weak_script_thread: Weak<ScriptThread>,
+        initial_https_state: HttpsState,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
@@ -3702,6 +3704,7 @@ impl Window {
                 inherited_secure_context,
                 unminify_js,
                 Some(font_context),
+                initial_https_state,
             ),
             ongoing_navigation: Default::default(),
             script_chan,

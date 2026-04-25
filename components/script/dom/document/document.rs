@@ -42,7 +42,6 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
 };
-use net_traits::response::HttpsState;
 use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
@@ -438,9 +437,7 @@ pub(crate) struct Document {
     unload_event_start: Cell<Option<CrossProcessInstant>>,
     #[no_trace]
     unload_event_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
-    #[no_trace]
-    https_state: Cell<HttpsState>,
+
     /// The document's origin.
     #[no_trace]
     origin: DomRefCell<MutableOrigin>,
@@ -840,10 +837,6 @@ impl Document {
 
     pub(crate) fn is_xhtml_document(&self) -> bool {
         self.content_type.matches(APPLICATION, "xhtml+xml")
-    }
-
-    pub(crate) fn set_https_state(&self, https_state: HttpsState) {
-        self.https_state.set(https_state);
     }
 
     pub(crate) fn is_fully_active(&self) -> bool {
@@ -3590,7 +3583,6 @@ impl Document {
             load_event_end: Cell::new(Default::default()),
             unload_event_start: Cell::new(Default::default()),
             unload_event_end: Cell::new(Default::default()),
-            https_state: Cell::new(HttpsState::None),
             origin: DomRefCell::new(origin),
             referrer,
             target_element: MutNullableDom::new(None),

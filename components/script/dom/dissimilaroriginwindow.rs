@@ -7,6 +7,7 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use net_traits::response::HttpsState;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::{ScriptToConstellationMessage, StructuredSerializedData};
 use servo_url::ServoUrl;
@@ -69,6 +70,7 @@ impl DissimilarOriginWindow {
                 Some(global_to_clone_from.is_secure_context()),
                 false,
                 global_to_clone_from.font_context().cloned(),
+                HttpsState::None,
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),

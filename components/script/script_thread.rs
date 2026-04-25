@@ -3439,6 +3439,7 @@ impl ScriptThread {
             incomplete.load_data.inherited_secure_context,
             incomplete.theme,
             self.this.clone(),
+            metadata.https_state,
         );
         self.debugger_global
             .fire_add_debuggee(cx, window.upcast(), incomplete.pipeline_id, None);
@@ -3600,7 +3601,6 @@ impl ScriptThread {
             ),
         );
 
-        document.set_https_state(metadata.https_state);
         document.set_navigation_start(incomplete.navigation_start);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
