@@ -182,8 +182,6 @@ struct ServoInner {
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
-    /// Public resource threads, available for embedder-initiated fetches.
-    resource_threads: ResourceThreads,
 }
 
 impl ServoInner {
@@ -964,7 +962,6 @@ impl Servo {
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
-            resource_threads: public_resource_threads.clone(),
             network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
@@ -997,10 +994,6 @@ impl Servo {
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
         *self.0.delegate.borrow_mut() = delegate;
-    }
-
-    pub fn resource_threads(&self) -> ResourceThreads {
-        self.0.resource_threads.clone()
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
