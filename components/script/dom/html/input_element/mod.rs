@@ -2489,7 +2489,7 @@ impl Activatable for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
     fn activation_behavior(
         &self,
-        _cx: &mut js::context::JSContext,
+        cx: &mut js::context::JSContext,
         event: &Event,
         target: &EventTarget,
     ) {
