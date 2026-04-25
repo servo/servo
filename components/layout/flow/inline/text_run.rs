@@ -206,9 +206,16 @@ impl TextRunSegment {
 
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
-            if run.get_uax_linebreak_flag() {
+            let run_ends_with_uax_linebreak = run.get_uax_linebreak_flag();
+            if run_ends_with_uax_linebreak {
                 uax_linebreak_encountered = true;
             }
+
+            // This variable is used to check whether we can process softwrap opportunity
+            // & push glyph store to current line segment during current iteration or not.
+            // The actual logic is as follows:
+            // (run_ends_with_uax_linebreak || (!run_ends_with_uax_linebreak && !uax_linebreak_encountered))
+            let linebreaker_predicate = run_ends_with_uax_linebreak || !uax_linebreak_encountered;
 
             ifc.possibly_flush_deferred_forced_line_break();
 
@@ -229,15 +236,12 @@ impl TextRunSegment {
             // check if a softwrap opportunity determined by `icu` has been encountered in this line before. If so, then
             // there is a proper softwrap opportunity in the line. In this case, forbid linebreak.
             if (run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force) &&
-                (run.get_uax_linebreak_flag() ||
-                    (!run.get_uax_linebreak_flag() && !uax_linebreak_encountered))
+                linebreaker_predicate
             {
                 uax_linebreak_encountered &= ifc.process_soft_wrap_opportunity(); // If false is returned, then it means linebreak occurs & we're at a new line.
             }
 
-            if run.get_uax_linebreak_flag() ||
-                (!run.get_uax_linebreak_flag() && !uax_linebreak_encountered)
-            {
+            if linebreaker_predicate {
                 ifc.push_uncommited_glyph_stores_to_current_line_segment(text_run, &self.info);
                 ifc.push_glyph_store_to_unbreakable_segment(
                     run.clone(),
@@ -292,7 +296,6 @@ impl TextRunSegment {
 
         let text_style = parent_style.get_inherited_text().clone();
         let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
-            text_style.overflow_wrap == OverflowWrap::Anywhere || // NOTE: still needed.
             text_style.overflow_wrap == OverflowWrap::BreakWord;
 
         // Determine whether we're allowed to break at any character boundary. The following conditions are:
@@ -331,7 +334,8 @@ impl TextRunSegment {
                 //
                 // An exception to this is if the style tells us that we can break in the middle of words.
                 if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
-                    !can_break_anywhere
+                    !can_break_anywhere &&
+                    !is_overflow_wrap_anywhere
                 {
                     whitespace.start += first_white_space_character.len_utf8();
                     options
@@ -347,7 +351,8 @@ impl TextRunSegment {
             if !ends_with_whitespace &&
                 *break_index != self.byte_range.end &&
                 text_style.word_break == WordBreak::KeepAll &&
-                !can_break_anywhere
+                !can_break_anywhere &&
+                !is_overflow_wrap_anywhere
             {
                 continue;
             }
@@ -410,7 +415,7 @@ impl TextRunSegment {
                 continue;
             }
 
-            self.shape_and_push_range(&whitespace, formatting_context_text, &options);
+            self.shape_and_push_range(&whitespace, formatting_context_text, &options, true);
         }
     }
 }

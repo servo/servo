@@ -428,7 +428,7 @@ impl Font {
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
             options: *options,
-            ends_with_uax_14_linebreak: ends_with_uax_14_linebreak,
+            ends_with_uax_14_linebreak,
         };
         {
             let cache = self.cached_shape_data.read();
