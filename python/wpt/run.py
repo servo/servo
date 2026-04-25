@@ -136,6 +136,9 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
 
     with tempfile.TemporaryDirectory(prefix="servo-") as config_dir:
         kwargs["binary_args"] += ["--config-dir", config_dir]
+        # Temporary workaround to avoid shared storage across parallel processes.
+        # Can be removed once per-process config dirs are supported.
+        kwargs["binary_args"] += ["--temporary-storage"]
 
         wptrunner.run_tests(**kwargs)
 

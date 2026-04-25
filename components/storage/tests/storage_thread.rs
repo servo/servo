@@ -39,7 +39,7 @@ fn shutdown_storage_group(threads: &StorageThreads) {
 fn test_new_storage_threads_create_independent_groups() {
     let mem_profiler_chan = profile_mem::Profiler::create();
     let (private_storage_threads, public_storage_threads) =
-        storage::new_storage_threads(mem_profiler_chan, None);
+        storage::new_storage_threads(mem_profiler_chan, None, false);
 
     shutdown_storage_group(&private_storage_threads);
     shutdown_storage_group(&public_storage_threads);
