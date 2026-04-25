@@ -44,6 +44,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
@@ -52,6 +53,7 @@ use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
+use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
 use crate::dom::globalscope::GlobalScope;
@@ -156,6 +158,9 @@ pub(crate) struct HTMLInputElement {
     validity_state: MutNullableDom<ValidityState>,
     #[no_trace]
     pending_webdriver_response: RefCell<Option<PendingWebDriverResponse>>,
+
+    /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
+    has_scheduled_selectionchange_event: Cell<bool>,
 }
 
 #[derive(JSTraceable)]
@@ -212,6 +217,7 @@ impl HTMLInputElement {
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
             pending_webdriver_response: Default::default(),
+            has_scheduled_selectionchange_event: Default::default(),
         }
     }
 
@@ -893,6 +899,41 @@ impl HTMLInputElement {
     fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
         self.textinput.borrow_mut()
     }
+
+    /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
+    fn schedule_a_selection_change_event(&self) {
+        // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
+        if self.has_scheduled_selectionchange_event.get() {
+            return;
+        }
+        // Step 2. Set target's has scheduled selectionchange event to true.
+        self.has_scheduled_selectionchange_event.set(true);
+        // Step 3. Queue a task on the user interaction task source to fire a selectionchange event on target.
+        let this = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue(
+                // https://w3c.github.io/selection-api/#firing-selectionchange-event
+                task!(selectionchange_task_steps: move |cx| {
+                    let this = this.root();
+                    // Step 1. Set target's has scheduled selectionchange event to false.
+                    this.has_scheduled_selectionchange_event.set(false);
+                    // Step 2. If target is an element, fire an event named selectionchange, which bubbles and not cancelable, at target.
+                    this.upcast::<EventTarget>().fire_event_with_params(
+                        atom!("selectionchange"),
+                        EventBubbles::Bubbles,
+                        EventCancelable::NotCancelable,
+                        EventComposed::Composed,
+                        CanGc::from_cx(cx),
+                    );
+                    // Step 3. Otherwise, if target is a document, fire an event named selectionchange,
+                    // which does not bubble and not cancelable, at target.
+                    //
+                    // n/a
+                }),
+            );
+    }
 }
 
 impl<'dom> LayoutDom<'dom, HTMLInputElement> {
@@ -961,8 +1002,17 @@ impl TextControlElement for HTMLInputElement {
         let enabled = self.is_textual_or_password() && self.upcast::<Element>().focus_state();
 
         let mut shared_selection = self.shared_selection.borrow_mut();
-        if range == shared_selection.range && enabled == shared_selection.enabled {
+        let range_remained_equal = range == shared_selection.range;
+        if range_remained_equal && enabled == shared_selection.enabled {
             return;
+        }
+
+        if !range_remained_equal {
+            // https://w3c.github.io/selection-api/#selectionchange-event
+            // > When an input or textarea element provide a text selection and its selection changes
+            // > (in either extent or direction),
+            // > the user agent must schedule a selectionchange event on the element.
+            self.schedule_a_selection_change_event();
         }
 
         *shared_selection = ScriptSelection {
