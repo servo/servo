@@ -19,6 +19,7 @@ gamepad = []
 [dependencies]
 accesskit = { workspace = true }
 bitflags = { workspace = true }
+content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
