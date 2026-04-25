@@ -24,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
@@ -63,17 +63,17 @@ impl CompressionStream {
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         transform: &TransformStream,
         format: CompressionFormat,
-        can_gc: CanGc,
     ) -> DomRoot<CompressionStream> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CompressionStream::new_inherited(transform, format)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -81,9 +81,9 @@ impl CompressionStream {
 impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
     /// <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         format: CompressionFormat,
     ) -> Fallible<DomRoot<CompressionStream>> {
         // Step 1. If format is unsupported in CompressionStream, then throw a TypeError.
@@ -91,9 +91,9 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, can_gc);
+        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
         let compression_stream =
-            CompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
+            CompressionStream::new_with_proto(cx, global, proto, &transform, format);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // compress and enqueue a chunk algorithm with this and chunk.
@@ -103,8 +103,7 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
-        let cx = GlobalScope::get_cx();
-        transform.set_up(cx, global, transformer_type, can_gc)?;
+        transform.set_up(cx, global, transformer_type)?;
 
         Ok(compression_stream)
     }

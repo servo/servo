@@ -451,22 +451,23 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transformstream-set-up>
     pub(crate) fn set_up(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         transformer_type: TransformerType,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // Step1. Let writableHighWaterMark be 1.
         let writable_high_water_mark = 1.0;
 
         // Step 2. Let writableSizeAlgorithm be an algorithm that returns 1.
-        let writable_size_algorithm = extract_size_algorithm(&Default::default(), can_gc);
+        let writable_size_algorithm =
+            extract_size_algorithm(&Default::default(), CanGc::from_cx(cx));
 
         // Step 3. Let readableHighWaterMark be 0.
         let readable_high_water_mark = 0.0;
 
         // Step 4. Let readableSizeAlgorithm be an algorithm that returns 1.
-        let readable_size_algorithm = extract_size_algorithm(&Default::default(), can_gc);
+        let readable_size_algorithm =
+            extract_size_algorithm(&Default::default(), CanGc::from_cx(cx));
 
         // Step 5. Let transformAlgorithmWrapper be an algorithm that runs these steps given a value chunk:
         // Step 6. Let flushAlgorithmWrapper be an algorithm that runs these steps:
@@ -474,7 +475,7 @@ impl TransformStream {
         // NOTE: These steps are implemented in `TransformStreamDefaultController::new`
 
         // Step 8. Let startPromise be a promise resolved with undefined.
-        let start_promise = Promise::new_resolved(global, cx, (), can_gc);
+        let start_promise = Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
 
         // Step 9. Perform ! InitializeTransformStream(stream, startPromise,
         // writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark,
@@ -487,11 +488,11 @@ impl TransformStream {
             writable_size_algorithm,
             readable_high_water_mark,
             readable_size_algorithm,
-            can_gc,
         )?;
 
         // Step 10. Let controller be a new TransformStreamDefaultController.
-        let controller = TransformStreamDefaultController::new(global, transformer_type, can_gc);
+        let controller =
+            TransformStreamDefaultController::new(global, transformer_type, CanGc::from_cx(cx));
 
         // Step 11. Perform ! SetUpTransformStreamDefaultController(stream,
         // controller, transformAlgorithmWrapper, flushAlgorithmWrapper,
@@ -518,17 +519,16 @@ impl TransformStream {
     }
 
     /// <https://streams.spec.whatwg.org/#initialize-transform-stream>
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn initialize(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         start_promise: Rc<Promise>,
         writable_high_water_mark: f64,
         writable_size_algorithm: Rc<QueuingStrategySize>,
         readable_high_water_mark: f64,
         readable_size_algorithm: Rc<QueuingStrategySize>,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // Let startAlgorithm be an algorithm that returns startPromise.
         // Let writeAlgorithm be the following steps, taking a chunk argument:
@@ -547,7 +547,6 @@ impl TransformStream {
             writable_high_water_mark,
             writable_size_algorithm,
             UnderlyingSinkType::Transform(Dom::from_ref(self), start_promise.clone()),
-            can_gc,
         )?;
         self.writable.set(Some(&writable));
 
@@ -567,7 +566,7 @@ impl TransformStream {
             UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise),
             Some(readable_size_algorithm),
             Some(readable_high_water_mark),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         self.readable.set(Some(&readable));
 
@@ -575,7 +574,7 @@ impl TransformStream {
         // Note: This is done in the constructor.
 
         // Perform ! TransformStreamSetBackpressure(stream, true).
-        self.set_backpressure(global, true, can_gc);
+        self.set_backpressure(global, true, CanGc::from_cx(cx));
 
         // Set stream.[[controller]] to undefined.
         self.controller.set(None);
@@ -962,22 +961,21 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     /// <https://streams.spec.whatwg.org/#ts-constructor>
     #[expect(unsafe_code)]
     fn Constructor(
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         transformer: Option<*mut JSObject>,
         writable_strategy: &QueuingStrategy,
         readable_strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<TransformStream>> {
         // If transformer is missing, set it to null.
-        rooted!(in(*cx) let transformer_obj = transformer.unwrap_or(ptr::null_mut()));
+        rooted!(&in(cx) let transformer_obj = transformer.unwrap_or(ptr::null_mut()));
 
         // Let underlyingSinkDict be underlyingSink,
         // converted to an IDL value of type UnderlyingSink.
         let transformer_dict = if !transformer_obj.is_null() {
-            rooted!(in(*cx) let obj_val = ObjectValue(transformer_obj.get()));
-            match Transformer::new(cx, obj_val.handle(), can_gc) {
+            rooted!(&in(cx) let obj_val = ObjectValue(transformer_obj.get()));
+            match Transformer::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));
@@ -1004,20 +1002,20 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
         let readable_high_water_mark = extract_high_water_mark(readable_strategy, 0.0)?;
 
         // Let readableSizeAlgorithm be ! ExtractSizeAlgorithm(readableStrategy).
-        let readable_size_algorithm = extract_size_algorithm(readable_strategy, can_gc);
+        let readable_size_algorithm = extract_size_algorithm(readable_strategy, CanGc::from_cx(cx));
 
         // Let writableHighWaterMark be ? ExtractHighWaterMark(writableStrategy, 1).
         let writable_high_water_mark = extract_high_water_mark(writable_strategy, 1.0)?;
 
         // Let writableSizeAlgorithm be ! ExtractSizeAlgorithm(writableStrategy).
-        let writable_size_algorithm = extract_size_algorithm(writable_strategy, can_gc);
+        let writable_size_algorithm = extract_size_algorithm(writable_strategy, CanGc::from_cx(cx));
 
         // Let startPromise be a new promise.
-        let start_promise = Promise::new(global, can_gc);
+        let start_promise = Promise::new2(cx, global);
 
         // Perform ! InitializeTransformStream(this, startPromise, writableHighWaterMark,
         // writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm).
-        let stream = TransformStream::new_with_proto(global, proto, can_gc);
+        let stream = TransformStream::new_with_proto(global, proto, CanGc::from_cx(cx));
         stream.initialize(
             cx,
             global,
@@ -1026,7 +1024,6 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             writable_size_algorithm,
             readable_high_water_mark,
             readable_size_algorithm,
-            can_gc,
         )?;
 
         // Perform ? SetUpTransformStreamDefaultControllerFromTransformer(this, transformer, transformerDict).
@@ -1034,22 +1031,22 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             global,
             transformer_obj.handle(),
             &transformer_dict,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // If transformerDict["start"] exists, then resolve startPromise with the
         // result of invoking transformerDict["start"]
         // with argument list « this.[[controller]] » and callback this value transformer.
         if let Some(start) = &transformer_dict.start {
-            rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-            rooted!(in(*cx) let mut result: JSVal);
-            rooted!(in(*cx) let this_object = transformer_obj.get());
+            rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
+            rooted!(&in(cx) let mut result: JSVal);
+            rooted!(&in(cx) let this_object = transformer_obj.get());
             start.Call_(
                 &this_object.handle(),
                 &stream.get_controller(),
                 result.handle_mut(),
                 ExceptionHandling::Rethrow,
-                can_gc,
+                CanGc::from_cx(cx),
             )?;
             let is_promise = unsafe {
                 if result.is_object() {
@@ -1060,14 +1057,14 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
                 }
             };
             let promise = if is_promise {
-                Promise::new_with_js_promise(result_object.handle(), cx)
+                Promise::new_with_js_promise(result_object.handle(), cx.into())
             } else {
-                Promise::new_resolved(global, cx, result.get(), can_gc)
+                Promise::new_resolved(global, cx.into(), result.get(), CanGc::from_cx(cx))
             };
-            start_promise.resolve_native(&promise, can_gc);
+            start_promise.resolve_native(&promise, CanGc::from_cx(cx));
         } else {
             // Otherwise, resolve startPromise with undefined.
-            start_promise.resolve_native(&(), can_gc);
+            start_promise.resolve_native(&(), CanGc::from_cx(cx));
         };
 
         Ok(stream)
