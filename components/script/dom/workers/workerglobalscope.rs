@@ -325,6 +325,10 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     endpoints_list: DomRefCell<Vec<ReportingEndpoint>>,
 
+    /// The debugger global object associated with this worker global.
+    /// All traced members of DOM objects must be same-compartment with the
+    /// realm being traced, so this is the debugger global object wrapped into
+    /// this global's compartment.
     #[ignore_malloc_size_of = "Measured by the JS engine"]
     debugger_global: Heap<Value>,
 }
