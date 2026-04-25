@@ -315,7 +315,7 @@ impl Event {
         legacy_output_did_listeners_throw: Option<&Cell<bool>>,
         can_gc: CanGc,
     ) -> bool {
-        // TODO https://github.com/servo/servo/issues/43234
+        // TODO https://github.com/servo/servo/issues/44499
         #[allow(unsafe_code)]
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
