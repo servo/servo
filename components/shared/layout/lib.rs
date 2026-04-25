@@ -9,6 +9,7 @@
 #![deny(unsafe_code)]
 
 mod layout_damage;
+mod layout_dom;
 mod layout_element;
 mod layout_node;
 mod pseudo_element_chain;
@@ -29,6 +30,10 @@ use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress,
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
+pub use layout_dom::{
+    DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
+    LayoutNodeOf,
+};
 pub use layout_element::{DangerousStyleElement, LayoutElement};
 pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;

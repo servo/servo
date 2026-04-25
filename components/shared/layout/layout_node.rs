@@ -14,15 +14,15 @@ use servo_arc::Arc;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use style::context::SharedStyleContext;
-use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, TNode};
+use style::dom::{NodeInfo, OpaqueNode, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
-use crate::layout_element::{DangerousStyleElement, LayoutElement};
+use crate::layout_dom::{DangerousStyleNodeOf, LayoutElementOf, LayoutNodeOf};
 use crate::pseudo_element_chain::PseudoElementChain;
 use crate::{
-    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutNodeType,
-    SVGElementData, SharedSelection,
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutDomTypeBundle,
+    LayoutNodeType, SVGElementData, SharedSelection,
 };
 
 /// A trait that exposes a DOM nodes to layout. Implementors of this trait must abide by certain
@@ -35,14 +35,8 @@ use crate::{
 /// that API is marked as `unsafe` here. In general [`DangerousStyleNode`] should only be used
 /// when interfacing with the `stylo` and `selectors`.
 pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
-    /// The concrete implementation of [`DangerousStyleNode`] implemented in `script`.
-    type ConcreteDangerousStyleNode: DangerousStyleNode<'dom>;
-    /// The concrete implementation of [`DangerousStyleElement`] implemented in `script`.
-    type ConcreteDangerousStyleElement: DangerousStyleElement<'dom>;
-    /// The concrete implementation of [`ConcreteLayoutElement`] implemented in `script`.
-    type ConcreteLayoutElement: LayoutElement<'dom>;
-    /// The concrete implementation of [`ChildIterator`] implemented in `script`.
-    type ChildIterator: Iterator<Item = Self> + Sized;
+    /// The concrete implementation of [`LayoutDomTypeBundle`] implemented in `script`.
+    type ConcreteTypeBundle: LayoutDomTypeBundle<'dom>;
 
     /// Creates a new `LayoutNode` for the same `LayoutNode` with a different pseudo-element type.
     ///
@@ -70,7 +64,7 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// This should only ever be called from the main script thread. It is never
     /// okay to explicitly create a node for style while any layout worker threads
     /// are running.
-    unsafe fn dangerous_style_node(self) -> Self::ConcreteDangerousStyleNode;
+    unsafe fn dangerous_style_node(self) -> DangerousStyleNodeOf<'dom, Self::ConcreteTypeBundle>;
 
     /// Returns access to the DOM parent node of this node. This *does not* take
     /// into account shadow tree children and slottables. For that use
@@ -115,18 +109,18 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// takes into account shadow tree children and slottables.
     ///
     /// [flat tree]: https://drafts.csswg.org/css-shadow-1/#flat-tree
-    fn flat_tree_children(&self) -> LayoutIterator<Self::ChildIterator>;
+    fn flat_tree_children(&self) -> impl Iterator<Item = Self> + Sized;
 
     /// Returns an iterator over this node's children in the DOM. This
     /// *does not* take shadow roots and assigned slottables into account.
     /// For that use [`Self::flat_tree_children`].
-    fn dom_children(&self) -> LayoutIterator<Self::ChildIterator>;
+    fn dom_children(&self) -> impl Iterator<Item = Self> + Sized;
 
     /// Returns a [`LayoutElement`] if this is an element in the HTML namespace, None otherwise.
-    fn as_html_element(&self) -> Option<Self::ConcreteLayoutElement>;
+    fn as_html_element(&self) -> Option<LayoutElementOf<'dom, Self::ConcreteTypeBundle>>;
 
     /// Returns a [`LayoutElement`] if this is an element.
-    fn as_element(&self) -> Option<Self::ConcreteLayoutElement>;
+    fn as_element(&self) -> Option<LayoutElementOf<'dom, Self::ConcreteTypeBundle>>;
 
     /// Returns the computed style for the given node, properly handling pseudo-elements. For
     /// elements this returns their style and for other nodes, this returns the style of the parent
@@ -236,8 +230,8 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
 /// If you are not interfacing with `stylo` and `selectors` you *should not* use this
 /// type, unless you know what you are doing.
 pub trait DangerousStyleNode<'dom>: TNode + Sized + NodeInfo + Send + Sync {
-    /// The concrete implementation of [`LayoutNode`] implemented in `script`.
-    type ConcreteLayoutNode: LayoutNode<'dom>;
+    /// The concrete implementation of [`LayoutDomTypeBundle`] implemented in `script`.
+    type ConcreteTypeBundle: LayoutDomTypeBundle<'dom>;
     /// Get a handle to the original "safe" version of this node, a [`LayoutNode`] implementation.
-    fn layout_node(&self) -> Self::ConcreteLayoutNode;
+    fn layout_node(&self) -> LayoutNodeOf<'dom, Self::ConcreteTypeBundle>;
 }

@@ -27,10 +27,24 @@ mod servo_dangerous_style_shadow_root;
 mod servo_layout_element;
 mod servo_layout_node;
 
+use std::marker::PhantomData;
+
 pub use iterators::*;
+use layout_api::LayoutDomTypeBundle;
 pub use servo_dangerous_style_document::*;
 pub use servo_dangerous_style_element::*;
 pub use servo_dangerous_style_node::*;
 pub use servo_dangerous_style_shadow_root::*;
 pub use servo_layout_element::*;
 pub use servo_layout_node::*;
+
+pub struct ServoLayoutDomTypeBundle<'dom> {
+    phantom: PhantomData<&'dom ()>,
+}
+
+impl<'dom> LayoutDomTypeBundle<'dom> for ServoLayoutDomTypeBundle<'dom> {
+    type ConcreteLayoutElement = ServoLayoutElement<'dom>;
+    type ConcreteLayoutNode = ServoLayoutNode<'dom>;
+    type ConcreteDangerousStyleNode = ServoDangerousStyleNode<'dom>;
+    type ConcreteDangerousStyleElement = ServoDangerousStyleElement<'dom>;
+}

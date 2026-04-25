@@ -54,7 +54,7 @@ use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{Node, NodeFlags};
 use crate::layout_dom::{
     DOMDescendantIterator, ServoDangerousStyleNode, ServoDangerousStyleShadowRoot,
-    ServoLayoutElement, ServoLayoutNode,
+    ServoLayoutDomTypeBundle, ServoLayoutElement, ServoLayoutNode,
 };
 
 /// A wrapper around [`LayoutDom<_, Element>`] to be used with `stylo` and `selectors`.
@@ -81,9 +81,9 @@ impl<'dom> From<LayoutDom<'dom, Element>> for ServoDangerousStyleElement<'dom> {
 }
 
 impl<'dom> DangerousStyleElement<'dom> for ServoDangerousStyleElement<'dom> {
-    type ConcreteLayoutElement = ServoLayoutElement<'dom>;
+    type ConcreteTypeBundle = ServoLayoutDomTypeBundle<'dom>;
 
-    fn layout_element(&self) -> Self::ConcreteLayoutElement {
+    fn layout_element(&self) -> ServoLayoutElement<'dom> {
         self.element.into()
     }
 }

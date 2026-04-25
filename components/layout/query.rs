@@ -10,9 +10,9 @@ use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, LayoutElement, LayoutElementType, LayoutNode,
-    LayoutNodeType, OffsetParentResponse, PhysicalSides, ScrollContainerQueryFlags,
-    ScrollContainerResponse,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleElementOf, LayoutElement,
+    LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
+    ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use paint_api::display_list::ScrollTree;
 use script::layout_dom::ServoLayoutNode;
@@ -1483,7 +1483,7 @@ where
         };
         context
             .stylist
-            .compute_for_declarations::<E::ConcreteDangerousStyleElement>(
+            .compute_for_declarations::<DangerousStyleElementOf<'dom, E::ConcreteTypeBundle>>(
                 &context.guards,
                 parent_style,
                 ServoArc::new(shared_lock.wrap(declarations)),
