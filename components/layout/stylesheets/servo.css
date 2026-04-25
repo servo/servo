@@ -176,7 +176,7 @@ input[type="file"] {
   display: inline-block;
   border: none;
   background: transparent;
-  color: initial;
+  color: inherit;
   padding-inline-end: 0.5em;
 }
 
