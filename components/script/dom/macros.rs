@@ -527,38 +527,37 @@ macro_rules! unsafe_no_jsmanaged_fields(
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
-        fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<$handler>> {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
-            use crate::script_runtime::CanGc;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::deprecated_note())
+            eventtarget.get_event_handler_common(cx, stringify!($event_type))
         }
 
-        fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<$handler>>) {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.$setter_fn(stringify!($event_type), listener)
+            eventtarget.$setter_fn(cx, stringify!($event_type), listener)
         }
     )
 );
 
 macro_rules! define_window_owned_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<$handler>> {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().$getter()
+                document.window().$getter(cx)
             } else {
                 None
             }
         }
 
-        fn $setter(&self, _cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<$handler>>) {
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<$handler>>) {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().$setter(listener)
+                document.window().$setter(cx, listener)
             }
         }
     )
@@ -582,26 +581,25 @@ macro_rules! event_handler(
 /// only to interested pipelines.
 macro_rules! registered_event_handler(
     ($interest:expr, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(&self) -> Option<::std::rc::Rc<
+        fn $getter(&self, cx: &mut js::context::JSContext) -> Option<::std::rc::Rc<
             crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
         >> {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
-            use crate::script_runtime::CanGc;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::deprecated_note())
+            eventtarget.get_event_handler_common(cx, stringify!($event_type))
         }
 
-        fn $setter(&self, listener: Option<::std::rc::Rc<
+        fn $setter(&self, cx: &mut js::context::JSContext, listener: Option<::std::rc::Rc<
             crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
         >>) {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::bindings::reflector::DomGlobal;
             use crate::dom::eventtarget::EventTarget;
-            let had_handler = self.$getter().is_some();
+            let had_handler = self.$getter(cx).is_some();
             let has_handler = listener.is_some();
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.set_event_handler_common(stringify!($event_type), listener);
+            eventtarget.set_event_handler_common(cx, stringify!($event_type), listener);
             if !had_handler && has_handler {
                 self.global().register_interest($interest);
             } else if had_handler && !has_handler {

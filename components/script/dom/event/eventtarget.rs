@@ -14,6 +14,7 @@ use std::sync::LazyLock;
 use deny_public_fields::DenyPublicFields;
 use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
 use js::jsval::JSVal;
@@ -389,14 +390,14 @@ impl EventListeners {
     /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
     fn get_inline_listener(
         &self,
+        cx: &mut JSContext,
         owner: &EventTarget,
         ty: &Atom,
-        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         for entry in &self.0 {
             if let EventListenerType::Inline(ref inline) = entry.borrow().listener {
                 // Step 1.1-1.8 and Step 2
-                return get_compiled_handler(inline, owner, ty, can_gc);
+                return get_compiled_handler(inline, owner, ty, CanGc::from_cx(cx));
             }
         }
 
@@ -583,11 +584,15 @@ impl EventTarget {
         listener.borrow().passive
     }
 
-    fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
+    fn get_inline_event_listener(
+        &self,
+        cx: &mut JSContext,
+        ty: &Atom,
+    ) -> Option<CommonEventHandler> {
         let handlers = self.handlers.borrow();
         handlers
             .get(ty)
-            .and_then(|entry| entry.get_inline_listener(self, ty, can_gc))
+            .and_then(|entry| entry.get_inline_listener(cx, self, ty))
     }
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
@@ -745,14 +750,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
         listener: Option<Rc<T>>,
     ) {
-        let cx = GlobalScope::get_cx();
-
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx, listener.callback())
+                EventHandlerNonNull::new(cx.into(), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -761,14 +765,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn set_error_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
         listener: Option<Rc<T>>,
     ) {
-        let cx = GlobalScope::get_cx();
-
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, listener.callback())
+                OnErrorEventHandlerNonNull::new(cx.into(), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -777,14 +780,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
         listener: Option<Rc<T>>,
     ) {
-        let cx = GlobalScope::get_cx();
-
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
+                OnBeforeUnloadEventHandlerNonNull::new(cx.into(), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -793,14 +795,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
-        can_gc: CanGc,
     ) -> Option<Rc<T>> {
-        let cx = GlobalScope::get_cx();
-        let listener = self.get_inline_event_listener(&Atom::from(ty), can_gc);
+        let listener = self.get_inline_event_listener(cx, &Atom::from(ty));
         unsafe {
             listener.map(|listener| {
-                CallbackContainer::new(cx, listener.parent().callback_holder().get())
+                CallbackContainer::new(cx.into(), listener.parent().callback_holder().get())
             })
         }
     }

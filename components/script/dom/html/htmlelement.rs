@@ -200,12 +200,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#attr-title
     make_getter!(Title, "title");
     // https://html.spec.whatwg.org/multipage/#attr-title
-    make_setter!(SetTitle, "title");
+    make_setter!(cx, SetTitle, "title");
 
     // https://html.spec.whatwg.org/multipage/#attr-lang
     make_getter!(Lang, "lang");
     // https://html.spec.whatwg.org/multipage/#attr-lang
-    make_setter!(SetLang, "lang");
+    make_setter!(cx, SetLang, "lang");
 
     // https://html.spec.whatwg.org/multipage/#the-dir-attribute
     make_enumerated_getter!(
@@ -217,12 +217,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     );
 
     // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_setter!(SetDir, "dir");
+    make_setter!(cx, SetDir, "dir");
 
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden, "hidden");
     // https://html.spec.whatwg.org/multipage/#dom-hidden
-    make_bool_setter!(SetHidden, "hidden");
+    make_bool_setter!(cx, SetHidden, "hidden");
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
@@ -233,171 +233,171 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
-    fn GetOnerror(&self, can_gc: CanGc) -> Option<Rc<OnErrorEventHandlerNonNull>> {
+    fn GetOnerror(&self, cx: &mut JSContext) -> Option<Rc<OnErrorEventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().GetOnerror()
+                document.window().GetOnerror(cx)
             } else {
                 None
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("error", can_gc)
+                .get_event_handler_common(cx, "error")
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
-    fn SetOnerror(&self, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
+    fn SetOnerror(&self, cx: &mut JSContext, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().SetOnerror(listener)
+                document.window().SetOnerror(cx, listener)
             }
         } else {
             // special setter for error
             self.upcast::<EventTarget>()
-                .set_error_event_handler("error", listener)
+                .set_error_event_handler(cx, "error", listener)
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onload>
-    fn GetOnload(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnload(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().GetOnload()
+                document.window().GetOnload(cx)
             } else {
                 None
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("load", can_gc)
+                .get_event_handler_common(cx, "load")
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onload>
-    fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnload(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().SetOnload(listener)
+                document.window().SetOnload(cx, listener)
             }
         } else {
             self.upcast::<EventTarget>()
-                .set_event_handler_common("load", listener)
+                .set_event_handler_common(cx, "load", listener)
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onblur>
-    fn GetOnblur(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnblur(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().GetOnblur()
+                document.window().GetOnblur(cx)
             } else {
                 None
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("blur", can_gc)
+                .get_event_handler_common(cx, "blur")
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onblur>
-    fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnblur(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().SetOnblur(listener)
+                document.window().SetOnblur(cx, listener)
             }
         } else {
             self.upcast::<EventTarget>()
-                .set_event_handler_common("blur", listener)
+                .set_event_handler_common(cx, "blur", listener)
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onfocus>
-    fn GetOnfocus(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnfocus(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().GetOnfocus()
+                document.window().GetOnfocus(cx)
             } else {
                 None
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("focus", can_gc)
+                .get_event_handler_common(cx, "focus")
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onfocus>
-    fn SetOnfocus(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnfocus(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().SetOnfocus(listener)
+                document.window().SetOnfocus(cx, listener)
             }
         } else {
             self.upcast::<EventTarget>()
-                .set_event_handler_common("focus", listener)
+                .set_event_handler_common(cx, "focus", listener)
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onresize>
-    fn GetOnresize(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnresize(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().GetOnresize()
+                document.window().GetOnresize(cx)
             } else {
                 None
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("resize", can_gc)
+                .get_event_handler_common(cx, "resize")
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onresize>
-    fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnresize(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().SetOnresize(listener)
+                document.window().SetOnresize(cx, listener)
             }
         } else {
             self.upcast::<EventTarget>()
-                .set_event_handler_common("resize", listener)
+                .set_event_handler_common(cx, "resize", listener)
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onscroll>
-    fn GetOnscroll(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnscroll(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().GetOnscroll()
+                document.window().GetOnscroll(cx)
             } else {
                 None
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("scroll", can_gc)
+                .get_event_handler_common(cx, "scroll")
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onscroll>
-    fn SetOnscroll(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnscroll(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
-                document.window().SetOnscroll(listener)
+                document.window().SetOnscroll(cx, listener)
             }
         } else {
             self.upcast::<EventTarget>()
-                .set_event_handler_common("scroll", listener)
+                .set_event_handler_common(cx, "scroll", listener)
         }
     }
 
@@ -648,14 +648,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-translate>
-    fn SetTranslate(&self, yesno: bool, can_gc: CanGc) {
+    fn SetTranslate(&self, cx: &mut JSContext, yesno: bool) {
         self.as_element().set_string_attribute(
             &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
             },
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 
@@ -670,20 +670,24 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     );
 
     /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
-    fn SetContentEditable(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetContentEditable(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
         let lower_value = value.to_ascii_lowercase();
         let attr_name = &local_name!("contenteditable");
         match lower_value.as_ref() {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
             "inherit" => {
-                self.element.remove_attribute_by_name(attr_name, can_gc);
+                self.element
+                    .remove_attribute_by_name(attr_name, CanGc::from_cx(cx));
             },
             // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
             // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
             "true" | "false" | "plaintext-only" => {
-                self.element
-                    .set_attribute(attr_name, AttrValue::String(lower_value), can_gc);
+                self.element.set_attribute(
+                    attr_name,
+                    AttrValue::String(lower_value),
+                    CanGc::from_cx(cx),
+                );
             },
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
             _ => return Err(Error::Syntax(None)),
@@ -752,7 +756,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, value: DOMString) {
+    fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
             .update_nonce_internal_slot(value.to_string())
     }
@@ -763,9 +767,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
-    fn SetAutofocus(&self, autofocus: bool, can_gc: CanGc) {
+    fn SetAutofocus(&self, cx: &mut JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);
+            .set_bool_attribute(&local_name!("autofocus"), autofocus, CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
@@ -774,16 +778,16 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
-    fn SetTabIndex(&self, tab_index: i32, can_gc: CanGc) {
+    fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
+            .set_int_attribute(&local_name!("tabindex"), tab_index, CanGc::from_cx(cx));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-accesskey
     make_getter!(AccessKey, "accesskey");
 
     // https://html.spec.whatwg.org/multipage/#dom-accesskey
-    make_setter!(SetAccessKey, "accesskey");
+    make_setter!(cx, SetAccessKey, "accesskey");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-accesskeylabel>
     fn AccessKeyLabel(&self) -> DOMString {
@@ -1204,12 +1208,7 @@ impl VirtualMethods for HTMLElement {
         Some(self.as_element() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-        mutation: AttributeMutation,
-    ) {
+    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
@@ -1235,7 +1234,8 @@ impl VirtualMethods for HTMLElement {
                     },
                     // https://html.spec.whatwg.org/multipage/#deactivate-an-event-handler
                     AttributeMutation::Removed => {
-                        evtarget.set_event_handler_common::<EventHandlerNonNull>(event_name, None);
+                        evtarget
+                            .set_event_handler_common::<EventHandlerNonNull>(cx, event_name, None);
                     },
                 }
             },
