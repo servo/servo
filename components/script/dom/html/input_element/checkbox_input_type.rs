@@ -30,10 +30,10 @@ impl SpecificInputType for CheckboxInputType {
     /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior>
     fn activation_behavior(
         &self,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        can_gc: CanGc,
     ) {
         // Step 1: If the element is not connected, then return.
         if !input.upcast::<Node>().is_connected() {
@@ -49,12 +49,12 @@ impl SpecificInputType for CheckboxInputType {
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::Composed,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 3: Fire an event named change at the element with the bubbles attribute
         // initialized to true.
-        target.fire_bubbling_event(atom!("change"), can_gc);
+        target.fire_bubbling_event(atom!("change"), CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-pre-activation-behavior>

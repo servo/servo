@@ -501,9 +501,9 @@ impl Activatable for HTMLButtonElement {
             // ..., and return.
             if button_type == ButtonType::Submit {
                 owner.submit(
+                    cx,
                     SubmittedFrom::NotFromForm,
                     FormSubmitterElement::Button(self),
-                    CanGc::from_cx(cx),
                 );
                 return;
             }

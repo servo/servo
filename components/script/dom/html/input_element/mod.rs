@@ -846,10 +846,15 @@ impl HTMLInputElement {
         matches!(*self.input_type(), InputType::Color(_)) && !el.disabled_state()
     }
 
-    fn handle_key_reaction(&self, action: KeyReaction, event: &Event, can_gc: CanGc) {
+    fn handle_key_reaction(
+        &self,
+        cx: &mut js::context::JSContext,
+        action: KeyReaction,
+        event: &Event,
+    ) {
         match action {
             KeyReaction::TriggerDefaultAction => {
-                self.implicit_submission(can_gc);
+                self.implicit_submission(cx);
                 event.mark_as_handled();
             },
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
@@ -1810,7 +1815,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
-    fn implicit_submission(&self, can_gc: CanGc) {
+    fn implicit_submission(&self, cx: &mut js::context::JSContext) {
         let doc = self.owner_document();
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -1834,7 +1839,10 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+                        .fire_synthetic_pointer_event_not_trusted(
+                            atom!("click"),
+                            CanGc::from_cx(cx),
+                        );
                 }
             },
             None => {
@@ -1865,9 +1873,9 @@ impl HTMLInputElement {
                     return;
                 }
                 form.submit(
+                    cx,
                     SubmittedFrom::NotFromForm,
                     FormSubmitterElement::Form(form),
-                    can_gc,
                 );
             },
         }
@@ -2275,7 +2283,7 @@ impl VirtualMethods for HTMLInputElement {
     // Compare:
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
-    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
+    fn handle_event(&self, cx: &mut JSContext, event: &Event) {
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
             event.mark_as_handled();
@@ -2287,7 +2295,7 @@ impl VirtualMethods for HTMLInputElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
-                self.handle_key_reaction(action, event, CanGc::from_cx(cx));
+                self.handle_key_reaction(cx, action, event);
             }
         } else if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
@@ -2300,7 +2308,7 @@ impl VirtualMethods for HTMLInputElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
+                    self.handle_key_reaction(cx, action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
@@ -2308,7 +2316,7 @@ impl VirtualMethods for HTMLInputElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
+                    self.handle_key_reaction(cx, action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionstart") {
@@ -2543,12 +2551,9 @@ impl Activatable for HTMLInputElement {
         event: &Event,
         target: &EventTarget,
     ) {
-        self.input_type().as_specific().activation_behavior(
-            self,
-            event,
-            target,
-            CanGc::from_cx(cx),
-        );
+        self.input_type()
+            .as_specific()
+            .activation_behavior(cx, self, event, target);
     }
 }
 
