@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+</style>
+
+<!-- fit-content with inset: 0 and child height: 100% -->
+<div class="container">
+    <div id="t1" style="position: absolute; inset: 0; height: fit-content;">
+        <div style="height: 100%;">
+            <div style="height: 80px; width: 50px; background: green;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- max-content with inset: 0 and child height: 100% -->
+<div class="container">
+    <div id="t2" style="position: absolute; inset: 0; height: max-content;">
+        <div style="height: 100%;">
+            <div style="height: 60px; width: 50px; background: green;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- min-content with inset: 0 and child height: 100% -->
+<div class="container">
+    <div id="t3" style="position: absolute; inset: 0; height: min-content;">
+        <div style="height: 100%;">
+            <div style="height: 40px; width: 50px; background: green;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- fit-content with only top (no bottom) — already works, sanity check -->
+<div class="container">
+    <div id="t4" style="position: absolute; top: 0; height: fit-content;">
+        <div style="height: 100%;">
+            <div style="height: 80px; width: 50px; background: green;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- height: auto with inset: 0 — percentage should resolve (constraint equation) -->
+<div class="container">
+    <div id="t5" style="position: absolute; inset: 0; height: auto;">
+        <div id="t5-child" style="height: 100%;"></div>
+    </div>
+</div>
+
+<!-- stretch with inset: 0 — percentage should resolve (stretch is definite) -->
+<div class="container">
+    <div id="t6" style="position: absolute; inset: 0; height: stretch;">
+        <div id="t6-child" style="height: 100%;"></div>
+    </div>
+</div>
+
+<script>
+test(function() {
+    assert_equals(document.getElementById("t1").offsetHeight, 80,
+        "fit-content abspos with inset:0 should size to content (80px)");
+}, "fit-content + inset:0: child height:100% treated as auto, sizes to content");
+
+test(function() {
+    assert_equals(document.getElementById("t2").offsetHeight, 60,
+        "max-content abspos with inset:0 should size to content (60px)");
+}, "max-content + inset:0: child height:100% treated as auto, sizes to content");
+
+test(function() {
+    assert_equals(document.getElementById("t3").offsetHeight, 40,
+        "min-content abspos with inset:0 should size to content (40px)");
+}, "min-content + inset:0: child height:100% treated as auto, sizes to content");
+
+test(function() {
+    assert_equals(document.getElementById("t4").offsetHeight, 80,
+        "fit-content abspos without bottom should size to content (80px)");
+}, "fit-content + top only: child height:100% treated as auto (sanity check)");
+
+test(function() {
+    assert_equals(document.getElementById("t5").offsetHeight, 200,
+        "auto height abspos with inset:0 should stretch to containing block (200px)");
+    assert_equals(document.getElementById("t5-child").offsetHeight, 200,
+        "child height:100% should resolve against parent (200px)");
+}, "height:auto + inset:0: constraint equation provides definite height");
+
+test(function() {
+    assert_equals(document.getElementById("t6").offsetHeight, 200,
+        "stretch abspos with inset:0 should stretch to containing block (200px)");
+    assert_equals(document.getElementById("t6-child").offsetHeight, 200,
+        "child height:100% should resolve against parent (200px)");
+}, "height:stretch + inset:0: stretch provides definite height (regression check)");
+</script>

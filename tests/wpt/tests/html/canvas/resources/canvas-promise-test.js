@@ -51,6 +51,39 @@ WORKER_CANVAS_TEST_TYPES = [
     CanvasTestType.WORKER,
 ];
 
+const DEFAULT_CANVAS_WIDTH = 300;
+const DEFAULT_CANVAS_HEIGHT = 150;
+
+var enabledTestTypeVariant = null;
+setup(() => {
+  const urlParams = new URLSearchParams(self.location.search);
+  const testTypeVariant = urlParams.get('testType');
+  if (testTypeVariant) {
+    enabledTestTypeVariant = CanvasTestType[testTypeVariant.toUpperCase()];
+    assert_true(!!enabledTestTypeVariant,
+                `Unrecognized test type variant: ${testTypeVariant}`);
+  }
+});
+
+function isTestTypeEnabled(testType) {
+  return enabledTestTypeVariant === null || enabledTestTypeVariant === testType;
+}
+
+function createHTMLCanvasElement(width, height) {
+  if (width === DEFAULT_CANVAS_WIDTH && height === DEFAULT_CANVAS_HEIGHT) {
+    // Create a canvas with the default size.
+    const canvas = document.createElement('canvas');
+    assert_equals(canvas.width, width, 'Unexpected default canvas width.');
+    assert_equals(canvas.height, height, 'Unexpected default canvas height.');
+    return canvas;
+  } else {
+    // Create a canvas with the specified size from the start.
+    const element = document.createElement('div');
+    element.innerHTML = `<canvas width="${width}" height="${height}"></canvas>`;
+    return element.firstElementChild;
+  }
+}
+
 /**
  * Run `testBody` in a `promise_test` against multiple types of canvases. By
  * default, the test is executed against an HTMLCanvasElement, a main thread
@@ -64,9 +97,13 @@ WORKER_CANVAS_TEST_TYPES = [
  * at the script level.
  */
 function canvasPromiseTest(
-    testBody, description,
-    {testTypes = DEFAULT_CANVAS_TEST_TYPES} = {}) {
-  if (testTypes.includes(CanvasTestType.WORKER)) {
+    testBody, description, {
+      testTypes = DEFAULT_CANVAS_TEST_TYPES,
+      width = DEFAULT_CANVAS_WIDTH,
+      height = DEFAULT_CANVAS_HEIGHT,
+    } = {}) {
+  if (testTypes.includes(CanvasTestType.WORKER) &&
+      isTestTypeEnabled(CanvasTestType.WORKER)) {
     setup(() => {
       const currentScript = document.currentScript;
       assert_true(
@@ -79,39 +116,46 @@ function canvasPromiseTest(
     });
   }
 
-  if (testTypes.includes(CanvasTestType.HTML)) {
-    promise_test(async () => {
+  if (testTypes.includes(CanvasTestType.HTML) &&
+      isTestTypeEnabled(CanvasTestType.HTML)) {
+    promise_test(async (test) => {
       if (!document.body) {
         document.documentElement.appendChild(document.createElement("body"));
       }
-      const canvas = document.createElement('canvas');
+      const canvas = createHTMLCanvasElement(width, height);
       document.body.appendChild(canvas);
-      await testBody(canvas, {canvasType: CanvasTestType.HTML});
+      await testBody(canvas, {test, canvasType: CanvasTestType.HTML});
       document.body.removeChild(canvas);
     }, 'HTMLCanvasElement: ' + description);
   }
 
-  if (testTypes.includes(CanvasTestType.DETACHED_HTML)) {
-    promise_test(() => testBody(document.createElement('canvas'),
-                                {canvasType: CanvasTestType.DETACHED_HTML}),
-                 'Detached HTMLCanvasElement: ' + description);
+  if (testTypes.includes(CanvasTestType.DETACHED_HTML) &&
+      isTestTypeEnabled(CanvasTestType.DETACHED_HTML)) {
+    promise_test((test) => {
+      return testBody(createHTMLCanvasElement(width, height),
+                      {test, canvasType: CanvasTestType.DETACHED_HTML});
+    }, 'Detached HTMLCanvasElement: ' + description);
   }
 
-  if (testTypes.includes(CanvasTestType.OFFSCREEN)) {
-    promise_test(() => testBody(new OffscreenCanvas(300, 150),
-                                {canvasType: CanvasTestType.OFFSCREEN}),
-                 'OffscreenCanvas: ' + description);
+  if (testTypes.includes(CanvasTestType.OFFSCREEN) &&
+      isTestTypeEnabled(CanvasTestType.OFFSCREEN)) {
+    promise_test((test) => {
+      return testBody(new OffscreenCanvas(width, height),
+                      {test, canvasType: CanvasTestType.OFFSCREEN});
+    }, 'OffscreenCanvas: ' + description);
   }
 
-  if (testTypes.includes(CanvasTestType.PLACEHOLDER)) {
-    promise_test(async () => {
+  if (testTypes.includes(CanvasTestType.PLACEHOLDER) &&
+      isTestTypeEnabled(CanvasTestType.PLACEHOLDER)) {
+    promise_test(async (test) => {
       if (!document.body) {
         document.documentElement.appendChild(document.createElement("body"));
       }
-      const placeholder = document.createElement('canvas');
+      const placeholder = createHTMLCanvasElement(width, height);
       document.body.appendChild(placeholder);
       await testBody(placeholder.transferControlToOffscreen(),
-                     {canvasType: CanvasTestType.PLACEHOLDER});
+                      {test, canvasType: CanvasTestType.PLACEHOLDER});
+      document.body.removeChild(placeholder);
     }, 'PlaceholderCanvas: ' + description);
   }
 }
@@ -122,6 +166,10 @@ function canvasPromiseTest(
  * via the `dependencies` parameter so that the worker could load them.
  */
 function runCanvasTestsInWorker({dependencies = []} = {}) {
+  if (!isTestTypeEnabled(CanvasTestType.WORKER)) {
+    return;
+  }
+
   const currentScript = document.currentScript;
   // Keep track of whether runCanvasTestsInWorker was invoked on the current
   // script. `canvasPromiseTest` will fail if `runCanvasTestsInWorker` hasn't
@@ -144,7 +192,13 @@ function runCanvasTestsInWorker({dependencies = []} = {}) {
     const dependencyScripts =
        await Promise.all(allDeps.map(dep => fetch(dep).then(r => r.text())));
     const canvasTests = currentScript.textContent;
-    const allScripts = dependencyScripts.concat([canvasTests, 'done();']);
+    const allScripts = [
+      // Forward `location.search` to the worker so that it could run the right
+      // test variants. `location.search` is read-only in workers, so the whole
+      // object has to be replaced.
+      `var location = {search: '${self.location.search}'};`,
+    ].concat(dependencyScripts)
+     .concat([canvasTests, 'done();']);
 
     const workerBlob = new Blob(allScripts);
     const worker = new Worker(URL.createObjectURL(workerBlob));

@@ -6,23 +6,19 @@
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script>
 
-let request_id = 0;
-
-const connectToSharedWorker = async () => {
-  window.worker = new SharedWorker(
-    '/workers/resources/shared-worker-memory.js',
-    {extendedLifetime: true});
+/**
+ * Connects to a SharedWorker and performs a single message exchange.
+ * Used both in the main window and in the popup via execute_script.
+ */
+const connectAndOperate = async (url, data) => {
+  const worker = new SharedWorker(url, {extendedLifetime: true});
   worker.port.start();
-};
-
-const postAndWait = async (data) => {
   return new Promise(resolve => {
     const listener = event => {
-      if (event.data.reqid !== data.reqid) {
-        return;
+      if (event.data.reqid === data.reqid) {
+        worker.port.removeEventListener('message', listener);
+        resolve(event.data);
       }
-      worker.port.removeEventListener('message', listener);
-      resolve(event.data);
     };
     worker.port.addEventListener('message', listener);
     worker.port.postMessage(data);
@@ -30,29 +26,25 @@ const postAndWait = async (data) => {
 };
 
 promise_test(async t => {
-  // SharedWorker is started with the extendedLifetime option.
-  // random message is stored there, which can be read later.
   const uuid = token();
+  const worker_url = '/workers/resources/shared-worker-memory.js?' + token();
   const ctx = new RemoteContext(token());
   const popup = window.open(remoteExecutorUrl(ctx.context_id));
-  await ctx.execute_script(connectToSharedWorker);
-  const popup_response = await ctx.execute_script(postAndWait, [{
-    reqid: request_id++,
-    op: 'store',
-    data: uuid,
-  }]);
+  t.add_cleanup(() => popup.close());
+
+  // 1. Store data from the popup side.
+  const popup_response = await ctx.execute_script(connectAndOperate, [
+    worker_url, {op: 'store', data: uuid, reqid: 1}
+  ]);
   assert_equals(popup_response.status, 'OK');
   popup.close();
 
-  // Wait for a second.
+  // Wait to ensure the worker survives across the client's disappearance.
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // Connect from this window instead of opening a second popup.
-  await connectToSharedWorker();
-  const response = await postAndWait({
-    reqid: request_id++,
-    op: 'load',
-  });
+  // 2. Load data from the main window side.
+  const response = await connectAndOperate(worker_url, {op: 'load', reqid: 2});
+
   assert_equals(response.status, 'OK');
   assert_equals(response.data, uuid);
 }, "SharedWorker lifetime should be extended with extendedLifetime");

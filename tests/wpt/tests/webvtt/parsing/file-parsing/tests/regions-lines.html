@@ -27,7 +27,7 @@ function trackLoaded(event) {
     var video = track.parentNode;
     var cues = video.textTracks[0].cues;
     {
-assert_equals(cues.length, 13);
+assert_equals(cues.length, 11);
 
 var regions = Array.from(cues).map(function(cue) {
     return cue.region;
@@ -39,9 +39,7 @@ var valid_lines = [
     100,
     101,
     65536,
-    4294967296,
-    18446744073709552000,
-    10000000000000000000000000000000000,
+    4294967295,
     2,
 ];
 valid_lines.forEach(function(valid, index) {

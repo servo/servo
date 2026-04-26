@@ -3,6 +3,7 @@
 <head>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./support/util.js"></script>
 </head>
 <body>
 <script>
@@ -290,6 +291,18 @@ test(() => {
     });
   }
 }, "config[removeAttributes] should not allow duplicates");
+
+// 11.1. For each element of config["replaceWithChildrenElements"]:
+// 11.1.1. If the built-in non-replaceable elements list contains element, then return false.
+test(() => {
+  for (let element of NON_REPLACEABLE_ELEMENTS) {
+    assert_throws_js(TypeError, () => {
+      new Sanitizer({
+        replaceWithChildrenElements: [element],
+      });
+    });
+  }
+}, "config[replaceWithChildrenElements] should not allow non-replaceable elements");
 
 // 5. If both config[elements] and config[replaceWithChildrenElements] exist, then the intersection of config[elements] and config[replaceWithChildrenElements] is empty.
 test(() => {

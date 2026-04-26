@@ -104,7 +104,7 @@ def validate(spec_json, details):
     # Should be consistent with `sourceContextMap` in
     # `/common/security-features/resources/common.sub.js`.
     valid_source_context_names = [
-        "top", "iframe", "iframe-blank", "srcdoc", "worker-classic",
+        "top", "iframe", "iframe-blank", "iframe-data", "srcdoc", "worker-classic",
         "worker-module", "worker-classic-data", "worker-module-data",
         "sharedworker-classic", "sharedworker-module",
         "sharedworker-classic-data", "sharedworker-module-data"

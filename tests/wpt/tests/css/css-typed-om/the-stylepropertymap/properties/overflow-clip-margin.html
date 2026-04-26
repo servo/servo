@@ -13,14 +13,20 @@
 <script>
 'use strict';
 
+runPropertyTests('overflow-clip-margin', [
+  { syntax: 'border-box' },
+  { syntax: 'content-box' },
+  { syntax: 'padding-box' },
+  // FIXME: Add support for testing non-negative lengths
+  {
+    syntax: '<length>',
+    specified: assert_is_equal_with_range_handling,
+  },
+]);
+
 runUnsupportedPropertyTests('overflow-clip-margin', [
-  'border-box',
-  'content-box',
-  'padding-box',
-  'padding-box 10px',
+  'border-box 10px',
   '10px content-box',
-  '0px',
-  '10px',
 ]);
 
 </script>

@@ -90,21 +90,6 @@
           },
           {
             "expectation": "blocked",
-            "origin": "cross-https",
-            "redirection": "swap-scheme",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "worker-classic-data"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for fetch to cross-https origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
             "origin": "same-http",
             "redirection": "keep-scheme",
             "source_context_list": [
@@ -147,21 +132,6 @@
             "subresource": "fetch",
             "subresource_policy_deliveries": [],
             "test_description": "Mixed-Content: Expects blocked for fetch to same-http origin and swap-scheme redirection from https context."
-          },
-          {
-            "expectation": "blocked",
-            "origin": "same-https",
-            "redirection": "swap-scheme",
-            "source_context_list": [
-              {
-                "policyDeliveries": [],
-                "sourceContextType": "worker-classic-data"
-              }
-            ],
-            "source_scheme": "https",
-            "subresource": "fetch",
-            "subresource_policy_deliveries": [],
-            "test_description": "Mixed-Content: Expects blocked for fetch to same-https origin and swap-scheme redirection from https context."
           }
         ],
         new SanityChecker()

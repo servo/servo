@@ -40,6 +40,13 @@ input, datalist {
   <option class=two>two</option>
 </datalist>
 
+<input id=input4 list=datalist4>
+<datalist id=datalist4>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=three>three</option>
+</datalist>
+
 <script>
 const Enter = '\uE007';
 const Escape = '\uE00C';
@@ -183,6 +190,36 @@ promise_test(async () => {
   assert_equals(document.querySelector(':active-option'), optionTwo,
     'option two should be active after arrow down.');
 }, 'Disabled options should not match :active-option.');
+
+promise_test(async () => {
+  const input = document.getElementById('input4');
+  const datalist = document.getElementById('datalist4');
+  const optionOne = datalist.querySelector('.one');
+  const optionTwo = datalist.querySelector('.two');
+  const optionThree = datalist.querySelector('.three');
+
+  input.addEventListener('beforefilter', event => {
+    event.preventDefault();
+  });
+
+  input.focus();
+  await pressKey('a');
+  assert_equals(datalist.querySelector(':active-option'), null,
+    'Nothing should match :active-option after filtering.');
+
+  await pressKey(ArrowDown);
+  await pressKey(ArrowDown);
+  assert_equals(datalist.querySelector(':active-option').textContent, 'two',
+    'option two should be active after pressing arrow down twice.');
+
+  optionTwo.remove();
+  assert_equals(datalist.querySelector(':active-option'), null,
+    'No option should be active after removing the active option.');
+
+  await pressKey(ArrowDown);
+  assert_equals(datalist.querySelector(':active-option').textContent, 'one',
+    'option one should be active after arrow down after removal.');
+}, 'No active option and removal of active option.');
 
 // TODO(crbug.com/453705243): Add tests for these cases:
 // - Modifier keys

@@ -3,7 +3,6 @@
 // META: script=/resources/testdriver-vendor.js
 // META: timeout=long
 
-
 async function holdEscapeKey() {
   // Press Escape for 5 seconds
   // Holding the key makes it repeat, so do the same here
@@ -27,6 +26,8 @@ for (const preventDefault of [true, false]) {
   const withEv = preventDefault ? "with" : "without";
 
   promise_test(async t => {
+    t.add_cleanup(() => document.exitFullscreen().catch(() => {}));
+
     const signal = t.get_signal();
     await test_driver.bless("requestFullscreen", () => document.body.requestFullscreen({ keyboardLock: "browser" }));
     assert_equals(document.fullscreenElement, document.body, "fullscreen should activate");
@@ -44,6 +45,8 @@ for (const preventDefault of [true, false]) {
   }, `Holding Escape ${withEv} event.preventDefault() should cause fullscreen exit`);
 
   promise_test(async t => {
+    t.add_cleanup(() => document.exitFullscreen().catch(() => {}));
+
     const signal = t.get_signal();
     await test_driver.bless("requestFullscreen", () => document.body.requestFullscreen({ keyboardLock: "browser" }));
     assert_equals(document.fullscreenElement, document.body, "fullscreen should activate");
@@ -54,6 +57,5 @@ for (const preventDefault of [true, false]) {
     await test_driver.send_keys(document.body, '\uE00C');
     await new Promise(r => t.step_timeout(r, 2000));
     assert_equals(document.fullscreenElement, document.body, "fullscreen should stay");
-    await document.exitFullscreen();
   }, `Tapping Escape ${withEv} event.preventDefault() should not cause fullscreen exit`);
 }

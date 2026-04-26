@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/357649033">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select multiple size=1 id=s1>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option class=one value=one selected>
+    <span class=one>span</span> one
+  </option>
+  <option class=two value=two selected>
+    <span class=two>span</span> two
+  </option>
+  <option class=three value=three>
+    <span class=three>span</span> three
+  </option>
+</select>
+
+<select multiple size=1 id=s2>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option class=one value=one selected>
+    <span class=one>span</span> one
+  </option>
+  <option class=two value=two selected>
+    <span class=two>span</span> two
+  </option>
+  <option class=three value=three>
+    <span class=three>span</span> three
+  </option>
+</select>
+
+<script>
+function expectedHtml(options) {
+  let output = '';
+  for (const option of options) {
+    output += `<div>${option.innerHTML}</div>`;
+  }
+  return output;
+}
+
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(0, 0, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+test(() => {
+  const select = document.getElementById('s1');
+  const optionOne = select.querySelector('option.one');
+  const optionTwo = select.querySelector('option.two');
+  const optionThree = select.querySelector('option.three');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionOne, optionTwo]),
+    'The innerHTML of <selectedcontent> should initially match the innerHTML of the initially selected options.');
+
+  optionTwo.selected = false;
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionOne]),
+    'The innerHTML of <selectedcontent> should update after de-selecting option two.');
+
+  optionThree.selected = true;
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionOne, optionThree]),
+    'The innerHTML of <selectedcontent> should update after selecting option three.');
+
+  const optionFour = document.createElement('option');
+  optionFour.textContent = 'four';
+  optionFour.selected = true;
+  select.appendChild(optionFour);
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionOne, optionThree, optionFour]),
+    'The selectedcontent should update after appending a selected option.');
+
+  optionOne.remove();
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionThree, optionFour]),
+    'The selectedcontent should update after removing a selected option.');
+}, '<selectedcontent> should support <select multiple>.');
+
+promise_test(async () => {
+  const select = document.getElementById('s2');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const optionOne = select.querySelector('option.one');
+  const optionTwo = select.querySelector('option.two');
+
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionOne, optionTwo]),
+    'The innerHTML of <selectedcontent> should initially match the innerHTML of the initially selected options.');
+
+  await click(select);
+  await click(optionOne);
+  assert_equals(selectedcontent.innerHTML, expectedHtml([optionTwo]),
+    'The innerHTML of <selectedcontent> should update after clicking an option.');
+}, '<selectedcontent> should update in response to user interaction.');
+</script>

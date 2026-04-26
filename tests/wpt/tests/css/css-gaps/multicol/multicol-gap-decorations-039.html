@@ -1,0 +1,68 @@
+<title>
+  CSS Gap Decorations: multi-column gap decorations paint past container
+  edges with `rule-break: intersection` and negative row/column
+  `rule-inset-junction-start/end` combined with negative
+  `rule-inset-cap-start/end` (ink overflow).
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-039-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin-left: 100px;
+    margin-top: 100px;
+  }
+
+  .multicol-container {
+    width: 320px;
+    height: 320px;
+    column-count: 3;
+    column-width: 100px;
+    column-height: 100px;
+    column-gap: 10px;
+    row-gap: 10px;
+    column-wrap: wrap;
+
+    column-rule-color: blue;
+    column-rule-style: solid;
+    column-rule-width: 5px;
+
+    row-rule-color: red;
+    row-rule-style: solid;
+    row-rule-width: 5px;
+    rule-break: intersection;
+
+    row-rule-inset-junction-start: -210px;
+    row-rule-inset-cap-start: -50px;
+
+    row-rule-inset-junction-end: -210px;
+    row-rule-inset-cap-end: -50px;
+
+    column-rule-inset-junction-start: -210px;
+    column-rule-inset-cap-start: -50px;
+
+    column-rule-inset-junction-end: -210px;
+    column-rule-inset-cap-end: -50px;
+  }
+
+  p {
+    background: gray;
+    opacity: 0.5;
+    height: 100px;
+    margin: 0px;
+  }
+</style>
+
+<body>
+  <div class="multicol-container">
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+  </div>
+</body>

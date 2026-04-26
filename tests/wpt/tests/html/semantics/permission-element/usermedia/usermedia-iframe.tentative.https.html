@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLUserMediaElement Test: iframe integration</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  // Iframe without allow="camera" or "microphone"
+  iframe.srcdoc = `
+    <!DOCTYPE html>
+    <usermedia id="um"></usermedia>
+    <script>
+      const um = document.getElementById('um');
+      um.setConstraints({video: true, audio: true});
+      let onstream_fired = false;
+      um.onstream = () => { onstream_fired = true; };
+      window.addEventListener('message', async (e) => {
+        if (e.data === 'check_result') {
+          window.parent.postMessage({
+            error: um.error ? um.error.name : null,
+            stream: um.stream ? true : false,
+            onstream_fired
+          }, '*');
+        }
+      });
+    <\/script>
+    `;
+  document.body.appendChild(iframe);
+
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+  });
+
+  // Grant permission in the main frame, but it shouldn't matter because the iframe doesn't have the permissions policy delegated.
+  await test_driver.set_permission({name: 'camera'}, 'granted');
+  await test_driver.set_permission({name: 'microphone'}, 'granted');
+
+  const um = iframe.contentDocument.getElementById('um');
+
+  // Wait until the element is clickable.
+  await new Promise(resolve => t.step_timeout(resolve, 600));
+  await test_driver.click(um);
+
+  const responsePromise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      resolve(e.data);
+    }, {once: true});
+  });
+
+  // Ask the iframe to send the result
+  iframe.contentWindow.postMessage('check_result', '*');
+
+  const result = await responsePromise;
+  assert_equals(result.stream, false, "Stream should not be created in iframe without permissions policy delegation");
+  assert_equals(result.onstream_fired, false, "onstream event should not be fired");
+}, "A usermedia element in an iframe without permissions policy delegation should be blocked");
+</script>
+</body>

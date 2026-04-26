@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>AudioBufferSourceNode: start() with null buffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    const sampleRate = 44100;
+    const renderDuration = 10;
+    const context =
+        new OfflineAudioContext(1, sampleRate * renderDuration, sampleRate);
+
+    const source = context.createBufferSource();
+    source.buffer = null;
+    source.connect(context.destination);
+
+    let endedFired = false;
+    let endedFiredTime = -1;
+    const endedPromise = new Promise((resolve) => {
+      source.onended = () => {
+        endedFired = true;
+        endedFiredTime = context.currentTime;
+        resolve();
+      };
+    });
+
+    const startTime = 5.0;
+    source.start(startTime);
+
+    // After 0.5 seconds, assign a buffer. This should be ignored by the
+    // AudioBufferSourceNode because the source should have already finished
+    // because it was started with a null buffer.
+    // Per the spec, the buffer content is acquired at the moment start() is
+    // called, so subsequent assignments are ignored.
+    context.suspend(0.5).then(() => {
+      source.buffer = context.createBuffer(1, 1, context.sampleRate);
+      context.resume();
+    });
+
+    await context.startRendering();
+
+    assert_true(endedFired, 'ended event fired');
+    assert_less_than(
+        endedFiredTime, startTime,
+        'ended event fired before scheduled start time');
+  }, 'start() with null buffer fires ended event immediately and ignores ' +
+     'subsequent buffer assignment');
+</script>

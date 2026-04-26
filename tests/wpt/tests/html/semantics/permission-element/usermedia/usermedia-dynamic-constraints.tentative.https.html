@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLUserMediaElement Test: dynamic constraint updates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const usermedia = document.createElement('usermedia');
+  document.body.appendChild(usermedia);
+
+  // Set initial constraints (video only)
+  usermedia.setConstraints({video: true, audio: false});
+
+  // Dynamically update constraints to audio only
+  usermedia.setConstraints({video: false, audio: true});
+
+  const stream_promise = new Promise((resolve) => {
+    usermedia.onstream = resolve;
+  });
+
+  await Promise.all([
+    test_driver.set_permission({name: 'camera'}, 'granted'),
+    test_driver.set_permission({name: 'microphone'}, 'granted')
+  ]);
+
+  // Wait until the element is clickable.
+  await new Promise(resolve => t.step_timeout(resolve, 600));
+  await test_driver.click(usermedia);
+
+  const e = await stream_promise;
+  assert_true(e.target.stream instanceof MediaStream);
+  assert_equals(e.target.stream.getVideoTracks().length, 1, "There should be 1 video track as subsequent setConstraints are ignored");
+  assert_equals(e.target.stream.getAudioTracks().length, 0, "There should be no audio tracks as subsequent setConstraints are ignored");
+}, "A usermedia element respects the first constraints set and ignores subsequent calls");
+</script>
+</body>

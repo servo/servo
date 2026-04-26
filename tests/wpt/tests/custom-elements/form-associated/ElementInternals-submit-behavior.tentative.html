@@ -512,4 +512,31 @@ test(t => {
     'Non-form-associated element should not match :default');
 }, 'Non-form-associated custom element with HTMLSubmitButtonBehavior does not match :default');
 
+promise_test(async t => {
+  t.add_cleanup(reset);
+  form.setAttribute('id', 'test-form');
+  customSubmit.setAttribute('form', 'test-form');
+  outside.appendChild(customSubmit);
+
+  // The behavior's read-only `form` property reflects the same
+  // association exposed by ElementInternals.form.
+  assert_equals(customSubmit.submitBehavior.form, form,
+    'behavior.form should reflect the form attribute association');
+  assert_equals(customSubmit.submitBehavior.form, customSubmit.internals_.form,
+    'behavior.form should match elementInternals.form');
+
+  const formData = await submitAndCollectFormData(customSubmit);
+  assert_equals(formData.get('field'), 'value',
+    'Form should be submitted via form attribute association');
+}, 'Custom element with form attribute submits associated form');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  form.setAttribute('action', '/common/blank.html');
+  customSubmit.submitBehavior.formTarget = 'submit-target';
+  const win = await submitIntoIframe(customSubmit);
+  assert_true(win.location.href.includes('/common/blank.html'),
+    'Form should be submitted into the frame specified by behavior formTarget');
+}, 'formTarget on HTMLSubmitButtonBehavior overrides form target');
+
 </script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/505179602">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<style>
+.abspos {
+ position: absolute;
+ width: 100px;
+ height: 100px;
+ top: 0;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position: relative;">
+  <div style="background: red;" class="abspos"></div>
+  <div id="target" style="display: none;"></div>
+  <span style="display: inline-block;"></span>
+  <div style="background: green;" class="abspos"></div>
+  <div></div>
+</div>
+<script>
+document.body.offsetTop;
+target.style.display = 'block';
+</script>

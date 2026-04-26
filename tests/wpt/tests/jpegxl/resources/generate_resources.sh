@@ -150,6 +150,8 @@ copy_if_exists "$JXL_RS_CONF/cmyk_layers.jxl" \
   "$SCRIPT_DIR/conformance_cmyk_layers.jxl"
 copy_if_exists "$JXL_RS_CONF/animation_spline.jxl" \
   "$SCRIPT_DIR/conformance_animation_spline.jxl"
+copy_if_exists "$JXL_RS_CONF/patches.jxl" \
+  "$SCRIPT_DIR/conformance_patches.jxl"
 
 # PNG references used by reftests.
 decode_png_ref_if_exists \
@@ -167,6 +169,9 @@ decode_png_ref_if_exists \
 decode_png_ref_if_exists \
   "$SCRIPT_DIR/conformance_alpha_nonpremultiplied.jxl" \
   "$SCRIPT_DIR/conformance_alpha_nonpremultiplied.png"
+decode_png_ref_if_exists \
+  "$SCRIPT_DIR/conformance_patches.jxl" \
+  "$SCRIPT_DIR/conformance_patches.png"
 decode_png_ref_if_exists \
   "$SCRIPT_DIR/has_permutation.jxl" \
   "$SCRIPT_DIR/has_permutation.png"
