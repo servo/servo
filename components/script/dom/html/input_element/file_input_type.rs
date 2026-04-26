@@ -270,7 +270,7 @@ impl FileInputShadowTree {
         selector_button
             .downcast::<HTMLElement>()
             .expect("This should be guaranteed by the element type used above")
-            .SetTabIndex(-1, CanGc::from_cx(cx));
+            .SetTabIndex(cx, -1);
 
         let _ = shadow_root.AppendChild(cx, selector_button.upcast());
 
