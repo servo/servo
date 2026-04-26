@@ -30,10 +30,10 @@ impl SpecificInputType for ResetInputType {
     /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior>
     fn activation_behavior(
         &self,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        can_gc: CanGc,
     ) {
         // Step 1: If the element does not have a form owner, then return.
         if let Some(form_owner) = input.form_owner() {
@@ -45,7 +45,7 @@ impl SpecificInputType for ResetInputType {
             }
 
             // Step 3: Reset the form owner from the element.
-            form_owner.reset(ResetFrom::NotFromForm, can_gc);
+            form_owner.reset(ResetFrom::NotFromForm, CanGc::from_cx(cx));
         }
     }
 

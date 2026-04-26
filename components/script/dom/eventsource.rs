@@ -149,11 +149,11 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         global.task_manager().remote_event_task_source().queue(
-            task!(announce_the_event_source_connection: move || {
+            task!(announce_the_event_source_connection: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::deprecated_note());
+                    event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::from_cx(cx));
                 }
             }),
         );
@@ -191,7 +191,7 @@ impl EventSourceContext {
             last_event_id: String::from(event_source.last_event_id.borrow().clone()),
         };
         global.task_manager().remote_event_task_source().queue(
-            task!(reestablish_the_event_source_onnection: move || {
+            task!(reestablish_the_event_source_onnection: move |cx| {
                 let event_source = trusted_event_source.root();
 
                 // Step 1.1.
@@ -203,7 +203,7 @@ impl EventSourceContext {
                 event_source.ready_state.set(ReadyState::Connecting);
 
                 // Step 1.3.
-                event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::deprecated_note());
+                event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
 
                 // Step 2.
                 let duration = event_source.reconnection_time.get();
@@ -548,11 +548,11 @@ impl EventSource {
         let global = self.global();
         let event_source = Trusted::new(self);
         global.task_manager().remote_event_task_source().queue(
-            task!(fail_the_event_source_connection: move || {
+            task!(fail_the_event_source_connection: move |cx| {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::deprecated_note());
+                    event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
                 }
             }),
         );

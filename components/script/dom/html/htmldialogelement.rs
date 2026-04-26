@@ -245,7 +245,7 @@ impl HTMLDialogElement {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(fire_toggle_event: move || {
+            .queue(task!(fire_toggle_event: move |cx| {
                 let this = this.root();
 
                 let source = trusted_source.as_ref().map(|s| {
@@ -261,10 +261,10 @@ impl HTMLDialogElement {
                     DOMString::from(old_state),
                     DOMString::from(new_state),
                     source,
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
-                event.fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
+                event.fire(this.upcast::<EventTarget>(), CanGc::from_cx(cx));
 
                 // TODO: Step 2.2. Set element's dialog toggle task tracker to null.
             }));
@@ -385,14 +385,14 @@ impl VirtualMethods for HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:command-steps>
     fn command_steps(
         &self,
+        cx: &mut js::context::JSContext,
         source: DomRoot<HTMLButtonElement>,
         command: CommandState,
-        can_gc: CanGc,
     ) -> bool {
         if self
             .super_type()
             .unwrap()
-            .command_steps(source.clone(), command, can_gc)
+            .command_steps(cx, source.clone(), command)
         {
             return true;
         }
@@ -404,7 +404,11 @@ impl VirtualMethods for HTMLDialogElement {
         // close the dialog element with source's optional value and source.
         if command == CommandState::Close && element.has_attribute(&local_name!("open")) {
             let button_element = DomRoot::from_ref(source.upcast::<Element>());
-            self.close_the_dialog(source.optional_value(), Some(button_element), can_gc);
+            self.close_the_dialog(
+                source.optional_value(),
+                Some(button_element),
+                CanGc::from_cx(cx),
+            );
             return true;
         }
 
@@ -415,7 +419,7 @@ impl VirtualMethods for HTMLDialogElement {
         // then show a modal dialog given element and source.
         if command == CommandState::ShowModal && !element.has_attribute(&local_name!("open")) {
             let button_element = DomRoot::from_ref(source.upcast::<Element>());
-            let _ = self.show_a_modal(Some(button_element), can_gc);
+            let _ = self.show_a_modal(Some(button_element), CanGc::from_cx(cx));
             return true;
         }
 

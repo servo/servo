@@ -609,9 +609,9 @@ impl MessageListener {
             MessagePortMsg::CompleteDisentanglement(port_id) => {
                 let context = self.context.clone();
                 self.task_source
-                    .queue(task!(try_complete_disentanglement: move || {
+                    .queue(task!(try_complete_disentanglement: move |cx| {
                         let global = context.root();
-                        global.try_complete_disentanglement(port_id, CanGc::deprecated_note());
+                        global.try_complete_disentanglement(cx, port_id);
                     }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
@@ -626,20 +626,24 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
+fn stream_handle_incoming(
+    cx: &mut js::context::JSContext,
+    stream: &ReadableStream,
+    bytes: Fallible<Vec<u8>>,
+) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, can_gc);
+            stream.enqueue_native(b, CanGc::from_cx(cx));
         },
         Err(e) => {
-            stream.error_native(e, can_gc);
+            stream.error_native(e, CanGc::from_cx(cx));
         },
     }
 }
 
 /// Callback used to close streams as part of FileListener.
-fn stream_handle_eof(stream: &ReadableStream, can_gc: CanGc) {
-    stream.controller_close_native(can_gc);
+fn stream_handle_eof(cx: &mut js::context::JSContext, stream: &ReadableStream) {
+    stream.controller_close_native(CanGc::from_cx(cx));
 }
 
 impl FileListener {
@@ -650,9 +654,9 @@ impl FileListener {
                     let bytes = if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
-                        let task = task!(enqueue_stream_chunk: move || {
+                        let task = task!(enqueue_stream_chunk: move |cx| {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::deprecated_note());
+                            stream_handle_incoming(cx, &stream, Ok(blob_buf.bytes));
                         });
                         self.task_source.queue(task);
 
@@ -672,9 +676,9 @@ impl FileListener {
                     if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
-                        let task = task!(enqueue_stream_chunk: move || {
+                        let task = task!(enqueue_stream_chunk: move |cx| {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::deprecated_note());
+                            stream_handle_incoming(cx, &stream, Ok(bytes_in));
                         });
 
                         self.task_source.queue(task);
@@ -700,9 +704,9 @@ impl FileListener {
                         self.task_source.queue(task);
                     },
                     FileListenerTarget::Stream(trusted_stream) => {
-                        let task = task!(enqueue_stream_chunk: move || {
+                        let task = task!(enqueue_stream_chunk: move |cx| {
                             let stream = trusted_stream.root();
-                            stream_handle_eof(&stream, CanGc::deprecated_note());
+                            stream_handle_eof(cx, &stream);
                         });
 
                         self.task_source.queue(task);
@@ -726,9 +730,9 @@ impl FileListener {
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
-                            self.task_source.queue(task!(error_stream: move || {
+                            self.task_source.queue(task!(error_stream: move |cx| {
                                 let stream = trusted_stream.root();
-                                stream_handle_incoming(&stream, error, CanGc::deprecated_note());
+                                stream_handle_incoming(cx, &stream, error);
                             }));
                         },
                     }
@@ -962,7 +966,11 @@ impl GlobalScope {
 
     /// The closing of `otherPort`, if it is in a different global.
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    fn try_complete_disentanglement(&self, port_id: MessagePortId, can_gc: CanGc) {
+    fn try_complete_disentanglement(
+        &self,
+        cx: &mut js::context::JSContext,
+        port_id: MessagePortId,
+    ) {
         let dom_port = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -987,7 +995,9 @@ impl GlobalScope {
         };
 
         // Fire an event named close at otherPort.
-        dom_port.upcast().fire_event(atom!("close"), can_gc);
+        dom_port
+            .upcast()
+            .fire_event(atom!("close"), CanGc::from_cx(cx));
 
         let res = self.script_to_constellation_chan().send(
             ScriptToConstellationMessage::DisentanglePorts(port_id, None),
@@ -1346,7 +1356,7 @@ impl GlobalScope {
                         let channel = Trusted::new(&*channel);
                         let global = Trusted::new(self);
                         self.task_manager().dom_manipulation_task_source().queue(
-                            task!(process_pending_port_messages: move || {
+                            task!(process_pending_port_messages: move |cx| {
                                 let destination = channel.root();
                                 let global = global.root();
 
@@ -1358,7 +1368,7 @@ impl GlobalScope {
                                 rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::deprecated_note()) {
+                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
                                     // Step 10.4, Fire an event named message at destination.
                                     MessageEvent::dispatch_jsval(
                                         destination.upcast(),
@@ -1367,11 +1377,11 @@ impl GlobalScope {
                                         Some(&origin.ascii_serialization()),
                                         None,
                                         ports,
-                                        CanGc::deprecated_note()
+                                        CanGc::from_cx(cx)
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::deprecated_note());
+                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::from_cx(cx));
                                 }
                             })
                         );

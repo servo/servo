@@ -137,9 +137,9 @@ impl TrustedPromise {
     /// A task which will reject the promise.
     pub(crate) fn reject_task(self, error: Error) -> impl TaskOnce {
         let this = self;
-        task!(reject_promise: move || {
+        task!(reject_promise: move |cx| {
             debug!("Rejecting promise.");
-            this.root().reject_error(error, CanGc::deprecated_note());
+            this.root().reject_error(error, CanGc::from_cx(cx));
         })
     }
 
@@ -149,9 +149,9 @@ impl TrustedPromise {
         T: ToJSValConvertible + Send,
     {
         let this = self;
-        task!(resolve_promise: move || {
+        task!(resolve_promise: move |cx| {
             debug!("Resolving promise.");
-            this.root().resolve_native(&value, CanGc::deprecated_note());
+            this.root().resolve_native(&value, CanGc::from_cx(cx));
         })
     }
 }

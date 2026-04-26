@@ -2341,11 +2341,11 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::ElementClear(element_id, reply) => {
                 webdriver_handlers::handle_element_clear(
+                    cx,
                     &documents,
                     pipeline_id,
                     element_id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
@@ -2367,20 +2367,20 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::FindElementsTagName(selector, reply) => {
                 webdriver_handlers::handle_find_elements_tag_name(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
                 webdriver_handlers::handle_find_elements_xpath_selector(
+                    cx,
                     &documents,
                     pipeline_id,
                     selector,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
@@ -2407,12 +2407,12 @@ impl ScriptThread {
             ),
             WebDriverScriptCommand::FindElementElementsTagName(selector, element_id, reply) => {
                 webdriver_handlers::handle_find_element_elements_tag_name(
+                    cx,
                     &documents,
                     pipeline_id,
                     element_id,
                     selector,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementElementsXPathSelector(
@@ -2420,12 +2420,12 @@ impl ScriptThread {
                 element_id,
                 reply,
             ) => webdriver_handlers::handle_find_element_elements_xpath_selector(
+                cx,
                 &documents,
                 pipeline_id,
                 element_id,
                 selector,
                 reply,
-                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
@@ -2465,12 +2465,12 @@ impl ScriptThread {
                 shadow_root_id,
                 reply,
             ) => webdriver_handlers::handle_find_shadow_elements_xpath_selector(
+                cx,
                 &documents,
                 pipeline_id,
                 shadow_root_id,
                 selector,
                 reply,
-                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
@@ -2482,11 +2482,11 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
                 webdriver_handlers::handle_element_click(
+                    cx,
                     &documents,
                     pipeline_id,
                     element_id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetKnownElement(element_id, reply) => {
@@ -2559,21 +2559,15 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
-                webdriver_handlers::handle_get_rect(
-                    &documents,
-                    pipeline_id,
-                    node_id,
-                    reply,
-                    CanGc::from_cx(cx),
-                )
+                webdriver_handlers::handle_get_rect(cx, &documents, pipeline_id, node_id, reply)
             },
             WebDriverScriptCommand::ScrollAndGetBoundingClientRect(node_id, reply) => {
                 webdriver_handlers::handle_scroll_and_get_bounding_client_rect(
+                    cx,
                     &documents,
                     pipeline_id,
                     node_id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
@@ -2581,11 +2575,11 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::GetElementInViewCenterPoint(node_id, reply) => {
                 webdriver_handlers::handle_get_element_in_view_center_point(
+                    cx,
                     &documents,
                     pipeline_id,
                     node_id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetParentFrameId(reply) => {
@@ -2599,12 +2593,9 @@ impl ScriptThread {
                     reply,
                 )
             },
-            WebDriverScriptCommand::GetUrl(reply) => webdriver_handlers::handle_get_url(
-                &documents,
-                pipeline_id,
-                reply,
-                CanGc::from_cx(cx),
-            ),
+            WebDriverScriptCommand::GetUrl(reply) => {
+                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply)
+            },
             WebDriverScriptCommand::IsEnabled(element_id, reply) => {
                 webdriver_handlers::handle_is_enabled(&documents, pipeline_id, element_id, reply)
             },
@@ -2620,13 +2611,13 @@ impl ScriptThread {
                 strict_file_interactability,
                 reply,
             ) => webdriver_handlers::handle_will_send_keys(
+                cx,
                 &documents,
                 pipeline_id,
                 element_id,
                 text,
                 strict_file_interactability,
                 reply,
-                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
                 webdriver_handlers::handle_add_load_status_sender(

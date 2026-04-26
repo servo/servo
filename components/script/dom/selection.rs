@@ -101,10 +101,10 @@ impl Selection {
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(
-                task!(selectionchange_task_steps: move || {
+                task!(selectionchange_task_steps: move |cx| {
                     let this = this.root();
                     this.task_queued.set(false);
-                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::deprecated_note());
+                    this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::from_cx(cx));
                 })
             );
         self.task_queued.set(true);

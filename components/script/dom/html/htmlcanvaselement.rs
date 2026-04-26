@@ -426,7 +426,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-width>
-    fn SetWidth(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
+    fn SetWidth(&self, cx: &mut js::context::JSContext, value: u32) -> Fallible<()> {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
@@ -440,7 +440,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
+        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -448,7 +448,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-height>
-    fn SetHeight(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
+    fn SetHeight(&self, cx: &mut js::context::JSContext, value: u32) -> Fallible<()> {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
@@ -462,7 +462,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
+        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -587,14 +587,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         self.global()
             .task_manager()
             .canvas_blob_task_source()
-            .queue(task!(to_blob: move || {
+            .queue(task!(to_blob: move |cx| {
                 let this = this.root();
                 let Some(callback) = &this.blob_callbacks.borrow_mut().remove(&callback_id) else {
                     return error!("Expected blob callback, but found none!");
                 };
 
                 let Some(mut snapshot) = result else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::deprecated_note());
+                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::from_cx(cx));
                     return;
                 };
 
@@ -611,14 +611,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::deprecated_note());
+                       blob = Blob::new(&this.global(), blob_impl, CanGc::from_cx(cx));
                        Some(&*blob)
                    }
                    Err(..) => None,
                 };
 
                 // Step 4.2.2: Invoke callback with « result » and "report".
-                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::deprecated_note());
+                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::from_cx(cx));
             }));
 
         Ok(())
