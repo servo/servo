@@ -104,16 +104,26 @@ macro_rules! make_url_getter(
     );
 );
 
+macro_rules! make_url_setter_inner(
+    ( $self:ident, $value:ident, $htmlname:tt, $can_gc:expr ) => (
+        use $crate::dom::bindings::inheritance::Castable;
+        use $crate::dom::element::Element;
+        use $crate::script_runtime::CanGc;
+        let element = $self.upcast::<Element>();
+        element.set_url_attribute(&html5ever::local_name!($htmlname), $value, $can_gc)
+    );
+);
+
 #[macro_export]
 macro_rules! make_url_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: USVString) {
-            use $crate::dom::bindings::inheritance::Castable;
-            use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
-            let element = self.upcast::<Element>();
-            element.set_url_attribute(&html5ever::local_name!($htmlname),
-                                         value, CanGc::deprecated_note());
+            make_url_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
+        }
+    );
+    ( $cx:ident, $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, $cx: &mut js::context::JSContext, value: USVString) {
+            make_url_setter_inner!(self, value, $htmlname, CanGc::from_cx($cx));
         }
     );
 );
@@ -375,9 +385,6 @@ macro_rules! make_limited_uint_setter(
             Ok(())
         }
     );
-    ($attr:ident, $htmlname:tt) => {
-        make_limited_uint_setter!($attr, $htmlname, 1);
-    };
 );
 
 macro_rules! make_atomic_setter_inner(
@@ -419,27 +426,16 @@ macro_rules! make_legacy_color_setter(
     );
 );
 
-macro_rules! make_dimension_setter_inner(
-    ( $self:ident, $value:ident, $htmlname:tt, $can_gc:expr ) => (
-        use $crate::dom::bindings::inheritance::Castable;
-        use $crate::dom::element::Element;
-        use $crate::script_runtime::CanGc;
-        let element = $self.upcast::<Element>();
-        let value = AttrValue::from_dimension($value.into());
-        element.set_attribute(&html5ever::local_name!($htmlname), value, $can_gc)
-    );
-);
-
 #[macro_export]
 macro_rules! make_dimension_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: DOMString) {
-            make_dimension_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
-        }
-    );
-    ( $cx:ident, $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, $cx: &mut js::context::JSContext, value: DOMString) {
-            make_dimension_setter_inner!(self, value, $htmlname, CanGc::from_cx($cx));
+        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
+            let element = self.upcast::<Element>();
+            let value = AttrValue::from_dimension(value.into());
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
         }
     );
 );

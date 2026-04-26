@@ -265,7 +265,7 @@ impl FileInputShadowTree {
         selector_button
             .downcast::<HTMLButtonElement>()
             .expect("This should be guaranteed by the element type used above")
-            .SetType(DOMString::from("button"));
+            .SetType(cx, DOMString::from("button"));
 
         selector_button
             .downcast::<HTMLElement>()
