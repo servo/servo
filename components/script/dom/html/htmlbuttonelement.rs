@@ -580,11 +580,7 @@ impl Activatable for HTMLButtonElement {
             // TODO Steps 5.7, 5.8, 5.9
             // Step 5.10 Otherwise, if this standard defines command steps for target's local name,
             // then run the corresponding command steps given target, element, and command.
-            let _ = vtable_for(target_node).command_steps(
-                DomRoot::from_ref(self),
-                command,
-                CanGc::from_cx(cx),
-            );
+            let _ = vtable_for(target_node).command_steps(cx, DomRoot::from_ref(self), command);
         }
         // TODO Step 6 Otherwise, run the popover target attribute activation behavior given element
         // and event's target.

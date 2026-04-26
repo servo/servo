@@ -164,12 +164,12 @@ pub(crate) trait VirtualMethods {
     /// <https://html.spec.whatwg.org/multipage/#command-steps>
     fn command_steps(
         &self,
+        cx: &mut js::context::JSContext,
         button: DomRoot<HTMLButtonElement>,
         command: CommandState,
-        can_gc: CanGc,
     ) -> bool {
         self.super_type()
-            .is_some_and(|super_type| super_type.command_steps(button, command, can_gc))
+            .is_some_and(|super_type| super_type.command_steps(cx, button, command))
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
