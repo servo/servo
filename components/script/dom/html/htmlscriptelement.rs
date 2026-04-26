@@ -50,7 +50,7 @@ use crate::dom::element::{
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -1056,7 +1056,8 @@ impl HTMLScriptElement {
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.dispatch_event(cx, atom!("error"));
+                self.upcast::<EventTarget>()
+                    .fire_event(atom!("error"), CanGc::from_cx(cx));
                 return;
             },
 
@@ -1120,7 +1121,8 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.dispatch_event(cx, atom!("load"));
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), CanGc::from_cx(cx));
         }
     }
 
@@ -1197,18 +1199,6 @@ impl HTMLScriptElement {
 
     pub(crate) fn get_non_blocking(&self) -> bool {
         self.non_blocking.get()
-    }
-
-    fn dispatch_event(&self, cx: &mut JSContext, type_: Atom) -> bool {
-        let window = self.owner_window();
-        let event = Event::new(
-            window.upcast(),
-            type_,
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            CanGc::from_cx(cx),
-        );
-        event.fire_with_cx(cx, self.upcast())
     }
 
     fn text(&self) -> DOMString {
