@@ -159,6 +159,12 @@ RUST_KEYWORDS = {
     "yield",
 }
 
+EVENT_HANDLER_CALLBACKS = {
+    "EventHandlerNonNull",
+    "OnErrorEventHandlerNonNull",
+    "OnBeforeUnloadEventHandlerNonNull",
+}
+
 def isIDLType(obj: IDLObject) -> TypeGuard[IDLType]:
     if obj.isType():
         assert isinstance(obj, IDLType)
@@ -4169,6 +4175,16 @@ def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument | FakeArg
     return max([typeNeedsCx(a.type) for a in arguments] + [typeNeedsCx(returnType, True)]) if considerTypes else Context.No
 
 
+def isEventHandlerCallback(member: IDLAttribute) -> bool:
+    if not member.isAttr():
+        return False
+    if not member.type.isCallback():
+        return False
+    # pyrefly: ignore  # missing-attribute
+    callback = member.type.unroll().callback
+    return callback.identifier.name in EVENT_HANDLER_CALLBACKS
+
+
 class CGCallGenerator(CGThing):
     """
     A class to generate an actual call to a C++ object.  Assumes that the C++
@@ -4185,7 +4201,7 @@ class CGCallGenerator(CGThing):
                  extendedAttributes: list[str],
                  descriptor: Descriptor,
                  nativeMethodName: str,
-                 is_attr: bool,
+                 is_implicit_cx_attribute: bool,
                  static: bool,
                  object: str = "this",
                  hasCEReactions: bool = False
@@ -4214,7 +4230,6 @@ class CGCallGenerator(CGThing):
             args.append(CGGeneric(name))
 
         needsCx = False
-        is_implicit_cx_attribute = descriptor.implicitCxSetters and is_attr and nativeMethodName.startswith('Set')
         match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
             case Context.Cx:
                 descriptor.cxMethods.append(nativeMethodName)
@@ -4359,11 +4374,13 @@ class CGPerSignatureCall(CGThing):
                                                           idlNode.identifier.name))
         else:
             hasCEReactions = idlNode.getExtendedAttribute("CEReactions") or False
+            is_event_listener = isinstance(idlNode, IDLAttribute) and isEventHandlerCallback(idlNode)
+            is_implicit_cx_attribute = is_event_listener or descriptor.implicitCxSetters and idlNode.isAttr() and nativeMethodName.startswith('Set')
             cgThings.append(CGCallGenerator(
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
                 self.extendedAttributes, descriptor, nativeMethodName,
-                idlNode.isAttr(), static, hasCEReactions=hasCEReactions))
+                is_implicit_cx_attribute, static, hasCEReactions=hasCEReactions))
 
         self.cgRoot = CGList(cgThings, "\n")
 
@@ -7099,7 +7116,7 @@ class CGInterfaceTrait(CGThing):
                            attribute_arguments(
                                m.type,
                                cx_no_gc=name in descriptor.cx_no_gcMethods,
-                               cx=name in descriptor.cxMethods,
+                               cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
                                realm=name in descriptor.realmMethods,
                                inRealm=name in descriptor.inRealmMethods,
                                canGc=name in descriptor.canGcMethods,
@@ -7120,7 +7137,7 @@ class CGInterfaceTrait(CGThing):
                                    m.type,
                                    m.type,
                                    cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                   cx=name in descriptor.cxMethods or descriptor.implicitCxSetters,
+                                   cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
                                    realm=name in descriptor.realmMethods,
                                    inRealm=name in descriptor.inRealmMethods,
                                    canGc=name in descriptor.canGcMethods,
@@ -9083,7 +9100,6 @@ def process_arg(expr: str, arg: IDLArgument | FakeArgument) -> str:
         expr = f"&{expr}"
     return expr
 
-
 class GlobalGenRoots():
     """
     Roots for global codegen.
@@ -9489,11 +9505,6 @@ impl Clone for TopTypeId {
         """Generate the sorted list of content event handler attribute names
         by inspecting WebIDL definitions for interfaces that inherit from
         HTMLElement or SVGElement."""
-        EVENT_HANDLER_CALLBACKS = {
-            "EventHandlerNonNull",
-            "OnErrorEventHandlerNonNull",
-            "OnBeforeUnloadEventHandlerNonNull",
-        }
 
         handler_names: set[str] = set()
 
@@ -9506,13 +9517,7 @@ impl Clone for TopTypeId {
                 continue
 
             for member in descriptor.interface.members:
-                if not member.isAttr():
-                    continue
-                if not member.type.isCallback():
-                    continue
-                # pyrefly: ignore  # missing-attribute
-                callback = member.type.unroll().callback
-                if callback.identifier.name in EVENT_HANDLER_CALLBACKS:
+                if isEventHandlerCallback(member):
                     handler_names.add(member.identifier.name)
 
         sorted_names = sorted(handler_names)
