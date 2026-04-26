@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::local_name;
+use js::context::JSContext;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -21,28 +22,28 @@ pub(crate) trait HyperlinkElement {
 /// <https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils>
 pub(crate) trait HyperlinkElementTraits {
     fn get_hash(&self) -> USVString;
-    fn set_hash(&self, value: USVString, can_gc: CanGc);
+    fn set_hash(&self, cx: &mut JSContext, value: USVString);
     fn get_host(&self) -> USVString;
-    fn set_host(&self, value: USVString, can_gc: CanGc);
+    fn set_host(&self, cx: &mut JSContext, value: USVString);
     fn get_hostname(&self) -> USVString;
-    fn set_hostname(&self, value: USVString, can_gc: CanGc);
+    fn set_hostname(&self, cx: &mut JSContext, value: USVString);
     fn get_href(&self) -> USVString;
-    fn set_href(&self, value: USVString, can_gc: CanGc);
+    fn set_href(&self, cx: &mut JSContext, value: USVString);
     fn get_origin(&self) -> USVString;
     fn get_password(&self) -> USVString;
-    fn set_password(&self, value: USVString, can_gc: CanGc);
+    fn set_password(&self, cx: &mut JSContext, value: USVString);
     fn get_pathname(&self) -> USVString;
-    fn set_pathname(&self, value: USVString, can_gc: CanGc);
+    fn set_pathname(&self, cx: &mut JSContext, value: USVString);
     fn get_port(&self) -> USVString;
-    fn set_port(&self, value: USVString, can_gc: CanGc);
+    fn set_port(&self, cx: &mut JSContext, value: USVString);
     fn get_protocol(&self) -> USVString;
-    fn set_protocol(&self, value: USVString, can_gc: CanGc);
+    fn set_protocol(&self, cx: &mut JSContext, value: USVString);
     fn get_search(&self) -> USVString;
-    fn set_search(&self, value: USVString, can_gc: CanGc);
+    fn set_search(&self, cx: &mut JSContext, value: USVString);
     fn get_username(&self) -> USVString;
     fn set_url(&self);
-    fn set_username(&self, value: USVString, can_gc: CanGc);
-    fn update_href(&self, url: &ServoUrl, can_gc: CanGc);
+    fn set_username(&self, cx: &mut JSContext, value: USVString);
+    fn update_href(&self, cx: &mut JSContext, url: &ServoUrl);
     fn reinitialize_url(&self);
 }
 
@@ -70,7 +71,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
-    fn set_hash(&self, value: USVString, can_gc: CanGc) {
+    fn set_hash(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -92,7 +93,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetHash(url, value);
 
         // Step 6. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
@@ -118,7 +119,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
-    fn set_host(&self, value: USVString, can_gc: CanGc) {
+    fn set_host(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -136,7 +137,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetHost(url, value);
 
         // Step 5. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
@@ -156,7 +157,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
-    fn set_hostname(&self, value: USVString, can_gc: CanGc) {
+    fn set_hostname(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -174,7 +175,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetHostname(url, value);
 
         // Step 5. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
@@ -200,9 +201,12 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
-    fn set_href(&self, value: USVString, can_gc: CanGc) {
-        self.upcast::<Element>()
-            .set_string_attribute(&local_name!("href"), value.into(), can_gc);
+    fn set_href(&self, cx: &mut JSContext, value: USVString) {
+        self.upcast::<Element>().set_string_attribute(
+            &local_name!("href"),
+            value.into(),
+            CanGc::from_cx(cx),
+        );
 
         self.set_url();
     }
@@ -235,7 +239,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
-    fn set_password(&self, value: USVString, can_gc: CanGc) {
+    fn set_password(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -252,7 +256,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetPassword(url, value);
 
         // Step 5. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
@@ -270,7 +274,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
-    fn set_pathname(&self, value: USVString, can_gc: CanGc) {
+    fn set_pathname(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -288,7 +292,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetPathname(url, value);
 
         // Step 6. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
@@ -306,7 +310,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
-    fn set_port(&self, value: USVString, can_gc: CanGc) {
+    fn set_port(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -330,7 +334,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetPort(url, value);
 
         // Step 6. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
@@ -347,7 +351,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
-    fn set_protocol(&self, value: USVString, can_gc: CanGc) {
+    fn set_protocol(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -363,7 +367,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetProtocol(url, value);
 
         // Step 4. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
@@ -383,7 +387,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
-    fn set_search(&self, value: USVString, can_gc: CanGc) {
+    fn set_search(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -401,7 +405,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetSearch(url, value);
 
         // Step 6. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
@@ -442,7 +446,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
-    fn set_username(&self, value: USVString, can_gc: CanGc) {
+    fn set_username(&self, cx: &mut JSContext, value: USVString) {
         // Step 1. Reinitialize url.
         self.reinitialize_url();
 
@@ -459,15 +463,15 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         UrlHelper::SetUsername(url, value);
 
         // Step 5. Update href.
-        self.update_href(url, can_gc);
+        self.update_href(cx, url);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-href>
-    fn update_href(&self, url: &ServoUrl, can_gc: CanGc) {
+    fn update_href(&self, cx: &mut JSContext, url: &ServoUrl) {
         self.upcast::<Element>().set_string_attribute(
             &local_name!("href"),
             DOMString::from(url.as_str()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 
