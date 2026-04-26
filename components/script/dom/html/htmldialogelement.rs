@@ -245,7 +245,7 @@ impl HTMLDialogElement {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(fire_toggle_event: move || {
+            .queue(task!(fire_toggle_event: move |cx| {
                 let this = this.root();
 
                 let source = trusted_source.as_ref().map(|s| {
@@ -261,10 +261,10 @@ impl HTMLDialogElement {
                     DOMString::from(old_state),
                     DOMString::from(new_state),
                     source,
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
                 let event = event.upcast::<Event>();
-                event.fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
+                event.fire(this.upcast::<EventTarget>(), CanGc::from_cx(cx));
 
                 // TODO: Step 2.2. Set element's dialog toggle task tracker to null.
             }));

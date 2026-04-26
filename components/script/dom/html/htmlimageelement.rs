@@ -1393,9 +1393,9 @@ impl HTMLImageElement {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(fulfill_image_decode_promises: move || {
+            .queue(task!(fulfill_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().resolve_native(&(), CanGc::deprecated_note());
+                    trusted_promise.root().resolve_native(&(), CanGc::from_cx(cx));
                 }
             }));
     }
@@ -1420,9 +1420,9 @@ impl HTMLImageElement {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(reject_image_decode_promises: move || {
+            .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::deprecated_note());
+                    trusted_promise.root().reject_error(Error::Encoding(None), CanGc::from_cx(cx));
                 }
             }));
     }

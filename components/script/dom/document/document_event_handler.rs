@@ -1583,7 +1583,7 @@ impl DocumentEventHandler {
             .upcast::<GlobalScope>()
             .task_manager()
             .gamepad_task_source()
-            .queue(task!(gamepad_connected: move || {
+            .queue(task!(gamepad_connected: move |cx| {
                 let window = trusted_window.root();
 
                 let navigator = window.Navigator();
@@ -1597,9 +1597,9 @@ impl DocumentEventHandler {
                     button_bounds,
                     supported_haptic_effects,
                     false,
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 );
-                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::deprecated_note());
+                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::from_cx(cx));
             }));
     }
 
@@ -1611,12 +1611,12 @@ impl DocumentEventHandler {
             .upcast::<GlobalScope>()
             .task_manager()
             .gamepad_task_source()
-            .queue(task!(gamepad_disconnected: move || {
+            .queue(task!(gamepad_disconnected: move |cx| {
                 let window = trusted_window.root();
                 let navigator = window.Navigator();
                 if let Some(gamepad) = navigator.get_gamepad(index) {
                     if window.Document().is_fully_active() {
-                        gamepad.update_connected(false, gamepad.exposed(), CanGc::deprecated_note());
+                        gamepad.update_connected(false, gamepad.exposed(), CanGc::from_cx(cx));
                         navigator.remove_gamepad(index);
                     }
                 }
@@ -1655,9 +1655,9 @@ impl DocumentEventHandler {
                                     let new_gamepad = Trusted::new(&**gamepad);
                                     if window.Document().is_fully_active() {
                                         window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
-                                            task!(update_gamepad_connect: move || {
+                                            task!(update_gamepad_connect: move |cx| {
                                                 let gamepad = new_gamepad.root();
-                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::deprecated_note());
+                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::from_cx(cx));
                                             })
                                         );
                                     }

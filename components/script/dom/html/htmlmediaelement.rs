@@ -868,7 +868,7 @@ impl HTMLMediaElement {
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
-                .queue(task!(internal_pause_steps: move || {
+                .queue(task!(internal_pause_steps: move |cx| {
                     let this = this.root();
                     if generation_id != this.generation_id.get() {
                         return;
@@ -876,10 +876,10 @@ impl HTMLMediaElement {
 
                     this.fulfill_in_flight_play_promises(|| {
                         // Step 2.3.1. Fire an event named timeupdate at the element.
-                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::deprecated_note());
+                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::from_cx(cx));
 
                         // Step 2.3.2. Fire an event named pause at the element.
-                        this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::deprecated_note());
+                        this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::from_cx(cx));
 
                         // Step 2.3.3. Reject pending play promises with promises and an
                         // "AbortError" DOMException.
@@ -912,7 +912,7 @@ impl HTMLMediaElement {
         self.owner_global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(notify_about_playing: move || {
+            .queue(task!(notify_about_playing: move |cx| {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
@@ -920,7 +920,7 @@ impl HTMLMediaElement {
 
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1. Fire an event named playing at the element.
-                    this.upcast::<EventTarget>().fire_event(atom!("playing"), CanGc::deprecated_note());
+                    this.upcast::<EventTarget>().fire_event(atom!("playing"), CanGc::from_cx(cx));
 
                     // Step 2.2. Resolve pending play promises with promises.
                     // Done after running this closure in `fulfill_in_flight_play_promises`.
@@ -2293,14 +2293,14 @@ impl HTMLMediaElement {
         self.owner_global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(reaches_the_end_steps: move || {
+            .queue(task!(reaches_the_end_steps: move |cx| {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
                 }
 
                 // Step 3.1. Fire an event named timeupdate at the media element.
-                this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::deprecated_note());
+                this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::from_cx(cx));
 
                 // Step 3.2. If the media element has ended playback, the direction of playback is
                 // forwards, and paused is false, then:
@@ -2311,7 +2311,7 @@ impl HTMLMediaElement {
                     this.paused.set(true);
 
                     // Step 3.2.2. Fire an event named pause at the media element.
-                    this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::deprecated_note());
+                    this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::from_cx(cx));
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
@@ -2320,7 +2320,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 3.3. Fire an event named ended at the media element.
-                this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::deprecated_note());
+                this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::from_cx(cx));
             }));
 
         // <https://html.spec.whatwg.org/multipage/#dom-media-have_current_data>

@@ -525,7 +525,7 @@ impl HTMLSelectElement {
         self.owner_global()
             .task_manager()
             .user_interaction_task_source()
-            .queue(task!(send_select_update_notification: move || {
+            .queue(task!(send_select_update_notification: move |cx| {
                 let this = this.root();
 
                 // TODO: Step 1. Set the select element's user validity to true.
@@ -538,13 +538,13 @@ impl HTMLSelectElement {
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
                         EventComposed::Composed,
-                        CanGc::deprecated_note(),
+                        CanGc::from_cx(cx),
                     );
 
                 // Step 3. Fire an event named change at the select element, with the bubbles attribute initialized
                 // to true.
                 this.upcast::<EventTarget>()
-                    .fire_bubbling_event(atom!("change"), CanGc::deprecated_note());
+                    .fire_bubbling_event(atom!("change"), CanGc::from_cx(cx));
             }));
     }
 
