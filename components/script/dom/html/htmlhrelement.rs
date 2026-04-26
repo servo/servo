@@ -80,13 +80,13 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_getter!(Size, "size");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-size
-    make_dimension_setter!(cx, SetSize, "size");
+    make_dimension_setter!(SetSize, "size");
 
     // <https://html.spec.whatwg.org/multipage/#dom-hr-width>
     make_getter!(Width, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-hr-width>
-    make_dimension_setter!(cx, SetWidth, "width");
+    make_dimension_setter!(SetWidth, "width");
 }
 
 /// The result of applying the presentational hint for the `size` attribute.
