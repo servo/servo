@@ -40,16 +40,16 @@ impl Origin {
     }
 
     fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         origin: ImmutableOrigin,
-        can_gc: CanGc,
     ) -> DomRoot<Origin> {
         reflect_dom_object_with_proto(
             Box::new(Origin::new_inherited(origin)),
             global,
             proto,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -103,22 +103,21 @@ impl Origin {
 impl OriginMethods<crate::DomTypeHolder> for Origin {
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-constructor>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Origin> {
-        Origin::new(global, proto, ImmutableOrigin::new_opaque(), can_gc)
+        Origin::new(cx, global, proto, ImmutableOrigin::new_opaque())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin-from>
-    fn From(cx: JSContext, global: &GlobalScope, value: HandleValue) -> Fallible<DomRoot<Origin>> {
-        let can_gc = CanGc::deprecated_note();
+    fn From(cx: &mut JSContext, global: &GlobalScope, value: HandleValue) -> Fallible<DomRoot<Origin>> {
 
         // Step 1. If value is a platform object:
         //   1. Let origin be the result of executing value's extract an origin operation.
         //   2. If origin is not null, then return a new Origin object whose origin is origin.
         if let Some(origin) = Origin::extract_an_origin_from_platform_object(value, cx, global) {
-            return Ok(Origin::new(global, None, origin, can_gc));
+            return Ok(Origin::new(cx, global, None, origin));
         }
 
         // Step 2. If value is a string:
@@ -127,7 +126,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
                 cx,
                 value,
                 StringificationBehavior::Default,
-                can_gc,
+                CanGc::from_cx(cx)
             ) {
                 Ok(ConversionResult::Success(s)) => s,
                 _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
@@ -137,7 +136,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
             // Step 2.2. If parsedURL is not failure, then return a new Origin object whose
             //           origin is set to parsedURL's origin.
             match ServoUrl::parse(&s.to_string()) {
-                Ok(url) => return Ok(Origin::new(global, None, url.origin(), can_gc)),
+                Ok(url) => return Ok(Origin::new(cx, global, None, url.origin())),
                 Err(_) => return Err(Error::Type(c"Failed to parse URL".to_owned())),
             }
         }
