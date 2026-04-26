@@ -117,8 +117,10 @@ impl Document {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
         Some(match &*command_id.str().to_lowercase() {
+            "bold" => CommandName::Bold,
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
+            "fontname" => CommandName::FontName,
             "fontsize" => CommandName::FontSize,
             "italic" => CommandName::Italic,
             "strikethrough" => CommandName::Strikethrough,
@@ -228,12 +230,14 @@ impl DocumentExecCommandSupport for Document {
             // Step 4.1. Let affected editing host be the editing host that is an inclusive ancestor
             // of the active range's start node and end node, and is not the ancestor of any editing host
             // that is an inclusive ancestor of the active range's start node and end node.
-            let affected_editing_host = selection
+            let Some(affected_editing_host) = selection
                 .active_range()
                 .expect("Must always have an active range")
                 .CommonAncestorContainer()
                 .editing_host_of()
-                .expect("Must always have an editing host if command is enabled");
+            else {
+                return false;
+            };
 
             // Step 4.2. Fire an event named "beforeinput" at affected editing host using InputEvent,
             // with its bubbles and cancelable attributes initialized to true, and its data attribute initialized to null

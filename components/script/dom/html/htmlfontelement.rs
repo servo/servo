@@ -153,10 +153,13 @@ impl LayoutDom<'_, HTMLFontElement> {
     }
 
     pub(crate) fn get_face(self) -> Option<Atom> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("face"))
-            .map(AttrValue::as_atom)
-            .cloned()
+        let face = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("face"));
+        match face {
+            Some(AttrValue::Atom(s)) => Some(s.clone()),
+            _ => None,
+        }
     }
 
     pub(crate) fn get_size(self) -> Option<u32> {
