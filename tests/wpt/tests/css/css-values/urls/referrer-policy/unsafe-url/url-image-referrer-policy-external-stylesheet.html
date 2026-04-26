@@ -3,12 +3,12 @@
 <head>
 <title>Request URL Modifiers: referrer-policy(unsafe-url) in external stylesheet</title>
 <link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-referrer-policy-modifier">
-<link rel="match" href="../../url-image-ref.html">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
 <meta name="assert" content="A url() with referrer-policy(unsafe-url) in an external stylesheet sends the stylesheet URL as the referrer.">
 <link rel="stylesheet" href="../../support/external-referrer-policy-unsafe-url.sub.css">
 </head>
 <body>
-<p>Test passes if there is a green square.</p>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div class="test"></div>
 <script>
 window.addEventListener("load", () => {

@@ -93,6 +93,124 @@ test(t => {
 }, 'Returns animations on pseudo-elements when subtree: true is specified');
 
 test(t => {
+  createStyle(t, {
+    '@keyframes anim': '',
+    [`.pseudo::before`]: 'animation: anim 100s; ' + "content: '';",
+  });
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    'Returns no animations when the pseudo-element is not specified'
+  );
+  assert_equals(
+    div.getAnimations({ pseudoElement: '::before' }).length,
+    1,
+    'Returns one animation when the pseudo-element is specified'
+  );
+}, 'Returns animations on pseudo-element when it is specified');
+
+test(t => {
+  createStyle(t, {
+    '@keyframes anim': '',
+    [`.pseudo::before`]: 'animation: anim 100s; ' + "content: '';",
+  });
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    'Returns no animations when the pseudo-element is not specified'
+  );
+  assert_equals(
+    div.getAnimations({ pseudoElement: '::before', subtree: true }).length,
+    1,
+    'Returns one animation when the pseudo-element is specified'
+  );
+}, 'Returns animations on pseudo-element when it is specified with subtree: true');
+
+test(t => {
+  createStyle(t, {
+    '@keyframes anim': '',
+    [`.pseudo::part(test)`]: 'animation: anim 100s; ' + "content: '';",
+  });
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    'Returns no animations when the pseudo-element is not specified'
+  );
+  assert_equals(
+    div.getAnimations({ pseudoElement: '::part(test)' }).length,
+    1,
+    'Returns one animation when the pseudo-element is specified'
+  );
+}, 'Returns animations on functional pseudo-element when it is specified');
+
+test(t => {
+  // animation property cannot be applied to ::highlight pseudo element.
+  // ref: https://drafts.csswg.org/css-pseudo-4#highlight-styling
+  createStyle(t, {
+    '@keyframes anim': '',
+    [`.pseudo::highlight(test)`]: 'animation: anim 100s; ' + "content: '';",
+  });
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    'Returns no animations when the pseudo-element is not specified'
+  );
+  assert_equals(
+    div.getAnimations({ pseudoElement: '::highlight(test)' }).length,
+    0,
+    'Returns no animation when non-animatable pseudo-element is specified'
+  );
+}, 'Returns no animation when non-animatable pseudo-element is specified');
+
+test(t => {
+  createStyle(t, {
+    '@keyframes anim': '',
+    [`.pseudo::before`]: 'animation: anim 100s; ' + "content: '';",
+  });
+  const div = createDiv(t);
+  div.classList.add('pseudo');
+
+  assert_equals(
+    div.getAnimations().length,
+    0,
+    'Returns no animations when the pseudo-element is not specified'
+  );
+  assert_equals(
+    div.getAnimations({ pseudoElement: ':before' }).length,
+    1,
+    'Returns one animation when the pseudo-element is specified by the legacy selector'
+  );
+}, 'The legacy Selectors Level 2 single-colon selectors can be used');
+
+test(t => {
+  const div = createDiv(t);
+
+  assert_throws_dom('SyntaxError', () => {
+    div.getAnimations({ pseudoElement: ':invalid-pseudo' });
+  });
+}, 'Throws SyntaxError for an invalid pseudo-element selector');
+
+test(t => {
+  const div = createDiv(t);
+
+  assert_throws_dom('SyntaxError', () => {
+    div.getAnimations({ pseudoElement: '' });
+  });
+}, 'Throws SyntaxError for an empty selector');
+
+test(t => {
   const host = createDiv(t);
   const shadow = host.attachShadow({ mode: 'open' });
 

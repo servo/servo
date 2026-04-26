@@ -143,7 +143,7 @@ def get_loader_with_fakes(
         subsuites=None,
         tags=None,
         test_groups_file=None,
-        test_types={"crashtest", "print-reftest", "reftest", "testharness", "wdspec"},
+        test_types={"crashtest", "print-reftest", "reftest", "test262", "testharness", "wdspec"},
         this_chunk=1,
         total_chunks=1,
     )

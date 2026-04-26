@@ -4,6 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
 <div id="log"></div>
 <script>
 promise_test(async (t) => {
@@ -11,14 +12,25 @@ promise_test(async (t) => {
         if (document.fullscreenElement) return document.exitFullscreen();
     });
 
+    document.onfullscreenerror = t.unreached_func("fullscreenerror event");
+
     // Use the body element as the fullscreen element, because the second
     // test_driver.bless() call needs to insert a button inside of it, which
     // can't be clicked if another element is already fullscreen.
     const target = document.body;
 
     // First enter fullscreen.
-    await test_driver.bless("fullscreen", () => target.requestFullscreen());
+    await Promise.all([
+      fullScreenChange(),
+      test_driver.bless("fullscreen", () => target.requestFullscreen()),
+    ]);
     assert_equals(document.fullscreenElement, target, "fullscreen element after first request");
+
+    // The next requestFullscreen() should fire no events due to "If element is
+    // doc's fullscreen element, terminate these subsubsteps."
+    document.onfullscreenchange = t.unreached_func(
+        "fullscreenchange event"
+    );
 
     // Now request fullscreen again, which should be a no-op.
     await test_driver.bless("fullscreen", () => target.requestFullscreen());

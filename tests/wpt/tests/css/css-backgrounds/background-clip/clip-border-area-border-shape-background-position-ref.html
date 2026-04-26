@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  .test {
+    display: inline-block;
+    vertical-align: top;
+    margin: 30px;
+    position: relative;
+  }
+  .test:after {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    background: white;
+  }
+  .t1 {
+    width: 200px;
+    height: 100px;
+    background-image: linear-gradient(to right, transparent 100px, green 100px);
+  }
+  .t2 {
+    width: 100px;
+    height: 200px;
+    background-image: linear-gradient(to bottom, green 100px, transparent 100px);
+  }
+  .t3 {
+    width: 200px;
+    height: 100px;
+    background-image: linear-gradient(to right, green 100px, transparent 100px);
+  }
+  .t4 {
+    width: 100px;
+    height: 200px;
+    background-image: linear-gradient(to bottom, green 100px, transparent 100px);
+  }
+</style>
+<div class="test t1"></div>
+<div class="test t2"></div>
+<div class="test t3"></div>
+<div class="test t4"></div>

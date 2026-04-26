@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+  @page {
+    margin: 0;
+  }
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    background: yellow;
+    margin: 0;
+  }
+  .fakeMargin {
+    position: absolute;
+    background: white;
+  }
+</style>
+<div style="margin:78px 78px 48px 56px;">
+  There should be a white margin around this page. It should be larger on the
+  top and on the right.
+</div>
+<div class="fakeMargin" style="left:0; top:0; bottom:0; width:48px;"></div>
+<div class="fakeMargin" style="left:0; top:0; right:0; height:70px;"></div>
+<div class="fakeMargin" style="right:0; top:0; bottom:0; width:70px;"></div>
+<div class="fakeMargin" style="left:0; bottom:0; right:0; height:48px;"></div>

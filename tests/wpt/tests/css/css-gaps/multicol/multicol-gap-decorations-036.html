@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Multicolumn with column-wrap, rule-visibility-items:
+    between, rule-inset-junction: overlap-join, and rule-inset-cap: 10px.
+    Dangling endpoints at the empty cells in the last row should be treated as
+    edges and use the 10px cap inset.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="multicol-gap-decorations-036-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .container {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 130px;
+        column-count: 3;
+        column-width: 60px;
+        column-height: 60px;
+        column-gap: 10px;
+        row-gap: 10px;
+        column-rule-width: 10px;
+        column-rule-style: solid;
+        column-rule-color: blue;
+        row-rule-width: 2px;
+        row-rule-style: solid;
+        row-rule-color: gold;
+        column-wrap: wrap;
+        column-fill: auto;
+        column-rule-break: intersection;
+        row-rule-break: intersection;
+
+        rule-visibility-items: between;
+        column-rule-inset-junction: overlap-join;
+        rule-inset-cap: 10px;
+    }
+
+    p {
+        background: rgb(96 139 168 / 0.2);
+        height: 60px;
+        margin: 0px;
+    }
+</style>
+
+<div class="container">
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+</div>

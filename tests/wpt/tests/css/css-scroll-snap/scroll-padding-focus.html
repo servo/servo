@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-padding">
+<title>Scroll into view for focus respects scroll padding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#scroller {
+  height: 200px;
+  width: 600px;
+  margin: 50px;
+  scroll-padding: 0 120px;
+  scrollbar-width: none;
+  overflow: auto;
+  border: 1px solid black;
+}
+.wide {
+  width: 2000px;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  margin: 10px;
+  margin-left: 600px;
+  background-color: silver;
+}
+</style>
+
+<div id="scroller">
+  <div class="wide">
+      <div id="target" tabindex="-1" style="background-color: green"></div>
+  </div>
+</div>
+<div id="other-focus" tabindex="-1">Other focus</div>
+<script>
+function tick() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+function reset()
+{
+  document.getElementById('other-focus').focus();
+}
+
+let scroller = document.getElementById("scroller");
+promise_test(async t => {
+  reset();
+  scroller.scrollTo(100, 0);
+  await tick();
+  const target = document.getElementById("target");
+  target.focus();
+  await tick(); // Work around WebKit bug.
+  assert_equals(scroller.scrollLeft, 350, "Focus should scroll the target from out under the left scrollpadding");
+}, 'Avoid left scroll-padding');
+
+promise_test(async t => {
+  reset();
+  scroller.scrollTo(600, 0);
+  await tick();
+  const target = document.getElementById("target");
+  target.focus();
+  await tick(); // Work around WebKit bug.
+  assert_equals(scroller.scrollLeft, 350, "Focus should scroll the target from out under the right scrollpadding");
+}, 'Avoid right scroll-padding');
+</script>

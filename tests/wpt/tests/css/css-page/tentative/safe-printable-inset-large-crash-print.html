@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Large safe printable inset</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-margin-safety">
+<!-- Print crashtests aren't supported, so we need to pose as a reftest. -->
+<link rel="mismatch" href="/common/blank.html">
+<meta name="safe-printable-inset" content="100">
+<style>
+  @page {
+    page-margin-safety: clamp;
+    margin: 0;
+  }
+</style>
+<div style="height:10000px;">Should not crash or freeze</div>

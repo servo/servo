@@ -27,6 +27,17 @@ test_valid_value("overflow-clip-margin", 'border-box 0px', 'border-box');
 test_valid_value("overflow-clip-margin", 'border-box 10px', 'border-box 10px');
 test_valid_value("overflow-clip-margin", '10px border-box', 'border-box 10px');
 
+test_valid_value("overflow-clip-margin", "calc(100px - 50px)", "calc(50px)");
+test_valid_value("overflow-clip-margin", "calc(100px - 100px)", "calc(0px)");
+test_valid_value("overflow-clip-margin", "calc(0.5em - 100px)");
+test_invalid_value("overflow-clip-margin", "calc(100% - 0.5em)");
+test_invalid_value("overflow-clip-margin", "calc(100% - 50px)");
+
+test_valid_value("overflow-clip-margin", 'padding-box calc(0.5em - 100px)', 'calc(0.5em - 100px)');
+test_valid_value("overflow-clip-margin", 'padding-box calc(100px - 100px)', 'calc(0px)');
+test_valid_value("overflow-clip-margin", 'border-box calc(0.5em - 100px)', 'border-box calc(0.5em - 100px)');
+test_invalid_value("overflow-clip-margin", 'border-box calc(0.5em - 100%)');
+
 test_invalid_value("overflow-clip-margin", 'margin-box');
 test_invalid_value("overflow-clip-margin", 'inset(10px)');
 test_invalid_value("overflow-clip-margin", '50px 50px');

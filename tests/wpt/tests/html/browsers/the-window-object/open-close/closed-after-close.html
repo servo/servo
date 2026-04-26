@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/2126">
+<link rel=help href="https://issues.chromium.org/issues/41291451">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+test(() => {
+  const w = window.open();
+  w.document.body.appendChild(w.document.createElement('iframe'));
+  w.close();
+  assert_true(w.closed);
+  assert_false(w[0].closed);
+}, 'window.closed behavior after calling window.close().');
+</script>

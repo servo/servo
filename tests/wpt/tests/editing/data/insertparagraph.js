@@ -2768,4 +2768,13 @@ var browserTests = [
      '<div style="white-space:pre-line">abc&nbsp;&nbsp;</div><div style="white-space:pre-line"><br></div>'],
     [true],
     {}],
+
+// The content of <output> should be editable and the <output> itself should be splittable.
+// This test does check them. So, how to split the <output> is not scope of this test.
+["<output>a[]b</output>",
+  [["defaultparagraphseparator","div"],["insertparagraph",""]],
+  ["<output>a</output><div><output>b</output></div>",
+   "<div><output>a</output></div><div><output>b</output></div>"],
+  [true,true],
+  {}],
 ]

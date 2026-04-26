@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Parsing text-decoration-skip-spaces with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-spaces-property">
+<meta name="assert" content="text-decoration-skip-spaces supports the full grammar 'none | all | [ start || end ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_value("text-decoration-skip-spaces", "none");
+test_valid_value("text-decoration-skip-spaces", "all");
+test_valid_value("text-decoration-skip-spaces", "start");
+test_valid_value("text-decoration-skip-spaces", "end");
+test_valid_value("text-decoration-skip-spaces", "start end");
+test_valid_value("text-decoration-skip-spaces", "end start", "start end");
+</script>

@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Manual Tests for rejecting respondWith with errors</title>
+<link rel="help" href="https://w3c.github.io/web-based-payment-handler/#the-paymentrequestevent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>This test verifies that if a payment app rejects the promise passed to <code>respondWith</code> with an <code>OperationError</code>, the original <code>PaymentRequest.show()</code> call also rejects with an <code>OperationError</code>. For other error types, it should still reject with an <code>AbortError</code>.</p>
+<p>Please follow these instructions:</p>
+<ol>
+  <li>For the first test (<b>OperationError</b>), click "Reject with OperationError".</li>
+  <li>For the second test (<b>SyntaxError</b>), click "Reject with SyntaxError".</li>
+</ol>
+
+<script>
+  const methodName = window.location.origin + '/web-based-payment-handler/'
+      + 'payment-request-reject-errors-manifest.json';
+
+  promise_test(async t => {
+    const request = new PaymentRequest([{supportedMethods: methodName}], {
+      total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+    });
+    // show() should reject with the SAME error if it's OperationError.
+    await promise_rejects_dom(t, 'OperationError', request.show());
+  }, 'If a payment app rejects with OperationError, show() rejects with OperationError');
+
+  promise_test(async t => {
+    const request = new PaymentRequest([{supportedMethods: methodName}], {
+      total: {label: 'Total', amount: {currency: 'USD', value: '0.01'}},
+    });
+    // show() should reject with AbortError for other error types.
+    await promise_rejects_dom(t, 'AbortError', request.show());
+  }, 'If a payment app rejects with SyntaxError, show() rejects with AbortError');
+</script>

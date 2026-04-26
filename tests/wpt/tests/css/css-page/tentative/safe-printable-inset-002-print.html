@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>page-margin-safety: clamp</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13190/files">
+<link rel="match" href="safe-printable-inset-002-print-ref.html">
+<meta name="safe-printable-inset" content="1.27">
+<style>
+  @page {
+    margin: 0;
+    margin-top: 70px;
+    margin-right: 70px;
+    page-margin-safety: clamp;
+  }
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    background: yellow;
+  }
+</style>
+There should be a white margin around this page. It should be larger on the top
+and on the right.

@@ -18,6 +18,9 @@ promise_test(async () => {
 
   const track = decoder.tracks.selectedTrack;
   assert_true(track.animated, 'track must be animated');
+
+  await decoder.completed;
+
   assert_greater_than(track.frameCount, 1, 'must expose multiple frames');
 
   const f0 = await decoder.decode({frameIndex: 0});

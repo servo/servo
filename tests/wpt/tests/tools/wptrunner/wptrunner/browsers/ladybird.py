@@ -22,7 +22,8 @@ __wptrunner__ = {
         "testharness": "WebDriverTestharnessExecutor",
         "reftest": "WebDriverRefTestExecutor",
         "wdspec": "WdspecExecutor",
-        "crashtest": "WebDriverCrashtestExecutor"
+        "crashtest": "WebDriverCrashtestExecutor",
+        "test262": "WebDriverTestharnessExecutor"
     }
 }
 

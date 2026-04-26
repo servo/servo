@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+body {
+  margin: 0;
+}
+.item {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: rgba(192 192 192 / 0.75);
+}
+.col-rule {
+  position: absolute;
+  width: 0;
+  border-left: 6px solid rgba(128 0 0 / 0.5);
+}
+.row-rule {
+  position: absolute;
+  height: 0;
+  border-top: 6px solid rgba(0 0 128 / 0.5);
+}
+</style>
+
+<!-- Grid items -->
+<div class="item" style="left: 10px; top: 10px;">A</div>
+<div class="item" style="left: 130px; top: 10px;">B</div>
+<div class="item" style="left: 250px; top: 10px;">C</div>
+<div class="item" style="left: 370px; top: 10px;">D</div>
+<div class="item" style="left: 10px; top: 130px;">E</div>
+<div class="item" style="left: 370px; top: 130px;">F</div>
+<div class="item" style="left: 10px; top: 250px;">G</div>
+<div class="item" style="left: 130px; top: 250px;">H</div>
+<div class="item" style="left: 250px; top: 250px;">I</div>
+<div class="item" style="left: 370px; top: 250px;">J</div>
+
+<!-- Column rules (vertical, red/maroon). Overlap-join ends extend by half the
+     decoration width (3px) past the crossing decoration's center. -->
+<!-- Col gap 0: row 1 (overlap-join bottom) -->
+<div class="col-rule" style="left: 117px; top: 10px; height: 113px;"></div>
+<!-- Col gap 0: row 3 (overlap-join top) -->
+<div class="col-rule" style="left: 117px; top: 237px; height: 113px;"></div>
+<!-- Col gap 1: row 1 (dangling bottom, flush) -->
+<div class="col-rule" style="left: 237px; top: 10px; height: 100px;"></div>
+<!-- Col gap 1: row 3 (dangling top, flush) -->
+<div class="col-rule" style="left: 237px; top: 250px; height: 100px;"></div>
+<!-- Col gap 2: row 1 (overlap-join bottom) -->
+<div class="col-rule" style="left: 357px; top: 10px; height: 113px;"></div>
+<!-- Col gap 2: row 3 (overlap-join top) -->
+<div class="col-rule" style="left: 357px; top: 237px; height: 113px;"></div>
+
+<!-- Row rules (horizontal, blue). Overlap-join ends extend by half the
+     decoration width (3px) past the crossing decoration's center. -->
+<!-- Row gap 0: col 1 (overlap-join right) -->
+<div class="row-rule" style="left: 10px; top: 117px; width: 113px;"></div>
+<!-- Row gap 0: col 4 (overlap-join left) -->
+<div class="row-rule" style="left: 357px; top: 117px; width: 113px;"></div>
+<!-- Row gap 1: col 1 (overlap-join right) -->
+<div class="row-rule" style="left: 10px; top: 237px; width: 113px;"></div>
+<!-- Row gap 1: col 4 (overlap-join left) -->
+<div class="row-rule" style="left: 357px; top: 237px; width: 113px;"></div>

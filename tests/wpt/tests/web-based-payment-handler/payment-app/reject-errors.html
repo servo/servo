@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Reject Error Payment App</title>
+<p>Please click one of the buttons below to complete or reject the payment.</p>
+<button id="success">Authorize (Success)</button>
+<button id="reject-operation-error">Reject with OperationError</button>
+<button id="reject-syntax-error">Reject with SyntaxError</button>
+
+<script>
+  for (const id of ['success', 'reject-operation-error', 'reject-syntax-error']) {
+    document.getElementById(id).onclick = () => {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage(id);
+      }
+      window.close();
+    };
+  }
+</script>
