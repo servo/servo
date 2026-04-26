@@ -5,34 +5,79 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{WebGLCommand, webgl_channel};
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::script_runtime::CanGc;
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLTransformFeedback {
+    context: WeakRef<WebGLRenderingContext>,
+    id: u32,
+    marked_for_deletion: Cell<bool>,
+}
+
+impl DroppableWebGLTransformFeedback {
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn delete(&self, operation_fallibility: Operation) {
+        if self.is_valid() && self.id() != 0 {
+            self.marked_for_deletion.set(true);
+            self.send_with_fallibility(
+                WebGLCommand::DeleteTransformFeedback(self.id()),
+                operation_fallibility,
+            );
+        }
+    }
+
+    fn id(&self) -> u32 {
+        self.id
+    }
+
+    fn is_valid(&self) -> bool {
+        !self.marked_for_deletion.get()
+    }
+}
+
+impl Drop for DroppableWebGLTransformFeedback {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
 
 #[dom_struct(associated_memory)]
 pub(crate) struct WebGLTransformFeedback {
     webgl_object: WebGLObject,
-    id: u32,
-    marked_for_deletion: Cell<bool>,
     has_been_bound: Cell<bool>,
     is_active: Cell<bool>,
     is_paused: Cell<bool>,
+    droppable: DroppableWebGLTransformFeedback,
 }
 
 impl WebGLTransformFeedback {
     fn new_inherited(context: &WebGLRenderingContext, id: u32) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id,
-            marked_for_deletion: Cell::new(false),
             has_been_bound: Cell::new(false),
             is_active: Cell::new(false),
             is_paused: Cell::new(false),
+            droppable: DroppableWebGLTransformFeedback {
+                context: WeakRef::new(context),
+                id,
+                marked_for_deletion: Cell::new(false),
+            },
         }
     }
 
@@ -87,11 +132,11 @@ impl WebGLTransformFeedback {
     }
 
     pub(crate) fn id(&self) -> u32 {
-        self.id
+        self.droppable.id()
     }
 
     pub(crate) fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get()
+        self.droppable.is_valid()
     }
 
     pub(crate) fn is_active(&self) -> bool {
@@ -103,13 +148,7 @@ impl WebGLTransformFeedback {
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if self.is_valid() && self.id() != 0 {
-            self.marked_for_deletion.set(true);
-            self.upcast().send_with_fallibility(
-                WebGLCommand::DeleteTransformFeedback(self.id),
-                operation_fallibility,
-            );
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn set_active(&self, value: bool) {
@@ -122,11 +161,5 @@ impl WebGLTransformFeedback {
         if self.is_valid() && self.is_active() {
             self.is_active.set(value);
         }
-    }
-}
-
-impl Drop for WebGLTransformFeedback {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
     }
 }

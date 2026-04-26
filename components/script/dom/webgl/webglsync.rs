@@ -5,35 +5,76 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLSyncId, webgl_channel};
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 use crate::script_runtime::CanGc;
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableWebGLSync {
+    context: WeakRef<WebGLRenderingContext>,
+    #[no_trace]
+    sync_id: WebGLSyncId,
+    marked_for_deletion: Cell<bool>,
+}
+
+impl DroppableWebGLSync {
+    fn send_with_fallibility(&self, command: WebGLCommand, fallibility: Operation) {
+        if let Some(root) = self.context.root() {
+            let result = root.sender().send(command, capture_webgl_backtrace());
+            if matches!(fallibility, Operation::Infallible) {
+                result.expect("Operation failed");
+            }
+        }
+    }
+
+    fn delete(&self, operation_fallibility: Operation) {
+        if self.is_valid() {
+            self.marked_for_deletion.set(true);
+            self.send_with_fallibility(
+                WebGLCommand::DeleteSync(self.sync_id),
+                operation_fallibility,
+            );
+        }
+    }
+
+    fn is_valid(&self) -> bool {
+        !self.marked_for_deletion.get()
+    }
+}
+
+impl Drop for DroppableWebGLSync {
+    fn drop(&mut self) {
+        self.delete(Operation::Fallible);
+    }
+}
 
 #[dom_struct(associated_memory)]
 pub(crate) struct WebGLSync {
     webgl_object: WebGLObject,
-    #[no_trace]
-    sync_id: WebGLSyncId,
-    marked_for_deletion: Cell<bool>,
     client_wait_status: Cell<Option<u32>>,
     sync_status: Cell<Option<u32>>,
+    droppable: DroppableWebGLSync,
 }
 
 impl WebGLSync {
     fn new_inherited(context: &WebGLRenderingContext, sync_id: WebGLSyncId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            sync_id,
-            marked_for_deletion: Cell::new(false),
             client_wait_status: Cell::new(None),
             sync_status: Cell::new(None),
+            droppable: DroppableWebGLSync {
+                context: WeakRef::new(context),
+                sync_id,
+                marked_for_deletion: Cell::new(false),
+            },
         }
     }
 
@@ -66,7 +107,7 @@ impl WebGLSync {
                     let context = context.root();
                     let (sender, receiver) = webgl_channel().unwrap();
                     context.send_command(WebGLCommand::ClientWaitSync(
-                        this.sync_id,
+                        this.id(),
                         flags,
                         timeout,
                         sender,
@@ -84,13 +125,7 @@ impl WebGLSync {
     }
 
     pub(crate) fn delete(&self, operation_fallibility: Operation) {
-        if self.is_valid() {
-            self.marked_for_deletion.set(true);
-            self.upcast().send_with_fallibility(
-                WebGLCommand::DeleteSync(self.sync_id),
-                operation_fallibility,
-            );
-        }
+        self.droppable.delete(operation_fallibility);
     }
 
     pub(crate) fn get_sync_status(
@@ -106,7 +141,7 @@ impl WebGLSync {
                     let this = this.root();
                     let context = context.root();
                     let (sender, receiver) = webgl_channel().unwrap();
-                    context.send_command(WebGLCommand::GetSyncParameter(this.sync_id, pname, sender));
+                    context.send_command(WebGLCommand::GetSyncParameter(this.id(), pname, sender));
                     this.sync_status.set(Some(receiver.recv().unwrap()));
                 });
                 self.global()
@@ -120,16 +155,10 @@ impl WebGLSync {
     }
 
     pub(crate) fn is_valid(&self) -> bool {
-        !self.marked_for_deletion.get()
+        self.droppable.is_valid()
     }
 
     pub(crate) fn id(&self) -> WebGLSyncId {
-        self.sync_id
-    }
-}
-
-impl Drop for WebGLSync {
-    fn drop(&mut self) {
-        self.delete(Operation::Fallible);
+        self.droppable.sync_id
     }
 }
