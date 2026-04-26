@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::event::Event;
@@ -23,10 +22,10 @@ impl SpecificInputType for ImageInputType {
     /// <https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior>
     fn activation_behavior(
         &self,
+        cx: &mut JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        can_gc: CanGc,
     ) {
         // Step 1: If the element does not have a form owner, then return.
         if let Some(form_owner) = input.form_owner() {
@@ -43,9 +42,9 @@ impl SpecificInputType for ImageInputType {
             // Step 4: Submit the element's form owner from the element with userInvolvement
             // set to event's user navigation involvement.
             form_owner.submit(
+                cx,
                 SubmittedFrom::NotFromForm,
                 FormSubmitterElement::Input(input),
-                can_gc,
             )
         }
     }

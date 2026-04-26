@@ -163,10 +163,10 @@ impl SpecificInputType for FileInputType {
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior>
     fn activation_behavior(
         &self,
+        _cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        _can_gc: CanGc,
     ) {
         input.show_the_picker_if_applicable();
     }

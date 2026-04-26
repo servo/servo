@@ -304,10 +304,10 @@ pub(crate) trait SpecificInputType {
 
     fn activation_behavior(
         &self,
+        _cx: &mut js::context::JSContext,
         _input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        _can_gc: CanGc,
     ) {
     }
 
