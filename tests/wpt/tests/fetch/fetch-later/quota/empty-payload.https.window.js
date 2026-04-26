@@ -14,18 +14,9 @@ for (const dataType in BeaconDataType) {
     body: makeBeaconData('', dataType)
   };
 
-  if (dataType === BeaconDataType.FormData) {
-    // An empty FormData object serializes to non-empty String. Hence, there
-    // will be no error thrown from fetchLater.
-    parallelPromiseTest(async _ => {
-      expectFetchLater(requestInit);
-    }, `fetchLater() accepts a non-empty POST request body of ${dataType}.`);
-    continue;
-  }
-  test(
-      () => assert_throws_js(TypeError, () => fetchLater('/', requestInit)),
-      `fetchLater() does not accept an empty POST request body of ${
-          dataType}.`);
+  parallelPromiseTest(async _ => {
+    expectFetchLater(requestInit);
+  }, `fetchLater() accepts an empty POST request body of ${dataType}.`);
 }
 
 // Test making HTTP non-POST requests, which has no payload and should be
