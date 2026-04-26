@@ -928,11 +928,10 @@ impl WebGLFramebuffer {
         }
     }
 
-    fn with_matching_textures<F>(&self, texture: &WebGLTexture, mut closure: F)
+    fn with_matching_textures_id<F>(&self, tex_id: WebGLTextureId, mut closure: F)
     where
         F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32),
     {
-        let tex_id = texture.id();
         let attachments = [
             (&self.depth, constants::DEPTH_ATTACHMENT),
             (&self.stencil, constants::STENCIL_ATTACHMENT),
@@ -984,13 +983,13 @@ impl WebGLFramebuffer {
         Ok(())
     }
 
-    pub(crate) fn detach_texture(&self, texture: &WebGLTexture) -> WebGLResult<()> {
+    pub(crate) fn detach_texture(&self, tex_id: WebGLTextureId) -> WebGLResult<()> {
         // Opaque framebuffers cannot have their attachments changed
         // https://immersive-web.github.io/webxr/#opaque-framebuffer
         self.validate_transparent()?;
 
         let mut depth_or_stencil_updated = false;
-        self.with_matching_textures(texture, |att, name| {
+        self.with_matching_textures_id(tex_id, |att, name| {
             depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
             if let Some(att) = &*att.borrow() {
                 att.detach();
@@ -1013,7 +1012,7 @@ impl WebGLFramebuffer {
     }
 
     pub(crate) fn invalidate_texture(&self, texture: &WebGLTexture) {
-        self.with_matching_textures(texture, |_att, _name| {
+        self.with_matching_textures_id(texture.id(), |_att, _name| {
             self.update_status();
         });
     }
