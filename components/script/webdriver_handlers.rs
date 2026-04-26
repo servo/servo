@@ -723,11 +723,11 @@ pub(crate) fn handle_get_browsing_context_id(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-center-point>
-fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<Point2D<i64>> {
+fn get_element_in_view_center_point(cx: &mut JSContext, element: &Element) -> Option<Point2D<i64>> {
     let doc = element.owner_document();
     // Step 1: Let rectangle be the first element of the DOMRect sequence
     // returned by calling getClientRects() on element.
-    element.GetClientRects(can_gc).first().map(|rectangle| {
+    element.GetClientRects(CanGc::from_cx(cx)).first().map(|rectangle| {
         let x = rectangle.X();
         let y = rectangle.Y();
         let width = rectangle.Width();
@@ -764,16 +764,16 @@ fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<
 }
 
 pub(crate) fn handle_get_element_in_view_center_point(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: GenericOneshotSender<Result<Option<(i64, i64)>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
-                get_element_in_view_center_point(&element, can_gc).map(|point| (point.x, point.y))
+                get_element_in_view_center_point(cx, &element).map(|point| (point.x, point.y))
             }),
         )
         .unwrap();
@@ -842,16 +842,16 @@ pub(crate) fn handle_find_elements_link_text(
 }
 
 pub(crate) fn handle_find_elements_tag_name(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
             .send(Ok(document
-                .GetElementsByTagName(DOMString::from(selector), can_gc)
+                .GetElementsByTagName(DOMString::from(selector), CanGc::from_cx(cx))
                 .elements_iter()
                 .map(|x| x.upcast::<Node>().unique_id(pipeline))
                 .collect::<Vec<String>>()))
@@ -862,11 +862,11 @@ pub(crate) fn handle_find_elements_tag_name(
 
 /// <https://w3c.github.io/webdriver/#xpath>
 fn find_elements_xpath_strategy(
+    cx: &mut JSContext,
     document: &Document,
     start_node: &Node,
     selector: String,
     pipeline: PipelineId,
-    can_gc: CanGc,
 ) -> Result<Vec<String>, ErrorStatus> {
     // Step 1. Let evaluateResult be the result of calling evaluate,
     // with arguments selector, start node, null, ORDERED_NODE_SNAPSHOT_TYPE, and null.
@@ -878,7 +878,7 @@ fn find_elements_xpath_strategy(
         None,
         XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
         None,
-        can_gc,
+        CanGc::from_cx(cx),
     ) {
         Ok(res) => res,
         Err(_) => return Err(ErrorStatus::InvalidSelector),
@@ -921,20 +921,20 @@ fn find_elements_xpath_strategy(
 }
 
 pub(crate) fn handle_find_elements_xpath_selector(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
             .send(find_elements_xpath_strategy(
+                cx,
                 &document,
                 document.upcast::<Node>(),
                 selector,
                 pipeline,
-                can_gc,
             ))
             .unwrap(),
         Err(error) => reply.send(Err(error)).unwrap(),
@@ -984,18 +984,18 @@ pub(crate) fn handle_find_element_elements_link_text(
 }
 
 pub(crate) fn handle_find_element_elements_tag_name(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
     reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
-                    .GetElementsByTagName(DOMString::from(selector), can_gc)
+                    .GetElementsByTagName(DOMString::from(selector), CanGc::from_cx(cx))
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
@@ -1005,24 +1005,24 @@ pub(crate) fn handle_find_element_elements_tag_name(
 }
 
 pub(crate) fn handle_find_element_elements_xpath_selector(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
     reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 find_elements_xpath_strategy(
+                    cx,
                     &documents
                         .find_document(pipeline)
                         .expect("Document existence guaranteed by `get_known_element`"),
                     element.upcast::<Node>(),
                     selector,
                     pipeline,
-                    can_gc,
                 )
             }),
         )
@@ -1103,24 +1103,24 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
 }
 
 pub(crate) fn handle_find_shadow_elements_xpath_selector(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     shadow_root_id: String,
     selector: String,
     reply: GenericSender<Result<Vec<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
                 find_elements_xpath_strategy(
+                    cx,
                     &documents
                         .find_document(pipeline)
                         .expect("Document existence guaranteed by `get_known_shadow_root`"),
                     shadow_root.upcast::<Node>(),
                     selector,
                     pipeline,
-                    can_gc,
                 )
             }),
         )
@@ -1199,9 +1199,9 @@ fn handle_send_keys_file(
 
 /// We have verify previously that input element is not textual.
 fn handle_send_keys_non_typeable(
+    cx: &mut JSContext,
     input_element: &HTMLInputElement,
     text: &str,
-    can_gc: CanGc,
 ) -> Result<bool, ErrorStatus> {
     // Step 1. If element does not have an own property named value,
     // Return ErrorStatus::ElementNotInteractable.
@@ -1214,7 +1214,7 @@ fn handle_send_keys_non_typeable(
     }
 
     // Step 3. Set a property value to text on element.
-    if let Err(error) = input_element.SetValue(text.into(), can_gc) {
+    if let Err(error) = input_element.SetValue(text.into(), CanGc::from_cx(cx)) {
         error!(
             "Failed to set value on non-typeable input element: {:?}",
             error
@@ -1224,7 +1224,7 @@ fn handle_send_keys_non_typeable(
 
     // Step 4. If element is suffering from bad input, return ErrorStatus::InvalidArgument.
     if input_element
-        .Validity(can_gc)
+        .Validity(CanGc::from_cx(cx))
         .invalid_flags()
         .contains(ValidationFlags::BAD_INPUT)
     {
@@ -1242,13 +1242,13 @@ fn handle_send_keys_non_typeable(
 /// indicating whether the dispatching of the key and
 /// composition event is still needed or not.
 pub(crate) fn handle_will_send_keys(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     text: String,
     strict_file_interactability: bool,
     reply: GenericSender<Result<bool, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     // Set 5. Let element be the result of trying to get a known element.
     let element = match get_known_element(documents, pipeline, element_id) {
@@ -1270,7 +1270,7 @@ pub(crate) fn handle_will_send_keys(
     // Step 7. If file is false or the session's strict file interactability
     if !is_file_input || strict_file_interactability {
         // Step 7.1. Scroll into view the element
-        scroll_into_view(&element, documents, &pipeline, can_gc);
+        scroll_into_view(cx, &element, documents, &pipeline);
 
         // TODO: Step 7.2 - 7.5
         // Wait until element become keyboard-interactable
@@ -1294,7 +1294,7 @@ pub(crate) fn handle_will_send_keys(
                 &FocusOptions {
                     preventScroll: true,
                 },
-                can_gc,
+                CanGc::from_cx(cx),
             );
         } else {
             element_has_focus = element.focus_state();
@@ -1310,7 +1310,7 @@ pub(crate) fn handle_will_send_keys(
 
         // Step 8 (Handle non-typeable form control)
         if input_element.is_nontypeable() {
-            let _ = reply.send(handle_send_keys_non_typeable(input_element, &text, can_gc));
+            let _ = reply.send(handle_send_keys_non_typeable(cx, input_element, &text));
             return;
         }
     }
@@ -1368,7 +1368,7 @@ pub(crate) fn handle_get_computed_role(
 }
 
 pub(crate) fn handle_get_page_source(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: GenericSender<Result<String, ErrorStatus>>,
@@ -1592,11 +1592,11 @@ fn calculate_absolute_position(
 
 /// <https://w3c.github.io/webdriver/#get-element-rect>
 pub(crate) fn handle_get_rect(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: GenericSender<Result<Rect<f64>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1604,7 +1604,7 @@ pub(crate) fn handle_get_rect(
                 // Step 4-5
                 // We pass the rect instead of element so we don't have to
                 // call `GetBoundingClientRect` twice.
-                let rect = element.GetBoundingClientRect(can_gc);
+                let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
                 let (x, y) = calculate_absolute_position(documents, &pipeline, &rect)?;
 
                 // Step 6-7
@@ -1618,18 +1618,18 @@ pub(crate) fn handle_get_rect(
 }
 
 pub(crate) fn handle_scroll_and_get_bounding_client_rect(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: GenericSender<Result<Rect<f32>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
-                scroll_into_view(&element, documents, &pipeline, can_gc);
+                scroll_into_view(cx, &element, documents, &pipeline);
 
-                let rect = element.GetBoundingClientRect(can_gc);
+                let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
                 Rect::new(
                     Point2D::new(rect.X() as f32, rect.Y() as f32),
                     Size2D::new(rect.Width() as f32, rect.Height() as f32),
@@ -1774,7 +1774,6 @@ pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: GenericSender<String>,
-    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1817,7 +1816,7 @@ fn element_is_mutable_form_control(element: &Element) -> bool {
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-clear-a-resettable-element>
-fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), ErrorStatus> {
+fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(), ErrorStatus> {
     let html_element = element
         .downcast::<HTMLElement>()
         .ok_or(ErrorStatus::UnknownError)?;
@@ -1841,12 +1840,12 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
         &FocusOptions {
             preventScroll: true,
         },
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.clear(can_gc);
+        input_element.clear(CanGc::from_cx(cx));
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.clear();
     } else {
@@ -1854,22 +1853,22 @@ fn clear_a_resettable_element(element: &Element, can_gc: CanGc) -> Result<(), Er
     }
 
     let event_target = element.upcast::<EventTarget>();
-    event_target.fire_bubbling_event(atom!("input"), can_gc);
-    event_target.fire_bubbling_event(atom!("change"), can_gc);
+    event_target.fire_bubbling_event(atom!("input"), CanGc::from_cx(cx));
+    event_target.fire_bubbling_event(atom!("change"), CanGc::from_cx(cx));
 
     // Step 5. Run the unfocusing steps for the element.
-    html_element.Blur(can_gc);
+    html_element.Blur(CanGc::from_cx(cx));
 
     Ok(())
 }
 
 /// <https://w3c.github.io/webdriver/#element-clear>
 pub(crate) fn handle_element_clear(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: GenericSender<Result<(), ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1882,7 +1881,7 @@ pub(crate) fn handle_element_clear(
                 }
 
                 // Step 5. Scroll Into View
-                scroll_into_view(&element, documents, &pipeline, can_gc);
+                scroll_into_view(cx, &element, documents, &pipeline);
 
                 // TODO: Step 6 - 9: Implicit wait. In another PR.
                 // Wait until element become interactable and check.
@@ -1894,11 +1893,11 @@ pub(crate) fn handle_element_clear(
                 }
 
                 let paint_tree = get_element_pointer_interactable_paint_tree(
+                    cx,
                     &element,
                     &documents
                         .find_document(pipeline)
                         .expect("Document existence guaranteed by `get_known_element`"),
-                    can_gc,
                 );
                 if !is_element_in_view(&element, &paint_tree) {
                     return Err(ErrorStatus::ElementNotInteractable);
@@ -1906,7 +1905,7 @@ pub(crate) fn handle_element_clear(
 
                 // Step 11
                 // TODO: Clear content editable elements
-                clear_a_resettable_element(&element, can_gc)
+                clear_a_resettable_element(cx, &element)
             }),
         )
         .unwrap();
@@ -1947,11 +1946,11 @@ fn get_container(element: &Element) -> Option<DomRoot<Element>> {
 
 // https://w3c.github.io/webdriver/#element-click
 pub(crate) fn handle_element_click(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: GenericSender<Result<Option<String>, ErrorStatus>>,
-    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1970,16 +1969,16 @@ pub(crate) fn handle_element_click(
                 };
 
                 // Step 5. Scroll into view the element's container.
-                scroll_into_view(&container, documents, &pipeline, can_gc);
+                scroll_into_view(cx, &container, documents, &pipeline);
 
                 // Step 6. If element's container is still not in view
                 // return error with error code element not interactable.
                 let paint_tree = get_element_pointer_interactable_paint_tree(
+                    cx,
                     &container,
                     &documents
                         .find_document(pipeline)
                         .expect("Document existence guaranteed by `get_known_element`"),
-                    can_gc,
                 );
 
                 if !is_element_in_view(&container, &paint_tree) {
@@ -2004,9 +2003,9 @@ pub(crate) fn handle_element_click(
                     Some(option_element) => {
                         // Steps 8.2 - 8.4
                         let event_target = container.upcast::<EventTarget>();
-                        event_target.fire_event(atom!("mouseover"), can_gc);
-                        event_target.fire_event(atom!("mousemove"), can_gc);
-                        event_target.fire_event(atom!("mousedown"), can_gc);
+                        event_target.fire_event(atom!("mouseover"), CanGc::from_cx(cx));
+                        event_target.fire_event(atom!("mousemove"), CanGc::from_cx(cx));
+                        event_target.fire_event(atom!("mousedown"), CanGc::from_cx(cx));
 
                         // Step 8.5
                         match container.downcast::<HTMLElement>() {
@@ -2015,7 +2014,7 @@ pub(crate) fn handle_element_click(
                                     &FocusOptions {
                                         preventScroll: true,
                                     },
-                                    can_gc,
+                                    CanGc::from_cx(cx),
                                 );
                             },
                             None => return Err(ErrorStatus::UnknownError),
@@ -2024,7 +2023,7 @@ pub(crate) fn handle_element_click(
                         // Step 8.6
                         if !is_disabled(&element) {
                             // Step 8.6.1
-                            event_target.fire_event(atom!("input"), can_gc);
+                            event_target.fire_event(atom!("input"), CanGc::from_cx(cx));
 
                             // Steps 8.6.2
                             let previous_selectedness = option_element.Selected();
@@ -2033,22 +2032,24 @@ pub(crate) fn handle_element_click(
                             match container.downcast::<HTMLSelectElement>() {
                                 Some(select_element) => {
                                     if select_element.Multiple() {
-                                        option_element
-                                            .SetSelected(!option_element.Selected(), can_gc);
+                                        option_element.SetSelected(
+                                            !option_element.Selected(),
+                                            CanGc::from_cx(cx),
+                                        );
                                     }
                                 },
-                                None => option_element.SetSelected(true, can_gc),
+                                None => option_element.SetSelected(true, CanGc::from_cx(cx)),
                             }
 
                             // Step 8.6.4
                             if !previous_selectedness {
-                                event_target.fire_event(atom!("change"), can_gc);
+                                event_target.fire_event(atom!("change"), CanGc::from_cx(cx));
                             }
                         }
 
                         // Steps 8.7 - 8.8
-                        event_target.fire_event(atom!("mouseup"), can_gc);
-                        event_target.fire_event(atom!("click"), can_gc);
+                        event_target.fire_event(atom!("mouseup"), CanGc::from_cx(cx));
+                        event_target.fire_event(atom!("click"), CanGc::from_cx(cx));
 
                         Ok(None)
                     },
@@ -2077,9 +2078,9 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
 
 /// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>
 fn get_element_pointer_interactable_paint_tree(
+    cx: &mut JSContext,
     element: &Element,
     document: &Document,
-    can_gc: CanGc,
 ) -> Vec<DomRoot<Element>> {
     // Step 1. If element is not in the same tree as session's
     // current browsing context's active document, return an empty sequence.
@@ -2092,7 +2093,7 @@ fn get_element_pointer_interactable_paint_tree(
     // The original step 4 "compute in-view center point" takes an element as argument
     // which internally computes first DOMRect of getClientRects
 
-    get_element_in_view_center_point(element, can_gc).map_or(Vec::new(), |center_point| {
+    get_element_in_view_center_point(cx, element).map_or(Vec::new(), |center_point| {
         document.ElementsFromPoint(
             Finite::wrap(center_point.x as f64),
             Finite::wrap(center_point.y as f64),
@@ -2175,18 +2176,18 @@ pub(crate) fn handle_remove_load_status_sender(
 
 /// <https://w3c.github.io/webdriver/#dfn-scrolls-into-view>
 fn scroll_into_view(
+    cx: &mut JSContext,
     element: &Element,
     documents: &DocumentCollection,
     pipeline: &PipelineId,
-    can_gc: CanGc,
 ) {
     // Check if element is already in view
     let paint_tree = get_element_pointer_interactable_paint_tree(
+        cx,
         element,
         &documents
             .find_document(*pipeline)
             .expect("Document existence guaranteed by `get_known_element`"),
-        can_gc,
     );
     if is_element_in_view(element, &paint_tree) {
         return;
