@@ -16,8 +16,10 @@ use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontEle
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::execcommand::commands::bold::execute_bold_command;
 use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
 use crate::dom::execcommand::commands::delete::execute_delete_command;
+use crate::dom::execcommand::commands::fontname::execute_fontname_command;
 use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
@@ -52,6 +54,7 @@ impl From<DefaultSingleLineContainerName> for DOMString {
 #[expect(unused)] // TODO(25005): implement all commands
 pub(crate) enum CssPropertyName {
     BackgroundColor,
+    FontFamily,
     FontSize,
     FontWeight,
     FontStyle,
@@ -66,6 +69,7 @@ impl CssPropertyName {
         Some(
             match self {
                 CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
+                CssPropertyName::FontFamily => style.clone_font_family().to_css_string(),
                 CssPropertyName::FontSize => {
                     // Font size is special, in that it can't use the resolved styles to compute
                     // values. That's because it is influenced by other factors as well, and it
@@ -123,6 +127,7 @@ impl CssPropertyName {
 
         let longhand_id = match self {
             CssPropertyName::BackgroundColor => LonghandId::BackgroundColor,
+            CssPropertyName::FontFamily => LonghandId::FontFamily,
             CssPropertyName::FontSize => LonghandId::FontSize,
             CssPropertyName::FontWeight => LonghandId::FontWeight,
             CssPropertyName::FontStyle => LonghandId::FontStyle,
@@ -147,6 +152,7 @@ impl CssPropertyName {
     fn property_name(&self) -> DOMString {
         match self {
             CssPropertyName::BackgroundColor => "background-color",
+            CssPropertyName::FontFamily => "font-family",
             CssPropertyName::FontSize => "font-size",
             CssPropertyName::FontWeight => "font-weight",
             CssPropertyName::FontStyle => "font-style",
@@ -347,8 +353,9 @@ impl CommandName {
         // > This is defined for certain inline formatting commands, and is used in algorithms specific to those commands.
         // > It is an implementation detail, and is not exposed to authors.
         Some(match self {
-            CommandName::FontSize => CssPropertyName::FontSize,
             CommandName::Bold => CssPropertyName::FontWeight,
+            CommandName::FontName => CssPropertyName::FontFamily,
+            CommandName::FontSize => CssPropertyName::FontSize,
             CommandName::Italic => CssPropertyName::FontStyle,
             // > If a command does not have a relevant CSS property specified, it defaults to null.
             _ => return None,
@@ -390,10 +397,12 @@ impl CommandName {
         value: DOMString,
     ) -> bool {
         match self {
+            CommandName::Bold => execute_bold_command(cx, document, selection),
             CommandName::DefaultParagraphSeparator => {
                 execute_default_paragraph_separator_command(document, value)
             },
             CommandName::Delete => execute_delete_command(cx, document, selection),
+            CommandName::FontName => execute_fontname_command(cx, document, selection, value),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
             CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),

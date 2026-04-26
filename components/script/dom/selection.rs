@@ -35,7 +35,8 @@ pub(crate) struct Selection {
     document: Dom<Document>,
     range: MutNullableDom<Range>,
     direction: Cell<Direction>,
-    task_queued: Cell<bool>,
+    /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
+    has_scheduled_selectionchange_event: Cell<bool>,
 }
 
 impl Selection {
@@ -45,7 +46,7 @@ impl Selection {
             document: Dom::from_ref(document),
             range: MutNullableDom::new(None),
             direction: Cell::new(Direction::Directionless),
-            task_queued: Cell::new(false),
+            has_scheduled_selectionchange_event: Cell::new(false),
         }
     }
 
@@ -81,6 +82,7 @@ impl Selection {
         }
     }
 
+    /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
     pub(crate) fn queue_selectionchange_task(&self) {
         // https://w3c.github.io/editing/docs/execCommand/#state-override
         // https://w3c.github.io/editing/docs/execCommand/#value-override
@@ -89,25 +91,33 @@ impl Selection {
         // > to something different, the state override and value override must be unset for every command.
         self.document.clear_command_overrides();
 
-        if self.task_queued.get() {
-            // Spec doesn't specify not to queue multiple tasks,
-            // but it's much easier to code range operations if
-            // change notifications within a method are idempotent.
+        // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
+        if self.has_scheduled_selectionchange_event.get() {
             return;
         }
+        // Step 2. Set target's has scheduled selectionchange event to true.
+        self.has_scheduled_selectionchange_event.set(true);
+        // Step 3. Queue a task on the user interaction task source to fire a selectionchange event on target.
         let this = Trusted::new(self);
         self.document
             .owner_global()
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(
+                // https://w3c.github.io/selection-api/#firing-selectionchange-event
                 task!(selectionchange_task_steps: move |cx| {
                     let this = this.root();
-                    this.task_queued.set(false);
+                    // Step 1. Set target's has scheduled selectionchange event to false.
+                    this.has_scheduled_selectionchange_event.set(false);
+                    // Step 2. If target is an element, fire an event named selectionchange, which bubbles and not cancelable, at target.
+                    //
+                    // n/a
+
+                    // Step 3. Otherwise, if target is a document, fire an event named selectionchange,
+                    // which does not bubble and not cancelable, at target.
                     this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::from_cx(cx));
                 })
             );
-        self.task_queued.set(true);
     }
 
     fn is_same_root(&self, node: &Node) -> bool {
