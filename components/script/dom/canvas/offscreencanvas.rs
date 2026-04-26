@@ -555,7 +555,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         self.global()
             .task_manager()
             .canvas_blob_task_source()
-            .queue(task!(convert_to_blob: move || {
+            .queue(task!(convert_to_blob: move |cx| {
                 let this = trusted_this.root();
                 let promise = trusted_promise.root();
 
@@ -564,16 +564,16 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
                 if snapshot.encode_for_mime_type(&image_type, quality, &mut encoded).is_err() {
                     // Step 7.2.1. If file is null, then reject result with an
                     // "EncodingError" DOMException.
-                    promise.reject_error(Error::Encoding(None), CanGc::deprecated_note());
+                    promise.reject_error(Error::Encoding(None), CanGc::from_cx(cx));
                     return;
                 };
 
                 // Step 7.2.2. Otherwise, resolve result with a new Blob object,
                 // created in global's relevant realm, representing file.
                 let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                let blob = Blob::new(&this.global(), blob_impl, CanGc::deprecated_note());
+                let blob = Blob::new(&this.global(), blob_impl, CanGc::from_cx(cx));
 
-                promise.resolve_native(&blob, CanGc::deprecated_note());
+                promise.resolve_native(&blob, CanGc::from_cx(cx));
             }));
 
         // Step 8. Return result.

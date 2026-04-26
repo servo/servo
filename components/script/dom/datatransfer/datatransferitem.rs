@@ -122,11 +122,11 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
             self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task!(invoke_callback: move || {
+                .queue(task!(invoke_callback: move |cx| {
                     let maybe_index = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id);
                     if let Some(index) = maybe_index {
                         let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
-                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report, CanGc::deprecated_note());
+                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report, CanGc::from_cx(cx));
                     }
                 }));
         }

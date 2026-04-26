@@ -465,7 +465,7 @@ impl VirtualMethods for HTMLDetailsElement {
             self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task!(details_notification_task_steps: move || {
+                .queue(task!(details_notification_task_steps: move |cx| {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
                         let event = ToggleEvent::new(
@@ -476,10 +476,10 @@ impl VirtualMethods for HTMLDetailsElement {
                             DOMString::from(old_state),
                             DOMString::from(new_state),
                             None,
-                            CanGc::deprecated_note(),
+                            CanGc::from_cx(cx),
                         );
                         let event = event.upcast::<Event>();
-                        event.fire(this.upcast::<EventTarget>(), CanGc::deprecated_note());
+                        event.fire(this.upcast::<EventTarget>(), CanGc::from_cx(cx));
                     }
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);

@@ -587,14 +587,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         self.global()
             .task_manager()
             .canvas_blob_task_source()
-            .queue(task!(to_blob: move || {
+            .queue(task!(to_blob: move |cx| {
                 let this = this.root();
                 let Some(callback) = &this.blob_callbacks.borrow_mut().remove(&callback_id) else {
                     return error!("Expected blob callback, but found none!");
                 };
 
                 let Some(mut snapshot) = result else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::deprecated_note());
+                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::from_cx(cx));
                     return;
                 };
 
@@ -611,14 +611,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::deprecated_note());
+                       blob = Blob::new(&this.global(), blob_impl, CanGc::from_cx(cx));
                        Some(&*blob)
                    }
                    Err(..) => None,
                 };
 
                 // Step 4.2.2: Invoke callback with « result » and "report".
-                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::deprecated_note());
+                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::from_cx(cx));
             }));
 
         Ok(())

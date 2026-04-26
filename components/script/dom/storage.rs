@@ -244,7 +244,7 @@ impl Storage {
         let global = self.global();
         let this = Trusted::new(self);
         global.task_manager().dom_manipulation_task_source().queue(
-            task!(send_storage_notification: move || {
+            task!(send_storage_notification: move |cx| {
                 let this = this.root();
                 let global = this.global();
                 let event = StorageEvent::new(
@@ -257,9 +257,9 @@ impl Storage {
                     new_value.map(DOMString::from),
                     DOMString::from(url.into_string()),
                     Some(&this),
-                    CanGc::deprecated_note()
+                    CanGc::from_cx(cx)
                 );
-                event.upcast::<Event>().fire(global.upcast(), CanGc::deprecated_note());
+                event.upcast::<Event>().fire(global.upcast(), CanGc::from_cx(cx));
             }),
         );
     }
