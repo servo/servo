@@ -12,14 +12,14 @@ use stylo_atoms::Atom;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
+
 
 pub(crate) trait CollectionFilter: JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
@@ -135,11 +135,7 @@ impl HTMLCollection {
         filter: Box<dyn CollectionFilter + 'static>,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(Self::new_inherited(root, filter)),
-            window,
-            CanGc::from_cx(cx),
-        )
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(root, filter)), window, cx)
     }
 
     /// Create a new  [`HTMLCollection`] that just filters element using a static function.
@@ -149,6 +145,8 @@ impl HTMLCollection {
         filter_function: fn(&Element, &Node) -> bool,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
+        // The function *must* be static so that it never holds references to DOM objects, which
+        // would cause issues with garbage collection -- since it isn't traced.
         #[derive(JSTraceable, MallocSizeOf)]
         pub(crate) struct StaticFunctionFilter(
             #[no_trace]
@@ -184,10 +182,10 @@ impl HTMLCollection {
         source: Box<dyn CollectionSource + 'static>,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited_with_source(root, source)),
             window,
-            CanGc::from_cx(cx),
+            cx,
         )
     }
 

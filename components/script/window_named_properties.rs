@@ -86,6 +86,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     desc: MutableHandle<PropertyDescriptor>,
     is_none: *mut bool,
 ) -> bool {
+    // SAFETY: it is safe to construct a JSContext from an engine callback.
     let mut cx = unsafe { js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
 
     if id.is_symbol() {
@@ -93,8 +94,8 @@ unsafe extern "C" fn get_own_property_descriptor(
             SymbolId(unsafe { GetWellKnownSymbol(cx.raw_cx_no_gc(), SymbolCode::toStringTag) })
                 .asBits_
         {
-            rooted!(in(unsafe { cx.raw_cx_no_gc() }) let mut rval = UndefinedValue());
-            unsafe { "WindowProperties".to_jsval(cx.raw_cx_no_gc(), rval.handle_mut()) };
+            rooted!(&in(cx) let mut rval = UndefinedValue());
+            unsafe { "WindowProperties".to_jsval(cx.raw_cx(), rval.handle_mut()) };
             set_property_descriptor(
                 unsafe { RustMutableHandle::from_raw(desc) },
                 rval.handle(),
@@ -141,9 +142,9 @@ unsafe extern "C" fn get_own_property_descriptor(
     let window = Root::downcast::<Window>(unsafe { GlobalScope::from_object(proxy.get()) })
         .expect("global is not a window");
     if let Some(obj) = window.NamedGetter(&mut cx, s.into()) {
-        rooted!(in(unsafe { cx.raw_cx_no_gc() }) let mut rval = UndefinedValue());
+        rooted!(&in(cx) let mut rval = UndefinedValue());
         unsafe {
-            obj.to_jsval(cx.raw_cx_no_gc(), rval.handle_mut());
+            obj.to_jsval(cx.raw_cx(), rval.handle_mut());
         }
         set_property_descriptor(
             unsafe { RustMutableHandle::from_raw(desc) },
