@@ -531,11 +531,7 @@ impl ServiceWorkerGlobalScope {
                         CanGc::from_cx(cx),
                     );
                 } else {
-                    ExtendableMessageEvent::dispatch_error(
-                        target,
-                        scope.upcast(),
-                        CanGc::from_cx(cx),
-                    );
+                    ExtendableMessageEvent::dispatch_error(cx, target, scope.upcast());
                 }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {
