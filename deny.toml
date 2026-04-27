@@ -12,33 +12,10 @@ feature-depth = 1
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 ignore = [
-    # The crate `paste` is no longer maintained.
-    "RUSTSEC-2024-0436",
-    # The crate `unic-char-range` is unmaintained.
-    "RUSTSEC-2025-0075",
-    # The crate `unic-common` is unmaintained.
-    "RUSTSEC-2025-0080",
-    # The crate `unic-char-property` is unmaintained.
-    "RUSTSEC-2025-0081",
-    # The crate `unic-ucd-version` is unmaintained.
-    "RUSTSEC-2025-0098",
-    # The crate `unic-ucd-ident` is unmaintained.
-    "RUSTSEC-2025-0100",
     # The crate `rsa` is vulnerable to Marvin Attack that leaks
     # cryptographic secret via side channel. Wait for a patch in stable
     # release version from upstream.
     "RUSTSEC-2023-0071",
-    # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
-    # See the comment above `bincode` entry in Cargo.toml.
-    "RUSTSEC-2025-0141",
-    # The crate `ml-dsa 0.0.4` is the latest stable release.
-    # The attack complexity of this vulnerability is high,
-    # and no exploit is known yet.
-    "RUSTSEC-2025-0144",
-    # The crate `time` has DOS stack exhaustion vulnerability, which is fixed in version 0.3.47.
-    # We can't upgrade yet due to MSRV. However, we do not use the vulnerable API at all.
-    # As per <https://github.com/advisories/GHSA-r6v5-fh4h-64xc> this can be verified with clippy.
-    "RUSTSEC-2026-0009",
 ]
 
 # This section is considered when running `cargo deny check licenses`
