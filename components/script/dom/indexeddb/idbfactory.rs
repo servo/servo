@@ -248,9 +248,9 @@ impl IDBFactory {
                 Err(err) => return error!("Error in IndexedDB factory callback {:?}.", err),
             };
             // Step 5.3: Queue a database task to run these steps:
-            task_source.queue(task!(set_request_result_to_database: move || {
+            task_source.queue(task!(set_request_result_to_database: move |cx| {
                 let factory = response_listener.root();
-                factory.handle_connection_message(response, CanGc::deprecated_note())
+                factory.handle_connection_message(cx, response)
             }));
         })
         .expect("Could not create open database callback");
@@ -282,7 +282,7 @@ impl IDBFactory {
     /// The steps that continue on the script-thread.
     /// This covers interacting with the current open request,
     /// as well as with other open connections preventing the request from making progress.
-    fn handle_connection_message(&self, response: ConnectionMsg, can_gc: CanGc) {
+    fn handle_connection_message(&self, cx: &mut JSContext, response: ConnectionMsg) {
         match response {
             ConnectionMsg::Connection {
                 name,
@@ -305,7 +305,7 @@ impl IDBFactory {
                     name.clone(),
                     version,
                     upgraded,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 connection.set_object_store_names_from_backend(object_store_names);
 
@@ -313,7 +313,7 @@ impl IDBFactory {
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                request.dispatch_success(name, version, upgraded, can_gc);
+                request.dispatch_success(name, version, upgraded, CanGc::from_cx(cx));
             },
             ConnectionMsg::Upgrade {
                 name,
@@ -332,24 +332,35 @@ impl IDBFactory {
                     );
                 };
 
-                let connection =
-                    request.get_or_init_connection(&global, name, version, false, can_gc);
+                let connection = request.get_or_init_connection(
+                    &global,
+                    name,
+                    version,
+                    false,
+                    CanGc::from_cx(cx),
+                );
                 // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
                 // Step 3. Set transaction’s scope to connection’s object store set.
                 connection.set_object_store_names_from_backend(object_store_names);
-                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
+                request.upgrade_db_version(
+                    &connection,
+                    old_version,
+                    version,
+                    transaction,
+                    CanGc::from_cx(cx),
+                );
             },
             ConnectionMsg::VersionError { name, id } => {
                 // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(name, id, Error::Version(None), can_gc);
+                self.dispatch_error(cx, name, id, Error::Version(None));
             },
             ConnectionMsg::AbortError { name, id } => {
                 // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(name, id, Error::Abort(None), can_gc);
+                self.dispatch_error(cx, name, id, Error::Abort(None));
             },
             ConnectionMsg::DatabaseError { name, id, error } => {
                 // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(name, id, map_backend_error_to_dom_error(error), can_gc);
+                self.dispatch_error(cx, name, id, map_backend_error_to_dom_error(error));
             },
             ConnectionMsg::VersionChange {
                 name,
@@ -364,11 +375,16 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::VersionChange."
                     );
                 };
-                let connection =
-                    request.get_or_init_connection(&global, name.clone(), version, false, can_gc);
+                let connection = request.get_or_init_connection(
+                    &global,
+                    name.clone(),
+                    version,
+                    false,
+                    CanGc::from_cx(cx),
+                );
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
-                connection.dispatch_versionchange(old_version, Some(version), can_gc);
+                connection.dispatch_versionchange(old_version, Some(version), CanGc::from_cx(cx));
 
                 // Step 10.3: Wait for all of the events to be fired.
                 // Note: backend is at this step; sending a message to continue algo there.
@@ -400,7 +416,7 @@ impl IDBFactory {
                 };
 
                 // Step 10.4: fire a version change event named blocked at request with db’s version and version.
-                request.dispatch_blocked(old_version, Some(version), can_gc);
+                request.dispatch_blocked(old_version, Some(version), CanGc::from_cx(cx));
             },
             ConnectionMsg::TxnMaybeCommit { db_name, txn } => {
                 let factory = Trusted::new(self);
@@ -417,7 +433,13 @@ impl IDBFactory {
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbfactory-open>
     /// The error dispatching part from within a task part.
-    fn dispatch_error(&self, name: String, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
+    fn dispatch_error(
+        &self,
+        cx: &mut JSContext,
+        name: String,
+        request_id: Uuid,
+        dom_exception: Error,
+    ) {
         let name = DBName(name);
 
         // Step 5.3.1: If result is an error, then:
@@ -441,7 +463,7 @@ impl IDBFactory {
         request.set_result(HandleValue::undefined());
 
         // Step 5.3.1.2: Set request’s error to result.
-        request.set_error(Some(dom_exception), can_gc);
+        request.set_error(Some(dom_exception), CanGc::from_cx(cx));
         // Open requests expose a transaction only while `upgradeneeded` is being dispatched;
         // otherwise `IDBOpenDBRequest.transaction` must be null.
         // https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction
@@ -460,9 +482,9 @@ impl IDBFactory {
             Atom::from("error"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        event.fire(request.upcast(), can_gc);
+        event.fire(request.upcast(), CanGc::from_cx(cx));
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
