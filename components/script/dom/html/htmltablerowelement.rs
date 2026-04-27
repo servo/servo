@@ -105,7 +105,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         node.insert_cell_or_row(
             cx,
             index,
-            || cells.clone(),
+            cells,
             |cx| {
                 let cell = Element::create(
                     cx,
@@ -128,7 +128,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         node.delete_cell_or_row(
             cx,
             index,
-            || cells.clone(),
+            cells,
             |n| n.is::<HTMLTableCellElement>(),
         )
     }
