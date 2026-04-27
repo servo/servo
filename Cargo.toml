@@ -324,7 +324,7 @@ opt-level = 1
 opt-level = 3
 
 # An optimized build for CI, to improve test runtime, but with assertions turned on.
-[profile.release-ci]
+[profile.checked-release]
 inherits = "release"
 debug-assertions = true
 overflow-checks = true
