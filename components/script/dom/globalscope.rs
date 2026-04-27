@@ -3330,8 +3330,7 @@ impl GlobalScope {
         #[expect(unsafe_code)]
         let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
-        #[expect(unsafe_code)]
-        let data = structuredclone::write(cx, value, Some(guard))?;
+        let data = structuredclone::write(cx.into(), value, Some(guard))?;
 
         structuredclone::read(self, data, retval, CanGc::deprecated_note())?;
 

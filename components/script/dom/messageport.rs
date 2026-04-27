@@ -116,7 +116,7 @@ impl MessagePort {
     #[expect(unsafe_code)]
     fn post_message_impl(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: SafeJSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
@@ -239,10 +239,7 @@ impl MessagePort {
         // Run the message port post message steps providing targetPort, message, and options.
         rooted!(in(*cx) let mut message_val = UndefinedValue());
         message.safe_to_jsval(cx, message_val.handle_mut(), can_gc);
-
-        let mut new_cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx.raw_cx()).unwrap()) };
-
-        self.post_message_impl(&mut new_cx, message_val.handle(), transfer)
+        self.post_message_impl(cx, message_val.handle(), transfer)
     }
 }
 
@@ -310,7 +307,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         if self.detached.get() {
             return Ok(());
         }
-        self.post_message_impl(cx, message, transfer)
+        self.post_message_impl(cx.into(), message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
@@ -332,7 +329,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         );
         #[expect(unsafe_code)]
         let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
-        self.post_message_impl(cx, message, guard)
+        self.post_message_impl(cx.into(), message, guard)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>

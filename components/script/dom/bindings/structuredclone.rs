@@ -709,7 +709,7 @@ pub(crate) struct StructuredDataWriter {
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
 pub(crate) fn write(
-    cx: &mut js::context::JSContext,
+    cx: SafeJSContext,
     message: HandleValue,
     transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
 ) -> Fallible<StructuredSerializedData> {
