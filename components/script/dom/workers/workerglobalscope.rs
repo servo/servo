@@ -444,7 +444,7 @@ impl WorkerGlobalScope {
         self.devtools_receiver.as_ref()
     }
 
-    #[expect(unsafe_code)]
+    #[expect(unsafe_code, unused)]
     pub(crate) fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
@@ -634,7 +634,7 @@ impl WorkerGlobalScope {
                 _ => unreachable!(),
             }
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
-                dedicated.fire_queued_messages(CanGc::from_cx(cx));
+                dedicated.fire_queued_messages(cx);
             }
         }
     }
