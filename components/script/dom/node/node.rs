@@ -1831,7 +1831,7 @@ impl Node {
         new_child: G,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
-        F: Fn() -> DomRoot<HTMLCollection>,
+        F: Fn(&mut JSContext) -> DomRoot<HTMLCollection>,
         G: Fn(&mut JSContext) -> DomRoot<I>,
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
@@ -1846,7 +1846,7 @@ impl Node {
             if index == -1 {
                 self.InsertBefore(cx, tr_node, None)?;
             } else {
-                let items = get_items();
+                let items = get_items(cx);
                 let node = match items
                     .elements_iter()
                     .map(DomRoot::upcast::<Node>)
@@ -1873,7 +1873,7 @@ impl Node {
         is_delete_type: G,
     ) -> ErrorResult
     where
-        F: Fn() -> DomRoot<HTMLCollection>,
+        F: Fn(&mut JSContext) -> DomRoot<HTMLCollection>,
         G: Fn(&Element) -> bool,
     {
         let element = match index {
@@ -1890,7 +1890,7 @@ impl Node {
                     None => return Ok(()),
                 }
             },
-            index => match get_items().Item(index as u32) {
+            index => match get_items(cx).Item(index as u32) {
                 Some(element) => element,
                 None => return Err(Error::IndexSize(None)),
             },

@@ -644,14 +644,14 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedoptions>
-    fn SelectedOptions(&self) -> DomRoot<HTMLCollection> {
+    fn SelectedOptions(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.selected_options.or_init(|| {
             let window = self.owner_window();
             HTMLCollection::new_with_source(
+                cx,
                 &window,
                 self.upcast(),
                 Box::new(SelectedOptionsSource),
-                CanGc::deprecated_note(),
             )
         })
     }

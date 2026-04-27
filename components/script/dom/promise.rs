@@ -353,7 +353,7 @@ unsafe extern "C" fn native_handler_callback(
     argc: u32,
     vp: *mut JSVal,
 ) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
     let mut cx = CurrentRealm::assert(&mut cx);
     let cx = &mut cx;

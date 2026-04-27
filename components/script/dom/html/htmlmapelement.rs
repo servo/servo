@@ -16,7 +16,6 @@ use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMapElement {
@@ -73,10 +72,10 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
         // matches only area elements.
         self.areas.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.owner_window(),
                 self.upcast(),
                 |element, _| element.is::<HTMLAreaElement>(),
-                CanGc::from_cx(cx),
             )
         })
     }

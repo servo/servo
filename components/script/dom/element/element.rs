@@ -3043,31 +3043,34 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagname>
-    fn GetElementsByTagName(&self, localname: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn GetElementsByTagName(
+        &self,
+        cx: &mut js::context::JSContext,
+        localname: DOMString,
+    ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_qualified_name(
-            &window,
-            self.upcast(),
-            LocalName::from(localname),
-            can_gc,
-        )
+        HTMLCollection::by_qualified_name(cx, &window, self.upcast(), LocalName::from(localname))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens>
     fn GetElementsByTagNameNS(
         &self,
+        cx: &mut js::context::JSContext,
         maybe_ns: Option<DOMString>,
         localname: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns, can_gc)
+        HTMLCollection::by_tag_name_ns(cx, &window, self.upcast(), localname, maybe_ns)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname>
-    fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn GetElementsByClassName(
+        &self,
+        cx: &mut js::context::JSContext,
+        classes: DOMString,
+    ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_class_name(&window, self.upcast(), classes, can_gc)
+        HTMLCollection::by_class_name(cx, &window, self.upcast(), classes)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>
@@ -3623,9 +3626,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
-    fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), can_gc)
+        HTMLCollection::children(cx, &window, self.upcast())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>
