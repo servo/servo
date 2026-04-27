@@ -438,7 +438,7 @@ impl Font {
             debug!("shape_text: Using Harfbuzz.");
             self.shaper
                 .get_or_init(|| Shaper::new(self))
-                .shape_text(self, text, options)
+                .shape_text(text, options)
         };
 
         let shaped_text = Arc::new(glyphs);
@@ -491,7 +491,7 @@ impl Font {
                 advance,
                 offset,
             };
-            glyph.adjust_for_character(character, options, self);
+            glyph.adjust_for_character(character, options);
 
             glyph_store.add_glyph(character, &glyph);
             prev_glyph_id = Some(glyph_id);
