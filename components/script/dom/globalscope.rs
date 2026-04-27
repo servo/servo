@@ -1361,7 +1361,7 @@ impl GlobalScope {
                                     return;
                                 }
 
-                                rooted!(&in() let mut message = UndefinedValue());
+                                rooted!(&in(cx) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
                                 if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
