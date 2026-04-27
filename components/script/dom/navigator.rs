@@ -488,7 +488,12 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://w3c.github.io/beacon/#sec-processing-model>
-    fn SendBeacon(&self, url: USVString, data: Option<BodyInit>, can_gc: CanGc) -> Fallible<bool> {
+    fn SendBeacon(
+        &self,
+        cx: &mut js::context::JSContext,
+        url: USVString,
+        data: Option<BodyInit>,
+    ) -> Fallible<bool> {
         let global = self.global();
         // Step 1. Set base to this's relevant settings object's API base URL.
         let base = global.api_base_url();
@@ -514,7 +519,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         if let Some(data) = data {
             // Step 6.1. Set transmittedData and contentType to the result of extracting data's byte stream
             // with the keepalive flag set.
-            let extracted_body = data.extract(&global, true, can_gc)?;
+            let extracted_body = data.extract(cx, &global, true)?;
             // Step 6.2. If the amount of data that can be queued to be sent by keepalive enabled requests
             // is exceeded by the size of transmittedData (as defined in HTTP-network-or-cache fetch),
             // set the return value to false and terminate these steps.

@@ -936,13 +936,13 @@ impl HTMLFormElement {
             ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
                 load_data.method = Method::POST;
                 self.submit_entity_body(
+                    cx,
                     &mut form_data,
                     load_data,
                     enctype,
                     encoding,
                     target_window,
                     history_handling,
-                    CanGc::from_cx(cx),
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
@@ -990,13 +990,13 @@ impl HTMLFormElement {
     #[allow(clippy::too_many_arguments)]
     fn submit_entity_body(
         &self,
+        cx: &mut js::context::JSContext,
         form_data: &mut [FormDatum],
         mut load_data: LoadData,
         enctype: FormEncType,
         encoding: &'static Encoding,
         target: &Window,
         history_handling: NavigationHistoryBehavior,
-        can_gc: CanGc,
     ) {
         let boundary = generate_boundary();
         let bytes = match enctype {
@@ -1034,7 +1034,7 @@ impl HTMLFormElement {
         let global = self.global();
 
         let request_body = bytes
-            .extract(&global, false, can_gc)
+            .extract(cx, &global, false)
             .expect("Couldn't extract body.")
             .into_net_request_body()
             .0;

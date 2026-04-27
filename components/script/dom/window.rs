@@ -2167,11 +2167,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     fn FetchLater(
         &self,
+        cx: &mut js::context::JSContext,
         input: RequestInfo,
         init: RootedTraceableBox<DeferredRequestInit>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<FetchLaterResult>> {
-        fetch::FetchLater(self, input, init, can_gc)
+        fetch::FetchLater(cx, self, input, init)
     }
 
     #[cfg(feature = "bluetooth")]

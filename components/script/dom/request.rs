@@ -95,9 +95,9 @@ impl Request {
 
     // https://fetch.spec.whatwg.org/#dom-request
     pub(crate) fn constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         mut input: RequestInfo,
         init: &RequestInit,
     ) -> Fallible<DomRoot<Request>> {
@@ -344,7 +344,7 @@ impl Request {
         // TODO
 
         // Step 28. Set this’s request to request.
-        let r = Request::from_net_request(global, proto, request, can_gc);
+        let r = Request::from_net_request(global, proto, request, CanGc::from_cx(cx));
 
         // Step 29. Let signals be « signal » if signal is non-null; otherwise « ».
         let signals = signal.map_or(vec![], |s| vec![s]);
@@ -352,7 +352,9 @@ impl Request {
         // abort signal from signals, using AbortSignal and this’s relevant realm.
         r.signal
             .set(Some(&AbortSignal::create_dependent_abort_signal(
-                signals, global, can_gc,
+                signals,
+                global,
+                CanGc::from_cx(cx),
             )));
 
         // Step 31. Set this’s headers to a new Headers object with this’s relevant realm,
@@ -361,7 +363,7 @@ impl Request {
         // "or_init" looks unclear here, but it always enters the block since r
         // hasn't had any other way to initialize its headers
         r.headers
-            .or_init(|| Headers::for_request(&r.global(), can_gc));
+            .or_init(|| Headers::for_request(&r.global(), CanGc::from_cx(cx)));
 
         // Step 33. If init is not empty, then:
         //
@@ -398,7 +400,8 @@ impl Request {
                 ));
             }
             // Step 32.2. Set this’s headers’s guard to "request-no-cors".
-            r.Headers(can_gc).set_guard(Guard::RequestNoCors);
+            r.Headers(CanGc::from_cx(cx))
+                .set_guard(Guard::RequestNoCors);
         }
 
         match headers_copy {
@@ -410,17 +413,17 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(can_gc)
-                        .copy_from_headers(input_request.Headers(can_gc))?;
+                    r.Headers(CanGc::from_cx(cx))
+                        .copy_from_headers(input_request.Headers(CanGc::from_cx(cx)))?;
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
-            Some(headers_copy) => r.Headers(can_gc).fill(Some(headers_copy))?,
+            Some(headers_copy) => r.Headers(CanGc::from_cx(cx)).fill(Some(headers_copy))?,
         }
 
         // Step 33.5 depending on how we got here
         // Copy the headers list onto the headers of net_traits::Request
-        r.request.borrow_mut().headers = r.Headers(can_gc).get_headers_list();
+        r.request.borrow_mut().headers = r.Headers(CanGc::from_cx(cx)).get_headers_list();
 
         // Step 34. Let inputBody be input’s request’s body if input is a Request object; otherwise null.
         let input_body = if let RequestInfo::Request(ref mut input_request) = input {
@@ -457,7 +460,7 @@ impl Request {
         if let Some(Some(ref input_init_body)) = init.body {
             // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
             let mut body_with_type =
-                input_init_body.extract(global, r.request.borrow().keep_alive, can_gc)?;
+                input_init_body.extract(cx, global, r.request.borrow().keep_alive)?;
 
             // Step 37.3. Let type be bodyWithType’s type.
             if let Some(contents) = body_with_type.content_type.take() {
@@ -465,12 +468,12 @@ impl Request {
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
                 if !r
-                    .Headers(can_gc)
+                    .Headers(CanGc::from_cx(cx))
                     .Has(ByteString::new(ct_header_name.to_vec()))
                     .unwrap()
                 {
                     let ct_header_val = contents.as_bytes();
-                    r.Headers(can_gc).Append(
+                    r.Headers(CanGc::from_cx(cx)).Append(
                         ByteString::new(ct_header_name.to_vec()),
                         ByteString::new(ct_header_val.to_vec()),
                     )?;
@@ -612,13 +615,13 @@ fn includes_credentials(input: &ServoUrl) -> bool {
 impl RequestMethods<crate::DomTypeHolder> for Request {
     /// <https://fetch.spec.whatwg.org/#dom-request>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         input: RequestInfo,
         init: RootedTraceableBox<RequestInit>,
     ) -> Fallible<DomRoot<Request>> {
-        Self::constructor(global, proto, can_gc, input, &init)
+        Self::constructor(cx, global, proto, input, &init)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-method>
