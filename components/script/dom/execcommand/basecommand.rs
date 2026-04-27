@@ -69,7 +69,15 @@ impl CssPropertyName {
         Some(
             match self {
                 CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
-                CssPropertyName::FontFamily => style.clone_font_family().to_css_string(),
+                CssPropertyName::FontFamily => {
+                    if let Some(ancestor_font) = element.downcast::<HTMLFontElement>() {
+                        let face = ancestor_font.Face();
+                        if !face.is_empty() {
+                            return Some(face);
+                        }
+                    }
+                    style.clone_font_family().to_css_string()
+                },
                 CssPropertyName::FontSize => {
                     // Font size is special, in that it can't use the resolved styles to compute
                     // values. That's because it is influenced by other factors as well, and it
@@ -225,8 +233,37 @@ pub(crate) enum CommandName {
 
 impl CommandName {
     /// <https://w3c.github.io/editing/docs/execCommand/#indeterminate>
-    pub(crate) fn is_indeterminate(&self) -> bool {
-        false
+    pub(crate) fn is_indeterminate(&self, cx: &mut JSContext, document: &Document) -> bool {
+        if self.is_standard_inline_value_command() {
+            // https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command
+            // > it is indeterminate if among formattable nodes that are effectively contained in the active range,
+            // > there are two that have distinct effective command values.
+            let Some(selection) = document.GetSelection(CanGc::from_cx(cx)) else {
+                return false;
+            };
+            let Some(active_range) = selection.active_range() else {
+                return false;
+            };
+            let mut at_least_two_different_effective_values = false;
+            let mut previous_effective_value: Option<DOMString> = None;
+            active_range.for_each_effectively_contained_child(|node| {
+                if !node.is_formattable() {
+                    return;
+                }
+                if let Some(effective_command_value) = node.effective_command_value(self) {
+                    if let Some(previous_effective_value) = &previous_effective_value {
+                        if &effective_command_value != previous_effective_value {
+                            at_least_two_different_effective_values = true;
+                        }
+                    } else {
+                        previous_effective_value = Some(effective_command_value);
+                    }
+                }
+            });
+            at_least_two_different_effective_values
+        } else {
+            false
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state>
@@ -290,6 +327,21 @@ impl CommandName {
                 document.default_single_line_container_name().into()
             },
             CommandName::FontSize => value_for_fontsize_command(cx, document)?,
+            _ if self.is_standard_inline_value_command() => {
+                // https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command
+                // > Its value is the effective command value of the first formattable node that
+                // > is effectively contained in the active range; or if there is no such node,
+                // > the effective command value of the active range's start node;
+                // > or if that is null, the empty string.
+                let selection = document.GetSelection(CanGc::from_cx(cx))?;
+                let active_range = selection.active_range()?;
+
+                active_range
+                    .first_formattable_contained_node()
+                    .unwrap_or_else(|| active_range.start_container())
+                    .effective_command_value(self)
+                    .unwrap_or_default()
+            },
             _ => return None,
         })
     }
@@ -365,6 +417,17 @@ impl CommandName {
     pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
         let property = self.relevant_css_property()?;
         property.resolved_value_for_node(element)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command>
+    pub(crate) fn is_standard_inline_value_command(&self) -> bool {
+        matches!(
+            self,
+            CommandName::BackColor |
+                CommandName::FontName |
+                CommandName::ForeColor |
+                CommandName::HiliteColor
+        )
     }
 
     pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {

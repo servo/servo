@@ -1214,8 +1214,10 @@ impl Node {
                 },
                 // Step 10.3. If command is "strikethrough" and new value is "line-through",
                 // let new parent be the result of calling createElement("s") on the ownerDocument of node.
+                //
+                // Despite what the spec says, all browsers generate a strike element instead
                 CommandName::Strikethrough => {
-                    new_parent = Some(document.create_element(cx, "s"));
+                    new_parent = Some(document.create_element(cx, "strike"));
                 },
                 // Step 10.4. If command is "underline" and new value is "underline",
                 // let new parent be the result of calling createElement("u") on the ownerDocument of node.
