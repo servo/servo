@@ -903,7 +903,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     specifier: RawHandle<*mut JSObject>,
     promise: RawHandle<*mut JSObject>,
 ) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let cx = &mut cx;
     let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
@@ -999,7 +999,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSObject>,
 ) -> *mut JSObject {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
@@ -1060,7 +1060,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
     reference_private: RawHandleValue,
     meta_object: RawHandle<*mut JSObject>,
 ) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
@@ -1114,7 +1114,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *mut JSVal) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
