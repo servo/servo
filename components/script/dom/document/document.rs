@@ -5499,24 +5499,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-images>
     fn Images(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
-            HTMLCollection::new_with_filter_fn(
-                cx,
-                &self.window,
-                self.upcast(),
-                |element, _| element.is::<HTMLImageElement>(),
-            )
+            HTMLCollection::new_with_filter_fn(cx, &self.window, self.upcast(), |element, _| {
+                element.is::<HTMLImageElement>()
+            })
         })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-embeds>
     fn Embeds(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
-            HTMLCollection::new_with_filter_fn(
-                cx,
-                &self.window,
-                self.upcast(),
-                |element, _| element.is::<HTMLEmbedElement>(),
-            )
+            HTMLCollection::new_with_filter_fn(cx, &self.window, self.upcast(), |element, _| {
+                element.is::<HTMLEmbedElement>()
+            })
         })
     }
 
@@ -5528,53 +5522,37 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-links>
     fn Links(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
-            HTMLCollection::new_with_filter_fn(
-                cx,
-                &self.window,
-                self.upcast(),
-                |element, _| {
-                    (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
-                        element.has_attribute(&local_name!("href"))
-                },
-            )
+            HTMLCollection::new_with_filter_fn(cx, &self.window, self.upcast(), |element, _| {
+                (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
+                    element.has_attribute(&local_name!("href"))
+            })
         })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-forms>
     fn Forms(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
-            HTMLCollection::new_with_filter_fn(
-                cx,
-                &self.window,
-                self.upcast(),
-                |element, _| element.is::<HTMLFormElement>(),
-            )
+            HTMLCollection::new_with_filter_fn(cx, &self.window, self.upcast(), |element, _| {
+                element.is::<HTMLFormElement>()
+            })
         })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-scripts>
     fn Scripts(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
-            HTMLCollection::new_with_filter_fn(
-                cx,
-                &self.window,
-                self.upcast(),
-                |element, _| element.is::<HTMLScriptElement>(),
-            )
+            HTMLCollection::new_with_filter_fn(cx, &self.window, self.upcast(), |element, _| {
+                element.is::<HTMLScriptElement>()
+            })
         })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-anchors>
     fn Anchors(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
-            HTMLCollection::new_with_filter_fn(
-                cx,
-                &self.window,
-                self.upcast(),
-                |element, _| {
-                    element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
-                },
-            )
+            HTMLCollection::new_with_filter_fn(cx, &self.window, self.upcast(), |element, _| {
+                element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
+            })
         })
     }
 

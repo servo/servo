@@ -78,24 +78,34 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow>
     fn InsertRow(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
-        node.insert_cell_or_row(cx, index, |cx| self.Rows(cx), |cx| {
-            let row = Element::create(
-                cx,
-                QualName::new(None, ns!(html), local_name!("tr")),
-                None,
-                &node.owner_doc(),
-                ElementCreator::ScriptCreated,
-                CustomElementCreationMode::Asynchronous,
-                None,
-            );
-            DomRoot::downcast::<HTMLTableRowElement>(row).unwrap()
-        })
+        node.insert_cell_or_row(
+            cx,
+            index,
+            |cx| self.Rows(cx),
+            |cx| {
+                let row = Element::create(
+                    cx,
+                    QualName::new(None, ns!(html), local_name!("tr")),
+                    None,
+                    &node.owner_doc(),
+                    ElementCreator::ScriptCreated,
+                    CustomElementCreationMode::Asynchronous,
+                    None,
+                );
+                DomRoot::downcast::<HTMLTableRowElement>(row).unwrap()
+            },
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow>
     fn DeleteRow(&self, cx: &mut JSContext, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(cx, index, |cx| self.Rows(cx), |n| n.is::<HTMLTableRowElement>())
+        node.delete_cell_or_row(
+            cx,
+            index,
+            |cx| self.Rows(cx),
+            |n| n.is::<HTMLTableRowElement>(),
+        )
     }
 }
 

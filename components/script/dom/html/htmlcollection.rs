@@ -355,12 +355,9 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
     ) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(
-            cx,
-            window,
-            root,
-            |element, root| root.is_parent_of(element.upcast()),
-        )
+        HTMLCollection::new_with_filter_fn(cx, window, root, |element, root| {
+            root.is_parent_of(element.upcast())
+        })
     }
 
     /// Iterate forwards from a node, filtering by a [`CollectionFilter`].

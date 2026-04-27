@@ -88,16 +88,11 @@ impl HTMLFieldSetElement {
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-elements>
     fn Elements(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(
-            cx,
-            &self.owner_window(),
-            self.upcast(),
-            |element, _| {
-                element
-                    .downcast::<HTMLElement>()
-                    .is_some_and(HTMLElement::is_listed_element)
-            },
-        )
+        HTMLCollection::new_with_filter_fn(cx, &self.owner_window(), self.upcast(), |element, _| {
+            element
+                .downcast::<HTMLElement>()
+                .is_some_and(HTMLElement::is_listed_element)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
