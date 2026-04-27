@@ -5,7 +5,7 @@ on:
     inputs:
       profile:
         required: false
-        default: "release-ci"
+        default: "checked-release"
         type: string
       build-args:
         default: ""
@@ -40,8 +40,8 @@ on:
     inputs:
       profile:
         required: false
-        default: "release-ci"
-        options: ["release-ci", "release", "debug", "production"]
+        default: "checked-release"
+        options: ["checked-release", "release", "debug", "production"]
         type: choice
       unit-tests:
         required: false

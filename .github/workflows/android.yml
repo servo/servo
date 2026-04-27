@@ -8,7 +8,7 @@ on:
     inputs:
       profile:
         required: false
-        default: "release-ci"
+        default: "checked-release"
         type: string
       bencher:
         required: false
@@ -19,9 +19,9 @@ on:
     inputs:
       profile:
         required: false
-        default: "release-ci"
+        default: "checked-release"
         type: choice
-        options: ["release-ci", "release", "debug", "production"]
+        options: ["checked-release", "release", "debug", "production"]
       bencher:
         required: false
         default: false
