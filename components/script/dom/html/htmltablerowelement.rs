@@ -27,7 +27,6 @@ use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLTableRowElement {
@@ -85,7 +84,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     make_legacy_color_setter!(SetBgColor, "bgcolor");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-cells>
-    fn Cells(&self) -> DomRoot<HTMLCollection> {
+    fn Cells(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
             HTMLCollection::new_with_filter_fn(
                 &self.owner_window(),
@@ -94,7 +93,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
                     (element.is::<HTMLTableCellElement>()) &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
-                CanGc::deprecated_note(),
+                cx,
             )
         })
     }
@@ -102,10 +101,11 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-insertcell>
     fn InsertCell(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
+        let cells = self.Cells(cx);
         node.insert_cell_or_row(
             cx,
             index,
-            || self.Cells(),
+            || cells.clone(),
             |cx| {
                 let cell = Element::create(
                     cx,
@@ -124,22 +124,23 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-deletecell>
     fn DeleteCell(&self, cx: &mut JSContext, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
+        let cells = self.Cells(cx);
         node.delete_cell_or_row(
             cx,
             index,
-            || self.Cells(),
+            || cells.clone(),
             |n| n.is::<HTMLTableCellElement>(),
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-rowindex>
-    fn RowIndex(&self) -> i32 {
+    fn RowIndex(&self, cx: &mut JSContext) -> i32 {
         let parent = match self.upcast::<Node>().GetParentNode() {
             Some(parent) => parent,
             None => return -1,
         };
         if let Some(table) = parent.downcast::<HTMLTableElement>() {
-            return self.row_index(table.Rows());
+            return self.row_index(table.Rows(cx));
         }
         if !parent.is::<HTMLTableSectionElement>() {
             return -1;
@@ -150,19 +151,19 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
         };
         grandparent
             .downcast::<HTMLTableElement>()
-            .map_or(-1, |table| self.row_index(table.Rows()))
+            .map_or(-1, |table| self.row_index(table.Rows(cx)))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex>
-    fn SectionRowIndex(&self) -> i32 {
+    fn SectionRowIndex(&self, cx: &mut JSContext) -> i32 {
         let parent = match self.upcast::<Node>().GetParentNode() {
             Some(parent) => parent,
             None => return -1,
         };
         let collection = if let Some(table) = parent.downcast::<HTMLTableElement>() {
-            table.Rows()
+            table.Rows(cx)
         } else if let Some(table_section) = parent.downcast::<HTMLTableSectionElement>() {
-            table_section.Rows()
+            table_section.Rows(cx)
         } else {
             return -1;
         };

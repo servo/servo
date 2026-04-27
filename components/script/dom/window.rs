@@ -2228,7 +2228,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-nameditem>
-    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
+    fn NamedGetter(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: DOMString,
+    ) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -2311,7 +2315,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
-            CanGc::deprecated_note(),
+            cx,
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }

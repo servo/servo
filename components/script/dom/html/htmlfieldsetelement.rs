@@ -87,7 +87,7 @@ impl HTMLFieldSetElement {
 
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-elements>
-    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Elements(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
             &self.owner_window(),
             self.upcast(),
@@ -96,7 +96,7 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
                     .downcast::<HTMLElement>()
                     .is_some_and(HTMLElement::is_listed_element)
             },
-            can_gc,
+            cx,
         )
     }
 

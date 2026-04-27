@@ -24,7 +24,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
@@ -110,9 +109,9 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
-    fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), can_gc)
+        HTMLCollection::children(&window, self.upcast(), cx)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>

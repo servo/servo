@@ -851,7 +851,7 @@ pub(crate) fn handle_find_elements_tag_name(
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
             .send(Ok(document
-                .GetElementsByTagName(DOMString::from(selector), CanGc::from_cx(cx))
+                .GetElementsByTagName(cx, DOMString::from(selector))
                 .elements_iter()
                 .map(|x| x.upcast::<Node>().unique_id(pipeline))
                 .collect::<Vec<String>>()))
@@ -995,7 +995,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
-                    .GetElementsByTagName(DOMString::from(selector), CanGc::from_cx(cx))
+                    .GetElementsByTagName(cx, DOMString::from(selector))
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()

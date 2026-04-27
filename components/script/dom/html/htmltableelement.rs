@@ -29,7 +29,6 @@ use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLTableElement {
@@ -192,14 +191,9 @@ impl HTMLTableElement {
 
 impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-rows>
-    fn Rows(&self) -> DomRoot<HTMLCollection> {
+    fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         let filter = self.get_rows();
-        HTMLCollection::new(
-            &self.owner_window(),
-            self.upcast(),
-            Box::new(filter),
-            CanGc::deprecated_note(),
-        )
+        HTMLCollection::new(&self.owner_window(), self.upcast(), Box::new(filter), cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
@@ -311,7 +305,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-tbodies>
-    fn TBodies(&self) -> DomRoot<HTMLCollection> {
+    fn TBodies(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.tbodies.or_init(|| {
             HTMLCollection::new_with_filter_fn(
                 &self.owner_window(),
@@ -321,7 +315,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                         element.local_name() == &local_name!("tbody") &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
-                CanGc::deprecated_note(),
+                cx,
             )
         })
     }
@@ -352,7 +346,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-insertrow>
     fn InsertRow(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLTableRowElement>> {
-        let rows = self.Rows();
+        let rows = self.Rows(cx);
         let number_of_row_elements = rows.Length();
 
         if index < -1 || index > number_of_row_elements as i32 {
@@ -431,7 +425,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deleterow>
     fn DeleteRow(&self, cx: &mut JSContext, mut index: i32) -> Fallible<()> {
-        let rows = self.Rows();
+        let rows = self.Rows(cx);
         let num_rows = rows.Length() as i32;
 
         // Step 1: If index is less than −1 or greater than or equal to the number of elements

@@ -23,7 +23,6 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLTableSectionElement {
@@ -64,7 +63,7 @@ impl HTMLTableSectionElement {
 
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-rows>
-    fn Rows(&self) -> DomRoot<HTMLCollection> {
+    fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
             &self.owner_window(),
             self.upcast(),
@@ -72,17 +71,18 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
                 element.is::<HTMLTableRowElement>() &&
                     element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
             },
-            CanGc::deprecated_note(),
+            cx,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow>
     fn InsertRow(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
+        let rows = self.Rows(cx);
         node.insert_cell_or_row(
             cx,
             index,
-            || self.Rows(),
+            || rows.clone(),
             |cx| {
                 let row = Element::create(
                     cx,
@@ -101,7 +101,13 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow>
     fn DeleteRow(&self, cx: &mut JSContext, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(cx, index, || self.Rows(), |n| n.is::<HTMLTableRowElement>())
+        let rows = self.Rows(cx);
+        node.delete_cell_or_row(
+            cx,
+            index,
+            || rows.clone(),
+            |n| n.is::<HTMLTableRowElement>(),
+        )
     }
 }
 

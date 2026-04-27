@@ -86,14 +86,15 @@ unsafe extern "C" fn get_own_property_descriptor(
     desc: MutableHandle<PropertyDescriptor>,
     is_none: *mut bool,
 ) -> bool {
-    let cx = unsafe { SafeJSContext::from_ptr(cx) };
+    let mut cx = unsafe { js::context::JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
 
     if id.is_symbol() {
         if id.get().asBits_ ==
-            SymbolId(unsafe { GetWellKnownSymbol(*cx, SymbolCode::toStringTag) }).asBits_
+            SymbolId(unsafe { GetWellKnownSymbol(cx.raw_cx_no_gc(), SymbolCode::toStringTag) })
+                .asBits_
         {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            unsafe { "WindowProperties".to_jsval(*cx, rval.handle_mut()) };
+            rooted!(in(unsafe { cx.raw_cx_no_gc() }) let mut rval = UndefinedValue());
+            unsafe { "WindowProperties".to_jsval(cx.raw_cx_no_gc(), rval.handle_mut()) };
             set_property_descriptor(
                 unsafe { RustMutableHandle::from_raw(desc) },
                 rval.handle(),
@@ -107,7 +108,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     let mut found = false;
     let lookup_succeeded = unsafe {
         has_property_on_prototype(
-            *cx,
+            cx.raw_cx_no_gc(),
             RustHandle::from_raw(proxy),
             RustHandle::from_raw(id),
             &mut found,
@@ -121,7 +122,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     }
 
     let s = if id.is_string() {
-        unsafe { jsstr_to_string(*cx, NonNull::new(id.to_string()).unwrap()) }
+        unsafe { jsstr_to_string(cx.raw_cx_no_gc(), NonNull::new(id.to_string()).unwrap()) }
     } else if id.is_int() {
         // If the property key is an integer index, convert it to a String too.
         // For indexed access on the window object, which may shadow this, see
@@ -139,10 +140,10 @@ unsafe extern "C" fn get_own_property_descriptor(
 
     let window = Root::downcast::<Window>(unsafe { GlobalScope::from_object(proxy.get()) })
         .expect("global is not a window");
-    if let Some(obj) = window.NamedGetter(s.into()) {
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+    if let Some(obj) = window.NamedGetter(&mut cx, s.into()) {
+        rooted!(in(unsafe { cx.raw_cx_no_gc() }) let mut rval = UndefinedValue());
         unsafe {
-            obj.to_jsval(*cx, rval.handle_mut());
+            obj.to_jsval(cx.raw_cx_no_gc(), rval.handle_mut());
         }
         set_property_descriptor(
             unsafe { RustMutableHandle::from_raw(desc) },
