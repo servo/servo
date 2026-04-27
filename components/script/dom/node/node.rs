@@ -1823,14 +1823,15 @@ impl Node {
     }
 
     /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
-    pub(crate) fn insert_cell_or_row<G, I>(
+    pub(crate) fn insert_cell_or_row<F, G, I>(
         &self,
         cx: &mut JSContext,
         index: i32,
-        items: DomRoot<HTMLCollection>,
+        get_items: F,
         new_child: G,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
+        F: Fn(&mut JSContext) -> DomRoot<HTMLCollection>,
         G: Fn(&mut JSContext) -> DomRoot<I>,
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
@@ -1845,6 +1846,7 @@ impl Node {
             if index == -1 {
                 self.InsertBefore(cx, tr_node, None)?;
             } else {
+                let items = get_items(cx);
                 let node = match items
                     .elements_iter()
                     .map(DomRoot::upcast::<Node>)
@@ -1863,14 +1865,15 @@ impl Node {
     }
 
     /// Used by `HTMLTableSectionElement::DeleteRow` and `HTMLTableRowElement::DeleteCell`
-    pub(crate) fn delete_cell_or_row<G>(
+    pub(crate) fn delete_cell_or_row<F, G>(
         &self,
         cx: &mut JSContext,
         index: i32,
-        items: DomRoot<HTMLCollection>,
+        get_items: F,
         is_delete_type: G,
     ) -> ErrorResult
     where
+        F: Fn(&mut JSContext) -> DomRoot<HTMLCollection>,
         G: Fn(&Element) -> bool,
     {
         let element = match index {
@@ -1887,7 +1890,7 @@ impl Node {
                     None => return Ok(()),
                 }
             },
-            index => match items.Item(index as u32) {
+            index => match get_items(cx).Item(index as u32) {
                 Some(element) => element,
                 None => return Err(Error::IndexSize(None)),
             },

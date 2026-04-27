@@ -101,8 +101,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-insertcell>
     fn InsertCell(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
-        let cells = self.Cells(cx);
-        node.insert_cell_or_row(cx, index, cells, |cx| {
+        node.insert_cell_or_row(cx, index, |cx| self.Cells(cx), |cx| {
             let cell = Element::create(
                 cx,
                 QualName::new(None, ns!(html), local_name!("td")),
@@ -119,8 +118,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-deletecell>
     fn DeleteCell(&self, cx: &mut JSContext, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        let cells = self.Cells(cx);
-        node.delete_cell_or_row(cx, index, cells, |n| n.is::<HTMLTableCellElement>())
+        node.delete_cell_or_row(cx, index, |cx| self.Cells(cx), |n| n.is::<HTMLTableCellElement>())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-rowindex>
