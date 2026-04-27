@@ -198,8 +198,8 @@ skip = [
     # this.
     "hybrid-array",
 
-    # duplicated by zbus-xml and wayland-scanner
-    "quick-xml",
+    # duplicated by zbus
+    "winnow",
 
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
