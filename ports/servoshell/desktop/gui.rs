@@ -136,6 +136,10 @@ fn configure_fonts() -> FontDefinitions {
             "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
             "Noto Sans CJK",
         ), // Fedora/Arch
+        (
+            "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK"
+        ),  // Fedora after package change
         // FreeBSD splits the Noto CJK fonts into regional subsets
         (
             "/usr/local/share/fonts/noto/NotoSansCJKhk-Regular.otf",
@@ -161,6 +165,10 @@ fn configure_fonts() -> FontDefinitions {
             "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
             "WenQuanYi Micro Hei",
         ), // common fallback
+        (
+            "/usr/share/fonts/wqy-microhei-fonts/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // common fallback version 2
         (
             "/usr/local/share/fonts/wqy/wqy-microhei.ttc",
             "WenQuanYi Micro Hei",
