@@ -138,8 +138,8 @@ fn configure_fonts() -> FontDefinitions {
         ), // Fedora/Arch
         (
             "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Regular.ttc",
-            "Noto Sans CJK"
-        ),  // Fedora after package change
+            "Noto Sans CJK",
+        ), // Fedora after package change
         // FreeBSD splits the Noto CJK fonts into regional subsets
         (
             "/usr/local/share/fonts/noto/NotoSansCJKhk-Regular.otf",
