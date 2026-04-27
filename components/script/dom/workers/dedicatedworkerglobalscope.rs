@@ -56,7 +56,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, Runtime, ThreadSafeJSContext};
@@ -619,24 +619,28 @@ impl DedicatedWorkerGlobalScope {
         )
     }
 
-    pub(crate) fn fire_queued_messages(&self, can_gc: CanGc) {
+    pub(crate) fn fire_queued_messages(&self, cx: &mut JSContext) {
         let queue: Vec<_> = self.queued_worker_tasks.borrow_mut().drain(..).collect();
         for msg in queue {
             if self.upcast::<WorkerGlobalScope>().is_closing() {
                 return;
             }
-            self.dispatch_message_event(msg, can_gc);
+            self.dispatch_message_event(cx, msg);
         }
     }
 
-    fn dispatch_message_event(&self, msg: MessageData, can_gc: CanGc) {
+    fn dispatch_message_event(&self, cx: &mut JSContext, msg: MessageData) {
         let scope = self.upcast::<WorkerGlobalScope>();
         let target = self.upcast();
-        let _ac = enter_realm(self);
-        rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-        if let Ok(ports) =
-            structuredclone::read(scope.upcast(), *msg.data, message.handle_mut(), can_gc)
-        {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm;
+        rooted!(&in(cx) let mut message = UndefinedValue());
+        if let Ok(ports) = structuredclone::read(
+            scope.upcast(),
+            *msg.data,
+            message.handle_mut(),
+            CanGc::from_cx(cx),
+        ) {
             MessageEvent::dispatch_jsval(
                 target,
                 scope.upcast(),
@@ -644,10 +648,10 @@ impl DedicatedWorkerGlobalScope {
                 Some(&msg.origin.ascii_serialization()),
                 None,
                 ports,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         } else {
-            MessageEvent::dispatch_error(target, scope.upcast(), can_gc);
+            MessageEvent::dispatch_error(cx, target, scope.upcast());
         }
     }
 
@@ -655,7 +659,7 @@ impl DedicatedWorkerGlobalScope {
         match msg {
             WorkerScriptMsg::DOMMessage(message_data) => {
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
-                    self.dispatch_message_event(message_data, CanGc::from_cx(cx));
+                    self.dispatch_message_event(cx, message_data);
                 } else {
                     self.queued_worker_tasks.borrow_mut().push(message_data);
                 }

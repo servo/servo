@@ -1361,7 +1361,7 @@ impl GlobalScope {
                                     return;
                                 }
 
-                                rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
+                                rooted!(&in(cx) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
                                 if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
@@ -1377,7 +1377,7 @@ impl GlobalScope {
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::from_cx(cx));
+                                    MessageEvent::dispatch_error(cx, destination.upcast(), &global);
                                 }
                             })
                         );
@@ -1569,7 +1569,7 @@ impl GlobalScope {
                     // If this throws an exception, catch it,
                     // fire an event named messageerror at messageEventTarget,
                     // using MessageEvent, and then return.
-                    MessageEvent::dispatch_error(message_event_target, self, CanGc::from_cx(cx));
+                    MessageEvent::dispatch_error(cx, message_event_target, self);
                 }
             });
         }

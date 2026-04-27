@@ -10,6 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::c_void;
 use std::io::{Write, stderr, stdout};
+use std::ptr::NonNull;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -33,11 +34,9 @@ use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
 use js::context::JSContext;
 use js::glue::DumpJSStack;
-use js::jsapi::{
-    GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
-};
+use js::jsapi::{GCReason, Heap, JS_GC, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
-use js::realm::CurrentRealm;
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{
     CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject,
@@ -3873,7 +3872,7 @@ impl Window {
     ) {
         let this = Trusted::new(self);
         let source = Trusted::new(source);
-        let task = task!(post_serialised_message: move || {
+        let task = task!(post_serialised_message: move |cx| {
             let this = this.root();
             let source = source.root();
             let document = this.Document();
@@ -3886,11 +3885,11 @@ impl Window {
             }
 
             // Steps 7.2.-7.5.
-            let cx = this.get_cx();
             let obj = this.reflector().get_jsobject();
-            let _ac = JSAutoRealm::new(*cx, obj.get());
-            rooted!(in(*cx) let mut message_clone = UndefinedValue());
-            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::deprecated_note()) {
+            let mut realm = AutoRealm::new(cx, NonNull::new(obj.get()).unwrap());
+            let cx = &mut *realm;
+            rooted!(&in(cx) let mut message_clone = UndefinedValue());
+            if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::from_cx(cx)) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
                     this.upcast(),
@@ -3899,14 +3898,14 @@ impl Window {
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     ports,
-                    CanGc::deprecated_note()
+                    CanGc::from_cx(cx),
                 );
             } else {
                 // Step 4, fire messageerror.
                 MessageEvent::dispatch_error(
+                    cx,
                     this.upcast(),
                     this.upcast(),
-                    CanGc::deprecated_note()
                 );
             }
         });

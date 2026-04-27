@@ -129,7 +129,7 @@ impl Worker {
             );
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
-            MessageEvent::dispatch_error(target, &global, CanGc::from_cx(cx));
+            MessageEvent::dispatch_error(cx, target, &global);
         }
     }
 
