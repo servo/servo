@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
+
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::input_element::InputActivationState;
-use crate::script_runtime::CanGc;
 
 /// Trait for elements with defined activation behavior
 pub(crate) trait Activatable {
@@ -16,15 +17,15 @@ pub(crate) trait Activatable {
     fn is_instance_activatable(&self) -> bool;
 
     /// <https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior>
-    fn legacy_pre_activation_behavior(&self, _can_gc: CanGc) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, _cx: &mut JSContext) -> Option<InputActivationState> {
         None
     }
 
     /// <https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior>
     fn legacy_canceled_activation_behavior(
         &self,
+        _cx: &mut JSContext,
         _state_before: Option<InputActivationState>,
-        _can_gc: CanGc,
     ) {
     }
 

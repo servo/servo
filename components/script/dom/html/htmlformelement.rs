@@ -1479,7 +1479,7 @@ impl Element {
         }
 
         if let Some(input_element) = self.downcast::<HTMLInputElement>() {
-            input_element.reset(CanGc::from_cx(cx));
+            input_element.reset(cx);
         } else if let Some(select_element) = self.downcast::<HTMLSelectElement>() {
             select_element.reset();
         } else if let Some(textarea_element) = self.downcast::<HTMLTextAreaElement>() {

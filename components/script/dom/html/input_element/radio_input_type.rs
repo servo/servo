@@ -57,8 +57,8 @@ impl SpecificInputType for RadioInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):signal-a-type-change>
-    fn signal_type_change(&self, input: &HTMLInputElement, can_gc: CanGc) {
-        radio_group_updated(input, input.radio_group_name().as_ref(), can_gc);
+    fn signal_type_change(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        radio_group_updated(cx, input, input.radio_group_name().as_ref());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior>
@@ -94,8 +94,8 @@ impl SpecificInputType for RadioInputType {
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-pre-activation-behavior>
     fn legacy_pre_activation_behavior(
         &self,
+        cx: &mut JSContext,
         input: &HTMLInputElement,
-        can_gc: CanGc,
     ) -> Option<InputActivationState> {
         let root = input
             .upcast::<Node>()
@@ -109,7 +109,7 @@ impl SpecificInputType for RadioInputType {
         )
         .find(|r| r.Checked());
         let was_checked = input.Checked();
-        input.SetChecked(true, can_gc);
+        input.SetChecked(cx, true);
         Some(InputActivationState {
             checked: was_checked,
             indeterminate: false,
@@ -122,9 +122,9 @@ impl SpecificInputType for RadioInputType {
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-canceled-activation-behavior>
     fn legacy_canceled_activation_behavior(
         &self,
+        cx: &mut JSContext,
         input: &HTMLInputElement,
         cache: InputActivationState,
-        can_gc: CanGc,
     ) {
         if let Some(ref o) = cache.checked_radio {
             let tree_root = input
@@ -138,12 +138,12 @@ impl SpecificInputType for RadioInputType {
                 input.radio_group_name().as_ref(),
                 Some(&*tree_root),
             ) {
-                o.SetChecked(true, can_gc);
+                o.SetChecked(cx, true);
             } else {
-                input.SetChecked(false, can_gc);
+                input.SetChecked(cx, false);
             }
         } else {
-            input.SetChecked(false, can_gc);
+            input.SetChecked(cx, false);
         }
     }
 
@@ -162,16 +162,16 @@ impl SpecificInputType for RadioInputType {
     ) {
         match *attr.local_name() {
             local_name!("name") => radio_group_updated(
+                cx,
                 input,
                 mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
-                CanGc::from_cx(cx),
             ),
             _ => {},
         }
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, input: &HTMLInputElement, _context: &BindContext) {
-        radio_group_updated(input, input.radio_group_name().as_ref(), CanGc::from_cx(cx));
+        radio_group_updated(cx, input, input.radio_group_name().as_ref());
     }
 
     fn unbind_from_tree(
@@ -194,24 +194,24 @@ impl SpecificInputType for RadioInputType {
     }
 }
 
-fn radio_group_updated(input: &HTMLInputElement, group: Option<&Atom>, can_gc: CanGc) {
+fn radio_group_updated(cx: &mut JSContext, input: &HTMLInputElement, group: Option<&Atom>) {
     if input.Checked() {
-        broadcast_radio_checked(input, group, can_gc);
+        broadcast_radio_checked(cx, input, group);
     }
 }
 
 pub(crate) fn perform_radio_group_validation(
+    cx: &mut JSContext,
     elem: &HTMLInputElement,
     group: Option<&Atom>,
-    can_gc: CanGc,
 ) {
     let root = elem
         .upcast::<Node>()
         .GetRootNode(&GetRootNodeOptions::empty());
     let form = elem.form_owner();
     for r in radio_group_iter(elem, group, form.as_deref(), &root) {
-        r.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        r.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 }
 
@@ -227,9 +227,9 @@ pub(crate) fn radio_group_iter<'a>(
 }
 
 pub(crate) fn broadcast_radio_checked(
+    cx: &mut JSContext,
     broadcaster: &HTMLInputElement,
     group: Option<&Atom>,
-    can_gc: CanGc,
 ) {
     let root = broadcaster
         .upcast::<Node>()
@@ -237,7 +237,7 @@ pub(crate) fn broadcast_radio_checked(
     let form = broadcaster.form_owner();
     for r in radio_group_iter(broadcaster, group, form.as_deref(), &root) {
         if broadcaster != &*r && r.Checked() {
-            r.SetChecked(false, can_gc);
+            r.SetChecked(cx, false);
         }
     }
 }

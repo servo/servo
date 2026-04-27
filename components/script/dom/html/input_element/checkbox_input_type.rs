@@ -5,7 +5,6 @@ use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::DOMString;
 use script_bindings::inheritance::Castable;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
@@ -60,13 +59,13 @@ impl SpecificInputType for CheckboxInputType {
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-pre-activation-behavior>
     fn legacy_pre_activation_behavior(
         &self,
+        cx: &mut JSContext,
         input: &HTMLInputElement,
-        can_gc: CanGc,
     ) -> Option<InputActivationState> {
         let was_checked = input.Checked();
         let was_indeterminate = input.Indeterminate();
         input.SetIndeterminate(false);
-        input.SetChecked(!was_checked, can_gc);
+        input.SetChecked(cx, !was_checked);
         Some(InputActivationState {
             checked: was_checked,
             indeterminate: was_indeterminate,
@@ -79,12 +78,12 @@ impl SpecificInputType for CheckboxInputType {
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:legacy-canceled-activation-behavior>
     fn legacy_canceled_activation_behavior(
         &self,
+        cx: &mut JSContext,
         input: &HTMLInputElement,
         cache: InputActivationState,
-        can_gc: CanGc,
     ) {
         input.SetIndeterminate(cache.indeterminate);
-        input.SetChecked(cache.checked, can_gc);
+        input.SetChecked(cx, cache.checked);
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
