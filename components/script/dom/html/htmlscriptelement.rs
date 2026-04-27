@@ -1363,10 +1363,13 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
-    fn SetAsync(&self, value: bool, can_gc: CanGc) {
+    fn SetAsync(&self, cx: &mut JSContext, value: bool) {
         self.non_blocking.set(false);
-        self.upcast::<Element>()
-            .set_bool_attribute(&local_name!("async"), value, can_gc);
+        self.upcast::<Element>().set_bool_attribute(
+            &local_name!("async"),
+            value,
+            CanGc::from_cx(cx),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-defer

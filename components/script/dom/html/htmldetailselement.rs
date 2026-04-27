@@ -159,8 +159,8 @@ impl HTMLDetailsElement {
         )
     }
 
-    pub(crate) fn toggle(&self) {
-        self.SetOpen(!self.Open());
+    pub(crate) fn toggle(&self, cx: &mut JSContext) {
+        self.SetOpen(cx, !self.Open());
     }
 
     fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
@@ -303,6 +303,7 @@ impl HTMLDetailsElement {
     /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-other-elements-if-needed>
     fn ensure_details_exclusivity(
         &self,
+        cx: &mut js::context::JSContext,
         conflict_resolution_behaviour: ExclusivityConflictResolution,
     ) {
         // NOTE: This method implements two spec algorithms that are very similar to each other, distinguished by the
@@ -370,9 +371,9 @@ impl HTMLDetailsElement {
             // Step 4.1.2 Break.
             // NOTE: We don't bother to assert here and don't need to "break" since we're not in a loop.
             match conflict_resolution_behaviour {
-                ExclusivityConflictResolution::CloseThisElement => self.SetOpen(false),
+                ExclusivityConflictResolution::CloseThisElement => self.SetOpen(cx, false),
                 ExclusivityConflictResolution::CloseExistingOpenElement => {
-                    other_open_member.SetOpen(false)
+                    other_open_member.SetOpen(cx, false)
                 },
             }
         }
@@ -447,7 +448,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 }
             }
 
-            self.ensure_details_exclusivity(ExclusivityConflictResolution::CloseThisElement);
+            self.ensure_details_exclusivity(cx, ExclusivityConflictResolution::CloseThisElement);
         }
         // Step 3. If localName is open, then:
         else if attr.local_name() == &local_name!("open") {
@@ -492,6 +493,7 @@ impl VirtualMethods for HTMLDetailsElement {
             };
             if was_previously_closed && self.Open() {
                 self.ensure_details_exclusivity(
+                    cx,
                     ExclusivityConflictResolution::CloseExistingOpenElement,
                 );
             }
@@ -531,7 +533,7 @@ impl VirtualMethods for HTMLDetailsElement {
         }
 
         // Step 1. Ensure details exclusivity by closing the given element if needed given insertedNode.
-        self.ensure_details_exclusivity(ExclusivityConflictResolution::CloseThisElement);
+        self.ensure_details_exclusivity(cx, ExclusivityConflictResolution::CloseThisElement);
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {

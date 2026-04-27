@@ -29,7 +29,7 @@ macro_rules! make_bool_getter(
 #[macro_export]
 macro_rules! make_limited_int_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
-        fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: i32) -> $crate::dom::bindings::error::ErrorResult {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::script_runtime::CanGc;
@@ -41,7 +41,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note());
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx));
             Ok(())
         }
     );
@@ -117,8 +117,8 @@ macro_rules! make_url_setter_inner(
 #[macro_export]
 macro_rules! make_url_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: USVString) {
-            make_url_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
+        fn $attr(&self, cx: &mut js::context::JSContext, value: USVString) {
+            make_url_setter_inner!(self, value, $htmlname, CanGc::from_cx(cx));
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
@@ -288,8 +288,8 @@ macro_rules! make_setter_inner(
 #[macro_export]
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: DOMString) {
-            make_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
+        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+            make_setter_inner!(self, value, $htmlname, CanGc::from_cx(cx));
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
@@ -312,8 +312,8 @@ macro_rules! make_bool_setter_inner(
 #[macro_export]
 macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: bool) {
-            make_bool_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
+        fn $attr(&self, cx: &mut js::context::JSContext, value: bool) {
+            make_bool_setter_inner!(self, value, $htmlname, CanGc::from_cx(cx));
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
@@ -326,7 +326,7 @@ macro_rules! make_bool_setter(
 #[macro_export]
 macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
-        fn $attr(&self, value: u32) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: u32) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
@@ -337,7 +337,7 @@ macro_rules! make_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -368,7 +368,7 @@ macro_rules! make_clamped_uint_setter(
 #[macro_export]
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
-        fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: u32) -> $crate::dom::bindings::error::ErrorResult {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
@@ -381,7 +381,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note());
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx));
             Ok(())
         }
     );
@@ -400,8 +400,8 @@ macro_rules! make_atomic_setter_inner(
 #[macro_export]
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: DOMString) {
-            make_atomic_setter_inner!(self, value, $htmlname, CanGc::deprecated_note());
+        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+            make_atomic_setter_inner!(self, value, $htmlname, CanGc::from_cx(cx));
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
@@ -484,7 +484,7 @@ macro_rules! make_dimension_uint_getter(
 #[macro_export]
 macro_rules! make_dimension_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
-        fn $attr(&self, value: u32) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: u32) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
@@ -496,7 +496,7 @@ macro_rules! make_dimension_uint_setter(
                 value
             };
             let value = AttrValue::from_dimension(value.to_string());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::deprecated_note())
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
         }
     );
     ($attr:ident, $htmlname:tt) => {

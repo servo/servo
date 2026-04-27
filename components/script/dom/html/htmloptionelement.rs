@@ -273,10 +273,10 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         }
 
         if let Some(val) = value {
-            option.SetValue(val)
+            option.SetValue(cx, val)
         }
 
-        option.SetDefaultSelected(default_selected);
+        option.SetDefaultSelected(cx, default_selected);
         option.set_selectedness(selected);
         option.update_select_validity(CanGc::from_cx(cx));
         Ok(option)
@@ -374,11 +374,11 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
-    fn SetSelected(&self, selected: bool, can_gc: CanGc) {
+    fn SetSelected(&self, cx: &mut JSContext, selected: bool) {
         self.dirtiness.set(true);
         self.set_selectedness(selected);
         self.pick_if_selected_and_reset();
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-option-index>

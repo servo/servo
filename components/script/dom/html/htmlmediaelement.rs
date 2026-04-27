@@ -3013,7 +3013,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
-    fn SetMuted(&self, value: bool) {
+    fn SetMuted(&self, _cx: &mut JSContext, value: bool) {
         if self.muted.get() == value {
             return;
         }
@@ -3145,7 +3145,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
-    fn SetDefaultPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+    fn SetDefaultPlaybackRate(&self, _cx: &mut JSContext, value: Finite<f64>) -> ErrorResult {
         // If the given value is not supported by the user agent, then throw a "NotSupportedError"
         // DOMException.
         let min_allowed = -64.0;
@@ -3173,7 +3173,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
-    fn SetPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
+    fn SetPlaybackRate(&self, _cx: &mut JSContext, value: Finite<f64>) -> ErrorResult {
         // The attribute is mutable: on setting, the user agent must follow these steps:
 
         // Step 1. If the given value is not supported by the user agent, then throw a
@@ -3228,7 +3228,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currenttime>
-    fn SetCurrentTime(&self, time: Finite<f64>) {
+    fn SetCurrentTime(&self, _cx: &mut JSContext, time: Finite<f64>) {
         if self.ready_state.get() == ReadyState::HaveNothing {
             self.default_playback_start_position.set(*time);
         } else {
@@ -3333,7 +3333,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
-    fn SetVolume(&self, value: Finite<f64>) -> ErrorResult {
+    fn SetVolume(&self, _cx: &mut JSContext, value: Finite<f64>) -> ErrorResult {
         // If the new value is outside the range 0.0 to 1.0 inclusive, then, on setting, an
         // "IndexSizeError" DOMException must be thrown instead.
         let minimum_volume = 0.0;
@@ -3393,7 +3393,7 @@ impl VirtualMethods for HTMLMediaElement {
                     AttributeMutationReason::ByCloning | AttributeMutationReason::ByParser,
                 ) = mutation
                 {
-                    self.SetMuted(true);
+                    self.SetMuted(cx, true);
                 }
             },
             local_name!("src") => {

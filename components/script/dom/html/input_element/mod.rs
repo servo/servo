@@ -1090,7 +1090,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-files>
-    fn SetFiles(&self, files: Option<&FileList>) {
+    fn SetFiles(&self, _cx: &mut js::context::JSContext, files: Option<&FileList>) {
         if let Some(files) = files {
             self.input_type().as_specific().set_files(files)
         }
@@ -1446,7 +1446,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
-    fn SetIndeterminate(&self, val: bool) {
+    fn SetIndeterminate(&self, _cx: &mut JSContext, val: bool) {
         self.upcast::<Element>()
             .set_state(ElementState::INDETERMINATE, val)
     }
@@ -1479,7 +1479,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
-    fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
+    fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
         self.selection()
             .set_dom_start(start.map(Utf16CodeUnitLength::from))
     }
@@ -1490,7 +1490,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
-    fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
+    fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
         self.selection()
             .set_dom_end(end.map(Utf16CodeUnitLength::from))
     }
@@ -1501,7 +1501,11 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
+    fn SetSelectionDirection(
+        &self,
+        _cx: &mut JSContext,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
         self.selection().set_dom_direction(direction)
     }
 

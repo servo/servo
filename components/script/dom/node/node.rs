@@ -4799,7 +4799,7 @@ impl VirtualMethods for Node {
         if let Some(event) = event.downcast::<KeyboardEvent>() {
             self.owner_document()
                 .event_handler()
-                .run_default_keyboard_event_handler(self, event, CanGc::from_cx(cx));
+                .run_default_keyboard_event_handler(cx, self, event);
         }
     }
 }

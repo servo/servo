@@ -1126,9 +1126,12 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-rel>
-    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
-        self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
+    fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
+        self.upcast::<Element>().set_tokenlist_attribute(
+            &local_name!("rel"),
+            rel,
+            CanGc::from_cx(cx),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-as

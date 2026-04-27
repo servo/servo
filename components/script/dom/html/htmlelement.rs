@@ -987,7 +987,7 @@ impl HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
-    pub(crate) fn summary_activation_behavior(&self) {
+    pub(crate) fn summary_activation_behavior(&self, cx: &mut js::context::JSContext) {
         debug_assert!(self.as_element().local_name() == &local_name!("summary"));
 
         // Step 1. If this summary element is not the summary for its parent details, then return.
@@ -1008,7 +1008,7 @@ impl HTMLElement {
 
         // Step 3. If the open attribute is present on parent, then remove it.
         // Otherwise, set parent's open attribute to the empty string.
-        parent.toggle();
+        parent.toggle(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details>
@@ -1452,11 +1452,11 @@ impl Activatable for HTMLElement {
     // Basically used to make the HTMLSummaryElement activatable (which has no IDL definition)
     fn activation_behavior(
         &self,
-        _cx: &mut js::context::JSContext,
+        cx: &mut js::context::JSContext,
         _event: &Event,
         _target: &EventTarget,
     ) {
-        self.summary_activation_behavior();
+        self.summary_activation_behavior(cx);
     }
 }
 

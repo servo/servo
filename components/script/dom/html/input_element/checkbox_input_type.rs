@@ -64,7 +64,7 @@ impl SpecificInputType for CheckboxInputType {
     ) -> Option<InputActivationState> {
         let was_checked = input.Checked();
         let was_indeterminate = input.Indeterminate();
-        input.SetIndeterminate(false);
+        input.SetIndeterminate(cx, false);
         input.SetChecked(cx, !was_checked);
         Some(InputActivationState {
             checked: was_checked,
@@ -82,7 +82,7 @@ impl SpecificInputType for CheckboxInputType {
         input: &HTMLInputElement,
         cache: InputActivationState,
     ) {
-        input.SetIndeterminate(cache.indeterminate);
+        input.SetIndeterminate(cx, cache.indeterminate);
         input.SetChecked(cx, cache.checked);
     }
 

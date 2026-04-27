@@ -1766,13 +1766,13 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
         // Step 3. If width is given, then set an attribute value for img using "width" and width.
         if let Some(w) = width {
-            image.SetWidth(w);
+            image.SetWidth(cx, w);
         }
 
         // Step 4. If height is given, then set an attribute value for img using "height" and
         // height.
         if let Some(h) = height {
-            image.SetHeight(h);
+            image.SetHeight(cx, h);
         }
 
         // Step 5. Return img.

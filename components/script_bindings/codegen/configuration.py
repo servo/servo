@@ -301,7 +301,6 @@ class Descriptor(DescriptorProvider):
         self.weakReferenceable = desc.get('weakReferenceable', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
         self.allowDropImpl = desc.get('allowDropImpl', False)
-        self.implicitCxSetters = desc.get('implicitCxSetters', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
@@ -429,6 +428,7 @@ class Descriptor(DescriptorProvider):
         self.prototypeDepth = len(self.prototypeChain) - 1
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
+        self.implicitCxSetters = desc.get('implicitCxSetters', "Element" in self.prototypeChain)
 
     def maybeGetSuperModule(self) -> str | None:
         """

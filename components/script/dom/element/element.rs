@@ -2783,8 +2783,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-id>
-    fn SetId(&self, id: DOMString, can_gc: CanGc) {
-        self.set_atomic_attribute(&local_name!("id"), id, can_gc);
+    fn SetId(&self, cx: &mut JSContext, id: DOMString) {
+        self.set_atomic_attribute(&local_name!("id"), id, CanGc::from_cx(cx));
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
@@ -2793,8 +2793,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
-    fn SetClassName(&self, class: DOMString, can_gc: CanGc) {
-        self.set_tokenlist_attribute(&local_name!("class"), class, can_gc);
+    fn SetClassName(&self, cx: &mut JSContext, class: DOMString) {
+        self.set_tokenlist_attribute(&local_name!("class"), class, CanGc::from_cx(cx));
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classlist>
@@ -3195,7 +3195,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
-    fn SetScrollTop(&self, y_: f64) {
+    fn SetScrollTop(&self, _cx: &mut JSContext, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3291,7 +3291,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
-    fn SetScrollLeft(&self, x: f64) {
+    fn SetScrollLeft(&self, _cx: &mut JSContext, x: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
