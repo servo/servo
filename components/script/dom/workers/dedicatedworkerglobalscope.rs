@@ -632,7 +632,8 @@ impl DedicatedWorkerGlobalScope {
     fn dispatch_message_event(&self, cx: &mut JSContext, msg: MessageData) {
         let scope = self.upcast::<WorkerGlobalScope>();
         let target = self.upcast();
-        let _ac = enter_realm(self);
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm;
         rooted!(&in(cx) let mut message = UndefinedValue());
         if let Ok(ports) = structuredclone::read(
             scope.upcast(),
