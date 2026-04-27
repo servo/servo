@@ -409,13 +409,13 @@ impl Performance {
     }
     // `fire a buffer full event` paragraph of
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    fn fire_buffer_full_event(&self, can_gc: CanGc) {
+    fn fire_buffer_full_event(&self, cx: &mut js::context::JSContext) {
         while !self.resource_timing_secondary_entries.borrow().is_empty() {
             let no_of_excess_entries_before = self.resource_timing_secondary_entries.borrow().len();
 
             if !self.can_add_resource_timing_entry() {
                 self.upcast::<EventTarget>()
-                    .fire_event(atom!("resourcetimingbufferfull"), can_gc);
+                    .fire_event(cx, atom!("resourcetimingbufferfull"));
             }
             self.copy_secondary_resource_timing_buffer();
             let no_of_excess_entries_after = self.resource_timing_secondary_entries.borrow().len();
@@ -448,8 +448,8 @@ impl Performance {
             self.global()
                 .task_manager()
                 .performance_timeline_task_source()
-                .queue(task!(fire_a_buffer_full_event: move || {
-                    performance.root().fire_buffer_full_event(CanGc::deprecated_note());
+                .queue(task!(fire_a_buffer_full_event: move |cx| {
+                    performance.root().fire_buffer_full_event(cx);
                 }));
         }
 

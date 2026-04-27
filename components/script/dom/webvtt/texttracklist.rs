@@ -99,13 +99,13 @@ impl TextTrackList {
     // FIXME(#22314, dlrobertson) allow TextTracks to be
     // removed from the TextTrackList.
     #[expect(dead_code)]
-    pub(crate) fn remove(&self, idx: usize, can_gc: CanGc) {
+    pub(crate) fn remove(&self, cx: &mut js::context::JSContext, idx: usize) {
         if let Some(track) = self.dom_tracks.borrow().get(idx) {
             track.remove_track_list();
         }
         self.dom_tracks.borrow_mut().remove(idx);
         self.upcast::<EventTarget>()
-            .fire_event(atom!("removetrack"), can_gc);
+            .fire_event(cx, atom!("removetrack"));
     }
 }
 

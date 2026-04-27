@@ -153,7 +153,7 @@ impl EventSourceContext {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::from_cx(cx));
+                    event_source.upcast::<EventTarget>().fire_event(cx, atom!("open"));
                 }
             }),
         );
@@ -203,7 +203,7 @@ impl EventSourceContext {
                 event_source.ready_state.set(ReadyState::Connecting);
 
                 // Step 1.3.
-                event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
+                event_source.upcast::<EventTarget>().fire_event(cx, atom!("error"));
 
                 // Step 2.
                 let duration = event_source.reconnection_time.get();
@@ -552,7 +552,7 @@ impl EventSource {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
+                    event_source.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 }
             }),
         );

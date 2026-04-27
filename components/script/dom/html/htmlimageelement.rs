@@ -555,18 +555,16 @@ impl HTMLImageElement {
         // Fire image.onload and loadend
         if trigger_image_load {
             // TODO: https://html.spec.whatwg.org/multipage/#fire-a-progress-event-or-event
+            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
             self.upcast::<EventTarget>()
-                .fire_event(atom!("load"), CanGc::from_cx(cx));
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("loadend"), CanGc::from_cx(cx));
+                .fire_event(cx, atom!("loadend"));
         }
 
         // Fire image.onerror
         if trigger_image_error {
+            self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
             self.upcast::<EventTarget>()
-                .fire_event(atom!("error"), CanGc::from_cx(cx));
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("loadend"), CanGc::from_cx(cx));
+                .fire_event(cx, atom!("loadend"));
         }
     }
 
@@ -1031,7 +1029,7 @@ impl HTMLImageElement {
                     let has_src_attribute = this.upcast::<Element>().has_attribute(&local_name!("src"));
 
                     if has_src_attribute || this.uses_srcset_or_picture() {
-                        this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
+                        this.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                     }
                 }));
 
@@ -1073,7 +1071,7 @@ impl HTMLImageElement {
                     // Step 13.4.2. If maybe omit events is not set or previousURL is not equal to
                     // selected source, then fire an event named error at the img element.
                     // TODO: Add missing `maybe omit events` flag and previousURL.
-                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
+                    this.upcast::<EventTarget>().fire_event(cx, atom!("error"));
                 }));
 
             // Step 13.5. Return.
@@ -1197,7 +1195,7 @@ impl HTMLImageElement {
                             // Step 7.4.7.3. If maybe omit events is not set or previousURL is not
                             // equal to urlString, then fire an event named load at the img element.
                             // TODO: Add missing `maybe omit events` flag and previousURL.
-                            this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::from_cx(cx));
+                            this.upcast::<EventTarget>().fire_event(cx, atom!("load"));
                         }));
 
                     // Step 7.4.8. Abort the update the image data algorithm.
@@ -1479,7 +1477,7 @@ impl HTMLImageElement {
                 this.upcast::<Node>().dirty(NodeDamage::Other);
 
                 // Step 16.7. Fire an event named load at the img element.
-                this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::from_cx(cx));
+                this.upcast::<EventTarget>().fire_event(cx, atom!("load"));
             }));
     }
 

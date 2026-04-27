@@ -227,8 +227,7 @@ impl AbortSignal {
         self.abort_algorithms.borrow_mut().clear();
 
         // Step 3. Fire an event named abort at signal.
-        self.upcast::<EventTarget>()
-            .fire_event(atom!("abort"), CanGc::from_cx(cx));
+        self.upcast::<EventTarget>().fire_event(cx, atom!("abort"));
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-aborted>

@@ -510,7 +510,7 @@ impl Activatable for HTMLButtonElement {
             // Step 3.2 If element's type attribute is in the Reset Button state, then reset
             // element's form owner and return.
             if button_type == ButtonType::Reset {
-                owner.reset(ResetFrom::NotFromForm, CanGc::from_cx(cx));
+                owner.reset(cx, ResetFrom::NotFromForm);
                 return;
             }
             // Step 3.3 If element's type attribute is in the Auto state, then return.

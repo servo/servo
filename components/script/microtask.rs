@@ -166,8 +166,7 @@ impl MicrotaskQueue {
                         ScriptThread::invoke_backup_element_queue(cx);
                     },
                     Microtask::NotifyMutationObservers => {
-                        ScriptThread::mutation_observers()
-                            .notify_mutation_observers(CanGc::from_cx(cx));
+                        ScriptThread::mutation_observers().notify_mutation_observers(cx);
                     },
                     Microtask::ReadableStreamByteTeeReadRequest(ref task) => {
                         task.microtask_chunk_steps(cx)

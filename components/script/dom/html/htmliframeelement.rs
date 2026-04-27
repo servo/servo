@@ -807,8 +807,7 @@ impl HTMLIFrameElement {
         // TODO 5 Set childDocument's iframe load in progress flag.
 
         // Step 6. Fire an event named load at element.
-        self.upcast::<EventTarget>()
-            .fire_event(atom!("load"), CanGc::from_cx(cx));
+        self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
 
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, cx);

@@ -995,9 +995,7 @@ impl GlobalScope {
         };
 
         // Fire an event named close at otherPort.
-        dom_port
-            .upcast()
-            .fire_event(atom!("close"), CanGc::from_cx(cx));
+        dom_port.upcast().fire_event(cx, atom!("close"));
 
         let res = self.script_to_constellation_chan().send(
             ScriptToConstellationMessage::DisentanglePorts(port_id, None),
@@ -1060,7 +1058,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    pub(crate) fn disentangle_port(&self, port: &MessagePort, can_gc: CanGc) {
+    pub(crate) fn disentangle_port(&self, cx: &mut js::context::JSContext, port: &MessagePort) {
         let initiator_port = port.message_port_id();
         // Let otherPort be the MessagePort which initiatorPort was entangled with.
         let Some(other_port) = port.disentangle() else {
@@ -1103,7 +1101,7 @@ impl GlobalScope {
         // Fire an event named close at `otherPort`.
         // Note: done here if the port is managed by the same global as `initialPort`.
         if let Some(dom_port) = dom_port {
-            dom_port.upcast().fire_event(atom!("close"), can_gc);
+            dom_port.upcast().fire_event(cx, atom!("close"));
         }
 
         let chan = self.script_to_constellation_chan().clone();
@@ -1203,9 +1201,7 @@ impl GlobalScope {
             if dom_port.disentangled() {
                 // <https://html.spec.whatwg.org/multipage/#disentangle>
                 // Fire an event named close at otherPort.
-                dom_port
-                    .upcast()
-                    .fire_event(atom!("close"), CanGc::from_cx(cx));
+                dom_port.upcast().fire_event(cx, atom!("close"));
 
                 let res = self.script_to_constellation_chan().send(
                     ScriptToConstellationMessage::DisentanglePorts(*port_id, None),

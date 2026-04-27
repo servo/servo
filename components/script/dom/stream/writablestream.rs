@@ -1215,7 +1215,7 @@ impl CrossRealmTransformWritable {
             .error_if_needed(cx, rooted_error.handle(), global);
 
         // Disentangle port.
-        global.disentangle_port(port, CanGc::from_cx(cx));
+        global.disentangle_port(cx, port);
     }
 }
 

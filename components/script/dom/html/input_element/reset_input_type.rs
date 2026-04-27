@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
 use script_bindings::domstring::DOMString;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::event::Event;
@@ -45,7 +44,7 @@ impl SpecificInputType for ResetInputType {
             }
 
             // Step 3: Reset the form owner from the element.
-            form_owner.reset(ResetFrom::NotFromForm, CanGc::from_cx(cx));
+            form_owner.reset(cx, ResetFrom::NotFromForm);
         }
     }
 

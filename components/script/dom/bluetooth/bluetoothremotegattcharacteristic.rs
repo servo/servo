@@ -343,7 +343,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
 
                 // Step 5.5.3.
                 self.upcast::<EventTarget>()
-                    .fire_bubbling_event(atom!("characteristicvaluechanged"), CanGc::from_cx(cx));
+                    .fire_bubbling_event(cx, atom!("characteristicvaluechanged"));
 
                 // Step 5.5.4.
                 promise.resolve_native(&value, CanGc::from_cx(cx));
