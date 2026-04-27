@@ -3332,7 +3332,7 @@ impl GlobalScope {
 
         let data = structuredclone::write(cx.into(), value, Some(guard))?;
 
-        structuredclone::read(self, data, retval, CanGc::deprecated_note())?;
+        structuredclone::read(self, data, retval, CanGc::from_cx(cx))?;
 
         Ok(())
     }
