@@ -320,12 +320,13 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         // creation of an inline table. It requires the parent to be an inline box.
         let inline_table = self.currently_processing_inline_box();
 
-        let contents: Vec<AnonymousTableContent<'dom>> =
+        let mut contents: Vec<AnonymousTableContent<'dom>> =
             self.anonymous_table_content.drain(..).collect();
-        let last_text = match contents.last() {
-            Some(AnonymousTableContent::Text(info, text)) => Some((info.clone(), text.clone())),
-            _ => None,
-        };
+        let last_element_index = contents
+            .iter()
+            .rposition(|content| matches!(content, AnonymousTableContent::Element { .. }))
+            .expect("Anonymous table contents should include some table-level element");
+        let trailing_contents = contents.split_off(last_element_index + 1);
 
         let (table_info, ifc) =
             Table::construct_anonymous(self.context, self.info, contents, self.propagated_data);
@@ -350,7 +351,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             });
         }
 
-        // If the last element in the anonymous table content is whitespace, that
+        // If the anonymous table contents end with trailing whitespace, that
         // whitespace doesn't actually belong to the table. It should be processed outside
         // ie become a space between the anonymous table and the rest of the block
         // content. Anonymous tables are really only constructed around internal table
@@ -359,8 +360,13 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         //
         // See https://drafts.csswg.org/css-tables/#fixup-algorithm sections "Remove
         // irrelevant boxes" and "Generate missing parents."
-        if let Some((info, text)) = last_text {
-            self.handle_text(&info, text);
+        for content in trailing_contents {
+            match content {
+                AnonymousTableContent::Text(info, text) => self.handle_text(&info, text),
+                AnonymousTableContent::Element { .. } => {
+                    unreachable!("All elements were placed inside the table")
+                },
+            }
         }
     }
 }
