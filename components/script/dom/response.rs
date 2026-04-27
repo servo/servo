@@ -34,7 +34,7 @@ use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
-use crate::script_runtime::{CanGc, JSContext, StreamConsumer};
+use crate::script_runtime::{CanGc, StreamConsumer};
 
 #[dom_struct]
 pub(crate) struct Response {
@@ -169,32 +169,34 @@ fn is_null_body_status(status: u16) -> bool {
 impl ResponseMethods<crate::DomTypeHolder> for Response {
     /// <https://fetch.spec.whatwg.org/#dom-response>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         body_init: Option<BodyInit>,
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
         // 1. Set this’s response to a new response.
         // Our Response/Body types don't actually hold onto an internal fetch Response.
-        let response = Response::new_with_proto(global, proto, can_gc);
+        let response = Response::new_with_proto(global, proto, CanGc::from_cx(cx));
         if body_init.is_some() {
             response.is_body_empty.set(false);
         }
 
         // 2. Set this’s headers to a new Headers object with this’s relevant realm,
         // whose header list is this’s response’s header list and guard is "response".
-        response.Headers(can_gc).set_guard(Guard::Response);
+        response
+            .Headers(CanGc::from_cx(cx))
+            .set_guard(Guard::Response);
 
         // 3. Let bodyWithType be null.
         // 4. If body is non-null, then set bodyWithType to the result of extracting body.
         let body_with_type = match body_init {
-            Some(body) => Some(body.extract(global, false, can_gc)?),
+            Some(body) => Some(body.extract(cx, global, false)?),
             None => None,
         };
 
         // 5. Perform *initialize a response* given this, init, and bodyWithType.
-        initialize_response(global, can_gc, body_with_type, init, response)
+        initialize_response(global, CanGc::from_cx(cx), body_with_type, init, response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-error>
@@ -252,29 +254,30 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
     /// <https://fetch.spec.whatwg.org/#dom-response-json>
     fn CreateFromJson(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         data: HandleValue,
         init: &ResponseBinding::ResponseInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Response>> {
         // 1. Let bytes the result of running serialize a JavaScript value to JSON bytes on data.
-        let json_str = serialize_jsval_to_json_utf8(cx, data)?;
+        let json_str = serialize_jsval_to_json_utf8(cx.into(), data)?;
 
         // 2. Let body be the result of extracting bytes
         // The spec's definition of JSON bytes is a UTF-8 encoding so using a DOMString here handles
         // the encoding part.
         let body_init = BodyInit::String(json_str);
-        let mut body = body_init.extract(global, false, can_gc)?;
+        let mut body = body_init.extract(cx, global, false)?;
 
         // 3. Let responseObject be the result of creating a Response object, given a new response,
         // "response", and the current realm.
-        let response = Response::new(global, can_gc);
-        response.Headers(can_gc).set_guard(Guard::Response);
+        let response = Response::new(global, CanGc::from_cx(cx));
+        response
+            .Headers(CanGc::from_cx(cx))
+            .set_guard(Guard::Response);
 
         // 4. Perform initialize a response given responseObject, init, and (body, "application/json").
         body.content_type = Some("application/json".into());
-        initialize_response(global, can_gc, Some(body), init, response)
+        initialize_response(global, CanGc::from_cx(cx), Some(body), init, response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-type>
