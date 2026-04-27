@@ -65,7 +65,7 @@ pub(crate) fn execute_delete_command(
         // remove that child from node, then subtract one from offset.
         if offset > 0 {
             let child = node
-                .children_unrooted(&cx)
+                .children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .map(|node| node.as_rooted());
             if let Some(child) = child {
@@ -85,7 +85,7 @@ pub(crate) fn execute_delete_command(
         }
         if offset > 0 {
             let child = node
-                .children_unrooted(&cx)
+                .children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .map(|node| node.as_rooted());
             if let Some(child) = child {
@@ -207,7 +207,7 @@ pub(crate) fn execute_delete_command(
             "Must always have a start_offset greater than one"
         );
         let child = start_node
-            .children_unrooted(&cx)
+            .children_unrooted(cx.no_gc())
             .nth(offset as usize - 1)
             .map(|node| node.as_rooted());
         if let Some(child) = child {
@@ -226,7 +226,7 @@ pub(crate) fn execute_delete_command(
 
     // Step 11. If the child of start node with index start offset is a table, return true.
     if start_node
-        .children_unrooted(&cx)
+        .children_unrooted(cx.no_gc())
         .nth(start_offset as usize)
         .is_some_and(|child| child.is::<HTMLTableElement>())
     {
@@ -241,7 +241,7 @@ pub(crate) fn execute_delete_command(
     if offset == 0 &&
         (start_offset > 0 &&
             start_node
-                .children_unrooted(&cx)
+                .children_unrooted(cx.no_gc())
                 .nth(start_offset as usize - 1)
                 .is_some_and(|child| {
                     child.is::<HTMLHRElement>() ||
@@ -298,7 +298,7 @@ pub(crate) fn execute_delete_command(
             break;
         }
         let child = start_node
-            .children_unrooted(&cx)
+            .children_unrooted(cx.no_gc())
             .nth(offset as usize - 1)
             .map(|node| node.as_rooted());
         let Some(child) = child else {

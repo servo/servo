@@ -1103,7 +1103,7 @@ impl HTMLMediaElement {
             Mode::Attribute((**attribute.value()).to_owned())
         } else if let Some(source) = self
             .upcast::<Node>()
-            .children_unrooted(&cx)
+            .children_unrooted(cx.no_gc())
             .find_map(UnrootedDom::downcast::<HTMLSourceElement>)
         {
             // Otherwise, if the media element does not have an assigned media provider object and
