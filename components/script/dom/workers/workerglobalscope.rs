@@ -444,11 +444,6 @@ impl WorkerGlobalScope {
         self.devtools_receiver.as_ref()
     }
 
-    #[expect(unsafe_code, unused)]
-    pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
-    }
-
     pub(crate) fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
     }
