@@ -135,7 +135,7 @@ impl DefaultTeeReadRequest {
         if !self.canceled_2.get() && self.clone_for_branch_2.get() {
             // Let cloneResult be StructuredClone(chunk2).
             rooted!(&in(cx) let mut clone_result = UndefinedValue());
-            let data = structuredclone::write(cx.into(), chunk2_value.handle(), None).unwrap();
+            let data = structuredclone::write(cx, chunk2_value.handle(), None).unwrap();
             // If cloneResult is an abrupt completion,
             if structuredclone::read(global, data, clone_result.handle_mut(), CanGc::from_cx(cx))
                 .is_err()
