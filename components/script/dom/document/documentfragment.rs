@@ -111,7 +111,7 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), cx)
+        HTMLCollection::children(cx, &window, self.upcast())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>

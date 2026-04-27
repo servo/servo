@@ -2312,10 +2312,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             }
         }
         let collection = HTMLCollection::create(
+            cx,
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
-            cx,
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }

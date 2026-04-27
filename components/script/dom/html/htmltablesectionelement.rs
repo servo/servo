@@ -65,13 +65,13 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
     /// <https://html.spec.whatwg.org/multipage/#dom-tbody-rows>
     fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
+            cx,
             &self.owner_window(),
             self.upcast(),
             |element, root| {
                 element.is::<HTMLTableRowElement>() &&
                     element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
             },
-            cx,
         )
     }
 

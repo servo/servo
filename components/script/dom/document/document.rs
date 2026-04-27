@@ -4928,10 +4928,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return DomRoot::from_ref(entry);
         }
         let result = HTMLCollection::by_qualified_name(
+            cx,
             &self.window,
             self.upcast(),
             qualified_name.clone(),
-            cx,
         );
         self.tag_map
             .borrow_mut()
@@ -4953,7 +4953,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return DomRoot::from_ref(collection);
         }
         let result =
-            HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname.clone(), cx);
+            HTMLCollection::by_qual_tag_name(cx, &self.window, self.upcast(), qname.clone());
         self.tagns_map
             .borrow_mut()
             .insert(qname, Dom::from_ref(&*result));
@@ -4973,10 +4973,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return DomRoot::from_ref(collection);
         }
         let result = HTMLCollection::by_atomic_class_name(
+            cx,
             &self.window,
             self.upcast(),
             class_atoms.clone(),
-            cx,
         );
         self.classes_map
             .borrow_mut()
@@ -5500,10 +5500,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Images(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.window,
                 self.upcast(),
                 |element, _| element.is::<HTMLImageElement>(),
-                cx,
             )
         })
     }
@@ -5512,10 +5512,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Embeds(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.window,
                 self.upcast(),
                 |element, _| element.is::<HTMLEmbedElement>(),
-                cx,
             )
         })
     }
@@ -5529,13 +5529,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Links(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.window,
                 self.upcast(),
                 |element, _| {
                     (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
                         element.has_attribute(&local_name!("href"))
                 },
-                cx,
             )
         })
     }
@@ -5544,10 +5544,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Forms(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.window,
                 self.upcast(),
                 |element, _| element.is::<HTMLFormElement>(),
-                cx,
             )
         })
     }
@@ -5556,10 +5556,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Scripts(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.window,
                 self.upcast(),
                 |element, _| element.is::<HTMLScriptElement>(),
-                cx,
             )
         })
     }
@@ -5568,12 +5568,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Anchors(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.window,
                 self.upcast(),
                 |element, _| {
                     element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
                 },
-                cx,
             )
         })
     }
@@ -5581,7 +5581,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-applets>
     fn Applets(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         self.applets
-            .or_init(|| HTMLCollection::always_empty(&self.window, self.upcast(), cx))
+            .or_init(|| HTMLCollection::always_empty(cx, &self.window, self.upcast()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
@@ -5595,7 +5595,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
-        HTMLCollection::children(&self.window, self.upcast(), cx)
+        HTMLCollection::children(cx, &self.window, self.upcast())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>
@@ -5809,10 +5809,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             }
         }
         let collection = HTMLCollection::create(
+            cx,
             self.window(),
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
-            cx,
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }

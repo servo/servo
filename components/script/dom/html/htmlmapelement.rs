@@ -72,10 +72,10 @@ impl HTMLMapElementMethods<crate::DomTypeHolder> for HTMLMapElement {
         // matches only area elements.
         self.areas.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.owner_window(),
                 self.upcast(),
                 |element, _| element.is::<HTMLAreaElement>(),
-                cx,
             )
         })
     }

@@ -113,9 +113,9 @@ impl HTMLCollection {
 
     /// Returns a collection which is always empty.
     pub(crate) fn always_empty(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
         #[derive(JSTraceable)]
         struct NoFilter;
@@ -125,24 +125,24 @@ impl HTMLCollection {
             }
         }
 
-        Self::new(window, root, Box::new(NoFilter), cx)
+        Self::new(cx, window, root, Box::new(NoFilter))
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(root, filter)), window, cx)
     }
 
     /// Create a new  [`HTMLCollection`] that just filters element using a static function.
     pub(crate) fn new_with_filter_fn(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         filter_function: fn(&Element, &Node) -> bool,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
         // The function *must* be static so that it never holds references to DOM objects, which
         // would cause issues with garbage collection -- since it isn't traced.
@@ -158,28 +158,28 @@ impl HTMLCollection {
             }
         }
         Self::new(
+            cx,
             window,
             root,
             Box::new(StaticFunctionFilter(filter_function)),
-            cx,
         )
     }
 
     pub(crate) fn create(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
-        Self::new(window, root, filter, cx)
+        Self::new(cx, window, root, filter)
     }
 
     /// Create a new [`HTMLCollection`] backed by a custom element source.
     pub(crate) fn new_with_source(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         source: Box<dyn CollectionSource + 'static>,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_cx(
             Box::new(Self::new_inherited_with_source(root, source)),
@@ -217,10 +217,10 @@ impl HTMLCollection {
 
     /// <https://dom.spec.whatwg.org/#concept-getelementsbytagname>
     pub(crate) fn by_qualified_name(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         qualified_name: LocalName,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<HTMLCollection> {
         // case 1
         if qualified_name == local_name!("*") {
@@ -231,7 +231,7 @@ impl HTMLCollection {
                     true
                 }
             }
-            return HTMLCollection::create(window, root, Box::new(AllFilter), cx);
+            return HTMLCollection::create(cx, window, root, Box::new(AllFilter));
         }
 
         #[derive(JSTraceable, MallocSizeOf)]
@@ -257,7 +257,7 @@ impl HTMLCollection {
             ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
             qualified_name,
         };
-        HTMLCollection::create(window, root, Box::new(filter), cx)
+        HTMLCollection::create(cx, window, root, Box::new(filter))
     }
 
     fn match_element(elem: &Element, qualified_name: &LocalName) -> bool {
@@ -272,23 +272,23 @@ impl HTMLCollection {
     }
 
     pub(crate) fn by_tag_name_ns(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         tag: DOMString,
         maybe_ns: Option<DOMString>,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<HTMLCollection> {
         let local = LocalName::from(tag);
         let ns = namespace_from_domstring(maybe_ns);
         let qname = QualName::new(None, ns, local);
-        HTMLCollection::by_qual_tag_name(window, root, qname, cx)
+        HTMLCollection::by_qual_tag_name(cx, window, root, qname)
     }
 
     pub(crate) fn by_qual_tag_name(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         qname: QualName,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct TagNameNSFilter {
@@ -303,26 +303,26 @@ impl HTMLCollection {
             }
         }
         let filter = TagNameNSFilter { qname };
-        HTMLCollection::create(window, root, Box::new(filter), cx)
+        HTMLCollection::create(cx, window, root, Box::new(filter))
     }
 
     pub(crate) fn by_class_name(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         classes: DOMString,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<HTMLCollection> {
         let class_atoms = split_html_space_chars(&classes.str())
             .map(Atom::from)
             .collect();
-        HTMLCollection::by_atomic_class_name(window, root, class_atoms, cx)
+        HTMLCollection::by_atomic_class_name(cx, window, root, class_atoms)
     }
 
     pub(crate) fn by_atomic_class_name(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
         classes: Vec<Atom>,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ClassNameFilter {
@@ -343,23 +343,23 @@ impl HTMLCollection {
         }
 
         if classes.is_empty() {
-            return HTMLCollection::always_empty(window, root, cx);
+            return HTMLCollection::always_empty(cx, window, root);
         }
 
         let filter = ClassNameFilter { classes };
-        HTMLCollection::create(window, root, Box::new(filter), cx)
+        HTMLCollection::create(cx, window, root, Box::new(filter))
     }
 
     pub(crate) fn children(
+        cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
+            cx,
             window,
             root,
             |element, root| root.is_parent_of(element.upcast()),
-            cx,
         )
     }
 

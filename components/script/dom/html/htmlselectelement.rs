@@ -648,10 +648,10 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         self.selected_options.or_init(|| {
             let window = self.owner_window();
             HTMLCollection::new_with_source(
+                cx,
                 &window,
                 self.upcast(),
                 Box::new(SelectedOptionsSource),
-                cx,
             )
         })
     }

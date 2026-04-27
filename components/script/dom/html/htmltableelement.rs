@@ -193,7 +193,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-rows>
     fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         let filter = self.get_rows();
-        HTMLCollection::new(&self.owner_window(), self.upcast(), Box::new(filter), cx)
+        HTMLCollection::new(cx, &self.owner_window(), self.upcast(), Box::new(filter))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
@@ -308,6 +308,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     fn TBodies(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.tbodies.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.owner_window(),
                 self.upcast(),
                 |element, root| {
@@ -315,7 +316,6 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                         element.local_name() == &local_name!("tbody") &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
-                cx,
             )
         })
     }

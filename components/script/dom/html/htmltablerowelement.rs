@@ -87,13 +87,13 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     fn Cells(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.owner_window(),
                 self.upcast(),
                 |element, root| {
                     (element.is::<HTMLTableCellElement>()) &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
-                cx,
             )
         })
     }
