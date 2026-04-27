@@ -279,6 +279,12 @@ impl<'a, T: Castable> UnrootedDom<'a, T> {
     }
 }
 
+impl<'a, T: DomObject> PartialEq<Root<Dom<T>>> for UnrootedDom<'a, T> {
+    fn eq(&self, other: &Root<Dom<T>>) -> bool {
+        self.inner == Dom::from_ref(&**other)
+    }
+}
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
 /// Essentially a `Cell<Option<Dom<T>>>`, but safer.

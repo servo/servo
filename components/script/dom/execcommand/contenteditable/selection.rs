@@ -515,7 +515,7 @@ impl Selection {
             loop {
                 if start_block
                     .children_unrooted(&cx)
-                    .all(|child| child != *reference_node)
+                    .all(|child| child != reference_node)
                 {
                     reference_node = reference_node
                         .GetParentNode()
