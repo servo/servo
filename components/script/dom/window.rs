@@ -3903,7 +3903,7 @@ impl Window {
             } else {
                 // Step 4, fire messageerror.
                 MessageEvent::dispatch_error(
-                    &mut realm,
+                    cx,
                     this.upcast(),
                     this.upcast(),
                 );
