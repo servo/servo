@@ -501,7 +501,7 @@ fn log_fetch_terminated_send_failure(terminated_with_error: bool, context: &str)
 const FRAGMENT: &AsciiSet = &CONTROLS.add(b'|').add(b'{').add(b'}');
 
 #[allow(clippy::too_many_arguments)]
-#[servo_tracing::instrument(skip_all, fields(url))]
+#[servo_tracing::instrument(skip_all, fields(url=url.as_str()))]
 /// This sets up the callback infrastructure to send body frames to `body_sender` and fires the client request.
 async fn obtain_response(
     client: &ServoClient,
@@ -1223,7 +1223,7 @@ pub async fn http_redirect_fetch(
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
 #[async_recursion]
-#[servo_tracing::instrument(skip_all,field(url=fetch_params.request.url()))]
+#[servo_tracing::instrument(skip_all,fields(url=fetch_params.request.url().as_str()))]
 async fn http_network_or_cache_fetch(
     fetch_params: &mut FetchParams,
     authentication_fetch_flag: bool,
