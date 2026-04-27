@@ -1377,7 +1377,7 @@ impl GlobalScope {
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(cx, destination.upcast(), &global, );
+                                    MessageEvent::dispatch_error(cx, destination.upcast(), &global);
                                 }
                             })
                         );
