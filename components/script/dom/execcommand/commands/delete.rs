@@ -64,7 +64,11 @@ pub(crate) fn execute_delete_command(
         // Step 4.2. Otherwise, if node has a child with index offset − 1 and that child is an editable invisible node,
         // remove that child from node, then subtract one from offset.
         if offset > 0 {
-            if let Some(child) = node.children().nth(offset as usize - 1) {
+            let child = node
+                .children_unrooted(&cx)
+                .nth(offset as usize - 1)
+                .map(|node| node.as_rooted());
+            if let Some(child) = child {
                 if child.is_editable() && child.is_invisible() {
                     child.remove_self(cx);
                     offset -= 1;
@@ -80,7 +84,11 @@ pub(crate) fn execute_delete_command(
             continue;
         }
         if offset > 0 {
-            if let Some(child) = node.children().nth(offset as usize - 1) {
+            let child = node
+                .children_unrooted(&cx)
+                .nth(offset as usize - 1)
+                .map(|node| node.as_rooted());
+            if let Some(child) = child {
                 // Step 4.4. Otherwise, if node has a child with index offset − 1 and that child is an editable a,
                 // remove that child from node, preserving its descendants. Then return true.
                 if child.is_editable() && child.is::<HTMLAnchorElement>() {
@@ -108,7 +116,7 @@ pub(crate) fn execute_delete_command(
     if (node.is::<Text>() && offset != 0) ||
         (offset > 0 &&
             node.is_block_node() &&
-            node.children()
+            node.children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .is_some_and(|child| {
                     child.is::<HTMLBRElement>() ||
@@ -198,7 +206,11 @@ pub(crate) fn execute_delete_command(
             start_offset > 0,
             "Must always have a start_offset greater than one"
         );
-        if let Some(child) = start_node.children().nth(start_offset as usize - 1) {
+        let child = start_node
+            .children_unrooted(&cx)
+            .nth(offset as usize - 1)
+            .map(|node| node.as_rooted());
+        if let Some(child) = child {
             if child.is_editable() && child.is_invisible() {
                 child.remove_self(cx);
                 start_offset -= 1;
@@ -214,7 +226,7 @@ pub(crate) fn execute_delete_command(
 
     // Step 11. If the child of start node with index start offset is a table, return true.
     if start_node
-        .children()
+        .children_unrooted(&cx)
         .nth(start_offset as usize)
         .is_some_and(|child| child.is::<HTMLTableElement>())
     {
@@ -229,7 +241,7 @@ pub(crate) fn execute_delete_command(
     if offset == 0 &&
         (start_offset > 0 &&
             start_node
-                .children()
+                .children_unrooted(&cx)
                 .nth(start_offset as usize - 1)
                 .is_some_and(|child| {
                     child.is::<HTMLHRElement>() ||
@@ -285,7 +297,11 @@ pub(crate) fn execute_delete_command(
         if start_offset == 0 {
             break;
         }
-        let Some(child) = start_node.children().nth(start_offset as usize - 1) else {
+        let child = start_node
+            .children_unrooted(&cx)
+            .nth(offset as usize - 1)
+            .map(|node| node.as_rooted());
+        let Some(child) = child else {
             break;
         };
         // Step 16.1. If start node's child with index start offset minus one

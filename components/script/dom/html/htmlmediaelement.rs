@@ -72,7 +72,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, UnrootedDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
@@ -1103,13 +1103,13 @@ impl HTMLMediaElement {
             Mode::Attribute((**attribute.value()).to_owned())
         } else if let Some(source) = self
             .upcast::<Node>()
-            .children()
-            .find_map(DomRoot::downcast::<HTMLSourceElement>)
+            .children_unrooted(&cx)
+            .find_map(UnrootedDom::downcast::<HTMLSourceElement>)
         {
             // Otherwise, if the media element does not have an assigned media provider object and
             // does not have a src attribute, but does have a source element child, then let mode be
             // children and let candidate be the first such source element child in tree order.
-            Mode::Children(source)
+            Mode::Children(source.as_rooted())
         } else {
             // Otherwise, the media element has no assigned media provider object and has neither a
             // src attribute nor a source element child:
