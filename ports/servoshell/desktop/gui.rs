@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-#[cfg(any(target_os = "windows", target_os = "linux"))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 use std::fs;
-#[cfg(any(target_os = "windows", target_os = "linux"))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -17,12 +17,12 @@ use egui::{
     Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
     WidgetInfo, WidgetType, pos2,
 };
-#[cfg(any(target_os = "windows", target_os = "linux"))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
-#[cfg(any(target_os = "windows", target_os = "linux"))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 use log::info;
 use log::warn;
 use servo::{
@@ -82,7 +82,7 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "linux"))]
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
 fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
     let mut loaded_font_names = Vec::new();
@@ -125,7 +125,7 @@ fn configure_fonts() -> FontDefinitions {
     ])
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
 fn configure_fonts() -> FontDefinitions {
     load_cjk_fonts(&[
         (
@@ -136,10 +136,35 @@ fn configure_fonts() -> FontDefinitions {
             "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
             "Noto Sans CJK",
         ), // Fedora/Arch
+        // FreeBSD splits the Noto CJK fonts into regional subsets
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKhk-Regular.otf",
+            "Noto Sans CJK HK",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKjp-Regular.otf",
+            "Noto Sans CJK JP",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKkr-Regular.otf",
+            "Noto Sans CJK KR",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKsc-Regular.otf",
+            "Noto Sans CJK SC",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKtc-Regular.otf",
+            "Noto Sans CJK TC",
+        ),
         (
             "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
             "WenQuanYi Micro Hei",
         ), // common fallback
+        (
+            "/usr/local/share/fonts/wqy/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // FreeBSD
     ])
 }
 
