@@ -3887,7 +3887,8 @@ impl Window {
             // Steps 7.2.-7.5.
             let obj = this.reflector().get_jsobject();
             let mut realm = AutoRealm::new(cx, NonNull::new(obj.get()).unwrap());
-            rooted!(&in(*realm) let mut message_clone = UndefinedValue());
+            let cx = &mut *realm;
+            rooted!(&in(cx) let mut message_clone = UndefinedValue());
             if let Ok(ports) = structuredclone::read(this.upcast(), data, message_clone.handle_mut(), CanGc::deprecated_note()) {
                 // Step 7.6, 7.7
                 MessageEvent::dispatch_jsval(
