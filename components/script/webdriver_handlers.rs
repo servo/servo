@@ -2032,13 +2032,10 @@ pub(crate) fn handle_element_click(
                             match container.downcast::<HTMLSelectElement>() {
                                 Some(select_element) => {
                                     if select_element.Multiple() {
-                                        option_element.SetSelected(
-                                            !option_element.Selected(),
-                                            CanGc::from_cx(cx),
-                                        );
+                                        option_element.SetSelected(cx, !option_element.Selected());
                                     }
                                 },
-                                None => option_element.SetSelected(true, CanGc::from_cx(cx)),
+                                None => option_element.SetSelected(cx, true),
                             }
 
                             // Step 8.6.4

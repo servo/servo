@@ -440,7 +440,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         // Step 1: Let oldAPIValue be this element's API value.
         let old_api_value = self.Value();
 
@@ -456,7 +456,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         // "none".
         if old_api_value != self.Value() {
             self.textinput.borrow_mut().clear_selection_to_end();
-            self.handle_text_content_changed(can_gc);
+            self.handle_text_content_changed(CanGc::from_cx(cx));
         }
     }
 
@@ -479,7 +479,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
-    fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
+    fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
         self.selection()
             .set_dom_start(start.map(Utf16CodeUnitLength::from))
     }
@@ -490,7 +490,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
-    fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
+    fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
         self.selection()
             .set_dom_end(end.map(Utf16CodeUnitLength::from))
     }
@@ -501,7 +501,11 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
+    fn SetSelectionDirection(
+        &self,
+        _cx: &mut JSContext,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
         self.selection().set_dom_direction(direction)
     }
 

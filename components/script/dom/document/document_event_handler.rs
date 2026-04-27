@@ -1936,19 +1936,19 @@ impl DocumentEventHandler {
 
     pub(crate) fn run_default_keyboard_event_handler(
         &self,
+        cx: &mut js::context::JSContext,
         node: &Node,
         event: &KeyboardEvent,
-        can_gc: CanGc,
     ) {
         if event.upcast::<Event>().type_() != atom!("keydown") {
             return;
         }
 
-        if self.maybe_dispatch_simulated_click(node, event, can_gc) {
+        if self.maybe_dispatch_simulated_click(node, event, CanGc::from_cx(cx)) {
             return;
         }
 
-        if self.maybe_handle_accesskey(event, can_gc) {
+        if self.maybe_handle_accesskey(cx, event) {
             return;
         }
 
@@ -1976,7 +1976,7 @@ impl DocumentEventHandler {
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
                 // > from the currently focused element (if any) to the new focused element, as
                 // > described in Focus Event Types
-                self.sequential_focus_navigation_via_keyboard_event(event, can_gc);
+                self.sequential_focus_navigation_via_keyboard_event(event, CanGc::from_cx(cx));
                 return;
             },
             _ => return,
@@ -2445,7 +2445,11 @@ impl DocumentEventHandler {
             .or_insert(Dom::from_ref(element));
     }
 
-    fn maybe_handle_accesskey(&self, event: &KeyboardEvent, can_gc: CanGc) -> bool {
+    fn maybe_handle_accesskey(
+        &self,
+        cx: &mut js::context::JSContext,
+        event: &KeyboardEvent,
+    ) -> bool {
         #[cfg(target_os = "macos")]
         let access_key_modifiers = Modifiers::CONTROL | Modifiers::ALT;
         #[cfg(not(target_os = "macos"))]
@@ -2499,8 +2503,8 @@ impl DocumentEventHandler {
 
         // This behavior is unspecified, but all browsers do this. When activating the element it is
         // focused and scrolled into view.
-        self.focus_and_scroll_to_element_for_key_event(html_element.upcast(), can_gc);
-        command.perform_action(can_gc);
+        self.focus_and_scroll_to_element_for_key_event(html_element.upcast(), CanGc::from_cx(cx));
+        command.perform_action(cx);
         true
     }
 

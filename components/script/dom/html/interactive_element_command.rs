@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -153,7 +154,7 @@ impl InteractiveElementCommand {
         html_element.Hidden()
     }
 
-    pub(crate) fn perform_action(&self, can_gc: CanGc) {
+    pub(crate) fn perform_action(&self, cx: &mut JSContext) {
         match self {
             // <https://html.spec.whatwg.org/multipage#using-the-a-element-to-define-a-command>
             // > The Action of the command is to fire a click event at the element.
@@ -161,33 +162,33 @@ impl InteractiveElementCommand {
             // > Firing a click event at target means firing a synthetic pointer event named click at target.
             InteractiveElementCommand::Anchor(anchor_element) => anchor_element
                 .upcast::<Node>()
-                .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc),
+                .fire_synthetic_pointer_event_not_trusted(atom!("click"), CanGc::from_cx(cx)),
             // <https://html.spec.whatwg.org/multipage/#using-the-button-element-to-define-a-command>
             // > The Label, Access Key, Hidden State, and Action facets of the command are
             // > determined as for a elements (see the previous section).
             InteractiveElementCommand::Button(button_element) => button_element
                 .upcast::<Node>()
-                .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc),
+                .fire_synthetic_pointer_event_not_trusted(atom!("click"), CanGc::from_cx(cx)),
             // <https://html.spec.whatwg.org/multipage/#using-the-input-element-to-define-a-command>
             // > The Action of the command is to fire a click event at the element.
             InteractiveElementCommand::Input(input_element) => input_element
                 .upcast::<Node>()
-                .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc),
+                .fire_synthetic_pointer_event_not_trusted(atom!("click"), CanGc::from_cx(cx)),
             // <https://html.spec.whatwg.org/multipage/#using-the-option-element-to-define-a-command>
             // > If the option's nearest ancestor select element has a multiple attribute, the
             // > Action of the command is to toggle the option element. Otherwise, the Action is to
             // > pick the option element.
             // Note: setSelected takes care of whether or not the owner has the `multiple` attribute.
             InteractiveElementCommand::Option(option_element) => {
-                option_element.SetSelected(true, can_gc)
+                option_element.SetSelected(cx, true)
             },
             // > The Action of the command is to run the following steps:
             // >  1. Run the focusing steps for the element.
             // >  2. Fire a click event at the element.
             InteractiveElementCommand::HTMLElement(html_element) => {
                 let node: &Node = html_element.upcast();
-                node.run_the_focusing_steps(None, can_gc);
-                node.fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+                node.run_the_focusing_steps(None, CanGc::from_cx(cx));
+                node.fire_synthetic_pointer_event_not_trusted(atom!("click"), CanGc::from_cx(cx));
             },
         }
     }

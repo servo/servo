@@ -5,6 +5,7 @@ use std::borrow::Borrow;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::error::{Error, ErrorResult};
 use stylo_dom::ElementState;
@@ -290,7 +291,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
-    fn SetReturnValue(&self, return_value: DOMString) {
+    fn SetReturnValue(&self, _cx: &mut JSContext, return_value: DOMString) {
         *self.return_value.borrow_mut() = return_value;
     }
 
