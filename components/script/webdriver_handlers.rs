@@ -1214,7 +1214,7 @@ fn handle_send_keys_non_typeable(
     }
 
     // Step 3. Set a property value to text on element.
-    if let Err(error) = input_element.SetValue(text.into(), CanGc::from_cx(cx)) {
+    if let Err(error) = input_element.SetValue(cx, text.into()) {
         error!(
             "Failed to set value on non-typeable input element: {:?}",
             error
@@ -1224,7 +1224,7 @@ fn handle_send_keys_non_typeable(
 
     // Step 4. If element is suffering from bad input, return ErrorStatus::InvalidArgument.
     if input_element
-        .Validity(CanGc::from_cx(cx))
+        .Validity(cx)
         .invalid_flags()
         .contains(ValidationFlags::BAD_INPUT)
     {
@@ -1845,7 +1845,7 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
 
     // Step 4. Run clear algorithm for element.
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.clear(CanGc::from_cx(cx));
+        input_element.clear(cx);
     } else if let Some(textarea_element) = element.downcast::<HTMLTextAreaElement>() {
         textarea_element.clear();
     } else {

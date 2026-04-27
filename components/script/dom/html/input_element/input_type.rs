@@ -300,7 +300,7 @@ pub(crate) trait SpecificInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#signal-a-type-change>
-    fn signal_type_change(&self, _input: &HTMLInputElement, _can_gc: CanGc) {}
+    fn signal_type_change(&self, _cx: &mut js::context::JSContext, _input: &HTMLInputElement) {}
 
     fn activation_behavior(
         &self,
@@ -313,17 +313,17 @@ pub(crate) trait SpecificInputType {
 
     fn legacy_pre_activation_behavior(
         &self,
+        _cx: &mut JSContext,
         _input: &HTMLInputElement,
-        _can_gc: CanGc,
     ) -> Option<InputActivationState> {
         None
     }
 
     fn legacy_canceled_activation_behavior(
         &self,
+        _cx: &mut JSContext,
         _input: &HTMLInputElement,
         _cache: InputActivationState,
-        _can_gc: CanGc,
     ) {
     }
 

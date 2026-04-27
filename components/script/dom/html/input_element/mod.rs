@@ -13,11 +13,12 @@ use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::jsapi::{
-    ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
-    NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
+    ClippedTime, JS_ClearPendingException, JSObject, NewDateObject, NewUCRegExpObject,
+    RegExpFlag_UnicodeSets, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::wrappers2::{DateGetMsecSinceEpoch, ObjectIsDate};
 use js::rust::{HandleObject, MutableHandleObject};
 use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
@@ -557,7 +558,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-input-stepup>
     ///
     /// <https://html.spec.whatwg.org/multipage/#dom-input-stepdown>
-    fn step_up_or_down(&self, n: i32, dir: StepDirection, can_gc: CanGc) -> ErrorResult {
+    fn step_up_or_down(&self, cx: &mut JSContext, n: i32, dir: StepDirection) -> ErrorResult {
         // Step 1. If the stepDown() and stepUp() methods do not apply, as defined for the
         // input element's type attribute's current state, then throw an "InvalidStateError" DOMException.
         if !self.does_value_as_number_apply() {
@@ -668,7 +669,7 @@ impl HTMLInputElement {
         // Step 11. Let value as string be the result of running the algorithm to convert a number to a string,
         // as defined for the input element's type attribute's current state, on value.
         // Step 12. Set the value of the element to value as string.
-        self.SetValueAsNumber(value, can_gc)
+        self.SetValueAsNumber(cx, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-list>
@@ -1109,9 +1110,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-checked>
-    fn SetChecked(&self, checked: bool, can_gc: CanGc) {
-        self.update_checked_state(checked, true, can_gc);
-        self.value_changed(can_gc);
+    fn SetChecked(&self, cx: &mut JSContext, checked: bool) {
+        self.update_checked_state(cx, checked, true);
+        self.value_changed(cx);
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
@@ -1180,7 +1181,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
-    fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetValue(&self, cx: &mut JSContext, mut value: DOMString) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 {
@@ -1212,13 +1213,16 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 self.maybe_update_shared_selection();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
-                self.upcast::<Element>()
-                    .set_string_attribute(&local_name!("value"), value, can_gc);
+                self.upcast::<Element>().set_string_attribute(
+                    &local_name!("value"),
+                    value,
+                    CanGc::from_cx(cx),
+                );
             },
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = self.owner_window();
-                    let fl = FileList::new(&window, vec![], can_gc);
+                    let fl = FileList::new(&window, vec![], CanGc::from_cx(cx));
                     self.input_type().as_specific().set_files(&fl)
                 } else {
                     return Err(Error::InvalidState(None));
@@ -1226,7 +1230,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(cx);
         self.upcast::<Node>().dirty(NodeDamage::Other);
         Ok(())
     }
@@ -1263,49 +1267,43 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
-    #[expect(non_snake_case)]
     #[expect(unsafe_code)]
-    fn SetValueAsDate(
-        &self,
-        cx: SafeJSContext,
-        value: *mut JSObject,
-        can_gc: CanGc,
-    ) -> ErrorResult {
-        rooted!(in(*cx) let value = value);
+    fn SetValueAsDate(&self, cx: &mut JSContext, value: *mut JSObject) -> ErrorResult {
+        rooted!(&in(cx) let value = value);
         if !self.does_value_as_date_apply() {
             return Err(Error::InvalidState(None));
         }
         if value.is_null() {
-            return self.SetValue(DOMString::from(""), can_gc);
+            return self.SetValue(cx, DOMString::from(""));
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
         // To minimize the amount of unsafe code to maintain, this just gets the milliseconds,
         // which we then reinflate into a NaiveDate for use in safe code.
         unsafe {
-            let mut isDate = false;
-            if !ObjectIsDate(*cx, Handle::from(value.handle()), &mut isDate) {
+            let mut is_date = false;
+            if !ObjectIsDate(cx, value.handle(), &mut is_date) {
                 return Err(Error::JSFailed);
             }
-            if !isDate {
+            if !is_date {
                 return Err(Error::Type(c"Value was not a date".to_owned()));
             }
-            if !DateGetMsecSinceEpoch(*cx, Handle::from(value.handle()), &mut msecs) {
+            if !DateGetMsecSinceEpoch(cx, value.handle(), &mut msecs) {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(DOMString::from(""), can_gc);
+                return self.SetValue(cx, DOMString::from(""));
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(DOMString::from(""), can_gc);
+            return self.SetValue(cx, DOMString::from(""));
         };
         self.SetValue(
+            cx,
             self.input_type()
                 .as_specific()
                 .convert_datetime_to_dom_string(date_time),
-            can_gc,
         )
     }
 
@@ -1316,21 +1314,21 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber>
-    fn SetValueAsNumber(&self, value: f64, can_gc: CanGc) -> ErrorResult {
+    fn SetValueAsNumber(&self, cx: &mut JSContext, value: f64) -> ErrorResult {
         if value.is_infinite() {
             Err(Error::Type(c"value is not finite".to_owned()))
         } else if !self.does_value_as_number_apply() {
             Err(Error::InvalidState(None))
         } else if value.is_nan() {
-            self.SetValue(DOMString::from(""), can_gc)
+            self.SetValue(cx, DOMString::from(""))
         } else if let Some(converted) = self.convert_number_to_string(value) {
-            self.SetValue(converted, can_gc)
+            self.SetValue(cx, converted)
         } else {
             // The most literal spec-compliant implementation would use bignum types so
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(DOMString::from(""), can_gc)
+            self.SetValue(cx, DOMString::from(""))
         }
     }
 
@@ -1453,10 +1451,10 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             .set_state(ElementState::INDETERMINATE, val)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    // Different from make_labels_getter because this one
-    // conditionally returns null.
-    fn GetLabels(&self, can_gc: CanGc) -> Option<DomRoot<NodeList>> {
+    /// <https://html.spec.whatwg.org/multipage/#dom-lfe-labels>
+    /// Different from make_labels_getter because this one
+    /// conditionally returns null.
+    fn GetLabels(&self, cx: &mut JSContext) -> Option<DomRoot<NodeList>> {
         if matches!(*self.input_type(), InputType::Hidden(_)) {
             None
         } else {
@@ -1464,7 +1462,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 NodeList::new_labels_list(
                     self.upcast::<Node>().owner_doc().window(),
                     self.upcast::<HTMLElement>(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             }))
         }
@@ -1547,13 +1545,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-stepup>
-    fn StepUp(&self, n: i32, can_gc: CanGc) -> ErrorResult {
-        self.step_up_or_down(n, StepDirection::Up, can_gc)
+    fn StepUp(&self, cx: &mut JSContext, n: i32) -> ErrorResult {
+        self.step_up_or_down(cx, n, StepDirection::Up)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-stepdown>
-    fn StepDown(&self, n: i32, can_gc: CanGc) -> ErrorResult {
-        self.step_up_or_down(n, StepDirection::Down, can_gc)
+    fn StepDown(&self, cx: &mut JSContext, n: i32) -> ErrorResult {
+        self.step_up_or_down(cx, n, StepDirection::Down)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
@@ -1562,8 +1560,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
-    fn Validity(&self, can_gc: CanGc) -> DomRoot<ValidityState> {
-        self.validity_state(can_gc)
+    fn Validity(&self, cx: &mut JSContext) -> DomRoot<ValidityState> {
+        self.validity_state(CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
@@ -1582,8 +1580,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
-        self.validity_state(can_gc).set_custom_error_message(error);
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+        self.validity_state(CanGc::from_cx(cx))
+            .set_custom_error_message(error);
     }
 }
 
@@ -1689,7 +1688,7 @@ impl HTMLInputElement {
             .filter(|name| !name.is_empty())
     }
 
-    fn update_checked_state(&self, checked: bool, dirty: bool, can_gc: CanGc) {
+    fn update_checked_state(&self, cx: &mut JSContext, checked: bool, dirty: bool) {
         self.upcast::<Element>()
             .set_state(ElementState::CHECKED, checked);
 
@@ -1698,7 +1697,7 @@ impl HTMLInputElement {
         }
 
         if matches!(*self.input_type(), InputType::Radio(_)) && checked {
-            broadcast_radio_checked(self, self.radio_group_name().as_ref(), can_gc);
+            broadcast_radio_checked(cx, self, self.radio_group_name().as_ref());
         }
 
         self.upcast::<Node>().dirty(NodeDamage::Other);
@@ -1720,7 +1719,7 @@ impl HTMLInputElement {
     /// > content attribute and false if it does not, empty the list of selected files, and
     /// > then invoke the value sanitization algorithm, if the type attribute's current
     /// > state defines one.
-    pub(crate) fn reset(&self, can_gc: CanGc) {
+    pub(crate) fn reset(&self, cx: &mut JSContext) {
         self.value_dirty.set(false);
 
         // We set the value and sanitize all in one go.
@@ -1730,7 +1729,7 @@ impl HTMLInputElement {
 
         let input_type = &*self.input_type();
         if matches!(input_type, InputType::Radio(_) | InputType::Checkbox(_)) {
-            self.update_checked_state(self.DefaultChecked(), false, can_gc);
+            self.update_checked_state(cx, self.DefaultChecked(), false);
             self.checked_changed.set(false);
         }
 
@@ -1738,27 +1737,27 @@ impl HTMLInputElement {
             input_type.as_specific().set_files(&FileList::new(
                 &self.owner_window(),
                 vec![],
-                can_gc,
+                CanGc::from_cx(cx),
             ));
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(cx);
     }
 
     /// <https://w3c.github.io/webdriver/#ref-for-dfn-clear-algorithm-3>
     /// Used by WebDriver to clear the input element.
-    pub(crate) fn clear(&self, can_gc: CanGc) {
+    pub(crate) fn clear(&self, cx: &mut JSContext) {
         // Step 1. Reset dirty value and dirty checkedness flags.
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
         self.textinput.borrow_mut().set_content(DOMString::from(""));
         // Step 3. Set checkedness based on presence of content attribute.
-        self.update_checked_state(self.DefaultChecked(), false, can_gc);
+        self.update_checked_state(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
         if self.input_type().as_specific().get_files().is_some() {
             let window = self.owner_window();
-            let filelist = FileList::new(&window, vec![], can_gc);
+            let filelist = FileList::new(&window, vec![], CanGc::from_cx(cx));
             self.input_type().as_specific().set_files(&filelist);
         }
 
@@ -1771,7 +1770,7 @@ impl HTMLInputElement {
             textinput.set_content(value);
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(cx);
     }
 
     fn update_placeholder_shown_state(&self) {
@@ -1894,25 +1893,21 @@ impl HTMLInputElement {
             .convert_number_to_string(value)
     }
 
-    fn update_related_validity_states(&self, can_gc: CanGc) {
+    fn update_related_validity_states(&self, cx: &mut JSContext) {
         match *self.input_type() {
             InputType::Radio(_) => {
-                perform_radio_group_validation(self, self.radio_group_name().as_ref(), can_gc)
+                perform_radio_group_validation(cx, self, self.radio_group_name().as_ref())
             },
             _ => {
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
             },
         }
     }
 
-    #[expect(unsafe_code)]
-    fn value_changed(&self, can_gc: CanGc) {
+    fn value_changed(&self, cx: &mut JSContext) {
         self.maybe_update_shared_selection();
-        self.update_related_validity_states(can_gc);
-        // TODO https://github.com/servo/servo/issues/43253
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
+        self.update_related_validity_states(cx);
         self.input_type().as_specific().update_shadow_tree(cx, self);
     }
 
@@ -1932,9 +1927,13 @@ impl HTMLInputElement {
             .show_the_picker_if_applicable(self);
     }
 
-    pub(crate) fn handle_color_picker_response(&self, response: Option<RgbColor>, can_gc: CanGc) {
+    pub(crate) fn handle_color_picker_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: Option<RgbColor>,
+    ) {
         if let InputType::Color(ref color_input_type) = *self.input_type() {
-            color_input_type.handle_color_picker_response(self, response, can_gc)
+            color_input_type.handle_color_picker_response(cx, self, response)
         }
     }
 
@@ -2041,7 +2040,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(checked_state, false, CanGc::from_cx(cx));
+                self.update_checked_state(cx, checked_state, false);
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -2072,19 +2071,19 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, CanGc::from_cx(cx))
+                                self.SetValue(cx, old_idl_value)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
                             // Step 2
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
                                 self.SetValue(
+                                    cx,
                                     self.upcast::<Element>()
                                         .get_attribute(&local_name!("value"))
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    CanGc::from_cx(cx),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -2096,16 +2095,14 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), CanGc::from_cx(cx))
+                                self.SetValue(cx, DOMString::from(""))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
                         }
 
                         // Step 5
-                        self.input_type()
-                            .as_specific()
-                            .signal_type_change(self, CanGc::from_cx(cx));
+                        self.input_type().as_specific().signal_type_change(cx, self);
 
                         // Step 6
                         let mut textinput = self.textinput.borrow_mut();
@@ -2120,9 +2117,7 @@ impl VirtualMethods for HTMLInputElement {
                         }
                     },
                     AttributeMutation::Removed => {
-                        self.input_type()
-                            .as_specific()
-                            .signal_type_change(self, CanGc::from_cx(cx));
+                        self.input_type().as_specific().signal_type_change(cx, self);
                         *self.input_type.borrow_mut() = InputType::new_text();
                         self.is_textual_or_password
                             .set(self.input_type().is_textual_or_password());
@@ -2210,7 +2205,7 @@ impl VirtualMethods for HTMLInputElement {
             },
         }
 
-        self.value_changed(CanGc::from_cx(cx));
+        self.value_changed(cx);
 
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
@@ -2248,7 +2243,7 @@ impl VirtualMethods for HTMLInputElement {
             .as_specific()
             .bind_to_tree(cx, self, context);
 
-        self.value_changed(CanGc::from_cx(cx));
+        self.value_changed(cx);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
@@ -2353,7 +2348,7 @@ impl VirtualMethods for HTMLInputElement {
             self.handle_focus_event(event)
         }
 
-        self.value_changed(CanGc::from_cx(cx));
+        self.value_changed(cx);
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
@@ -2379,7 +2374,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
-        self.value_changed(CanGc::from_cx(cx));
+        self.value_changed(cx);
     }
 }
 
@@ -2499,14 +2494,14 @@ impl Activatable for HTMLInputElement {
     }
 
     /// <https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior>
-    fn legacy_pre_activation_behavior(&self, can_gc: CanGc) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, cx: &mut JSContext) -> Option<InputActivationState> {
         let activation_state = self
             .input_type()
             .as_specific()
-            .legacy_pre_activation_behavior(self, can_gc);
+            .legacy_pre_activation_behavior(cx, self);
 
         if activation_state.is_some() {
-            self.value_changed(can_gc);
+            self.value_changed(cx);
         }
 
         activation_state
@@ -2515,8 +2510,8 @@ impl Activatable for HTMLInputElement {
     /// <https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior>
     fn legacy_canceled_activation_behavior(
         &self,
+        cx: &mut JSContext,
         cache: Option<InputActivationState>,
-        can_gc: CanGc,
     ) {
         // Step 1
         let ty = self.input_type();
@@ -2538,9 +2533,9 @@ impl Activatable for HTMLInputElement {
 
         // Step 2 and 3
         ty.as_specific()
-            .legacy_canceled_activation_behavior(self, cache, can_gc);
+            .legacy_canceled_activation_behavior(cx, self, cache);
 
-        self.value_changed(can_gc);
+        self.value_changed(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
