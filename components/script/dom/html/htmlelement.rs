@@ -1423,19 +1423,19 @@ impl VirtualMethods for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-trees:html-element-moving-steps>
-    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         // Step 1. If movedNode is an element whose namespace is the HTML namespace, and this
         // standard defines HTML element moving steps for movedNode's local name, then run the
         // corresponding HTML element moving steps given movedNode.
         if let Some(super_type) = self.super_type() {
-            super_type.moving_steps(context, can_gc);
+            super_type.moving_steps(cx, context);
         }
 
         // Step 2. If movedNode is a form-associated element with a non-null form owner and
         // movedNode and its form owner are no longer in the same tree, then reset the form owner of
         // movedNode.
         if let Some(form_control) = self.element.as_maybe_form_control() {
-            form_control.moving_steps(can_gc)
+            form_control.moving_steps(cx)
         }
     }
 }
