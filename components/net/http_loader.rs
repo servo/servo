@@ -39,13 +39,13 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::RequestPolicyContainer;
+use net_traits::policy_container::{EmbedderPolicyValue, RequestPolicyContainer};
 use net_traits::pub_domains::{is_same_site, reg_suffix};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
-    Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode, ResponseTainting,
-    ServiceWorkersMode, TraversableForUserPrompts, get_cors_unsafe_header_names,
+    Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestClient, RequestMode,
+    ResponseTainting, ServiceWorkersMode, TraversableForUserPrompts, get_cors_unsafe_header_names,
     is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
     is_cors_safelisted_request_header,
 };
@@ -920,8 +920,10 @@ pub(crate) async fn http_fetch(
     // request’s destination, and internalResponse returns blocked, then return a network error.
     if (request.response_tainting == ResponseTainting::Opaque ||
         response.response_type == ResponseType::Opaque) &&
-        cross_origin_resource_policy_check(request, &response) ==
-            CrossOriginResourcePolicy::Blocked
+        request.client.as_ref().is_some_and(|client| {
+            cross_origin_resource_policy_check(&request.origin, client, &response, false) ==
+                CrossOriginResourcePolicy::Blocked
+        })
     {
         return Response::network_error(NetworkError::CrossOriginResponse);
     }
@@ -1806,58 +1808,123 @@ enum CrossOriginResourcePolicy {
     Blocked,
 }
 
-// TODO(#33615): Judging from the name, this appears to be https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check,
-//       but the steps aren't even close to the spec. Perhaps this needs to be rewritten?
+/// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check>
 fn cross_origin_resource_policy_check(
-    request: &Request,
+    origin: &Origin,
+    request_client: &RequestClient,
     response: &Response,
+    for_navigation: bool,
 ) -> CrossOriginResourcePolicy {
-    // Step 1
-    if request.mode != RequestMode::NoCors {
-        return CrossOriginResourcePolicy::Allowed;
-    }
+    // Step 1. Set forNavigation to false if it is not given.
 
-    // Step 2
-    let current_url_origin = request.current_url().origin();
-    let same_origin = if let Origin::Origin(ref origin) = request.origin {
-        *origin == request.current_url().origin()
-    } else {
-        false
+    // Step 2. Let embedderPolicy be settingsObject’s policy container’s embedder policy.
+    let RequestPolicyContainer::PolicyContainer(ref policy_container) =
+        request_client.policy_container
+    else {
+        return CrossOriginResourcePolicy::Blocked;
     };
 
-    if same_origin {
+    let embedder_policy = &policy_container.embedder_policy;
+
+    // Step 3. If the cross-origin resource policy internal check with origin, "unsafe-none",
+    // response, and forNavigation returns blocked, then return blocked.
+    if cross_origin_resource_policy_internal_check(
+        origin,
+        EmbedderPolicyValue::UnsafeNone,
+        response,
+        for_navigation,
+    ) == CrossOriginResourcePolicy::Blocked
+    {
+        return CrossOriginResourcePolicy::Blocked;
+    }
+
+    // TODO Step 4. If the cross-origin resource policy internal check with origin,
+    // embedderPolicy’s report only value, response, and forNavigation returns blocked, then queue
+    // a cross-origin embedder policy CORP violation report with response, settingsObject,
+    // destination, and true.
+
+    // Step 5. If the cross-origin resource policy internal check with origin, embedderPolicy’s
+    // value, response, and forNavigation returns allowed, then return allowed.
+    if cross_origin_resource_policy_internal_check(
+        origin,
+        embedder_policy.value,
+        response,
+        for_navigation,
+    ) == CrossOriginResourcePolicy::Allowed
+    {
         return CrossOriginResourcePolicy::Allowed;
     }
 
-    // Step 3
+    // TODO Step 6. Queue a cross-origin embedder policy CORP violation report with response,
+    // settingsObject, destination, and false.
+
+    // Step 7. Return blocked.
+    CrossOriginResourcePolicy::Blocked
+}
+
+/// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-internal-check>
+fn cross_origin_resource_policy_internal_check(
+    origin: &Origin,
+    embedder_policy_value: EmbedderPolicyValue,
+    response: &Response,
+    for_navigation: bool,
+) -> CrossOriginResourcePolicy {
+    // Step 1. If forNavigation is true and embedderPolicyValue is "unsafe-none", then return allowed.
+    if for_navigation && let EmbedderPolicyValue::UnsafeNone = embedder_policy_value {
+        return CrossOriginResourcePolicy::Allowed;
+    }
+
+    // Step 2. Let policy be the result of getting `Cross-Origin-Resource-Policy` from response’s header list.
     let policy = response
         .headers
         .get(HeaderName::from_static("cross-origin-resource-policy"))
-        .map(|h| h.to_str().unwrap_or(""))
-        .unwrap_or("");
+        .and_then(|h| h.to_str().ok());
 
-    // Step 4
-    if policy == "same-origin" {
-        return CrossOriginResourcePolicy::Blocked;
+    // Step 3. If policy is neither `same-origin`, `same-site`, nor `cross-origin`, then set policy to null.
+    let policy = policy
+        .filter(|&s| s == "same-origin" || s == "same-site" || s == "cross-origin")
+        // Step 4. If policy is null, then switch on embedderPolicyValue:
+        .or(match embedder_policy_value {
+            // Do nothing.
+            EmbedderPolicyValue::UnsafeNone => None,
+            // Set policy to `same-origin`.
+            EmbedderPolicyValue::RequireCorp => Some("same-origin"),
+        });
+
+    // Step 5. Switch on policy:
+    match policy {
+        Some("same-origin") => {
+            // If origin is same origin with response’s URL’s origin, then return allowed.
+            if let Origin::Origin(request_origin) = origin &&
+                response
+                    .url()
+                    .is_some_and(|url| request_origin == &url.origin())
+            {
+                return CrossOriginResourcePolicy::Allowed;
+            }
+
+            // Otherwise, return blocked.
+            CrossOriginResourcePolicy::Blocked
+        },
+        Some("same-site") => {
+            if let Some(url) = response.url() {
+                // If all of the following are true
+                // origin is schemelessly same site with response’s URL’s origin
+                // origin’s scheme is "https" or response’s URL’s scheme is not "https"
+                if let Origin::Origin(request_origin) = origin &&
+                    is_schemelessy_same_site(request_origin, &url.origin()) &&
+                    (request_origin.scheme() == Some("https") || url.scheme() != "https")
+                {
+                    return CrossOriginResourcePolicy::Allowed;
+                }
+            }
+            // Otherwise, return blocked.
+            CrossOriginResourcePolicy::Blocked
+        },
+        // null / 'cross-origin'
+        // Return allowed.
+        _ => CrossOriginResourcePolicy::Allowed,
     }
-
-    // Step 5
-    if let Origin::Origin(ref request_origin) = request.origin {
-        let schemeless_same_origin = is_schemelessy_same_site(request_origin, &current_url_origin);
-        if schemeless_same_origin &&
-            (request_origin.scheme() == Some("https") ||
-                response.https_state == HttpsState::None)
-        {
-            return CrossOriginResourcePolicy::Allowed;
-        }
-    };
-
-    // Step 6
-    if policy == "same-site" {
-        return CrossOriginResourcePolicy::Blocked;
-    }
-
-    CrossOriginResourcePolicy::Allowed
 }
 
 // Convenience struct that implements Done, for setting responseEnd on function return
