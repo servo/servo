@@ -1908,10 +1908,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                 // Match webrender's box_shadow.rs Gaussian blur inflation.
                 // (BLUR_SAMPLE_SCALE * blur).ceil(). BLUR_SAMPLE_SCALE is 3.0.
                 BoxShadowClipMode::Outset => {
-                    let blur_offset = (blur * 3.0).ceil();
+                    let extra_size_from_blur = (blur * 3.0).ceil();
                     rect.translate(offset)
                         .inflate(spread, spread)
-                        .inflate(blur_offset, blur_offset)
+                        .inflate(extra_size_from_blur, extra_size_from_blur)
                 },
             };
             let common = builder.common_properties(clip_rect, &style);
