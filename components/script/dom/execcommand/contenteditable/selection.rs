@@ -408,10 +408,11 @@ impl Selection {
             node.remove_self(cx);
             // Step 25.3. If the block node of parent has no visible children, and parent is editable or an editing host,
             // call createElement("br") on the context object and append the result as the last child of parent.
-            if parent
-                .block_node_of()
-                .is_some_and(|block_node| block_node.children().all(|child| child.is_invisible())) &&
-                parent.is_editable_or_editing_host()
+            if parent.block_node_of().is_some_and(|block_node| {
+                block_node
+                    .children_unrooted(cx.no_gc())
+                    .all(|child| child.is_invisible())
+            }) && parent.is_editable_or_editing_host()
             {
                 let br = context_object.create_element(cx, "br");
                 if parent.AppendChild(cx, br.upcast()).is_err() {
@@ -512,7 +513,10 @@ impl Selection {
             let mut reference_node = end_block.clone();
             // Step 32.2. While reference node is not a child of start block, set reference node to its parent.
             loop {
-                if start_block.children().all(|child| child != reference_node) {
+                if start_block
+                    .children_unrooted(cx.no_gc())
+                    .all(|child| child != &reference_node)
+                {
                     reference_node = reference_node
                         .GetParentNode()
                         .expect("Must always have a parent, at least start_block");

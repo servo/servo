@@ -664,7 +664,7 @@ where
                 .find(|node| node.is_visible())
                 .is_some_and(|node| node.is_inline_node()) &&
             new_parent
-                .children()
+                .children_unrooted(cx.no_gc())
                 .last()
                 .is_none_or(|last_child| !last_child.is::<HTMLBRElement>())
         {
@@ -686,7 +686,7 @@ where
         // and insert the result as the first child of new parent.
         if !new_parent.is_inline_node() &&
             new_parent
-                .children()
+                .children_unrooted(cx.no_gc())
                 .find(|child| child.is_visible())
                 .is_some_and(|child| child.is_inline_node()) &&
             node_list
@@ -732,7 +732,11 @@ where
             // and new parent's last child is not a br, call createElement("br") on the ownerDocument
             // of new parent and append the result as the last child of new parent.
             if !new_parent.is_inline_node() {
-                if let Some(last_child_of_new_parent) = new_parent.children().last() {
+                let child = new_parent
+                    .children_unrooted(cx.no_gc())
+                    .last()
+                    .map(|node| node.as_rooted());
+                if let Some(last_child_of_new_parent) = child {
                     if last_child_of_new_parent.is_inline_node() &&
                         !last_child_of_new_parent.is::<HTMLBRElement>() &&
                         next_of_new_parent
