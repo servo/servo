@@ -22,6 +22,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use accesskit::TreeUpdate;
+use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -652,6 +653,8 @@ pub struct WebResourceRequest {
     )]
     pub headers: HeaderMap,
     pub url: Url,
+    pub destination: Destination,
+    pub referrer_url: Option<Url>,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }

@@ -7456,6 +7456,7 @@ dependencies = [
  "accesskit_consumer",
  "arboard",
  "bitflags 2.11.1",
+ "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
  "dpi",
@@ -7842,6 +7843,7 @@ version = "0.1.0"
 dependencies = [
  "accesskit",
  "bitflags 2.11.1",
+ "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
  "euclid",

@@ -166,6 +166,7 @@ servo-media-ohos = { workspace = true }
 
 [dev-dependencies]
 accesskit_consumer = "0.35.0"
+content-security-policy = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }

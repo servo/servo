@@ -35,6 +35,8 @@ impl RequestInterceptor {
             method: request.method.clone(),
             url: request.url().into_url(),
             headers: request.headers.clone(),
+            destination: request.destination,
+            referrer_url: request.referrer.to_url().map(|url| url.as_url().clone()),
             is_for_main_frame,
             is_redirect: request.redirect_count > 0,
         };
