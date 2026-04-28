@@ -87,9 +87,9 @@ impl History {
     /// Steps 5-16
     pub(crate) fn activate_state(
         &self,
+        cx: &mut JSContext,
         state_id: Option<HistoryStateId>,
         url: ServoUrl,
-        can_gc: CanGc,
     ) {
         // Steps 5
         let document = self.window.Document();
@@ -101,7 +101,7 @@ impl History {
 
         // Step 8
         if let Some(fragment) = url.fragment() {
-            document.scroll_to_the_fragment(fragment, can_gc);
+            document.scroll_to_the_fragment(cx, fragment);
         }
 
         // Step 11
@@ -132,7 +132,7 @@ impl History {
                     self.window.as_global_scope(),
                     data,
                     state.handle_mut(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
                 .is_err()
                 {
@@ -152,7 +152,7 @@ impl History {
                 self.window.upcast::<EventTarget>(),
                 &self.window,
                 self.state.as_handle_value(),
-                can_gc,
+                CanGc::from_cx(cx),
             );
         }
 
@@ -165,11 +165,11 @@ impl History {
                 false,
                 old_url.into_string(),
                 url.into_string(),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             event
                 .upcast::<Event>()
-                .fire(self.window.upcast::<EventTarget>(), can_gc);
+                .fire(self.window.upcast::<EventTarget>(), CanGc::from_cx(cx));
         }
     }
 

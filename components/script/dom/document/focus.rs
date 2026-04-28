@@ -6,6 +6,7 @@ use std::cell::{Cell, Ref};
 
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
@@ -241,10 +242,10 @@ impl DocumentFocusHandler {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
-    pub(crate) fn focus(&self, new_focus_target: FocusableArea, can_gc: CanGc) {
+    pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: FocusableArea) {
         let old_focus_chain = self.current_focus_chain();
         let new_focus_chain = new_focus_target.focus_chain();
-        self.focus_update_steps(new_focus_chain, old_focus_chain, &new_focus_target, can_gc);
+        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, &new_focus_target);
 
         // Advertise the change in the focus chain.
         // <https://html.spec.whatwg.org/multipage/#focus-chain>
@@ -292,10 +293,10 @@ impl DocumentFocusHandler {
     /// <https://html.spec.whatwg.org/multipage/#focus-update-steps>
     pub(crate) fn focus_update_steps(
         &self,
+        cx: &mut JSContext,
         mut new_focus_chain: Vec<FocusableArea>,
         mut old_focus_chain: Vec<FocusableArea>,
         new_focus_target: &FocusableArea,
-        can_gc: CanGc,
     ) {
         let new_focus_chain_was_empty = new_focus_chain.is_empty();
 
@@ -379,10 +380,10 @@ impl DocumentFocusHandler {
             // blur event target, with related blur target as the related target.
             if let Some(blur_event_target) = blur_event_target {
                 self.fire_focus_event(
+                    cx,
                     FocusEventType::Blur,
                     blur_event_target,
                     related_blur_target,
-                    can_gc,
                 );
             }
         }
@@ -395,7 +396,7 @@ impl DocumentFocusHandler {
                 .element()
                 .and_then(|element| element.downcast::<HTMLElement>())
             {
-                html_element.handle_focus_state_for_contenteditable(can_gc);
+                html_element.handle_focus_state_for_contenteditable(cx);
             }
         }
 
@@ -457,10 +458,10 @@ impl DocumentFocusHandler {
             // focus event target, with related focus target as the related target.
             if let Some(focus_event_target) = focus_event_target {
                 self.fire_focus_event(
+                    cx,
                     FocusEventType::Focus,
                     focus_event_target,
                     related_focus_target,
-                    can_gc,
                 );
             }
         }
@@ -469,10 +470,10 @@ impl DocumentFocusHandler {
     /// <https://html.spec.whatwg.org/multipage/#fire-a-focus-event>
     pub(crate) fn fire_focus_event(
         &self,
+        cx: &mut JSContext,
         focus_event_type: FocusEventType,
         event_target: &EventTarget,
         related_target: Option<&EventTarget>,
-        can_gc: CanGc,
     ) {
         let event_name = match focus_event_type {
             FocusEventType::Focus => "focus".into(),
@@ -487,11 +488,11 @@ impl DocumentFocusHandler {
             Some(&self.window),
             0i32,
             related_target,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
-        event.fire(event_target, can_gc);
+        event.fire(event_target, CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
@@ -500,7 +501,7 @@ impl DocumentFocusHandler {
     /// > focus changed during ongoing navigation to false.
     ///
     /// TODO: Handle the "focus changed during ongoing navigation" flag.
-    pub(crate) fn perform_focus_fixup_rule(&self, can_gc: CanGc) {
+    pub(crate) fn perform_focus_fixup_rule(&self, cx: &mut JSContext) {
         if self
             .focused_area
             .borrow()
@@ -509,6 +510,6 @@ impl DocumentFocusHandler {
         {
             return;
         }
-        self.focus(FocusableArea::Viewport, can_gc);
+        self.focus(cx, FocusableArea::Viewport);
     }
 }

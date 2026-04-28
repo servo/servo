@@ -458,12 +458,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-focus>
-    fn Focus(&self, options: &FocusOptions, can_gc: CanGc) {
+    fn Focus(&self, cx: &mut JSContext, options: &FocusOptions) {
         // 1. If the allow focus steps given this's node document return false, then return.
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        if !self.upcast::<Node>().run_the_focusing_steps(None, can_gc) {
+        if !self.upcast::<Node>().run_the_focusing_steps(cx, None) {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
             // See https://github.com/whatwg/html/issues/12231.
@@ -492,7 +492,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-blur>
-    fn Blur(&self, can_gc: CanGc) {
+    fn Blur(&self, cx: &mut JSContext) {
         // TODO: Run the unfocusing steps. Focus the top-level document, not
         //       the current document.
         if !self.as_element().focus_state() {
@@ -501,7 +501,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
         self.owner_document()
             .focus_handler()
-            .focus(FocusableArea::Viewport, can_gc);
+            .focus(cx, FocusableArea::Viewport);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>

@@ -1252,9 +1252,7 @@ impl ScriptThread {
             // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
             // > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
             // > focus changed during ongoing navigation to false.
-            document
-                .focus_handler()
-                .perform_focus_fixup_rule(CanGc::from_cx(cx));
+            document.focus_handler().perform_focus_fixup_rule(cx);
 
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
@@ -1824,13 +1822,9 @@ impl ScriptThread {
                 reason,
                 cx,
             ),
-            ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url) => self
-                .handle_update_history_state_msg(
-                    pipeline_id,
-                    history_state_id,
-                    url,
-                    CanGc::from_cx(cx),
-                ),
+            ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url) => {
+                self.handle_update_history_state_msg(cx, pipeline_id, history_state_id, url)
+            },
             ScriptThreadMessage::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
@@ -2862,10 +2856,10 @@ impl ScriptThread {
             .unwrap_or(FocusableArea::Viewport);
 
         focus_handler.focus_update_steps(
+            cx,
             focusable_area.focus_chain(),
             focus_handler.current_focus_chain(),
             &focusable_area,
-            CanGc::from_cx(cx),
         );
     }
 
@@ -2907,10 +2901,10 @@ impl ScriptThread {
         }
 
         focus_handler.focus_update_steps(
+            cx,
             vec![],
             focus_handler.current_focus_chain(),
             &FocusableArea::Viewport,
-            CanGc::from_cx(cx),
         );
     }
 
@@ -3020,17 +3014,15 @@ impl ScriptThread {
 
     fn handle_update_history_state_msg(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
-        can_gc: CanGc,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             return warn!("update history state after pipeline {pipeline_id} closed.",);
         };
-        window
-            .History()
-            .activate_state(history_state_id, url, can_gc);
+        window.History().activate_state(cx, history_state_id, url);
     }
 
     fn handle_remove_history_states(

@@ -926,7 +926,7 @@ impl DocumentEventHandler {
                     self.window
                         .Document()
                         .focus_handler()
-                        .focus(node.find_click_focusable_area(), CanGc::from_cx(cx));
+                        .focus(cx, node.find_click_focusable_area());
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -1444,9 +1444,7 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document
-                    .focus_handler()
-                    .focus(FocusableArea::Viewport, CanGc::from_cx(cx));
+                document.focus_handler().focus(cx, FocusableArea::Viewport);
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
@@ -1976,7 +1974,7 @@ impl DocumentEventHandler {
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
                 // > from the currently focused element (if any) to the new focused element, as
                 // > described in Focus Event Types
-                self.sequential_focus_navigation_via_keyboard_event(event, CanGc::from_cx(cx));
+                self.sequential_focus_navigation_via_keyboard_event(cx, event);
                 return;
             },
             _ => return,
@@ -2000,18 +1998,22 @@ impl DocumentEventHandler {
             .filter(|node| node.is_connected())
     }
 
-    fn sequential_focus_navigation_via_keyboard_event(&self, event: &KeyboardEvent, can_gc: CanGc) {
+    fn sequential_focus_navigation_via_keyboard_event(
+        &self,
+        cx: &mut JSContext,
+        event: &KeyboardEvent,
+    ) {
         let direction = if event.modifiers().contains(Modifiers::SHIFT) {
             SequentialFocusDirection::Backward
         } else {
             SequentialFocusDirection::Forward
         };
 
-        self.sequential_focus_navigation(direction, can_gc);
+        self.sequential_focus_navigation(cx, direction);
     }
 
     /// <<https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
-    fn sequential_focus_navigation(&self, direction: SequentialFocusDirection, can_gc: CanGc) {
+    fn sequential_focus_navigation(&self, cx: &mut JSContext, direction: SequentialFocusDirection) {
         // > When the user requests that focus move from the currently focused area of a top-level
         // > traversable to the next or previous focusable area (e.g., as the default action of
         // > pressing the tab key), or when the user requests that focus sequentially move to a
@@ -2070,7 +2072,7 @@ impl DocumentEventHandler {
 
         // > 6. If candidate is not null, then run the focusing steps for candidate and return.
         if let Some(candidate) = candidate {
-            self.focus_and_scroll_to_element_for_key_event(&candidate, can_gc);
+            self.focus_and_scroll_to_element_for_key_event(cx, &candidate);
             return;
         }
 
@@ -2503,15 +2505,13 @@ impl DocumentEventHandler {
 
         // This behavior is unspecified, but all browsers do this. When activating the element it is
         // focused and scrolled into view.
-        self.focus_and_scroll_to_element_for_key_event(html_element.upcast(), CanGc::from_cx(cx));
+        self.focus_and_scroll_to_element_for_key_event(cx, html_element.upcast());
         command.perform_action(cx);
         true
     }
 
-    fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
-        element
-            .upcast::<Node>()
-            .run_the_focusing_steps(None, can_gc);
+    fn focus_and_scroll_to_element_for_key_event(&self, cx: &mut JSContext, element: &Element) {
+        element.upcast::<Node>().run_the_focusing_steps(cx, None);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,

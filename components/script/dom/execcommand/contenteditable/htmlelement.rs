@@ -173,17 +173,17 @@ impl HTMLElement {
     /// There is no specification for this implementation. Instead, it is
     /// reverse-engineered based on the WPT test
     /// /selection/contenteditable/initial-selection-on-focus.tentative.html
-    pub(crate) fn handle_focus_state_for_contenteditable(&self, can_gc: CanGc) {
+    pub(crate) fn handle_focus_state_for_contenteditable(&self, cx: &mut JSContext) {
         if !self.is_editing_host() {
             return;
         }
         let document = self.owner_document();
-        let Some(selection) = document.GetSelection(can_gc) else {
+        let Some(selection) = document.GetSelection(CanGc::from_cx(cx)) else {
             return;
         };
         let range = self
             .upcast::<Element>()
-            .ensure_contenteditable_selection_range(&document, can_gc);
+            .ensure_contenteditable_selection_range(&document, CanGc::from_cx(cx));
         // If the current range is already associated with this contenteditable
         // element, then we shouldn't do anything. This is important when focus
         // is lost and regained, but selection was changed beforehand. In that
