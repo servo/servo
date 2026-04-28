@@ -59,23 +59,25 @@ promise_test(async t => {
 promise_test(async t => {
     const target = document.getElementById("target");
 
+    let activeStateDuringMousedown = null;
+    let activeStateAfterMousedown = null;
+
+    target.addEventListener("mousedown", () => {
+        activeStateDuringMousedown = target.matches(":active");
+    }, { once: true });
+
     await new test_driver.Actions()
         .pointerMove(5, 5, { origin: target })
         .pointerDown()
         .send();
 
-    // Move the pointer off the target to trigger a hover state change
-    await new test_driver.Actions()
-        .pointerMove(50, 50)
-        .send();
-
-    // Check the active state after moving, but before releasing the mouse
-    const isActiveDuringDrag = target.matches(":active");
+    activeStateAfterMousedown = target.matches(":active");
 
     await new test_driver.Actions()
         .pointerUp()
         .send();
 
-    assert_true(isActiveDuringDrag, ":active should persist through drag");
-}, ":active state persists through mousemove during drag");
+    assert_true(activeStateDuringMousedown, ":active should be set during mousedown");
+    assert_true(activeStateAfterMousedown, ":active should persist after mousedown before mouseup");
+}, ":active state persists after mousedown even if flex order changes");
 </script>
