@@ -2204,10 +2204,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-window-getselection>
-    fn GetSelection(&self) -> Option<DomRoot<Selection>> {
-        self.document
-            .get()
-            .and_then(|d| d.GetSelection(CanGc::deprecated_note()))
+    fn GetSelection(&self, cx: &mut JSContext) -> Option<DomRoot<Selection>> {
+        self.document.get().and_then(|d| d.GetSelection(cx))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>

@@ -17,7 +17,6 @@ use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-delete-command>
 pub(crate) fn execute_delete_command(
@@ -125,17 +124,11 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 5.1. Call collapse(node, offset) on the context object's selection.
-        if selection
-            .Collapse(Some(&node), offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Collapse(cx, Some(&node), offset).is_err() {
             unreachable!("Must not fail to collapse");
         }
         // Step 5.2. Call extend(node, offset − 1) on the context object's selection.
-        if selection
-            .Extend(&node, offset - 1, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Extend(cx, &node, offset - 1).is_err() {
             unreachable!("Must not fail to extend");
         }
         // Step 5.3. Delete the selection.
@@ -253,16 +246,13 @@ pub(crate) fn execute_delete_command(
     {
         // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
         if selection
-            .Collapse(Some(&start_node), start_offset - 1, CanGc::from_cx(cx))
+            .Collapse(cx, Some(&start_node), start_offset - 1)
             .is_err()
         {
             unreachable!("Must not fail to collapse");
         }
         // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        if selection
-            .Extend(&start_node, start_offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Extend(cx, &start_node, start_offset).is_err() {
             unreachable!("Must not fail to extend");
         }
         // Step 13.3. Delete the selection.
@@ -274,10 +264,7 @@ pub(crate) fn execute_delete_command(
             Default::default(),
         );
         // Step 13.4. Call collapse(node, offset) on the selection.
-        if selection
-            .Collapse(Some(&node), offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Collapse(cx, Some(&node), offset).is_err() {
             unreachable!("Must not fail to collapse");
         }
         // Step 13.5. Return true.
@@ -319,14 +306,14 @@ pub(crate) fn execute_delete_command(
 
     // Step 17. Call collapse(start node, start offset) on the context object's selection.
     if selection
-        .Collapse(Some(&start_node), start_offset, CanGc::from_cx(cx))
+        .Collapse(cx, Some(&start_node), start_offset)
         .is_err()
     {
         unreachable!("Must not fail to collapse");
     }
 
     // Step 18. Call extend(node, offset) on the context object's selection.
-    if selection.Extend(&node, offset, CanGc::from_cx(cx)).is_err() {
+    if selection.Extend(cx, &node, offset).is_err() {
         unreachable!("Must not fail to extend");
     }
 

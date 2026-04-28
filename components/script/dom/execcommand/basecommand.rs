@@ -248,7 +248,7 @@ impl CommandName {
                 if inline_command_activated_values.is_empty() {
                     return None;
                 }
-                let selection = document.GetSelection(CanGc::from_cx(cx))?;
+                let selection = document.GetSelection(cx)?;
                 let active_range = selection.active_range()?;
                 let mut at_least_one_child_is_formattable = false;
                 let mut all_children_have_matching_command_values = true;

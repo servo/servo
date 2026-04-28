@@ -6210,9 +6210,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-document-getselection>
-    fn GetSelection(&self, can_gc: CanGc) -> Option<DomRoot<Selection>> {
+    fn GetSelection(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<Selection>> {
         if self.has_browsing_context {
-            Some(self.selection.or_init(|| Selection::new(self, can_gc)))
+            Some(self.selection.or_init(|| Selection::new(cx, self)))
         } else {
             None
         }

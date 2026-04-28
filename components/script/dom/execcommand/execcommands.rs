@@ -80,7 +80,7 @@ impl Document {
         cx: &mut JSContext,
         command_name: CommandName,
     ) -> Option<DomRoot<Selection>> {
-        let selection = self.GetSelection(CanGc::from_cx(cx))?;
+        let selection = self.GetSelection(cx)?;
         // > Among commands defined in this specification, those listed in Miscellaneous commands are always enabled,
         // > except for the cut command and the paste command.
         //
