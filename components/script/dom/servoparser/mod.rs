@@ -1003,13 +1003,19 @@ impl ParserContext {
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
     fn create_policy_container_from_fetch_response(metadata: &Metadata) -> PolicyContainer {
-        // Step 1. If response's URL's scheme is "blob", then return a clone of response's URL's blob URL entry's environment's policy container.
-        // TODO
+        // TODO Step 1. If response's URL's scheme is "blob", then return a clone of response's
+        // URL's blob URL entry's environment's policy container.
+
         // Step 2. Let result be a new policy container.
+        // TODO Step 6. Parse Integrity-Policy headers with response and result.
         // Step 7. Return result.
         PolicyContainer {
             // Step 3. Set result's CSP list to the result of parsing a response's Content Security Policies given response.
             csp_list: parse_csp_list_from_metadata(&metadata.headers),
+            // TODO Step 4. If environment is non-null, then set result's embedder policy to the
+            // result of obtaining an embedder policy given response and environment.
+            // Otherwise, set it to "unsafe-none".
+            embedder_policy: Default::default(),
             // Step 5. Set result's referrer policy to the result of parsing the `Referrer-Policy` header given response. [REFERRERPOLICY]
             referrer_policy: ReferrerPolicy::parse_header_for_response(&metadata.headers),
         }
