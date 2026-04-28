@@ -261,6 +261,7 @@ profile_traits = { package = "servo-profile-traits", version = "0.1.0", path = "
 script = { package = "servo-script", version = "0.1.0", path = "components/script" }
 script_bindings = { package = "servo-script-bindings", version = "0.1.0", path = "components/script_bindings" }
 script_traits = { package = "servo-script-traits", version = "0.1.0", path = "components/shared/script" }
+script_utils = { package = "servo-script-utils", version = "0.1.0", path = "components/script_utils" }
 servo = { version = "0.1.0", path = "components/servo", default-features = false }
 servo-allocator = { version = "0.1.0", path = "components/allocator" }
 servo-background-hang-monitor = { version = "0.1.0", path = "components/background_hang_monitor" }

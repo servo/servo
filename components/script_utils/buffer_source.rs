@@ -29,6 +29,7 @@ use js::jsapi::{
     StealArrayBufferContents, Type,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
+use js::{rooted, typedarray};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
@@ -40,12 +41,16 @@ use js::typedarray::{
     ArrayBufferU8, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
 };
+use jstraceable_derive::{JSTraceable2};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::error::{Error, Fallible};
+use script_bindings::script_runtime::{CanGc, JSContext};
+use script_bindings::trace::{CustomTraceable, RootedTraceableBox};
+use js::gc::Traceable as JSTraceable;
 
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::trace::RootedTraceableBox;
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
 
 pub(crate) type RootedTypedArray<T> = RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>;
 
@@ -682,7 +687,7 @@ where
     }
 }
 
-unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> {
+unsafe impl<T> js::gc::Traceable for HeapBufferSource<T> {
     #[inline]
     unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
         match &self.buffer_source {
@@ -745,12 +750,12 @@ pub(crate) fn byte_size(byte_type: Type) -> u64 {
     }
 }
 
-#[derive(Clone, Eq, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Eq, /* JSTraceable2,*/ MallocSizeOf, PartialEq)]
 pub(crate) enum Constructor {
     DataView,
     Name(
         #[ignore_malloc_size_of = "mozjs"]
-        #[no_trace]
+        //#[no_trace]
         Type,
     ),
 }

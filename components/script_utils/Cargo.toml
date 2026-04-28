@@ -1,6 +1,5 @@
 [package]
-name = "servo-script"
-build = "build.rs"
+name = "servo-script-utils"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -11,7 +10,7 @@ repository.workspace = true
 description.workspace = true
 
 [lib]
-name = "script"
+name = "script_utils"
 path = "lib.rs"
 
 [features]
@@ -142,7 +141,6 @@ servo-media = { workspace = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
 servo-wakelock = { workspace = true }
-script_utils = { workspace = true }
 servo_arc = { workspace = true }
 sha1 = { workspace = true }
 sha2 = { workspace = true }

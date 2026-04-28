@@ -52,24 +52,6 @@ impl GlobalStaticData {
 
 pub(crate) use script_bindings::utils::*;
 
-/// Returns a JSVal representing the frozen JavaScript array
-pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
-    convertibles: &[T],
-    cx: SafeJSContext,
-    mut rval: MutableHandleValue,
-    can_gc: CanGc,
-) {
-    script_bindings::conversions::SafeToJSValConvertible::safe_to_jsval(
-        convertibles,
-        cx,
-        rval.reborrow(),
-        can_gc,
-    );
-
-    rooted!(in(*cx) let obj = rval.to_object());
-    unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
-}
-
 /// Returns wether `obj` is a platform object using dynamic unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
 #[expect(dead_code)]

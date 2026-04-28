@@ -33,16 +33,14 @@ use std::{mem, ptr};
 use js::context::NoGC;
 use js::jsapi::{Heap, JSObject, JSTracer, Value};
 use js::rust::HandleValue;
+use jstraceable_derive::{JSTraceable, JSTraceable2};
 use layout_api::TrustedNodeAddress;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use script_bindings::conversions::DerivedFrom;
+use script_bindings::inheritance::Castable;
+use script_bindings::reflector::DomObject;
 pub(crate) use script_bindings::root::*;
 use style::thread_state;
-
-use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::node::Node;
 
 pub(crate) trait ToLayout<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
@@ -150,14 +148,14 @@ impl<T> Clone for LayoutDom<'_, T> {
     }
 }
 
-impl LayoutDom<'_, Node> {
+impl<T> LayoutDom<'_, T> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
     pub(crate) unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> Self {
         assert_in_layout();
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
-            value: unsafe { &*(addr as *const Node) },
+            value: unsafe { &*(addr as *const T) },
         }
     }
 }
@@ -168,7 +166,7 @@ impl LayoutDom<'_, Node> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable)]
+//#[derive(JSTraceable2)]
 pub(crate) struct MutDom<T: DomObject> {
     val: UnsafeCell<Dom<T>>,
 }
@@ -286,7 +284,7 @@ impl<'a, T: Castable> UnrootedDom<'a, T> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable)]
+//#[derive(JSTraceable2)]
 pub(crate) struct MutNullableDom<T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
 }
@@ -446,7 +444,7 @@ impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
+unsafe impl<T: DomObject> js::gc::Traceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.get() {
             unsafe { ptr.trace(trc) };

@@ -5,6 +5,7 @@
 //! Functions for validating names as defined in the DOM Standard: <https://dom.spec.whatwg.org/#namespaces>
 
 use html5ever::{LocalName, Namespace, Prefix, ns};
+use log::debug;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::str::DOMString;
 
