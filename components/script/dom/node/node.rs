@@ -1745,7 +1745,7 @@ impl Node {
             .to_string()
     }
 
-    pub(crate) fn summarize(&self, can_gc: CanGc) -> NodeInfo {
+    pub(crate) fn summarize(&self, cx: &mut JSContext) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
         let pipeline = self.owner_window().pipeline_id();
@@ -1766,9 +1766,9 @@ impl Node {
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children
-            self.ChildNodes(can_gc).Length() as usize + 1
+            self.ChildNodes(cx).Length() as usize + 1
         } else {
-            self.ChildNodes(can_gc).Length() as usize
+            self.ChildNodes(cx).Length() as usize
         };
 
         let window = self.owner_window();
@@ -4022,14 +4022,14 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
-    fn ChildNodes(&self, can_gc: CanGc) -> DomRoot<NodeList> {
+    fn ChildNodes(&self, cx: &mut JSContext) -> DomRoot<NodeList> {
         if let Some(list) = self.ensure_rare_data().child_list.get() {
             return list;
         }
 
         let doc = self.owner_doc();
         let window = doc.window();
-        let list = NodeList::new_child_list(window, self, can_gc);
+        let list = NodeList::new_child_list(window, self, CanGc::from_cx(cx));
         self.ensure_rare_data().child_list.set(Some(&list));
         list
     }

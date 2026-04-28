@@ -202,7 +202,7 @@ pub(crate) fn handle_get_root_node(
                 .unwrap()
                 .register_node(node)
         })
-        .map(|document| document.upcast::<Node>().summarize(CanGc::from_cx(cx)));
+        .map(|document| document.upcast::<Node>().summarize(cx));
     reply.send(info).unwrap();
 }
 
@@ -222,7 +222,7 @@ pub(crate) fn handle_get_document_element(
                 .unwrap()
                 .register_node(element.upcast())
         })
-        .map(|element| element.upcast::<Node>().summarize(CanGc::from_cx(cx)));
+        .map(|element| element.upcast::<Node>().summarize(cx));
     reply.send(info).unwrap();
 }
 
@@ -260,7 +260,7 @@ pub(crate) fn handle_get_children(
     if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
         if !shadow_root.is_user_agent_widget() || pref!(inspector_show_servo_internal_shadow_roots)
         {
-            children.push(shadow_root.upcast::<Node>().summarize(CanGc::from_cx(cx)));
+            children.push(shadow_root.upcast::<Node>().summarize(cx));
         }
     }
     let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
@@ -270,7 +270,7 @@ pub(crate) fn handle_get_children(
         let next_inline = i < inline.len() - 1 && inline[i + 1];
         let is_inline_level = prev_inline && next_inline;
 
-        let info = child.summarize(CanGc::from_cx(cx));
+        let info = child.summarize(cx);
         if is_whitespace(&info) && !is_inline_level {
             return None;
         }
