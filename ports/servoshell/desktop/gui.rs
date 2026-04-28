@@ -288,6 +288,8 @@ impl Gui {
         webview: WebView,
         favicon_texture: Option<egui::load::SizedTexture>,
     ) {
+        servo_install_ui_unicode_fonts(ui.ctx());
+
         let label = match (webview.page_title(), webview.url()) {
             (Some(title), _) if !title.is_empty() => title,
             (_, Some(url)) => url.to_string(),
@@ -331,12 +333,14 @@ impl Gui {
 
             let tab = tab_frame
                 .content_ui
-                .add(Button::selectable(
-                    active,
-                    truncate_with_ellipsis(&label, 20),
-                ))
+                .add(
+                    egui::Label::new(
+                        servo_tab_label_text(truncate_with_ellipsis(&label, 20))
+                    )
+                    .sense(egui::Sense::click())
+                )
                 .on_hover_ui(|ui| {
-                    ui.label(&label);
+                    ui.label(servo_tab_label_text(label.to_string()));
                 });
 
             let close_button = tab_frame
@@ -808,3 +812,103 @@ fn load_pending_favicons(
         texture_cache.insert(id, (handle, texture));
     }
 }
+
+// ===== servoshell unicode tab font patch =====
+fn servo_tab_label_text<S: Into<String>>(s: S) -> egui::RichText {
+    egui::RichText::new(s.into())
+        .family(egui::FontFamily::Proportional)
+        .size(18.0)
+}
+
+fn servo_try_add_ui_font(
+    fonts: &mut egui::FontDefinitions,
+    key: &str,
+    path: &std::path::Path,
+) -> bool {
+    match std::fs::read(path) {
+        Ok(bytes) => {
+            fonts.font_data.insert(
+                key.to_owned(),
+                egui::FontData::from_owned(bytes).into(),
+            );
+            true
+        },
+        Err(_) => false,
+    }
+}
+
+fn servo_install_ui_unicode_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    let candidates = [
+        // Windows CJK fonts
+        std::path::PathBuf::from(r"C:\Windows\Fonts\msyh.ttc"),
+        std::path::PathBuf::from(r"C:\Windows\Fonts\msyhbd.ttc"),
+        std::path::PathBuf::from(r"C:\Windows\Fonts\simhei.ttf"),
+        std::path::PathBuf::from(r"C:\Windows\Fonts\Deng.ttf"),
+        std::path::PathBuf::from(r"C:\Windows\Fonts\Dengb.ttf"),
+        std::path::PathBuf::from(r"C:\Windows\Fonts\Dengl.ttf"),
+
+        // macOS CJK fonts
+        std::path::PathBuf::from("/System/Library/Fonts/PingFang.ttc"),
+        std::path::PathBuf::from("/System/Library/Fonts/STHeiti Light.ttc"),
+        std::path::PathBuf::from("/Library/Fonts/Arial Unicode.ttf"),
+
+        // Linux common CJK fonts
+        std::path::PathBuf::from("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        std::path::PathBuf::from("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.otf"),
+        std::path::PathBuf::from("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
+        std::path::PathBuf::from("/usr/share/fonts/truetype/noto/NotoSansSC-Regular.otf"),
+        std::path::PathBuf::from("/usr/share/fonts/opentype/source-han-sans/SourceHanSansSC-Regular.otf"),
+        std::path::PathBuf::from("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"),
+    ];
+
+    let mut loaded: Vec<String> = Vec::new();
+
+    for path in candidates.iter() {
+        let key = format!("servo-ui-unicode-{}", loaded.len());
+        if servo_try_add_ui_font(&mut fonts, &key, path) {
+            loaded.push(key);
+        }
+    }
+
+    if loaded.is_empty() {
+        return;
+    }
+
+    let proportional = fonts
+        .families
+        .entry(egui::FontFamily::Proportional)
+        .or_default();
+
+    for name in loaded.iter().rev() {
+        if !proportional.iter().any(|item| item == name) {
+            proportional.insert(0, name.clone());
+        }
+    }
+
+    let monospace = fonts
+        .families
+        .entry(egui::FontFamily::Monospace)
+        .or_default();
+
+    for name in loaded.iter().rev() {
+        if !monospace.iter().any(|item| item == name) {
+            monospace.insert(0, name.clone());
+        }
+    }
+
+    ctx.set_fonts(fonts);
+
+    let mut style = (*ctx.style()).clone();
+    use egui::{FontFamily, FontId, TextStyle};
+
+    style.text_styles.insert(TextStyle::Heading, FontId::new(22.0, FontFamily::Proportional));
+    style.text_styles.insert(TextStyle::Body, FontId::new(18.0, FontFamily::Proportional));
+    style.text_styles.insert(TextStyle::Button, FontId::new(18.0, FontFamily::Proportional));
+    style.text_styles.insert(TextStyle::Small, FontId::new(16.0, FontFamily::Proportional));
+    style.text_styles.insert(TextStyle::Monospace, FontId::new(17.0, FontFamily::Monospace));
+
+    ctx.set_style(style);
+}
+// ===== end servoshell unicode tab font patch =====
