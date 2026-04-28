@@ -714,13 +714,9 @@ pub(crate) fn write(
     transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
 ) -> Fallible<StructuredSerializedData> {
     unsafe {
-        rooted!(in(cx.raw_cx()) let mut val = UndefinedValue());
+        rooted!(&in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
-            transfer.safe_to_jsval(
-                SafeJSContext::from_ptr(cx.raw_cx()),
-                val.handle_mut(),
-                CanGc::deprecated_note(),
-            );
+            transfer.safe_to_jsval(cx, val.handle_mut(), CanGc::deprecated_note());
         }
         let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;
@@ -735,7 +731,7 @@ pub(crate) fn write(
             allowSharedMemoryObjects_: false,
         };
         let result = JS_WriteStructuredClone(
-            cx.raw_cx(),
+            *cx,
             message,
             scdata,
             StructuredCloneScope::DifferentProcess,
@@ -745,7 +741,7 @@ pub(crate) fn write(
             val.handle(),
         );
         if !result {
-            let error = if JS_IsExceptionPending(cx.raw_cx()) {
+            let error = if JS_IsExceptionPending(*cx) {
                 Error::JSFailed
             } else {
                 sc_writer.error.unwrap_or(Error::DataClone(None))
