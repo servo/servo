@@ -39,8 +39,10 @@ pub(crate) use js::conversions::{
 };
 use js::jsapi::{JS_IsExceptionPending, JSContext as RawJSContext, JSObject};
 use js::jsval::UndefinedValue;
+use js::rooted;
 use js::rust::wrappers::{JS_GetProperty, JS_HasProperty};
 use js::rust::{HandleObject, MutableHandleValue};
+use log::debug;
 pub(crate) use script_bindings::conversions::{is_dom_proxy, *};
 use script_bindings::script_runtime::JSContext;
 

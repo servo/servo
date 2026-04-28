@@ -6,6 +6,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::MutableHandleValue;
+use jstraceable_derive::JSTraceable;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::utils::to_frozen_array;

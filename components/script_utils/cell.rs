@@ -11,6 +11,7 @@ pub(crate) use std::cell::{Ref, RefCell, RefMut};
 #[cfg(feature = "refcell_backtrace")]
 pub(crate) use accountable_refcell::{Ref, RefCell, RefMut};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOfOps};
+use malloc_size_of_derive::MallocSizeOf;
 
 use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 

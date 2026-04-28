@@ -134,41 +134,16 @@
 #![deny(missing_docs)]
 #![deny(non_snake_case)]
 
-pub(crate) mod constructor;
-pub(crate) mod error;
-pub(crate) mod principals;
-pub(crate) mod refcounted;
-pub(crate) mod reflector;
-pub(crate) mod root;
-pub(crate) mod serializable;
-pub(crate) mod settings_stack;
-pub(crate) mod structuredclone;
-pub(crate) mod trace;
-pub(crate) mod transferable;
-pub(crate) mod utils;
-
-pub(crate) use script_bindings::{callback, iterable, num};
-
-/// Generated JS-Rust bindings.
-#[allow(missing_docs, non_snake_case)]
-pub(crate) mod codegen {
-    pub(crate) mod DomTypeHolder {
-        include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
-    }
-    pub(crate) use script_bindings::codegen::GenericBindings;
-    #[expect(dead_code)]
-    pub(crate) mod Bindings {
-        include!(concat!(env!("OUT_DIR"), "/ConcreteBindings/mod.rs"));
-    }
-    pub(crate) mod InterfaceObjectMap {
-        include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
-    }
-    pub(crate) mod ConcreteInheritTypes {
-        include!(concat!(env!("OUT_DIR"), "/ConcreteInheritTypes.rs"));
-    }
-    pub(crate) use script_bindings::codegen::{PrototypeList, RegisterBindings};
-    #[expect(dead_code)]
-    pub(crate) mod UnionTypes {
-        include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
-    }
-}
+pub(crate) mod buffer_source;
+#[expect(dead_code)]
+pub(crate) mod cell;
+pub(crate) mod conversions;
+pub(crate) mod domname;
+pub(crate) mod frozenarray;
+pub(crate) mod function;
+pub(crate) mod inheritance;
+pub(crate) mod like;
+pub(crate) mod proxyhandler;
+pub(crate) mod str;
+pub(crate) mod weakref;
+pub(crate) mod xmlname;
