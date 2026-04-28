@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gradient interpolation in linearRGB and SRGB contexts</title>
+    <style type="text/css">
+    svg {
+        width: 500px;
+        height: 500px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if the two rects look identical</p>
+    <svg>
+        <defs>
+          <linearGradient id="gradient" gradientUnits="objectBoundingBox" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="white" />
+              <stop offset="1" stop-color="blue" />
+          </linearGradient>
+        </defs>
+
+        <rect x="10" y="10" width="200" height="200" style="fill:url(#gradient);"/>
+        <rect x="10" y="220" width="200" height="200" style="fill:url(#gradient);"/>
+    </svg>
+</body>
+</html>

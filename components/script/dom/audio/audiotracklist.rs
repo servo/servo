@@ -91,9 +91,9 @@ impl AudioTrackList {
         let global = &self.global();
         let this = Trusted::new(self);
         let task_source = global.task_manager().media_element_task_source();
-        task_source.queue(task!(media_track_change: move || {
+        task_source.queue(task!(media_track_change: move |cx| {
             let this = this.root();
-            this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
+            this.upcast::<EventTarget>().fire_event(cx, atom!("change"));
         }));
     }
 

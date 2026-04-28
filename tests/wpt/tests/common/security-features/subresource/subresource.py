@@ -51,7 +51,9 @@ def create_url(request,
     if swap_scheme:
         scheme = u"http" if parsed.scheme == u"https" else u"https"
         hostname = parsed.netloc.split(u':')[0]
-        port = request.server.config[u"ports"][scheme][0]
+        # Always use the HTTPS port to allow testing upgrades correctly, similar
+        # to the downgrade case below.
+        port = request.server.config[u"ports"]["https"][0]
         destination_netloc = u":".join([hostname, str(port)])
 
     if downgrade:
@@ -132,9 +134,17 @@ def preprocess_stash_action(request, response):
     elif action == b"purge":
         value = stash.take(key=key, path=path)
         return False
+    elif action == b"check-scheme":
+        scheme = urlsplit(request.url).scheme
+        if scheme in [u"https", u"wss"]:
+            stash.take(key=key, path=path)
+            stash.put(key=key, value=u"upgraded", path=path)
+        return False
     elif action == b"take":
         value = stash.take(key=key, path=path)
-        if value is None:
+        if value == u"upgraded":
+            status = u"upgraded"
+        elif value is None:
             status = u"allowed"
         else:
             status = u"blocked"

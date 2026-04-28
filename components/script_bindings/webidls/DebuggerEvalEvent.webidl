@@ -45,6 +45,7 @@ dictionary ObjectPreview {
     sequence<PropertyDescriptor> ownProperties;
     unsigned long ownPropertiesLength;
     unsigned long arrayLength;
+    sequence<DebuggerValue> items;
     FunctionPreview function;
 };
 
@@ -54,6 +55,6 @@ dictionary FunctionPreview {
     DOMString name;
     DOMString displayName;
     required sequence<DOMString> parameterNames;
-    required boolean isAsync;
-    required boolean isGenerator;
+    boolean isAsync;
+    boolean isGenerator;
 };

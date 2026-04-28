@@ -42,6 +42,7 @@ use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, ThreadSafeJSContext};
 use crate::task::TaskOnce;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -128,13 +129,16 @@ impl Worker {
             );
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
-            MessageEvent::dispatch_error(target, &global, CanGc::from_cx(cx));
+            MessageEvent::dispatch_error(cx, target, &global);
         }
     }
 
-    pub(crate) fn dispatch_simple_error(address: TrustedWorkerAddress, can_gc: CanGc) {
+    pub(crate) fn dispatch_simple_error(
+        cx: &mut js::context::JSContext,
+        address: TrustedWorkerAddress,
+    ) {
         let worker = address.root();
-        worker.upcast().fire_event(atom!("error"), can_gc);
+        worker.upcast().fire_event(cx, atom!("error"));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
@@ -161,9 +165,9 @@ impl Worker {
 }
 
 impl WorkerMethods<crate::DomTypeHolder> for Worker {
-    // https://html.spec.whatwg.org/multipage/#dom-worker
+    /// <https://html.spec.whatwg.org/multipage/#dom-worker>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         script_url: TrustedScriptURLOrUSVString,
@@ -178,10 +182,17 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             script_url,
             "Worker constructor",
         )?;
-        // Step 2-4.
-        let worker_url = match global.encoding_parse_a_url(&compliant_script_url.str()) {
-            Ok(url) => url,
-            Err(_) => return Err(Error::Syntax(None)),
+        // Step 2. Let outsideSettings be this's relevant settings object.
+        // Step 3. Let workerURL be the result of encoding-parsing a URL given compliantScriptURL,
+        // relative to outsideSettings.
+        // TODO: Locking the URL should eventually happen inside encoding_parse_a_url, since most callers
+        // will expect their blobs to be kept alive...
+        let Ok(worker_url) = global
+            .encoding_parse_a_url(&compliant_script_url.str())
+            .map(|url| ensure_blob_referenced_by_url_is_kept_alive(global, url))
+        else {
+            // Step 4. If workerURL is failure, then throw a "SyntaxError" DOMException.
+            return Err(Error::Syntax(None));
         };
 
         let (sender, receiver) = unbounded();
@@ -221,11 +232,11 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         let worker_id = WorkerId(Uuid::new_v4());
         if let Some(chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
-            let title = format!("Worker for {}", worker_url);
+            let title = format!("Worker for {}", worker_url.url());
             if let Some(browsing_context) = browsing_context {
                 let page_info = DevtoolsPageInfo {
                     title,
-                    url: worker_url.clone(),
+                    url: worker_url.url(),
                     is_top_level_global: false,
                     is_service_worker: false,
                 };
@@ -237,7 +248,11 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             }
         }
 
-        let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
+        let webgl_chan = global
+            .downcast::<Window>()
+            .and_then(|window| window.webgl_chan_value());
+        let init =
+            prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id), webgl_chan);
 
         let (control_sender, control_receiver) = unbounded();
         let (context_sender, context_receiver) = unbounded();
@@ -336,6 +351,6 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
 impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn run_once(self, cx: &mut JSContext) {
-        Worker::dispatch_simple_error(self.addr, CanGc::from_cx(cx));
+        Worker::dispatch_simple_error(cx, self.addr);
     }
 }

@@ -625,7 +625,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_transaction_active()?;
 
         // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
-        let serialized_query = convert_value_to_key_range(cx, query, None);
+        let serialized_query = convert_value_to_key_range(cx, query, Some(true));
 
         // Step 6. Let operation be an algorithm to run retrieve a value from an object store with the current Realm record, store, and range.
         // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
@@ -655,8 +655,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
-        let serialized_query = convert_value_to_key_range(cx, query, None);
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
+        let serialized_query = convert_value_to_key_range(cx, query, Some(true));
 
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
         // The steps are run with this object store handle as source and the steps to retrieve a key from an object
@@ -692,7 +692,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
 
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.
@@ -730,7 +730,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
-        // Step 5. Let range be the result of running the steps to convert a value to a key range with query and null disallowed flag set. Rethrow any exceptions.
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
         let serialized_query = convert_value_to_key_range(cx, query, None);
 
         // Step 6. Run the steps to asynchronously execute a request and return the IDBRequest created by these steps.

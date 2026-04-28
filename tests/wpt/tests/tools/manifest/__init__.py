@@ -1,1 +1,1 @@
-from . import item, manifest, sourcefile, update  # noqa: F401
+from . import item, manifest, sourcefile, test262, update  # noqa: F401

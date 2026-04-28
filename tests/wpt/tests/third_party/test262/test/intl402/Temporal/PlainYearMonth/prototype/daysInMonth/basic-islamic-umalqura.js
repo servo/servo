@@ -1,0 +1,54 @@
+// Copyright (C) 2025 Igalia, S.L. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+esid: sec-temporal.plainyearmonth.prototype.daysinmonth
+description: Days in each month in the islamic-umalqura calendar
+features: [Temporal, Intl.Era-monthcode]
+---*/
+
+const calendar = "islamic-umalqura";
+const options = { overflow: "reject" };
+
+// 1390 = ISO year 1970
+const sampleYears = {
+  1390: [
+    29,
+    30,
+    29,
+    30,
+    30,
+    30,
+    29,
+    30,
+    29,
+    30,
+    29,
+    30,
+  ],
+  1391: [
+    29,
+    29,
+    30,
+    29,
+    30,
+    30,
+    29,
+    30,
+    30,
+    29,
+    30,
+    29
+  ]
+};
+
+for (var [year, daysInMonth] of Object.entries(sampleYears)) {
+  for (var month = 1; month < 13; month++) {
+    const date = Temporal.PlainYearMonth.from({
+      year,
+      month,
+      calendar
+    });
+    assert.sameValue(date.daysInMonth, daysInMonth[month - 1], `${date}`);
+  }
+}

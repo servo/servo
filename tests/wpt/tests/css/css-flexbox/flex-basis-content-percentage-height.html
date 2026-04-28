@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-basis-property">
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+</style>
+
+<!-- Test 1: flex-basis: content with height makes percentage child indefinite -->
+<div class="flex-column">
+    <div id="t1" style="flex: 1 1 content; height: 100px; min-height: 0">
+        <div id="t1-child" style="height: 100%; width: 50px"></div>
+    </div>
+</div>
+
+<!-- Test 2: flex-basis: auto with height makes percentage child definite -->
+<div class="flex-column">
+    <div id="t2" style="flex: 1 1 auto; height: 100px; min-height: 0">
+        <div id="t2-child" style="height: 100%; width: 50px"></div>
+    </div>
+</div>
+
+<!-- Test 3: flex-basis: content on row flex (cross axis, not main) -->
+<div style="display: flex">
+    <div id="t3" style="flex: 1 1 content; height: 100px; min-height: 0">
+        <div id="t3-child" style="height: 100%; width: 50px"></div>
+    </div>
+</div>
+
+<!-- Test 4: flex-basis: content with percentage height on multiple children -->
+<div class="flex-column">
+    <div id="t4" style="flex: 1 1 content; height: 200px; min-height: 0">
+        <div style="height: 50px; width: 50px"></div>
+        <div id="t4-child" style="height: 50%; width: 50px"></div>
+    </div>
+</div>
+
+<script>
+test(function() {
+    assert_equals(document.getElementById("t1-child").offsetHeight, 0,
+        "height: 100% should resolve as auto when flex-basis is content");
+}, "flex-basis: content makes specified height indefinite for percentage children");
+
+test(function() {
+    assert_equals(document.getElementById("t2-child").offsetHeight, 100,
+        "height: 100% should resolve against height: 100px when flex-basis is auto");
+}, "flex-basis: auto preserves specified height as definite for percentage children");
+
+test(function() {
+    assert_equals(document.getElementById("t3-child").offsetHeight, 100,
+        "height: 100% should resolve against height: 100px in row flex (height is cross axis, not affected by flex-basis)");
+}, "flex-basis: content on row flex does not affect cross-axis percentage resolution");
+
+test(function() {
+    assert_equals(document.getElementById("t4-child").offsetHeight, 0,
+        "height: 50% should resolve as auto when flex-basis is content");
+}, "flex-basis: content makes specified height indefinite for partial percentage children");
+</script>

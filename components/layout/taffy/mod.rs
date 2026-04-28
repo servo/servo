@@ -7,7 +7,7 @@ use std::fmt;
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -150,7 +150,7 @@ impl TaffyItemBox {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.style = new_style.clone();

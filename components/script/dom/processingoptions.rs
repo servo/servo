@@ -37,7 +37,6 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::types::HTMLLinkElement;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_runtime::CanGc;
 
 trait ValueForKeyInLinkHeader {
     fn has_key_in_link_header(&self, key: &str) -> bool;
@@ -306,7 +305,7 @@ impl LinkProcessingOptions {
         // Step 9. Let controller be null.
         // Step 10. Let reportTiming given a Document document be to report timing for controller
         // given document's relevant global object.
-        let url = request.url.clone();
+        let url = request.url.url();
         let fetch_context = LinkFetchContext {
             url,
             link,
@@ -532,8 +531,7 @@ impl FetchResponseListener for LinkFetchContext {
         //
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
-            link.root()
-                .fire_event_after_response(response_result, CanGc::from_cx(cx));
+            link.root().fire_event_after_response(cx, response_result);
         }
     }
 

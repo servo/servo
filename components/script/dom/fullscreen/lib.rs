@@ -311,7 +311,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
             // TODO(#31866): we should queue this and fire them in update the rendering.
             document
                 .upcast::<EventTarget>()
-                .fire_event(atom!("fullscreenerror"), CanGc::from_cx(cx));
+                .fire_event(cx, atom!("fullscreenerror"));
             promise.reject_error(
                 Error::Type(c"fullscreen is not connected".to_owned()),
                 CanGc::from_cx(cx),
@@ -324,11 +324,11 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
         document.upcast::<EventTarget>().fire_event_with_params(
+            cx,
             atom!("fullscreenchange"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::Composed,
-            CanGc::from_cx(cx),
         );
 
         // Step 14.
@@ -365,11 +365,11 @@ impl TaskOnce for ElementPerformFullscreenExit {
         element.set_fullscreen_state(false);
         document.set_fullscreen_element(None);
         document.upcast::<EventTarget>().fire_event_with_params(
+            cx,
             atom!("fullscreenchange"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::Composed,
-            CanGc::from_cx(cx),
         );
 
         // Step 16

@@ -973,6 +973,34 @@ const equalTests = [
         }
       }
     }
+  },
+
+  // int32 input tests
+  {
+    'name': 'equal int32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        },
+        'inputB': {
+          'data': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'equal',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'uint8'}
+        }
+      }
+    }
   }
 ];
 

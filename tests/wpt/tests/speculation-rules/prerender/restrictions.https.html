@@ -9,7 +9,7 @@
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 test_prerender_restricted(
   () => navigator.clipboard.writeText(location.href),

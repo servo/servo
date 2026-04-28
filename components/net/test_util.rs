@@ -20,6 +20,7 @@ use hyper::service::service_fn;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
 use net_traits::AsyncRuntime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use rustls_pki_types::pem::PemObject;
 use rustls_pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use servo_default_resources as _;
@@ -79,7 +80,7 @@ impl Server {
     }
 }
 
-pub fn make_server<H>(handler: H) -> (Server, ServoUrl)
+pub fn make_server<H>(handler: H) -> (Server, UrlWithBlobClaim)
 where
     H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>)
         + Send
@@ -99,7 +100,7 @@ where
         );
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
-    let url = ServoUrl::parse(&url_string).unwrap();
+    let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);
 
     let graceful = hyper_util::server::graceful::GracefulShutdown::new();
 
@@ -175,7 +176,7 @@ fn load_private_key_from_file(
     }
 }
 
-pub fn make_ssl_server<H>(handler: H) -> (Server, ServoUrl)
+pub fn make_ssl_server<H>(handler: H) -> (Server, UrlWithBlobClaim)
 where
     H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>)
         + Send
@@ -194,7 +195,7 @@ where
         );
 
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
-    let url = ServoUrl::parse(&url_string).unwrap();
+    let url = UrlWithBlobClaim::new(ServoUrl::parse(&url_string).unwrap(), None);
 
     let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
         .canonicalize()

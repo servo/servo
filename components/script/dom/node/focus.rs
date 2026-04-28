@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 
-use crate::dom::document::focus::{
-    FocusInitiator, FocusOperation, FocusableArea, FocusableAreaKind,
-};
-use crate::dom::types::{Element, HTMLDialogElement};
+use crate::dom::document::focus::{FocusableArea, FocusableAreaKind};
+use crate::dom::types::{Element, HTMLDialogElement, HTMLIFrameElement};
 use crate::dom::{Node, NodeTraits, ShadowIncluding};
 
 impl Node {
@@ -44,6 +42,13 @@ impl Node {
             .map(Element::focusable_area_kind)
             .unwrap_or_default();
         if !kind.is_empty() {
+            if let Some(iframe_element) = self.downcast::<HTMLIFrameElement>() {
+                return Some(FocusableArea::IFrameViewport {
+                    iframe_element: DomRoot::from_ref(iframe_element),
+                    kind,
+                });
+            }
+
             return Some(FocusableArea::Node {
                 node: DomRoot::from_ref(self),
                 kind,
@@ -90,27 +95,28 @@ impl Node {
         // TODO: Implement this.
 
         // > ↪ If focus target is a shadow host whose shadow root's delegates focus is true
-        // >   Step 1. Let focusedElement be the currently focused area of a top-level
-        // >           traversable's DOM anchor.
         if self
             .downcast::<Element>()
             .and_then(Element::shadow_root)
             .is_some_and(|shadow_root| shadow_root.DelegatesFocus())
         {
-            if let Some(focused_element) = self.owner_document().focus_handler().focused_element() {
-                // >   Step 2. If focus target is a shadow-including inclusive ancestor of
-                // >           focusedElement, then return focusedElement.
-                if self
-                    .upcast::<Node>()
-                    .is_shadow_including_inclusive_ancestor_of(focused_element.upcast())
-                {
-                    let kind = focused_element.focusable_area_kind();
-                    return Some(FocusableArea::Node {
-                        node: DomRoot::upcast(focused_element),
-                        kind,
-                    });
-                }
+            // >   Step 1. Let focusedElement be the currently focused area of a top-level
+            // >           traversable's DOM anchor.
+            //
+            // Note: This is a bit of a misnomer, because it might be a Node and not an Element.
+            let document = self.owner_document();
+            let focused_area = document.focus_handler().focused_area();
+            let focused_element = focused_area.dom_anchor(&document);
+
+            // >   Step 2. If focus target is a shadow-including inclusive ancestor of
+            // >           focusedElement, then return focusedElement.
+            if self
+                .upcast::<Node>()
+                .is_shadow_including_inclusive_ancestor_of(&focused_element)
+            {
+                return Some(focused_area.clone());
             }
+
             // >   Step 3. Return the focus delegate for focus target given focus trigger.
             return self.focus_delegate();
         }
@@ -199,8 +205,8 @@ impl Node {
     /// Return `true` if anything was focused or `false` otherwise.
     pub(crate) fn run_the_focusing_steps(
         &self,
+        cx: &mut JSContext,
         fallback_target: Option<FocusableArea>,
-        can_gc: CanGc,
     ) -> bool {
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
@@ -226,11 +232,7 @@ impl Node {
         // TODO: Handle all of these steps by converting the focus transaction code to follow
         // the HTML focus specification.
         let document = self.owner_document();
-        document.focus_handler().focus(
-            FocusOperation::Focus(focusable_area),
-            FocusInitiator::Local,
-            can_gc,
-        );
+        document.focus_handler().focus(cx, focusable_area);
         true
     }
 }

@@ -13,100 +13,100 @@
 <body>
     <script>
         const rule_properties = {
-            'column-rule-inset': ['column-rule-edge-inset-start', 'column-rule-edge-inset-end',
-                'column-rule-interior-inset-start', 'column-rule-interior-inset-end'],
-            'row-rule-inset': ['row-rule-edge-inset-start', 'row-rule-edge-inset-end',
-                'row-rule-interior-inset-start', 'row-rule-interior-inset-end']
+            'column-rule-inset': ['column-rule-inset-cap-start', 'column-rule-inset-cap-end',
+                'column-rule-inset-junction-start', 'column-rule-inset-junction-end'],
+            'row-rule-inset': ['row-rule-inset-cap-start', 'row-rule-inset-cap-end',
+                'row-rule-inset-junction-start', 'row-rule-inset-junction-end']
         };
         const testCases = [
             {
                 input: '0px',
                 expected: {
-                    ruleEdgeInsetStart: '0px',
-                    ruleEdgeInsetEnd: '0px',
-                    ruleInteriorInsetStart: '0px',
-                    ruleInteriorInsetEnd: '0px',
+                    ruleInsetCapStart: '0px',
+                    ruleInsetCapEnd: '0px',
+                    ruleInsetJunctionStart: '0px',
+                    ruleInsetJunctionEnd: '0px',
                 }
             },
             {
                 input: '10px',
                 expected: {
-                    ruleEdgeInsetStart: '10px',
-                    ruleEdgeInsetEnd: '10px',
-                    ruleInteriorInsetStart: '10px',
-                    ruleInteriorInsetEnd: '10px'
+                    ruleInsetCapStart: '10px',
+                    ruleInsetCapEnd: '10px',
+                    ruleInsetJunctionStart: '10px',
+                    ruleInsetJunctionEnd: '10px'
                 }
             },
             {
                 input: '50%',
                 expected: {
-                    ruleEdgeInsetStart: '50%',
-                    ruleEdgeInsetEnd: '50%',
-                    ruleInteriorInsetStart: '50%',
-                    ruleInteriorInsetEnd: '50%',
+                    ruleInsetCapStart: '50%',
+                    ruleInsetCapEnd: '50%',
+                    ruleInsetJunctionStart: '50%',
+                    ruleInsetJunctionEnd: '50%',
                 }
             },
             {
                 input: '10px 20px',
                 expected: {
-                    ruleEdgeInsetStart: '10px',
-                    ruleEdgeInsetEnd: '20px',
-                    ruleInteriorInsetStart: '10px',
-                    ruleInteriorInsetEnd: '20px',
+                    ruleInsetCapStart: '10px',
+                    ruleInsetCapEnd: '20px',
+                    ruleInsetJunctionStart: '10px',
+                    ruleInsetJunctionEnd: '20px',
                 }
             },
             {
                 input: '10px 20px / 30px',
                 expected: {
-                    ruleEdgeInsetStart: '10px',
-                    ruleEdgeInsetEnd: '20px',
-                    ruleInteriorInsetStart: '30px',
-                    ruleInteriorInsetEnd: '30px',
+                    ruleInsetCapStart: '10px',
+                    ruleInsetCapEnd: '20px',
+                    ruleInsetJunctionStart: '30px',
+                    ruleInsetJunctionEnd: '30px',
                 }
             },
             {
                 input: '10px / 20px 30px',
                 expected: {
-                    ruleEdgeInsetStart: '10px',
-                    ruleEdgeInsetEnd: '10px',
-                    ruleInteriorInsetStart: '20px',
-                    ruleInteriorInsetEnd: '30px',
+                    ruleInsetCapStart: '10px',
+                    ruleInsetCapEnd: '10px',
+                    ruleInsetJunctionStart: '20px',
+                    ruleInsetJunctionEnd: '30px',
                 }
             },
             {
                 input: '10px 20px / 30px 40px',
                 expected: {
-                    ruleEdgeInsetStart: '10px',
-                    ruleEdgeInsetEnd: '20px',
-                    ruleInteriorInsetStart: '30px',
-                    ruleInteriorInsetEnd: '40px',
+                    ruleInsetCapStart: '10px',
+                    ruleInsetCapEnd: '20px',
+                    ruleInsetJunctionStart: '30px',
+                    ruleInsetJunctionEnd: '40px',
                 }
             },
             {
                 input: 'overlap-join',
                 expected: {
-                    ruleEdgeInsetStart: 'overlap-join',
-                    ruleEdgeInsetEnd: 'overlap-join',
-                    ruleInteriorInsetStart: 'overlap-join',
-                    ruleInteriorInsetEnd: 'overlap-join',
+                    ruleInsetCapStart: 'overlap-join',
+                    ruleInsetCapEnd: 'overlap-join',
+                    ruleInsetJunctionStart: 'overlap-join',
+                    ruleInsetJunctionEnd: 'overlap-join',
                 }
             },
             {
                 input: 'overlap-join 10px / overlap-join 10px',
                 expected: {
-                    ruleEdgeInsetStart: 'overlap-join',
-                    ruleEdgeInsetEnd: '10px',
-                    ruleInteriorInsetStart: 'overlap-join',
-                    ruleInteriorInsetEnd: '10px',
+                    ruleInsetCapStart: 'overlap-join',
+                    ruleInsetCapEnd: '10px',
+                    ruleInsetJunctionStart: 'overlap-join',
+                    ruleInsetJunctionEnd: '10px',
                 }
             },
             {
                 input: '10px overlap-join / 10px overlap-join',
                 expected: {
-                    ruleEdgeInsetStart: '10px',
-                    ruleEdgeInsetEnd: 'overlap-join',
-                    ruleInteriorInsetStart: '10px',
-                    ruleInteriorInsetEnd: 'overlap-join',
+                    ruleInsetCapStart: '10px',
+                    ruleInsetCapEnd: 'overlap-join',
+                    ruleInsetJunctionStart: '10px',
+                    ruleInsetJunctionEnd: 'overlap-join',
                 }
             },
         ];
@@ -116,12 +116,12 @@
             const test_cases = testCases;
 
             for (const { input, expected } of test_cases) {
-                const [ruleEdgeInsetStart, ruleEdgeInsetEnd, ruleInteriorInsetStart, ruleInteriorInsetEnd] = rule_properties[rule_property];
+                const [ruleInsetCapStart, ruleInsetCapEnd, ruleInsetJunctionStart, ruleInsetJunctionEnd] = rule_properties[rule_property];
                 test_shorthand_value(rule_property, input, {
-                    [ruleEdgeInsetStart]: expected.ruleEdgeInsetStart,
-                    [ruleEdgeInsetEnd]: expected.ruleEdgeInsetEnd,
-                    [ruleInteriorInsetStart]: expected.ruleInteriorInsetStart,
-                    [ruleInteriorInsetEnd]: expected.ruleInteriorInsetEnd,
+                    [ruleInsetCapStart]: expected.ruleInsetCapStart,
+                    [ruleInsetCapEnd]: expected.ruleInsetCapEnd,
+                    [ruleInsetJunctionStart]: expected.ruleInsetJunctionStart,
+                    [ruleInsetJunctionEnd]: expected.ruleInsetJunctionEnd,
                 });
             }
         }

@@ -22,6 +22,7 @@ use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
 
 mod create;
 mod database_model;
+mod encoding;
 mod object_data_model;
 mod object_store_index_model;
 mod object_store_model;
@@ -29,14 +30,14 @@ mod object_store_model;
 fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
-        let encoded = postcard::to_stdvec(singleton).unwrap();
+        let encoded = encoding::serialize(singleton);
         return Expr::column(object_data_model::Column::Key)
             .eq(encoded)
             .into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
-        let upper_bytes = postcard::to_stdvec(upper).unwrap();
+        let upper_bytes = encoding::serialize(upper);
         let query = if range.upper_open {
             Expr::column(object_data_model::Column::Key).lt(upper_bytes)
         } else {
@@ -45,7 +46,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
-        let lower_bytes = postcard::to_stdvec(lower).unwrap();
+        let lower_bytes = encoding::serialize(lower);
         let query = if range.lower_open {
             Expr::column(object_data_model::Column::Key).gt(lower_bytes)
         } else {
@@ -192,6 +193,7 @@ impl SqliteEngine {
         key_range: IndexedDBKeyRange,
         count: Option<u32>,
     ) -> Result<Vec<object_data_model::Model>, Error> {
+        let query = range_to_query(key_range);
         let mut sql_query = sea_query::Query::select();
         sql_query
             .from(object_data_model::Column::Table)
@@ -200,7 +202,10 @@ impl SqliteEngine {
                 object_data_model::Column::Key,
                 object_data_model::Column::Data,
             ])
-            .and_where(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id));
+            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)));
+        if let Some(count) = count {
+            sql_query.limit(count as u64);
+        }
         let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
         let mut stmt = connection.prepare(&sql)?;
         let models = stmt
@@ -208,33 +213,6 @@ impl SqliteEngine {
                 object_data_model::Model::try_from(row)
             })?
             .collect::<Result<Vec<_>, _>>()?;
-
-        let mut models_with_keys = models
-            .into_iter()
-            .map(|model| {
-                let key: IndexedDBKeyType = postcard::from_bytes(&model.key).unwrap();
-                (model, key)
-            })
-            .collect::<Vec<_>>();
-        // https://w3c.github.io/IndexedDB/#create-a-request-to-retrieve-multiple-items
-        // Step 8.2: Set direction to "next".
-        models_with_keys.sort_by(|(_, a_key), (_, b_key)| {
-            a_key
-                .partial_cmp(b_key)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-
-        // https://w3c.github.io/IndexedDB/#retrieve-multiple-items-from-an-object-store
-        // Step 3.1: Let records be the first count records in store's list of records
-        // whose key is in range.
-        let mut models = models_with_keys
-            .into_iter()
-            .filter(|(_, key)| key_range.contains(key))
-            .map(|(model, _)| model)
-            .collect::<Vec<_>>();
-        if let Some(count) = count {
-            models.truncate(count as usize);
-        }
         Ok(models)
     }
 
@@ -277,7 +255,7 @@ impl SqliteEngine {
         key_generator_current_number: Option<i32>,
     ) -> Result<PutItemResult, Error> {
         let no_overwrite = !should_overwrite;
-        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
+        let serialized_key: Vec<u8> = encoding::serialize(&key);
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
             .and_then(|mut stmt| {
@@ -543,7 +521,7 @@ impl KvsEngine for SqliteEngine {
                             Self::get_all_keys(&connection, object_store, key_range, count)
                                 .map(|keys| {
                                     keys.into_iter()
-                                        .map(|k| postcard::from_bytes(&k).unwrap())
+                                        .map(|k| encoding::deserialize(&k).unwrap())
                                         .collect()
                                 })
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -588,8 +566,8 @@ impl KvsEngine for SqliteEngine {
                                     records
                                         .into_iter()
                                         .map(|(key, data)| IndexedDBRecord {
-                                            key: postcard::from_bytes(&key).unwrap(),
-                                            primary_key: postcard::from_bytes(&key).unwrap(),
+                                            key: encoding::deserialize(&key).unwrap(),
+                                            primary_key: encoding::deserialize(&key).unwrap(),
                                             value: data,
                                         })
                                         .collect()
@@ -609,7 +587,7 @@ impl KvsEngine for SqliteEngine {
                     }) => {
                         let _ = callback.send(
                             Self::get_key(&connection, object_store, key_range)
-                                .map(|key| key.map(|k| postcard::from_bytes(&k).unwrap()))
+                                .map(|key| key.map(|k| encoding::deserialize(&k).unwrap()))
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -796,6 +774,7 @@ mod tests {
     use url::Host;
 
     use crate::indexeddb::IndexedDBDescription;
+    use crate::indexeddb::engines::sqlite::encoding;
     use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
 
     fn test_origin() -> ImmutableOrigin {
@@ -1198,5 +1177,82 @@ mod tests {
         assert_eq!(amount, 1);
         remove.1.recv().unwrap().unwrap();
         clear.1.recv().unwrap().unwrap();
+    }
+
+    #[test]
+    fn test_delete_item_range_respects_open_bounds() {
+        fn remaining_keys_after_delete(
+            lower: i32,
+            upper: i32,
+            lower_open: bool,
+            upper_open: bool,
+        ) -> Vec<i32> {
+            let base_dir = tempfile::tempdir().expect("Failed to create temp dir");
+            let thread_pool = get_pool();
+            let db = SqliteEngine::new(
+                base_dir.path(),
+                &IndexedDBDescription {
+                    name: "test_db".to_string(),
+                    origin: test_origin(),
+                },
+                thread_pool,
+            )
+            .unwrap();
+            let store_name = "test_store";
+            db.create_store(store_name, None, false)
+                .expect("Failed to create store");
+            let store = SqliteEngine::object_store_by_name(&db.connection, store_name)
+                .expect("Failed to get object store");
+
+            for key in 1..=10 {
+                SqliteEngine::put_item(
+                    &db.connection,
+                    store.clone(),
+                    IndexedDBKeyType::Number(key as f64),
+                    vec![key as u8],
+                    false,
+                    None,
+                )
+                .expect("Failed to seed object store");
+            }
+
+            SqliteEngine::delete_item(
+                &db.connection,
+                store.clone(),
+                IndexedDBKeyRange::new(
+                    Some(IndexedDBKeyType::Number(lower as f64)),
+                    Some(IndexedDBKeyType::Number(upper as f64)),
+                    lower_open,
+                    upper_open,
+                ),
+            )
+            .expect("Failed to delete key range");
+
+            SqliteEngine::get_all_keys(&db.connection, store, IndexedDBKeyRange::default(), None)
+                .expect("Failed to read remaining keys")
+                .into_iter()
+                .map(|raw_key| match encoding::deserialize(&raw_key).unwrap() {
+                    IndexedDBKeyType::Number(number) => number as i32,
+                    other => panic!("Expected numeric key, got {other:?}"),
+                })
+                .collect()
+        }
+
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, false, false),
+            vec![1, 2, 9, 10]
+        );
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, true, false),
+            vec![1, 2, 3, 9, 10]
+        );
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, false, true),
+            vec![1, 2, 8, 9, 10]
+        );
+        assert_eq!(
+            remaining_keys_after_delete(3, 8, true, true),
+            vec![1, 2, 3, 8, 9, 10]
+        );
     }
 }

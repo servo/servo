@@ -12,7 +12,7 @@
 <!-- This is a regression test for https://crbug.com/1424250 -->
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 promise_test(async t => {
   const uid = token();

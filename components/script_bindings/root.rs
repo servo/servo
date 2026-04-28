@@ -7,8 +7,9 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::{fmt, mem, ptr};
 
-use js::gc::Traceable as JSTraceable;
-use js::jsapi::{JSObject, JSTracer};
+use js::gc::{Handle, Traceable as JSTraceable};
+use js::jsapi::{Heap, JSObject, JSTracer};
+use js::rust::GCMethods;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use style::thread_state;
 
@@ -468,4 +469,18 @@ where
         let _ = mem::transmute::<Dom<T>, &T>;
         unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
     }
+}
+
+/// Returns a handle to a Heap member of a reflected DOM object.
+/// The provided callback acts as a projection of the rooted-ness of
+/// the provided DOM object; it must return a reference to a Heap
+/// member of the DOM object.
+pub fn rooted_heap_handle<'a, T: DomObject, U: GCMethods + Copy>(
+    object: &'a T,
+    f: impl Fn(&'a T) -> &'a Heap<U>,
+) -> Handle<'a, U> {
+    // SAFETY: Heap::handle is safe to call when the Heap is a member
+    //   of a rooted object. Our safety invariants for DOM objects
+    //   ensure that a &T is obtained via a root of T.
+    unsafe { Handle::from_raw(f(object).handle()) }
 }

@@ -28,7 +28,6 @@ use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -36,9 +35,8 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
-    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError,
-    ScriptFetchOptions, fetch_a_single_module_script, gen_type_error,
-    module_script_from_reference_private,
+    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
+    fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
 
@@ -153,7 +151,7 @@ fn inner_module_loading(
 
             if jsstr.is_null() {
                 // 1. Let error be ThrowCompletion(a newly created SyntaxError object).
-                let error = RethrowError::from_pending_exception(cx.into());
+                let error = RethrowError::from_pending_exception(cx);
 
                 // See Step 7. of `host_load_imported_module`.
                 state.load_state.as_ref().inspect(|load_state| {
@@ -343,7 +341,7 @@ fn continue_dynamic_import(
             // b. If link is an abrupt completion, then
             if !link {
                 // i. Perform ! Call(promiseCapability.[[Reject]], undefined, « link.[[Value]] »).
-                let exception = RethrowError::from_pending_exception(cx.into());
+                let exception = RethrowError::from_pending_exception(cx);
                 inner_promise.reject(cx.into(), exception.handle(), CanGc::from_cx(cx));
 
                 // ii. Return NormalCompletion(undefined).
@@ -357,7 +355,7 @@ fn continue_dynamic_import(
             assert!(unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) });
 
             if !rval.is_object() {
-                let error = RethrowError::from_pending_exception(cx.into());
+                let error = RethrowError::from_pending_exception(cx);
                 return inner_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
             }
             evaluate_promise.set(rval.to_object());
@@ -388,7 +386,7 @@ fn continue_dynamic_import(
                 Some(Box::new(OnRejectedHandler {
                     promise: inner_promise,
                 })),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
             let in_realm = InRealm::Already(&in_realm_proof);
             evaluate_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(cx));
@@ -457,13 +455,10 @@ pub(crate) fn host_load_imported_module(
 
     // Step 6.2. Set settingsObject to referencingScript's settings object.
     if let Some(ref owner) = script_owner {
-        global_scope = owner.global();
+        global_scope = owner.root();
     }
 
-    // Note: loadState is undefined when performing a dynamic import, fall back to `ModuleOwner::DynamicModule`.
-    let owner = script_owner
-        .filter(|_| load_state.is_some())
-        .unwrap_or(ModuleOwner::DynamicModule(Trusted::new(&global_scope)));
+    let global = &global_scope.clone();
 
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
     // Note: These substeps are implemented by `GetRequestedModuleSpecifier`,
@@ -471,15 +466,12 @@ pub(crate) fn host_load_imported_module(
 
     // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
-    let url = ModuleTree::resolve_module_specifier(
-        &global_scope,
-        referencing_script,
-        specifier.clone().into(),
-    );
+    let url =
+        ModuleTree::resolve_module_specifier(global, referencing_script, specifier.clone().into());
 
     // Step 9 If the previous step threw an exception, then:
     if let Err(error) = url {
-        let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
+        let resolution_error = gen_type_error(cx, &global_scope, error);
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
@@ -532,9 +524,9 @@ pub(crate) fn host_load_imported_module(
             let completion = match module_tree {
                 // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
                 None => Err(gen_type_error(
+                    cx,
                     &global_scope,
                     Error::Type(c"Module fetching failed".to_owned()),
-                    CanGc::from_cx(cx),
                 )),
                 Some(module_tree) => {
                     // Step 3. Otherwise, if moduleScript's parse error is not null, then:
@@ -570,7 +562,7 @@ pub(crate) fn host_load_imported_module(
         cx,
         url,
         fetch_client,
-        owner,
+        global,
         destination,
         fetch_options,
         fetch_referrer,
@@ -585,7 +577,7 @@ fn fetch_a_single_imported_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
     fetch_client: ModuleFetchClient,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
@@ -610,7 +602,7 @@ fn fetch_a_single_imported_module_script(
         cx,
         url,
         fetch_client,
-        owner,
+        global,
         destination,
         options,
         referrer,

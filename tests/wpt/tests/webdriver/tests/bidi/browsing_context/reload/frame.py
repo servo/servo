@@ -14,11 +14,11 @@ async def test_origin(bidi_session, new_tab, inline, domain):
 
     # Navigate and assert (top-level).
     result = await bidi_session.browsing_context.navigate(
-        context=new_tab['context'], url=parent_url, wait="complete")
+        context=new_tab["context"], url=parent_url, wait="complete"
+    )
     assert result["url"] == parent_url
 
-    contexts = await bidi_session.browsing_context.get_tree(
-        root=new_tab['context'])
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     assert len(contexts) == 1
     assert contexts[0]["url"] == parent_url
 
@@ -27,7 +27,9 @@ async def test_origin(bidi_session, new_tab, inline, domain):
     assert frame["url"] == frame_url
 
     # Reload and assert (frame).
-    reload_and_assert(bidi_session, frame, last_navigation=result["navigation"], url=frame_url)
+    await reload_and_assert(
+        bidi_session, frame, last_navigation=result["navigation"], url=frame_url
+    )
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])

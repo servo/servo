@@ -346,7 +346,7 @@ impl FontFace {
             // Step 1. If the load was successful, font face now represents the parsed font; fulfill font face’s
             // [[FontStatusPromise]] with font face, and set its status attribute to "loaded".
             self.font_status_promise
-                .resolve_native(&self, CanGc::note());
+                .resolve_native(&self, CanGc::deprecated_note());
             self.status.set(FontFaceLoadStatus::Loaded);
             *self.template.borrow_mut() = Some(template);
 
@@ -362,7 +362,7 @@ impl FontFace {
             // Step 2. Otherwise, reject font face’s [[FontStatusPromise]] with a DOMException named "SyntaxError"
             // and set font face’s status attribute to "error".
             self.font_status_promise
-                .reject_error(Error::Syntax(None), CanGc::note());
+                .reject_error(Error::Syntax(None), CanGc::deprecated_note());
             self.status.set(FontFaceLoadStatus::Error);
 
             // For each FontFaceSet font face is in:
@@ -591,7 +591,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
 
                 // Step 5. When the load operation completes, successfully or not, queue a task to
                 // run the following steps synchronously:
-                task_source.queue(task!(resolve_font_face_load_task: move || {
+                task_source.queue(task!(resolve_font_face_load_task: move |cx| {
                     let font_face = trusted.root();
 
                     match load_result {
@@ -600,7 +600,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             // [[FontStatusPromise]] with a DOMException whose name is "NetworkError"
                             // and set font face’s status attribute to "error".
                             font_face.status.set(FontFaceLoadStatus::Error);
-                            font_face.font_status_promise.reject_error(Error::Network(None), CanGc::note());
+                            font_face.font_status_promise.reject_error(Error::Network(None), CanGc::from_cx(cx));
                         }
                         Some(template) => {
                             // Step 5.2. Otherwise, font face now represents the loaded font;
@@ -609,7 +609,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
                             font_face.status.set(FontFaceLoadStatus::Loaded);
                             let old_template = font_face.template.borrow_mut().replace((family_name, template));
                             debug_assert!(old_template.is_none(), "FontFace's template must be intialized only once");
-                            font_face.font_status_promise.resolve_native(&font_face, CanGc::note());
+                            font_face.font_status_promise.resolve_native(&font_face, CanGc::from_cx(cx));
                         }
                     }
 

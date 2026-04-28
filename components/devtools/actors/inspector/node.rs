@@ -9,7 +9,8 @@ use std::collections::HashMap;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::{
-    AttrModification, DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode,
+    AttrModification, DevtoolScriptControlMsg, EventListenerInfo, MatchedRule, NodeInfo,
+    ShadowRootMode,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -132,7 +133,7 @@ pub(crate) struct NodeActor {
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub walker: String,
-    pub style_rules: AtomicRefCell<HashMap<(String, usize), String>>,
+    pub style_rules: AtomicRefCell<HashMap<MatchedRule, String>>,
 }
 
 impl Actor for NodeActor {
@@ -257,6 +258,30 @@ impl Actor for NodeActor {
     }
 }
 
+impl NodeActor {
+    pub fn register(
+        registry: &ActorRegistry,
+        script_id: String,
+        script_chan: GenericSender<DevtoolScriptControlMsg>,
+        pipeline: PipelineId,
+        walker: String,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+
+        registry.register_script_actor(script_id, name.clone());
+
+        let actor = Self {
+            name: name.clone(),
+            script_chan,
+            pipeline,
+            walker,
+            style_rules: AtomicRefCell::new(HashMap::new()),
+        };
+
+        registry.register(actor);
+        name
+    }
+}
 pub trait NodeInfoToProtocol {
     fn encode(
         self,
@@ -277,18 +302,13 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let get_or_register_node_actor = |id: &str| {
             if !registry.script_actor_registered(id.to_string()) {
-                let node_name = registry.new_name::<NodeActor>();
-                registry.register_script_actor(id.to_string(), node_name.clone());
-
-                let node_actor = NodeActor {
-                    name: node_name.clone(),
-                    script_chan: script_chan.clone(),
+                NodeActor::register(
+                    registry,
+                    id.to_string(),
+                    script_chan.clone(),
                     pipeline,
-                    walker: walker.clone(),
-                    style_rules: AtomicRefCell::new(HashMap::new()),
-                };
-                registry.register(node_actor);
-                node_name
+                    walker.clone(),
+                )
             } else {
                 registry.script_to_actor(id.to_string())
             }

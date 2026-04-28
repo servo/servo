@@ -214,7 +214,7 @@ impl XRSession {
                 let time = CrossProcessInstant::now();
                 let this = this.clone();
                 task_source.queue(task!(xr_raf_callback: move || {
-                    this.root().raf_callback(frame, time, CanGc::note());
+                    this.root().raf_callback(frame, time, CanGc::deprecated_note());
                 }));
             }),
         );
@@ -237,7 +237,7 @@ impl XRSession {
             ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |message| {
                 let this = this.clone();
                 task_source.queue(task!(xr_event_callback: move || {
-                    this.root().event_callback(message.unwrap(), CanGc::note());
+                    this.root().event_callback(message.unwrap(), CanGc::deprecated_note());
                 }))
             })
             .expect("Could not create callback");
@@ -267,7 +267,7 @@ impl XRSession {
             .dom_manipulation_task_source()
             .queue(task!(session_initial_inputs: move || {
                 let this = this.root();
-                this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::note());
+                this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::deprecated_note());
             }));
     }
 
@@ -466,7 +466,12 @@ impl XRSession {
         }
 
         let time = self.global().performance().to_dom_high_res_time_stamp(time);
-        let frame = XRFrame::new(self.global().as_window(), self, frame, CanGc::note());
+        let frame = XRFrame::new(
+            self.global().as_window(),
+            self,
+            frame,
+            CanGc::deprecated_note(),
+        );
 
         // Step 8-9
         frame.set_active(true);
@@ -1071,9 +1076,9 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 let this = this.clone();
                 task_source.queue(task!(update_session_framerate: move || {
                     let session = this.root();
-                    session.apply_nominal_framerate(message.unwrap(), CanGc::note());
+                    session.apply_nominal_framerate(message.unwrap(), CanGc::deprecated_note());
                     if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                        promise.resolve_native(&(), CanGc::note());
+                        promise.resolve_native(&(), CanGc::deprecated_note());
                     };
                 }));
             })

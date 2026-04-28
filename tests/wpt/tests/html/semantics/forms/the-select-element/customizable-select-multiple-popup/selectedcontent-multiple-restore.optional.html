@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This test is marked optional because form control restoration is not explicitly specified. -->
+
+<iframe id=iframe1 src="resources/selectedcontent-multiple-restore-iframe.html"></iframe>
+
+<script>
+const iframe1 = document.getElementById('iframe1');
+const iframe1load = new Promise(resolve => iframe1.onload = resolve);
+
+promise_test(async () => {
+  await iframe1load;
+  await test_driver.bless();
+  let doc = iframe1.contentDocument;
+
+  doc.querySelector('.one').selected = true;
+  doc.querySelector('.two').selected = true;
+  assert_array_equals(
+    Array.from(doc.querySelector('select').selectedOptions),
+    [doc.querySelector('.one'), doc.querySelector('.two')],
+    'Selecting two options should work.');
+  assert_equals(
+    doc.querySelector('selectedcontent').innerHTML,
+    '<div>one</div><div>two</div>',
+    'Selectedcontent element should contain selected options.');
+  doc.querySelector('form').submit();
+  await new Promise(resolve => iframe1.onload = resolve);
+
+  await test_driver.bless();
+  iframe1.contentWindow.history.back();
+  // Form controls are restored immediately after the load event is fired, so
+  // one rAF is added after awaiting the load event. See
+  // LocalDOMWindow::DispatchLoadAndPageshowEvents.
+  await new Promise(resolve => iframe1.onload = resolve);
+  await new Promise(requestAnimationFrame);
+
+  doc = iframe1.contentDocument;
+  assert_array_equals(
+    Array.from(doc.querySelector('select').selectedOptions),
+    [doc.querySelector('.one'), doc.querySelector('.two')],
+    'Selected options should be restored after navigating back.');
+  assert_equals(
+    doc.querySelector('selectedcontent').innerHTML,
+    '<div>one</div><div>two</div>',
+    'Selectedcontent element should be restored.');
+}, '<selectedcontent> should be up to date after form restoration.');
+</script>

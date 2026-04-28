@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -12,6 +14,9 @@ use crate::dom::document::Document;
 use crate::dom::event::Event;
 use crate::dom::event::inputevent::InputEvent;
 use crate::dom::execcommand::basecommand::CommandName;
+use crate::dom::execcommand::commands::fontsize::maybe_normalize_pixels;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
@@ -61,11 +66,18 @@ fn mapped_value_of_command(command: CommandName) -> DOMString {
     .into()
 }
 
+impl Node {
+    fn is_in_plaintext_only_state(&self) -> bool {
+        self.downcast::<HTMLElement>()
+            .is_some_and(|el| el.ContentEditable().str() == "plaintext-only")
+    }
+}
+
 impl Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#enabled>
     fn selection_if_command_is_enabled(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_name: CommandName,
     ) -> Option<DomRoot<Selection>> {
         let selection = self.GetSelection(CanGc::from_cx(cx))?;
@@ -79,20 +91,25 @@ impl Document {
         // > The other commands defined here are enabled if the active range is not null,
         let range = selection.active_range()?;
         // > its start node is either editable or an editing host,
-        if !range.start_container().is_editable_or_editing_host() {
-            return None;
-        }
+        let start_container_editing_host = range.start_container().editing_host_of()?;
         // > the editing host of its start node is not an EditContext editing host,
         // TODO
         // > its end node is either editable or an editing host,
-        if !range.end_container().is_editable_or_editing_host() {
-            return None;
-        }
+        let end_container_editing_host = range.end_container().editing_host_of()?;
         // > the editing host of its end node is not an EditContext editing host,
         // TODO
         // > and there is some editing host that is an inclusive ancestor of both its start node and its end node.
         // TODO
-        Some(selection)
+
+        // Some commands are only enabled if the editing host is *not* in plaintext-only state.
+        if !command_name.is_enabled_in_plaintext_only_state() &&
+            (start_container_editing_host.is_in_plaintext_only_state() ||
+                end_container_editing_host.is_in_plaintext_only_state())
+        {
+            None
+        } else {
+            Some(selection)
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#supported>
@@ -100,9 +117,15 @@ impl Document {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
         Some(match &*command_id.str().to_lowercase() {
+            "bold" => CommandName::Bold,
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
+            "fontname" => CommandName::FontName,
+            "fontsize" => CommandName::FontSize,
+            "italic" => CommandName::Italic,
+            "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,
+            "underline" => CommandName::Underline,
             _ => return None,
         })
     }
@@ -111,16 +134,16 @@ impl Document {
 pub(crate) trait DocumentExecCommandSupport {
     fn is_command_supported(&self, command_id: DOMString) -> bool;
     fn is_command_indeterminate(&self, command_id: DOMString) -> bool;
-    fn command_state_for_command(&self, command_id: DOMString) -> bool;
-    fn command_value_for_command(&self, command_id: DOMString) -> DOMString;
+    fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool;
+    fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString;
     fn check_support_and_enabled(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: &DOMString,
     ) -> Option<(CommandName, DomRoot<Selection>)>;
     fn exec_command_for_command_id(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: DOMString,
         value: DOMString,
     ) -> bool;
@@ -141,12 +164,12 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
-    fn command_state_for_command(&self, command_id: DOMString) -> bool {
+    fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
         // Step 1. If command is not supported or has no state, return false.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
             return false;
         };
-        let Some(state) = command.current_state(self) else {
+        let Some(state) = command.current_state(cx, self) else {
             return false;
         };
         // Step 2. If the state override for command is set, return it.
@@ -155,30 +178,33 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
-    fn command_value_for_command(&self, command_id: DOMString) -> DOMString {
+    fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString {
         // Step 1. If command is not supported or has no value, return the empty string.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
             return DOMString::new();
         };
-        let Some(value) = command.current_value(self) else {
+        let Some(value) = command.current_value(cx, self) else {
             return DOMString::new();
         };
-        // Step 2. If command is "fontSize" and its value override is set,
-        // convert the value override to an integer number of pixels and return the legacy font size for the result.
-        // TODO
-
         // Step 3. If the value override for command is set, return it.
-        if let Some(value_override) = self.value_override(&command) {
-            return value_override;
-        }
-        // Step 4. Return command's value.
-        value
+        self.value_override(&command)
+            .map(|value_override| {
+                // Step 2. If command is "fontSize" and its value override is set,
+                // convert the value override to an integer number of pixels and return the legacy font size for the result.
+                if command == CommandName::FontSize {
+                    maybe_normalize_pixels(&value_override, self).unwrap_or(value_override)
+                } else {
+                    value_override
+                }
+            })
+            // Step 4. Return command's value.
+            .unwrap_or(value)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
     fn check_support_and_enabled(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: &DOMString,
     ) -> Option<(CommandName, DomRoot<Selection>)> {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
@@ -190,7 +216,7 @@ impl DocumentExecCommandSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
     fn exec_command_for_command_id(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         command_id: DOMString,
         value: DOMString,
     ) -> bool {
@@ -204,12 +230,14 @@ impl DocumentExecCommandSupport for Document {
             // Step 4.1. Let affected editing host be the editing host that is an inclusive ancestor
             // of the active range's start node and end node, and is not the ancestor of any editing host
             // that is an inclusive ancestor of the active range's start node and end node.
-            let affected_editing_host = selection
+            let Some(affected_editing_host) = selection
                 .active_range()
                 .expect("Must always have an active range")
                 .CommonAncestorContainer()
                 .editing_host_of()
-                .expect("Must always have an editing host if command is enabled");
+            else {
+                return false;
+            };
 
             // Step 4.2. Fire an event named "beforeinput" at affected editing host using InputEvent,
             // with its bubbles and cancelable attributes initialized to true, and its data attribute initialized to null

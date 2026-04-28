@@ -17,7 +17,7 @@ same origin in process behavior.
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 function runTest(originKey, label) {
   promise_test(async t => {

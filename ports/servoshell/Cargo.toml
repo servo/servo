@@ -64,7 +64,7 @@ webxr = ["servo/webxr"]
 
 [dependencies]
 accesskit = { workspace = true }
-bpaf = { version = "0.9.24", features = ["derive"] }
+bpaf = { version = "0.9.25", features = ["derive"] }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
@@ -87,7 +87,7 @@ webdriver_server = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
-jni = "0.21.1"
+jni = "0.22"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
@@ -116,10 +116,10 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 dirs = "6.0"
-egui = { version = "0.33.3", features = ["accesskit"] }
-egui-file-dialog = "0.12.0"
-egui-winit = { version = "0.33.3", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
-egui_glow = { version = "0.33.3", features = ["winit"] }
+egui = { version = "0.34.1" }
+egui-file-dialog = "0.13.0"
+egui-winit = { version = "0.34.1", default-features = false, features = ["accesskit", "clipboard", "wayland"] }
+egui_glow = { version = "0.34.1", features = ["winit"] }
 gilrs = "0.11.1"
 glow = { workspace = true }
 headers = { workspace = true }
@@ -130,7 +130,7 @@ surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
-sig = "1.0"
+signal-hook-registry = "1.4.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 servo = { workspace = true, features = ["no-wgl"] }

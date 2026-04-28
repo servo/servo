@@ -6,13 +6,10 @@ use app_units::{Au, MAX_AU};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
-use html5ever::local_name;
-use layout_api::wrapper_traits::ThreadSafeLayoutNode;
-use layout_api::{IFrameSize, LayoutImageDestination, SVGElementData};
+use layout_api::{IFrameSize, LayoutElement, LayoutImageDestination, LayoutNode, SVGElementData};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
-use script::layout_dom::ServoThreadSafeLayoutNode;
-use selectors::Element;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
@@ -30,6 +27,7 @@ use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::{Content, Context, ToComputedValue};
 use style::values::generics::counters::{GenericContentItem, GenericContentItems};
 use url::Url;
+use web_atoms::local_name;
 use webrender_api::ImageKey;
 
 use crate::cell::ArcRefCell;
@@ -39,7 +37,7 @@ use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, IFrameFragment, ImageFragment,
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
-use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
+use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{
     ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
@@ -143,15 +141,15 @@ pub(crate) enum ReplacedContentKind {
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(VideoInfo),
-    SVGElement(Option<VectorImage>),
+    SVGElement {
+        vector_image: Option<VectorImage>,
+        has_viewbox: bool,
+    },
     Audio,
 }
 
 impl ReplacedContents {
-    pub fn for_element(
-        node: ServoThreadSafeLayoutNode<'_>,
-        context: &LayoutContext,
-    ) -> Option<Self> {
+    pub fn for_element(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = node.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
                 return Self::from_image_url(
@@ -191,7 +189,7 @@ impl ReplacedContents {
                 Self::svg_kind_size(svg_data, context, node)
             } else if node
                 .as_html_element()
-                .is_some_and(|element| element.has_local_name(&local_name!("audio")))
+                .is_some_and(|element| element.local_name() == &local_name!("audio"))
             {
                 let natural_size = NaturalSizes {
                     width: None,
@@ -226,7 +224,7 @@ impl ReplacedContents {
     fn svg_kind_size(
         svg_data: SVGElementData,
         context: &LayoutContext,
-        node: ServoThreadSafeLayoutNode<'_>,
+        node: ServoLayoutNode<'_>,
     ) -> (ReplacedContentKind, NaturalSizes) {
         let rule_cache_conditions = &mut RuleCacheConditions::default();
 
@@ -306,13 +304,16 @@ impl ReplacedContents {
             _ => unreachable!("SVG element can't contain a raster image."),
         });
 
-        (ReplacedContentKind::SVGElement(vector_image), natural_size)
+        (
+            ReplacedContentKind::SVGElement {
+                vector_image,
+                has_viewbox: svg_data.view_box.is_some(),
+            },
+            natural_size,
+        )
     }
 
-    fn from_content_property(
-        node: ServoThreadSafeLayoutNode<'_>,
-        context: &LayoutContext,
-    ) -> Option<Self> {
+    fn from_content_property(node: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         // If the `content` property is a single image URL, non-replaced boxes
         // and images get replaced with the given image.
         if let Content::Items(GenericContentItems { items, .. }) =
@@ -330,7 +331,7 @@ impl ReplacedContents {
     }
 
     pub fn from_image_url(
-        node: ServoThreadSafeLayoutNode<'_>,
+        node: ServoLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
@@ -370,7 +371,7 @@ impl ReplacedContents {
     }
 
     pub fn from_image(
-        element: ServoThreadSafeLayoutNode<'_>,
+        element: ServoLayoutNode<'_>,
         context: &LayoutContext,
         image: &ComputedImage,
     ) -> Option<Self> {
@@ -380,7 +381,7 @@ impl ReplacedContents {
         }
     }
 
-    pub(crate) fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
+    pub(crate) fn zero_sized_invalid_image(node: ServoLayoutNode<'_>) -> Self {
         Self {
             kind: ReplacedContentKind::Image(ImageInfo {
                 image: None,
@@ -571,25 +572,29 @@ impl ReplacedContents {
                     url: None,
                 }))]
             },
-            ReplacedContentKind::SVGElement(vector_image) => {
+            ReplacedContentKind::SVGElement {
+                vector_image,
+                has_viewbox,
+            } => {
                 let Some(vector_image) = vector_image else {
                     return vec![];
                 };
 
-                // TODO: This is incorrect if the SVG has a viewBox.
-                base.rect = PhysicalSize::new(
-                    vector_image
-                        .metadata
-                        .width
-                        .try_into()
-                        .map_or(MAX_AU, Au::from_px),
-                    vector_image
-                        .metadata
-                        .height
-                        .try_into()
-                        .map_or(MAX_AU, Au::from_px),
-                )
-                .into();
+                if !has_viewbox {
+                    base.rect = PhysicalSize::new(
+                        vector_image
+                            .metadata
+                            .width
+                            .try_into()
+                            .map_or(MAX_AU, Au::from_px),
+                        vector_image
+                            .metadata
+                            .height
+                            .try_into()
+                            .map_or(MAX_AU, Au::from_px),
+                    )
+                    .into();
+                }
 
                 let scale = layout_context.style_context.device_pixel_ratio();
                 let raster_size = Size2D::new(
@@ -700,7 +705,7 @@ impl ReplacedContents {
         preferred_aspect_ratio: Option<AspectRatio>,
         base: &LayoutBoxBase,
         lazy_block_size: &LazySize,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         let writing_mode = base.style.writing_mode;
         let inline_size = containing_block_for_children.size.inline;
         let content_block_size = self.content_size(
@@ -714,7 +719,7 @@ impl ReplacedContents {
             block: lazy_block_size.resolve(|| content_block_size),
         }
         .to_physical_size(writing_mode);
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             baselines: Default::default(),
             collapsible_margins_in_children: CollapsedBlockMargins::zero(),
             content_block_size,

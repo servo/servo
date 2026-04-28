@@ -19,8 +19,10 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
+use log::debug;
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
+use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
@@ -106,6 +108,9 @@ pub(crate) struct WebViewInner {
     /// [`TreeId`] of the web contents of this [`WebView`]’s active top-level pipeline,
     /// which is grafted into the tree for this [`WebView`].
     pub(crate) grafted_accesskit_tree_id: Option<TreeId>,
+    /// A counter for changes to the grafted accesskit tree for this webview.
+    /// See [`Self::grafted_accesskit_tree_id`].
+    grafted_accesskit_tree_epoch: Option<Epoch>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -156,6 +161,7 @@ impl WebView {
                 .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
             accesskit_tree_id: None,
             grafted_accesskit_tree_id: None,
+            grafted_accesskit_tree_epoch: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -371,7 +377,7 @@ impl WebView {
     /// transition or is running `requestAnimationFrame` callbacks. This indicates that the
     /// embedding application should be spinning the Servo event loop on regular intervals
     /// in order to trigger animation updates.
-    pub fn animating(self) -> bool {
+    pub fn animating(&self) -> bool {
         self.inner().animating
     }
 
@@ -724,11 +730,10 @@ impl WebView {
     ) {
         let constellation_proxy = self.inner().servo.constellation_proxy().clone();
         let embedder_control = match embedder_control_request {
-            EmbedderControlRequest::SelectElement(options, selected_option) => {
+            EmbedderControlRequest::SelectElement(request) => {
                 EmbedderControl::SelectElement(SelectElement {
                     id: control_id,
-                    options,
-                    selected_option,
+                    select_element_request: request,
                     position,
                     constellation_proxy,
                     response_sent: false,
@@ -821,6 +826,8 @@ impl WebView {
             self.inner_mut().accesskit_tree_id = Some(accesskit_tree_id);
         } else {
             self.inner_mut().accesskit_tree_id = None;
+            self.inner_mut().grafted_accesskit_tree_id = None;
+            self.inner_mut().grafted_accesskit_tree_epoch = None;
         }
 
         self.inner().servo.constellation_proxy().send(
@@ -838,7 +845,8 @@ impl WebView {
             .inner_mut()
             .grafted_accesskit_tree_id
             .replace(grafted_tree_id);
-        // TODO(accessibility): try to avoid duplicate notifications in the first place?
+        // TODO(#4344): try to avoid duplicate notifications in the first place?
+        // (see ConstellationWebView::new for more details)
         if old_grafted_tree_id == Some(grafted_tree_id) {
             return;
         }
@@ -861,6 +869,30 @@ impl WebView {
                 focus: root_node_id,
             },
         );
+    }
+
+    pub(crate) fn process_accessibility_tree_update(&self, tree_update: TreeUpdate, epoch: Epoch) {
+        if self
+            .inner()
+            .grafted_accesskit_tree_epoch
+            .is_some_and(|current| epoch < current)
+        {
+            // We expect this to happen occasionally when the constellation navigates, because
+            // deactivating accessibility happens asynchronously, so the script thread of the
+            // previously active document may continue sending updates for a short period of time.
+            debug!("Ignoring stale tree update for {:?}", tree_update.tree_id);
+            return;
+        }
+        if self
+            .inner()
+            .grafted_accesskit_tree_epoch
+            .is_none_or(|current| epoch > current)
+        {
+            self.notify_document_accessibility_tree_id(tree_update.tree_id);
+            self.inner_mut().grafted_accesskit_tree_epoch = Some(epoch);
+        }
+        self.delegate()
+            .notify_accessibility_tree_update(self.clone(), tree_update);
     }
 }
 

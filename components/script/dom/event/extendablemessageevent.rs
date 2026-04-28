@@ -144,7 +144,11 @@ impl ExtendableMessageEvent {
             .fire(target, can_gc);
     }
 
-    pub(crate) fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn dispatch_error(
+        cx: &mut js::context::JSContext,
+        target: &EventTarget,
+        scope: &GlobalScope,
+    ) {
         let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
         let ExtendableMsgEvent = ExtendableMessageEvent::new(
             scope,
@@ -155,9 +159,11 @@ impl ExtendableMessageEvent {
             init.origin.clone(),
             init.lastEventId.clone(),
             init.ports.clone(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        ExtendableMsgEvent.upcast::<Event>().fire(target, can_gc);
+        ExtendableMsgEvent
+            .upcast::<Event>()
+            .fire(target, CanGc::from_cx(cx));
     }
 }
 

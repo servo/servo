@@ -12,6 +12,7 @@ use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{
     AnimationState, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionEvent, ScriptToEmbedderChan, Theme, ViewportDetails,
+    WakeLockType,
 };
 use encoding_rs::Encoding;
 use euclid::default::Size2D as UntypedSize2D;
@@ -35,6 +36,7 @@ use servo_base::id::{
     ServiceWorkerRegistrationId, WebViewId,
 };
 use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+use servo_canvas_traits::webgl::WebGLChan;
 use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
@@ -483,6 +485,8 @@ pub struct WorkerGlobalScopeInit {
     pub inherited_secure_context: Option<bool>,
     /// Unminify Javascript.
     pub unminify_js: bool,
+    /// Handle for communicating messages to the WebGL thread, if available.
+    pub webgl_chan: Option<WebGLChan>,
 }
 
 /// Common entities representing a network load origin
@@ -538,6 +542,16 @@ pub enum ScreenshotReadinessResponse {
     NoLongerActive,
 }
 
+/// Identifies a category of events/notifications that a pipeline can register
+/// interest in with the constellation. When a pipeline has active listeners for
+/// events in a given category, it registers interest so the constellation only
+/// sends notifications to pipelines that care.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum ConstellationInterest {
+    /// Interest in `storage` events (fired when another same-origin pipeline modifies storage).
+    StorageEvent,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
@@ -585,6 +599,12 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a message to all same-origin broadcast channels,
     /// excluding the source of the broadcast.
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastChannelMsg),
+    /// Register this pipeline's interest in a category of notifications.
+    /// The constellation will only send notifications in this category to
+    /// pipelines that have registered interest.
+    RegisterInterest(ConstellationInterest),
+    /// Unregister this pipeline's interest in a category of notifications.
+    UnregisterInterest(ConstellationInterest),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
@@ -614,9 +634,10 @@ pub enum ScriptToConstellationMessage {
     ///
     /// The second field is a sequence number that the constellation should use
     /// when sending a focus-related message to the sender pipeline next time.
-    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
-    /// Requests the constellation to focus the specified browsing context.
-    FocusRemoteDocument(BrowsingContextId),
+    FocusAncestorBrowsingContextsForFocusingSteps(Option<BrowsingContextId>, FocusSequenceNumber),
+    /// Have the Constellation trigger a remote call to `Focus` on the `Window` of the given
+    /// [`BrowsingContextId`].
+    FocusRemoteBrowsingContext(BrowsingContextId),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(BrowsingContextId, GenericSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is
@@ -725,6 +746,14 @@ pub enum ScriptToConstellationMessage {
     RespondToScreenshotReadinessRequest(ScreenshotReadinessResponse),
     /// Request the constellation to force garbage collection in all `ScriptThread`'s.
     TriggerGarbageCollection,
+    /// Request to acquire a wake lock of the given type. The constellation will track the
+    /// aggregate lock count and notify the provider only when the count transitions from 0 to 1.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-acquire-wake-lock>
+    AcquireWakeLock(WakeLockType),
+    /// Request to release a wake lock of the given type. The constellation will track the
+    /// aggregate lock count and notify the provider only when the count transitions from N to 0.
+    /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
+    ReleaseWakeLock(WakeLockType),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

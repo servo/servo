@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
@@ -26,14 +27,13 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -84,14 +84,14 @@ impl AudioContext {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         options: &AudioContextOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioContext>> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id)?;
-        let context = reflect_dom_object_with_proto(Box::new(context), window, proto, can_gc);
+        let context = reflect_dom_object_with_proto_and_cx(Box::new(context), window, proto, cx);
         context.resume();
         Ok(context)
     }
@@ -112,12 +112,12 @@ impl AudioContext {
 impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     /// <https://webaudio.github.io/web-audio-api/#AudioContext-constructors>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        AudioContext::new(window, proto, options, can_gc)
+        AudioContext::new(cx, window, proto, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency>
@@ -140,19 +140,19 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend>
-    fn Suspend(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+    fn Suspend(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState(None), can_gc);
+            promise.reject_error(Error::InvalidState(None), CanGc::from_cx(cx));
             return promise;
         }
 
         // Step 3.
         if self.context.State() == AudioContextState::Suspended {
-            promise.resolve_native(&(), can_gc);
+            promise.resolve_native(&(), CanGc::from_cx(cx));
             return promise;
         }
 
@@ -163,11 +163,11 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
                 self.global().task_manager().dom_manipulation_task_source().queue(
-                    task!(suspend_ok: move || {
+                    task!(suspend_ok: move |cx| {
                         let base_context = base_context.root();
                         let context = context.root();
                         let promise = trusted_promise.root();
-                        promise.resolve_native(&(), CanGc::note());
+                        promise.resolve_native(&(), CanGc::from_cx(cx));
                         if base_context.State() != AudioContextState::Suspended {
                             base_context.set_state_attribute(AudioContextState::Suspended);
                             context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
@@ -184,9 +184,9 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                 self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task!(suspend_error: move || {
+                    .queue(task!(suspend_error: move |cx| {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::note());
+                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::from_cx(cx));
                     }));
             },
         };
@@ -196,19 +196,19 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-close>
-    fn Close(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+    fn Close(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
-            promise.reject_error(Error::InvalidState(None), can_gc);
+            promise.reject_error(Error::InvalidState(None), CanGc::from_cx(cx));
             return promise;
         }
 
         // Step 3.
         if self.context.State() == AudioContextState::Closed {
-            promise.resolve_native(&(), can_gc);
+            promise.resolve_native(&(), CanGc::from_cx(cx));
             return promise;
         }
 
@@ -219,11 +219,11 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
                 self.global().task_manager().dom_manipulation_task_source().queue(
-                    task!(suspend_ok: move || {
+                    task!(suspend_ok: move |cx| {
                         let base_context = base_context.root();
                         let context = context.root();
                         let promise = trusted_promise.root();
-                        promise.resolve_native(&(), CanGc::note());
+                        promise.resolve_native(&(), CanGc::from_cx(cx));
                         if base_context.State() != AudioContextState::Closed {
                             base_context.set_state_attribute(AudioContextState::Closed);
                             context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
@@ -240,9 +240,9 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                 self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task!(suspend_error: move || {
+                    .queue(task!(suspend_error: move |cx| {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::note());
+                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::from_cx(cx));
                     }));
             },
         };
@@ -265,33 +265,33 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamsource>
     fn CreateMediaStreamSource(
         &self,
+        cx: &mut js::context::JSContext,
         stream: &MediaStream,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamAudioSourceNode::new(window, self, stream, can_gc)
+        MediaStreamAudioSourceNode::new(cx, window, self, stream)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamtracksource>
     fn CreateMediaStreamTrackSource(
         &self,
+        cx: &mut js::context::JSContext,
         track: &MediaStreamTrack,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamTrackAudioSourceNode::new(window, self, track, can_gc)
+        MediaStreamTrackAudioSourceNode::new(cx, window, self, track)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamdestination>
     fn CreateMediaStreamDestination(
         &self,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamAudioDestinationNode::new(window, self, &AudioNodeOptions::empty(), can_gc)
+        MediaStreamAudioDestinationNode::new(cx, window, self, &AudioNodeOptions::empty())
     }
 }
 

@@ -13,102 +13,102 @@
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div focusgroup="menu">
-  <button id=m1>m1</button>
-  <button id=m2>m2</button>
-  <button id=m3>m3</button>
+  <button tabindex=0 id=m1>m1</button>
+  <button tabindex=0 id=m2>m2</button>
+  <button tabindex=0 id=m3>m3</button>
 </div>
 
 <!-- menu inline: explicit inline overrides default block -->
 <div focusgroup="menu inline">
-  <button id=mi1>mi1</button>
-  <button id=mi2>mi2</button>
-  <button id=mi3>mi3</button>
+  <button tabindex=0 id=mi1>mi1</button>
+  <button tabindex=0 id=mi2>mi2</button>
+  <button tabindex=0 id=mi3>mi3</button>
 </div>
 
 <!-- menu nowrap: suppresses default block-axis wrap -->
 <div focusgroup="menu nowrap">
-  <button id=mnw1>mnw1</button>
-  <button id=mnw2>mnw2</button>
-  <button id=mnw3>mnw3</button>
+  <button tabindex=0 id=mnw1>mnw1</button>
+  <button tabindex=0 id=mnw2>mnw2</button>
+  <button tabindex=0 id=mnw3>mnw3</button>
 </div>
 
 <script>
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kDown);
     assert_equals(document.activeElement.id, 'm2');
-  }, "menu: ArrowDown navigates to the next item");
+  }, "menu: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m2'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('m2'), kUp);
     assert_equals(document.activeElement.id, 'm1');
-  }, "menu: ArrowUp navigates to the previous item");
+  }, "menu: Up navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m1'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kRight);
     assert_equals(document.activeElement.id, 'm1');
-  }, "menu: ArrowRight blocked");
+  }, "menu: Right blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m1'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kLeft);
     assert_equals(document.activeElement.id, 'm1');
-  }, "menu: ArrowLeft blocked");
+  }, "menu: Left blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m3'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('m3'), kDown);
     assert_equals(document.activeElement.id, 'm1');
-  }, "menu: ArrowDown wraps at end");
+  }, "menu: Down wraps at end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('m1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('m1'), kUp);
     assert_equals(document.activeElement.id, 'm3');
-  }, "menu: ArrowUp wraps at start");
+  }, "menu: Up wraps at start");
 
   // --- menu inline: explicit inline overrides default block ---
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mi1'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kRight);
     assert_equals(document.activeElement.id, 'mi2');
-  }, "menu inline: ArrowRight navigates to the next item");
+  }, "menu inline: Right navigates to the next item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mi2'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('mi2'), kLeft);
     assert_equals(document.activeElement.id, 'mi1');
-  }, "menu inline: ArrowLeft navigates to the previous item");
+  }, "menu inline: Left navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mi1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kDown);
     assert_equals(document.activeElement.id, 'mi1');
-  }, "menu inline: ArrowDown blocked");
+  }, "menu inline: Down blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mi1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kUp);
     assert_equals(document.activeElement.id, 'mi1');
-  }, "menu inline: ArrowUp blocked");
+  }, "menu inline: Up blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mi3'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('mi3'), kRight);
     assert_equals(document.activeElement.id, 'mi1');
-  }, "menu inline: ArrowRight wraps at end");
+  }, "menu inline: Right wraps at end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mi1'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('mi1'), kLeft);
     assert_equals(document.activeElement.id, 'mi3');
-  }, "menu inline: ArrowLeft wraps at start");
+  }, "menu inline: Left wraps at start");
 
   // --- menu nowrap: suppresses default block-axis wrap ---
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mnw1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('mnw1'), kDown);
     assert_equals(document.activeElement.id, 'mnw2');
-  }, "menu nowrap: ArrowDown navigates to the next item");
+  }, "menu nowrap: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mnw3'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('mnw3'), kDown);
     assert_equals(document.activeElement.id, 'mnw3');
-  }, "menu nowrap: ArrowDown does not wrap at end");
+  }, "menu nowrap: Down does not wrap at end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('mnw1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('mnw1'), kUp);
     assert_equals(document.activeElement.id, 'mnw1');
-  }, "menu nowrap: ArrowUp does not wrap at start");
+  }, "menu nowrap: Up does not wrap at start");
 
 </script>

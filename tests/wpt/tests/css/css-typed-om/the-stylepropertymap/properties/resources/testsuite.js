@@ -60,10 +60,24 @@ const gCssWideKeywordsExamples = [
   },
 ];
 
+// Leading whitespace before var() is not consistently handled across engines.
+// See https://github.com/w3c/csswg-drafts/issues/13792
+// Allow either the original or normalized form for now.
 const gVarReferenceExamples = [
   {
     description: 'a var() reference',
-    input: new CSSUnparsedValue([' ', new CSSVariableReferenceValue('--A')])
+    input: new CSSUnparsedValue([' ', new CSSVariableReferenceValue('--A')]),
+    specifiedAlternateExpected: new CSSUnparsedValue([new CSSVariableReferenceValue('--A')]),
+    defaultSpecified: (input, result, alternateExpected) => {
+      try {
+        assert_style_value_equals(result, input);
+      } catch(e) {
+        if (alternateExpected === undefined) {
+          throw e;
+        }
+        assert_style_value_equals(result, alternateExpected);
+      }
+    }
   },
 ];
 

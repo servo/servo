@@ -13,7 +13,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.
@@ -40,18 +39,18 @@ impl DocumentType {
         }
     }
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         name: DOMString,
         public_id: Option<DOMString>,
         system_id: Option<DOMString>,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<DocumentType> {
         Node::reflect_node(
+            cx,
             Box::new(DocumentType::new_inherited(
                 name, public_id, system_id, document,
             )),
             document,
-            can_gc,
         )
     }
 

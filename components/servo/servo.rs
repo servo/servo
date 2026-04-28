@@ -69,6 +69,7 @@ use servo_geometry::{
 };
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
+use servo_wakelock::DefaultWakeLockDelegate;
 use storage::new_storage_threads;
 use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
@@ -81,7 +82,7 @@ use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
-use crate::site_data_manager::SiteDataManager;
+use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
@@ -121,7 +122,17 @@ mod media_platform {
     }
 }
 
-#[cfg(not(feature = "media-gstreamer"))]
+#[cfg(all(not(feature = "media-gstreamer"), target_env = "ohos"))]
+mod media_platform {
+    use servo_media_ohos::OhosBackend;
+
+    use super::ServoMedia;
+    pub fn init() {
+        ServoMedia::init::<OhosBackend>();
+    }
+}
+
+#[cfg(all(not(feature = "media-gstreamer"), not(target_env = "ohos")))]
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {
@@ -149,7 +160,7 @@ struct ServoInner {
     net_embedder_receiver: Receiver<NetToEmbedderMsg>,
     constellation_embedder_receiver: Receiver<ConstellationToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
-    site_data_manager: Rc<RefCell<SiteDataManager>>,
+    site_data_manager: SiteDataManager,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -181,6 +192,7 @@ impl ServoInner {
             .and_then(WebView::from_weak_handle)
     }
 
+    #[servo_tracing::instrument(level = "debug", skip_all)]
     fn spin_event_loop(&self) -> bool {
         if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
@@ -252,6 +264,7 @@ impl ServoInner {
         true
     }
 
+    #[servo_tracing::instrument(level = "debug", skip_all)]
     fn receive_one_message(&self) -> Option<Message> {
         let mut select = crossbeam_channel::Select::new();
         let embedder_receiver_index = select.recv(&self.embedder_receiver);
@@ -376,6 +389,16 @@ impl ServoInner {
                         .delegate()
                         .request_authentication(webview, authentication_request);
                 }
+            },
+            NetToEmbedderMsg::EmbedderGetCookiesForUrlResponse(operation_id, cookies) => {
+                self.site_data_manager.handle_cookie_response(
+                    operation_id,
+                    CookieOperationResponse::Cookies(cookies),
+                );
+            },
+            NetToEmbedderMsg::EmbedderSetCookieForUrlResponse(operation_id) => {
+                self.site_data_manager
+                    .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
         }
     }
@@ -533,6 +556,21 @@ impl ServoInner {
                         .request_permission(webview, permission_request);
                 }
             },
+            EmbedderMsg::RequestWakeLockPermission(webview_id, callback) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let permission_request = PermissionRequest {
+                        requested_feature: PermissionFeature::ScreenWakeLock,
+                        allow_deny_request: AllowOrDenyRequest::new_from_callback(
+                            callback,
+                            AllowOrDeny::Deny,
+                            self.servo_errors.sender(),
+                        ),
+                    };
+                    webview
+                        .delegate()
+                        .request_permission(webview, permission_request);
+                }
+            },
             EmbedderMsg::OnDevtoolsStarted(port, token) => match port {
                 Ok(port) => self
                     .delegate
@@ -659,11 +697,9 @@ impl ServoInner {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
-            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update) => {
+            EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update, epoch) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_accessibility_tree_update(webview, tree_update);
+                    webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
         }
@@ -771,11 +807,6 @@ impl ServoInner {
                         .notify_media_session_event(webview, media_session_event);
                 }
             },
-            ConstellationToEmbedderMsg::DocumentAccessibilityTreeIdChanged(webview_id, tree_id) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.notify_document_accessibility_tree_id(tree_id);
-                }
-            },
         }
     }
 }
@@ -803,7 +834,7 @@ impl Drop for ServoInner {
 pub struct Servo(Rc<ServoInner>);
 
 impl Servo {
-    #[servo_tracing::instrument(skip(builder))]
+    #[servo_tracing::instrument(name = "Servo::new", skip(builder))]
     fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
         let opts = builder.opts.map(|opts| *opts);
@@ -899,8 +930,11 @@ impl Servo {
                 protocols.clone(),
             );
 
-        let (private_storage_threads, public_storage_threads) =
-            new_storage_threads(mem_profiler_chan.clone(), opts.config_dir.clone());
+        let (private_storage_threads, public_storage_threads) = new_storage_threads(
+            mem_profiler_chan.clone(),
+            opts.config_dir.clone(),
+            opts.temporary_storage,
+        );
 
         create_constellation(
             embedder_to_constellation_receiver,
@@ -919,6 +953,8 @@ impl Servo {
             private_storage_threads.clone(),
         );
 
+        net::connector::prewarm_tls();
+
         if opts::get().multiprocess {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
@@ -930,12 +966,12 @@ impl Servo {
                 public_resource_threads.clone(),
                 private_resource_threads.clone(),
             ))),
-            site_data_manager: Rc::new(RefCell::new(SiteDataManager::new(
+            site_data_manager: SiteDataManager::new(
                 public_resource_threads,
                 private_resource_threads,
                 public_storage_threads,
                 private_storage_threads,
-            ))),
+            ),
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),
@@ -1010,8 +1046,8 @@ impl Servo {
         self.0.network_manager.borrow()
     }
 
-    pub fn site_data_manager<'a>(&'a self) -> Ref<'a, SiteDataManager> {
-        self.0.site_data_manager.borrow()
+    pub fn site_data_manager(&self) -> &SiteDataManager {
+        &self.0.site_data_manager
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
@@ -1158,6 +1194,7 @@ fn create_constellation(
         wgpu_image_map: paint.webgpu_image_map(),
         async_runtime,
         privileged_urls,
+        wake_lock_provider: Box::new(DefaultWakeLockDelegate),
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());

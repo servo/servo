@@ -95,7 +95,15 @@ let expected_websocket_csp_url = websocket_url.replace('wss://', 'https://');
 // The WebSocket URL is not the same as 'self'
 promise_test(t => {
   return Promise.all([
-    waitUntilCSPEventForURL(t, expected_websocket_csp_url),
+    Promise.race([
+      waitUntilCSPEventForURL(t, expected_websocket_csp_url),
+      // Wait with a timeout so that the test fails and doesn't time out
+      // if the reported URL is wrong.
+      new Promise((resolve, reject) => t.step_timeout(() => {
+        reject('timeout while waiting for report for ' +
+               expected_websocket_csp_url);
+      }, 2000)),
+    ]),
     new Promise((resolve, reject) => {
       // Firefox throws in the constructor, Chrome triggers the error event.
       try {

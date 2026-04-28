@@ -157,13 +157,13 @@ jobs:
       - name: Smoketest
         run: .\mach smoketest --profile ${{ inputs.profile }}
       - name: Install cargo nextest
-        if: ${{ runner.environment != 'self-hosted' }}
+        if: ${{ runner.environment != 'self-hosted' && inputs.unit-tests }}
         uses: taiki-e/install-action@v2
         with:
           tool: nextest
       # On self-hosted windows runners the install-action fails
       - name: Install cargo nextest (self-hosted)
-        if: ${{ runner.environment == 'self-hosted' }}
+        if: ${{ runner.environment == 'self-hosted' && inputs.unit-tests }}
         run: cargo install cargo-nextest --locked
       - name: Unit tests
         if: ${{ inputs.unit-tests }}

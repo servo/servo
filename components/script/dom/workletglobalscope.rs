@@ -9,8 +9,10 @@ use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
+use js::context::JSContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use net_traits::response::HttpsState;
 use profile_traits::{mem, time};
 use script_traits::Painter;
 use servo_base::generic_channel::{GenericCallback, GenericSender};
@@ -33,7 +35,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{IntroductionType, JSContext};
+use crate::script_runtime::IntroductionType;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -60,7 +62,7 @@ impl WorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -123,6 +125,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 false,
                 None, // font_context
+                HttpsState::None,
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -130,16 +133,11 @@ impl WorkletGlobalScope {
         }
     }
 
-    /// Get the JS context.
-    pub(crate) fn get_cx() -> JSContext {
-        GlobalScope::get_cx()
-    }
-
     /// Evaluate a JS script in this global.
     pub(crate) fn evaluate_js(
         &self,
         script: Cow<'_, str>,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> Result<(), JavaScriptEvaluationError> {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
@@ -182,7 +180,7 @@ impl WorkletGlobalScope {
     }
 
     /// Perform a worklet task
-    pub(crate) fn perform_a_worklet_task(&self, task: WorkletTask) {
+    pub(crate) fn perform_a_worklet_task(&self, cx: &mut JSContext, task: WorkletTask) {
         match task {
             #[cfg(feature = "testbinding")]
             WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
@@ -190,7 +188,7 @@ impl WorkletGlobalScope {
                 None => warn!("This is not a test worklet."),
             },
             WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(task),
+                Some(global) => global.perform_a_worklet_task(cx, task),
                 None => warn!("This is not a paint worklet."),
             },
         }

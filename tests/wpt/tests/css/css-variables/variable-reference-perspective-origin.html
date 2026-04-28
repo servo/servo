@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Variables: perspective-origin with var() references</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property">
+<link rel="help" href="https://drafts.csswg.org/css-variables-2/">
+<meta name="assert" content="perspective-origin correctly resolves CSS variables in both value positions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    .target {
+        width: 200px;
+        height: 200px;
+        perspective: 800px;
+    }
+</style>
+</head>
+<body>
+<script>
+function test_perspective_origin_var(style, expected, description) {
+    test(() => {
+        const div = document.createElement('div');
+        div.className = 'target';
+        div.setAttribute('style', style);
+        document.body.appendChild(div);
+        assert_equals(getComputedStyle(div).perspectiveOrigin, expected);
+        div.remove();
+    }, description);
+}
+
+test_perspective_origin_var(
+    '--x: 0%; perspective-origin: var(--x) 50%',
+    '0px 100px',
+    'var() as first value of perspective-origin'
+);
+
+test_perspective_origin_var(
+    '--y: 0%; perspective-origin: 50% var(--y)',
+    '100px 0px',
+    'var() as second value of perspective-origin'
+);
+
+test_perspective_origin_var(
+    '--x: 10%; --y: 20%; perspective-origin: var(--x) var(--y)',
+    '20px 40px',
+    'var() as both values of perspective-origin'
+);
+
+test_perspective_origin_var(
+    '--pos: 25%; perspective-origin: var(--pos) var(--pos)',
+    '50px 50px',
+    'same var() for both values of perspective-origin'
+);
+
+test_perspective_origin_var(
+    '--y: top; perspective-origin: 50% var(--y)',
+    '100px 0px',
+    'var() as second value with keyword'
+);
+
+test_perspective_origin_var(
+    '--x: left; perspective-origin: var(--x) 50%',
+    '0px 100px',
+    'var() as first value with keyword'
+);
+</script>
+</body>
+</html>

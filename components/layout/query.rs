@@ -6,15 +6,16 @@
 use std::rc::Rc;
 
 use app_units::Au;
+use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
-use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectIterator, LayoutElementType, LayoutNodeType,
-    OffsetParentResponse, PhysicalSides, ScrollContainerQueryFlags, ScrollContainerResponse,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, DangerousStyleElementOf, LayoutElement,
+    LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
+    ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use paint_api::display_list::ScrollTree;
-use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
@@ -23,7 +24,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use style::dom::{NodeInfo, TElement, TNode};
+use style::dom::NodeInfo;
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -57,7 +58,7 @@ use crate::taffy::SpecificTaffyGridInfo;
 /// calculate its cumulative transform from its root scroll node to the scroll node.
 fn root_transform_for_layout_node(
     scroll_tree: &ScrollTree,
-    node: ServoThreadSafeLayoutNode<'_>,
+    node: ServoLayoutNode<'_>,
 ) -> Option<FastLayoutTransform> {
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
@@ -68,9 +69,7 @@ fn root_transform_for_layout_node(
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
 
-pub(crate) fn process_padding_request(
-    node: ServoThreadSafeLayoutNode<'_>,
-) -> Option<PhysicalSides> {
+pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<PhysicalSides> {
     let fragments = node.fragments_for_pseudo(None);
     let fragment = fragments.first()?;
     Some(match fragment {
@@ -89,7 +88,7 @@ pub(crate) fn process_padding_request(
 
 pub(crate) fn process_box_area_request(
     stacking_context_tree: &StackingContextTree,
-    node: ServoThreadSafeLayoutNode<'_>,
+    node: ServoLayoutNode<'_>,
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au, CSSPixel>> {
@@ -123,7 +122,7 @@ pub(crate) fn process_box_area_request(
 
 pub(crate) fn process_box_areas_request(
     stacking_context_tree: &StackingContextTree,
-    node: ServoThreadSafeLayoutNode<'_>,
+    node: ServoLayoutNode<'_>,
     area: BoxAreaType,
 ) -> CSSPixelRectIterator {
     let fragments = node
@@ -140,7 +139,7 @@ pub(crate) fn process_box_areas_request(
     Box::new(fragments.filter_map(move |rect| transform_au_rectangle(rect, transform)))
 }
 
-pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<i32, CSSPixel> {
+pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32, CSSPixel> {
     node.fragments_for_pseudo(None)
         .first()
         .map(Fragment::client_rect)
@@ -154,7 +153,7 @@ pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<
 /// values from the element up to the root. Returns 1.0 if the element is not
 /// being rendered (has no associated box).
 pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
-    let Some(layout_data) = node.to_threadsafe().inner_layout_data() else {
+    let Some(layout_data) = node.inner_layout_data() else {
         return 1.0;
     };
     let layout_box = layout_data.self_box.borrow();
@@ -168,7 +167,7 @@ pub fn process_current_css_zoom_query(node: ServoLayoutNode<'_>) -> f32 {
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
-    requested_node: Option<ServoThreadSafeLayoutNode<'_>>,
+    requested_node: Option<ServoLayoutNode<'_>>,
     fragment_tree: Option<Rc<FragmentTree>>,
 ) -> Rect<i32, CSSPixel> {
     let Some(tree) = fragment_tree else {
@@ -200,13 +199,16 @@ pub fn process_resolved_style_request(
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
 ) -> String {
-    if !node.as_element().unwrap().has_data() {
+    if node
+        .as_element()
+        .is_none_or(|element| element.style_data().is_none())
+    {
         return process_resolved_style_request_for_unstyled_node(context, node, pseudo, property);
     }
 
     // We call process_resolved_style_request after performing a whole-document
     // traversal, so in the common case, the element is styled.
-    let layout_element = node.to_threadsafe().as_element().unwrap();
+    let layout_element = node.as_element().unwrap();
     let layout_element = match pseudo {
         Some(pseudo_element_type) => {
             match layout_element.with_pseudo(*pseudo_element_type) {
@@ -395,8 +397,7 @@ pub fn process_resolved_style_request(
         .to_css_string()
     };
 
-    node.to_threadsafe()
-        .fragments_for_pseudo(*pseudo)
+    node.fragments_for_pseudo(*pseudo)
         .first()
         .map(resolve_for_fragment)
         .unwrap_or_else(|| computed_style(None))
@@ -490,6 +491,7 @@ fn resolve_grid_template(
     }
 }
 
+#[expect(unsafe_code)]
 pub fn process_resolved_style_request_for_unstyled_node(
     context: &SharedStyleContext,
     node: ServoLayoutNode<'_>,
@@ -510,7 +512,7 @@ pub fn process_resolved_style_request_for_unstyled_node(
     let element = node.as_element().unwrap();
     let styles = resolve_style(
         &mut context,
-        element,
+        unsafe { element.dangerous_style_element() },
         RuleInclusion::All,
         pseudo.as_ref(),
         None,
@@ -570,17 +572,14 @@ struct OffsetParentFragments {
 }
 
 /// <https://www.w3.org/TR/2016/WD-cssom-view-1-20160317/#dom-htmlelement-offsetparent>
+#[expect(unsafe_code)]
 fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFragments> {
     // 1. If any of the following holds true return null and terminate this algorithm:
     //  * The element does not have an associated CSS layout box.
     //  * The element is the root element.
     //  * The element is the HTML body element.
     //  * The element’s computed value of the position property is fixed.
-    let fragment = node
-        .to_threadsafe()
-        .fragments_for_pseudo(None)
-        .first()
-        .cloned()?;
+    let fragment = node.fragments_for_pseudo(None).first().cloned()?;
     let flags = fragment.base()?.flags;
     if flags.intersects(
         FragmentFlags::IS_ROOT_ELEMENT | FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT,
@@ -599,26 +598,18 @@ fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFrag
     //  * It is the HTML body element.
     //  * The computed value of the position property of the element is static and the
     //    ancestor is one of the following HTML elements: td, th, or table.
-    let mut maybe_parent_node = node.parent_node();
+    let mut maybe_parent_node = unsafe { node.dangerous_dom_parent() };
     while let Some(parent_node) = maybe_parent_node {
-        maybe_parent_node = parent_node.parent_node();
+        maybe_parent_node = unsafe { parent_node.dangerous_dom_parent() };
 
-        if let Some(parent_fragment) = parent_node
-            .to_threadsafe()
-            .fragments_for_pseudo(None)
-            .first()
-        {
+        if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
             let parent_fragment = match parent_fragment {
                 Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
                 _ => continue,
             };
 
-            let grandparent_fragment = maybe_parent_node.and_then(|node| {
-                node.to_threadsafe()
-                    .fragments_for_pseudo(None)
-                    .first()
-                    .cloned()
-            });
+            let grandparent_fragment =
+                maybe_parent_node.and_then(|node| node.fragments_for_pseudo(None).first().cloned());
 
             if parent_fragment.borrow().style().get_box().position != Position::Static {
                 return Some(OffsetParentFragments {
@@ -664,11 +655,7 @@ pub fn process_offset_parent_query(
     // [1]: https://github.com/w3c/csswg-drafts/issues/4541
     // > 1. If the element is the HTML body element or does not have any associated CSS
     //      layout box return zero and terminate this algorithm.
-    let fragment = node
-        .to_threadsafe()
-        .fragments_for_pseudo(None)
-        .first()
-        .cloned()?;
+    let fragment = node.fragments_for_pseudo(None).first().cloned()?;
     let mut border_box = fragment.cumulative_box_area_rect(BoxAreaType::Border)?;
     let cumulative_sticky_offsets = fragment
         .retrieve_box_fragment()
@@ -751,6 +738,57 @@ pub fn process_offset_parent_query(
     })
 }
 
+fn style_and_flags_for_node(
+    node: &ServoLayoutNode,
+) -> Option<(ServoArc<ComputedValues>, FragmentFlags)> {
+    let layout_data = node.inner_layout_data()?;
+    let layout_box = layout_data.self_box.borrow();
+    let layout_box = layout_box.as_ref()?;
+
+    layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+}
+
+fn is_containing_block_for_position(
+    position: Position,
+    ancestor_style: &ServoArc<ComputedValues>,
+    ancestor_flags: FragmentFlags,
+) -> bool {
+    match position {
+        Position::Static | Position::Relative | Position::Sticky => {
+            !ancestor_style.is_inline_box(ancestor_flags)
+        },
+        Position::Absolute => {
+            ancestor_style.establishes_containing_block_for_absolute_descendants(ancestor_flags)
+        },
+        Position::Fixed => {
+            ancestor_style.establishes_containing_block_for_all_descendants(ancestor_flags)
+        },
+    }
+}
+
+fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayoutNode<'a>> {
+    let (style, _flags) = style_and_flags_for_node(&node)?;
+
+    let mut current_position_value = style.clone_position();
+    let mut current_ancestor = node;
+
+    #[expect(unsafe_code)]
+    while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
+        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+            continue;
+        };
+
+        if is_containing_block_for_position(current_position_value, &ancestor_style, ancestor_flags)
+        {
+            return Some(ancestor);
+        }
+
+        current_position_value = ancestor_style.clone_position();
+        current_ancestor = ancestor;
+    }
+    None
+}
+
 /// An implementation of `scrollParent` that can also be used to for `scrollIntoView`:
 /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>.
 ///
@@ -764,15 +802,9 @@ pub(crate) fn process_scroll_container_query(
         return Some(ScrollContainerResponse::Viewport(viewport_overflow));
     };
 
-    let layout_data = node.to_threadsafe().inner_layout_data()?;
-
     // 1. If any of the following holds true, return null and terminate this algorithm:
     //  - The element does not have an associated box.
-    let layout_box = layout_data.self_box.borrow();
-    let layout_box = layout_box.as_ref()?;
-
-    let (style, flags) =
-        layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))?;
+    let (style, flags) = style_and_flags_for_node(&node)?;
 
     // - The element is the root element.
     // - The element is the body element.
@@ -816,42 +848,27 @@ pub(crate) fn process_scroll_container_query(
     //
     // TODO: Handle the situation where the ancestor is "closed-shadow-hidden" from the element.
     let mut current_position_value = style.clone_position();
-    let mut current_ancestor = node.as_element()?;
-    while let Some(ancestor) = current_ancestor.traversal_parent() {
+    let mut current_ancestor = node;
+
+    #[expect(unsafe_code)]
+    while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
         current_ancestor = ancestor;
 
-        let Some(layout_data) = ancestor.as_node().to_threadsafe().inner_layout_data() else {
-            continue;
-        };
-        let ancestor_layout_box = layout_data.self_box.borrow();
-        let Some(ancestor_layout_box) = ancestor_layout_box.as_ref() else {
+        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
             continue;
         };
 
-        let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
-            .with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
-        else {
-            continue;
-        };
-
-        let is_containing_block = match current_position_value {
-            Position::Static | Position::Relative | Position::Sticky => {
-                !ancestor_style.is_inline_box(ancestor_flags)
-            },
-            Position::Absolute => {
-                ancestor_style.establishes_containing_block_for_absolute_descendants(ancestor_flags)
-            },
-            Position::Fixed => {
-                ancestor_style.establishes_containing_block_for_all_descendants(ancestor_flags)
-            },
-        };
-        if !is_containing_block {
+        if !is_containing_block_for_position(
+            current_position_value,
+            &ancestor_style,
+            ancestor_flags,
+        ) {
             continue;
         }
 
         if ancestor_style.establishes_scroll_container(ancestor_flags) {
             return Some(ScrollContainerResponse::Element(
-                ancestor.as_node().opaque().into(),
+                ancestor.opaque().into(),
                 ancestor_style.effective_overflow(ancestor_flags),
             ));
         }
@@ -954,6 +971,7 @@ impl Default for RenderedTextCollectionState {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rendered-text-collection-steps>
+#[expect(unsafe_code)]
 fn rendered_text_collection_steps(
     node: ServoLayoutNode<'_>,
     state: &mut RenderedTextCollectionState,
@@ -967,27 +985,33 @@ fn rendered_text_collection_steps(
     }
 
     match node.type_id() {
-        LayoutNodeType::Text => {
-            if let Some(element) = node.parent_node() {
-                match element.type_id() {
+        Some(LayoutNodeType::Text) => {
+            if let Some(parent_node) = unsafe { node.dangerous_dom_parent() } {
+                match parent_node.type_id() {
                     // Any text contained in these elements must be ignored.
-                    LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
-                    LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
-                    LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
-                    LayoutNodeType::Element(LayoutElementType::HTMLObjectElement) |
-                    LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
-                    LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
-                    LayoutNodeType::Element(LayoutElementType::HTMLMediaElement) => {
+                    Some(
+                        LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLObjectElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLMediaElement),
+                    ) => {
                         return items;
                     },
                     // Select/Option/OptGroup elements are handled a bit differently.
                     // Basically: a Select can only contain Options or OptGroups, while
                     // OptGroups may also contain Options. Everything else gets ignored.
-                    LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) => {
-                        if let Some(element) = element.parent_node() {
+                    Some(LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement)) => {
+                        if let Some(grandparent_node) =
+                            unsafe { parent_node.dangerous_dom_parent() }
+                        {
                             if !matches!(
-                                element.type_id(),
-                                LayoutNodeType::Element(LayoutElementType::HTMLSelectElement)
+                                grandparent_node.type_id(),
+                                Some(LayoutNodeType::Element(
+                                    LayoutElementType::HTMLSelectElement
+                                ))
                             ) {
                                 return items;
                             }
@@ -995,7 +1019,9 @@ fn rendered_text_collection_steps(
                             return items;
                         }
                     },
-                    LayoutNodeType::Element(LayoutElementType::HTMLSelectElement) => return items,
+                    Some(LayoutNodeType::Element(LayoutElementType::HTMLSelectElement)) => {
+                        return items;
+                    },
                     _ => {},
                 }
 
@@ -1006,7 +1032,10 @@ fn rendered_text_collection_steps(
                     return items;
                 }
 
-                let Some(style_data) = element.style_data() else {
+                let Some(parent_element) = parent_node.as_element() else {
+                    return items;
+                };
+                let Some(style_data) = parent_element.style_data() else {
                     return items;
                 };
 
@@ -1029,18 +1058,20 @@ fn rendered_text_collection_steps(
                 // property is not 'none':
                 let display = style.get_box().display;
                 if display == Display::None {
-                    match element.type_id() {
+                    match parent_element.type_id() {
                         // Even if set to Display::None, Option/OptGroup elements need to
                         // be rendered.
-                        LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) |
-                        LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) => {},
+                        Some(
+                            LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) |
+                            LayoutNodeType::Element(LayoutElementType::HTMLOptionElement),
+                        ) => {},
                         _ => {
                             return items;
                         },
                     }
                 }
 
-                let text_content = node.to_threadsafe().text_content();
+                let text_content = node.text_content();
 
                 let white_space_collapse = style.clone_white_space_collapse();
                 let preserve_whitespace = white_space_collapse == WhiteSpaceCollapseValue::Preserve;
@@ -1116,12 +1147,10 @@ fn rendered_text_collection_steps(
             } else {
                 // If we don't have a parent element then there's no style data available,
                 // in this (pretty unlikely) case we just return the Text fragment as is.
-                items.push(InnerOrOuterTextItem::Text(
-                    node.to_threadsafe().text_content().into(),
-                ));
+                items.push(InnerOrOuterTextItem::Text(node.text_content().into()));
             }
         },
-        LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
+        Some(LayoutNodeType::Element(LayoutElementType::HTMLBRElement)) => {
             // Step 5: If node is a br element, then append a string containing a single U+000A
             // LF code point to items.
             state.did_truncate_trailing_white_space = false;
@@ -1131,7 +1160,10 @@ fn rendered_text_collection_steps(
         _ => {
             // First we need to gather some infos to setup the various flags
             // before rendering the child nodes
-            let Some(style_data) = node.style_data() else {
+            let Some(element) = node.as_element() else {
+                return items;
+            };
+            let Some(style_data) = element.style_data() else {
                 return items;
             };
 
@@ -1222,13 +1254,15 @@ fn rendered_text_collection_steps(
             match node.type_id() {
                 // Step 8: If node is a p element, then append 2 (a required line break count) at
                 // the beginning and end of items.
-                LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
+                Some(LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement)) => {
                     surrounding_line_breaks = 2;
                 },
                 // Option/OptGroup elements should go on separate lines, by treating them like
                 // Block elements we can achieve that.
-                LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) => {
+                Some(
+                    LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement),
+                ) => {
                     surrounding_line_breaks = 1;
                 },
                 _ => {},
@@ -1247,13 +1281,15 @@ fn rendered_text_collection_steps(
                 // However we still need to check whether we have to prepend a
                 // space, since for example <span>asd <input> qwe</span> must
                 // product "asd  qwe" (note the 2 spaces)
-                LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLObjectElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLMediaElement) => {
+                Some(
+                    LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLObjectElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLMediaElement),
+                ) => {
                     if display != Display::Block && state.did_truncate_trailing_white_space {
                         items.push(InnerOrOuterTextItem::Text(String::from(" ")));
                         state.did_truncate_trailing_white_space = false;
@@ -1317,7 +1353,7 @@ impl ClosestFragment {
 }
 
 pub fn find_character_offset_in_fragment_descendants(
-    node: &ServoThreadSafeLayoutNode,
+    node: &ServoLayoutNode,
     stacking_context_tree: &StackingContextTree,
     point_in_viewport: Point2D<Au, CSSPixel>,
 ) -> Option<usize> {
@@ -1389,6 +1425,11 @@ pub fn find_character_offset_in_fragment_descendants(
     })
 }
 
+pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {
+    let containing_block = containing_block_for_node(node);
+    containing_block.map(|node| node.opaque().into())
+}
+
 pub fn process_resolved_font_style_query<'dom, E>(
     context: &SharedStyleContext,
     node: E,
@@ -1442,7 +1483,7 @@ where
         };
         context
             .stylist
-            .compute_for_declarations::<E::ConcreteElement>(
+            .compute_for_declarations::<DangerousStyleElementOf<'dom, E::ConcreteTypeBundle>>(
                 &context.guards,
                 parent_style,
                 ServoArc::new(shared_lock.wrap(declarations)),
@@ -1459,15 +1500,22 @@ where
     // 2. Get resolved styles for the parent element
     let element = node.as_element().unwrap();
     let parent_style = if node.is_connected() {
-        if element.has_data() {
-            node.to_threadsafe().as_element().unwrap().style(context)
+        if element.style_data().is_some() {
+            element.style(context)
         } else {
             let mut tlc = ThreadLocalStyleContext::new();
             let mut context = StyleContext {
                 shared: context,
                 thread_local: &mut tlc,
             };
-            let styles = resolve_style(&mut context, element, RuleInclusion::All, None, None);
+            #[expect(unsafe_code)]
+            let styles = resolve_style(
+                &mut context,
+                unsafe { element.dangerous_style_element() },
+                RuleInclusion::All,
+                None,
+                None,
+            );
             styles.primary().clone()
         }
     } else {
@@ -1497,9 +1545,7 @@ pub(crate) fn transform_au_rectangle(
     outer_transformed_rect.map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
 }
 
-pub(crate) fn process_effective_overflow_query(
-    node: ServoThreadSafeLayoutNode<'_>,
-) -> Option<AxesOverflow> {
+pub(crate) fn process_effective_overflow_query(node: ServoLayoutNode<'_>) -> Option<AxesOverflow> {
     let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments.first()?.retrieve_box_fragment()?;
     let box_fragment = box_fragment.borrow();

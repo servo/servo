@@ -193,10 +193,6 @@ impl ElementInternals {
             !self.satisfies_constraints(can_gc)
     }
 
-    pub(crate) fn custom_states(&self) -> Option<DomRoot<CustomStateSet>> {
-        self.states.get()
-    }
-
     pub(crate) fn custom_states_for_layout<'a>(&'a self) -> Option<LayoutDom<'a, CustomStateSet>> {
         #[expect(unsafe_code)]
         unsafe {

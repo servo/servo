@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: flex item width with percentage-height replaced element</title>
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=296562">
+<meta name="assert" content="Flex items containing a percentage-height replaced
+  element should resolve their intrinsic width correctly using the container's
+  definite cross size for aspect ratio calculations.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.flex-container {
+    display: flex;
+    height: 100%;
+}
+.flex-item {
+    border: 5px solid yellow;
+}
+canvas {
+    height: 100%;
+}
+</style>
+<div style="height: 200px">
+    <div class="flex-container">
+        <div class="flex-item" style="flex-basis: 0" data-expected-width="200" data-expected-height="200">
+            <canvas width="400" height="400" data-expected-width="190" data-expected-height="190"></canvas>
+        </div>
+    </div>
+</div>
+<div style="height: 200px">
+    <div class="flex-container">
+        <div class="flex-item" style="flex-basis: auto" data-expected-width="200" data-expected-height="200">
+            <canvas width="400" height="400" data-expected-width="190" data-expected-height="190"></canvas>
+        </div>
+    </div>
+</div>
+<script>
+checkLayout(".flex-item");
+</script>

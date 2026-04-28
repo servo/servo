@@ -1,4 +1,13 @@
 <!DOCTYPE html>
 <link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#the-optgroup-element">
 
-<div>child text</div>
+<div id="ref">child text</div>
+<optgroup id="src"></optgroup>
+<script>
+// Copy the font-weight from an optgroup onto the div so the ref matches
+// regardless of what default styling each engine applies to optgroup.
+const src = document.querySelector("#src");
+const ref = document.querySelector("#ref");
+ref.style.fontWeight = getComputedStyle(src).fontWeight;
+src.remove();
+</script>

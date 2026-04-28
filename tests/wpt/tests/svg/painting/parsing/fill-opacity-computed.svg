@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Painting: getComputedStyle().fillOpacity</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#FillOpacity"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#FillOpacity"/>
     <h:meta name="assert" content="fill-opacity computed value is clamped to the range [0,1]."/>
   </metadata>
   <g id="target"></g>

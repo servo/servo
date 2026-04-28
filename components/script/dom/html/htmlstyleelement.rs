@@ -80,20 +80,20 @@ impl HTMLStyleElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLStyleElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLStyleElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -254,7 +254,7 @@ impl HTMLStyleElement {
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 )
             })
         })
@@ -347,9 +347,9 @@ impl VirtualMethods for HTMLStyleElement {
         self.update_a_style_block();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
@@ -462,7 +462,7 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
-    fn SetDisabled(&self, value: bool) {
+    fn SetDisabled(&self, _cx: &mut js::context::JSContext, value: bool) {
         if let Some(sheet) = self.get_cssom_stylesheet() {
             sheet.set_disabled(value);
         }

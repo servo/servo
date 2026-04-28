@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin-left: 100px;
+    margin-top: 100px;
+  }
+
+  .flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 320px;
+  }
+
+  .item {
+    width: 100px;
+    height: 100px;
+    background: gray;
+    opacity: 0.5;
+  }
+
+  .row-gap {
+    position: absolute;
+    width: 470px;
+    height: 0px;
+    border-bottom: solid 5px red;
+    left: 0px;
+  }
+
+  .row-gap1 {
+    top: 202.5px;
+  }
+
+  .row-gap2 {
+    top: 312.5px;
+  }
+
+  .col-gap {
+    position: absolute;
+    width: 0px;
+    border-left: solid 5px blue;
+  }
+
+  .col-gap-s1 { top: 50px; height: 150px; }
+  .col-gap-s2 { top: 210px; height: 100px; }
+  .col-gap-s3 { top: 320px; height: 200px; }
+
+  .col-gap1 { left: 202.5px; }
+  .col-gap2 { left: 312.5px; }
+</style>
+<div class="flex-container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+
+<div class="col-gap col-gap1 col-gap-s1"> </div>
+<div class="col-gap col-gap1 col-gap-s2"> </div>
+<div class="col-gap col-gap1 col-gap-s3"> </div>
+<div class="col-gap col-gap2 col-gap-s1"> </div>
+<div class="col-gap col-gap2 col-gap-s2"> </div>
+<div class="col-gap col-gap2 col-gap-s3"> </div>
+
+<div class="row-gap row-gap1"> </div>
+<div class="row-gap row-gap2"> </div>

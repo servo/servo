@@ -10,6 +10,7 @@ interface HTMLTemplateElement : HTMLElement {
   readonly attribute DocumentFragment content;
   [CEReactions] attribute DOMString shadowRootMode;
   [CEReactions] attribute boolean shadowRootDelegatesFocus;
+  [CEReactions] attribute DOMString shadowRootSlotAssignment;
   [CEReactions] attribute boolean shadowRootClonable;
   [CEReactions] attribute boolean shadowRootSerializable;
 };

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>HTML Test: focusgroup - Focus does not move to next focusgroup item when the axis of the arrow key pressed isn't supported.</title>
+<title>HTML Test: focusgroup - Focus does not move to next focusgroup item when the axis of the directional input isn't supported.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
@@ -21,8 +21,8 @@
   promise_test(async t => {
     var item1 = document.getElementById("item1");
 
-    await focusAndKeyPress(item1, kArrowDown);
+    await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item1);
-  }, "When the focus is set on an item of a focusgroup that only supports the orthogonal axis to the arrow key pressed, the arrow pressed shouldn't move the focus.");
+  }, "When the focus is set on an item of a focusgroup that only supports the orthogonal axis to the directional input, the directional input shouldn't move the focus.");
 
 </script>

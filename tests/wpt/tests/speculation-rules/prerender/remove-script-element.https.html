@@ -8,7 +8,7 @@
 <body>
 <iframe id="iframe"></iframe>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 async_test(t => {
   const doc = iframe.contentDocument;

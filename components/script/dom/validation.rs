@@ -45,7 +45,7 @@ pub(crate) trait Validatable {
         if self.is_instance_validatable() && !self.satisfies_constraints(CanGc::from_cx(cx)) {
             self.as_element()
                 .upcast::<EventTarget>()
-                .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
+                .fire_cancelable_event(cx, atom!("invalid"));
             false
         } else {
             true
@@ -68,7 +68,7 @@ pub(crate) trait Validatable {
         let report = self
             .as_element()
             .upcast::<EventTarget>()
-            .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
+            .fire_cancelable_event(cx, atom!("invalid"));
 
         // Step 1.2. If `report` is true, for the element,
         // report the problem, run focusing steps, scroll into view.
@@ -80,7 +80,7 @@ pub(crate) trait Validatable {
             );
             if let Some(html_elem) = self.as_element().downcast::<HTMLElement>() {
                 // Run focusing steps and scroll into view.
-                html_elem.Focus(&FocusOptions::default(), CanGc::from_cx(cx));
+                html_elem.Focus(cx, &FocusOptions::default());
             }
         }
 
@@ -91,8 +91,10 @@ pub(crate) trait Validatable {
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn validation_message(&self) -> DOMString {
         if self.is_instance_validatable() {
-            let flags = self.validity_state(CanGc::note()).invalid_flags();
-            validation_message_for_flags(&self.validity_state(CanGc::note()), flags)
+            let flags = self
+                .validity_state(CanGc::deprecated_note())
+                .invalid_flags();
+            validation_message_for_flags(&self.validity_state(CanGc::deprecated_note()), flags)
         } else {
             DOMString::new()
         }

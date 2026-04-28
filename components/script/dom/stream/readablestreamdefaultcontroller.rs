@@ -33,7 +33,7 @@ use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
 use crate::dom::stream::underlyingsourcecontainer::{
     UnderlyingSourceContainer, UnderlyingSourceType,
 };
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// The fulfillment handler for
@@ -395,8 +395,8 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     pub(crate) fn setup(
         &self,
+        cx: &mut js::context::JSContext,
         stream: DomRoot<ReadableStream>,
-        can_gc: CanGc,
     ) -> Result<(), Error> {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
@@ -425,12 +425,11 @@ impl ReadableStreamDefaultController {
             // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
             let start_result = underlying_source
                 .call_start_algorithm(
+                    cx,
                     Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
-                    can_gc,
                 )
                 .unwrap_or_else(|| {
-                    let promise = Promise::new(global, can_gc);
-                    promise.resolve_native(&(), can_gc);
+                    let promise = Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
                     Ok(promise)
                 });
 
@@ -446,11 +445,13 @@ impl ReadableStreamDefaultController {
                 Some(Box::new(StartAlgorithmRejectionHandler {
                     controller: Dom::from_ref(&rooted_default_controller),
                 })),
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            let realm = enter_realm(global);
-            let comp = InRealm::Entered(&realm);
-            start_promise.append_native_handler(&handler, comp, can_gc);
+            let mut realm = enter_auto_realm(cx, global);
+            let cx = &mut realm.current_realm();
+            let in_realm_proof = cx.into();
+            let comp = InRealm::Already(&in_realm_proof);
+            start_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
         };
 
         Ok(())

@@ -914,21 +914,20 @@ impl WritableStream {
 
         // Perform ! SetUpWritableStreamDefaultController
         controller
-            .setup(cx.into(), &global, self, CanGc::from_cx(cx))
+            .setup(cx, &global, self)
             .expect("Setup for transfer cannot fail");
     }
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn setup_from_underlying_sink(
+    fn setup_from_underlying_sink(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         stream: &WritableStream,
         underlying_sink_obj: SafeHandleObject,
         underlying_sink: &UnderlyingSink,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
-        can_gc: CanGc,
     ) -> Result<(), Error> {
         // Let controller be a new WritableStreamDefaultController.
 
@@ -965,7 +964,7 @@ impl WritableStream {
             ),
             strategy_hwm,
             strategy_size,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Note: this must be done before `setup`,
@@ -973,26 +972,25 @@ impl WritableStream {
         controller.set_underlying_sink_this_object(underlying_sink_obj);
 
         // Perform ? SetUpWritableStreamDefaultController
-        controller.setup(cx, global, stream, can_gc)
+        controller.setup(cx, global, stream)
     }
 }
 
 /// <https://streams.spec.whatwg.org/#create-writable-stream>
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_writable_stream(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     writable_high_water_mark: f64,
     writable_size_algorithm: Rc<QueuingStrategySize>,
     underlying_sink_type: UnderlyingSinkType,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<WritableStream>> {
     // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
     assert!(writable_high_water_mark >= 0.0);
 
     // Let stream be a new WritableStream.
     // Perform ! InitializeWritableStream(stream).
-    let stream = WritableStream::new_with_proto(global, None, can_gc);
+    let stream = WritableStream::new_with_proto(global, None, CanGc::from_cx(cx));
 
     // Let controller be a new WritableStreamDefaultController.
     let controller = WritableStreamDefaultController::new(
@@ -1000,12 +998,12 @@ pub(crate) fn create_writable_stream(
         underlying_sink_type,
         writable_high_water_mark,
         writable_size_algorithm,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Perform ? SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm,
     // closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm).
-    controller.setup(cx, global, &stream, can_gc)?;
+    controller.setup(cx, global, &stream)?;
 
     // Return stream.
     Ok(stream)
@@ -1014,21 +1012,20 @@ pub(crate) fn create_writable_stream(
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     /// <https://streams.spec.whatwg.org/#ws-constructor>
     fn Constructor(
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         underlying_sink: Option<*mut JSObject>,
         strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<WritableStream>> {
         // If underlyingSink is missing, set it to null.
-        rooted!(in(*cx) let underlying_sink_obj = underlying_sink.unwrap_or(ptr::null_mut()));
+        rooted!(&in(cx) let underlying_sink_obj = underlying_sink.unwrap_or(ptr::null_mut()));
 
         // Let underlyingSinkDict be underlyingSink,
         // converted to an IDL value of type UnderlyingSink.
         let underlying_sink_dict = if !underlying_sink_obj.is_null() {
-            rooted!(in(*cx) let obj_val = ObjectValue(underlying_sink_obj.get()));
-            match UnderlyingSink::new(cx, obj_val.handle(), can_gc) {
+            rooted!(&in(cx) let obj_val = ObjectValue(underlying_sink_obj.get()));
+            match UnderlyingSink::new(cx.into(), obj_val.handle(), CanGc::from_cx(cx)) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
                     return Err(Error::Type(error.into_owned()));
@@ -1047,10 +1044,10 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         }
 
         // Perform ! InitializeWritableStream(this).
-        let stream = WritableStream::new_with_proto(global, proto, can_gc);
+        let stream = WritableStream::new_with_proto(global, proto, CanGc::from_cx(cx));
 
         // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
-        let size_algorithm = extract_size_algorithm(strategy, can_gc);
+        let size_algorithm = extract_size_algorithm(strategy, CanGc::from_cx(cx));
 
         // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
         let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
@@ -1065,7 +1062,6 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
             &underlying_sink_dict,
             high_water_mark,
             size_algorithm,
-            can_gc,
         )?;
 
         Ok(stream)
@@ -1219,7 +1215,7 @@ impl CrossRealmTransformWritable {
             .error_if_needed(cx, rooted_error.handle(), global);
 
         // Disentangle port.
-        global.disentangle_port(port, CanGc::from_cx(cx));
+        global.disentangle_port(cx, port);
     }
 }
 

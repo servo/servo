@@ -6,7 +6,7 @@ use profile_traits::generic_channel;
 use servo_base::generic_channel::{GenericSend, SendResult};
 use servo_base::id::WebViewId;
 use servo_constellation_traits::ScriptToConstellationMessage;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
@@ -56,6 +56,10 @@ impl Storage {
         self.global().get_url()
     }
 
+    fn get_immutable_origin(&self) -> ImmutableOrigin {
+        self.global().origin().immutable().clone()
+    }
+
     fn send_storage_msg(&self, msg: WebStorageThreadMsg) -> SendResult {
         GenericSend::send(self.global().storage_threads(), msg)
     }
@@ -71,7 +75,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
         ))
         .unwrap();
         receiver.recv().unwrap() as u32
@@ -86,7 +90,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
             index,
         ))
         .unwrap();
@@ -103,7 +107,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
             name,
         );
         self.send_storage_msg(msg).unwrap();
@@ -121,7 +125,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
             name.clone(),
             value.clone(),
         );
@@ -150,7 +154,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
             name.clone(),
         );
         self.send_storage_msg(msg).unwrap();
@@ -168,7 +172,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
         ))
         .unwrap();
         if receiver.recv().unwrap() {
@@ -185,7 +189,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             sender,
             self.storage_type,
             self.webview_id(),
-            self.get_url(),
+            self.get_immutable_origin(),
         ))
         .unwrap();
         receiver
@@ -240,7 +244,7 @@ impl Storage {
         let global = self.global();
         let this = Trusted::new(self);
         global.task_manager().dom_manipulation_task_source().queue(
-            task!(send_storage_notification: move || {
+            task!(send_storage_notification: move |cx| {
                 let this = this.root();
                 let global = this.global();
                 let event = StorageEvent::new(
@@ -253,9 +257,9 @@ impl Storage {
                     new_value.map(DOMString::from),
                     DOMString::from(url.into_string()),
                     Some(&this),
-                    CanGc::note()
+                    CanGc::from_cx(cx)
                 );
-                event.upcast::<Event>().fire(global.upcast(), CanGc::note());
+                event.upcast::<Event>().fire(global.upcast(), CanGc::from_cx(cx));
             }),
         );
     }

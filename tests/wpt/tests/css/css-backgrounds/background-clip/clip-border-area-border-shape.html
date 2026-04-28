@@ -6,38 +6,33 @@
 <link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-clip">
 <link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
 <link rel="match" href="clip-border-area-border-shape-ref.html">
-<meta name="assert" content="border-area clipping respects border-shape values">
-<meta name="fuzzy" content="maxDifference=0-130; totalPixels=0-3000">
+<meta name="assert" content="background-clip:border-area clips image-backed backgrounds to the same painted area as single-shape and double-shape border-shape values.">
+<meta name="fuzzy" content="maxDifference=0-50; totalPixels=0-500">
 <style>
-    .test {
-        display: inline-block;
-        margin: 20px;
-        width: 300px;
-        height: 150px;
-        box-sizing: border-box;
-        border: 50px solid transparent;
-        background-clip: border-area;
-        background-image: url(../resources/blue-100.png);
-    }
+  .test {
+    display: inline-block;
+    margin: 20px;
+    width: 160px;
+    height: 120px;
+    box-sizing: border-box;
+    border: 24px solid transparent;
+    background-image: linear-gradient(blue, blue);
+    background-clip: border-area;
+  }
 
-    .circle {
-        border-shape: circle();
-    }
+  .single-shape {
+    border-shape: polygon(50% -8%, 108% 50%, 50% 108%, -8% 50%);
+  }
 
-    .hexagon {
-        border-shape: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    }
-
-    .diamond {
-        border-shape: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    }
+  .double-shape {
+    border-shape: circle(50%) circle(35%);
+  }
 </style>
 </head>
 <body>
 
-<div class="test circle"></div>
-<div class="test hexagon"></div>
-<div class="test diamond"></div>
+<div class="test single-shape"></div>
+<div class="test double-shape"></div>
 
 </body>
 </html>

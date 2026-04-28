@@ -14,10 +14,9 @@ use js::rust::HandleObject;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
-    CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
-    Destination as NetTraitsRequestDestination, Origin, RedirectMode as NetTraitsRequestRedirect,
-    Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest, RequestBuilder,
-    RequestMode as NetTraitsRequestMode, TraversableForUserPrompts,
+    CacheMode, CredentialsMode, Destination, Origin, RedirectMode, Referrer,
+    Request as NetTraitsRequest, RequestBuilder, RequestMode as NetTraitsRequestMode,
+    TraversableForUserPrompts,
 };
 use script_bindings::cformat;
 use servo_url::ServoUrl;
@@ -42,6 +41,7 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::fetch::RequestWithGlobalScope;
 use crate::script_runtime::CanGc;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
 pub(crate) struct Request {
@@ -95,9 +95,9 @@ impl Request {
 
     // https://fetch.spec.whatwg.org/#dom-request
     pub(crate) fn constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         mut input: RequestInfo,
         init: &RequestInit,
     ) -> Fallible<DomRoot<Request>> {
@@ -225,7 +225,7 @@ impl Request {
             let referrer = &init_referrer.0;
             // Step 14.2. If referrer is the empty string, then set request’s referrer to "no-referrer".
             if referrer.is_empty() {
-                request.referrer = NetTraitsRequestReferrer::NoReferrer;
+                request.referrer = Referrer::NoReferrer;
             // Step 14.3. Otherwise:
             } else {
                 // Step 14.3.1. Let parsedReferrer be the result of parsing referrer with baseURL.
@@ -247,7 +247,7 @@ impl Request {
                         request.referrer = global.get_referrer();
                     } else {
                         // Step 14.3.4. Otherwise, set request’s referrer to parsedReferrer.
-                        request.referrer = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
+                        request.referrer = Referrer::ReferrerUrl(parsed_referrer);
                     }
                 }
             }
@@ -286,7 +286,7 @@ impl Request {
 
         // Step 21. If request’s cache mode is "only-if-cached" and request’s mode
         // is not "same-origin", then throw a TypeError.
-        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached &&
+        if request.cache_mode == CacheMode::OnlyIfCached &&
             request.mode != NetTraitsRequestMode::SameOrigin
         {
             return Err(Error::Type(
@@ -344,7 +344,7 @@ impl Request {
         // TODO
 
         // Step 28. Set this’s request to request.
-        let r = Request::from_net_request(global, proto, request, can_gc);
+        let r = Request::from_net_request(global, proto, request, CanGc::from_cx(cx));
 
         // Step 29. Let signals be « signal » if signal is non-null; otherwise « ».
         let signals = signal.map_or(vec![], |s| vec![s]);
@@ -352,7 +352,9 @@ impl Request {
         // abort signal from signals, using AbortSignal and this’s relevant realm.
         r.signal
             .set(Some(&AbortSignal::create_dependent_abort_signal(
-                signals, global, can_gc,
+                signals,
+                global,
+                CanGc::from_cx(cx),
             )));
 
         // Step 31. Set this’s headers to a new Headers object with this’s relevant realm,
@@ -361,7 +363,7 @@ impl Request {
         // "or_init" looks unclear here, but it always enters the block since r
         // hasn't had any other way to initialize its headers
         r.headers
-            .or_init(|| Headers::for_request(&r.global(), can_gc));
+            .or_init(|| Headers::for_request(&r.global(), CanGc::from_cx(cx)));
 
         // Step 33. If init is not empty, then:
         //
@@ -398,7 +400,8 @@ impl Request {
                 ));
             }
             // Step 32.2. Set this’s headers’s guard to "request-no-cors".
-            r.Headers(can_gc).set_guard(Guard::RequestNoCors);
+            r.Headers(CanGc::from_cx(cx))
+                .set_guard(Guard::RequestNoCors);
         }
 
         match headers_copy {
@@ -410,17 +413,17 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(can_gc)
-                        .copy_from_headers(input_request.Headers(can_gc))?;
+                    r.Headers(CanGc::from_cx(cx))
+                        .copy_from_headers(input_request.Headers(CanGc::from_cx(cx)))?;
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
-            Some(headers_copy) => r.Headers(can_gc).fill(Some(headers_copy))?,
+            Some(headers_copy) => r.Headers(CanGc::from_cx(cx)).fill(Some(headers_copy))?,
         }
 
         // Step 33.5 depending on how we got here
         // Copy the headers list onto the headers of net_traits::Request
-        r.request.borrow_mut().headers = r.Headers(can_gc).get_headers_list();
+        r.request.borrow_mut().headers = r.Headers(CanGc::from_cx(cx)).get_headers_list();
 
         // Step 34. Let inputBody be input’s request’s body if input is a Request object; otherwise null.
         let input_body = if let RequestInfo::Request(ref mut input_request) = input {
@@ -457,7 +460,7 @@ impl Request {
         if let Some(Some(ref input_init_body)) = init.body {
             // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
             let mut body_with_type =
-                input_init_body.extract(global, r.request.borrow().keep_alive, can_gc)?;
+                input_init_body.extract(cx, global, r.request.borrow().keep_alive)?;
 
             // Step 37.3. Let type be bodyWithType’s type.
             if let Some(contents) = body_with_type.content_type.take() {
@@ -465,12 +468,12 @@ impl Request {
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
                 if !r
-                    .Headers(can_gc)
+                    .Headers(CanGc::from_cx(cx))
                     .Has(ByteString::new(ct_header_name.to_vec()))
                     .unwrap()
                 {
                     let ct_header_val = contents.as_bytes();
-                    r.Headers(can_gc).Append(
+                    r.Headers(CanGc::from_cx(cx)).Append(
                         ByteString::new(ct_header_name.to_vec()),
                         ByteString::new(ct_header_val.to_vec()),
                     )?;
@@ -538,16 +541,16 @@ impl Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-clone>
-    fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
+    fn clone_from(cx: &mut js::context::JSContext, r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
-        let headers_guard = r.Headers(can_gc).get_guard();
+        let headers_guard = r.Headers(CanGc::from_cx(cx)).get_guard();
 
         // Step 1. Let newRequest be a copy of request, except for its body.
         let mut new_req_inner = req.clone();
         let body = new_req_inner.body.take();
 
-        let r_clone = Request::new(&r.global(), None, url, can_gc);
+        let r_clone = Request::new(&r.global(), None, url, CanGc::from_cx(cx));
         *r_clone.request.borrow_mut() = new_req_inner;
 
         // Step 2. If request’s body is non-null, set newRequest’s body
@@ -557,11 +560,11 @@ impl Request {
         }
 
         r_clone
-            .Headers(can_gc)
-            .copy_from_headers(r.Headers(can_gc))?;
-        r_clone.Headers(can_gc).set_guard(headers_guard);
+            .Headers(CanGc::from_cx(cx))
+            .copy_from_headers(r.Headers(CanGc::from_cx(cx)))?;
+        r_clone.Headers(CanGc::from_cx(cx)).set_guard(headers_guard);
 
-        clone_body_stream_for_dom_body(&r.body_stream, &r_clone.body_stream, can_gc)?;
+        clone_body_stream_for_dom_body(cx, &r.body_stream, &r_clone.body_stream)?;
 
         // Step 3. Return newRequest.
         Ok(r_clone)
@@ -573,6 +576,7 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
+    let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
     RequestBuilder::new(global.webview_id(), url, global.get_referrer())
         .with_global_scope(global)
         .build()
@@ -611,13 +615,13 @@ fn includes_credentials(input: &ServoUrl) -> bool {
 impl RequestMethods<crate::DomTypeHolder> for Request {
     /// <https://fetch.spec.whatwg.org/#dom-request>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         input: RequestInfo,
         init: RootedTraceableBox<RequestInit>,
     ) -> Fallible<DomRoot<Request>> {
-        Self::constructor(global, proto, can_gc, input, &init)
+        Self::constructor(cx, global, proto, input, &init)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-method>
@@ -647,9 +651,9 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
         USVString(match r.referrer {
-            NetTraitsRequestReferrer::NoReferrer => String::from(""),
-            NetTraitsRequestReferrer::Client(_) => String::from("about:client"),
-            NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
+            Referrer::NoReferrer => String::from(""),
+            Referrer::Client(_) => String::from("about:client"),
+            Referrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();
                 u_c.into_string()
             },
@@ -712,20 +716,23 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-clone>
-    fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
+    fn Clone(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Request>> {
         // Step 1. If this is unusable, then throw a TypeError.
         if self.is_unusable() {
             return Err(Error::Type(c"Request is unusable".to_owned()));
         }
 
         // Step 2. Let clonedRequest be the result of cloning this’s request.
-        let cloned_request = Request::clone_from(self, can_gc)?;
+        let cloned_request = Request::clone_from(cx, self)?;
         // Step 3. Assert: this’s signal is non-null.
         let signal = self.signal.get().expect("Should always be initialized");
         // Step 4. Let clonedSignal be the result of creating a dependent
         // abort signal from « this’s signal », using AbortSignal and this’s relevant realm.
-        let cloned_signal =
-            AbortSignal::create_dependent_abort_signal(vec![signal], &self.global(), can_gc);
+        let cloned_signal = AbortSignal::create_dependent_abort_signal(
+            vec![signal],
+            &self.global(),
+            CanGc::from_cx(cx),
+        );
         // Step 5. Let clonedRequestObject be the result of creating a Request object,
         // given clonedRequest, this’s headers’s guard, clonedSignal and this’s relevant realm.
         //
@@ -791,106 +798,104 @@ impl BodyMixin for Request {
     }
 }
 
-impl Convert<NetTraitsRequestCache> for RequestCache {
-    fn convert(self) -> NetTraitsRequestCache {
+impl Convert<CacheMode> for RequestCache {
+    fn convert(self) -> CacheMode {
         match self {
-            RequestCache::Default => NetTraitsRequestCache::Default,
-            RequestCache::No_store => NetTraitsRequestCache::NoStore,
-            RequestCache::Reload => NetTraitsRequestCache::Reload,
-            RequestCache::No_cache => NetTraitsRequestCache::NoCache,
-            RequestCache::Force_cache => NetTraitsRequestCache::ForceCache,
-            RequestCache::Only_if_cached => NetTraitsRequestCache::OnlyIfCached,
+            RequestCache::Default => CacheMode::Default,
+            RequestCache::No_store => CacheMode::NoStore,
+            RequestCache::Reload => CacheMode::Reload,
+            RequestCache::No_cache => CacheMode::NoCache,
+            RequestCache::Force_cache => CacheMode::ForceCache,
+            RequestCache::Only_if_cached => CacheMode::OnlyIfCached,
         }
     }
 }
 
-impl Convert<RequestCache> for NetTraitsRequestCache {
+impl Convert<RequestCache> for CacheMode {
     fn convert(self) -> RequestCache {
         match self {
-            NetTraitsRequestCache::Default => RequestCache::Default,
-            NetTraitsRequestCache::NoStore => RequestCache::No_store,
-            NetTraitsRequestCache::Reload => RequestCache::Reload,
-            NetTraitsRequestCache::NoCache => RequestCache::No_cache,
-            NetTraitsRequestCache::ForceCache => RequestCache::Force_cache,
-            NetTraitsRequestCache::OnlyIfCached => RequestCache::Only_if_cached,
+            CacheMode::Default => RequestCache::Default,
+            CacheMode::NoStore => RequestCache::No_store,
+            CacheMode::Reload => RequestCache::Reload,
+            CacheMode::NoCache => RequestCache::No_cache,
+            CacheMode::ForceCache => RequestCache::Force_cache,
+            CacheMode::OnlyIfCached => RequestCache::Only_if_cached,
         }
     }
 }
 
-impl Convert<NetTraitsRequestCredentials> for RequestCredentials {
-    fn convert(self) -> NetTraitsRequestCredentials {
+impl Convert<CredentialsMode> for RequestCredentials {
+    fn convert(self) -> CredentialsMode {
         match self {
-            RequestCredentials::Omit => NetTraitsRequestCredentials::Omit,
-            RequestCredentials::Same_origin => NetTraitsRequestCredentials::CredentialsSameOrigin,
-            RequestCredentials::Include => NetTraitsRequestCredentials::Include,
+            RequestCredentials::Omit => CredentialsMode::Omit,
+            RequestCredentials::Same_origin => CredentialsMode::CredentialsSameOrigin,
+            RequestCredentials::Include => CredentialsMode::Include,
         }
     }
 }
 
-impl Convert<RequestCredentials> for NetTraitsRequestCredentials {
+impl Convert<RequestCredentials> for CredentialsMode {
     fn convert(self) -> RequestCredentials {
         match self {
-            NetTraitsRequestCredentials::Omit => RequestCredentials::Omit,
-            NetTraitsRequestCredentials::CredentialsSameOrigin => RequestCredentials::Same_origin,
-            NetTraitsRequestCredentials::Include => RequestCredentials::Include,
+            CredentialsMode::Omit => RequestCredentials::Omit,
+            CredentialsMode::CredentialsSameOrigin => RequestCredentials::Same_origin,
+            CredentialsMode::Include => RequestCredentials::Include,
         }
     }
 }
 
-impl Convert<NetTraitsRequestDestination> for RequestDestination {
-    fn convert(self) -> NetTraitsRequestDestination {
+impl Convert<Destination> for RequestDestination {
+    fn convert(self) -> Destination {
         match self {
-            RequestDestination::_empty => NetTraitsRequestDestination::None,
-            RequestDestination::Audio => NetTraitsRequestDestination::Audio,
-            RequestDestination::Document => NetTraitsRequestDestination::Document,
-            RequestDestination::Embed => NetTraitsRequestDestination::Embed,
-            RequestDestination::Font => NetTraitsRequestDestination::Font,
-            RequestDestination::Frame => NetTraitsRequestDestination::Frame,
-            RequestDestination::Iframe => NetTraitsRequestDestination::IFrame,
-            RequestDestination::Image => NetTraitsRequestDestination::Image,
-            RequestDestination::Manifest => NetTraitsRequestDestination::Manifest,
-            RequestDestination::Json => NetTraitsRequestDestination::Json,
-            RequestDestination::Object => NetTraitsRequestDestination::Object,
-            RequestDestination::Report => NetTraitsRequestDestination::Report,
-            RequestDestination::Script => NetTraitsRequestDestination::Script,
-            RequestDestination::Sharedworker => NetTraitsRequestDestination::SharedWorker,
-            RequestDestination::Style => NetTraitsRequestDestination::Style,
-            RequestDestination::Track => NetTraitsRequestDestination::Track,
-            RequestDestination::Video => NetTraitsRequestDestination::Video,
-            RequestDestination::Worker => NetTraitsRequestDestination::Worker,
-            RequestDestination::Xslt => NetTraitsRequestDestination::Xslt,
+            RequestDestination::_empty => Destination::None,
+            RequestDestination::Audio => Destination::Audio,
+            RequestDestination::Document => Destination::Document,
+            RequestDestination::Embed => Destination::Embed,
+            RequestDestination::Font => Destination::Font,
+            RequestDestination::Frame => Destination::Frame,
+            RequestDestination::Iframe => Destination::IFrame,
+            RequestDestination::Image => Destination::Image,
+            RequestDestination::Manifest => Destination::Manifest,
+            RequestDestination::Json => Destination::Json,
+            RequestDestination::Object => Destination::Object,
+            RequestDestination::Report => Destination::Report,
+            RequestDestination::Script => Destination::Script,
+            RequestDestination::Sharedworker => Destination::SharedWorker,
+            RequestDestination::Style => Destination::Style,
+            RequestDestination::Track => Destination::Track,
+            RequestDestination::Video => Destination::Video,
+            RequestDestination::Worker => Destination::Worker,
+            RequestDestination::Xslt => Destination::Xslt,
         }
     }
 }
 
-impl Convert<RequestDestination> for NetTraitsRequestDestination {
+impl Convert<RequestDestination> for Destination {
     fn convert(self) -> RequestDestination {
         match self {
-            NetTraitsRequestDestination::None => RequestDestination::_empty,
-            NetTraitsRequestDestination::Audio => RequestDestination::Audio,
-            NetTraitsRequestDestination::Document => RequestDestination::Document,
-            NetTraitsRequestDestination::Embed => RequestDestination::Embed,
-            NetTraitsRequestDestination::Font => RequestDestination::Font,
-            NetTraitsRequestDestination::Frame => RequestDestination::Frame,
-            NetTraitsRequestDestination::IFrame => RequestDestination::Iframe,
-            NetTraitsRequestDestination::Image => RequestDestination::Image,
-            NetTraitsRequestDestination::Manifest => RequestDestination::Manifest,
-            NetTraitsRequestDestination::Json => RequestDestination::Json,
-            NetTraitsRequestDestination::Object => RequestDestination::Object,
-            NetTraitsRequestDestination::Report => RequestDestination::Report,
-            NetTraitsRequestDestination::Script => RequestDestination::Script,
-            NetTraitsRequestDestination::ServiceWorker |
-            NetTraitsRequestDestination::AudioWorklet |
-            NetTraitsRequestDestination::PaintWorklet => {
+            Destination::None => RequestDestination::_empty,
+            Destination::Audio => RequestDestination::Audio,
+            Destination::Document => RequestDestination::Document,
+            Destination::Embed => RequestDestination::Embed,
+            Destination::Font => RequestDestination::Font,
+            Destination::Frame => RequestDestination::Frame,
+            Destination::IFrame => RequestDestination::Iframe,
+            Destination::Image => RequestDestination::Image,
+            Destination::Manifest => RequestDestination::Manifest,
+            Destination::Json => RequestDestination::Json,
+            Destination::Object => RequestDestination::Object,
+            Destination::Report => RequestDestination::Report,
+            Destination::Script => RequestDestination::Script,
+            Destination::ServiceWorker | Destination::AudioWorklet | Destination::PaintWorklet => {
                 panic!("ServiceWorker request destination should not be exposed to DOM")
             },
-            NetTraitsRequestDestination::SharedWorker => RequestDestination::Sharedworker,
-            NetTraitsRequestDestination::Style => RequestDestination::Style,
-            NetTraitsRequestDestination::Track => RequestDestination::Track,
-            NetTraitsRequestDestination::Video => RequestDestination::Video,
-            NetTraitsRequestDestination::Worker => RequestDestination::Worker,
-            NetTraitsRequestDestination::Xslt => RequestDestination::Xslt,
-            NetTraitsRequestDestination::WebIdentity => RequestDestination::_empty,
+            Destination::SharedWorker => RequestDestination::Sharedworker,
+            Destination::Style => RequestDestination::Style,
+            Destination::Track => RequestDestination::Track,
+            Destination::Video => RequestDestination::Video,
+            Destination::Worker => RequestDestination::Worker,
+            Destination::Xslt => RequestDestination::Xslt,
+            Destination::WebIdentity => RequestDestination::_empty,
         }
     }
 }
@@ -960,22 +965,22 @@ impl Convert<ReferrerPolicy> for MsgReferrerPolicy {
     }
 }
 
-impl Convert<NetTraitsRequestRedirect> for RequestRedirect {
-    fn convert(self) -> NetTraitsRequestRedirect {
+impl Convert<RedirectMode> for RequestRedirect {
+    fn convert(self) -> RedirectMode {
         match self {
-            RequestRedirect::Follow => NetTraitsRequestRedirect::Follow,
-            RequestRedirect::Error => NetTraitsRequestRedirect::Error,
-            RequestRedirect::Manual => NetTraitsRequestRedirect::Manual,
+            RequestRedirect::Follow => RedirectMode::Follow,
+            RequestRedirect::Error => RedirectMode::Error,
+            RequestRedirect::Manual => RedirectMode::Manual,
         }
     }
 }
 
-impl Convert<RequestRedirect> for NetTraitsRequestRedirect {
+impl Convert<RequestRedirect> for RedirectMode {
     fn convert(self) -> RequestRedirect {
         match self {
-            NetTraitsRequestRedirect::Follow => RequestRedirect::Follow,
-            NetTraitsRequestRedirect::Error => RequestRedirect::Error,
-            NetTraitsRequestRedirect::Manual => RequestRedirect::Manual,
+            RedirectMode::Follow => RequestRedirect::Follow,
+            RedirectMode::Error => RequestRedirect::Error,
+            RedirectMode::Manual => RequestRedirect::Manual,
         }
     }
 }

@@ -9,9 +9,13 @@
 #![deny(unsafe_code)]
 
 mod layout_damage;
-pub mod wrapper_traits;
+mod layout_dom;
+mod layout_element;
+mod layout_node;
+mod pseudo_element_chain;
 
 use std::any::Any;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
@@ -19,12 +23,19 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
-use embedder_traits::{Cursor, Theme, UntrustedNodeAddress, ViewportDetails};
+use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
-use fonts::{FontContext, WebFontDocumentContext};
+use fonts::{FontContext, TextByteRange, WebFontDocumentContext};
 pub use layout_damage::LayoutDamage;
+pub use layout_dom::{
+    DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
+    LayoutNodeOf,
+};
+pub use layout_element::{DangerousStyleElement, LayoutElement};
+pub use layout_node::{DangerousStyleNode, LayoutNode};
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps, malloc_size_of_is_0};
 use malloc_size_of_derive::MallocSizeOf;
@@ -34,6 +45,7 @@ use parking_lot::RwLock;
 use pixels::RasterImage;
 use profile_traits::mem::Report;
 use profile_traits::time;
+pub use pseudo_element_chain::PseudoElementChain;
 use rustc_hash::FxHashMap;
 use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
@@ -62,11 +74,12 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
 use webrender_api::{ExternalScrollId, ImageKey};
 
-pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
+pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait + Send + Sync + 'static {
     fn as_any(&self) -> &dyn Any;
 }
 
-pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
+pub trait LayoutDataTrait: GenericLayoutDataTrait + Default {}
+pub type GenericLayoutData = dyn GenericLayoutDataTrait;
 
 #[derive(Default, MallocSizeOf)]
 pub struct StyleData {
@@ -120,6 +133,21 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
+/// A selection shared between script and layout. This selection is managed by the DOM
+/// node that maintains it, and can be modified from script. Once modified, layout is
+/// expected to reflect the new selection visual on the next display list update.
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+pub struct ScriptSelection {
+    /// The range of this selection in the DOM node that manages it.
+    pub range: TextByteRange,
+    /// The character range of this selection in the DOM node that manages it.
+    pub character_range: Range<usize>,
+    /// Whether or not this selection is enabled. Selections may be disabled
+    /// when their node loses focus.
+    pub enabled: bool,
+}
+
+pub type SharedSelection = Arc<AtomicRefCell<ScriptSelection>>;
 pub struct HTMLCanvasData {
     pub image_key: Option<ImageKey>,
     pub width: u32,
@@ -229,6 +257,7 @@ pub struct LayoutConfig {
     pub viewport_details: ViewportDetails,
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
+    pub embedder_chan: ScriptToEmbedderChan,
 }
 
 pub trait LayoutFactory: Send + Sync {
@@ -315,6 +344,15 @@ pub trait Layout {
     /// Marks that this layout needs to produce a new display list for rendering updates.
     fn set_needs_new_display_list(&self);
 
+    /// Returns the [`NodeRenderingType`] for this node and pseudo. This is used to determine
+    /// if a node is being rendered, delegating its rendering, or not being rendered at all.
+    fn node_rendering_type(
+        &self,
+        node: TrustedNodeAddress,
+        pseudo: Option<PseudoElement>,
+    ) -> NodeRenderingType;
+
+    fn query_containing_block(&self, node: TrustedNodeAddress) -> Option<UntrustedNodeAddress>;
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
     fn query_box_area(
         &self,
@@ -364,7 +402,24 @@ pub trait Layout {
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
     fn stylist_mut(&mut self) -> &mut Stylist;
 
-    fn set_accessibility_active(&self, active: bool);
+    /// Set whether the accessibility tree should be constructed for this Layout.
+    /// This should be called by the embedder when accessibility is requested by the user.
+    fn set_accessibility_active(&self, enabled: bool, epoch: Epoch);
+
+    /// Whether the accessibility tree needs updating. This is set to true when
+    /// - accessibility is activated; or
+    /// - a page is loaded after accesibility is activated.
+    ///
+    /// In future, this should be set to true if DOM or style have changed in a way that
+    /// impacts the accessibility tree.
+    ///
+    /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
+    /// should force a reflow, and handle_reflow() to determine whether to update the
+    /// accessibility tree during reflow.
+    fn needs_accessibility_update(&self) -> bool;
+
+    /// See [Self::needs_accessibility_update()].
+    fn set_needs_accessibility_update(&self);
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -390,6 +445,19 @@ pub enum BoxAreaType {
 }
 
 pub type CSSPixelRectIterator = Box<dyn Iterator<Item = Rect<Au, CSSPixel>>>;
+
+/// Whether or not this node is being rendered or delegates rendering according
+/// to the HTML standard.
+#[derive(Copy, Clone)]
+pub enum NodeRenderingType {
+    /// <https://html.spec.whatwg.org/multipage/#being-rendered>
+    Rendered,
+    /// <https://html.spec.whatwg.org/multipage/#delegating-its-rendering-to-its-children>
+    DelegatesRendering,
+    /// If neither of the other two cases are true, this is. The node is effectively not
+    /// taking part in the final layout of the page.
+    NotRendered,
+}
 
 #[derive(Default)]
 pub struct PhysicalSides {
@@ -570,6 +638,7 @@ bitflags! {
         /// updating style or layout. This is used when updating canvas contents and
         /// progressing to a new animated image frame.
         const UpdatedImageData = 1 << 5;
+        const UpdatedAccessibilityTree = 1 << 6;
     }
 }
 
@@ -583,8 +652,13 @@ impl ReflowPhasesRun {
 
 #[derive(Debug, Default)]
 pub struct ReflowStatistics {
+    /// A count of the number of fragments that have been completely rebuilt.
     pub rebuilt_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but have had their style change.
     pub restyle_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but may have had their final
+    /// position change.
+    pub possibly_moved_fragment_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
@@ -614,8 +688,6 @@ pub struct ReflowRequest {
     pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
-    /// The number of objects in the dom #10110
-    pub dom_count: u32,
     /// The current window origin
     pub origin: ImmutableOrigin,
     /// The current animation timeline value.

@@ -6,7 +6,6 @@
 pub(crate) mod gamepad;
 pub(crate) use gamepad::Gamepad;
 pub(crate) mod gamepadbutton;
-pub(crate) mod gamepadbuttonlist;
 pub(crate) mod gamepadevent;
 pub(crate) mod gamepadhapticactuator;
 pub(crate) mod gamepadpose;

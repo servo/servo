@@ -2,8 +2,8 @@
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:h="http://www.w3.org/1999/xhtml">
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#RequiredProperties"/>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/propidx.html"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/styling.html#RequiredProperties"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/propidx.html"/>
     <h:meta name="assert" content="All required properties are supported"/>
     <!-- Note: This test does not verify that the properties are actually applied to SVG rendering. -->
   </metadata>
@@ -12,7 +12,7 @@
   <h:script src="/resources/testharnessreport.js"/>
   <script><![CDATA[
   var properties = [
-    // Properties listed in https://svgwg.org/svg2-draft/propidx.html
+    // Properties listed in https://w3c.github.io/svgwg/svg2-draft/propidx.html
     "alignment-baseline",
     "baseline-shift",
     "clip",
@@ -73,7 +73,7 @@
     "white-space",
     "writing-mode",
 
-    // Properties listed in https://svgwg.org/svg2-draft/styling.html#RequiredProperties
+    // Properties listed in https://w3c.github.io/svgwg/svg2-draft/styling.html#RequiredProperties
     "display",
     "overflow",
     "visibility",

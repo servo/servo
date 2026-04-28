@@ -141,11 +141,15 @@ mod from_script {
                     target!("RemoveBroadcastChannelNameInRouter")
                 },
                 Self::ScheduleBroadcast(..) => target!("ScheduleBroadcast"),
+                Self::RegisterInterest(..) => target!("RegisterInterest"),
+                Self::UnregisterInterest(..) => target!("UnregisterInterest"),
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),
-                Self::Focus(..) => target!("Focus"),
-                Self::FocusRemoteDocument(..) => target!("FocusRemoteDocument"),
+                Self::FocusAncestorBrowsingContextsForFocusingSteps(..) => {
+                    target!("FocusAncestorBrowsingContextsForFocusingSteps")
+                },
+                Self::FocusRemoteBrowsingContext(..) => target!("FocusRemoteBrowsingContext"),
                 Self::GetTopForBrowsingContext(..) => target!("GetTopForBrowsingContext"),
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
                 Self::GetDocumentOrigin(..) => target!("GetDocumentOrigin"),
@@ -187,6 +191,8 @@ mod from_script {
                     target!("RespondToScreenshotReadinessRequest")
                 },
                 Self::TriggerGarbageCollection => target!("TriggerGarbageCollection"),
+                Self::AcquireWakeLock(..) => target!("AcquireWakeLock"),
+                Self::ReleaseWakeLock(..) => target!("ReleaseWakeLock"),
             }
         }
     }

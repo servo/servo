@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Prerender initial navigation as form submission is blocked by CSP form-action 'none'</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rcHelper = new PrerenderingRemoteContextHelper();
+
+  // Create an initiator window with the form-action 'none' CSP.
+  const referrerRC = await rcHelper.addWindow({
+    headers: [['Content-Security-Policy', "form-action 'none'"]]
+  }, { features: 'noopener' });
+
+  // Setup CSP violation listener synchronously and store the promise globally.
+  await referrerRC.executeScript(() => {
+    window.violationPromise = new Promise(resolve => {
+      window.addEventListener('securitypolicyviolation', e => {
+        resolve(e.violatedDirective);
+      });
+    });
+  });
+
+  // Add a prerendered page as a form submission.
+  // The prerender initial navigation should be treated as a form submission
+  // and be blocked by the CSP.
+  await referrerRC.addPreload('prerender', {
+    extrasInSpeculationRule: { form_submission: true }
+  });
+
+  const violatedDirective = await referrerRC.executeScript(() => window.violationPromise);
+  assert_equals(violatedDirective, 'form-action', 'Prerender initial navigation should violate form-action CSP.');
+
+}, "Prerender initial navigation with form_submission is blocked by CSP form-action 'none'");
+</script>

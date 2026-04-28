@@ -234,6 +234,13 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             response2 = devtools.watcher.get_breakpoint_list_actor()
             self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
 
+    def test_watcher_returns_same_blackboxing_actor_every_time(self):
+        self.run_servoshell(url="data:text/html,")
+        with Devtools.connect() as devtools:
+            response1 = devtools.watcher.get_blackboxing_actor()
+            response2 = devtools.watcher.get_blackboxing_actor()
+            self.assertEqual(response1["blackboxing"]["actor"], response2["blackboxing"]["actor"])
+
     def test_breakpoint_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
@@ -977,6 +984,63 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
         result = self.evaluate_and_capture_console_log_output("log_booleans();")
         self.assertEquals(result["arguments"], [True, False, True, False])
+
+    def test_console_log_numbers(self):
+        script_tag = "<script>let log_numbers = () => console.log(1/0, -1/0, 0/0, -0, 1);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_numbers();")
+
+        self.assertEquals(
+            result["arguments"], [{"type": "Infinity"}, {"type": "-Infinity"}, {"type": "NaN"}, {"type": "-0"}, 1.0]
+        )
+
+    def test_console_log_array(self):
+        script_tag = "<script>let log_array = () => console.log([1, 2, 3]);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_array();")
+        object = result["arguments"][0]
+        self.assertEquals(object["class"], "Array")
+        preview = object["preview"]
+        self.assertEquals(preview["kind"], "ArrayLike")
+        self.assertEquals(preview["length"], 3)
+        self.assertEquals(preview["items"], [1, 2, 3])
+
+    def test_console_log_function(self):
+        script_tag = "<script>function test_function() { }let log_function = () => console.log(test_function);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_function();")
+        function = result["arguments"][0]
+        self.assertEquals(function["class"], "Function")
+        self.assertEquals(function["name"], "test_function")
+        self.assertEquals(function["displayName"], "test_function")
+        preview = function["preview"]
+        self.assertEquals(preview["kind"], "Object")
+
+    @unittest.expectedFailure
+    def test_console_log_function_arguments(self):
+        script_tag = (
+            "<script>function test_arguments(a, b) { return a + b; }"
+            "let log_arguments = () => console.log(test_arguments);"
+            "</script>"
+        )
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_arguments();")
+        self.assertEquals(result["arguments"][0]["parameterNames"], ["a", "b"])
+
+    def test_console_log_sprintf_substitutions(self):
+        script_tag = (
+            "<script>let log_sprintf = () => "
+            "console.log('String %s Int %d Int %i Float %f', 'string', 32, 46, Math.PI);"
+            "</script>"
+        )
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_sprintf();")
+        self.assertEquals(result["arguments"], ["String string Int 32 Int 46 Float 3.141592653589793"])
 
     def test_inspector_event_listeners(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/inspector/event_listeners.html")

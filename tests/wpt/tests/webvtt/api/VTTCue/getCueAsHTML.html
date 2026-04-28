@@ -9,10 +9,10 @@ test(function(){
     var video = document.createElement('video');
     var t1 = video.addTextTrack('subtitles');
     document.body.appendChild(video);
-    var c1 = new VTTCue(0, 1, '<c></c><c.a.b></c><i></i><b></b><u></u><ruby><rt></rt></ruby><v></v><v a b></v><1:00:00.500>x\0');
+    var c1 = new VTTCue(0, 1, '<c></c><c.a.b></c><i></i><b></b><u></u><ruby><rt></rt></ruby><v></v><v a b></v><v Foo&amp;Bar>text</v><1:00:00.500>x\0');
     t1.addCue(c1);
     window.frag = c1.getCueAsHTML();
-    assert_equals(frag.childNodes.length, 10, 'childNodes.length');
+    assert_equals(frag.childNodes.length, 11, 'childNodes.length');
     assert_true(frag instanceof DocumentFragment, 'getCueAsHTML() should return DocumentFragment');
 }, document.title+', creating the cue');
 test(function(){
@@ -82,12 +82,21 @@ test(function(){
     assert_true(frag.childNodes[7] instanceof HTMLElement, 'instanceof');
 }, document.title+', <v a b>');
 test(function(){
-    assert_equals(frag.childNodes[8].target, 'timestamp', 'target');
-    assert_equals(frag.childNodes[8].data, '01:00:00.500', 'data');
-    assert_true(frag.childNodes[8] instanceof ProcessingInstruction, 'instanceof');
+    assert_equals(frag.childNodes[8].namespaceURI, 'http://www.w3.org/1999/xhtml', 'namespaceURI');
+    assert_equals(frag.childNodes[8].localName, 'span', 'localName');
+    assert_equals(frag.childNodes[8].attributes.length, 1, 'attributes');
+    assert_equals(frag.childNodes[8].getAttributeNS('', 'title'), 'Foo&Bar', 'title attribute');
+    assert_true(frag.childNodes[8].hasChildNodes(), 'hasChildNodes()');
+    assert_equals(frag.childNodes[8].firstChild.data, 'text', 'child text');
+    assert_true(frag.childNodes[8] instanceof HTMLElement, 'instanceof');
+}, document.title+', <v Foo&amp;Bar>');
+test(function(){
+    assert_equals(frag.childNodes[9].target, 'timestamp', 'target');
+    assert_equals(frag.childNodes[9].data, '01:00:00.500', 'data');
+    assert_true(frag.childNodes[9] instanceof ProcessingInstruction, 'instanceof');
 }, document.title+', <1:00:00.500>');
 test(function(){
-    assert_equals(frag.childNodes[9].data, 'x\0', 'data');
-    assert_true(frag.childNodes[9] instanceof Text, 'instanceof');
+    assert_equals(frag.childNodes[10].data, 'x\0', 'data');
+    assert_true(frag.childNodes[10] instanceof Text, 'instanceof');
 }, document.title+', x\\0');
 </script>

@@ -90,7 +90,7 @@ impl XRReferenceSpaceMethods<crate::DomTypeHolder> for XRReferenceSpace {
             self.upcast::<XRSpace>().session(),
             self.ty,
             &offset,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 

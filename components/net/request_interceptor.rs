@@ -35,6 +35,8 @@ impl RequestInterceptor {
             method: request.method.clone(),
             url: request.url().into_url(),
             headers: request.headers.clone(),
+            destination: request.destination,
+            referrer_url: request.referrer.to_url().map(|url| url.as_url().clone()),
             is_for_main_frame,
             is_redirect: request.redirect_count > 0,
         };
@@ -51,7 +53,7 @@ impl RequestInterceptor {
         while let Some(message) = receiver.recv().await {
             match message {
                 WebResourceResponseMsg::Start(webresource_response) => {
-                    let timing = context.timing.lock().clone();
+                    let timing = context.timing.inner().clone();
                     let mut response_override =
                         Response::new(webresource_response.url.into(), timing);
                     response_override.headers = webresource_response.headers;

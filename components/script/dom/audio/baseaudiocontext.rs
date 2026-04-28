@@ -211,8 +211,8 @@ impl BaseAudioContext {
         f();
         for promise in &*promises {
             match result {
-                Ok(ref value) => promise.resolve_native(value, CanGc::note()),
-                Err(ref error) => promise.reject_error(error.clone(), CanGc::note()),
+                Ok(ref value) => promise.resolve_native(value, CanGc::deprecated_note()),
+                Err(ref error) => promise.reject_error(error.clone(), CanGc::deprecated_note()),
             }
         }
     }
@@ -528,7 +528,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
-                    task_source.queue(task!(audio_decode_eos: move || {
+                    task_source.queue(task!(audio_decode_eos: move |cx| {
                         let this = this.root();
                         let decoded_audio = decoded_audio__.lock().unwrap();
                         let length = if !decoded_audio.is_empty() {
@@ -542,29 +542,29 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                             length as u32,
                             this.sample_rate,
                             Some(decoded_audio.as_slice()),
-                            CanGc::note());
+                            CanGc::from_cx(cx));
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid_));
                         let resolver = resolvers.remove(&uuid_).unwrap();
                         if let Some(callback) = resolver.success_callback {
-                            let _ = callback.Call__(&buffer, ExceptionHandling::Report, CanGc::note());
+                            let _ = callback.Call__(&buffer, ExceptionHandling::Report, CanGc::from_cx(cx));
                         }
-                        resolver.promise.resolve_native(&buffer, CanGc::note());
+                        resolver.promise.resolve_native(&buffer, CanGc::from_cx(cx));
                     }));
                 })
                 .error(move |error| {
-                    task_source_clone.queue(task!(audio_decode_eos: move || {
+                    task_source_clone.queue(task!(audio_decode_eos: move |cx| {
                         let this = this_.root();
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid));
                         let resolver = resolvers.remove(&uuid).unwrap();
                         if let Some(callback) = resolver.error_callback {
                             let _ = callback.Call__(
-                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::note()),
-                                ExceptionHandling::Report, CanGc::note());
+                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError, CanGc::from_cx(cx)),
+                                ExceptionHandling::Report, CanGc::from_cx(cx));
                         }
                         let error = cformat!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(Error::Type(error), CanGc::note());
+                        resolver.promise.reject_error(Error::Type(error), CanGc::from_cx(cx));
                     }));
                 })
                 .build();

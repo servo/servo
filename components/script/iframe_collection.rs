@@ -146,7 +146,7 @@ impl IFrameCollection {
                         PinchZoomInfos::new_from_viewport_size(viewport_details.size),
                         // Theoritically it wouldn't do GC since it is impossible to initialize
                         // the `VisualViewport` interface here.
-                        CanGc::note(),
+                        CanGc::deprecated_note(),
                     )
                 });
 

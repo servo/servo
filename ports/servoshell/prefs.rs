@@ -25,15 +25,22 @@ use url::Url;
 
 use crate::VERSION;
 
+/// Preferences enabled when servoshell is launched with the `--enable-experimental-web-platform-features` flag.
+///
+/// These preferences are disabled by default but activated in experimental mode.
+/// For more details, see the
+/// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_async_clipboard_enabled",
     "dom_exec_command_enabled",
     "dom_fontface_enabled",
+    "dom_indexeddb_enabled",
     "dom_intersection_observer_enabled",
     "dom_navigator_protocol_handlers_enabled",
     "dom_notification_enabled",
     "dom_offscreen_canvas_enabled",
     "dom_permissions_enabled",
+    "dom_storage_manager_api_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
     "layout_columns_enabled",
@@ -371,6 +378,10 @@ struct CmdArgs {
     #[bpaf(argument("~/.config/servo"))]
     config_dir: Option<PathBuf>,
 
+    /// Use temporary storage (data on disk will not persist across restarts).
+    #[bpaf(long)]
+    temporary_storage: bool,
+
     ///
     ///  Run as a content process and connect to the given pipe.
     #[bpaf(argument("servo-ipc-channel.abcdefg"))]
@@ -627,6 +638,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
                 fs::create_dir_all(config_dir).expect("Could not create config_dir");
             }
         });
+    let temporary_storage = cmd_args.temporary_storage;
     if let Some(ref time_profiler_trace_path) = cmd_args.profiler_trace_path {
         let mut path = PathBuf::from(time_profiler_trace_path);
         path.pop();
@@ -699,6 +711,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
         config_dir,
+        temporary_storage,
         shaders_path: cmd_args.shaders,
         certificate_path: cmd_args
             .certificate_path
@@ -744,6 +757,12 @@ fn test_parse_pref_from_command_line() {
     // Test with numbers
     let preferences = test_parse_pref("layout_threads=42");
     assert_eq!(preferences.layout_threads, 42);
+
+    // Test with unsigned numbers
+    let preferences = test_parse_pref("network_http_cache_size=50");
+    assert_eq!(preferences.network_http_cache_size, 50);
+    let preferences = test_parse_pref("network_connection_timeout=30");
+    assert_eq!(preferences.network_connection_timeout, 30);
 
     // Test string.
     let preferences = test_parse_pref("fonts_default=Lucida");

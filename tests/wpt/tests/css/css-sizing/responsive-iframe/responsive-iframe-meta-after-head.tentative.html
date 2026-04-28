@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Test that meta tag after head enables responsive sizing.</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#responsive-iframes">
+<link rel="match" href="responsive-iframe-ref.html">
+<style>
+iframe {
+  border: 1px solid black;
+  frame-sizing: content-height;
+}
+</style>
+<iframe frameborder=0 src="resources/iframe-contents-meta-after-head.html"></iframe>

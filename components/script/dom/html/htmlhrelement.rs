@@ -20,11 +20,10 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLHRElement {
@@ -43,17 +42,17 @@ impl HTMLHRElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLHRElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLHRElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 }
@@ -63,7 +62,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_getter!(Align, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-align
-    make_atomic_setter!(SetAlign, "align");
+    make_atomic_setter!(cx, SetAlign, "align");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
     make_getter!(Color, "color");
@@ -75,7 +74,7 @@ impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     make_bool_getter!(NoShade, "noshade");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-noshade
-    make_bool_setter!(SetNoShade, "noshade");
+    make_bool_setter!(cx, SetNoShade, "noshade");
 
     // https://html.spec.whatwg.org/multipage/#dom-hr-size
     make_getter!(Size, "size");
@@ -100,21 +99,15 @@ pub(crate) enum SizePresentationalHint {
     SetBottomBorderWidthToZero,
 }
 
-pub(crate) trait HTMLHRLayoutHelpers {
-    fn get_color(self) -> Option<AbsoluteColor>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_size_info(self) -> Option<SizePresentationalHint>;
-}
-
-impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
-    fn get_color(self) -> Option<AbsoluteColor> {
+impl LayoutDom<'_, HTMLHRElement> {
+    pub(crate) fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -122,7 +115,7 @@ impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_size_info(self) -> Option<SizePresentationalHint> {
+    pub(crate) fn get_size_info(self) -> Option<SizePresentationalHint> {
         // https://html.spec.whatwg.org/multipage/#the-hr-element-2
         let element = self.upcast::<Element>();
         let size_value = element

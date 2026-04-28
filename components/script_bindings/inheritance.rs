@@ -6,7 +6,7 @@
 
 use std::mem;
 
-use crate::conversions::{DerivedFrom, IDLInterface, get_dom_class};
+use crate::conversions::{DerivedFrom, IDLInterface};
 use crate::reflector::DomObject;
 use crate::script_runtime::runtime_is_alive;
 
@@ -26,8 +26,8 @@ pub trait Castable: IDLInterface + DomObject + Sized {
             "Attempting to interact with DOM objects after JS runtime has shut down."
         );
 
-        let class = unsafe { get_dom_class(self.reflector().get_jsobject().get()).unwrap() };
-        T::derives(class)
+        let id = self.reflector().proto_id();
+        id >= T::PROTO_FIRST && id <= T::PROTO_LAST
     }
 
     /// Cast a DOM object upwards to one of the interfaces it derives from.

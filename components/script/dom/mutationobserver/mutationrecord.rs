@@ -159,13 +159,13 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes>
     fn AddedNodes(&self) -> DomRoot<NodeList> {
         self.added_nodes
-            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
+            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::deprecated_note()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes>
     fn RemovedNodes(&self) -> DomRoot<NodeList> {
         self.removed_nodes
-            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
+            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::deprecated_note()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling>

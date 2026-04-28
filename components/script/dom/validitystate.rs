@@ -107,7 +107,7 @@ impl ValidityState {
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message
     pub(crate) fn set_custom_error_message(&self, error: DOMString) {
         *self.custom_error_message.borrow_mut() = error;
-        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR, CanGc::note());
+        self.perform_validation_and_update(ValidationFlags::CUSTOM_ERROR, CanGc::deprecated_note());
     }
 
     /// Given a set of [ValidationFlags], recalculate their value by performing

@@ -40,6 +40,7 @@ pub use keyboard_types::{
 pub use media::{
     GlApi as MediaGlApi, GlContext as MediaGlContext, NativeDisplay as MediaNativeDisplay,
 };
+pub use net_traits::CookieSource;
 // This API should probably not be exposed in this way. Instead there should be a fully
 // fleshed out public domains API if we want to expose it.
 pub use net_traits::pub_domains::is_reg_domain;
@@ -47,6 +48,10 @@ pub use paint::WebRenderDebugOption;
 pub use paint_api::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
+// Expose our profile traits for servoshell, so we can instrument code there, but don't
+// add it as an official API.
+#[doc(hidden)]
+pub use profile_traits;
 // This should be replaced with an API on ServoBuilder.
 // See <https://github.com/servo/servo/issues/40950>.
 pub use resources;
@@ -58,6 +63,8 @@ pub use servo_config::{opts, pref, prefs};
 pub use servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };
+#[doc(hidden)]
+pub use servo_tracing;
 pub use servo_url::ServoUrl;
 pub use style::Zero;
 pub use style_traits::CSSPixel;

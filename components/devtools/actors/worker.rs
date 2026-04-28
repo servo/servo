@@ -27,24 +27,50 @@ pub enum WorkerType {
 }
 
 #[derive(MallocSizeOf)]
-pub(crate) struct WorkerActor {
+pub(crate) struct WorkerTargetActor {
     pub name: String,
     pub console_name: String,
     pub thread_name: String,
     pub worker_id: WorkerId,
     pub url: ServoUrl,
     pub type_: WorkerType,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
+    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
     pub streams: AtomicRefCell<FxHashSet<StreamId>>,
 }
 
-impl ResourceAvailable for WorkerActor {
+impl ResourceAvailable for WorkerTargetActor {
     fn actor_name(&self) -> String {
         self.name.clone()
     }
 }
 
-impl Actor for WorkerActor {
+impl WorkerTargetActor {
+    pub fn register(
+        registry: &ActorRegistry,
+        console_name: String,
+        thread_name: String,
+        worker_id: WorkerId,
+        url: ServoUrl,
+        worker_type: WorkerType,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
+    ) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
+            console_name,
+            thread_name,
+            worker_id,
+            url,
+            type_: worker_type,
+            script_sender,
+            streams: Default::default(),
+        };
+        registry.register::<Self>(actor);
+        name
+    }
+}
+
+impl Actor for WorkerTargetActor {
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -67,7 +93,7 @@ impl Actor for WorkerActor {
                 request.write_json_packet(&msg)?;
                 self.streams.borrow_mut().insert(stream_id);
                 // FIXME: fix messages to not require forging a pipeline for worker messages
-                self.script_chan
+                self.script_sender
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
                     .unwrap();
             },
@@ -109,7 +135,7 @@ impl Actor for WorkerActor {
     fn cleanup(&self, stream_id: StreamId) {
         self.streams.borrow_mut().remove(&stream_id);
         if self.streams.borrow().is_empty() {
-            self.script_chan
+            self.script_sender
                 .send(WantsLiveNotifications(TEST_PIPELINE_ID, false))
                 .unwrap();
         }
@@ -156,7 +182,7 @@ struct WorkerTraits {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct WorkerActorMsg {
+pub(crate) struct WorkerTargetActorMsg {
     actor: String,
     console_actor: String,
     thread_actor: String,
@@ -169,9 +195,9 @@ pub(crate) struct WorkerActorMsg {
     target_type: String,
 }
 
-impl ActorEncode<WorkerActorMsg> for WorkerActor {
-    fn encode(&self, _: &ActorRegistry) -> WorkerActorMsg {
-        WorkerActorMsg {
+impl ActorEncode<WorkerTargetActorMsg> for WorkerTargetActor {
+    fn encode(&self, _: &ActorRegistry) -> WorkerTargetActorMsg {
+        WorkerTargetActorMsg {
             actor: self.name(),
             console_actor: self.console_name.clone(),
             thread_actor: self.thread_name.clone(),

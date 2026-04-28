@@ -77,7 +77,6 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
 }
 
 /// A key used to track databases.
-/// TODO: use a storage key.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct IndexedDBDescription {
     pub origin: ImmutableOrigin,
@@ -655,9 +654,6 @@ enum OpenRequest {
         /// The callback used to send a result to script.
         sender: GenericCallback<BackendResult<u64>>,
 
-        /// The origin of the request.
-        /// TODO: storage key.
-        /// Note: will be used when the full spec is implemented.
         _origin: ImmutableOrigin,
 
         /// The name of the database.
@@ -905,11 +901,10 @@ impl IndexedDBManager {
                                 Some(IndexedDBTxnMode::Readonly) => {
                                     db.running_readonly.remove(&txn);
                                 },
-                                Some(_) => {
-                                    if db.running_readwrite == Some(txn) {
-                                        db.running_readwrite = None;
-                                    }
+                                Some(_) if db.running_readwrite == Some(txn) => {
+                                    db.running_readwrite = None;
                                 },
+                                Some(_) => {},
                                 None => {
                                     // txn might have been aborted/removed; nothing to clear
                                 },

@@ -26,10 +26,10 @@
     var item2 = document.getElementById("item2");
     var item3 = document.getElementById("item3");
 
-    await focusAndKeyPress(item1, kArrowRight);
+    await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2, "Should navigate to nested item2");
 
-    await focusAndKeyPress(item2, kArrowRight);
+    await focusAndSendDirectionalInput(item2, kRight);
     assert_equals(document.activeElement, item3, "Should navigate to item3");
   }, "Simple descendant navigation should work");
 

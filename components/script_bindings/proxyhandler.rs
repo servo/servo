@@ -562,7 +562,7 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
                 cx.into(),
                 &global,
                 Error::Security(None),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
         }
     }

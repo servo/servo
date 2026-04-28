@@ -206,7 +206,7 @@ impl IndexedDBKeyRange {
             lower: Some(key),
             upper: None,
             lower_open: open,
-            upper_open: false,
+            upper_open: true,
         }
     }
 
@@ -214,7 +214,7 @@ impl IndexedDBKeyRange {
         IndexedDBKeyRange {
             lower: None,
             upper: Some(key),
-            lower_open: false,
+            lower_open: true,
             upper_open: open,
         }
     }

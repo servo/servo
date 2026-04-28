@@ -22,11 +22,11 @@
     var item1 = document.getElementById("item1");
     var item2 = document.getElementById("item2");
 
-    await focusAndKeyPress(item1, kArrowDown);
+    await focusAndSendDirectionalInput(item1, kDown);
     assert_equals(document.activeElement, item2);
 
-    await focusAndKeyPress(item1, kArrowRight);
+    await focusAndSendDirectionalInput(item1, kRight);
     assert_equals(document.activeElement, item2);
-  }, "When the focus is set on a focusgroup item, an arrow key press should move the focus to the next item.");
+  }, "When the focus is set on a focusgroup item, directional input should move the focus to the next item.");
 
 </script>

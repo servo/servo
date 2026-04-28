@@ -44,19 +44,19 @@ impl HTMLLabelElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLLabelElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLLabelElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 }
@@ -75,9 +75,14 @@ impl Activatable for HTMLLabelElement {
     // at all, we are free to do an implementation-dependent thing;
     // firing a click event is an example, and the precise details of that
     // click event (e.g. isTrusted) are not specified.
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+    fn activation_behavior(
+        &self,
+        cx: &mut js::context::JSContext,
+        _event: &Event,
+        _target: &EventTarget,
+    ) {
         if let Some(e) = self.GetControl() {
-            e.Click(can_gc);
+            e.Click(CanGc::from_cx(cx));
         }
     }
 }

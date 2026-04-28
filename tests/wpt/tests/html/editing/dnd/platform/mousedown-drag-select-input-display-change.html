@@ -1,0 +1,45 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<link rel="help" href="https://bugzil.la/2014481">
+<title>Test text selection dragging still works when mousedown causes a</title>
+<style>
+  body {
+    margin: 0
+  }
+
+  input {
+    /* Redundant, but pedantic */
+    display: inline-block;
+
+    appearance: none;
+    border: none;
+    padding: 0;
+  }
+</style>
+<input value="XXXXXXXXXXXXXXXXXXXXX" onfocus="this.style.display = 'inline'" onblur="this.style.display = ''">
+<script>
+  promise_test(async function (t) {
+    const input = document.querySelector("input");
+
+    const rect = input.getBoundingClientRect();
+    const endX = Math.floor(rect.width);
+    const centerY = Math.round(rect.height / 2);
+
+    await new test_driver.Actions()
+      .pointerMove(2, centerY)
+      .pointerDown()
+      .pointerMove(endX - 10, centerY)
+      .pointerMove(endX - 2, centerY)
+      .pointerUp()
+      .send();
+
+    assert_equals(input.style.display, "inline", "display should be inline");
+    assert_equals(document.activeElement, input, "<input> should be focused");
+    assert_not_equals(input.selectionStart, input.selectionEnd,
+      "some text should be selected after dragging");
+  }, "text selection drag should still work when mousedown a display change");
+</script>

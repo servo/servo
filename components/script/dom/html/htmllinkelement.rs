@@ -140,20 +140,20 @@ impl HTMLLinkElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLLinkElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLLinkElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -256,12 +256,25 @@ impl VirtualMethods for HTMLLinkElement {
 
         let local_name = attr.local_name();
         let is_removal = mutation.is_removal();
-        if *local_name == local_name!("disabled") {
-            self.handle_disabled_attribute_change(is_removal);
-            return;
-        }
-        let node = self.upcast::<Node>();
+        match *local_name {
+            local_name!("disabled") => {
+                self.handle_disabled_attribute_change(is_removal);
+                return;
+            },
+            local_name!("rel") | local_name!("rev") => {
+                let previous_relations = self.relations.get();
+                self.relations
+                    .set(LinkRelations::for_element(self.upcast()));
 
+                // If relations haven't changed, we shouldn't do anything
+                if previous_relations == self.relations.get() {
+                    return;
+                }
+            },
+            _ => {},
+        }
+
+        let node = self.upcast::<Node>();
         if !node.is_connected() {
             return;
         }
@@ -278,15 +291,6 @@ impl VirtualMethods for HTMLLinkElement {
 
         match *local_name {
             local_name!("rel") | local_name!("rev") => {
-                let previous_relations = self.relations.get();
-                self.relations
-                    .set(LinkRelations::for_element(self.upcast()));
-
-                // If relations haven't changed, we shouldn't do anything
-                if previous_relations == self.relations.get() {
-                    return;
-                }
-
                 // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
                 // > When the external resource link is created on a link element that is already browsing-context connected.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
@@ -444,9 +448,6 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(cx, context);
         }
 
-        self.relations
-            .set(LinkRelations::for_element(self.upcast()));
-
         if context.tree_connected {
             let element = self.upcast();
 
@@ -483,9 +484,9 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
 
         self.remove_stylesheet();
@@ -639,7 +640,7 @@ impl HTMLLinkElement {
             // Step 5. If request is null, then return.
             return;
         };
-        let url = request.url.clone();
+        let url = request.url.url();
 
         // Step 6. Set request's initiator to "prefetch".
         let request = request.initiator(Initiator::Prefetch);
@@ -934,17 +935,15 @@ impl HTMLLinkElement {
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     pub(crate) fn fire_event_after_response(
         &self,
+        cx: &mut JSContext,
         response: Result<(), NetworkError>,
-        can_gc: CanGc,
     ) {
         // Step 3.1 If response is a network error, fire an event named error at el.
         // Otherwise, fire an event named load at el.
         if response.is_err() {
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("error"), can_gc);
+            self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
         } else {
-            self.upcast::<EventTarget>()
-                .fire_event(atom!("load"), can_gc);
+            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
         }
     }
 
@@ -1032,6 +1031,7 @@ impl HTMLLinkElement {
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode,
             referrer_policy,
+            render_blocking: false,
         };
 
         let link = DomRoot::from_ref(self);
@@ -1052,8 +1052,7 @@ impl HTMLLinkElement {
                     false => atom!("load"),
                 };
 
-                link.upcast::<EventTarget>()
-                    .fire_event(event, CanGc::from_cx(cx));
+                link.upcast::<EventTarget>().fire_event(cx, event);
             },
         );
     }
@@ -1099,7 +1098,10 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
-        if self.RelList(CanGc::note()).Contains("noreferrer".into()) {
+        if self
+            .RelList(CanGc::deprecated_note())
+            .Contains("noreferrer".into())
+        {
             return ReferrerPolicy::NoReferrer;
         }
 
@@ -1107,7 +1109,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::note()) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::deprecated_note()) {
             stylesheet.set_origin_clean(origin_clean);
         }
     }
@@ -1124,9 +1126,12 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-rel>
-    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
-        self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
+    fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
+        self.upcast::<Element>().set_tokenlist_attribute(
+            &local_name!("rel"),
+            rel,
+            CanGc::from_cx(cx),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-as

@@ -417,10 +417,11 @@ class CommandBase(object):
                 print("Hint: Ninja-build is available on github at: https://github.com/ninja-build/ninja/releases")
                 exit(1)
 
-        if self.config["build"]["mode"] in ["", "dev"]:
-            # Increase stylo thread stack size to 2 MiB for debug builds since the stack usage is higher
-            # and crashes have been reported. The default is 512 KiB.
-            env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = env.get("SERVO_STYLE_THREAD_STACK_SIZE_KB", str(2 * 1024))
+        # Increase stylo thread stack size to 8 MiB for all builds
+        # to match the recursion depth of Chromium.
+        # This only reserves virtual memory space and has almost no overhead.
+        # See https://github.com/servo/servo/pull/43888
+        env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = env.get("SERVO_STYLE_THREAD_STACK_SIZE_KB", str(8 * 1024))
 
         return env
 
@@ -834,6 +835,11 @@ class CommandBase(object):
 
         # Toolchain installation is handled automatically for non cross compilation builds.
         if not self.target.is_cross_build():
+            return
+
+        if shutil.which("rustup") is None:
+            print("Warning: rustup not found. Skipping automatic target installation for cross-compilation.")
+            print(f"  You may need to manually ensure the '{self.target.triple()}' target is installed.")
             return
 
         installed_targets = check_output(["rustup", "target", "list", "--installed"], cwd=self.context.topdir)

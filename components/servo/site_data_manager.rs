@@ -2,16 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+
 use bitflags::bitflags;
 use cookie::Cookie;
 use log::warn;
 use net_traits::pub_domains::registered_domain_name;
-use net_traits::{CookieSource, ResourceThreads, SiteDescriptor};
+use net_traits::{CookieOperationId, ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
 use url::Url;
+
+use crate::CookieSource;
 
 bitflags! {
     /// Identifies categories of site data associated with a site.
@@ -60,6 +64,21 @@ impl SiteData {
     }
 }
 
+/// The response data for a pending embedder cookie operation.
+pub(crate) enum CookieOperationResponse {
+    /// Cookies returned from a get operation.
+    Cookies(Vec<Cookie<'static>>),
+    /// Acknowledgement that a operation is completed.
+    Done,
+}
+
+/// A callback for a pending embedder cookie operation,
+/// paired with the [`CookieOperationResponse`].
+enum CookieOperationCallback {
+    Cookies(Box<dyn FnOnce(Vec<Cookie<'static>>)>),
+    Done(Box<dyn FnOnce()>),
+}
+
 /// Provides APIs for inspecting and managing site data.
 ///
 /// `SiteDataManager` exposes information about data that is conceptually
@@ -77,6 +96,8 @@ pub struct SiteDataManager {
     private_resource_threads: ResourceThreads,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
+    next_cookie_op_id: Cell<u64>,
+    pending_cookie_callbacks: RefCell<FxHashMap<CookieOperationId, CookieOperationCallback>>,
 }
 
 impl SiteDataManager {
@@ -91,6 +112,8 @@ impl SiteDataManager {
             private_resource_threads,
             public_storage_threads,
             private_storage_threads,
+            next_cookie_op_id: Cell::new(0),
+            pending_cookie_callbacks: RefCell::new(FxHashMap::default()),
         }
     }
 
@@ -223,5 +246,70 @@ impl SiteDataManager {
             cookie,
             CookieSource::HTTP,
         );
+    }
+
+    /// Asynchronously returns the cookies for the domain associated with the given [`Url`].
+    pub fn cookies_for_url_async(
+        &self,
+        url: Url,
+        source: CookieSource,
+        callback: impl FnOnce(Vec<Cookie<'static>>) + 'static,
+    ) {
+        let id = self.next_operation_id();
+        self.pending_cookie_callbacks
+            .borrow_mut()
+            .insert(id, CookieOperationCallback::Cookies(Box::new(callback)));
+        self.public_resource_threads
+            .cookies_for_url_async(id, url.into(), source);
+    }
+
+    /// Asynchronously sets a cookie for the domain associated with the given [`Url`].
+    pub fn set_cookie_for_url_async(
+        &self,
+        url: Url,
+        cookie: Cookie<'static>,
+        callback: impl FnOnce() + 'static,
+    ) {
+        let id = self.next_operation_id();
+        self.pending_cookie_callbacks
+            .borrow_mut()
+            .insert(id, CookieOperationCallback::Done(Box::new(callback)));
+        self.public_resource_threads.set_cookie_for_url_async(
+            id,
+            url.into(),
+            cookie,
+            CookieSource::HTTP,
+        );
+    }
+
+    /// Handle a cookie operation response from the resource thread.
+    ///
+    /// This is called by the event loop when an embedder cookie response is received.
+    pub(crate) fn handle_cookie_response(
+        &self,
+        id: CookieOperationId,
+        response: CookieOperationResponse,
+    ) {
+        let Some(callback) = self.pending_cookie_callbacks.borrow_mut().remove(&id) else {
+            warn!("Received cookie response for unknown operation {id:?}");
+            return;
+        };
+        match (callback, response) {
+            (CookieOperationCallback::Cookies(cb), CookieOperationResponse::Cookies(cookies)) => {
+                cb(cookies);
+            },
+            (CookieOperationCallback::Done(cb), CookieOperationResponse::Done) => {
+                cb();
+            },
+            _ => {
+                warn!("Cookie response type mismatch for operation {id:?}");
+            },
+        }
+    }
+
+    fn next_operation_id(&self) -> CookieOperationId {
+        let id = CookieOperationId(self.next_cookie_op_id.get());
+        self.next_cookie_op_id.set(id.0 + 1);
+        id
     }
 }

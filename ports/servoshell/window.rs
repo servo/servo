@@ -4,6 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::atomic::AtomicU64;
 
 use euclid::Scale;
 use log::warn;
@@ -29,12 +30,21 @@ pub(crate) const LINE_WIDTH: f32 = 76.0;
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) const MIN_WINDOW_INNER_SIZE: DeviceIntSize = DeviceIntSize::new(100, 100);
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+static SERVOSHELL_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) struct ServoShellWindowId(u64);
 
 impl From<u64> for ServoShellWindowId {
     fn from(value: u64) -> Self {
         Self(value)
+    }
+}
+
+impl ServoShellWindowId {
+    #[cfg_attr(not(any(target_os = "android", target_env = "ohos")), expect(unused))]
+    pub(crate) fn next() -> ServoShellWindowId {
+        ServoShellWindowId(SERVOSHELL_WINDOW_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
     }
 }
 
@@ -86,6 +96,7 @@ impl ServoShellWindow {
     }
 
     /// Must be called *after* `self` is in `state.windows`, otherwise it will panic.
+    #[servo::servo_tracing::instrument(skip(self, state))]
     pub(crate) fn create_toplevel_webview(&self, state: Rc<RunningAppState>, url: Url) -> WebView {
         let mut webview_builder =
             WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
@@ -107,6 +118,8 @@ impl ServoShellWindow {
         self.add_webview(webview.clone());
         // If `self` is not in `state.windows`, our notify_accessibility_tree_update() will panic.
         if state.accessibility_active() {
+            // Activate accessibility in the WebView.
+            // There are two sites like this; this is the WebView creation site.
             webview.set_accessibility_active(true);
         }
         webview
@@ -147,7 +160,7 @@ impl ServoShellWindow {
         self.needs_repaint.set(true)
     }
 
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    #[cfg_attr(target_os = "android", expect(dead_code))]
     pub(crate) fn schedule_close(&self) {
         self.close_scheduled.set(true)
     }

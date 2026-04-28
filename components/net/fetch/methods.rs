@@ -32,30 +32,29 @@ use net_traits::request::{
 use net_traits::response::{Response, ResponseBody, ResponseType, TerminationReason};
 use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent,
-    set_default_accept_language,
+    ResourceFetchTimingContainer, ResourceTimeValue, ResourceTimingType, WebSocketDomAction,
+    WebSocketNetworkEvent, set_default_accept_language,
 };
 use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
-use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::CallbackSetter;
 use servo_base::id::PipelineId;
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use crate::connector::CACertificates;
+use crate::devtools::{
+    send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
+};
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::{
     ConsumePreloadedResources, FetchParams, SharedPreloadedResources,
 };
 use crate::filemanager_thread::FileManager;
-use crate::http_loader::{
-    HttpState, determine_requests_referrer, http_fetch, send_early_httprequest_to_devtools,
-    send_response_to_devtools, send_security_info_to_devtools, set_default_accept,
-};
+use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
 use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
@@ -104,7 +103,7 @@ pub struct FetchContext {
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,
-    pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
+    pub timing: ResourceFetchTimingContainer,
     pub protocols: Arc<ProtocolRegistry>,
     pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
     pub ca_certificates: CACertificates<'static>,
@@ -179,11 +178,10 @@ pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
-    {
-        let mut timing_guard = context.timing.lock();
-        timing_guard.set_attribute(ResourceAttribute::FetchStart);
-        timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
-    }
+    context.timing.set_attributes(&[
+        ResourceAttribute::FetchStart,
+        ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
+    ]);
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await
 }
 
@@ -540,12 +538,12 @@ pub async fn main_fetch(
         .await;
 
     let mut response = match response {
-        Some(res) => res,
+        Some(response) => response,
         None => {
             // Step 12. If response is null, then set response to the result
             // of running the steps corresponding to the first matching statement:
             let same_origin = if let Origin::Origin(ref origin) = request.origin {
-                *origin == current_url.origin()
+                *origin == request.current_url_with_blob_claim().origin()
             } else {
                 false
             };
@@ -554,7 +552,7 @@ pub async fn main_fetch(
             if let Some((response, preload_id)) =
                 fetch_params.preload_response_candidate.response().await
             {
-                response.get_resource_timing().lock().preloaded = true;
+                response.get_resource_timing().inner().preloaded = true;
                 context
                     .preloaded_resources
                     .lock()
@@ -652,9 +650,10 @@ pub async fn main_fetch(
 
     // Step 14. If response is not a network error and response is not a filtered response, then:
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
-        // Substep 1.
+        // Step 14.1 If request’s response tainting is "cors", then:
         if request.response_tainting == ResponseTainting::CorsTainting {
-            // Subsubstep 1.
+            // Step 14.1.1 Let headerNames be the result of extracting header list values given
+            // `Access-Control-Expose-Headers` and response’s header list.
             let header_names: Option<Vec<HeaderName>> = response
                 .headers
                 .typed_get::<AccessControlExposeHeaders>()
@@ -680,7 +679,8 @@ pub async fn main_fetch(
             }
         }
 
-        // Substep 2.
+        // Step 14.2 Set response to the following filtered response with response as its internal response,
+        // depending on request’s response tainting:
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
@@ -726,7 +726,11 @@ pub async fn main_fetch(
 
         // Step 16. If internalResponse’s URL list is empty, then set it to a clone of request’s URL list.
         if internal_response.url_list.is_empty() {
-            internal_response.url_list.clone_from(&request.url_list)
+            internal_response.url_list = request
+                .url_list
+                .iter()
+                .map(|locked_url| locked_url.url())
+                .collect();
         }
 
         // Step 17. Set internalResponse’s redirect taint to request’s redirect-taint.
@@ -1056,18 +1060,22 @@ async fn scheme_fetch(
 
     // Step 2: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
-    let url = request.current_url();
+    let url_and_blob_lock = request.current_url_with_blob_claim();
 
-    let scheme = url.scheme();
+    let scheme = url_and_blob_lock.scheme();
     match scheme {
-        "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
-        "about" if url.path() == "memory" => create_about_memory(url, request.timing_type()),
+        "about" if url_and_blob_lock.path() == "blank" => {
+            create_blank_reply(url_and_blob_lock.url(), request.timing_type())
+        },
+        "about" if url_and_blob_lock.path() == "memory" => {
+            create_about_memory(url_and_blob_lock.url(), request.timing_type())
+        },
 
-        "chrome" if url.path() == "allowcert" => {
+        "chrome" if url_and_blob_lock.path() == "allowcert" => {
             if let Err(error) = handle_allowcert_request(request, context) {
                 warn!("Could not handle allowcert request: {error}");
             }
-            create_blank_reply(url, request.timing_type())
+            create_blank_reply(url_and_blob_lock.url(), request.timing_type())
         },
 
         "http" | "https" => {
@@ -1355,15 +1363,10 @@ pub enum MixedSecurityProhibited {
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
 fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
     if let Origin::Origin(ref origin) = request.origin {
-        // Workers created from a data: url are secure if they were created from secure contexts
-        let is_origin_data_url_worker = matches!(
-            *origin,
-            ImmutableOrigin::Opaque(servo_url::OpaqueOrigin::SecureWorkerFromDataUrl(_))
-        );
-
         // Step 1. If settings’ origin is a potentially trustworthy origin,
         // then return "Prohibits Mixed Security Contexts".
-        if origin.is_potentially_trustworthy() || is_origin_data_url_worker {
+        // NOTE: Workers created from a data: url are secure if they were created from secure contexts
+        if origin.is_potentially_trustworthy() || origin.is_for_data_worker_from_secure_context() {
             return MixedSecurityProhibited::Prohibited;
         }
     }

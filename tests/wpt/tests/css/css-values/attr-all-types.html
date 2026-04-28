@@ -28,7 +28,7 @@
     }
 </style>
 
-<div id="attr" data-bar="3"></div>
+<div id="attr" data-bar="3" data-baz="3px"></div>
 <div id="expected"></div>
 
 <script>
@@ -205,7 +205,7 @@
     test_valid_attr('--y', 'attr(data-foo type(*))', 'var(--x, 3)', '3');
     test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar, 11)', '"3"');
     test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11)', '3');
-    test_valid_attr('width', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11)', '3');
+    test_valid_attr('width', 'attr(data-foo type(*))', 'attr(data-baz type(<length>), 11px)', '3px');
     test_valid_attr('--y', 'attr(data-foo type(*))', 'attr(data-bar type(<number>), 11) var(--length, 3px)', '3 10px');
     test_valid_attr('animation-name', 'attr(data-foo type(*))', 'attr(', '');
     test_valid_attr('animation-name', 'attr(data-foo type(*), anim)', 'attr(', 'anim');

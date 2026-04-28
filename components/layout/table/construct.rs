@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::iter::repeat_n;
 
 use atomic_refcell::AtomicRef;
-use layout_api::wrapper_traits::ThreadSafeLayoutNode;
+use layout_api::LayoutNode;
 use log::warn;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -770,16 +770,20 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     self.builder.table.row_groups.push(row_group.clone());
 
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
-                    self.current_row_group_index = Some(new_row_group_index);
+                    let context = self.context;
+                    let mut row_group_builder = TableRowGroupBuilder::new(
+                        self,
+                        info,
+                        self.current_propagated_data,
+                        new_row_group_index,
+                    );
 
                     contents
                         .non_replaced_contents()
                         .expect("Replaced should not have a LayoutInternal display type.")
-                        .traverse(self.context, info, self);
-                    self.finish_anonymous_row_if_needed();
+                        .traverse(context, info, &mut row_group_builder);
 
-                    self.current_row_group_index = None;
-                    self.builder.incoming_rowspans.clear();
+                    row_group_builder.finish();
 
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
                         row_group,
@@ -917,6 +921,141 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
     }
 }
 
+struct TableRowGroupBuilder<'style, 'builder, 'dom, 'a> {
+    table_traversal: &'builder mut TableBuilderTraversal<'style, 'dom>,
+    info: &'a NodeAndStyleInfo<'dom>,
+    propagated_data: PropagatedBoxTreeData,
+    current_anonymous_row_content: Vec<AnonymousTableContent<'dom>>,
+}
+
+impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a> {
+    fn new(
+        table_traversal: &'builder mut TableBuilderTraversal<'style, 'dom>,
+        info: &'a NodeAndStyleInfo<'dom>,
+        propagated_data: PropagatedBoxTreeData,
+        row_group_index: usize,
+    ) -> Self {
+        // Row groups are only opened from TableBuilderTraversal, never nested, so current_row_group_index is always None here.
+        debug_assert!(table_traversal.current_row_group_index.is_none());
+        table_traversal.current_row_group_index = Some(row_group_index);
+
+        Self {
+            table_traversal,
+            info,
+            propagated_data,
+            current_anonymous_row_content: Vec::new(),
+        }
+    }
+
+    fn finish(mut self) {
+        self.finish_anonymous_row_if_needed();
+        self.table_traversal.current_row_group_index = None;
+        self.table_traversal.builder.incoming_rowspans.clear();
+    }
+
+    fn finish_anonymous_row_if_needed(&mut self) {
+        if AnonymousTableContent::contents_are_whitespace_only(&self.current_anonymous_row_content)
+        {
+            self.current_anonymous_row_content.clear();
+            return;
+        }
+
+        let row_content = std::mem::take(&mut self.current_anonymous_row_content);
+        let anonymous_info = self
+            .info
+            .with_pseudo_element(
+                self.table_traversal.context,
+                PseudoElement::ServoAnonymousTableRow,
+            )
+            .expect("Should never fail to create anonymous row info.");
+
+        let mut row_builder =
+            TableRowBuilder::new(self.table_traversal, &anonymous_info, self.propagated_data);
+
+        for cell_content in row_content {
+            match cell_content {
+                AnonymousTableContent::Element {
+                    info,
+                    display,
+                    contents,
+                    box_slot,
+                } => {
+                    row_builder.handle_element(&info, display, contents, box_slot);
+                },
+                AnonymousTableContent::Text(info, text) => {
+                    row_builder.handle_text(&info, text);
+                },
+            }
+        }
+
+        row_builder.finish();
+
+        let style = anonymous_info.style.clone();
+        let table_row = ArcRefCell::new(TableTrack {
+            base: LayoutBoxBase::new((&anonymous_info).into(), style.clone()),
+            group_index: self.table_traversal.current_row_group_index,
+            is_anonymous: true,
+            shared_background_style: SharedStyle::new(style),
+        });
+        self.table_traversal.push_table_row(table_row.clone());
+
+        anonymous_info
+            .node
+            .box_slot()
+            .set(LayoutBox::TableLevelBox(TableLevelBox::Track(table_row)));
+    }
+}
+
+impl<'dom> TraversalHandler<'dom> for TableRowGroupBuilder<'_, '_, 'dom, '_> {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
+        self.current_anonymous_row_content
+            .push(AnonymousTableContent::Text(info.clone(), text));
+    }
+
+    fn handle_element(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        display: DisplayGeneratingBox,
+        contents: Contents,
+        box_slot: BoxSlot<'dom>,
+    ) {
+        match display {
+            DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableRow) => {
+                self.finish_anonymous_row_if_needed();
+
+                let context = self.table_traversal.context;
+                let mut row_builder =
+                    TableRowBuilder::new(self.table_traversal, info, self.propagated_data);
+
+                contents
+                    .non_replaced_contents()
+                    .expect("Replaced should not have a LayoutInternal display type.")
+                    .traverse(context, info, &mut row_builder);
+                row_builder.finish();
+
+                let row = ArcRefCell::new(TableTrack {
+                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                    group_index: self.table_traversal.current_row_group_index,
+                    is_anonymous: false,
+                    shared_background_style: SharedStyle::new(info.style.clone()),
+                });
+                self.table_traversal.push_table_row(row.clone());
+                box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
+            },
+
+            _ => {
+                self.current_anonymous_row_content
+                    .push(AnonymousTableContent::Element {
+                        info: info.clone(),
+                        display,
+                        contents,
+                        box_slot,
+                    });
+            },
+        }
+    }
+}
+
 struct TableRowBuilder<'style, 'builder, 'dom, 'a> {
     table_traversal: &'builder mut TableBuilderTraversal<'style, 'dom>,
 
@@ -1037,8 +1176,8 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                         // This value will already have filtered out rowspan=0
                         // in quirks mode, so we don't have to worry about that.
                         let (rowspan, colspan) = if info.pseudo_element_chain().is_empty() {
-                            let rowspan = info.node.get_rowspan().unwrap_or(1) as usize;
-                            let colspan = info.node.get_colspan().unwrap_or(1) as usize;
+                            let rowspan = info.node.table_rowspan().unwrap_or(1) as usize;
+                            let colspan = info.node.table_colspan().unwrap_or(1) as usize;
 
                             // The HTML specification clamps value of `rowspan` to [0, 65534] and
                             // `colspan` to [1, 1000].
@@ -1161,7 +1300,7 @@ fn add_column(
     old_column: Option<ArcRefCell<TableTrack>>,
 ) -> ArcRefCell<TableTrack> {
     let span = if column_info.pseudo_element_chain().is_empty() {
-        column_info.node.get_span().unwrap_or(1)
+        column_info.node.table_span().unwrap_or(1)
     } else {
         1
     };

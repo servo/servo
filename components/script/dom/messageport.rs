@@ -107,9 +107,9 @@ impl MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn set_onmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn set_onmessage(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
         let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.set_event_handler_common("message", listener);
+        eventtarget.set_event_handler_common(cx, "message", listener);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
@@ -341,7 +341,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
-    fn Close(&self, can_gc: CanGc) {
+    fn Close(&self, cx: &mut JSContext) {
         // Set this's [[Detached]] internal slot value to true.
         self.detached.set(true);
 
@@ -349,16 +349,16 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         global.close_message_port(self.message_port_id());
 
         // If this is entangled, disentangle it.
-        global.disentangle_port(self, can_gc);
+        global.disentangle_port(cx, self);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn GetOnmessage(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnmessage(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
         if self.detached.get() {
             return None;
         }
         let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.get_event_handler_common("message", can_gc)
+        eventtarget.get_event_handler_common(cx, "message")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
@@ -366,7 +366,7 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
         if self.detached.get() {
             return;
         }
-        self.set_onmessage(listener);
+        self.set_onmessage(cx, listener);
         // Note: we cannot use the event_handler macro, due to the need to start the port.
         self.global().start_message_port(cx, self.message_port_id());
     }

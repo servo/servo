@@ -83,6 +83,15 @@ macro_rules! pref {
 }
 
 /// The set of global preferences supported by Servo.
+///
+/// Each preference has a default value that determines its initial state. These defaults
+/// fall into roughly three categories:
+/// - **Stable**: enabled by default.
+/// - **Experimental**: disabled by default, but intended to be enabled for experimental use.
+/// - **Unstable**: disabled by default.
+///
+/// For a full overview of which preferences are experimental, see the
+/// [experimental features documentation](https://book.servo.org/design-documentation/experimental-features.html).
 #[derive(Clone, Deserialize, Serialize, ServoPreferences)]
 pub struct Preferences {
     pub fonts_default: String,
@@ -142,6 +151,8 @@ pub struct Preferences {
     pub dom_gamepad_enabled: bool,
     // feature: Geolocation API | #38903 | Web/API/Geolocation_API
     pub dom_geolocation_enabled: bool,
+    // feature: Screen Wake Lock API | #43615 | Web/API/Screen_Wake_Lock_API
+    pub dom_wakelock_enabled: bool,
     // feature: IndexedDB | #6963 | Web/API/IndexedDB_API
     pub dom_indexeddb_enabled: bool,
     // feature: IntersectionObserver | #35767 | Web/API/Intersection_Observer_API
@@ -162,10 +173,16 @@ pub struct Preferences {
     pub dom_permissions_testing_allowed_in_nonsecure_contexts: bool,
     // feature: ResizeObserver | #39790 | Web/API/ResizeObserver
     pub dom_resize_observer_enabled: bool,
+    // feature: Sanitizer API | #43948 | Web/API/HTML_Sanitizer_API
+    pub dom_sanitizer_enabled: bool,
     pub dom_script_asynch: bool,
+    // feature: Storage API | #43976 | Web/API/Storage_API
+    pub dom_storage_manager_api_enabled: bool,
     // feature: ServiceWorker | #36538 | Web/API/Service_Worker_API
     pub dom_serviceworker_enabled: bool,
     pub dom_serviceworker_timeout_seconds: i64,
+    // feature: SharedWorker | #7458 | Web/API/SharedWorker
+    pub dom_sharedworker_enabled: bool,
     pub dom_servo_helpers_enabled: bool,
     pub dom_servoparser_async_html_tokenizer_enabled: bool,
     pub dom_testbinding_enabled: bool,
@@ -364,6 +381,7 @@ impl Preferences {
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,
             dom_geolocation_enabled: false,
+            dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,
             dom_microdata_testing_enabled: false,
@@ -376,9 +394,12 @@ impl Preferences {
             dom_permissions_enabled: false,
             dom_permissions_testing_allowed_in_nonsecure_contexts: false,
             dom_resize_observer_enabled: true,
+            dom_sanitizer_enabled: false,
             dom_script_asynch: true,
+            dom_storage_manager_api_enabled: false,
             dom_serviceworker_enabled: false,
             dom_serviceworker_timeout_seconds: 60,
+            dom_sharedworker_enabled: false,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
             dom_testbinding_enabled: false,

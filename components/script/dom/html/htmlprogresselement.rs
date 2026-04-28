@@ -54,19 +54,19 @@ impl HTMLProgressElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLProgressElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLProgressElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -85,7 +85,7 @@ impl HTMLProgressElement {
         );
 
         // FIXME: This should use ::-moz-progress-bar
-        progress_bar.SetId("-servo-progress-bar".into(), CanGc::from_cx(cx));
+        progress_bar.SetId(cx, "-servo-progress-bar".into());
         root.upcast::<Node>()
             .AppendChild(cx, progress_bar.upcast::<Node>())
             .unwrap();
@@ -146,14 +146,14 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-value>
-    fn SetValue(&self, new_val: Finite<f64>, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, new_val: Finite<f64>) {
         if *new_val >= 0.0 {
             let mut string_value = DOMString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
             self.upcast::<Element>().set_string_attribute(
                 &local_name!("value"),
                 string_value,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         }
     }
@@ -176,14 +176,14 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-max>
-    fn SetMax(&self, new_val: Finite<f64>, can_gc: CanGc) {
+    fn SetMax(&self, cx: &mut JSContext, new_val: Finite<f64>) {
         if *new_val > 0.0 {
             let mut string_value = DOMString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
             self.upcast::<Element>().set_string_attribute(
                 &local_name!("max"),
                 string_value,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         }
     }

@@ -32,6 +32,7 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::csp::Violation;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
+use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
@@ -76,9 +77,10 @@ impl MixedMessage {
                 ScriptThreadMessage::UpdatePipelineId(_, _, _, id, _) => Some(*id),
                 ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(*id),
                 ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
-                ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
-                ScriptThreadMessage::FocusDocument(id, ..) => Some(*id),
-                ScriptThreadMessage::Unfocus(id, ..) => Some(*id),
+
+                ScriptThreadMessage::FocusDocumentAsPartOfFocusingSteps(id, ..) => Some(*id),
+                ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(id, ..) => Some(*id),
+                ScriptThreadMessage::FocusDocument(id) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
                 ScriptThreadMessage::TickAllAnimations(..) => None,
                 ScriptThreadMessage::WebFontLoaded(id) => Some(*id),
@@ -105,7 +107,6 @@ impl MixedMessage {
                 ScriptThreadMessage::EmbedderControlResponse(id, _) => Some(id.pipeline_id),
                 ScriptThreadMessage::SetUserContents(..) => None,
                 ScriptThreadMessage::DestroyUserContentManager(..) => None,
-                ScriptThreadMessage::AccessibilityTreeUpdate(..) => None,
                 ScriptThreadMessage::UpdatePinchZoomInfos(id, _) => Some(*id),
                 ScriptThreadMessage::SetAccessibilityActive(..) => None,
                 ScriptThreadMessage::TriggerGarbageCollection => None,
@@ -207,6 +208,8 @@ impl fmt::Debug for CommonScriptMsg {
 pub(crate) enum ScriptEventLoopSender {
     /// A sender that sends to the main `ScriptThread` event loop.
     MainThread(Sender<MainThreadScriptMsg>),
+    /// A sender that sends to a `SharedWorker` event loop.
+    SharedWorker(Sender<SharedWorkerScriptMsg>),
     /// A sender that sends to a `ServiceWorker` event loop.
     ServiceWorker(Sender<ServiceWorkerScriptMsg>),
     /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
@@ -224,6 +227,11 @@ impl ScriptEventLoopSender {
         match self {
             Self::MainThread(sender) => sender
                 .send(MainThreadScriptMsg::Common(message))
+                .map_err(|_| SendError(())),
+            Self::SharedWorker(sender) => sender
+                .send(SharedWorkerScriptMsg::CommonWorker(
+                    WorkerScriptMsg::Common(message),
+                ))
                 .map_err(|_| SendError(())),
             Self::ServiceWorker(sender) => sender
                 .send(ServiceWorkerScriptMsg::CommonWorker(
@@ -252,6 +260,8 @@ impl ScriptEventLoopSender {
 pub(crate) enum ScriptEventLoopReceiver {
     /// A receiver that receives messages to the main `ScriptThread` event loop.
     MainThread(Receiver<MainThreadScriptMsg>),
+    /// A receiver that receives messages to shared worker event loops.
+    SharedWorker(Receiver<SharedWorkerScriptMsg>),
     /// A receiver that receives messages to dedicated workers (such as a generic Web Worker) event loop.
     DedicatedWorker(Receiver<DedicatedWorkerScriptMsg>),
 }
@@ -262,6 +272,13 @@ impl ScriptEventLoopReceiver {
             Self::MainThread(receiver) => match receiver.recv() {
                 Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
                 Ok(_) => panic!("unexpected main thread event message!"),
+                Err(_) => Err(()),
+            },
+            Self::SharedWorker(receiver) => match receiver.recv() {
+                Ok(SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(message))) => {
+                    Ok(message)
+                },
+                Ok(_) => panic!("unexpected shared worker event message!"),
                 Err(_) => Err(()),
             },
             Self::DedicatedWorker(receiver) => match receiver.recv() {

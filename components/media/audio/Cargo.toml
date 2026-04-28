@@ -14,19 +14,18 @@ name = "servo_media_audio"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.22"
-log = "0.4"
-serde_derive = "1.0.66"
-serde = "1.0.66"
+euclid = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 servo-media-derive = { workspace = true }
 servo-media-player = { workspace = true }
 servo-media-traits = { workspace = true }
 servo-media-streams = { workspace = true }
-smallvec = "1"
-speexdsp-resampler = "0.1.0"
+smallvec = { workspace = true }
+speexdsp-resampler = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-num-complex = "0.2.4"
+num-complex = { workspace = true }
 
 [dependencies.petgraph]
 version = "0.4.12"

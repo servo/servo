@@ -325,11 +325,11 @@ impl ImageBitmap {
                 let trusted_image_bitmap = Trusted::new(image_bitmap);
 
                 global_scope.task_manager().bitmap_task_source().queue(
-                    task!(resolve_promise: move || {
+                    task!(resolve_promise: move |cx| {
                         let promise = trusted_promise.root();
                         let image_bitmap = trusted_image_bitmap.root();
 
-                        promise.resolve_native(&image_bitmap, CanGc::note());
+                        promise.resolve_native(&image_bitmap, CanGc::from_cx(cx));
                     }),
                 );
             };
@@ -339,14 +339,13 @@ impl ImageBitmap {
         let reject_promise_on_bitmap_task_source = |promise: &Rc<Promise>| {
             let trusted_promise = TrustedPromise::new(promise.clone());
 
-            global_scope
-                .task_manager()
-                .bitmap_task_source()
-                .queue(task!(reject_promise: move || {
+            global_scope.task_manager().bitmap_task_source().queue(
+                task!(reject_promise: move |cx| {
                     let promise = trusted_promise.root();
 
-                    promise.reject_error(Error::InvalidState(None), CanGc::note());
-                }));
+                    promise.reject_error(Error::InvalidState(None), CanGc::from_cx(cx));
+                }),
+            );
         };
 
         // Step 3. Check the usability of the image argument. If this throws an exception or returns bad,

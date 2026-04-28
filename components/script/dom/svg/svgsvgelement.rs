@@ -26,14 +26,13 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{
     ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
     UnbindContext,
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
@@ -61,17 +60,17 @@ impl SVGSVGElement {
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGSVGElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -167,13 +166,9 @@ impl SVGSVGElement {
     }
 }
 
-pub(crate) trait LayoutSVGSVGElementHelpers<'dom> {
-    fn data(self) -> SVGElementData<'dom>;
-}
-
-impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
+impl<'dom> LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
-    fn data(self) -> SVGElementData<'dom> {
+    pub(crate) fn data(self) -> SVGElementData<'dom> {
         let svg_id = self.unsafe_get().uuid.clone();
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
@@ -262,9 +257,9 @@ impl VirtualMethods for SVGSVGElement {
         self.invalidate_cached_serialized_subtree();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext<'_>, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext<'_>) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
         let owner_window = self.owner_window();
         self.owner_window()

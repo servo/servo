@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>HTML Test: focusgroup - Focus does not wrap in the arrow key pressed orthogonal axis.</title>
+<title>HTML Test: focusgroup - Focus does not wrap in the directional input's orthogonal axis.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
@@ -22,8 +22,8 @@
   promise_test(async t => {
     var item1 = document.getElementById("item1");
 
-    await focusAndKeyPress(item1, kArrowLeft);
+    await focusAndSendDirectionalInput(item1, kLeft);
     assert_equals(document.activeElement, item1);
-  }, "When the focus is set on the first item of a focusgroup that wraps and supports only the orthogonal axis of the pressed arrow key, a backward arrow key press shouldn't move the focus.");
+  }, "When the focus is set on the first item of a focusgroup that wraps and supports only the orthogonal axis of the directional input, backward directional input shouldn't move the focus.");
 
 </script>

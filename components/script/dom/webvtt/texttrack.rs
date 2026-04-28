@@ -75,8 +75,9 @@ impl TextTrack {
     }
 
     pub(crate) fn get_cues(&self) -> DomRoot<TextTrackCueList> {
-        self.cue_list
-            .or_init(|| TextTrackCueList::new(self.global().as_window(), &[], CanGc::note()))
+        self.cue_list.or_init(|| {
+            TextTrackCueList::new(self.global().as_window(), &[], CanGc::deprecated_note())
+        })
     }
 
     pub(crate) fn id(&self) -> &str {
@@ -138,7 +139,7 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
         Some(TextTrackCueList::new(
             self.global().as_window(),
             &[],
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 

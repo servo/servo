@@ -86,7 +86,7 @@ promise_test(async function() {
 
   // Now it's time to receive the MQL change event.
   await mqlChangeEvent;
-  assert_less_than(timeOnScrollEvent, timeOnMQLChange,
+  assert_less_than_equal(timeOnScrollEvent, timeOnMQLChange,
     "The MQL change event should have been dispatched after the first scroll event");
   assert_equals(timeOnScrollEventOnAnotherScroller, null,
     "The new scroll event should not yet have been dispatched");

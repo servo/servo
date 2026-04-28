@@ -19,7 +19,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog, inline):
         create_dialog(dialog_type, text="cheese")
 
         response = get_element_tag_name(session, element.id)
-        assert_success(response, "input")
+        assert_success(response, "INPUT")
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 

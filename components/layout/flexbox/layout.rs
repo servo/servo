@@ -33,7 +33,7 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
-use crate::layout_box_base::CacheableLayoutResult;
+use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
@@ -117,7 +117,7 @@ struct FlexItemLayoutResult {
 
     /// Baselines from the item’s content, relative to the item’s margin box.
     /// Used only for baseline propagation to parent layout contexts.
-    content_baselines_relative_to_margin_box: Baselines,
+    content_baselines_for_parent_relative_to_margin_box: Baselines,
 
     /// This is the single baseline this item uses for flex alignment.
     /// Either the first or the last baseline or None, depending on ‘align-self’.
@@ -223,7 +223,9 @@ impl FlexLineItem<'_> {
                 item_margin.cross_start
         };
 
-        let baselines = self.layout_result.content_baselines_relative_to_margin_box;
+        let baselines = self
+            .layout_result
+            .content_baselines_for_parent_relative_to_margin_box;
         if flex_context.config.flex_direction_is_reversed {
             if let Some(last_baseline) = baselines.last {
                 all_baselines
@@ -611,7 +613,7 @@ impl FlexContainer {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         lazy_block_size: &LazySize,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
@@ -949,7 +951,7 @@ impl FlexContainer {
         //   This is unlikely because `align-content` defaults to `stretch`.
         let depends_on_block_constraints = true;
 
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size,
             content_inline_size_for_table: None,
@@ -1870,7 +1872,7 @@ impl FlexItem<'_> {
             self.preferred_aspect_ratio,
             &lazy_block_size,
         );
-        let CacheableLayoutResult {
+        let IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size,
             baselines: content_box_baselines,
@@ -1885,36 +1887,47 @@ impl FlexItem<'_> {
             inline_size
         };
 
-        let item_writing_mode_is_orthogonal_to_container_writing_mode =
-            flex_context.config.writing_mode.is_horizontal() !=
-                item_style.writing_mode.is_horizontal();
-        let has_compatible_baseline = match flex_axis {
-            FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
-            FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
+        let item_inline_axis_is_horizontal = item_style.writing_mode.is_horizontal();
+        let container_inline_axis_is_horizontal = flex_context.config.writing_mode.is_horizontal();
+        let container_main_axis_is_horizontal = match flex_axis {
+            FlexAxis::Row => container_inline_axis_is_horizontal,
+            FlexAxis::Column => !container_inline_axis_is_horizontal,
         };
+        let item_inline_axis_parallel_to_container_inline_axis =
+            item_inline_axis_is_horizontal == container_inline_axis_is_horizontal;
+        let item_inline_axis_parallel_to_container_main_axis =
+            item_inline_axis_is_horizontal == container_main_axis_is_horizontal;
 
-        let content_baselines_relative_to_margin_box = if has_compatible_baseline {
-            content_box_baselines.offset(
-                self.margin.cross_start.auto_is(Au::zero) +
-                    self.padding.cross_start +
-                    self.border.cross_start,
-            )
-        } else {
-            Baselines::default()
-        };
+        let content_baselines_relative_to_margin_box = content_box_baselines.offset(
+            self.margin.cross_start.auto_is(Au::zero) +
+                self.padding.cross_start +
+                self.border.cross_start,
+        );
 
-        let flex_alignment_baseline_relative_to_margin_box = match self.align_self.0.value() {
-            // ‘baseline’ computes to ‘first baseline’.
-            AlignFlags::BASELINE => content_baselines_relative_to_margin_box.first,
-            AlignFlags::LAST_BASELINE => content_baselines_relative_to_margin_box.last,
-            _ => None,
-        };
+        let content_baselines_for_parent_relative_to_margin_box =
+            if item_inline_axis_parallel_to_container_inline_axis {
+                content_baselines_relative_to_margin_box
+            } else {
+                Baselines::default()
+            };
+
+        let flex_alignment_baseline_relative_to_margin_box =
+            if item_inline_axis_parallel_to_container_main_axis {
+                match self.align_self.0.value() {
+                    // ‘baseline’ computes to ‘first baseline’.
+                    AlignFlags::BASELINE => content_baselines_relative_to_margin_box.first,
+                    AlignFlags::LAST_BASELINE => content_baselines_relative_to_margin_box.last,
+                    _ => None,
+                }
+            } else {
+                None
+            };
 
         FlexItemLayoutResult {
             hypothetical_cross_size,
             fragments,
             positioning_context,
-            content_baselines_relative_to_margin_box,
+            content_baselines_for_parent_relative_to_margin_box,
             flex_alignment_baseline_relative_to_margin_box,
             content_block_size,
             containing_block_size: item_as_containing_block.size,

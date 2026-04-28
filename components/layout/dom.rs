@@ -5,20 +5,19 @@
 use std::marker::PhantomData;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use html5ever::{local_name, ns};
-use layout_api::wrapper_traits::{LayoutDataTrait, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
-    SVGElementData,
+    GenericLayoutDataTrait, LayoutDataTrait, LayoutElement, LayoutElementType, LayoutNode,
+    LayoutNodeType as ScriptLayoutNodeType, NodeRenderingType, SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
+use web_atoms::{local_name, ns};
 
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
@@ -82,7 +81,7 @@ impl InnerDOMLayoutData {
             .unwrap_or_default()
     }
 
-    fn repair_style(&self, node: &ServoThreadSafeLayoutNode, context: &SharedStyleContext) {
+    fn repair_style(&self, node: &ServoLayoutNode, context: &SharedStyleContext) {
         if let Some(layout_object) = &*self.self_box.borrow() {
             layout_object.repair_style(context, node, &node.style(context));
         }
@@ -161,7 +160,7 @@ impl LayoutBox {
     fn repair_style(
         &self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         match self {
@@ -321,6 +320,11 @@ pub(crate) trait NodeExt<'dom> {
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
     fn unset_all_boxes(&self);
 
+    /// Returns the [`NodeRenderingType`] for this [`LayoutNode`] which describes whether
+    /// the node is being rendered, delegating rendering, or not being rendered at all
+    /// based on whether it has a [`LayoutBox`] and what kind.
+    fn rendering_type(&self) -> NodeRenderingType;
+
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
 
@@ -350,7 +354,7 @@ pub(crate) trait NodeExt<'dom> {
     ) -> bool;
 }
 
-impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
+impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
     fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)> {
         let (resource, metadata) = self.image_data()?;
         let width = metadata.map(|metadata| metadata.width).unwrap_or_default();
@@ -423,11 +427,11 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         // supports any `<object>` that's an image, it should support those with URLs
         // and `type` attributes with image mime types.
         let element = self.as_element()?;
-        if element.get_attr(&ns!(), &local_name!("type")).is_some() {
+        if element.attribute(&ns!(), &local_name!("type")).is_some() {
             return None;
         }
         element
-            .get_attr(&ns!(), &local_name!("data"))
+            .attribute_as_str(&ns!(), &local_name!("data"))
             .map(|string| string.to_owned())
     }
 
@@ -501,6 +505,17 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
 
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
+    }
+
+    fn rendering_type(&self) -> NodeRenderingType {
+        let Some(layout_data) = self.inner_layout_data() else {
+            return NodeRenderingType::NotRendered;
+        };
+        match &*layout_data.self_box.borrow() {
+            Some(LayoutBox::DisplayContents(..)) => NodeRenderingType::DelegatesRendering,
+            Some(..) => NodeRenderingType::Rendered,
+            None => NodeRenderingType::NotRendered,
+        }
     }
 
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {

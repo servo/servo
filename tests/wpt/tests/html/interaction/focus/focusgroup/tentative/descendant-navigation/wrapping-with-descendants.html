@@ -37,7 +37,7 @@
     var last = document.getElementById("last");
 
     await focusAndWait(last);
-    await focusAndKeyPress(last, kArrowRight);
+    await focusAndSendDirectionalInput(last, kRight);
     assert_equals(document.activeElement, first, "Should wrap from last nested item to first item");
   }, "Forward wrapping should work from nested descendants to first item");
 
@@ -47,7 +47,7 @@
     var last = document.getElementById("last");
 
     await focusAndWait(first);
-    await focusAndKeyPress(first, kArrowLeft);
+    await focusAndSendDirectionalInput(first, kLeft);
     assert_equals(document.activeElement, last, "Should wrap from first item to last nested item");
   }, "Backward wrapping should work from first item to nested descendants");
 
@@ -57,10 +57,10 @@
     var last = document.getElementById("last");
 
     await focusAndWait(first);
-    await focusAndKeyPress(first, kArrowRight);
+    await focusAndSendDirectionalInput(first, kRight);
     assert_equals(document.activeElement, middle, "Should navigate normally to middle nested item");
 
-    await focusAndKeyPress(middle, kArrowRight);
+    await focusAndSendDirectionalInput(middle, kRight);
     assert_equals(document.activeElement, last, "Should navigate normally to last nested item");
   }, "Normal navigation should still work correctly with nested items");
 
@@ -69,7 +69,7 @@
     var last = document.getElementById("last");
 
     await focusAndWait(last);
-    await focusAndKeyPress(last, kArrowDown);
+    await focusAndSendDirectionalInput(last, kDown);
     assert_equals(document.activeElement, first, "Vertical wrapping should work with nested descendants");
   }, "Vertical wrapping should work correctly with nested descendants");
 

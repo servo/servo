@@ -30,6 +30,7 @@ use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
 use servo_base::id::{
@@ -226,17 +227,19 @@ pub enum ScriptThreadMessage {
     UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
     /// Removes inaccesible history states.
     RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
-    /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    FocusIFrame(PipelineId, BrowsingContextId, FocusSequenceNumber),
-    /// Focus the document. Used when the container gains focus.
-    FocusDocument(PipelineId, FocusSequenceNumber),
-    /// Notifies that the document's container (e.g., an iframe) is not included
-    /// in the top-level browsing context's focus chain (not considering system
-    /// focus) anymore.
-    ///
-    /// Obviously, this message is invalid for a top-level document.
-    Unfocus(PipelineId, FocusSequenceNumber),
+    /// Focus a `Document` as part of the focusing steps which focuses all parent `Document`s of a
+    /// newly focused `<iframe>`. Note that this is not used for the `Document` and `Element` that
+    /// is gaining focus as that is handled locally in the originating `ScriptThread`.
+    FocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber, Option<BrowsingContextId>),
+    /// Unfocus a `Document` as part of the focusing steps which unfocuses all parent `Document`s of an
+    /// `<iframe>` losing focus. This does not do anything for a top-level `Document`, which can never
+    /// lose focus (apart from losing system focus, which is a separate concept).
+    UnfocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber),
+    /// Focus a `Document` and run the focusing steps. This is used when calling the DOM `focus()`
+    /// API on a remote `Window` as well as from WebDriver. The difference between this and
+    /// `FocusDocumentAsPartOfFocusingSteps` is that this version actually does run the focusing
+    /// steps and may result in blur and focus events firing up the frame tree.
+    FocusDocument(PipelineId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -309,8 +312,6 @@ pub enum ScriptThreadMessage {
     /// Release all data for the given `UserContentManagerId` from the `ScriptThread`'s
     /// `user_contents_for_manager_id` map.
     DestroyUserContentManager(UserContentManagerId),
-    /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
     /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
     /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
@@ -322,7 +323,7 @@ pub enum ScriptThreadMessage {
     /// those pipelines run in script threads, which complicates things: the pipelines in a webview
     /// may be split across multiple script threads, and the pipelines in a script thread may belong
     /// to multiple webviews. So the simplest approach is to activate it for one pipeline at a time.
-    SetAccessibilityActive(PipelineId, bool),
+    SetAccessibilityActive(PipelineId, bool, Epoch),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
 }

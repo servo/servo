@@ -14,6 +14,7 @@ use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{Theme, ViewportDetails, WebDriverLoadStatus};
 use http::header;
 use js::context::JSContext;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
@@ -236,7 +237,7 @@ impl InProgressLoad {
 
         let mut request_builder = RequestBuilder::new(
             Some(webview_id),
-            self.load_data.url.clone(),
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(self.load_data.url.clone()),
             self.load_data.referrer.clone(),
         )
         .method(self.load_data.method.clone())
@@ -253,8 +254,8 @@ impl InProgressLoad {
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)
         .crash(self.load_data.crash.clone())
-        .client(request_client);
-        request_builder.url_list = self.url_list.clone();
+        .client(request_client)
+        .url_list(self.url_list.clone());
 
         if !request_builder.headers.contains_key(header::ACCEPT) {
             request_builder
@@ -349,7 +350,7 @@ fn navigate_to_fragment(
     let Some(fragment) = url.fragment() else {
         unreachable!("Must always have a fragment");
     };
-    doc.scroll_to_the_fragment(fragment, CanGc::from_cx(cx));
+    doc.scroll_to_the_fragment(cx, fragment);
     // Step 16. Let traversable be navigable's traversable navigable.
     // TODO
     // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:

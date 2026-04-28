@@ -20,9 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
-};
+use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablecaptionelement::HTMLTableCaptionElement;
@@ -31,7 +29,6 @@ use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLTableElement {
@@ -74,27 +71,23 @@ impl HTMLTableElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLTableElement> {
         let n = Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLTableElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
         n
-    }
-
-    pub(crate) fn get_border(&self) -> Option<u32> {
-        self.border.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
@@ -198,14 +191,9 @@ impl HTMLTableElement {
 
 impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-rows>
-    fn Rows(&self) -> DomRoot<HTMLCollection> {
+    fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         let filter = self.get_rows();
-        HTMLCollection::new(
-            &self.owner_window(),
-            self.upcast(),
-            Box::new(filter),
-            CanGc::note(),
-        )
+        HTMLCollection::new(cx, &self.owner_window(), self.upcast(), Box::new(filter))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
@@ -317,9 +305,10 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-tbodies>
-    fn TBodies(&self) -> DomRoot<HTMLCollection> {
+    fn TBodies(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.tbodies.or_init(|| {
             HTMLCollection::new_with_filter_fn(
+                cx,
                 &self.owner_window(),
                 self.upcast(),
                 |element, root| {
@@ -327,7 +316,6 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                         element.local_name() == &local_name!("tbody") &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
-                CanGc::note(),
             )
         })
     }
@@ -358,7 +346,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-insertrow>
     fn InsertRow(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLTableRowElement>> {
-        let rows = self.Rows();
+        let rows = self.Rows(cx);
         let number_of_row_elements = rows.Length();
 
         if index < -1 || index > number_of_row_elements as i32 {
@@ -437,7 +425,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deleterow>
     fn DeleteRow(&self, cx: &mut JSContext, mut index: i32) -> Fallible<()> {
-        let rows = self.Rows();
+        let rows = self.Rows(cx);
         let num_rows = rows.Length() as i32;
 
         // Step 1: If index is less than −1 or greater than or equal to the number of elements
@@ -477,48 +465,39 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     make_nonzero_dimension_setter!(SetWidth, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-table-align>
-    make_setter!(SetAlign, "align");
+    make_setter!(cx, SetAlign, "align");
     make_getter!(Align, "align");
 
     // <https://html.spec.whatwg.org/multipage/#dom-table-cellpadding>
-    make_setter!(SetCellPadding, "cellpadding");
+    make_setter!(cx, SetCellPadding, "cellpadding");
     make_getter!(CellPadding, "cellpadding");
 
     // <https://html.spec.whatwg.org/multipage/#dom-table-cellspacing>
-    make_setter!(SetCellSpacing, "cellspacing");
+    make_setter!(cx, SetCellSpacing, "cellspacing");
     make_getter!(CellSpacing, "cellspacing");
 }
 
-pub(crate) trait HTMLTableElementLayoutHelpers {
-    fn get_background_color(self) -> Option<AbsoluteColor>;
-    fn get_border(self) -> Option<u32>;
-    fn get_cellpadding(self) -> Option<u32>;
-    fn get_cellspacing(self) -> Option<u32>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
-}
-
-impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
-    fn get_background_color(self) -> Option<AbsoluteColor> {
+impl LayoutDom<'_, HTMLTableElement> {
+    pub(crate) fn get_background_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_border(self) -> Option<u32> {
+    pub(crate) fn get_border(self) -> Option<u32> {
         (self.unsafe_get()).border.get()
     }
 
-    fn get_cellpadding(self) -> Option<u32> {
+    pub(crate) fn get_cellpadding(self) -> Option<u32> {
         (self.unsafe_get()).cellpadding.get()
     }
 
-    fn get_cellspacing(self) -> Option<u32> {
+    pub(crate) fn get_cellspacing(self) -> Option<u32> {
         (self.unsafe_get()).cellspacing.get()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -526,7 +505,7 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

@@ -279,7 +279,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
             self.device.id(),
             self.channel.clone(),
             descriptor.parent.label.clone(),
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 }

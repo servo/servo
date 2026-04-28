@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fixed position with intrinsic block size and percentage child</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-max-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="
+  A fixed position element with height:max-content should not collapse
+  when a child has max-height:100%.
+">
+
+<style>
+.container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: red;
+}
+.fixed {
+    position: fixed;
+    height: max-content;
+    width: 100px;
+    background: green;
+}
+.child {
+    max-height: 100%;
+    height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+    <div class="fixed">
+        <div class="child"></div>
+    </div>
+</div>

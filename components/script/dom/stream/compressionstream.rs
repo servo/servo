@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::io::{self, Write};
 use std::ptr;
@@ -23,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
@@ -31,93 +32,9 @@ use crate::dom::types::{
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
-/// A wrapper to blend ZlibEncoder<Vec<u8>>, DeflateEncoder<Vec<u8>> and GzEncoder<Vec<u8>>
-/// together as a single type.
-enum Compressor {
-    Deflate(ZlibEncoder<Vec<u8>>),
-    DeflateRaw(DeflateEncoder<Vec<u8>>),
-    Gzip(GzEncoder<Vec<u8>>),
-    Brotli(Box<BrotliEncoder<Vec<u8>>>),
-}
-
-/// Expose methods of the inner encoder.
-impl Compressor {
-    fn new(format: CompressionFormat) -> Compressor {
-        match format {
-            CompressionFormat::Deflate => {
-                Compressor::Deflate(ZlibEncoder::new(Vec::new(), Compression::default()))
-            },
-            CompressionFormat::Deflate_raw => {
-                Compressor::DeflateRaw(DeflateEncoder::new(Vec::new(), Compression::default()))
-            },
-            CompressionFormat::Gzip => {
-                Compressor::Gzip(GzEncoder::new(Vec::new(), Compression::default()))
-            },
-            CompressionFormat::Brotli => {
-                Compressor::Brotli(Box::new(BrotliEncoder::new(Vec::new(), 4096, 5, 22)))
-            },
-        }
-    }
-
-    fn get_ref(&self) -> &Vec<u8> {
-        match self {
-            Compressor::Deflate(zlib_encoder) => zlib_encoder.get_ref(),
-            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.get_ref(),
-            Compressor::Gzip(gz_encoder) => gz_encoder.get_ref(),
-            Compressor::Brotli(brotli_encoder) => brotli_encoder.get_ref(),
-        }
-    }
-
-    fn get_mut(&mut self) -> &mut Vec<u8> {
-        match self {
-            Compressor::Deflate(zlib_encoder) => zlib_encoder.get_mut(),
-            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.get_mut(),
-            Compressor::Gzip(gz_encoder) => gz_encoder.get_mut(),
-            Compressor::Brotli(brotli_encoder) => brotli_encoder.get_mut(),
-        }
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> Result<(), io::Error> {
-        match self {
-            Compressor::Deflate(zlib_encoder) => zlib_encoder.write_all(buf),
-            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.write_all(buf),
-            Compressor::Gzip(gz_encoder) => gz_encoder.write_all(buf),
-            Compressor::Brotli(brotli_encoder) => brotli_encoder.write_all(buf),
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        match self {
-            Compressor::Deflate(zlib_encoder) => zlib_encoder.flush(),
-            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.flush(),
-            Compressor::Gzip(gz_encoder) => gz_encoder.flush(),
-            Compressor::Brotli(brotli_encoder) => brotli_encoder.flush(),
-        }
-    }
-
-    fn try_finish(&mut self) -> io::Result<()> {
-        match self {
-            Compressor::Deflate(zlib_encoder) => zlib_encoder.try_finish(),
-            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.try_finish(),
-            Compressor::Gzip(gz_encoder) => gz_encoder.try_finish(),
-            Compressor::Brotli(brotli_encoder) => brotli_encoder.flush(),
-        }
-    }
-}
-
-impl MallocSizeOf for Compressor {
-    #[expect(unsafe_code)]
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match self {
-            Compressor::Deflate(zlib_encoder) => zlib_encoder.size_of(ops),
-            Compressor::DeflateRaw(deflate_encoder) => deflate_encoder.size_of(ops),
-            Compressor::Gzip(gz_encoder) => gz_encoder.size_of(ops),
-            Compressor::Brotli(brotli_dencoder) => unsafe {
-                ops.malloc_size_of(&**brotli_dencoder)
-            },
-        }
-    }
-}
+pub(crate) const BROTLI_BUFFER_SIZE: usize = 4096;
+const BROTLI_QUALITIY_LEVEL: u32 = 5;
+const BROTLI_WINDOW_SIZE: u32 = 22;
 
 /// <https://compression.spec.whatwg.org/#compressionstream>
 #[dom_struct]
@@ -132,7 +49,7 @@ pub(crate) struct CompressionStream {
 
     // <https://compression.spec.whatwg.org/#compressionstream-context>
     #[no_trace]
-    context: RefCell<Compressor>,
+    context: RefCell<CompressionContext>,
 }
 
 impl CompressionStream {
@@ -141,22 +58,22 @@ impl CompressionStream {
             reflector_: Reflector::new(),
             transform: Dom::from_ref(transform),
             format,
-            context: RefCell::new(Compressor::new(format)),
+            context: RefCell::new(CompressionContext::new(format)),
         }
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         transform: &TransformStream,
         format: CompressionFormat,
-        can_gc: CanGc,
     ) -> DomRoot<CompressionStream> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CompressionStream::new_inherited(transform, format)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -164,19 +81,19 @@ impl CompressionStream {
 impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
     /// <https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
-        can_gc: CanGc,
         format: CompressionFormat,
     ) -> Fallible<DomRoot<CompressionStream>> {
         // Step 1. If format is unsupported in CompressionStream, then throw a TypeError.
-        // NOTE: All of "deflate", "deflate-raw", "gzip" and "br" are supported.
+        // NOTE: All of "brotli", "deflate", "deflate-raw" and "gzip" are supported.
 
         // Step 2. Set this’s format to format.
         // Step 5. Set this’s transform to a new TransformStream.
-        let transform = TransformStream::new_with_proto(global, None, can_gc);
+        let transform = TransformStream::new_with_proto(global, None, CanGc::from_cx(cx));
         let compression_stream =
-            CompressionStream::new_with_proto(global, proto, &transform, format, can_gc);
+            CompressionStream::new_with_proto(cx, global, proto, &transform, format);
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // compress and enqueue a chunk algorithm with this and chunk.
@@ -186,8 +103,7 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
-        let cx = GlobalScope::get_cx();
-        transform.set_up(cx, global, transformer_type, can_gc)?;
+        transform.set_up(cx, global, transformer_type)?;
 
         Ok(compression_stream)
     }
@@ -218,15 +134,10 @@ pub(crate) fn compress_and_enqueue_a_chunk(
 
     // Step 2. Let buffer be the result of compressing chunk with cs’s format and context.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut compressor = cs.context.borrow_mut();
-    let offset = compressor.get_ref().len();
-    compressor
-        .write_all(&chunk)
-        .map_err(|_| Error::Type(c"CompressionStream: write_all() failed".to_owned()))?;
-    compressor
-        .flush()
-        .map_err(|_| Error::Type(c"CompressionStream: flush() failed".to_owned()))?;
-    let buffer = &compressor.get_ref()[offset..];
+    let mut compression_context = cs.context.borrow_mut();
+    let buffer = compression_context
+        .compress(&chunk)
+        .map_err(|_| Error::Operation(Some("Failed to compress a chunk of input".into())))?;
 
     // Step 3. If buffer is empty, return.
     if buffer.is_empty() {
@@ -240,7 +151,7 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
     let buffer_source = create_buffer_source::<Uint8>(
         cx.into(),
-        buffer,
+        &buffer,
         js_object.handle_mut(),
         CanGc::from_cx(cx),
     )
@@ -248,10 +159,6 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     rooted!(&in(cx) let mut rval = UndefinedValue());
     buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
     controller.enqueue(cx, global, rval.handle())?;
-
-    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
-    // buffer of compressor to save memory.
-    compressor.get_mut().clear();
 
     Ok(())
 }
@@ -266,12 +173,10 @@ pub(crate) fn compress_flush_and_enqueue(
     // Step 1. Let buffer be the result of compressing an empty input with cs’s format and context,
     // with the finish flag.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let mut compressor = cs.context.borrow_mut();
-    let offset = compressor.get_ref().len();
-    compressor
-        .try_finish()
-        .map_err(|_| Error::Type(c"CompressionStream: try_finish() failed".to_owned()))?;
-    let buffer = &compressor.get_ref()[offset..];
+    let mut compression_context = cs.context.borrow_mut();
+    let buffer = compression_context
+        .finalize()
+        .map_err(|_| Error::Operation(Some("Failed to finalize the compression stream".into())))?;
 
     // Step 2. If buffer is empty, return.
     if buffer.is_empty() {
@@ -285,7 +190,7 @@ pub(crate) fn compress_flush_and_enqueue(
     rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
     let buffer_source = create_buffer_source::<Uint8>(
         cx.into(),
-        buffer,
+        &buffer,
         js_object.handle_mut(),
         CanGc::from_cx(cx),
     )
@@ -294,11 +199,119 @@ pub(crate) fn compress_flush_and_enqueue(
     buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
     controller.enqueue(cx, global, rval.handle())?;
 
-    // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
-    // buffer of compressor to save memory.
-    compressor.get_mut().clear();
-
     Ok(())
+}
+
+/// An enum grouping encoders of differenct compression algorithms.
+enum Encoder {
+    Brotli(Box<BrotliEncoder<Vec<u8>>>),
+    Deflate(ZlibEncoder<Vec<u8>>),
+    DeflateRaw(DeflateEncoder<Vec<u8>>),
+    Gzip(GzEncoder<Vec<u8>>),
+}
+
+impl MallocSizeOf for Encoder {
+    #[expect(unsafe_code)]
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            Encoder::Brotli(encoder) => unsafe { ops.malloc_size_of(&**encoder) },
+            Encoder::Deflate(encoder) => encoder.size_of(ops),
+            Encoder::DeflateRaw(encoder) => encoder.size_of(ops),
+            Encoder::Gzip(encoder) => encoder.size_of(ops),
+        }
+    }
+}
+
+/// <https://compression.spec.whatwg.org/#compressionstream-context>
+/// Used to encapsulate the logic of encoder.
+#[derive(MallocSizeOf)]
+struct CompressionContext {
+    encoder: Encoder,
+}
+
+impl CompressionContext {
+    fn new(format: CompressionFormat) -> CompressionContext {
+        let encoder = match format {
+            CompressionFormat::Brotli => Encoder::Brotli(Box::new(BrotliEncoder::new(
+                Vec::new(),
+                BROTLI_BUFFER_SIZE,
+                BROTLI_QUALITIY_LEVEL,
+                BROTLI_WINDOW_SIZE,
+            ))),
+            CompressionFormat::Deflate => {
+                Encoder::Deflate(ZlibEncoder::new(Vec::new(), Compression::default()))
+            },
+            CompressionFormat::Deflate_raw => {
+                Encoder::DeflateRaw(DeflateEncoder::new(Vec::new(), Compression::default()))
+            },
+            CompressionFormat::Gzip => {
+                Encoder::Gzip(GzEncoder::new(Vec::new(), Compression::default()))
+            },
+        };
+        CompressionContext { encoder }
+    }
+
+    fn compress(&mut self, chunk: &[u8]) -> Result<Vec<u8>, io::Error> {
+        let mut result = Vec::new();
+
+        match &mut self.encoder {
+            Encoder::Brotli(encoder) => {
+                encoder.write_all(chunk)?;
+                encoder.flush()?;
+                result.append(encoder.get_mut());
+            },
+            Encoder::Deflate(encoder) => {
+                encoder.write_all(chunk)?;
+                encoder.flush()?;
+                result.append(encoder.get_mut());
+            },
+            Encoder::DeflateRaw(encoder) => {
+                encoder.write_all(chunk)?;
+                encoder.flush()?;
+                result.append(encoder.get_mut());
+            },
+            Encoder::Gzip(encoder) => {
+                encoder.write_all(chunk)?;
+                encoder.flush()?;
+                result.append(encoder.get_mut());
+            },
+        }
+
+        Ok(result)
+    }
+
+    fn finalize(&mut self) -> Result<Vec<u8>, io::Error> {
+        let mut result = Vec::new();
+
+        match &mut self.encoder {
+            Encoder::Brotli(encoder) => {
+                let encoder = std::mem::replace(
+                    encoder.borrow_mut(),
+                    BrotliEncoder::new(
+                        Vec::new(),
+                        BROTLI_BUFFER_SIZE,
+                        BROTLI_QUALITIY_LEVEL,
+                        BROTLI_WINDOW_SIZE,
+                    ),
+                );
+                result = encoder.into_inner();
+            },
+            Encoder::Deflate(encoder) => {
+                encoder.try_finish()?;
+                result.append(encoder.get_mut());
+            },
+            Encoder::DeflateRaw(encoder) => {
+                encoder.try_finish()?;
+                result.append(encoder.get_mut());
+            },
+            Encoder::Gzip(encoder) => {
+                encoder.try_finish()?;
+                result.append(encoder.get_mut());
+            },
+        }
+
+        Ok(result)
+    }
 }
 
 pub(crate) fn convert_chunk_to_vec(

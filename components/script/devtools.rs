@@ -7,8 +7,9 @@ use std::collections::HashMap;
 use std::str;
 
 use devtools_traits::{
-    AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EventListenerInfo,
-    NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
+    AncestorData, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
+    EventListenerInfo, MatchedRule, NodeInfo, NodeStyle, RuleModification, TimelineMarker,
+    TimelineMarkerType,
 };
 use js::context::JSContext;
 use markup5ever::{LocalName, ns};
@@ -20,6 +21,8 @@ use servo_config::pref;
 use style::attr::AttrValue;
 
 use crate::document_collection::DocumentCollection;
+use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
+use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
@@ -39,7 +42,7 @@ use crate::dom::css::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::dom::types::{EventTarget, HTMLElement};
+use crate::dom::types::{CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
@@ -199,7 +202,7 @@ pub(crate) fn handle_get_root_node(
                 .unwrap()
                 .register_node(node)
         })
-        .map(|document| document.upcast::<Node>().summarize(CanGc::from_cx(cx)));
+        .map(|document| document.upcast::<Node>().summarize(cx));
     reply.send(info).unwrap();
 }
 
@@ -219,7 +222,7 @@ pub(crate) fn handle_get_document_element(
                 .unwrap()
                 .register_node(element.upcast())
         })
-        .map(|element| element.upcast::<Node>().summarize(CanGc::from_cx(cx)));
+        .map(|element| element.upcast::<Node>().summarize(cx));
     reply.send(info).unwrap();
 }
 
@@ -241,7 +244,7 @@ pub(crate) fn handle_get_children(
     let mut pipeline_state = state.mut_pipeline_state_for(pipeline).unwrap();
 
     let inline: Vec<_> = parent
-        .children()
+        .children_unrooted(cx.no_gc())
         .map(|child| {
             let window = child.owner_window();
             let Some(elem) = child.downcast::<Element>() else {
@@ -257,7 +260,7 @@ pub(crate) fn handle_get_children(
     if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
         if !shadow_root.is_user_agent_widget() || pref!(inspector_show_servo_internal_shadow_roots)
         {
-            children.push(shadow_root.upcast::<Node>().summarize(CanGc::from_cx(cx)));
+            children.push(shadow_root.upcast::<Node>().summarize(cx));
         }
     }
     let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
@@ -267,7 +270,7 @@ pub(crate) fn handle_get_children(
         let next_inline = i < inline.len() - 1 && inline[i + 1];
         let is_inline_level = prev_inline && next_inline;
 
-        let info = child.summarize(CanGc::from_cx(cx));
+        let info = child.summarize(cx);
         if is_whitespace(&info) && !is_inline_level {
             return None;
         }
@@ -313,53 +316,73 @@ pub(crate) fn handle_get_attribute_style(
     reply.send(Some(msg)).unwrap();
 }
 
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn handle_get_stylesheet_style(
+fn build_rule_map(
     cx: &mut JSContext,
-    state: &DevtoolsState,
-    documents: &DocumentCollection,
-    pipeline: PipelineId,
-    node_id: &str,
-    selector: String,
-    stylesheet: usize,
-    reply: GenericSender<Option<Vec<NodeStyle>>>,
+    list: &crate::dom::css::cssrulelist::CSSRuleList,
+    stylesheet_index: usize,
+    ancestors: &[AncestorData],
+    map: &mut HashMap<usize, MatchedRule>,
 ) {
-    let msg = (|| {
-        let node = state.find_node_by_unique_id(pipeline, node_id)?;
+    for i in 0..list.Length() {
+        let Some(rule) = list.Item(cx, i) else {
+            continue;
+        };
 
-        let document = documents.find_document(pipeline)?;
-        let _realm = enter_realm(document.window());
-        let owner = node.stylesheet_list_owner();
+        if let Some(style_rule) = rule.downcast::<CSSStyleRule>() {
+            let block_id = style_rule.block_id();
+            map.entry(block_id).or_insert_with(|| MatchedRule {
+                selector: style_rule.SelectorText().into(),
+                stylesheet_index,
+                block_id,
+                ancestor_data: ancestors.to_vec(),
+            });
+            continue;
+        }
 
-        let stylesheet = owner.stylesheet_at(stylesheet)?;
-        let list = stylesheet.GetCssRules(CanGc::from_cx(cx)).ok()?;
+        if let Some(layer_rule) = rule.downcast::<CSSLayerBlockRule>() {
+            let name = layer_rule.Name().to_string();
+            let mut next = ancestors.to_vec();
+            next.push(AncestorData::Layer {
+                actor_id: None,
+                value: (!name.is_empty()).then_some(name),
+            });
+            let inner = layer_rule.upcast::<CSSGroupingRule>().CssRules(cx);
+            build_rule_map(cx, &inner, stylesheet_index, &next, map);
+            continue;
+        }
 
-        let styles = (0..list.Length())
-            .filter_map(move |i| {
-                let rule = list.Item(i, CanGc::from_cx(cx))?;
-                let style = rule.downcast::<CSSStyleRule>()?;
-                if selector != style.SelectorText() {
-                    return None;
-                };
-                Some(style.Style(cx))
-            })
-            .flat_map(|style| {
-                (0..style.Length()).map(move |i| {
-                    let name = style.Item(i);
-                    NodeStyle {
-                        name: name.to_string(),
-                        value: style.GetPropertyValue(name.clone()).to_string(),
-                        priority: style.GetPropertyPriority(name).to_string(),
-                    }
-                })
-            })
-            .collect();
+        if let Some(group_rule) = rule.downcast::<CSSGroupingRule>() {
+            let inner = group_rule.CssRules(cx);
+            build_rule_map(cx, &inner, stylesheet_index, ancestors, map);
+        }
+    }
+}
 
-        Some(styles)
-    })();
+fn find_rule_by_block_id(
+    cx: &mut JSContext,
+    list: &crate::dom::css::cssrulelist::CSSRuleList,
+    target_block_id: usize,
+) -> Option<DomRoot<CSSStyleRule>> {
+    for i in 0..list.Length() {
+        let Some(rule) = list.Item(cx, i) else {
+            continue;
+        };
 
-    reply.send(msg).unwrap();
+        if let Some(style_rule) = rule.downcast::<CSSStyleRule>() {
+            if style_rule.block_id() == target_block_id {
+                return Some(DomRoot::from_ref(style_rule));
+            }
+            continue;
+        }
+
+        if let Some(group_rule) = rule.downcast::<CSSGroupingRule>() {
+            let inner = group_rule.CssRules(cx);
+            if let Some(found) = find_rule_by_block_id(cx, &inner, target_block_id) {
+                return Some(found);
+            }
+        }
+    }
+    None
 }
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -369,35 +392,82 @@ pub(crate) fn handle_get_selectors(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: &str,
-    reply: GenericSender<Option<Vec<(String, usize)>>>,
+    reply: GenericSender<Option<Vec<MatchedRule>>>,
 ) {
     let msg = (|| {
         let node = state.find_node_by_unique_id(pipeline, node_id)?;
-
+        let elem = node.downcast::<Element>()?;
         let document = documents.find_document(pipeline)?;
         let _realm = enter_realm(document.window());
         let owner = node.stylesheet_list_owner();
 
-        let rules = (0..owner.stylesheet_count())
-            .filter_map(|i| {
-                let stylesheet = owner.stylesheet_at(i)?;
-                let list = stylesheet.GetCssRules(CanGc::from_cx(cx)).ok()?;
-                let elem = node.downcast::<Element>()?;
+        let mut decl_map = HashMap::new();
+        for i in 0..owner.stylesheet_count() {
+            let Some(stylesheet) = owner.stylesheet_at(i) else {
+                continue;
+            };
+            let Ok(list) = stylesheet.GetCssRules(cx) else {
+                continue;
+            };
+            build_rule_map(cx, &list, i, &[], &mut decl_map);
+        }
 
-                // TODO(#40600): Figure out how to  move the cx into the `filter_map`
-                let can_gc = CanGc::from_cx(cx);
-                Some((0..list.Length()).filter_map(move |j| {
-                    let rule = list.Item(j, can_gc)?;
-                    let style = rule.downcast::<CSSStyleRule>()?;
-                    let selector = style.SelectorText();
-                    elem.Matches(selector.clone()).ok()?.then_some(())?;
-                    Some((selector.into(), i))
-                }))
-            })
-            .flatten()
-            .collect();
+        let mut rules = Vec::new();
+        let computed = elem.style()?;
+
+        if let Some(rule_node) = computed.rules.as_ref() {
+            for rn in rule_node.self_and_ancestors() {
+                if let Some(source) = rn.style_source() {
+                    let ptr = source.get().raw_ptr().as_ptr() as usize;
+
+                    if let Some(matched) = decl_map.get(&ptr) {
+                        rules.push(matched.clone());
+                    }
+                }
+            }
+        }
 
         Some(rules)
+    })();
+
+    reply.send(msg).unwrap();
+}
+
+#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn handle_get_stylesheet_style(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: &str,
+    matched_rule: MatchedRule,
+    reply: GenericSender<Option<Vec<NodeStyle>>>,
+) {
+    let msg = (|| {
+        let node = state.find_node_by_unique_id(pipeline, node_id)?;
+        let document = documents.find_document(pipeline)?;
+        let _realm = enter_realm(document.window());
+        let owner = node.stylesheet_list_owner();
+
+        let stylesheet = owner.stylesheet_at(matched_rule.stylesheet_index)?;
+        let list = stylesheet.GetCssRules(cx).ok()?;
+
+        let style_rule = find_rule_by_block_id(cx, &list, matched_rule.block_id)?;
+        let declaration = style_rule.Style(cx);
+
+        Some(
+            (0..declaration.Length())
+                .map(|i| {
+                    let name = declaration.Item(i);
+                    NodeStyle {
+                        name: name.to_string(),
+                        value: declaration.GetPropertyValue(name.clone()).to_string(),
+                        priority: declaration.GetPropertyPriority(name).to_string(),
+                    }
+                })
+                .collect(),
+        )
     })();
 
     reply.send(msg).unwrap();
@@ -445,17 +515,17 @@ pub(crate) fn handle_get_layout(
         None => return reply.send(None).unwrap(),
         Some(found_node) => found_node,
     };
-    let auto_margins = determine_auto_margins(&node);
 
-    let elem = node
+    let element = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
-    let rect = elem.GetBoundingClientRect(CanGc::from_cx(cx));
+
+    let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
     let window = node.owner_window();
-    let computed_style = window.GetComputedStyle(elem, None);
+    let computed_style = window.GetComputedStyle(element, None);
     let computed_layout = ComputedNodeLayout {
         display: computed_style.Display().into(),
         position: computed_style.Position().into(),
@@ -477,6 +547,7 @@ pub(crate) fn handle_get_layout(
         height,
     };
 
+    let auto_margins = element.determine_auto_margins();
     reply.send(Some((computed_layout, auto_margins))).unwrap();
 }
 
@@ -637,15 +708,17 @@ pub(crate) fn handle_highlight_dom_node(
     }
 }
 
-fn determine_auto_margins(node: &Node) -> AutoMargins {
-    let Some(style) = node.style() else {
-        return AutoMargins::default();
-    };
-    let margin = style.get_margin();
-    AutoMargins {
-        top: margin.margin_top.is_auto(),
-        right: margin.margin_right.is_auto(),
-        bottom: margin.margin_bottom.is_auto(),
-        left: margin.margin_left.is_auto(),
+impl Element {
+    fn determine_auto_margins(&self) -> AutoMargins {
+        let Some(style) = self.style() else {
+            return AutoMargins::default();
+        };
+        let margin = style.get_margin();
+        AutoMargins {
+            top: margin.margin_top.is_auto(),
+            right: margin.margin_right.is_auto(),
+            bottom: margin.margin_bottom.is_auto(),
+            left: margin.margin_left.is_auto(),
+        }
     }
 }

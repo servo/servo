@@ -61,6 +61,9 @@ async function testPopoverFocusNavigation() {
   assert_true(popover0.matches(':popover-open'), 'popover0 should be invoked by invoker0');
   assert_equals(document.activeElement,invoker0,'Focus should not move when popover is shown');
   await sendTab();
+  assert_equals(document.activeElement, popover0, 'Focus should move to popover0 since it is focusable');
+  await sendTab();
+  assert_equals(document.activeElement, invoker1, 'Focus should move to invoker1');
   await sendEnter(); // Activate the invoker
   assert_true(popover1.matches(':popover-open'), 'popover1 should be invoked by invoker1');
   assert_equals(document.activeElement,invoker1,'Focus should not move when popover is shown');

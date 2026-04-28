@@ -42,9 +42,9 @@ pub(crate) struct ColorInputType {
 impl ColorInputType {
     pub(crate) fn handle_color_picker_response(
         &self,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         response: Option<RgbColor>,
-        can_gc: CanGc,
     ) {
         let Some(selected_color) = response else {
             return;
@@ -54,7 +54,7 @@ impl ColorInputType {
             "#{:0>2x}{:0>2x}{:0>2x}",
             selected_color.red, selected_color.green, selected_color.blue
         );
-        let _ = input.SetValue(formatted_color.into(), can_gc);
+        let _ = input.SetValue(cx, formatted_color.into());
     }
 
     /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
@@ -198,10 +198,10 @@ impl SpecificInputType for ColorInputType {
     /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior>
     fn activation_behavior(
         &self,
+        _cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        _can_gc: CanGc,
     ) {
         input.show_the_picker_if_applicable();
     }

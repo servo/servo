@@ -216,7 +216,13 @@ const FetchTestResult = {
 
 // Helper function for checking results from fetch tests.
 function checkFetchTestResult(actual, expected) {
-  assert_equals(actual.error, expected.error, "error mismatch");
+  if (expected.error !== undefined) {
+    assert_true(actual.error !== undefined,
+        "expected an error but got none");
+  } else {
+    assert_equals(actual.error, undefined,
+        "unexpected error: " + actual.error);
+  }
   assert_equals(actual.ok, expected.ok, "response ok mismatch");
   assert_equals(actual.body, expected.body, "response body mismatch");
 

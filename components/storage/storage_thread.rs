@@ -16,10 +16,11 @@ use crate::{ClientStorageThreadFactory, IndexedDBThreadFactory, WebStorageThread
 fn new_storage_thread_group(
     mem_profiler_chan: MemProfilerChan,
     config_dir: Option<PathBuf>,
+    temporary_storage: bool,
     label: &str,
 ) -> StorageThreads {
     let client_storage: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(config_dir.clone());
+        ClientStorageThreadFactory::new(config_dir.clone(), temporary_storage);
     let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(
         config_dir.clone(),
         mem_profiler_chan.clone(),
@@ -37,10 +38,16 @@ fn new_storage_thread_group(
 pub fn new_storage_threads(
     mem_profiler_chan: MemProfilerChan,
     config_dir: Option<PathBuf>,
+    temporary_storage: bool,
 ) -> (StorageThreads, StorageThreads) {
-    let private_storage_threads =
-        new_storage_thread_group(mem_profiler_chan.clone(), config_dir.clone(), "private");
-    let public_storage_threads = new_storage_thread_group(mem_profiler_chan, config_dir, "public");
+    let private_storage_threads = new_storage_thread_group(
+        mem_profiler_chan.clone(),
+        config_dir.clone(),
+        temporary_storage,
+        "private",
+    );
+    let public_storage_threads =
+        new_storage_thread_group(mem_profiler_chan, config_dir, temporary_storage, "public");
 
     (private_storage_threads, public_storage_threads)
 }

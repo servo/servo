@@ -193,6 +193,12 @@ flags: [module]
 ---*/
 import {} from 'some-module';
 """,
+        os.path.normpath(os.path.join(tests_root, "test262", "async.js")): """/*---
+description: An async test
+flags: [async]
+---*/
+print('Test262:AsyncTestComplete');
+""",
         os.path.normpath(os.path.join(tests_root, "test262", "teststrict.js")): """/*---\ndescription: A strict mode test
 flags: [onlyStrict]
 includes: [propertyHelper.js]
@@ -261,32 +267,48 @@ def test_path_replace(handler_setup, handler_cls, expected):
     assert handler.path_replace == expected
 
 
-@pytest.mark.parametrize("handler_cls, request_path, expected_metadata", [
+@pytest.mark.parametrize("handler_cls, request_path, expected_tags", [
     (
         Test262WindowTestHandler,
         "/test262/basic.test262-test.html",
-        [('script', '/third_party/test262/harness/assert.js'), ('script', '/third_party/test262/harness/sta.js')]
+        [
+            '<script src="/third_party/test262/harness/assert.js"></script>',
+            '<script src="/third_party/test262/harness/sta.js"></script>',
+        ]
     ),
     (
         Test262WindowTestHandler,
         "/test262/negative.test262-test.html",
-        [('negative', 'TypeError')]
+        [
+            "<script>test262Negative('TypeError', 'runtime')</script>",
+        ]
+    ),
+    (
+        Test262WindowTestHandler,
+        "/test262/async.test262-test.html",
+        [
+            "<script>test262IsAsync(true)</script>",
+            '<script src="/third_party/test262/harness/doneprintHandle.js"></script>',
+        ]
     ),
     (
         Test262StrictWindowTestHandler,
         "/test262/teststrict.test262-test.strict.html",
-        [('script', '/third_party/test262/harness/propertyHelper.js')]
+        [
+            '<script src="/third_party/test262/harness/propertyHelper.js"></script>',
+        ]
     ),
 ])
-def test_get_metadata(handler_setup, handler_cls, request_path, expected_metadata):
-    """Verifies metadata extraction logic for any handler."""
+def test_get_meta_and_script(handler_setup, handler_cls, request_path, expected_tags):
+    """Verifies script and meta injection logic for Test262 handlers."""
     root, url_base = handler_setup
     handler = handler_cls(root, url_base)
     mock_request = _create_mock_request(request_path)
-    metadata = list(handler._get_metadata(mock_request))
-    for item in expected_metadata:
-        assert item in metadata
-    assert len(expected_metadata) == len(metadata)
+    # Combine output of _get_meta and _get_script
+    output = list(handler._get_meta(mock_request)) + list(handler._get_script(mock_request))
+    for item in expected_tags:
+        assert item in output
+    assert len(expected_tags) == len(output)
 
 
 @pytest.mark.parametrize("handler_cls, request_path, expected_substrings", [
@@ -294,25 +316,49 @@ def test_get_metadata(handler_setup, handler_cls, request_path, expected_metadat
     (
         Test262WindowHandler,
         "/test262/basic.test262.html",
-        ['<iframe id="test262-iframe" src="/test262/basic.test262-test.html"></iframe>']
+        [
+            '<script src="/resources/testharness.js"></script>',
+            '<script src="/resources/testharnessreport.js"></script>',
+            'window.test262HarnessDone = t.step_func_done(function(status, message)',
+            '<iframe id="test262-iframe" src="/test262/basic.test262-test.html"></iframe>'
+        ]
     ),
     # Test262WindowTestHandler: Should contain script tags
     (
         Test262WindowTestHandler,
         "/test262/basic.test262-test.html",
-        ['<script src="/test262/basic.js"></script>', '<script>test262Setup()</script>', '<script>test262Done()</script>']
+        [
+            '<script src="/test262/basic.js" onerror="test262ScriptError()"></script>',
+            '<script>test262Setup()</script>',
+        ]
     ),
-    # Test262WindowModuleTestHandler: Should contain module import
+    # Test262WindowModuleTestHandler: Should contain module import and new catch logic
     (
         Test262WindowModuleTestHandler,
         "/test262/module.test262-module-test.html",
-        ['<script type="module">', 'test262Setup();', 'import("/test262/module.js")', 'test262Done()']
+        [
+            '<script type="module">',
+            'test262Setup();',
+            'import("/test262/module.js")',
+            'setTimeout(() => { throw error; });',
+        ]
     ),
     # Verification of the 'negative' replacement in the HTML
     (
         Test262WindowTestHandler,
         "/test262/negative.test262-test.html",
-        ["<script>test262Negative('TypeError')</script>"]
+        [
+            "<script>test262Negative('TypeError', 'runtime')</script>",
+        ]
+    ),
+    # Verification of the 'async' replacement in the HTML
+    (
+        Test262WindowTestHandler,
+        "/test262/async.test262-test.html",
+        [
+            "<script>test262IsAsync(true)</script>",
+            '<script src="/third_party/test262/harness/doneprintHandle.js">'
+        ]
     ),
     # Strict HTML Case: points to the .strict.js variant
     (

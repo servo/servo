@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
@@ -19,7 +20,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::document::Document;
-use crate::dom::document::focus::{FocusInitiator, FocusOperation, FocusableArea};
+use crate::dom::document::focus::FocusableArea;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
@@ -54,17 +55,17 @@ impl SVGElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<SVGElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(SVGElement::new_inherited(tag_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -112,7 +113,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::note(),
+                CanGc::deprecated_note(),
             )
         })
     }
@@ -126,7 +127,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, value: DOMString) {
+    fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
         self.as_element()
             .update_nonce_internal_slot(value.to_string())
     }
@@ -137,9 +138,9 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
-    fn SetAutofocus(&self, autofocus: bool, can_gc: CanGc) {
+    fn SetAutofocus(&self, cx: &mut JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);
+            .set_bool_attribute(&local_name!("autofocus"), autofocus, CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-focus>
@@ -148,10 +149,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        if !self
-            .upcast::<Node>()
-            .run_the_focusing_steps(None, CanGc::from_cx(cx))
-        {
+        if !self.upcast::<Node>().run_the_focusing_steps(cx, None) {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
             // See https://github.com/whatwg/html/issues/12231.
@@ -187,12 +185,10 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         if !self.as_element().focus_state() {
             return;
         }
-        // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        self.owner_document().focus_handler().focus(
-            FocusOperation::Focus(FocusableArea::Viewport),
-            FocusInitiator::Local,
-            CanGc::from_cx(cx),
-        );
+        // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
+        self.owner_document()
+            .focus_handler()
+            .focus(cx, FocusableArea::Viewport);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
@@ -201,8 +197,8 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
-    fn SetTabIndex(&self, tab_index: i32, can_gc: CanGc) {
+    fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
+            .set_int_attribute(&local_name!("tabindex"), tab_index, CanGc::from_cx(cx));
     }
 }

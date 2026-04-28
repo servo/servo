@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets modulepreload with nested shadow roots</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel='help' href='https://github.com/whatwg/html/pull/11687'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='./support/helpers.js'></script>
+<body>
+<script type="module">
+  promise_test(async (t) => {
+    // Modulepreload two different CSS files, then create nested shadow roots
+    // where the outer references one and the inner references the other.
+    // Styles should not leak between nesting levels.
+    const outerUrl = "./support/styles-red.css?modulepreload-nested";
+    const innerUrl = "./support/styles-green.css?modulepreload-nested";
+
+    function preload(url) {
+      const link = document.createElement("link");
+      link.rel = "modulepreload";
+      link.as = "style";
+      link.href = url;
+      const p = new Promise((resolve, reject) => {
+        link.onload = resolve;
+        link.onerror = reject;
+      });
+      document.head.appendChild(link);
+      return p;
+    }
+
+    await Promise.all([preload(outerUrl), preload(innerUrl)]);
+
+    document.body.setHTMLUnsafe(
+      "<div id='host'>" +
+        "<template shadowrootmode='open' " +
+          `shadowrootadoptedstylesheets='${outerUrl}'>` +
+          "<span id='outer_span'>Outer content</span>" +
+          "<div id='inner_host'>" +
+            "<template shadowrootmode='open' " +
+              `shadowrootadoptedstylesheets='${innerUrl}'>` +
+              "<span id='inner_span'>Inner content</span>" +
+            "</template>" +
+          "</div>" +
+        "</template>" +
+      "</div>"
+    );
+
+    const outerRoot = document.getElementById("host").shadowRoot;
+    const innerRoot = outerRoot.getElementById("inner_host").shadowRoot;
+
+    assert_equals(outerRoot.adoptedStyleSheets.length, 1,
+      "Outer root: expected 1 entry.");
+    assert_equals(innerRoot.adoptedStyleSheets.length, 1,
+      "Inner root: expected 1 entry.");
+
+    assertSheetRule(outerRoot, 0, "span { color: red; }", "Outer root");
+    assertSheetRule(innerRoot, 0, "span { color: green; }", "Inner root");
+
+    assert_equals(
+      getComputedStyle(outerRoot.getElementById("outer_span")).color,
+      "rgb(255, 0, 0)", "Outer span should be red.");
+    assert_equals(
+      getComputedStyle(innerRoot.getElementById("inner_span")).color,
+      "rgb(0, 128, 0)", "Inner span should be green, not red.");
+
+    assert_not_equals(outerRoot.adoptedStyleSheets[0],
+      innerRoot.adoptedStyleSheets[0],
+      "Outer and inner should have different CSSStyleSheet instances.");
+  }, "Nested shadow roots with modulepreloaded CSS independently resolve their styles.");
+</script>
+</body>

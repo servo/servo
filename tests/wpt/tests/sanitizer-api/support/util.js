@@ -1,3 +1,13 @@
+const XHTML_NS = "http://www.w3.org/1999/xhtml";
+
+// https://wicg.github.io/sanitizer-api/#built-in-non-replaceable-elements-list
+const NON_REPLACEABLE_ELEMENTS = [
+  "html", // Cover both spellings
+  { name: "html", namespace: XHTML_NS },
+  { name: "svg", namespace: "http://www.w3.org/2000/svg" },
+  { name: "math", namespace: "http://www.w3.org/1998/Math/MathML" },
+];
+
 function is_same_sanitizer_name(a, b) {
   return a.name === b.name && a.namespace === b.namespace;
 }
@@ -280,8 +290,6 @@ function assert_config(config, expected) {
 
     assert_true(key in config, `Missing '${key}' from config`);
     assert_equals(config[key]?.length, expected[key].length, `${key}.length`);
-
-    const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
     for (let i = 0; i < expected[key].length; i++) {
       let element = expected[key][i];

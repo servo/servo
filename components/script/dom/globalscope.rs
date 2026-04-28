@@ -20,7 +20,9 @@ use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, get_time_stamp};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
+use embedder_traits::{
+    ConsoleLogLevel, EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan,
+};
 use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::ipc::{self};
@@ -63,8 +65,8 @@ use servo_base::id::{
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use servo_constellation_traits::{
-    BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
-    PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
+    MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -109,7 +111,6 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
-use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -128,9 +129,10 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
+use crate::dom::types::{AbortSignal, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
@@ -207,7 +209,6 @@ impl Drop for AutoCloseWorker {
 #[dom_struct]
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
-    crypto: MutNullableDom<Crypto>,
 
     /// A [`TaskManager`] for this [`GlobalScope`].
     task_manager: OnceCell<TaskManager>,
@@ -217,6 +218,12 @@ pub(crate) struct GlobalScope {
 
     /// The broadcast channels state this global, if it is managing any.
     broadcast_channel_state: DomRefCell<BroadcastChannelState>,
+
+    /// Tracks the number of active listeners per constellation interest category.
+    /// When the count transitions from 0 to 1, a RegisterInterest message is sent.
+    /// When it transitions from 1 to 0, an UnregisterInterest message is sent.
+    #[no_trace]
+    constellation_interest_counts: RefCell<HashMap<ConstellationInterest, usize>>,
 
     /// The blobs managed by this global, if any.
     blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo, FxBuildHasher>>,
@@ -230,9 +237,6 @@ pub(crate) struct GlobalScope {
         >,
     >,
 
-    /// <https://cookiestore.spec.whatwg.org/#globals>
-    cookie_store: MutNullableDom<CookieStore>,
-
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
     indexeddb: MutNullableDom<IDBFactory>,
 
@@ -242,10 +246,6 @@ pub(crate) struct GlobalScope {
     /// Pipeline id associated with this global.
     #[no_trace]
     pipeline_id: PipelineId,
-
-    /// A flag to indicate whether the developer tools has requested
-    /// live updates from the worker.
-    devtools_wants_updates: Cell<bool>,
 
     /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, Instant>>,
@@ -609,9 +609,9 @@ impl MessageListener {
             MessagePortMsg::CompleteDisentanglement(port_id) => {
                 let context = self.context.clone();
                 self.task_source
-                    .queue(task!(try_complete_disentanglement: move || {
+                    .queue(task!(try_complete_disentanglement: move |cx| {
                         let global = context.root();
-                        global.try_complete_disentanglement(port_id, CanGc::note());
+                        global.try_complete_disentanglement(cx, port_id);
                     }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
@@ -626,20 +626,24 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
+fn stream_handle_incoming(
+    cx: &mut js::context::JSContext,
+    stream: &ReadableStream,
+    bytes: Fallible<Vec<u8>>,
+) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, can_gc);
+            stream.enqueue_native(b, CanGc::from_cx(cx));
         },
         Err(e) => {
-            stream.error_native(e, can_gc);
+            stream.error_native(e, CanGc::from_cx(cx));
         },
     }
 }
 
 /// Callback used to close streams as part of FileListener.
-fn stream_handle_eof(stream: &ReadableStream, can_gc: CanGc) {
-    stream.controller_close_native(can_gc);
+fn stream_handle_eof(cx: &mut js::context::JSContext, stream: &ReadableStream) {
+    stream.controller_close_native(CanGc::from_cx(cx));
 }
 
 impl FileListener {
@@ -650,9 +654,9 @@ impl FileListener {
                     let bytes = if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
-                        let task = task!(enqueue_stream_chunk: move || {
+                        let task = task!(enqueue_stream_chunk: move |cx| {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
+                            stream_handle_incoming(cx, &stream, Ok(blob_buf.bytes));
                         });
                         self.task_source.queue(task);
 
@@ -672,9 +676,9 @@ impl FileListener {
                     if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
-                        let task = task!(enqueue_stream_chunk: move || {
+                        let task = task!(enqueue_stream_chunk: move |cx| {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
+                            stream_handle_incoming(cx, &stream, Ok(bytes_in));
                         });
 
                         self.task_source.queue(task);
@@ -700,9 +704,9 @@ impl FileListener {
                         self.task_source.queue(task);
                     },
                     FileListenerTarget::Stream(trusted_stream) => {
-                        let task = task!(enqueue_stream_chunk: move || {
+                        let task = task!(enqueue_stream_chunk: move |cx| {
                             let stream = trusted_stream.root();
-                            stream_handle_eof(&stream, CanGc::note());
+                            stream_handle_eof(cx, &stream);
                         });
 
                         self.task_source.queue(task);
@@ -726,9 +730,9 @@ impl FileListener {
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
-                            self.task_source.queue(task!(error_stream: move || {
+                            self.task_source.queue(task!(error_stream: move |cx| {
                                 let stream = trusted_stream.root();
-                                stream_handle_incoming(&stream, error, CanGc::note());
+                                stream_handle_incoming(cx, &stream, error);
                             }));
                         },
                     }
@@ -771,20 +775,20 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
         font_context: Option<Arc<FontContext>>,
+        initial_https_state: HttpsState,
     ) -> Self {
         Self {
             task_manager: Default::default(),
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
+            constellation_interest_counts: RefCell::new(HashMap::new()),
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
-            crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            cookie_store: Default::default(),
             indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
-            devtools_wants_updates: Default::default(),
+
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
             devtools_chan,
@@ -810,7 +814,7 @@ impl GlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_devices: DomRefCell::new(HashMapTracedValues::new_fx()),
             frozen_supported_performance_entry_types: CachedFrozenArray::new(),
-            https_state: Cell::new(HttpsState::None),
+            https_state: Cell::new(initial_https_state),
             console_group_stack: DomRefCell::new(Vec::new()),
             console_count_map: Default::default(),
             inherited_secure_context,
@@ -962,7 +966,11 @@ impl GlobalScope {
 
     /// The closing of `otherPort`, if it is in a different global.
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    fn try_complete_disentanglement(&self, port_id: MessagePortId, can_gc: CanGc) {
+    fn try_complete_disentanglement(
+        &self,
+        cx: &mut js::context::JSContext,
+        port_id: MessagePortId,
+    ) {
         let dom_port = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -987,7 +995,7 @@ impl GlobalScope {
         };
 
         // Fire an event named close at otherPort.
-        dom_port.upcast().fire_event(atom!("close"), can_gc);
+        dom_port.upcast().fire_event(cx, atom!("close"));
 
         let res = self.script_to_constellation_chan().send(
             ScriptToConstellationMessage::DisentanglePorts(port_id, None),
@@ -1050,7 +1058,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    pub(crate) fn disentangle_port(&self, port: &MessagePort, can_gc: CanGc) {
+    pub(crate) fn disentangle_port(&self, cx: &mut js::context::JSContext, port: &MessagePort) {
         let initiator_port = port.message_port_id();
         // Let otherPort be the MessagePort which initiatorPort was entangled with.
         let Some(other_port) = port.disentangle() else {
@@ -1093,7 +1101,7 @@ impl GlobalScope {
         // Fire an event named close at `otherPort`.
         // Note: done here if the port is managed by the same global as `initialPort`.
         if let Some(dom_port) = dom_port {
-            dom_port.upcast().fire_event(atom!("close"), can_gc);
+            dom_port.upcast().fire_event(cx, atom!("close"));
         }
 
         let chan = self.script_to_constellation_chan().clone();
@@ -1193,9 +1201,7 @@ impl GlobalScope {
             if dom_port.disentangled() {
                 // <https://html.spec.whatwg.org/multipage/#disentangle>
                 // Fire an event named close at otherPort.
-                dom_port
-                    .upcast()
-                    .fire_event(atom!("close"), CanGc::from_cx(cx));
+                dom_port.upcast().fire_event(cx, atom!("close"));
 
                 let res = self.script_to_constellation_chan().send(
                     ScriptToConstellationMessage::DisentanglePorts(*port_id, None),
@@ -1346,7 +1352,7 @@ impl GlobalScope {
                         let channel = Trusted::new(&*channel);
                         let global = Trusted::new(self);
                         self.task_manager().dom_manipulation_task_source().queue(
-                            task!(process_pending_port_messages: move || {
+                            task!(process_pending_port_messages: move |cx| {
                                 let destination = channel.root();
                                 let global = global.root();
 
@@ -1355,10 +1361,10 @@ impl GlobalScope {
                                     return;
                                 }
 
-                                rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
+                                rooted!(&in(cx) let mut message = UndefinedValue());
 
                                 // Step 10.3 StructuredDeserialize(serialized, targetRealm).
-                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::note()) {
+                                if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx)) {
                                     // Step 10.4, Fire an event named message at destination.
                                     MessageEvent::dispatch_jsval(
                                         destination.upcast(),
@@ -1367,11 +1373,11 @@ impl GlobalScope {
                                         Some(&origin.ascii_serialization()),
                                         None,
                                         ports,
-                                        CanGc::note()
+                                        CanGc::from_cx(cx)
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::note());
+                                    MessageEvent::dispatch_error(cx, destination.upcast(), &global);
                                 }
                             })
                         );
@@ -1563,7 +1569,7 @@ impl GlobalScope {
                     // If this throws an exception, catch it,
                     // fire an event named messageerror at messageEventTarget,
                     // using MessageEvent, and then return.
-                    MessageEvent::dispatch_error(message_event_target, self, CanGc::from_cx(cx));
+                    MessageEvent::dispatch_error(cx, message_event_target, self);
                 }
             });
         }
@@ -2177,21 +2183,21 @@ impl GlobalScope {
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
     pub(crate) fn get_blob_stream(
         &self,
+        cx: &mut js::context::JSContext,
         blob_id: &BlobId,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStream>> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                return ReadableStream::new_from_bytes(self, bytes, can_gc);
+                return ReadableStream::new_from_bytes(cx, self, bytes);
             },
             BlobResult::File(id, size) => (id, size),
         };
 
         let stream = ReadableStream::new_with_external_underlying_source(
+            cx,
             self,
             UnderlyingSourceType::Blob(size),
-            can_gc,
         )?;
 
         let recv = self.send_msg(file_id);
@@ -2414,22 +2420,6 @@ impl GlobalScope {
         unsafe { SafeJSContext::from_ptr(cx) }
     }
 
-    pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self, can_gc))
-    }
-
-    pub(crate) fn cookie_store(&self, can_gc: CanGc) -> DomRoot<CookieStore> {
-        self.cookie_store.or_init(|| CookieStore::new(self, can_gc))
-    }
-
-    pub(crate) fn live_devtools_updates(&self) -> bool {
-        self.devtools_wants_updates.get()
-    }
-
-    pub(crate) fn set_devtools_wants_updates(&self, value: bool) {
-        self.devtools_wants_updates.set(value);
-    }
-
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
         let mut timers = self.console_timers.borrow_mut();
         if timers.len() >= 10000 {
@@ -2499,6 +2489,34 @@ impl GlobalScope {
     /// Get the `PipelineId` for this global scope.
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
+    }
+
+    /// Register interest in a notification category. Sends a `RegisterInterest`
+    /// message to the constellation when the first listener is registered.
+    pub(crate) fn register_interest(&self, interest: ConstellationInterest) {
+        let mut counts = self.constellation_interest_counts.borrow_mut();
+        let count = counts.entry(interest).or_insert(0);
+        *count += 1;
+        if *count == 1 {
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptToConstellationMessage::RegisterInterest(interest));
+        }
+    }
+
+    /// Unregister interest in a notification category. Sends an `UnregisterInterest`
+    /// message to the constellation when the last listener is removed.
+    pub(crate) fn unregister_interest(&self, interest: ConstellationInterest) {
+        let mut counts = self.constellation_interest_counts.borrow_mut();
+        if let Some(count) = counts.get_mut(&interest) {
+            *count = count.saturating_sub(1);
+            if *count == 0 {
+                counts.remove(&interest);
+                let _ = self
+                    .script_to_constellation_chan()
+                    .send(ScriptToConstellationMessage::UnregisterInterest(interest));
+            }
+        }
     }
 
     /// Get the origin for this global scope
@@ -2746,11 +2764,6 @@ impl GlobalScope {
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
-        error!(
-            "Error at {}:{}:{} {}",
-            error_info.filename, error_info.lineno, error_info.column, error_info.message
-        );
-
         #[cfg(feature = "js_backtrace")]
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
@@ -2817,6 +2830,17 @@ impl GlobalScope {
                         },
                     ));
                 }
+                self.send_to_embedder(EmbedderMsg::ShowConsoleApiMessage(
+                    self.webview_id(),
+                    ConsoleLogLevel::Error,
+                    format!(
+                        "Error at {}:{}:{} {}",
+                        error_info.filename,
+                        error_info.lineno,
+                        error_info.column,
+                        error_info.message
+                    ),
+                ));
             }
         }
     }
@@ -2844,6 +2868,8 @@ impl GlobalScope {
             Some(window.event_loop_sender())
         } else if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
             dedicated.event_loop_sender()
+        } else if let Some(shared_worker) = self.downcast::<SharedWorkerGlobalScope>() {
+            Some(shared_worker.event_loop_sender())
         } else if let Some(service_worker) = self.downcast::<ServiceWorkerGlobalScope>() {
             Some(service_worker.event_loop_sender())
         } else {
@@ -2897,13 +2923,11 @@ impl GlobalScope {
                 no_script_rval,
             ));
 
-            if compiled_script.is_null() {
+            let Some(script) = NonNull::new(*compiled_script) else {
                 debug!("error compiling Dom string");
                 report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
                 return Err(JavaScriptEvaluationError::CompilationFailure);
-            }
-
-            let script = NonNull::new(*compiled_script).expect("Can't be null");
+            };
 
             rooted!(&in(cx) let mut value = UndefinedValue());
             let rval = rval.unwrap_or_else(|| value.handle_mut());
@@ -3003,7 +3027,7 @@ impl GlobalScope {
     /// Returns the idb factory for this global.
     pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
         self.indexeddb
-            .or_init(|| IDBFactory::new(self, CanGc::note()))
+            .or_init(|| IDBFactory::new(self, CanGc::deprecated_note()))
     }
 
     pub(crate) fn get_existing_indexeddb(&self) -> Option<DomRoot<IDBFactory>> {
@@ -3290,11 +3314,10 @@ impl GlobalScope {
 
     pub(crate) fn structured_clone(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
         retval: MutableHandleValue,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         let mut rooted = CustomAutoRooter::new(
             options
@@ -3303,11 +3326,13 @@ impl GlobalScope {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
-        let data = structuredclone::write(cx, value, Some(guard))?;
+        #[expect(unsafe_code)]
+        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
-        structuredclone::read(self, data, retval, can_gc)?;
+        let data = structuredclone::write(cx.into(), value, Some(guard))?;
+
+        structuredclone::read(self, data, retval, CanGc::from_cx(cx))?;
 
         Ok(())
     }

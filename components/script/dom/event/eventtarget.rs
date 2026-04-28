@@ -14,6 +14,7 @@ use std::sync::LazyLock;
 use deny_public_fields::DenyPublicFields;
 use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
 use js::jsval::JSVal;
@@ -21,6 +22,7 @@ use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text
 use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::cformat;
+use servo_constellation_traits::ConstellationInterest;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
@@ -388,14 +390,14 @@ impl EventListeners {
     /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
     fn get_inline_listener(
         &self,
+        cx: &mut JSContext,
         owner: &EventTarget,
         ty: &Atom,
-        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         for entry in &self.0 {
             if let EventListenerType::Inline(ref inline) = entry.borrow().listener {
                 // Step 1.1-1.8 and Step 2
-                return get_compiled_handler(inline, owner, ty, can_gc);
+                return get_compiled_handler(inline, owner, ty, CanGc::from_cx(cx));
             }
         }
 
@@ -435,6 +437,30 @@ impl EventTarget {
         )
     }
 
+    /// Returns the [`ConstellationInterest`] associated with a given event type
+    /// on this specific target, if any. The mapping depends on the concrete type
+    /// of the EventTarget since the same event name can be used in multiple contexts.
+    fn interest_for_event_type(&self, ty: &Atom) -> Option<ConstellationInterest> {
+        if self.is::<Window>() && *ty == atom!("storage") {
+            return Some(ConstellationInterest::StorageEvent);
+        }
+        None
+    }
+
+    /// Notify the global about a listener being added for a given event type.
+    fn notify_listener_added(&self, ty: &Atom) {
+        if let Some(interest) = self.interest_for_event_type(ty) {
+            self.global().register_interest(interest);
+        }
+    }
+
+    /// Notify the global about a listener being removed for a given event type.
+    fn notify_listener_removed(&self, ty: &Atom) {
+        if let Some(interest) = self.interest_for_event_type(ty) {
+            self.global().unregister_interest(interest);
+        }
+    }
+
     /// Determine if there are any listeners for a given event type.
     /// See <https://github.com/whatwg/dom/issues/453>.
     pub(crate) fn has_listeners_for(&self, type_: &Atom) -> bool {
@@ -457,10 +483,11 @@ impl EventTarget {
 
     pub(crate) fn remove_all_listeners(&self) {
         let mut handlers = self.handlers.borrow_mut();
-        for (_, entries) in handlers.iter() {
+        for (ty, entries) in handlers.iter() {
             entries
                 .iter()
                 .for_each(|entry| entry.borrow_mut().removed = true);
+            self.notify_listener_removed(ty);
         }
 
         *handlers = Default::default();
@@ -523,6 +550,7 @@ impl EventTarget {
                 },
                 None => {
                     entries.remove(idx).borrow_mut().removed = true;
+                    self.notify_listener_removed(&ty);
                 },
             },
             None => {
@@ -534,6 +562,7 @@ impl EventTarget {
                         passive: self.default_passive_value(&ty),
                         removed: false,
                     })));
+                    self.notify_listener_added(&ty)
                 }
             },
         }
@@ -545,6 +574,7 @@ impl EventTarget {
         if let Some(entries) = handlers.get_mut(ty) {
             if let Some(position) = entries.iter().position(|e| *e == *entry) {
                 entries.remove(position).borrow_mut().removed = true;
+                self.notify_listener_removed(ty);
             }
         }
     }
@@ -554,11 +584,15 @@ impl EventTarget {
         listener.borrow().passive
     }
 
-    fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
+    fn get_inline_event_listener(
+        &self,
+        cx: &mut JSContext,
+        ty: &Atom,
+    ) -> Option<CommonEventHandler> {
         let handlers = self.handlers.borrow();
         handlers
             .get(ty)
-            .and_then(|entry| entry.get_inline_listener(self, ty, can_gc))
+            .and_then(|entry| entry.get_inline_listener(cx, self, ty))
     }
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
@@ -716,14 +750,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
         listener: Option<Rc<T>>,
     ) {
-        let cx = GlobalScope::get_cx();
-
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx, listener.callback())
+                EventHandlerNonNull::new(cx.into(), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -732,14 +765,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn set_error_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
         listener: Option<Rc<T>>,
     ) {
-        let cx = GlobalScope::get_cx();
-
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, listener.callback())
+                OnErrorEventHandlerNonNull::new(cx.into(), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -748,14 +780,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn set_beforeunload_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
         listener: Option<Rc<T>>,
     ) {
-        let cx = GlobalScope::get_cx();
-
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
+                OnBeforeUnloadEventHandlerNonNull::new(cx.into(), listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -764,14 +795,13 @@ impl EventTarget {
     #[expect(unsafe_code)]
     pub(crate) fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
+        cx: &mut JSContext,
         ty: &str,
-        can_gc: CanGc,
     ) -> Option<Rc<T>> {
-        let cx = GlobalScope::get_cx();
-        let listener = self.get_inline_event_listener(&Atom::from(ty), can_gc);
+        let listener = self.get_inline_event_listener(cx, &Atom::from(ty));
         unsafe {
             listener.map(|listener| {
-                CallbackContainer::new(cx, listener.parent().callback_holder().get())
+                CallbackContainer::new(cx.into(), listener.parent().callback_holder().get())
             })
         }
     }
@@ -781,61 +811,75 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_event(&self, cx: &mut js::context::JSContext, name: Atom) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_bubbling_event(&self, cx: &mut js::context::JSContext, name: Atom) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_cancelable_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: Atom,
+    ) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub(crate) fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> bool {
+    pub(crate) fn fire_bubbling_cancelable_event(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: Atom,
+    ) -> bool {
         self.fire_event_with_params(
+            cx,
             name,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             EventComposed::NotComposed,
-            can_gc,
         )
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-fire>
     pub(crate) fn fire_event_with_params(
         &self,
+        cx: &mut js::context::JSContext,
         name: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         composed: EventComposed,
-        can_gc: CanGc,
     ) -> bool {
-        let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
+        let event = Event::new(
+            &self.global(),
+            name,
+            bubbles,
+            cancelable,
+            CanGc::from_cx(cx),
+        );
         event.set_composed(composed.into());
-        event.fire(self, can_gc)
+        event.fire(self, CanGc::from_cx(cx))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
@@ -866,8 +910,8 @@ impl EventTarget {
             Some(l) => l,
             None => return,
         };
-        let mut handlers = self.handlers.borrow_mut();
         let ty = Atom::from(ty);
+        let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
@@ -892,6 +936,7 @@ impl EventTarget {
         // and capture is listener’s capture, then append listener to eventTarget’s event listener list.
         if !entries.contains(&new_entry) {
             entries.push(new_entry);
+            self.notify_listener_added(&ty);
         }
     }
 
@@ -906,8 +951,9 @@ impl EventTarget {
         let Some(listener) = listener else {
             return;
         };
+        let ty_atom = Atom::from(ty);
         let mut handlers = self.handlers.borrow_mut();
-        if let Some(entries) = handlers.get_mut(&Atom::from(ty)) {
+        if let Some(entries) = handlers.get_mut(&ty_atom) {
             let phase = if options.capture {
                 ListenerPhase::Capturing
             } else {
@@ -920,6 +966,7 @@ impl EventTarget {
             {
                 // Step 2. Set listener’s removed to true and remove listener from eventTarget’s event listener list.
                 entries.remove(position).borrow_mut().removed = true;
+                self.notify_listener_removed(&ty_atom);
             }
         }
     }

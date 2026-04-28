@@ -458,6 +458,10 @@ impl IDBRequest {
         self.transaction.set(None);
     }
 
+    fn is_done(&self) -> bool {
+        self.ready_state.get() == IDBRequestReadyState::Done
+    }
+
     pub(crate) fn transaction(&self) -> Option<DomRoot<IDBTransaction>> {
         self.transaction.get()
     }
@@ -569,13 +573,34 @@ impl IDBRequest {
 
 impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-result>
-    fn Result(&self, _cx: SafeJSContext, mut val: js::rust::MutableHandle<'_, js::jsapi::Value>) {
+    fn GetResult(
+        &self,
+        _cx: SafeJSContext,
+        mut val: js::rust::MutableHandle<'_, js::jsapi::Value>,
+    ) -> Fallible<()> {
+        // Step 1. If this's done flag is false, then throw an "InvalidStateError" DOMException.
+        if !self.is_done() {
+            return Err(Error::InvalidState(Some(
+                "Cannot get result on a request that is still pending.".into(),
+            )));
+        }
+
+        // Step 2. Return this's result, or undefined if the request resulted in an error.
         val.set(self.result.get());
+        Ok(())
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-error>
-    fn GetError(&self) -> Option<DomRoot<DOMException>> {
-        self.error.get()
+    fn GetError(&self) -> Fallible<Option<DomRoot<DOMException>>> {
+        // Step 1. If this's done flag is false, then throw an "InvalidStateError" DOMException.
+        if !self.is_done() {
+            return Err(Error::InvalidState(Some(
+                "Cannot get error on a request that is still pending.".into(),
+            )));
+        }
+
+        // Step 2. Return this's error, or null if no error occurred.
+        Ok(self.error.get())
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-source>

@@ -53,6 +53,7 @@ class MyShadow extends HTMLElement {
     this.focus();
     const contenteditable = this.#shadowRoot.querySelector("div[contenteditable]");
     contenteditable.focus();
+    utils.editingHost = this;
     getSelection().collapse(contenteditable.firstChild || contenteditable, 0);
   }
 
@@ -171,7 +172,7 @@ for (const mode of ["open", "closed"]) {
       assert_equals(
         host.getInnerHTML(),
         host.getDefaultInnerHTML().replace("<div contenteditable=\"\">", "<div contenteditable=\"\">A"),
-        `The shadow DOM shouldn't be modified after ${t.name}`
+        `The shadow DOM should be modified after ${t.name}`
       );
     }, `Typing "A" after ${t.name}`);
   }, `Collapse selection into text in <div contenteditable> in the ${mode} shadow DOM`);

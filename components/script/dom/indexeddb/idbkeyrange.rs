@@ -71,7 +71,13 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         global: &GlobalScope,
         value: HandleValue,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
+        // Step 1. Let key be the result of converting a value to a key with value. Rethrow any
+        // exceptions.
+        // Step 2. If key is "invalid value" or "invalid type", throw a "DataError"
+        // DOMException.
         let key = convert_value_to_key(cx, value, None)?.into_result()?;
+
+        // Step 3. Create and return a new key range containing only key.
         let inner = IndexedDBKeyRange::only(key);
         Ok(IDBKeyRange::new(global, inner, CanGc::from_cx(cx)))
     }
@@ -83,8 +89,14 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         lower: HandleValue,
         open: bool,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
-        let key = convert_value_to_key(cx, lower, None)?.into_result()?;
-        let inner = IndexedDBKeyRange::lower_bound(key, open);
+        // Step 1. Let lowerKey be the result of converting a value to a key with lower. Rethrow
+        // any exceptions.
+        // Step 2. If lowerKey is invalid, throw a "DataError" DOMException.
+        let lower_key = convert_value_to_key(cx, lower, None)?.into_result()?;
+
+        // Step 3. Create and return a new key range with lower bound set to lowerKey, lower open
+        // flag set to open, upper bound set to null, and upper open flag set to true.
+        let inner = IndexedDBKeyRange::lower_bound(lower_key, open);
         Ok(IDBKeyRange::new(global, inner, CanGc::from_cx(cx)))
     }
 
@@ -95,8 +107,15 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         upper: HandleValue,
         open: bool,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
-        let key = convert_value_to_key(cx, upper, None)?.into_result()?;
-        let inner = IndexedDBKeyRange::upper_bound(key, open);
+        // Step 1. Let upperKey be the result of converting a value to a key with upper. Rethrow
+        // any exceptions.
+        // Step 2. If upperKey is "invalid value" or "invalid type", throw a "DataError"
+        // DOMException.
+        let upper_key = convert_value_to_key(cx, upper, None)?.into_result()?;
+
+        // Step 3. Create and return a new key range with lower bound set to null, lower open flag
+        // set to true, upper bound set to upperKey, and upper open flag set to open.
+        let inner = IndexedDBKeyRange::upper_bound(upper_key, open);
         Ok(IDBKeyRange::new(global, inner, CanGc::from_cx(cx)))
     }
 
@@ -109,14 +128,16 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         lower_open: bool,
         upper_open: bool,
     ) -> Fallible<DomRoot<IDBKeyRange>> {
-        // Step 1. Let lowerKey be the result of running the steps to convert a value to a key with
-        // lower. Rethrow any exceptions.
-        // Step 2. If lowerKey is invalid, throw a "DataError" DOMException.
+        // Step 1. Let lowerKey be the result of converting a value to a key with lower. Rethrow
+        // any exceptions.
+        // Step 2. If lowerKey is "invalid value" or "invalid type", throw a "DataError"
+        // DOMException.
         let lower_key = convert_value_to_key(cx, lower, None)?.into_result()?;
 
-        // Step 3. Let upperKey be the result of running the steps to convert a value to a key with
-        // upper. Rethrow any exceptions.
-        // Step 4. If upperKey is invalid, throw a "DataError" DOMException.
+        // Step 3. Let upperKey be the result of converting a value to a key with upper. Rethrow
+        // any exceptions.
+        // Step 4. If upperKey is "invalid value" or "invalid type", throw a "DataError"
+        // DOMException.
         let upper_key = convert_value_to_key(cx, upper, None)?.into_result()?;
 
         // Step 5. If lowerKey is greater than upperKey, throw a "DataError" DOMException.
@@ -125,19 +146,20 @@ impl IDBKeyRangeMethods<crate::DomTypeHolder> for IDBKeyRange {
         }
 
         // Step 6. Create and return a new key range with lower bound set to lowerKey, lower open
-        // flag set if lowerOpen is true, upper bound set to upperKey and upper open flag set if
-        // upperOpen is true.
+        // flag set to lowerOpen, upper bound set to upperKey and upper open flag set to upperOpen.
         let inner =
             IndexedDBKeyRange::new(Some(lower_key), Some(upper_key), lower_open, upper_open);
         Ok(IDBKeyRange::new(global, inner, CanGc::from_cx(cx)))
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbkeyrange-_includes>
-    fn Includes(&self, cx: &mut JSContext, value: HandleValue) -> Fallible<bool> {
-        let key = convert_value_to_key(cx, value, None)?.into_result()?;
-        if self.inner.contains(&key) {
-            return Ok(true);
-        }
-        Ok(false)
+    fn Includes(&self, cx: &mut JSContext, key: HandleValue) -> Fallible<bool> {
+        // Step 1. Let k be the result of converting a value to a key with key. Rethrow any
+        // exceptions.
+        // Step 2. If k is "invalid value" or "invalid type", throw a "DataError" DOMException.
+        let k = convert_value_to_key(cx, key, None)?.into_result()?;
+
+        // Step 3. Return true if k is in this range, and false otherwise.
+        Ok(self.inner.contains(&k))
     }
 }

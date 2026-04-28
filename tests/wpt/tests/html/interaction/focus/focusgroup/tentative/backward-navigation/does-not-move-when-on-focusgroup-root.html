@@ -21,11 +21,11 @@
   promise_test(async t => {
     var root = document.getElementById("root");
 
-    await focusAndKeyPress(root, kArrowUp);
+    await focusAndSendDirectionalInput(root, kUp);
     assert_equals(document.activeElement, root);
 
-    await focusAndKeyPress(root, kArrowLeft);
+    await focusAndSendDirectionalInput(root, kLeft);
     assert_equals(document.activeElement, root);
-  }, "When the focus is set on the root of a focusgroup element, an arrow key press shouldn't move the focus at all.");
+  }, "When the focus is set on the root of a focusgroup element, directional input shouldn't move the focus at all.");
 
 </script>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>Page margin safety on page margin boxes</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13190/files">
+<link rel="match" href="safe-printable-inset-003-print-ref.html">
+<meta name="safe-printable-inset" content="0.635">
+<style>
+  @page {
+    size: 400px 250px;
+    margin: 30px;
+    border: 1px solid;
+    page-margin-safety: add;
+
+    @top-left {
+      page-margin-safety: add;
+      content: "";
+      background: blue;
+    }
+    @top-center {
+      page-margin-safety: add;
+      margin-top: 10px;
+      content: "";
+      background: blue;
+    }
+    @top-right {
+      page-margin-safety: clamp;
+      margin-top: 10px;
+      content: "";
+      background: blue;
+    }
+
+    @bottom-left {
+      content: "";
+      background: yellow;
+    }
+    @bottom-center {
+      page-margin-safety: clamp;
+      margin-bottom: 30px;
+      content: "";
+      background: yellow;
+    }
+    @bottom-right {
+      page-margin-safety: clamp;
+      margin: auto;
+      height: 20px;
+      content: "";
+      background: yellow;
+    }
+
+    @left-top {
+      page-margin-safety: clamp;
+      margin: auto;
+      width: 10px;
+      content: "";
+      background: gray;
+    }
+    @left-middle {
+      page-margin-safety: clamp;
+      margin: auto;
+      width: 30px;
+      content: "";
+      background: gray;
+    }
+    @left-bottom {
+      page-margin-safety: clamp;
+      margin: auto;
+      width: 40px;
+      content: "";
+      background: gray;
+    }
+
+    @top-right-corner {
+      page-margin-safety: add;
+      margin-top: 10px;
+      margin-right: 10px;
+      content: "";
+      background: hotpink;
+    }
+    @bottom-right-corner {
+      page-margin-safety: clamp;
+      content: "";
+      background: hotpink;
+    }
+    @bottom-left-corner {
+      page-margin-safety: clamp;
+      content: "";
+      margin: auto;
+      width: 10px;
+      height: 10px;
+      background: hotpink;
+    }
+  }
+
+  :root {
+    print-color-adjust: exact;
+  }
+
+  body {
+    margin: 0;
+  }
+</style>

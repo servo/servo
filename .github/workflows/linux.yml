@@ -145,7 +145,9 @@ jobs:
       - name: Change Mirror Priorities
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
-      - uses: taiki-e/install-action@v2
+      - name: Install cargo nextest
+        if: ${{ inputs.unit-tests }}
+        uses: taiki-e/install-action@v2
         with:
           tool: nextest
       - name: Bootstrap dependencies
@@ -155,7 +157,7 @@ jobs:
           sudo apt update
           echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
           sudo apt install -qy tshark
-          ./mach bootstrap --yes --skip-lints
+          ./mach bootstrap --yes --skip-lints --skip-nextest
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
@@ -287,6 +289,7 @@ jobs:
           # lld seems to use less memory and prevents OOM errors during linking.
           # We can remove this after upgrading to Rust 1.90, where lld will be the default.
           RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+          LLVM_OBJDUMP: llvm-objdump-14
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
 

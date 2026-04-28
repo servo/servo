@@ -2,7 +2,7 @@
   <title>Use property inheritance with :nth-last-child(... of &lt;selector list&gt;) in SVG2</title>
   <metadata>
     <h:link rel="match" href="reference/green-100x100.svg"/>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseStyleInheritance"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#UseStyleInheritance"/>
     <h:link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1821258"/>
     <h:link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net"/>
   </metadata>

@@ -153,7 +153,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
             },
         };
         // Step 4. Return document.
-        document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
+        document.set_ready_state(cx, DocumentReadyState::Complete);
         Ok(document)
     }
 }

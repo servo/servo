@@ -32,11 +32,11 @@
     var item1 = document.getElementById("item1");
     var item5 = document.getElementById("item5");
 
-    await focusAndKeyPress(item5, kArrowUp);
+    await focusAndSendDirectionalInput(item5, kUp);
     assert_equals(document.activeElement, item1);
 
-    await focusAndKeyPress(item5, kArrowLeft);
+    await focusAndSendDirectionalInput(item5, kLeft);
     assert_equals(document.activeElement, item1);
-  }, "When the focus is set on the last item of a focusgroup and the previous item is located past an other (non-extending) focusgroup subtree, a backward arrow key press should move the focus to that previous item without getting stuck in the other focusgroup. The same should still be true when inside a focusgroup that extends a root focusgroup within the original focusgroup.");
+  }, "When the focus is set on the last item of a focusgroup and the previous item is located past an other (non-extending) focusgroup subtree, backward directional input should move the focus to that previous item without getting stuck in the other focusgroup. The same should still be true when inside a focusgroup that extends a root focusgroup within the original focusgroup.");
 
 </script>

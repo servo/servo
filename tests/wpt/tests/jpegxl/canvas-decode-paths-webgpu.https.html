@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: canvas WebGPU decode path</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async function loadImage(src) {
+  const image = new Image();
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error(`image load failed: ${src}`));
+    image.src = src;
+  });
+  return image;
+}
+
+function sampleCenterPixelWith2d(image) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 3;
+  canvas.height = 3;
+
+  const ctx = canvas.getContext('2d');
+  assert_true(!!ctx, '2D context available');
+  ctx.drawImage(image, 0, 0);
+  return ctx.getImageData(1, 1, 1, 1).data;
+}
+
+function assertPixelsApproxEqual(actual, expected, tolerance, messagePrefix) {
+  for (let i = 0; i < 4; ++i) {
+    assert_approx_equals(
+        actual[i], expected[i], tolerance, `${messagePrefix} channel ${i}`);
+  }
+}
+
+async function sampleCenterPixelWithWebGPU(image) {
+  if (!('gpu' in navigator)) {
+    return null;
+  }
+
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) {
+    return null;
+  }
+
+  const device = await adapter.requestDevice();
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  assert_greater_than(width, 0);
+  assert_greater_than(height, 0);
+
+  const texture = device.createTexture({
+    size: {width, height, depthOrArrayLayers: 1},
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
+  });
+
+  device.queue.copyExternalImageToTexture(
+      {source: image},
+      {texture},
+      {width, height, depthOrArrayLayers: 1});
+
+  const buffer = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+
+  const encoder = device.createCommandEncoder();
+  encoder.copyTextureToBuffer(
+      {texture, origin: {x: 1, y: 1, z: 0}},
+      {buffer},
+      {width: 1, height: 1, depthOrArrayLayers: 1});
+  device.queue.submit([encoder.finish()]);
+
+  await buffer.mapAsync(GPUMapMode.READ);
+  const pixel = new Uint8Array(buffer.getMappedRange()).slice(0, 4);
+
+  buffer.unmap();
+  buffer.destroy();
+  texture.destroy();
+
+  return pixel;
+}
+
+promise_test(async () => {
+  const [jxlImage, pngImage] = await Promise.all([
+    loadImage('resources/3x3_srgb_lossless.jxl'),
+    loadImage('resources/3x3_srgb_lossless.png'),
+  ]);
+
+  const actual = await sampleCenterPixelWithWebGPU(jxlImage);
+  if (!actual) {
+    return;
+  }
+
+  const expected = sampleCenterPixelWith2d(pngImage);
+  assertPixelsApproxEqual(actual, expected, 1, 'WebGPU copyExternalImageToTexture');
+}, 'WebGPU copyExternalImageToTexture path with JPEG XL image.');
+</script>

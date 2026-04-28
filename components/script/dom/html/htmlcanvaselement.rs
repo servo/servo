@@ -46,7 +46,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -104,19 +104,19 @@ impl HTMLCanvasElement {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLCanvasElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLCanvasElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -164,12 +164,8 @@ impl HTMLCanvasElement {
     }
 }
 
-pub(crate) trait LayoutHTMLCanvasElementHelpers {
-    fn data(self) -> HTMLCanvasData;
-}
-
-impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
-    fn data(self) -> HTMLCanvasData {
+impl LayoutDom<'_, HTMLCanvasElement> {
+    pub(crate) fn data(self) -> HTMLCanvasData {
         let width_attr = self
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"));
@@ -203,7 +199,7 @@ impl HTMLCanvasElement {
         let image_key = match rendering_context {
             RenderingContext::Placeholder(..) => None,
             RenderingContext::Context2d(..) => get_image_key(),
-            RenderingContext::BitmapRenderer(_) => None,
+            RenderingContext::BitmapRenderer(..) => get_image_key(),
             RenderingContext::WebGL(..) => get_image_key(),
             RenderingContext::WebGL2(..) => get_image_key(),
             #[cfg(feature = "webgpu")]
@@ -408,16 +404,20 @@ impl HTMLCanvasElement {
     pub(crate) fn update_rendering(&self, epoch: Epoch) -> Option<ImageKey> {
         let context = self.context()?;
         let image_key = self.image_key.get()?;
-        match &*context {
+        let pending = match &*context {
             RenderingContext::Placeholder(..) => false,
             RenderingContext::Context2d(context) => context.update_rendering(epoch),
-            RenderingContext::BitmapRenderer(..) => false,
+            RenderingContext::BitmapRenderer(context) => context.update_rendering(epoch),
             RenderingContext::WebGL(context) => context.update_rendering(epoch),
             RenderingContext::WebGL2(context) => context.base_context().update_rendering(epoch),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(context) => context.update_rendering(epoch),
+        };
+
+        if pending {
+            return Some(image_key);
         }
-        .then_some(image_key)
+        None
     }
 }
 
@@ -426,7 +426,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-width>
-    fn SetWidth(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
+    fn SetWidth(&self, cx: &mut js::context::JSContext, value: u32) -> Fallible<()> {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
@@ -440,7 +440,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
+        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -448,7 +448,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-height>
-    fn SetHeight(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
+    fn SetHeight(&self, cx: &mut js::context::JSContext, value: u32) -> Fallible<()> {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
@@ -462,7 +462,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
+        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -587,14 +587,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         self.global()
             .task_manager()
             .canvas_blob_task_source()
-            .queue(task!(to_blob: move || {
+            .queue(task!(to_blob: move |cx| {
                 let this = this.root();
                 let Some(callback) = &this.blob_callbacks.borrow_mut().remove(&callback_id) else {
                     return error!("Expected blob callback, but found none!");
                 };
 
                 let Some(mut snapshot) = result else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());
+                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::from_cx(cx));
                     return;
                 };
 
@@ -611,14 +611,14 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
                        blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                       blob = Blob::new(&this.global(), blob_impl, CanGc::note());
+                       blob = Blob::new(&this.global(), blob_impl, CanGc::from_cx(cx));
                        Some(&*blob)
                    }
                    Err(..) => None,
                 };
 
                 // Step 4.2.2: Invoke callback with « result » and "report".
-                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::note());
+                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::from_cx(cx));
             }));
 
         Ok(())
@@ -656,17 +656,13 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
     fn CaptureStream(
         &self,
+        cx: &mut js::context::JSContext,
         _frame_request_rate: Option<Finite<f64>>,
-        can_gc: CanGc,
     ) -> DomRoot<MediaStream> {
         let global = self.global();
-        let stream = MediaStream::new(&global, can_gc);
-        let track = MediaStreamTrack::new(
-            &global,
-            MediaStreamId::new(),
-            MediaStreamType::Video,
-            can_gc,
-        );
+        let stream = MediaStream::new(cx, &global);
+        let track =
+            MediaStreamTrack::new(cx, &global, MediaStreamId::new(), MediaStreamType::Video);
         stream.AddTrack(&track);
         stream
     }

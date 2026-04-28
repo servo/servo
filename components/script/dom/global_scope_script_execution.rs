@@ -9,25 +9,27 @@ use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
-use js::jsapi::{ExceptionStackBehavior, JSScript, SetScriptPrivate};
+use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetPendingException,
-    JS_GetScriptPrivate, JS_SetPendingException,
+    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
+    JS_IsExceptionPending, JS_SetPendingException,
 };
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
+use script_bindings::trace::RootedTraceableBox;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
     ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
 };
@@ -39,9 +41,8 @@ use crate::unminify::unminify_js;
 pub(crate) struct ClassicScript {
     /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
     /// On failure <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
-    #[no_trace]
     #[ignore_malloc_size_of = "mozjs"]
-    pub record: Result<NonNull<JSScript>, RethrowError>,
+    pub record: Result<RootedTraceableBox<Heap<*mut JSScript>>, RethrowError>,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-script-fetch-options>
     fetch_options: ScriptFetchOptions,
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
@@ -119,9 +120,11 @@ impl GlobalScope {
         let record = if compiled_script.get().is_null() {
             // Step 11.1. Set script's parse error and its error to rethrow to result[0].
             // Step 11.2. Return script.
-            Err(RethrowError::from_pending_exception(cx.into()))
+            Err(RethrowError::from_pending_exception(cx))
         } else {
-            Ok(NonNull::new(*compiled_script).expect("Can't be null"))
+            Ok(RootedTraceableBox::from_box(Heap::boxed(
+                compiled_script.get(),
+            )))
         };
 
         // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
@@ -155,11 +158,13 @@ impl GlobalScope {
 
         // TODO Step 3. Record classic script execution start time given script.
 
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+
         // Step 4. Prepare to run script given settings.
         // Once dropped this will run "Step 9. Clean up after running script" steps
         run_a_script::<DomTypeHolder, _>(self, || {
             // Step 5. Let evaluationStatus be null.
-            rooted!(&in(cx) let mut evaluation_status = UndefinedValue());
             let mut result = false;
 
             match script.record {
@@ -174,9 +179,11 @@ impl GlobalScope {
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
                     rooted!(&in(cx) let mut rval = UndefinedValue());
+                    let script_ptr = NonNull::new(compiled_script.get())
+                        .expect("Compiled script must not be null");
                     result = evaluate_script(
                         cx,
-                        compiled_script,
+                        script_ptr,
                         script.url,
                         script.fetch_options,
                         rval.handle_mut(),
@@ -184,10 +191,8 @@ impl GlobalScope {
                 },
             }
 
-            unsafe { JS_GetPendingException(cx, evaluation_status.handle_mut()) };
-
             // Step 8. If evaluationStatus is an abrupt completion, then:
-            if !evaluation_status.is_undefined() {
+            if unsafe { JS_IsExceptionPending(cx) } {
                 warn!("Error evaluating script");
 
                 match (rethrow_errors, script.muted_errors) {
@@ -204,13 +209,10 @@ impl GlobalScope {
                     },
                     // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
                     _ => {
-                        unsafe { JS_ClearPendingException(cx) };
+                        let in_realm_proof = cx.into();
+                        let in_realm = InRealm::Already(&in_realm_proof);
                         // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-                        self.report_an_exception(
-                            cx.into(),
-                            evaluation_status.handle(),
-                            CanGc::from_cx(cx),
-                        );
+                        report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
 
                         // Return evaluationStatus.
                         return Err(Error::JSFailed);
@@ -260,7 +262,7 @@ impl GlobalScope {
             {
                 let module_error = module_tree.get_rethrow_error().borrow();
                 if module_error.is_some() {
-                    module_tree.report_error(self, CanGc::from_cx(cx));
+                    module_tree.report_error(cx, self);
                     return;
                 }
             }
@@ -271,15 +273,14 @@ impl GlobalScope {
             if let Some(record) = record {
                 // Step 7.2. Set evaluationPromise to record.Evaluate().
                 rooted!(&in(cx) let mut rval = UndefinedValue());
-                let evaluated =
-                    module_tree.execute_module(self, record, rval.handle_mut(), CanGc::from_cx(cx));
+                let evaluated = module_tree.execute_module(cx, self, record, rval.handle_mut());
 
                 // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
                 // with reason, report an exception given by reason for script's settings object's
                 // global object.
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(self, CanGc::from_cx(cx));
+                    module_tree.report_error(cx, self);
                 }
             }
         });

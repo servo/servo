@@ -13,8 +13,8 @@ use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::{Vector2D, vec2};
 use fonts::{
-    FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
-    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
+    FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef, ShapingFlags,
+    ShapingOptions,
 };
 use icu_locid::subtags::Language;
 use js::context::JSContext;
@@ -699,6 +699,37 @@ impl CanvasState {
                         self.state.borrow().transform,
                     ));
                 },
+                OffscreenRenderingContext::WebGL(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
+
+                OffscreenRenderingContext::WebGL2(ref context) => {
+                    let Some(snapshot) = context.get_image_data() else {
+                        return Ok(());
+                    };
+
+                    self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
+                },
                 OffscreenRenderingContext::Detached => return Err(Error::InvalidState(None)),
             }
         } else {
@@ -794,6 +825,37 @@ impl CanvasState {
                                 self.state.borrow().transform,
                             )),
                         OffscreenRenderingContext::BitmapRenderer(ref context) => {
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.to_shared(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
+                            ));
+                        },
+                        OffscreenRenderingContext::WebGL(ref context) => {
+                            let Some(snapshot) = context.get_image_data() else {
+                                return Ok(());
+                            };
+
+                            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+                                snapshot.to_shared(),
+                                dest_rect,
+                                source_rect,
+                                smoothing_enabled,
+                                self.state.borrow().shadow_options(),
+                                self.state.borrow().composition_options(),
+                                self.state.borrow().transform,
+                            ));
+                        },
+
+                        OffscreenRenderingContext::WebGL2(ref context) => {
                             let Some(snapshot) = context.get_image_data() else {
                                 return Ok(());
                             };
@@ -2364,12 +2426,7 @@ impl CanvasState {
 
             let script = Script::from(character);
 
-            let font = font_group.find_by_codepoint(
-                font_context,
-                character,
-                next_char,
-                x_language.clone(),
-            );
+            let font = font_group.find_by_codepoint(font_context, character, next_char, language);
 
             if !is_variation_selector(character) &&
                 !current_text_run.script_and_font_compatible(script, &font)
@@ -2486,14 +2543,9 @@ impl UnshapedTextRun<'_> {
         debug_assert!(!self.string.is_empty() && self.font.is_some());
         let font = self.font?;
 
-        let word_spacing = Au::from_f64_px(
-            font.glyph_index(' ')
-                .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                .unwrap_or(LAST_RESORT_GLYPH_ADVANCE),
-        );
         let options = ShapingOptions {
             letter_spacing: None,
-            word_spacing,
+            word_spacing: None,
             script: self.script,
             language: self.language,
             flags: ShapingFlags::empty(),

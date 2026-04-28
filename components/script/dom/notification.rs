@@ -420,18 +420,18 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         global.task_manager().dom_manipulation_task_source().queue(
-            task!(request_permission: move || {
+            task!(request_permission: move |cx| {
                 let promise = trusted_promise.root();
                 let global = promise.global();
 
                 // Step 3.2.1: If deprecatedCallback is given,
                 //             then invoke deprecatedCallback with « permissionState » and "report".
                 if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
-                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report, CanGc::note());
+                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report, CanGc::from_cx(cx));
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.
-                promise.resolve_native(&notification_permission, CanGc::note());
+                promise.resolve_native(&notification_permission, CanGc::from_cx(cx));
             }),
         );
 
@@ -894,7 +894,7 @@ impl Notification {
         let request_id = request.id;
 
         let cache_result = global.image_cache().get_cached_image_status(
-            request.url.clone(),
+            request.url.url(),
             global.origin().immutable().clone(),
             None, // TODO: check which CORS should be used
         );
@@ -1021,7 +1021,7 @@ impl Notification {
             pending_image_id,
             image_cache: global.image_cache(),
             notification: Trusted::new(self),
-            url: request.url.clone(),
+            url: request.url.url(),
             status: Ok(()),
         };
 

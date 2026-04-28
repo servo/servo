@@ -159,7 +159,7 @@ impl UnderlyingSourceContainer {
                     port.pack_and_post_message_handling_error("error", reason, CanGc::from_cx(cx));
 
                 // Disentangle port.
-                self.global().disentangle_port(port, CanGc::from_cx(cx));
+                self.global().disentangle_port(cx, port);
 
                 let promise = Promise::new2(cx, &self.global());
 
@@ -246,22 +246,21 @@ impl UnderlyingSourceContainer {
     #[expect(unsafe_code)]
     pub(crate) fn call_start_algorithm(
         &self,
+        cx: &mut js::context::JSContext,
         controller: Controller,
-        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
             UnderlyingSourceType::Js(source, this_obj) => {
                 if let Some(start) = &source.start {
-                    let cx = GlobalScope::get_cx();
-                    rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-                    rooted!(in(*cx) let mut result: JSVal);
+                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
+                    rooted!(&in(cx) let mut result: JSVal);
                     unsafe {
                         if let Err(error) = start.Call_(
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             result.handle_mut(),
                             ExceptionHandling::Rethrow,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         ) {
                             return Some(Err(error));
                         }
@@ -275,11 +274,14 @@ impl UnderlyingSourceContainer {
                         }
                     };
                     let promise = if is_promise {
-                        Promise::new_with_js_promise(result_object.handle(), cx)
+                        Promise::new_with_js_promise(result_object.handle(), cx.into())
                     } else {
-                        let promise = Promise::new(&self.global(), can_gc);
-                        promise.resolve_native(&result.get(), can_gc);
-                        promise
+                        Promise::new_resolved(
+                            &self.global(),
+                            cx.into(),
+                            result.get(),
+                            CanGc::from_cx(cx),
+                        )
                     };
                     return Some(Ok(promise));
                 }

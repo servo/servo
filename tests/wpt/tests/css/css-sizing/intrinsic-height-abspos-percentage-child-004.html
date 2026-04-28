@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Abspos with fit-content height and nested percentage children</title>
+<link rel="author" title="WebKit" href="https://webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#valdef-width-fit-content">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="
+  An absolutely positioned element with height:fit-content should not collapse
+  when nested children use percentage heights. Cyclic percentages should
+  behave as auto.
+">
+
+<style>
+.container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background: red;
+}
+.abspos {
+    position: absolute;
+    height: fit-content;
+    width: 100px;
+    background: green;
+}
+.middle {
+    height: 100%;
+}
+.inner {
+    max-height: 100%;
+    height: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+    <div class="abspos">
+        <div class="middle">
+            <div class="inner"></div>
+        </div>
+    </div>
+</div>

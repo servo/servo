@@ -97,13 +97,15 @@ pub struct HeadedWindow {
     last_title: RefCell<String>,
     /// The current set of open dialogs.
     dialogs: RefCell<HashMap<WebViewId, Vec<Dialog>>>,
-    /// A list of showing [`InputMethod`] interfaces.
-    visible_input_methods: RefCell<Vec<EmbedderControlId>>,
+    /// The [`EmbedderControlId`] of the currently showing [`InputMethod`] interfaces,
+    /// if one is showing.
+    visible_input_method: Cell<Option<EmbedderControlId>>,
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
 }
 
 impl HeadedWindow {
+    #[servo::servo_tracing::instrument(level = "debug", name = "HeadedWindow::new", skip_all)]
     pub(crate) fn new(
         servoshell_preferences: &ServoShellPreferences,
         event_loop: &ActiveEventLoop,
@@ -211,7 +213,7 @@ impl HeadedWindow {
             rendering_context,
             last_title: RefCell::new(String::from(INITIAL_WINDOW_TITLE)),
             dialogs: Default::default(),
-            visible_input_methods: Default::default(),
+            visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
         })
     }
@@ -463,7 +465,9 @@ impl HeadedWindow {
         }
     }
 
-    fn show_ime(&self, input_method: InputMethodControl) {
+    fn show_ime(&self, control_id: EmbedderControlId, input_method: InputMethodControl) {
+        self.visible_input_method.set(Some(control_id));
+
         let position = input_method.position();
         self.winit_window.set_ime_allowed(true);
         self.winit_window.set_ime_cursor_area(
@@ -761,8 +765,7 @@ impl HeadedWindow {
                             //    expect any IME to be open and shouldn't send any more messages to
                             //    Servo as it might cause unexpected blurring of the newly focused
                             //    element.
-                            if !self.visible_input_methods.borrow().is_empty() {
-                                self.visible_input_methods.borrow_mut().clear();
+                            if self.visible_input_method.take().is_some() {
                                 webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
                             }
                         },
@@ -1097,8 +1100,7 @@ impl PlatformWindow for HeadedWindow {
                 );
             },
             EmbedderControl::InputMethod(input_method_control) => {
-                self.visible_input_methods.borrow_mut().push(control_id);
-                self.show_ime(input_method_control);
+                self.show_ime(control_id, input_method_control);
             },
             EmbedderControl::FilePicker(file_picker) => {
                 self.add_dialog(webview_id, Dialog::new_file_dialog(file_picker));
@@ -1114,15 +1116,10 @@ impl PlatformWindow for HeadedWindow {
     }
 
     fn hide_embedder_control(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
-        {
-            let mut visible_input_methods = self.visible_input_methods.borrow_mut();
-            if let Some(index) = visible_input_methods
-                .iter()
-                .position(|visible_id| *visible_id == embedder_control_id)
-            {
-                visible_input_methods.remove(index);
-                self.winit_window.set_ime_allowed(false);
-            }
+        if self.visible_input_method.get() == Some(embedder_control_id) {
+            self.visible_input_method.set(None);
+            self.winit_window.set_ime_allowed(false);
+            return;
         }
         self.remove_dialog(webview_id, embedder_control_id);
     }

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
 use script_bindings::domstring::DOMString;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::event::Event;
@@ -30,10 +29,10 @@ impl SpecificInputType for ResetInputType {
     /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior>
     fn activation_behavior(
         &self,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
-        can_gc: CanGc,
     ) {
         // Step 1: If the element does not have a form owner, then return.
         if let Some(form_owner) = input.form_owner() {
@@ -45,7 +44,7 @@ impl SpecificInputType for ResetInputType {
             }
 
             // Step 3: Reset the form owner from the element.
-            form_owner.reset(ResetFrom::NotFromForm, can_gc);
+            form_owner.reset(cx, ResetFrom::NotFromForm);
         }
     }
 

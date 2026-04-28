@@ -12,6 +12,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -143,31 +144,34 @@ pub(crate) struct FetchGroup {
 }
 
 fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) -> RequestBuilder {
-    let mut builder =
-        RequestBuilder::new(request.target_webview_id, request.url(), request.referrer)
-            .method(request.method)
-            .headers(request.headers)
-            .unsafe_request(request.unsafe_request)
-            .body(request.body)
-            .destination(request.destination)
-            .synchronous(request.synchronous)
-            .mode(request.mode)
-            .cache_mode(request.cache_mode)
-            .use_cors_preflight(request.use_cors_preflight)
-            .credentials_mode(request.credentials_mode)
-            .use_url_credentials(request.use_url_credentials)
-            .referrer_policy(request.referrer_policy)
-            .pipeline_id(request.pipeline_id)
-            .redirect_mode(request.redirect_mode)
-            .integrity_metadata(request.integrity_metadata)
-            .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
-            .parser_metadata(request.parser_metadata)
-            .initiator(request.initiator)
-            .client(global.request_client())
-            .insecure_requests_policy(request.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
-            .https_state(request.https_state)
-            .response_tainting(request.response_tainting);
+    let mut builder = RequestBuilder::new(
+        request.target_webview_id,
+        request.url_with_blob_claim(),
+        request.referrer,
+    )
+    .method(request.method)
+    .headers(request.headers)
+    .unsafe_request(request.unsafe_request)
+    .body(request.body)
+    .destination(request.destination)
+    .synchronous(request.synchronous)
+    .mode(request.mode)
+    .cache_mode(request.cache_mode)
+    .use_cors_preflight(request.use_cors_preflight)
+    .credentials_mode(request.credentials_mode)
+    .use_url_credentials(request.use_url_credentials)
+    .referrer_policy(request.referrer_policy)
+    .pipeline_id(request.pipeline_id)
+    .redirect_mode(request.redirect_mode)
+    .integrity_metadata(request.integrity_metadata)
+    .cryptographic_nonce_metadata(request.cryptographic_nonce_metadata)
+    .parser_metadata(request.parser_metadata)
+    .initiator(request.initiator)
+    .client(global.request_client())
+    .insecure_requests_policy(request.insecure_requests_policy)
+    .has_trustworthy_ancestor_origin(request.has_trustworthy_ancestor_origin)
+    .https_state(request.https_state)
+    .response_tainting(request.response_tainting);
     builder.id = request.id;
     builder
 }
@@ -215,14 +219,14 @@ pub(crate) fn Fetch(
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
-    let response = Response::new(global, CanGc::from_cx(cx));
+    let response = Response::new(cx, global);
     response
         .Headers(CanGc::from_cx(cx))
         .set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request_object = match Request::Constructor(global, None, CanGc::from_cx(cx), input, init) {
+    let request_object = match Request::Constructor(cx, global, None, input, init) {
         Err(e) => {
             response.error_stream(e.clone(), CanGc::from_cx(cx));
             promise.reject_error(e, CanGc::from_cx(cx));
@@ -276,7 +280,7 @@ pub(crate) fn Fetch(
         global: Trusted::new(global),
         locally_aborted: false,
         canceller: FetchCanceller::new(request_id, keep_alive, global.core_resource_thread()),
-        url: request_init.url.clone(),
+        url: request_init.url.url(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
@@ -346,25 +350,28 @@ fn queue_deferred_fetch(
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
 #[expect(non_snake_case, unsafe_code)]
 pub(crate) fn FetchLater(
+    cx: &mut js::context::JSContext,
     window: &Window,
     input: RequestInfo,
     init: RootedTraceableBox<DeferredRequestInit>,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<FetchLaterResult>> {
     let global_scope = window.upcast();
     let document = window.Document();
     // Step 1. Let requestObject be the result of invoking the initial value
     // of Request as constructor with input and init as arguments.
-    let request_object = Request::constructor(global_scope, None, can_gc, input, &init.parent)?;
+    let request_object = Request::constructor(cx, global_scope, None, input, &init.parent)?;
     // Step 2. If requestObject’s signal is aborted, then throw signal’s abort reason.
     let signal = request_object.Signal();
     if signal.aborted() {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx, abort_reason.handle_mut());
+        rooted!(&in(cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         unsafe {
-            assert!(!JS_IsExceptionPending(*cx));
-            JS_SetPendingException(*cx, abort_reason.handle(), ExceptionStackBehavior::Capture);
+            assert!(!JS_IsExceptionPending(cx.raw_cx()));
+            JS_SetPendingException(
+                cx.raw_cx(),
+                abort_reason.handle(),
+                ExceptionStackBehavior::Capture,
+            );
         }
         return Err(Error::JSFailed);
     }
@@ -394,11 +401,13 @@ pub(crate) fn FetchLater(
     if !url.is_potentially_trustworthy() {
         return Err(Error::Type(c"URL is not trustworthy".to_owned()));
     }
-    // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
-    if let Some(body) = request.body.as_ref() {
-        if body.len().is_none_or(|len| len == 0) {
-            return Err(Error::Type(c"Body is empty".to_owned()));
-        }
+    // Step 10. If request’s body is not null, and request’s body length is null, then throw a TypeError.
+    if request
+        .body
+        .as_ref()
+        .is_some_and(|body| body.len().is_none())
+    {
+        return Err(Error::Type(c"Body is empty".to_owned()));
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
     // origin is less than request’s total request length, then throw a "QuotaExceededError" DOMException.
@@ -417,7 +426,11 @@ pub(crate) fn FetchLater(
     // Step 14. Add the following abort steps to requestObject’s signal: Set deferredRecord’s invoke state to "aborted".
     signal.add(&AbortAlgorithm::FetchLater(deferred_record_id));
     // Step 15. Return a new FetchLaterResult whose activated getter steps are to return activated.
-    Ok(FetchLaterResult::new(window, deferred_record_id, can_gc))
+    Ok(FetchLaterResult::new(
+        window,
+        deferred_record_id,
+        CanGc::from_cx(cx),
+    ))
 }
 
 /// <https://fetch.spec.whatwg.org/#deferred-fetch-record-invoke-state>
@@ -741,7 +754,7 @@ pub(crate) fn load_whole_resource(
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let url = request.url.clone();
+    let url = request.url.url();
     core_resource_thread
         .send(CoreResourceMsg::Fetch(
             request,
@@ -805,22 +818,26 @@ pub(crate) fn create_a_potential_cors_request(
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
 ) -> RequestBuilder {
-    RequestBuilder::new(webview_id, url, referrer)
-        // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
-        .mode(match cors_setting {
-            Some(_) => RequestMode::CorsMode,
-            // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
-            None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
-            None => RequestMode::NoCors,
-        })
-        .credentials_mode(match cors_setting {
-            // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
-            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-            // Step 3. Let credentialsMode be "include".
-            _ => CredentialsMode::Include,
-        })
-        // Step 5. Return a new request whose URL is url, destination is destination,
-        // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
-        .destination(destination)
-        .use_url_credentials(true)
+    RequestBuilder::new(
+        webview_id,
+        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        referrer,
+    )
+    // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
+    .mode(match cors_setting {
+        Some(_) => RequestMode::CorsMode,
+        // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
+        None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
+        None => RequestMode::NoCors,
+    })
+    .credentials_mode(match cors_setting {
+        // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
+        Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+        // Step 3. Let credentialsMode be "include".
+        _ => CredentialsMode::Include,
+    })
+    // Step 5. Return a new request whose URL is url, destination is destination,
+    // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
+    .destination(destination)
+    .use_url_credentials(true)
 }

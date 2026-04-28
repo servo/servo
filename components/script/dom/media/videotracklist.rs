@@ -95,9 +95,9 @@ impl VideoTrackList {
         self.global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(media_track_change: move || {
+            .queue(task!(media_track_change: move |cx| {
                 let this = this.root();
-                this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
+                this.upcast::<EventTarget>().fire_event(cx, atom!("change"));
             }));
     }
 

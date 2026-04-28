@@ -107,8 +107,9 @@ skip = [
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
 
-    # btleplug requires 0.19
+    # Duplicated by btleplug
     "jni",
+    "jni-sys",
 
     # Duplicated by egui
     "foldhash",
@@ -127,17 +128,6 @@ skip = [
 
     # Duplicated by winit.
     "windows-sys",
-    "windows-targets",
-    "windows_aarch64_gnullvm",
-    "windows_aarch64_msvc",
-    "windows_i686_gnu",
-    "windows_i686_msvc",
-    "windows_x86_64_gnu",
-    "windows_x86_64_gnullvm",
-    "windows_x86_64_msvc",
-
-    # Duplicated by zbus.
-    "windows_i686_gnullvm",
 
     # wgpu has the latest and greatest.
     "windows-core",
@@ -156,13 +146,7 @@ skip = [
     "thiserror-impl",
 
     # duplicated by webdriver
-    "h2",
-    "headers",
-    "headers-core",
     "http",
-    "http-body",
-    "hyper",
-    "socket2",
 
     # duplicated by winit
     "block2",
@@ -214,8 +198,8 @@ skip = [
     # this.
     "hybrid-array",
 
-    # duplicated by zbus-xml and wayland-scanner
-    "quick-xml",
+    # duplicated by zbus
+    "winnow",
 
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
@@ -226,13 +210,20 @@ skip = [
     "cfg-expr",
     "system-deps",
     "target-lexicon",
+
+    # Duplicated by wgpu/egui+dependencies
+    "font-types",
+    "glow",
+    "objc2-ui-kit",
+    "peniko",
+    "read-fonts",
+    "skrifa",
+    "vello_common",
+    "vello_cpu",
 ]
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
 github = [
     "servo",
-
-    # Temporarily needed by servoshell: see root Cargo.toml
-    "emilk",
 ]

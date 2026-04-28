@@ -58,7 +58,7 @@ where
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
             enabled = false;
-            T::new(ctx, CanGc::note())
+            T::new(ctx, CanGc::deprecated_note())
         });
         if !enabled {
             self.enable(ext);

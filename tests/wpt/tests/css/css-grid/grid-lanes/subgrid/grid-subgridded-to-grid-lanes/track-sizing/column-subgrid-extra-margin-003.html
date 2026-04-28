@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+<meta charset="utf-8">
+<title>CSS Grid Lanes Test: stretched item grows due to subgrid extra margin (columns)</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-extra-margin-003-ref.html">
+<style>
+.grid-lanes {
+  display: inline grid-lanes;
+  grid-template-columns: auto auto;
+  border: 1px solid;
+}
+item {
+  height: 40px;
+  background: grey;
+}
+.stretch {
+  justify-self: stretch;
+  background: green;
+}
+.subgrid {
+  display: grid;
+  grid: auto / subgrid;
+  grid-column: 1 / span 2;
+  border: 0 solid lightblue;
+  border-right-width: 80px;
+  background: yellow;
+}
+.subgrid > item {
+  width: 10px;
+  background: lightgrey;
+}
+</style>
+<div class="grid-lanes">
+  <item style="width:10px">1</item>
+  <item class="stretch">2</item>
+  <div class="subgrid">
+    <item>a</item>
+  </div>
+</div>
+</html>

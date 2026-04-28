@@ -15,7 +15,7 @@ use super::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSS
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSNestedDeclarationsBinding::CSSNestedDeclarationsMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
@@ -43,18 +43,18 @@ impl CSSNestedDeclarations {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 parent_stylesheet,
                 nesteddeclarationsrule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 

@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
-
-pub static OHOS_REGISTRY_SCANNER: Lazy<OhosRegistryScanner> =
-    Lazy::new(|| OhosRegistryScanner::new());
+pub static OHOS_REGISTRY_SCANNER: LazyLock<OhosRegistryScanner> =
+    LazyLock::new(OhosRegistryScanner::new);
 
 // Should be a combination of mime/codecs
 // If the type we are matching only contain mime, then we only match the container.

@@ -27,7 +27,6 @@ use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
@@ -46,28 +45,23 @@ impl CharacterData {
 
     pub(crate) fn clone_with_data(
         &self,
+        cx: &mut js::context::JSContext,
         data: DOMString,
         document: &Document,
-        can_gc: CanGc,
     ) -> DomRoot<Node> {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                DomRoot::upcast(Comment::new(data, document, None, can_gc))
+                DomRoot::upcast(Comment::new(cx, data, document, None))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();
-                DomRoot::upcast(ProcessingInstruction::new(
-                    pi.Target(),
-                    data,
-                    document,
-                    can_gc,
-                ))
+                DomRoot::upcast(ProcessingInstruction::new(cx, pi.Target(), data, document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
-                DomRoot::upcast(CDATASection::new(data, document, can_gc))
+                DomRoot::upcast(CDATASection::new(cx, data, document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                DomRoot::upcast(Text::new(data, document, can_gc))
+                DomRoot::upcast(Text::new(cx, data, document))
             },
             _ => unreachable!(),
         }
@@ -293,14 +287,10 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 }
 
-pub(crate) trait LayoutCharacterDataHelpers<'dom> {
-    fn data_for_layout(self) -> &'dom str;
-}
-
-impl<'dom> LayoutCharacterDataHelpers<'dom> for LayoutDom<'dom, CharacterData> {
+impl<'dom> LayoutDom<'dom, CharacterData> {
     #[expect(unsafe_code)]
     #[inline]
-    fn data_for_layout(self) -> &'dom str {
+    pub(crate) fn data_for_layout(self) -> &'dom str {
         unsafe { self.unsafe_get().data.borrow_for_layout() }
     }
 }

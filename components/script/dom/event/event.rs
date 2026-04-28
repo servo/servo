@@ -315,6 +315,11 @@ impl Event {
         legacy_output_did_listeners_throw: Option<&Cell<bool>>,
         can_gc: CanGc,
     ) -> bool {
+        // TODO https://github.com/servo/servo/issues/44499
+        #[allow(unsafe_code)]
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
         // > must perform the following activation notification steps before dispatching the event:
         // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
@@ -326,6 +331,10 @@ impl Event {
         }
 
         let mut target = DomRoot::from_ref(target);
+
+        // Save the original dispatch target. Keyboard default actions need the
+        // element the event was originally fired on, not the retargeted host.
+        let original_target = target.clone();
 
         // Step 1. Set event’s dispatch flag.
         self.set_flags(EventFlags::Dispatch);
@@ -561,7 +570,7 @@ impl Event {
                 // corresponding pre-activation behavior.
                 pre_activation_result = activation_target
                     .as_maybe_activatable()
-                    .and_then(|activatable| activatable.legacy_pre_activation_behavior(can_gc));
+                    .and_then(|activatable| activatable.legacy_pre_activation_behavior(cx));
             }
 
             let timeline_window = DomRoot::downcast::<Window>(target.global())
@@ -637,10 +646,19 @@ impl Event {
         // https://w3c.github.io/uievents/#default-action
         // https://dom.spec.whatwg.org/#action-versus-occurance
         if !self.DefaultPrevented() {
-            if let Some(target) = self.GetTarget() {
+            if self.is::<KeyboardEvent>() {
+                // For keyboard events, use the original dispatch target rather than
+                // event.GetTarget(). Composed keyboard events may retarget across
+                // shadow boundaries, but the default action (character input, Tab
+                // navigation) should use the element the event was originally fired on.
+                if let Some(node) = original_target.downcast::<Node>() {
+                    let vtable = vtable_for(node);
+                    vtable.handle_event(cx, self);
+                }
+            } else if let Some(target) = self.GetTarget() {
                 if let Some(node) = target.downcast::<Node>() {
                     let vtable = vtable_for(node);
-                    vtable.handle_event(self, can_gc);
+                    vtable.handle_event(cx, self);
                 }
             }
         }
@@ -675,12 +693,12 @@ impl Event {
                 // Step 12.1. If event’s canceled flag is unset, then run activationTarget’s
                 // activation behavior with event.
                 if !self.DefaultPrevented() {
-                    activatable.activation_behavior(self, &target, can_gc);
+                    activatable.activation_behavior(cx, self, &target);
                 }
                 // Step 12.2. Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
                 // activationTarget’s legacy-canceled-activation behavior.
                 else {
-                    activatable.legacy_canceled_activation_behavior(pre_activation_result, can_gc);
+                    activatable.legacy_canceled_activation_behavior(cx, pre_activation_result);
                 }
             }
         }
@@ -1228,11 +1246,11 @@ impl TaskOnce for EventTask {
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
         target.fire_event_with_params(
+            cx,
             self.name,
             bubbles,
             cancelable,
             EventComposed::NotComposed,
-            CanGc::from_cx(cx),
         );
     }
 }
@@ -1246,7 +1264,7 @@ pub(crate) struct SimpleEventTask {
 impl TaskOnce for SimpleEventTask {
     fn run_once(self, cx: &mut js::context::JSContext) {
         let target = self.target.root();
-        target.fire_event(self.name, CanGc::from_cx(cx));
+        target.fire_event(cx, self.name);
     }
 }
 

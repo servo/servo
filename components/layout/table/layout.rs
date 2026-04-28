@@ -42,7 +42,7 @@ use crate::geom::{
     LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
     PhysicalSides, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
 };
-use crate::layout_box_base::CacheableLayoutResult;
+use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{PositioningContext, PositioningContextLength, relative_adjustement};
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
@@ -68,7 +68,7 @@ enum CellContentAlignment {
 /// the table. Note that this is only done for slots that are not
 /// covered by spans or empty.
 struct CellLayout {
-    layout: CacheableLayoutResult,
+    layout: IndependentFormattingContextLayoutResult,
     padding: LogicalSides<Au>,
     border: LogicalSides<Au>,
     positioning_context: PositioningContext,
@@ -1560,7 +1560,7 @@ impl<'a> TableLayout<'a> {
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
         self.compute_border_collapse(table_writing_mode);
         let layout_style = self.table.layout_style(Some(&self));
@@ -1597,7 +1597,7 @@ impl<'a> TableLayout<'a> {
         let offset_from_wrapper = -self.pbm.padding - self.pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
-        let mut table_layout = CacheableLayoutResult {
+        let mut table_layout = IndependentFormattingContextLayoutResult {
             fragments: Vec::new(),
             content_block_size: Zero::zero(),
             content_inline_size_for_table: None,
@@ -2677,7 +2677,7 @@ impl Table {
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         TableLayout::new(self).layout(
             layout_context,
             positioning_context,

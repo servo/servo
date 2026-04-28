@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
@@ -12,7 +13,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct StyleSheet {
@@ -55,10 +55,8 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-media>
-    fn Media(&self) -> DomRoot<MediaList> {
-        self.downcast::<CSSStyleSheet>()
-            .unwrap()
-            .medialist(CanGc::note())
+    fn Media(&self, cx: &mut JSContext) -> DomRoot<MediaList> {
+        self.downcast::<CSSStyleSheet>().unwrap().medialist(cx)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-title>

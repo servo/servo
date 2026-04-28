@@ -276,14 +276,9 @@ impl PermissionAlgorithm for Permissions {
         match status.State() {
             // Step 3.
             PermissionState::Prompt => {
-                // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
                 let permission_name = status.get_query();
                 let globalscope = GlobalScope::current().expect("No current global object");
-                let state = prompt_user_from_embedder(permission_name, &globalscope);
-                globalscope
-                    .permission_state_invocation_results()
-                    .borrow_mut()
-                    .insert(permission_name, state);
+                request_permission_to_use(permission_name, &globalscope);
             },
 
             // Step 2.
@@ -354,6 +349,24 @@ pub(crate) fn descriptor_permission_state(
     PermissionState::Prompt
 }
 
+/// <https://w3c.github.io/permissions/#request-permission-to-use>
+pub(crate) fn request_permission_to_use(
+    name: PermissionName,
+    global_scope: &GlobalScope,
+) -> PermissionState {
+    let state = descriptor_permission_state(name, Some(global_scope));
+    if state != PermissionState::Prompt {
+        return state;
+    }
+
+    let state = prompt_user_from_embedder(name, global_scope);
+    global_scope
+        .permission_state_invocation_results()
+        .borrow_mut()
+        .insert(name, state);
+    descriptor_permission_state(name, Some(global_scope))
+}
+
 fn prompt_user_from_embedder(name: PermissionName, global_scope: &GlobalScope) -> PermissionState {
     let Some(webview_id) = global_scope.webview_id() else {
         warn!("Requesting permissions from non-webview-associated global scope");
@@ -393,6 +406,7 @@ impl Convert<PermissionFeature> for PermissionName {
             PermissionName::Background_sync => PermissionFeature::BackgroundSync,
             PermissionName::Bluetooth => PermissionFeature::Bluetooth,
             PermissionName::Persistent_storage => PermissionFeature::PersistentStorage,
+            PermissionName::Screen_wake_lock => PermissionFeature::ScreenWakeLock,
         }
     }
 }

@@ -9,8 +9,7 @@
     <html:link rel="author"
           title="Tavmjong Bah"
           href="mailto:tavmjong@free.fr"/>
-    <html:link rel="help"
-          href="https://svgwg.org/svg2-draft/text.html#TextLayoutPreMultiline"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutPreMultiline"/>
     <html:link rel="match"  href="text-multiline-003-ref.svg" />
   </g>
 

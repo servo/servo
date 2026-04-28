@@ -7,7 +7,6 @@ use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::HTMLDocumentBinding::HTMLDocumentMethods;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::NamedPropertyValue;
@@ -31,7 +30,11 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
-    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<NamedPropertyValue> {
-        self.document.NamedGetter(name, can_gc)
+    fn NamedGetter(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: DOMString,
+    ) -> Option<NamedPropertyValue> {
+        self.document.NamedGetter(cx, name)
     }
 }

@@ -13,7 +13,7 @@ use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-use crate::{Font, GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
+use crate::{GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
@@ -243,10 +243,6 @@ pub struct GlyphStore {
     /// but that may not be the case with `white-space: break-spaces`.
     ends_with_whitespace: bool,
 
-    /// Whether or not this glyph store contains only a single glyph for a single
-    /// preserved newline.
-    is_single_preserved_newline: bool,
-
     /// Whether or not this [`GlyphStore`] has right-to-left text, which has implications
     /// about the order of the glyphs in the store.
     is_rtl: bool,
@@ -256,7 +252,7 @@ impl GlyphStore {
     /// Initializes the glyph store with the given capacity, but doesn't actually add any glyphs.
     ///
     /// Use the `add_*` methods to store glyph data.
-    pub(crate) fn new(text: &str, length: usize, options: &ShapingOptions) -> Self {
+    pub(crate) fn new(length: usize, options: &ShapingOptions) -> Self {
         Self {
             glyphs: Vec::with_capacity(length),
             detailed_glyphs: Default::default(),
@@ -269,7 +265,6 @@ impl GlyphStore {
             ends_with_whitespace: options
                 .flags
                 .contains(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG),
-            is_single_preserved_newline: text.len() == 1 && text.starts_with('\n'),
             is_rtl: options.flags.contains(ShapingFlags::RTL_FLAG),
         }
     }
@@ -282,7 +277,6 @@ impl GlyphStore {
     /// multiple glyphs and multiple characters can produce one glyph. HarfBuzz just
     /// guarantees that the resulting character offsets are in monotone order.
     pub(crate) fn with_shaped_glyph_data(
-        font: &Font,
         text: &str,
         options: &ShapingOptions,
         shaped_glyph_data: &impl GlyphShapingResult,
@@ -303,7 +297,7 @@ impl GlyphStore {
         };
 
         let mut previous_character_offset = None;
-        let mut glyph_store = GlyphStore::new(text, shaped_glyph_data.len(), options);
+        let mut glyph_store = GlyphStore::new(shaped_glyph_data.len(), options);
         for mut shaped_glyph in shaped_glyph_data.iter() {
             // The glyph "cluster" (HarfBuzz terminology) is the byte offset in the string that
             // this glyph corresponds to. More than one glyph can share a cluster.
@@ -330,7 +324,7 @@ impl GlyphStore {
                 return glyph_store;
             };
 
-            shaped_glyph.adjust_for_character(character, options, font);
+            shaped_glyph.adjust_for_character(character, options);
 
             // If the we are working from the end of the string to the start and
             // characters were skipped to produce this glyph, they belong to this
@@ -387,12 +381,6 @@ impl GlyphStore {
     #[inline]
     pub fn is_whitespace(&self) -> bool {
         self.is_whitespace
-    }
-
-    /// Whether or not this [`GlyphStore`] is a single preserved newline.
-    #[inline]
-    pub fn is_single_preserved_newline(&self) -> bool {
-        self.is_single_preserved_newline
     }
 
     /// Whether or not this [`GlyphStore`] ends with whitespace.
@@ -535,24 +523,12 @@ impl ShapedGlyph {
     }
 
     /// After shaping is complete, some glyphs need their spacing adjusted to take into
-    /// account `letter-spacing`, `word-spacing` and tabs.
-    ///
-    /// TODO: This should all likely move to layout. In particular, proper tab stops
-    /// are context sensitive and be based on the size of the space character in the
-    /// inline formatting context.
-    fn adjust_for_character(
+    /// account `letter-spacing` and `word-spacing`.
+    pub(crate) fn adjust_for_character(
         &mut self,
         character: char,
         shaping_options: &ShapingOptions,
-        font: &Font,
     ) {
-        // Treat tabs in pre-formatted text as a fixed number of spaces. The glyph id does
-        // not matter here as Servo doesn't render any glyphs for whitespace.
-        if character == '\t' {
-            self.glyph_id = font.glyph_index(' ').unwrap_or_default();
-            self.advance = font.metrics.space_advance * 8;
-        }
-
         if let Some(letter_spacing) = shaping_options.letter_spacing_for_character(character) {
             self.advance += letter_spacing;
         };
@@ -561,9 +537,11 @@ impl ShapedGlyph {
         // space (U+00A0) left in the text after the white space processing rules have been
         // applied. The effect of the property on other word-separator characters is undefined."
         // We elect to only space the two required code points.
-        if character == ' ' || character == '\u{a0}' {
-            // https://drafts.csswg.org/css-text-3/#word-spacing-property
-            self.advance += shaping_options.word_spacing;
+        if let Some(word_spacing) = shaping_options.word_spacing {
+            if character == ' ' || character == '\u{a0}' {
+                // https://drafts.csswg.org/css-text-3/#word-spacing-property
+                self.advance += word_spacing;
+            }
         }
     }
 }

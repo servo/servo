@@ -140,12 +140,12 @@ impl WebViewCollection {
     }
 
     pub(crate) fn activate_webview_by_index(&mut self, index: usize) {
-        self.activate_webview(
-            *self
-                .creation_order
-                .get(index)
-                .expect("Tried to activate an unknown WebView"),
-        );
+        let Some(webview_id) = self.creation_order.get(index) else {
+            // Just ignore requests to activate uknown WebViews. This can happen by pressing
+            // keyboard shortcuts in the interface.
+            return;
+        };
+        self.activate_webview(*webview_id);
     }
 }
 
@@ -678,6 +678,8 @@ impl RunningAppState {
 
         for window in self.windows().values() {
             for (_, webview) in window.webviews() {
+                // Activate accessibility in the WebView.
+                // There are two sites like this; this is the a11y activation site.
                 webview.set_accessibility_active(active);
             }
         }

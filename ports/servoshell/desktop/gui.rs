@@ -3,6 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+use std::fs;
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -10,12 +14,16 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    Button, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, TopBottomPanel, Vec2,
+    Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
     WidgetInfo, WidgetType, pos2,
 };
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+use log::info;
 use log::warn;
 use servo::{
     DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
@@ -74,6 +82,99 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
+#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
+    let mut fonts = FontDefinitions::default();
+    let mut loaded_font_names = Vec::new();
+
+    for (path_str, font_name) in font_candidates.iter() {
+        let font_path = Path::new(path_str);
+        if font_path.exists() {
+            match fs::read(font_path) {
+                Ok(bytes) => {
+                    if !fonts.font_data.contains_key(*font_name) {
+                        fonts
+                            .font_data
+                            .insert(font_name.to_string(), Arc::new(FontData::from_owned(bytes)));
+                        loaded_font_names.push(font_name.to_string());
+                        info!("Loaded font: {}", font_name);
+                    }
+                },
+                Err(error) => {
+                    info!("Failed to read font {}: {}", font_name, error);
+                },
+            }
+        }
+    }
+
+    if !loaded_font_names.is_empty() {
+        let proportional = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
+        for font_name in loaded_font_names.iter() {
+            proportional.insert(0, font_name.clone());
+        }
+    }
+
+    fonts
+}
+
+#[cfg(target_os = "windows")]
+fn configure_fonts() -> FontDefinitions {
+    load_cjk_fonts(&[
+        (r"C:\Windows\Fonts\malgun.ttf", "Malgun Gothic"), // Korean
+        (r"C:\Windows\Fonts\msyh.ttc", "Microsoft YaHei"), // Chinese + Japanese
+    ])
+}
+
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+fn configure_fonts() -> FontDefinitions {
+    load_cjk_fonts(&[
+        (
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Ubuntu/Debian
+        (
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "Noto Sans CJK",
+        ), // Fedora/Arch
+        // FreeBSD splits the Noto CJK fonts into regional subsets
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKhk-Regular.otf",
+            "Noto Sans CJK HK",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKjp-Regular.otf",
+            "Noto Sans CJK JP",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKkr-Regular.otf",
+            "Noto Sans CJK KR",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKsc-Regular.otf",
+            "Noto Sans CJK SC",
+        ),
+        (
+            "/usr/local/share/fonts/noto/NotoSansCJKtc-Regular.otf",
+            "Noto Sans CJK TC",
+        ),
+        (
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // common fallback
+        (
+            "/usr/local/share/fonts/wqy/wqy-microhei.ttc",
+            "WenQuanYi Micro Hei",
+        ), // FreeBSD
+    ])
+}
+
+#[cfg(target_os = "macos")]
+fn configure_fonts() -> FontDefinitions {
+    // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
+    // does not support CJK. Add them for Mac.
+    FontDefinitions::default()
+}
+
 impl Drop for Gui {
     fn drop(&mut self) {
         self.rendering_context
@@ -101,6 +202,9 @@ impl Gui {
             None,
             false,
         );
+
+        let font_definitions = configure_fonts();
+        context.egui_ctx.set_fonts(font_definitions);
 
         context
             .egui_winit
@@ -291,7 +395,7 @@ impl Gui {
                 let frame = egui::Frame::default()
                     .fill(ctx.style().visuals.window_fill)
                     .inner_margin(4.0);
-                TopBottomPanel::top("toolbar").frame(frame).show(ctx, |ui| {
+                Panel::top("toolbar").frame(frame).show_inside(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
@@ -425,7 +529,7 @@ impl Gui {
                 });
 
                 // A simple Tab header strip
-                TopBottomPanel::top("tabs").show(ctx, |ui| {
+                let outer = Panel::top("tabs").show_inside(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
@@ -462,12 +566,11 @@ impl Gui {
                         },
                     );
                 });
-            };
 
-            // The toolbar height is where the Context’s available rect starts.
-            // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
-            // point, but the Context is correct and the TopBottomPanel is wrong.
-            *toolbar_height = Length::new(ctx.available_rect().min.y);
+                *toolbar_height = Length::new(outer.response.rect.max.y);
+            } else {
+                *toolbar_height = Length::default();
+            }
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
@@ -476,7 +579,7 @@ impl Gui {
 
             // If the top parts of the GUI changed size, then update the size of the WebView and also
             // the size of its RenderingContext.
-            let rect = ctx.available_rect();
+            let available_rect = ctx.available_rect_before_wrap();
 
             // Build a graft node for each WebView.
             for (webview_id, webview) in window.webviews() {
@@ -487,7 +590,7 @@ impl Gui {
                     });
                 }
             }
-            let size = Size2D::new(rect.width(), rect.height()) * scale;
+            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale;
             if let Some(webview) = window.active_webview() &&
                 size != webview.size()
             {
@@ -502,7 +605,7 @@ impl Gui {
                     ctx.clone(),
                     LayerId::new(Order::Tooltip, Id::new("tooltip")),
                     "tooltip layer".into(),
-                    pos2(0.0, ctx.available_rect().max.y),
+                    pos2(0.0, available_rect.max.y),
                 )
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
                 window.set_needs_repaint();
@@ -512,7 +615,7 @@ impl Gui {
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
                 ctx.layer_painter(LayerId::background()).add(PaintCallback {
-                    rect: ctx.available_rect(),
+                    rect: available_rect,
                     callback: Arc::new(CallbackFn::new(move |info, painter| {
                         let clip = info.viewport_in_pixels();
                         let rect_in_parent = Rect::new(

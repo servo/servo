@@ -227,14 +227,11 @@ impl DocumentOrShadowRoot {
     /// <https://html.spec.whatwg.org/multipage/#dom-documentorshadowroot-activeelement-dev>
     pub(crate) fn active_element(&self, this: &Node) -> Option<DomRoot<Element>> {
         // Step 1. Let candidate be this's node document's focused area's DOM anchor.
-        //
-        // Note: When `Document::focused_element` returns `None`, that means that the
-        // `Document` / viewport itself is focused.
         let document = self.window.Document();
-        let candidate = match document.focus_handler().focused_element() {
-            Some(candidate) => DomRoot::upcast::<Node>(candidate),
-            None => DomRoot::upcast::<Node>(document.clone()),
-        };
+        let candidate = document
+            .focus_handler()
+            .focused_area()
+            .dom_anchor(&document);
 
         // Step 2. Set candidate to the result of retargeting candidate against this.
         //

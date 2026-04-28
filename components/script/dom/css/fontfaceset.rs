@@ -172,7 +172,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         self.global()
             .task_manager()
             .font_loading_task_source()
-            .queue(task!(resolve_font_face_set_load_task: move || {
+            .queue(task!(resolve_font_face_set_load_task: move |cx| {
                 let promise = trusted.root();
 
                 // TODO: Step 4.1. For all of the font faces in the font face list, call their load()
@@ -181,7 +181,7 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                 // TODO: Step 4.2. Resolve promise with the result of waiting for all of the
                 // [[FontStatusPromise]]s of each font face in the font face list, in order.
                 let matched_fonts = Vec::<&FontFace>::new();
-                promise.resolve_native(&matched_fonts, CanGc::note());
+                promise.resolve_native(&matched_fonts, CanGc::from_cx(cx));
             }));
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.

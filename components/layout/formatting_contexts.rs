@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use layout_api::wrapper_traits::ThreadSafeLayoutNode;
+use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::{ServoLayoutElement, ServoThreadSafeLayoutNode};
+use script::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::logical_geometry::Direction;
@@ -19,7 +19,8 @@ use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::layout_box_base::{
-    CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
+    IndependentFormattingContextLayoutResult, IndependentFormattingContextLayoutResultAndInputs,
+    LayoutBoxBase, LayoutResultAndInputs,
 };
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
@@ -150,34 +151,33 @@ impl IndependentFormattingContext {
         let non_replaced_contents = match contents {
             Contents::Replaced(contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
+
                 // Some replaced elements can have inner widgets, e.g. `<video controls>`.
-                let widget = Some(node_and_style_info.node)
-                    .filter(|node| node.pseudo_element_chain().is_empty())
-                    .and_then(|node| node.as_element())
-                    .and_then(|element| element.shadow_root())
-                    .is_some_and(|shadow_root| shadow_root.is_ua_widget())
-                    .then(|| {
-                        let widget_info = node_and_style_info
-                            .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
-                            .expect("Should always be able to construct info for anonymous boxes.");
-                        // Use a block formatting context for the widget, since the display inside is always flow.
-                        let widget_contents = IndependentFormattingContextContents::Flow(
-                            BlockFormattingContext::construct(
-                                context,
-                                &widget_info,
-                                NonReplacedContents::OfElement,
-                                propagated_data,
-                                false, /* is_list_item */
-                            ),
-                        );
-                        let widget_base =
-                            LayoutBoxBase::new((&widget_info).into(), widget_info.style);
-                        ArcRefCell::new(IndependentFormattingContext::new(
-                            widget_base,
-                            widget_contents,
+                let node = node_and_style_info.node;
+                let widget = (node.pseudo_element_chain().is_empty() &&
+                    node.is_root_of_user_agent_widget())
+                .then(|| {
+                    let widget_info = node_and_style_info
+                        .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
+                        .expect("Should always be able to construct info for anonymous boxes.");
+                    // Use a block formatting context for the widget, since the display inside is always flow.
+                    let widget_contents = IndependentFormattingContextContents::Flow(
+                        BlockFormattingContext::construct(
+                            context,
+                            &widget_info,
+                            NonReplacedContents::OfElement,
                             propagated_data,
-                        ))
-                    });
+                            false, /* is_list_item */
+                        ),
+                    );
+                    let widget_base = LayoutBoxBase::new((&widget_info).into(), widget_info.style);
+                    ArcRefCell::new(IndependentFormattingContext::new(
+                        widget_base,
+                        widget_contents,
+                        propagated_data,
+                    ))
+                });
+
                 return IndependentFormattingContextContents::Replaced(contents, widget);
             },
             Contents::Widget(non_replaced_contents) => {
@@ -217,7 +217,7 @@ impl IndependentFormattingContext {
                 let table_grid_style = context
                     .style_context
                     .stylist
-                    .style_for_anonymous::<ServoLayoutElement>(
+                    .style_for_anonymous::<ServoDangerousStyleElement>(
                         &context.style_context.guards,
                         &PseudoElement::ServoTableGrid,
                         &node_and_style_info.style,
@@ -335,7 +335,7 @@ impl IndependentFormattingContext {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
-        node: &ServoThreadSafeLayoutNode,
+        node: &ServoLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.base.repair_style(new_style);
@@ -384,6 +384,10 @@ impl IndependentFormattingContext {
         )
     }
 
+    #[servo_tracing::instrument(
+        name = "IndependentFormattingContext::layout_without_caching",
+        skip_all
+    )]
     fn layout_without_caching(
         &self,
         layout_context: &LayoutContext,
@@ -392,7 +396,7 @@ impl IndependentFormattingContext {
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced, widget) => {
                 let mut replaced_layout = replaced.layout(
@@ -443,8 +447,7 @@ impl IndependentFormattingContext {
         }
     }
 
-    #[servo_tracing::instrument(name = "IndependentFormattingContext::layout", skip_all)]
-    pub(crate) fn layout(
+    pub(crate) fn layout_and_is_cached(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
@@ -452,8 +455,10 @@ impl IndependentFormattingContext {
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
-    ) -> CacheableLayoutResult {
-        if let Some(cache) = self.base.cached_layout_result.borrow().as_ref() {
+    ) -> (IndependentFormattingContextLayoutResult, bool) {
+        if let Some(LayoutResultAndInputs::IndependentFormattingContext(cache)) =
+            self.base.cached_layout_result.borrow().as_ref()
+        {
             let cache = &**cache;
             if cache.containing_block_for_children_size.inline ==
                 containing_block_for_children.size.inline &&
@@ -462,7 +467,7 @@ impl IndependentFormattingContext {
                     !cache.result.depends_on_block_constraints)
             {
                 positioning_context.append(cache.positioning_context.clone());
-                return cache.result.clone();
+                return (cache.result.clone(), true);
             }
             #[cfg(feature = "tracing")]
             tracing::debug!(
@@ -483,14 +488,36 @@ impl IndependentFormattingContext {
         );
 
         *self.base.cached_layout_result.borrow_mut() =
-            Some(Box::new(CacheableLayoutResultAndInputs {
-                result: result.clone(),
-                positioning_context: child_positioning_context.clone(),
-                containing_block_for_children_size: containing_block_for_children.size.clone(),
-            }));
+            Some(LayoutResultAndInputs::IndependentFormattingContext(
+                Box::new(IndependentFormattingContextLayoutResultAndInputs {
+                    result: result.clone(),
+                    positioning_context: child_positioning_context.clone(),
+                    containing_block_for_children_size: containing_block_for_children.size.clone(),
+                }),
+            ));
         positioning_context.append(child_positioning_context);
 
-        result
+        (result, false)
+    }
+
+    pub(crate) fn layout(
+        &self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
+        containing_block: &ContainingBlock,
+        preferred_aspect_ratio: Option<AspectRatio>,
+        lazy_block_size: &LazySize,
+    ) -> IndependentFormattingContextLayoutResult {
+        self.layout_and_is_cached(
+            layout_context,
+            positioning_context,
+            containing_block_for_children,
+            containing_block,
+            preferred_aspect_ratio,
+            lazy_block_size,
+        )
+        .0
     }
 
     #[inline]

@@ -56,10 +56,10 @@
 
     await focusAndWait(item1);
 
-    await focusAndKeyPress(item1, kArrowRight);
-    assert_equals(document.activeElement, item2, "Arrow key navigation should work within focusgroup");
+    await focusAndSendDirectionalInput(item1, kRight);
+    assert_equals(document.activeElement, item2, "Directional input navigation should work within focusgroup");
 
-    await focusAndKeyPress(item2, kArrowRight);
-    assert_equals(document.activeElement, item3, "Arrow key navigation should continue working");
-  }, "Arrow key navigation continues to work normally within focusgroup");
+    await focusAndSendDirectionalInput(item2, kRight);
+    assert_equals(document.activeElement, item3, "Directional input navigation should continue working");
+  }, "Directional input navigation continues to work normally within focusgroup");
 </script>

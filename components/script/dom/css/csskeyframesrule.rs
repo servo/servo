@@ -20,11 +20,10 @@ use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSKeyframesRule {
@@ -48,18 +47,18 @@ impl CSSKeyframesRule {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         keyframesrule: Arc<Locked<KeyframesRule>>,
-        can_gc: CanGc,
     ) -> DomRoot<CSSKeyframesRule> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(CSSKeyframesRule::new_inherited(
                 parent_stylesheet,
                 keyframesrule,
             )),
             window,
-            can_gc,
+            cx,
         )
     }
 
@@ -67,10 +66,10 @@ impl CSSKeyframesRule {
         self.rule_list.or_init(|| {
             let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
             CSSRuleList::new(
+                cx,
                 self.global().as_window(),
                 parent_stylesheet,
                 RulesSource::Keyframes(self.keyframes_rule.borrow().clone()),
-                CanGc::from_cx(cx),
             )
         })
     }
@@ -154,7 +153,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         selector: DOMString,
     ) -> Option<DomRoot<CSSKeyframeRule>> {
         self.find_rule(&selector)
-            .and_then(|idx| self.rulelist(cx).item(idx as u32, CanGc::from_cx(cx)))
+            .and_then(|idx| self.rulelist(cx).item(cx, idx as u32))
             .and_then(DomRoot::downcast)
     }
 

@@ -11,6 +11,8 @@ pub(crate) mod serviceworkercontainer;
 pub(crate) mod serviceworkerglobalscope;
 #[expect(dead_code)]
 pub(crate) mod serviceworkerregistration;
+pub(crate) mod sharedworker;
+pub(crate) mod sharedworkerglobalscope;
 pub(crate) mod worker;
 pub(crate) mod workerglobalscope;
 pub(crate) mod workerlocation;

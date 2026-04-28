@@ -7,7 +7,6 @@
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell};
 use std::default::Default;
-use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -25,15 +24,13 @@ use js::context::JSContext;
 use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, ScrollContainerQueryFlags};
+use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
-use selectors::Element as SelectorsElement;
-use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::attr::CaseSensitivity;
+use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
-use servo_arc::Arc;
+use servo_arc::Arc as ServoArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -46,10 +43,7 @@ use style::properties::{
     parse_style_attribute,
 };
 use style::rule_tree::{CascadeLevel, CascadeOrigin};
-use style::selector_parser::{
-    NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser, Snapshot,
-    extended_filtering,
-};
+use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
@@ -57,7 +51,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
+use style::values::{AtomIdent, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -68,7 +62,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
-use crate::dom::attr::{Attr, AttrHelpersForLayout, is_relevant_attribute};
+use crate::dom::attr::{Attr, is_relevant_attribute};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -100,14 +94,13 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementRegistry,
     CustomElementState, is_valid_custom_element_name,
 };
-use crate::dom::document::{Document, LayoutDocumentHelpers};
+use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
@@ -115,16 +108,16 @@ use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
-use crate::dom::html::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
+use crate::dom::html::htmlbodyelement::HTMLBodyElement;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
-use crate::dom::html::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
-use crate::dom::html::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers, SizePresentationalHint};
-use crate::dom::html::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
-use crate::dom::html::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use crate::dom::html::htmlhrelement::{HTMLHRElement, SizePresentationalHint};
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
@@ -135,31 +128,21 @@ use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
-use crate::dom::html::htmltablecellelement::{
-    HTMLTableCellElement, HTMLTableCellElementLayoutHelpers,
-};
-use crate::dom::html::htmltablecolelement::{
-    HTMLTableColElement, HTMLTableColElementLayoutHelpers,
-};
-use crate::dom::html::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
-use crate::dom::html::htmltablerowelement::{
-    HTMLTableRowElement, HTMLTableRowElementLayoutHelpers,
-};
-use crate::dom::html::htmltablesectionelement::{
-    HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers,
-};
+use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
+use crate::dom::html::htmltablecolelement::HTMLTableColElement;
+use crate::dom::html::htmltableelement::HTMLTableElement;
+use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
+use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::html::htmltextareaelement::{
-    HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers,
-};
-use crate::dom::html::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
-use crate::dom::input_element::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::input_element::HTMLInputElement;
 use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, LayoutNodeHelpers, Node,
-    NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, IsShadowTree, Node, NodeDamage, NodeFlags,
+    NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -168,13 +151,14 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
-use crate::dom::svg::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
+use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::text::Text;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
+use crate::layout_dom::ServoDangerousStyleElement;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
@@ -202,7 +186,7 @@ pub struct Element {
     is: DomRefCell<Option<LocalName>>,
     #[conditional_malloc_size_of]
     #[no_trace]
-    style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
+    style_attribute: DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
     #[no_trace]
@@ -211,6 +195,11 @@ pub struct Element {
     /// operations may require restyling this element or its descendants.
     selector_flags: AtomicUsize,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
+
+    /// Style data for this node. This is accessed and mutated by style
+    /// passes and is used to lay out this node and populate layout data.
+    #[no_trace]
+    style_data: DomRefCell<Option<Box<StyleData>>>,
 }
 
 impl fmt::Debug for Element {
@@ -323,6 +312,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Default::default(),
             rare_data: Default::default(),
+            style_data: Default::default(),
         }
     }
 
@@ -331,20 +321,20 @@ impl Element {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         namespace: Namespace,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Element> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(Element::new_inherited(
                 local_name, namespace, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -362,6 +352,10 @@ impl Element {
             *rare_data = Some(Default::default());
         }
         RefMut::map(rare_data, |rare_data| rare_data.as_mut().unwrap())
+    }
+
+    pub(crate) fn clean_up_style_data(&self) {
+        self.style_data.borrow_mut().take();
     }
 
     pub(crate) fn restyle(&self, damage: NodeDamage) {
@@ -487,12 +481,6 @@ impl Element {
 
             reactions.clear();
         }
-    }
-
-    /// style will be `None` for elements in a `display: none` subtree. otherwise, the element has a
-    /// layout box iff it doesn't have `display: none`.
-    pub(crate) fn style(&self) -> Option<Arc<ComputedValues>> {
-        self.upcast::<Node>().style()
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -699,8 +687,9 @@ impl Element {
         // non-shadow-tree children of `self` no longer have layout boxes as they are no
         // longer in the flat tree.
         let node = self.upcast::<Node>();
-        node.remove_layout_boxes_from_subtree();
-
+        if node.is_connected() {
+            node.remove_style_and_layout_data_from_subtree(cx.no_gc());
+        }
         // Step 6. Set shadow's delegates focus to delegatesFocus
         shadow_root.set_delegates_focus(delegates_focus);
 
@@ -986,6 +975,30 @@ impl Element {
         // Steps 3 and 4 are shared with other scroll targets.
         document.finish_handle_scroll_event(self.upcast());
     }
+
+    pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
+        self.owner_window().layout_reflow(QueryMsg::StyleQuery);
+        self.style_data
+            .borrow()
+            .as_ref()
+            .map(|data| data.element_data.borrow().styles.primary().clone())
+    }
+
+    pub(crate) fn is_styled(&self) -> bool {
+        self.style_data.borrow().is_some()
+    }
+
+    pub(crate) fn is_display_none(&self) -> bool {
+        self.style_data.borrow().as_ref().is_none_or(|data| {
+            data.element_data
+                .borrow()
+                .styles
+                .primary()
+                .get_box()
+                .display
+                .is_none()
+        })
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
@@ -1034,54 +1047,36 @@ pub(crate) fn get_attr_for_layout<'dom>(
         .map(|attr| attr.value())
 }
 
-pub(crate) trait LayoutElementHelpers<'dom> {
-    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>];
-    fn has_class_or_part_for_layout(
-        self,
-        name: &AtomIdent,
-        attr_name: &LocalName,
-        case_sensitivity: CaseSensitivity,
-    ) -> bool;
-    fn get_classes_for_layout(self) -> Option<&'dom [Atom]>;
-    fn get_parts_for_layout(self) -> Option<&'dom [Atom]>;
+impl<'dom> LayoutDom<'dom, Element> {
+    #[inline]
+    pub(crate) fn is_root(&self) -> bool {
+        self.upcast::<Node>()
+            .parent_node_ref()
+            .is_some_and(|parent| matches!(parent.type_id_for_layout(), NodeTypeId::Document(_)))
+    }
 
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
-    where
-        V: Push<ApplicableDeclarationBlock>;
-    fn get_span(self) -> Option<u32>;
-    fn get_colspan(self) -> Option<u32>;
-    fn get_rowspan(self) -> Option<u32>;
-    fn is_html_element(&self) -> bool;
-    fn id_attribute(self) -> *const Option<Atom>;
-    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
-    fn local_name(self) -> &'dom LocalName;
-    fn namespace(self) -> &'dom Namespace;
-    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str>;
-    fn get_lang_for_layout(self) -> String;
-    fn get_state_for_layout(self) -> ElementState;
-    fn insert_selector_flags(self, flags: ElementSelectorFlags);
-    fn get_selector_flags(self) -> ElementSelectorFlags;
-    /// The shadow root this element is a host of.
-    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
-    fn get_attr_for_layout(
-        self,
-        namespace: &Namespace,
-        name: &LocalName,
-    ) -> Option<&'dom AttrValue>;
-    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str>;
-    fn get_attr_vals_for_layout(self, name: &LocalName) -> impl Iterator<Item = &'dom AttrValue>;
-    fn each_custom_state_for_layout(self, allback: impl FnMut(&AtomIdent));
-}
+    /// Returns true if this element is the body child of an html element root element.
+    pub(crate) fn is_body_element_of_html_element_root(&self) -> bool {
+        if self.local_name() != &local_name!("body") {
+            return false;
+        }
+        let Some(parent_node) = self.upcast::<Node>().parent_node_ref() else {
+            return false;
+        };
+        let Some(parent_element) = parent_node.downcast::<Element>() else {
+            return false;
+        };
+        parent_element.local_name() == &local_name!("html")
+    }
 
-impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[expect(unsafe_code)]
     #[inline]
-    fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
+    pub(crate) fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
         unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
     }
 
     #[inline]
-    fn has_class_or_part_for_layout(
+    pub(crate) fn has_class_or_part_for_layout(
         self,
         name: &AtomIdent,
         attr_name: &LocalName,
@@ -1095,15 +1090,37 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
+    pub(crate) fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("class")).map(|attr| attr.as_tokens())
     }
 
-    fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
+    pub(crate) fn get_parts_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("part")).map(|attr| attr.as_tokens())
     }
 
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) fn style_data(self) -> Option<&'dom StyleData> {
+        unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn initialize_style_data(self) {
+        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
+        debug_assert!(data.is_none());
+        *data = Some(Box::default());
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn clear_style_data(self) {
+        unsafe {
+            self.unsafe_get().style_data.borrow_mut_for_layout().take();
+        }
+    }
+
+    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>,
     {
@@ -1180,7 +1197,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let font_face = self
             .downcast::<HTMLFontElement>()
-            .and_then(HTMLFontElementLayoutHelpers::get_face);
+            .and_then(LayoutDom::get_face);
         if let Some(font_face) = font_face {
             push(PropertyDeclaration::FontFamily(
                 font_family::SpecifiedValue::Values(computed::font::FontFamilyList {
@@ -1193,7 +1210,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let font_size = self
             .downcast::<HTMLFontElement>()
-            .and_then(HTMLFontElementLayoutHelpers::get_size);
+            .and_then(LayoutDom::get_size);
         if let Some(font_size) = font_size {
             push(PropertyDeclaration::FontSize(
                 font_size::SpecifiedValue::from_html_size(font_size as u8),
@@ -1339,7 +1356,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let cols = self
             .downcast::<HTMLTextAreaElement>()
-            .map(LayoutHTMLTextAreaElementHelpers::get_cols);
+            .map(LayoutDom::get_cols);
         if let Some(cols) = cols {
             let cols = cols as i32;
             if cols > 0 {
@@ -1360,7 +1377,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let rows = self
             .downcast::<HTMLTextAreaElement>()
-            .map(LayoutHTMLTextAreaElementHelpers::get_rows);
+            .map(LayoutDom::get_rows);
         if let Some(rows) = rows {
             let rows = rows as i32;
             if rows > 0 {
@@ -1446,54 +1463,56 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let shared_lock = document.style_shared_lock();
         hints.push(ApplicableDeclarationBlock::from_declarations(
-            Arc::new(shared_lock.wrap(property_declaration_block)),
+            ServoArc::new(shared_lock.wrap(property_declaration_block)),
             CascadeLevel::new(CascadeOrigin::PresHints),
             LayerOrder::root(),
         ));
     }
 
-    fn get_span(self) -> Option<u32> {
+    pub(crate) fn get_span(self) -> Option<u32> {
         // Don't panic since `display` can cause this to be called on arbitrary elements.
         self.downcast::<HTMLTableColElement>()
             .and_then(|element| element.get_span())
     }
 
-    fn get_colspan(self) -> Option<u32> {
+    pub(crate) fn get_colspan(self) -> Option<u32> {
         // Don't panic since `display` can cause this to be called on arbitrary elements.
         self.downcast::<HTMLTableCellElement>()
             .and_then(|element| element.get_colspan())
     }
 
-    fn get_rowspan(self) -> Option<u32> {
+    pub(crate) fn get_rowspan(self) -> Option<u32> {
         // Don't panic since `display` can cause this to be called on arbitrary elements.
         self.downcast::<HTMLTableCellElement>()
             .and_then(|element| element.get_rowspan())
     }
 
     #[inline]
-    fn is_html_element(&self) -> bool {
+    pub(crate) fn is_html_element(&self) -> bool {
         *self.namespace() == ns!(html)
     }
 
     #[expect(unsafe_code)]
-    fn id_attribute(self) -> *const Option<Atom> {
+    pub(crate) fn id_attribute(self) -> *const Option<Atom> {
         unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
     }
 
     #[expect(unsafe_code)]
-    fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    pub(crate) fn style_attribute(
+        self,
+    ) -> *const Option<ServoArc<Locked<PropertyDeclarationBlock>>> {
         unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
     }
 
-    fn local_name(self) -> &'dom LocalName {
+    pub(crate) fn local_name(self) -> &'dom LocalName {
         &(self.unsafe_get()).local_name
     }
 
-    fn namespace(self) -> &'dom Namespace {
+    pub(crate) fn namespace(self) -> &'dom Namespace {
         &(self.unsafe_get()).namespace
     }
 
-    fn get_lang_attr_val_for_layout(self) -> Option<&'dom str> {
+    pub(crate) fn get_lang_attr_val_for_layout(self) -> Option<&'dom str> {
         if let Some(attr) = self.get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
             return Some(attr);
         }
@@ -1503,7 +1522,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         None
     }
 
-    fn get_lang_for_layout(self) -> String {
+    pub(crate) fn get_lang_for_layout(self) -> String {
         let mut current_node = Some(self.upcast::<Node>());
         while let Some(node) = current_node {
             current_node = node.composed_parent_node_ref();
@@ -1522,24 +1541,24 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn get_state_for_layout(self) -> ElementState {
+    pub(crate) fn get_state_for_layout(self) -> ElementState {
         (self.unsafe_get()).state.get()
     }
 
     #[inline]
-    fn insert_selector_flags(self, flags: ElementSelectorFlags) {
+    pub(crate) fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
         self.unsafe_get().insert_selector_flags(flags);
     }
 
     #[inline]
-    fn get_selector_flags(self) -> ElementSelectorFlags {
+    pub(crate) fn get_selector_flags(self) -> ElementSelectorFlags {
         self.unsafe_get().get_selector_flags()
     }
 
     #[inline]
     #[expect(unsafe_code)]
-    fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
+    pub(crate) fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>> {
         unsafe {
             self.unsafe_get()
                 .rare_data
@@ -1552,7 +1571,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn get_attr_for_layout(
+    pub(crate) fn get_attr_for_layout(
         self,
         namespace: &Namespace,
         name: &LocalName,
@@ -1561,12 +1580,19 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn get_attr_val_for_layout(self, namespace: &Namespace, name: &LocalName) -> Option<&'dom str> {
+    pub(crate) fn get_attr_val_for_layout(
+        self,
+        namespace: &Namespace,
+        name: &LocalName,
+    ) -> Option<&'dom str> {
         get_attr_for_layout(self, namespace, name).map(|attr| &**attr)
     }
 
     #[inline]
-    fn get_attr_vals_for_layout(self, name: &LocalName) -> impl Iterator<Item = &'dom AttrValue> {
+    pub(crate) fn get_attr_vals_for_layout(
+        self,
+        name: &LocalName,
+    ) -> impl Iterator<Item = &'dom AttrValue> {
         self.attrs().iter().filter_map(move |attr| {
             if name == attr.local_name() {
                 Some(attr.value())
@@ -1577,7 +1603,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[expect(unsafe_code)]
-    fn each_custom_state_for_layout(self, mut callback: impl FnMut(&AtomIdent)) {
+    pub(crate) fn each_custom_state_for_layout(self, mut callback: impl FnMut(&AtomIdent)) {
         let rare_data = unsafe { self.unsafe_get().rare_data.borrow_for_layout() };
         let Some(rare_data) = rare_data.as_ref() else {
             return;
@@ -1712,7 +1738,7 @@ impl Element {
 
     pub(crate) fn style_attribute(
         &self,
-    ) -> &DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
+    ) -> &DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -1849,6 +1875,7 @@ impl Element {
         }
     }
 
+    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn push_new_attribute(
         &self,
@@ -1860,7 +1887,11 @@ impl Element {
         reason: AttributeMutationReason,
         can_gc: CanGc,
     ) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
         let attr = Attr::new(
+            cx,
             &self.node.owner_doc(),
             local_name,
             value,
@@ -1868,7 +1899,6 @@ impl Element {
             namespace,
             prefix,
             Some(self),
-            can_gc,
         );
         self.push_attribute(&attr, reason, can_gc);
     }
@@ -2212,16 +2242,6 @@ impl Element {
             })
     }
 
-    pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&LocalName::from("part"))
-            .is_some_and(|attr| {
-                attr.value()
-                    .as_tokens()
-                    .iter()
-                    .any(|atom| case_sensitivity.eq_atom(name, atom))
-            })
-    }
-
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
         debug_assert_eq!(
             *local_name,
@@ -2283,7 +2303,7 @@ impl Element {
                     {
                         return;
                     }
-                    Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
+                    ServoArc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                         source,
                         &UrlExtraData(doc.base_url().get_arc()),
                         Some(win.css_error_reporter()),
@@ -2427,7 +2447,7 @@ impl Element {
         // Step 2.1: Let nonce be element's [[CryptographicNonce]].
         let nonce = self.nonce_value();
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
-        self.set_string_attribute(&local_name!("nonce"), "".into(), CanGc::note());
+        self.set_string_attribute(&local_name!("nonce"), "".into(), CanGc::deprecated_note());
         // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
         self.update_nonce_internal_slot(nonce);
     }
@@ -2564,15 +2584,12 @@ impl Element {
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template
-                    .Content(CanGc::from_cx(cx))
-                    .upcast::<Node>()
-                    .owner_doc()
+                template.Content(cx).upcast::<Node>().owner_doc()
             } else {
                 self.owner_document()
             }
         };
-        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
+        let fragment = DocumentFragment::new(cx, &context_document);
         // Step 4.
         for child in new_children {
             fragment.upcast::<Node>().AppendChild(cx, &child).unwrap();
@@ -2648,8 +2665,8 @@ impl Element {
         }))
     }
 
-    pub(crate) fn outer_html(&self, can_gc: CanGc) -> Fallible<DOMString> {
-        match self.GetOuterHTML(can_gc)? {
+    pub(crate) fn outer_html(&self, cx: &mut js::context::JSContext) -> Fallible<DOMString> {
+        match self.GetOuterHTML(cx)? {
             TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
             TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
         }
@@ -2766,8 +2783,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-id>
-    fn SetId(&self, id: DOMString, can_gc: CanGc) {
-        self.set_atomic_attribute(&local_name!("id"), id, can_gc);
+    fn SetId(&self, cx: &mut JSContext, id: DOMString) {
+        self.set_atomic_attribute(&local_name!("id"), id, CanGc::from_cx(cx));
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
@@ -2776,8 +2793,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
-    fn SetClassName(&self, class: DOMString, can_gc: CanGc) {
-        self.set_tokenlist_attribute(&local_name!("class"), class, can_gc);
+    fn SetClassName(&self, cx: &mut JSContext, class: DOMString) {
+        self.set_tokenlist_attribute(&local_name!("class"), class, CanGc::from_cx(cx));
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classlist>
@@ -3026,31 +3043,34 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagname>
-    fn GetElementsByTagName(&self, localname: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn GetElementsByTagName(
+        &self,
+        cx: &mut js::context::JSContext,
+        localname: DOMString,
+    ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_qualified_name(
-            &window,
-            self.upcast(),
-            LocalName::from(localname),
-            can_gc,
-        )
+        HTMLCollection::by_qualified_name(cx, &window, self.upcast(), LocalName::from(localname))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens>
     fn GetElementsByTagNameNS(
         &self,
+        cx: &mut js::context::JSContext,
         maybe_ns: Option<DOMString>,
         localname: DOMString,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns, can_gc)
+        HTMLCollection::by_tag_name_ns(cx, &window, self.upcast(), localname, maybe_ns)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname>
-    fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn GetElementsByClassName(
+        &self,
+        cx: &mut js::context::JSContext,
+        classes: DOMString,
+    ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_class_name(&window, self.upcast(), classes, can_gc)
+        HTMLCollection::by_class_name(cx, &window, self.upcast(), classes)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>
@@ -3175,7 +3195,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
-    fn SetScrollTop(&self, y_: f64) {
+    fn SetScrollTop(&self, _cx: &mut JSContext, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3271,7 +3291,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollleft>
-    fn SetScrollLeft(&self, x: f64) {
+    fn SetScrollLeft(&self, _cx: &mut JSContext, x: f64) {
         let behavior = ScrollBehavior::Auto;
 
         // Step 1, 2
@@ -3426,7 +3446,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         )?;
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-            DomRoot::upcast(template.Content(CanGc::from_cx(cx)))
+            DomRoot::upcast(template.Content(cx))
         } else {
             DomRoot::from_ref(self.upcast())
         };
@@ -3437,19 +3457,22 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
-    fn GetHTML(&self, options: &GetHTMLOptions, can_gc: CanGc) -> DOMString {
+    fn GetHTML(&self, cx: &mut js::context::JSContext, options: &GetHTMLOptions) -> DOMString {
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
+            cx,
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
             options.shadowRoots.clone(),
-            can_gc,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetInnerHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
@@ -3460,7 +3483,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(ChildrenOnly(Some(qname)), false, vec![], can_gc)
+                .html_serialize(cx, ChildrenOnly(Some(qname)), false, vec![])
         } else {
             self.upcast::<Node>()
                 .xml_serialize(XmlChildrenOnly(Some(qname)))?
@@ -3488,7 +3511,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             // Step 4: If context is a template element, then set context to
             // the template element's template contents (a DocumentFragment).
-            DomRoot::upcast(template.Content(CanGc::from_cx(cx)))
+            DomRoot::upcast(template.Content(cx))
         } else {
             // Step 2: Let context be this.
             DomRoot::from_ref(self.upcast())
@@ -3516,12 +3539,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetOuterHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // FIXME: This should use the fragment serialization algorithm, which takes
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(IncludeNode, false, vec![], can_gc)
+                .html_serialize(cx, IncludeNode, false, vec![])
         } else {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)?
         };
@@ -3600,9 +3626,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
-    fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), can_gc)
+        HTMLCollection::children(cx, &window, self.upcast())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>
@@ -3675,9 +3701,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-matches>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        let doc = self.owner_document();
-        let url = doc.url();
+        let document = self.owner_document();
+        let url = document.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
             &selectors.str(),
             &UrlExtraData(url.get_arc()),
@@ -3686,14 +3713,18 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = doc.quirks_mode();
-        let element = DomRoot::from_ref(self);
-
-        Ok(dom_apis::element_matches(
-            &SelectorWrapper::Borrowed(&element),
-            &selectors,
-            quirks_mode,
-        ))
+        // SAFETY: traced_self is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_self = Dom::from_ref(self);
+        let quirks_mode = document.quirks_mode();
+        Ok(with_layout_state(|| {
+            #[expect(unsafe_code)]
+            let layout_element = unsafe { traced_self.to_layout() };
+            dom_apis::element_matches(
+                &ServoDangerousStyleElement::from(layout_element.upcast()),
+                &selectors,
+                quirks_mode,
+            )
+        }))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector>
@@ -3702,9 +3733,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-closest>
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let doc = self.owner_document();
-        let url = doc.url();
+        let document = self.owner_document();
+        let url = document.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
             &selectors.str(),
             &UrlExtraData(url.get_arc()),
@@ -3713,13 +3745,19 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Ok(selectors) => selectors,
         };
 
-        let quirks_mode = doc.quirks_mode();
-        Ok(dom_apis::element_closest(
-            SelectorWrapper::Owned(DomRoot::from_ref(self)),
-            &selectors,
-            quirks_mode,
-        )
-        .map(SelectorWrapper::into_owned))
+        // SAFETY: traced_self is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_self = Dom::from_ref(self);
+        let quirks_mode = document.quirks_mode();
+        let closest_element = with_layout_state(|| {
+            #[expect(unsafe_code)]
+            let layout_element = unsafe { traced_self.to_layout() };
+            dom_apis::element_closest(
+                ServoDangerousStyleElement::from(layout_element.upcast()),
+                &selectors,
+                quirks_mode,
+            )
+        });
+        Ok(closest_element.map(ServoDangerousStyleElement::rooted))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-insertadjacentelement>
@@ -3742,7 +3780,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         data: DOMString,
     ) -> ErrorResult {
         // Step 1.
-        let text = Text::new(data, &self.owner_document(), CanGc::from_cx(cx));
+        let text = Text::new(cx, data, &self.owner_document());
 
         // Step 2.
         let where_ = where_.parse::<AdjacentPosition>()?;
@@ -4243,9 +4281,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
     fn Part(&self) -> DomRoot<DOMTokenList> {
-        self.ensure_rare_data()
-            .part
-            .or_init(|| DOMTokenList::new(self, &local_name!("part"), None, CanGc::note()))
+        self.ensure_rare_data().part.or_init(|| {
+            DOMTokenList::new(self, &local_name!("part"), None, CanGc::deprecated_note())
+        })
     }
 }
 
@@ -4405,8 +4443,9 @@ impl VirtualMethods for Element {
         node.rev_version();
 
         // Notify devtools that the DOM changed
-        let global = self.owner_global();
-        if global.live_devtools_updates() {
+        let window = self.owner_window();
+        if window.live_devtools_updates() {
+            let global = window.upcast::<GlobalScope>();
             if let Some(sender) = global.devtools_chan() {
                 let pipeline_id = global.pipeline_id();
                 if ScriptThread::devtools_want_updates_for_node(pipeline_id, self.upcast()) {
@@ -4471,19 +4510,16 @@ impl VirtualMethods for Element {
                 doc.register_element_name(self, name.clone());
             }
         }
-
-        // This is used for layout optimization.
-        doc.increment_dom_count();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         if let Some(f) = self.as_maybe_form_control() {
             // TODO: The valid state of ancestors might be wrong if the form control element
             // has a fieldset ancestor, for instance: `<form><fieldset><input>`,
             // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
-            f.unbind_form_control_from_tree(can_gc);
+            f.unbind_form_control_from_tree(CanGc::from_cx(cx));
         }
 
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
@@ -4494,17 +4530,17 @@ impl VirtualMethods for Element {
 
         let fullscreen = doc.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
-            doc.exit_fullscreen(can_gc);
+            doc.exit_fullscreen(CanGc::from_cx(cx));
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(ref shadow_root) = self.containing_shadow_root() {
                 // Only unregister the element id if the node was disconnected from it's shadow root
                 // (as opposed to the whole shadow tree being disconnected as a whole)
                 if !self.upcast::<Node>().is_in_a_shadow_tree() {
-                    shadow_root.unregister_element_id(self, value.clone(), can_gc);
+                    shadow_root.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
                 }
             } else {
-                doc.unregister_element_id(self, value.clone(), can_gc);
+                doc.unregister_element_id(self, value.clone(), CanGc::from_cx(cx));
             }
         }
         if let Some(ref value) = self.name_attribute() {
@@ -4512,8 +4548,6 @@ impl VirtualMethods for Element {
                 doc.unregister_element_name(self, value.clone());
             }
         }
-        // This is used for layout optimization.
-        doc.decrement_dom_count();
     }
 
     fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
@@ -4536,7 +4570,7 @@ impl VirtualMethods for Element {
                 }
             }
             if flags.intersects(ElementSelectorFlags::HAS_EDGE_CHILD_SELECTOR) {
-                if let Some(child) = mutation.modified_edge_element() {
+                if let Some(child) = mutation.modified_edge_element(cx.no_gc()) {
                     child.dirty(NodeDamage::Other);
                 }
             }
@@ -4576,323 +4610,7 @@ impl VirtualMethods for Element {
         }
     }
 }
-
-#[derive(Clone, PartialEq)]
-/// A type that wraps a DomRoot value so we can implement the SelectorsElement
-/// trait without violating the orphan rule. Since the trait assumes that the
-/// return type and self type of various methods is the same type that it is
-/// implemented against, we need to be able to represent multiple ownership styles.
-pub enum SelectorWrapper<'a> {
-    Borrowed(&'a DomRoot<Element>),
-    Owned(DomRoot<Element>),
-}
-
-impl fmt::Debug for SelectorWrapper<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.deref().fmt(f)
-    }
-}
-
-impl Deref for SelectorWrapper<'_> {
-    type Target = DomRoot<Element>;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            SelectorWrapper::Owned(r) => r,
-            SelectorWrapper::Borrowed(r) => r,
-        }
-    }
-}
-
-impl SelectorWrapper<'_> {
-    fn into_owned(self) -> DomRoot<Element> {
-        match self {
-            SelectorWrapper::Owned(r) => r,
-            SelectorWrapper::Borrowed(r) => r.clone(),
-        }
-    }
-}
-
-impl SelectorsElement for SelectorWrapper<'_> {
-    type Impl = SelectorImpl;
-
-    #[expect(unsafe_code)]
-    fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(unsafe { &*self.reflector().get_jsobject().get() })
-    }
-
-    fn parent_element(&self) -> Option<Self> {
-        self.upcast::<Node>()
-            .GetParentElement()
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn parent_node_is_shadow_root(&self) -> bool {
-        match self.upcast::<Node>().GetParentNode() {
-            None => false,
-            Some(node) => node.is::<ShadowRoot>(),
-        }
-    }
-
-    fn containing_shadow_host(&self) -> Option<Self> {
-        self.containing_shadow_root()
-            .map(|shadow_root| shadow_root.Host())
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn is_pseudo_element(&self) -> bool {
-        false
-    }
-
-    fn match_pseudo_element(
-        &self,
-        _pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        false
-    }
-
-    fn prev_sibling_element(&self) -> Option<Self> {
-        self.node
-            .preceding_siblings()
-            .find_map(DomRoot::downcast)
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn next_sibling_element(&self) -> Option<Self> {
-        self.node
-            .following_siblings()
-            .find_map(DomRoot::downcast)
-            .map(SelectorWrapper::Owned)
-    }
-
-    fn first_element_child(&self) -> Option<Self> {
-        self.GetFirstElementChild().map(SelectorWrapper::Owned)
-    }
-
-    fn attr_matches(
-        &self,
-        ns: &NamespaceConstraint<&style::Namespace>,
-        local_name: &style::LocalName,
-        operation: &AttrSelectorOperation<&AtomString>,
-    ) -> bool {
-        match *ns {
-            NamespaceConstraint::Specific(ns) => self
-                .get_attribute_with_namespace(ns, local_name)
-                .is_some_and(|attr| attr.value().eval_selector(operation)),
-            NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {
-                *attr.local_name() == **local_name && attr.value().eval_selector(operation)
-            }),
-        }
-    }
-
-    fn is_root(&self) -> bool {
-        Element::is_root(self)
-    }
-
-    fn is_empty(&self) -> bool {
-        self.node.children().all(|node| {
-            !node.is::<Element>() &&
-                match node.downcast::<Text>() {
-                    None => true,
-                    Some(text) => text.upcast::<CharacterData>().data().is_empty(),
-                }
-        })
-    }
-
-    fn has_local_name(&self, local_name: &LocalName) -> bool {
-        Element::local_name(self) == local_name
-    }
-
-    fn has_namespace(&self, ns: &Namespace) -> bool {
-        Element::namespace(self) == ns
-    }
-
-    fn is_same_type(&self, other: &Self) -> bool {
-        Element::local_name(self) == Element::local_name(other) &&
-            Element::namespace(self) == Element::namespace(other)
-    }
-
-    fn match_non_ts_pseudo_class(
-        &self,
-        pseudo_class: &NonTSPseudoClass,
-        _: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        match *pseudo_class {
-            // https://github.com/servo/servo/issues/8718
-            NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
-            NonTSPseudoClass::Visited => false,
-
-            NonTSPseudoClass::ServoNonZeroBorder => match self.downcast::<HTMLTableElement>() {
-                None => false,
-                Some(this) => match this.get_border() {
-                    None | Some(0) => false,
-                    Some(_) => true,
-                },
-            },
-
-            NonTSPseudoClass::CustomState(ref state) => self.has_custom_state(&state.0),
-
-            // FIXME(heycam): This is wrong, since extended_filtering accepts
-            // a string containing commas (separating each language tag in
-            // a list) but the pseudo-class instead should be parsing and
-            // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => {
-                extended_filtering(&self.upcast::<Node>().get_lang().unwrap_or_default(), lang)
-            },
-
-            NonTSPseudoClass::ReadOnly => {
-                !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
-            },
-
-            NonTSPseudoClass::Active |
-            NonTSPseudoClass::Autofill |
-            NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Default |
-            NonTSPseudoClass::Defined |
-            NonTSPseudoClass::Disabled |
-            NonTSPseudoClass::Enabled |
-            NonTSPseudoClass::Focus |
-            NonTSPseudoClass::FocusVisible |
-            NonTSPseudoClass::FocusWithin |
-            NonTSPseudoClass::Fullscreen |
-            NonTSPseudoClass::Hover |
-            NonTSPseudoClass::InRange |
-            NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::Invalid |
-            NonTSPseudoClass::Modal |
-            NonTSPseudoClass::MozMeterOptimum |
-            NonTSPseudoClass::MozMeterSubOptimum |
-            NonTSPseudoClass::MozMeterSubSubOptimum |
-            NonTSPseudoClass::Open |
-            NonTSPseudoClass::Optional |
-            NonTSPseudoClass::OutOfRange |
-            NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::PopoverOpen |
-            NonTSPseudoClass::ReadWrite |
-            NonTSPseudoClass::Required |
-            NonTSPseudoClass::Target |
-            NonTSPseudoClass::UserInvalid |
-            NonTSPseudoClass::UserValid |
-            NonTSPseudoClass::Valid => Element::state(self).contains(pseudo_class.state_flag()),
-        }
-    }
-
-    fn is_link(&self) -> bool {
-        // FIXME: This is HTML only.
-        let node = self.upcast::<Node>();
-        match node.type_id() {
-            // https://html.spec.whatwg.org/multipage/#selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLAnchorElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-                self.has_attribute(&local_name!("href"))
-            },
-            _ => false,
-        }
-    }
-
-    fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        self.id_attribute
-            .borrow()
-            .as_ref()
-            .is_some_and(|atom| case_sensitivity.eq_atom(id, atom))
-    }
-
-    fn is_part(&self, name: &AtomIdent) -> bool {
-        Element::is_part(self, name, CaseSensitivity::CaseSensitive)
-    }
-
-    fn imported_part(&self, _: &AtomIdent) -> Option<AtomIdent> {
-        None
-    }
-
-    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        Element::has_class(self, name, case_sensitivity)
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        self.html_element_in_html_document()
-    }
-
-    fn is_html_slot_element(&self) -> bool {
-        self.is_html_element() && self.local_name() == &local_name!("slot")
-    }
-
-    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
-        // Handle flags that apply to the element.
-        let self_flags = flags.for_self();
-        if !self_flags.is_empty() {
-            #[expect(unsafe_code)]
-            unsafe {
-                Dom::from_ref(&***self)
-                    .to_layout()
-                    .insert_selector_flags(self_flags);
-            }
-        }
-
-        // Handle flags that apply to the parent.
-        let parent_flags = flags.for_parent();
-        if !parent_flags.is_empty() {
-            if let Some(p) = self.parent_element() {
-                #[expect(unsafe_code)]
-                unsafe {
-                    Dom::from_ref(&**p)
-                        .to_layout()
-                        .insert_selector_flags(parent_flags);
-                }
-            }
-        }
-    }
-
-    fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
-        let mut f = |hash| filter.insert_hash(hash & BLOOM_HASH_MASK);
-
-        // We can't use style::bloom::each_relevant_element_hash(*self, f)
-        // since DomRoot<Element> doesn't have the TElement trait.
-        f(Element::local_name(self).get_hash());
-        f(Element::namespace(self).get_hash());
-
-        if let Some(ref id) = *self.id_attribute.borrow() {
-            f(id.get_hash());
-        }
-
-        if let Some(attr) = self.get_attribute(&local_name!("class")) {
-            for class in attr.value().as_tokens() {
-                f(AtomIdent::cast(class).get_hash());
-            }
-        }
-
-        for attr in self.attrs.borrow().iter() {
-            let name = style::values::GenericAtomIdent::cast(attr.local_name());
-            if !style::bloom::is_attr_name_excluded_from_filter(name) {
-                f(name.get_hash());
-            }
-        }
-
-        true
-    }
-
-    fn has_custom_state(&self, name: &AtomIdent) -> bool {
-        let mut has_state = false;
-        self.each_custom_state(|state| has_state |= state == name);
-
-        has_state
-    }
-}
-
 impl Element {
-    fn each_custom_state<F>(&self, callback: F)
-    where
-        F: FnMut(&AtomIdent),
-    {
-        self.get_element_internals()
-            .and_then(|internals| internals.custom_states())
-            .inspect(|states| states.for_each_state(callback));
-    }
-
     pub(crate) fn client_rect(&self) -> Rect<i32, CSSPixel> {
         let doc = self.node.owner_doc();
 

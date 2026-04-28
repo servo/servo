@@ -24,7 +24,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
@@ -47,20 +46,23 @@ impl DocumentFragment {
         }
     }
 
-    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
-        Self::new_with_proto(document, None, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        document: &Document,
+    ) -> DomRoot<DocumentFragment> {
+        Self::new_with_proto(cx, document, None)
     }
 
     fn new_with_proto(
+        cx: &mut js::context::JSContext,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<DocumentFragment> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(DocumentFragment::new_inherited(document, None)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -79,13 +81,9 @@ impl DocumentFragment {
     }
 }
 
-pub(crate) trait LayoutDocumentFragmentHelpers<'dom> {
-    fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element>;
-}
-
-impl<'dom> LayoutDocumentFragmentHelpers<'dom> for LayoutDom<'dom, DocumentFragment> {
+impl<'dom> LayoutDom<'dom, DocumentFragment> {
     #[inline]
-    fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element> {
+    pub(crate) fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element> {
         #[expect(unsafe_code)]
         unsafe {
             // https://dom.spec.whatwg.org/#shadowroot
@@ -101,19 +99,19 @@ impl<'dom> LayoutDocumentFragmentHelpers<'dom> for LayoutDom<'dom, DocumentFragm
 impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     /// <https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         let document = window.Document();
 
-        Ok(DocumentFragment::new_with_proto(&document, proto, can_gc))
+        Ok(DocumentFragment::new_with_proto(cx, &document, proto))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
-    fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), can_gc)
+        HTMLCollection::children(cx, &window, self.upcast())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>

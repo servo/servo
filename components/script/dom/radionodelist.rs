@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -109,7 +110,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         for node in self.upcast::<NodeList>().iter() {
             // Step 1
             if let Some(input) = node.downcast::<HTMLInputElement>() {
@@ -118,16 +119,14 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                         // Step 2
                         let val = input.Value();
                         if val.is_empty() || val == value {
-                            input.SetChecked(true, can_gc);
+                            input.SetChecked(cx, true);
                             return;
                         }
                     },
-                    InputType::Radio(_) => {
+                    InputType::Radio(_) if input.Value() == value => {
                         // Step 2
-                        if input.Value() == value {
-                            input.SetChecked(true, can_gc);
-                            return;
-                        }
+                        input.SetChecked(cx, true);
+                        return;
                     },
                     _ => {},
                 }

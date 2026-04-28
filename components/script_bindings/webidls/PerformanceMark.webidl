@@ -8,4 +8,5 @@
 
 [Exposed=(Window,Worker)]
 interface PerformanceMark : PerformanceEntry {
+    readonly attribute any detail;
 };

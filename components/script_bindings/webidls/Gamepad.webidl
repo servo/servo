@@ -12,8 +12,8 @@ interface Gamepad {
     readonly attribute boolean connected;
     readonly attribute DOMHighResTimeStamp timestamp;
     readonly attribute DOMString mapping;
-    readonly attribute Float64Array axes;
-    [SameObject] readonly attribute GamepadButtonList buttons;
+    readonly attribute any buttons;
+    readonly attribute /* FrozenArray<double> */ any axes;
     [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
 };
 

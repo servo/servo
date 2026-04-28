@@ -72,9 +72,6 @@ addEventListener("addDebuggee", event => {
     }
 });
 
-// Maximum number of properties to include in preview
-// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#29>
-const OBJECT_PREVIEW_MAX_ITEMS = 10;
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
 const previewers = {
@@ -86,13 +83,22 @@ const previewers = {
 
 // Convert debuggee value to property descriptor value
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/utils.js#116>
-function createValueGrip(value) {
+function createValueGrip(value, depth = 0) {
     switch (typeof value) {
         case "undefined":
             return { valueType: "undefined" };
         case "boolean":
             return { valueType: "boolean", booleanValue: value };
         case "number":
+            if (value === Infinity) {
+                return { valueType: "Infinity" };
+            } else if (value === -Infinity) {
+                return { valueType: "-Infinity" };
+            } else if (Number.isNaN(value)) {
+                return { valueType: "NaN" };
+            } else if (Object.is(value, -0)) {
+                return { valueType: "-0" };
+            }
             return { valueType: "number", numberValue: value };
         case "string":
             return { valueType: "string", stringValue: value };
@@ -101,11 +107,11 @@ function createValueGrip(value) {
                 return { valueType: "null" };
             }
             // Debugger.Object - get preview using registered previewers
-            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html>
+            // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html>
             return {
                 valueType: "object",
                 objectClass: value.class,
-                preview: getPreview(value),
+                preview: getPreview(value, depth),
             };
         default:
             return { valueType: "string", stringValue: String(value) };
@@ -114,7 +120,7 @@ function createValueGrip(value) {
 
 // Extract own properties from a debuggee object
 // <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
-function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
+function extractOwnProperties(obj, depth) {
     const ownProperties = [];
     let totalLength = 0;
 
@@ -126,9 +132,7 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
         return { ownProperties, ownPropertiesLength: 0 };
     }
 
-    let count = 0;
     for (const name of names) {
-        if (count >= maxItems) break;
         try {
             const desc = obj.getOwnPropertyDescriptor(name);
             if (desc) {
@@ -138,22 +142,21 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
                     enumerable: desc.enumerable ?? false,
                     writable: desc.writable ?? false,
                     isAccessor: desc.get !== undefined || desc.set !== undefined,
-                    value: createValueGrip(undefined),
+                    value: createValueGrip(undefined, depth + 1),
                 };
 
                 if (desc.value !== undefined) {
-                    prop.value = createValueGrip(desc.value);
+                    prop.value = createValueGrip(desc.value, depth + 1);
                 } else if (desc.get) {
                     try {
                         const result = desc.get.call(obj);
                         if (result && "return" in result) {
-                            prop.value = createValueGrip(result.return);
+                            prop.value = createValueGrip(result.return, depth + 1);
                         }
                     } catch (e) { }
                 }
 
                 ownProperties.push(prop);
-                count++;
             }
         } catch (e) {
             // For now skip properties that throw on access
@@ -164,38 +167,70 @@ function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
 }
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
-previewers.Function.push(function FunctionPreviewer(obj) {
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
+previewers.Function.push(function FunctionPreviewer(obj, depth) {
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
+    let function_details = {
+        name: obj.name,
+        displayName: obj.displayName,
+        parameterNames: obj.parameterNames ? obj.parameterNames: [],
+        isAsync: obj.isAsyncFunction,
+        isGenerator: obj.isGeneratorFunction,
+    }
+
+    if (depth > 1) {
+        return { kind: "Object", function: function_details, ownPropertiesLength };
+    }
+
     return {
         kind: "Object",
         ownProperties,
         ownPropertiesLength,
-        function: {
-            name: obj.name,
-            displayName: obj.displayName,
-            parameterNames: obj.parameterNames,
-            isAsync: obj.isAsyncFunction,
-            isGenerator: obj.isGeneratorFunction,
-        }
+        function: function_details
     };
 });
 
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
-// TODO: Add implementation for showing Array items
-previewers.Array.push(function ArrayPreviewer(obj) {
+previewers.Array.push(function ArrayPreviewer(obj, depth) {
     const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
     const length = lengthDescriptor ? lengthDescriptor.value : 0;
+
+    if (depth > 1) {
+        return {
+            kind: "ArrayLike",
+            arrayLength: length,
+        };
+    }
+
+    const items = [];
+    for (let i = 0; i < length; i++) {
+        try {
+            const desc = obj.getOwnPropertyDescriptor(i);
+            if (desc && desc.value !== undefined) {
+                const grip = createValueGrip(desc.value, depth);
+                delete grip.preview;
+                items.push(grip);
+            }
+        } catch (e) {
+            // For now skip properties that throw on access
+        }
+    }
 
     return {
         kind: "ArrayLike",
         arrayLength: length,
+        items: items,
     };
 });
 
 // Generic fallback for object previewer
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
-previewers.Object.push(function ObjectPreviewer(obj) {
-    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
+previewers.Object.push(function ObjectPreviewer(obj, depth) {
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj, depth);
+
+    if (depth > 1) {
+       return { kind: "Object", ownPropertiesLength };
+    }
+
     return {
         kind: "Object",
         ownProperties,
@@ -203,13 +238,13 @@ previewers.Object.push(function ObjectPreviewer(obj) {
     };
 });
 
-function getPreview(obj) {
+function getPreview(obj, depth) {
     const className = obj.class;
 
     // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object.js#295>
     const typePreviewers = previewers[className] || previewers.Object;
     for (const previewer of typePreviewers) {
-        const result = previewer(obj);
+        const result = previewer(obj, depth);
         if (result) return result;
     }
 
@@ -217,7 +252,7 @@ function getPreview(obj) {
 }
 
 // Evaluate some javascript code in the global context of the debuggee
-// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#executeinglobal-code-options>
+// See executeInGlobal() at <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
 addEventListener("eval", event => {
     const {code, pipelineId, workerId, frameActorId} = event;
 
@@ -237,12 +272,12 @@ addEventListener("eval", event => {
         completionValue = object.executeInGlobal(code);
     }
 
-    // Completion values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
+    // Completion values: <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#completion-values>
     let resultValue;
     if (completionValue === null) {
         resultValue = { completionType: "terminated", value: createValueGrip(undefined), hasException: false };
     } else if ("throw" in completionValue) {
-        // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.html#adoptdebuggeevalue-value>
+        // See adoptDebuggeeValue() in <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger/index.html>
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole/eval-with-debugger.js#312>
         // we probably don't need adoptDebuggeeValue, as we only have one debugger instance for now
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
@@ -311,7 +346,7 @@ function handlePauseAndRespond(frame, pauseReason) {
 
     let frameActorId = createFrameActor(frame, pipelineId);
 
-    // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#getoffsetmetadata-offset>
+    // <https://github.com/mozilla-firefox/firefox/blob/63719d122f9214f37fd1d285a91897b8345b88b0/js/src/doc/Debugger/Debugger.Script.md?plain=1#L293-L303>
     const offset = frame.offset;
     const offsetMetadata = frame.script.getOffsetMetadata(offset);
     const frameOffset = {
@@ -327,7 +362,7 @@ function handlePauseAndRespond(frame, pauseReason) {
         pauseReason
     );
 
-    // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
+    // <https://web.archive.org/web/20251212212538/https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.
     return undefined;
 }
@@ -378,14 +413,14 @@ addEventListener("setBreakpoint", event => {
     const target = findScriptById(script, scriptId);
     if (target) {
         target.setBreakpoint(offset, {
-            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
+            // setBreakpoint(offset, handler) in <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.script/index.html#function-properties-of-the-debugger-script-prototype-object>
             // The hit handler receives a Debugger.Frame instance representing the currently executing stack frame.
             hit: (frame) => handlePauseAndRespond(frame, {type_: "breakpoint"})
         });
     }
 });
 
-// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Frame.html>
+// <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.frame/index.html>
 addEventListener("interrupt", event => {
     dbg.onEnterFrame = (frame) => handlePauseAndRespond(
         frame,
@@ -410,7 +445,9 @@ function makeSteppingHooks(steppingType, startFrame) {
             this.reportedPop = true;
             suspendedFrame = startFrame;
             if (steppingType !== "finish") {
-                return handlePauseAndRespond(startFrame, completion);
+                // TODO: completion contains the return value, we have to send it back
+                // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1026>
+                return handlePauseAndRespond(startFrame, { type_: steppingType });
             }
             attachSteppingHooks("next", startFrame);
         },
@@ -492,14 +529,13 @@ addEventListener("resume", event => {
     }
 });
 
-// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#clearbreakpoint-handler-offset>
+// <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.script/index.html#function-properties-of-the-debugger-script-prototype-object>
 // There may be more than one breakpoint at the same offset with different handlers, but we don’t handle that case for now.
 addEventListener("clearBreakpoint", event => {
     const {spidermonkeyId, scriptId, offset} = event;
     const script = sourceIdsToScripts.get(spidermonkeyId);
     const target = findScriptById(script, scriptId);
     if (target) {
-        // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#clearallbreakpoints-offset>
         // If the instance refers to a JSScript, remove all breakpoints set in this script at that offset.
         target.clearAllBreakpoints(offset);
     }

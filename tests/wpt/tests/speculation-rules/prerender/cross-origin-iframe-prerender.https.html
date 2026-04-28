@@ -15,7 +15,7 @@ Tests for cross-origin iframes `document.prerendering` state with
 
 <body>
 <script>
-setup(() => assertSpeculationRulesIsSupported());
+setup(() => assertSpeculationRulesIsSupported('prerender'));
 
 promise_test(async t => {
   const uid = token();

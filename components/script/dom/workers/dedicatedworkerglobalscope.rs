@@ -11,9 +11,10 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
-use js::jsapi::{Heap, JSContext as RawJSContext, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::ImageCache;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
@@ -38,7 +39,7 @@ use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
@@ -47,6 +48,7 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::htmlscriptelement::Script;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -54,10 +56,10 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_module::{ModuleFetchClient, ModuleOwner, fetch_a_module_worker_script_graph};
+use crate::realms::enter_auto_realm;
+use crate::script_module::{ModuleFetchClient, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{CanGc, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -213,7 +215,6 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]
     queued_worker_tasks: DomRefCell<Vec<MessageData>>,
-    debugger_global: Dom<DebuggerGlobalScope>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -278,7 +279,6 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
-        debugger_global: &DebuggerGlobalScope,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -303,7 +303,6 @@ impl DedicatedWorkerGlobalScope {
             browsing_context,
             control_receiver,
             queued_worker_tasks: Default::default(),
-            debugger_global: Dom::from_ref(debugger_global),
         }
     }
 
@@ -348,9 +347,13 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
             font_context,
-            debugger_global,
         ));
-        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
+        let scope = DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope);
+        scope
+            .upcast::<WorkerGlobalScope>()
+            .init_debugger_global(debugger_global, cx);
+
+        scope
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -359,7 +362,7 @@ impl DedicatedWorkerGlobalScope {
     pub(crate) fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
-        worker_url: ServoUrl,
+        worker_url: UrlWithBlobClaim,
         from_devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
@@ -474,7 +477,7 @@ impl DedicatedWorkerGlobalScope {
                     webview_id,
                     worker_name.into(),
                     worker_type,
-                    worker_url.clone(),
+                    worker_url.url(),
                     devtools_mpsc_port,
                     runtime,
                     parent_event_loop_sender,
@@ -492,12 +495,13 @@ impl DedicatedWorkerGlobalScope {
                     cx,
                 );
                 debugger_global.fire_add_debuggee(
-                    CanGc::from_cx(cx),
+                    cx,
                     global.upcast(),
                     pipeline_id,
                     Some(worker_id),
                 );
                 let scope = global.upcast::<WorkerGlobalScope>();
+                let global_scope = global.upcast::<GlobalScope>();
 
                 let fetch_client = ModuleFetchClient {
                     insecure_requests_policy,
@@ -524,13 +528,18 @@ impl DedicatedWorkerGlobalScope {
                             );
                         },
                         WorkerType::Module => {
+                            let worker_scope = DomRoot::from_ref(scope);
                             fetch_a_module_worker_script_graph(
                                 cx,
-                                worker_url,
+                                global_scope,
+                                worker_url.url(),
                                 fetch_client,
-                                ModuleOwner::Worker(Trusted::new(scope)),
+                                Destination::Worker,
                                 referrer,
                                 credentials,
+                                move |cx, module_tree| {
+                                    worker_scope.on_complete(cx, module_tree.map(Script::Module));
+                                },
                             );
                         },
                     }
@@ -610,24 +619,28 @@ impl DedicatedWorkerGlobalScope {
         )
     }
 
-    pub(crate) fn fire_queued_messages(&self, can_gc: CanGc) {
+    pub(crate) fn fire_queued_messages(&self, cx: &mut JSContext) {
         let queue: Vec<_> = self.queued_worker_tasks.borrow_mut().drain(..).collect();
         for msg in queue {
             if self.upcast::<WorkerGlobalScope>().is_closing() {
                 return;
             }
-            self.dispatch_message_event(msg, can_gc);
+            self.dispatch_message_event(cx, msg);
         }
     }
 
-    fn dispatch_message_event(&self, msg: MessageData, can_gc: CanGc) {
+    fn dispatch_message_event(&self, cx: &mut JSContext, msg: MessageData) {
         let scope = self.upcast::<WorkerGlobalScope>();
         let target = self.upcast();
-        let _ac = enter_realm(self);
-        rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-        if let Ok(ports) =
-            structuredclone::read(scope.upcast(), *msg.data, message.handle_mut(), can_gc)
-        {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm;
+        rooted!(&in(cx) let mut message = UndefinedValue());
+        if let Ok(ports) = structuredclone::read(
+            scope.upcast(),
+            *msg.data,
+            message.handle_mut(),
+            CanGc::from_cx(cx),
+        ) {
             MessageEvent::dispatch_jsval(
                 target,
                 scope.upcast(),
@@ -635,10 +648,10 @@ impl DedicatedWorkerGlobalScope {
                 Some(&msg.origin.ascii_serialization()),
                 None,
                 ports,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         } else {
-            MessageEvent::dispatch_error(target, scope.upcast(), can_gc);
+            MessageEvent::dispatch_error(cx, target, scope.upcast());
         }
     }
 
@@ -646,7 +659,7 @@ impl DedicatedWorkerGlobalScope {
         match msg {
             WorkerScriptMsg::DOMMessage(message_data) => {
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
-                    self.dispatch_message_event(message_data, CanGc::from_cx(cx));
+                    self.dispatch_message_event(cx, message_data);
                 } else {
                     self.queued_worker_tasks.borrow_mut().push(message_data);
                 }
@@ -663,23 +676,9 @@ impl DedicatedWorkerGlobalScope {
         }
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
-            MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    self.upcast::<GlobalScope>()
-                        .set_devtools_wants_updates(bool_val);
-                },
-                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
-                    self.debugger_global.fire_eval(
-                        CanGc::from_cx(cx),
-                        code.into(),
-                        id,
-                        Some(self.upcast::<WorkerGlobalScope>().worker_id()),
-                        frame_actor_id,
-                        reply,
-                    );
-                },
-                _ => debug!("got an unusable devtools control message inside the worker!"),
-            },
+            MixedMessage::Devtools(msg) => self
+                .upcast::<WorkerGlobalScope>()
+                .handle_devtools_message(msg, cx),
             MixedMessage::Worker(DedicatedWorkerScriptMsg::CommonWorker(linked_worker, msg)) => {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
                 self.handle_script_event(msg, cx);
@@ -714,12 +713,12 @@ impl DedicatedWorkerGlobalScope {
                 error_info.lineno,
                 error_info.column,
                 HandleValue::null(),
-                CanGc::note(),
+                CanGc::deprecated_note(),
             );
 
             // Step 7.2.3. If notHandled is true, then report exception for workerObject's relevant global object with omitError set to true.
-            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note()) {
-                global.report_an_error(error_info, HandleValue::null(), CanGc::note());
+            if event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::deprecated_note()) {
+                global.report_an_error(error_info, HandleValue::null(), CanGc::deprecated_note());
             }
         }));
         self.parent_event_loop_sender
@@ -785,33 +784,17 @@ impl DedicatedWorkerGlobalScope {
     }
 }
 
-#[expect(unsafe_code)]
-pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-    let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
-
-    // If we are running the debugger script, just exit immediately.
-    let Some(worker) = global.downcast::<WorkerGlobalScope>() else {
-        assert!(global.is::<DebuggerGlobalScope>());
-        return false;
-    };
-
-    // A false response causes the script to terminate
-    assert!(worker.is::<DedicatedWorkerGlobalScope>());
-    !worker.is_closing()
-}
-
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>
 fn fetch_a_classic_worker_script(
     workerscope: &WorkerGlobalScope,
-    url: ServoUrl,
+    url_with_blob_lock: UrlWithBlobClaim,
     fetch_client: ModuleFetchClient,
     destination: Destination,
     webview_id: WebViewId,
     referrer: Referrer,
 ) {
     // Step 1. Let request be a new request whose URL is url,
-    let request = RequestBuilder::new(Some(webview_id), url.clone(), referrer)
+    let request = RequestBuilder::new(Some(webview_id), url_with_blob_lock.clone(), referrer)
         // client is fetchClient,
         .insecure_requests_policy(fetch_client.insecure_requests_policy)
         .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
@@ -834,7 +817,7 @@ fn fetch_a_classic_worker_script(
 
     let context = ScriptFetchContext::new(
         Trusted::new(workerscope),
-        url,
+        url_with_blob_lock.url(),
         fetch_client.policy_container,
     );
     let global = workerscope.upcast::<GlobalScope>();

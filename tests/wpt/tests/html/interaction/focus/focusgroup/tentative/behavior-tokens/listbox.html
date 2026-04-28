@@ -13,69 +13,69 @@
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div focusgroup="listbox">
-  <button id=lb1>lb1</button>
-  <button id=lb2>lb2</button>
-  <button id=lb3>lb3</button>
+  <button tabindex=0 id=lb1>lb1</button>
+  <button tabindex=0 id=lb2>lb2</button>
+  <button tabindex=0 id=lb3>lb3</button>
 </div>
 
 <!-- listbox wrap: explicit wrap adds wrapping to non-wrapping default -->
 <div focusgroup="listbox wrap">
-  <button id=lw1>lw1</button>
-  <button id=lw2>lw2</button>
-  <button id=lw3>lw3</button>
+  <button tabindex=0 id=lw1>lw1</button>
+  <button tabindex=0 id=lw2>lw2</button>
+  <button tabindex=0 id=lw3>lw3</button>
 </div>
 
 <script>
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kDown);
     assert_equals(document.activeElement.id, 'lb2');
-  }, "listbox: ArrowDown navigates to the next item");
+  }, "listbox: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb2'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('lb2'), kUp);
     assert_equals(document.activeElement.id, 'lb1');
-  }, "listbox: ArrowUp navigates to the previous item");
+  }, "listbox: Up navigates to the previous item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb1'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kRight);
     assert_equals(document.activeElement.id, 'lb1');
-  }, "listbox: ArrowRight blocked");
+  }, "listbox: Right blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb1'), kArrowLeft);
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kLeft);
     assert_equals(document.activeElement.id, 'lb1');
-  }, "listbox: ArrowLeft blocked");
+  }, "listbox: Left blocked");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb3'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('lb3'), kDown);
     assert_equals(document.activeElement.id, 'lb3');
-  }, "listbox: ArrowDown does not wrap at end");
+  }, "listbox: Down does not wrap at end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lb1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('lb1'), kUp);
     assert_equals(document.activeElement.id, 'lb1');
-  }, "listbox: ArrowUp does not wrap at start");
+  }, "listbox: Up does not wrap at start");
 
   // --- listbox wrap: adds wrapping to non-wrapping default ---
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lw1'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('lw1'), kDown);
     assert_equals(document.activeElement.id, 'lw2');
-  }, "listbox wrap: ArrowDown navigates to the next item");
+  }, "listbox wrap: Down navigates to the next item");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lw3'), kArrowDown);
+    await focusAndSendDirectionalInput(document.getElementById('lw3'), kDown);
     assert_equals(document.activeElement.id, 'lw1');
-  }, "listbox wrap: ArrowDown wraps at end");
+  }, "listbox wrap: Down wraps at end");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lw1'), kArrowUp);
+    await focusAndSendDirectionalInput(document.getElementById('lw1'), kUp);
     assert_equals(document.activeElement.id, 'lw3');
-  }, "listbox wrap: ArrowUp wraps at start");
+  }, "listbox wrap: Up wraps at start");
 
   promise_test(async t => {
-    await focusAndKeyPress(document.getElementById('lw1'), kArrowRight);
+    await focusAndSendDirectionalInput(document.getElementById('lw1'), kRight);
     assert_equals(document.activeElement.id, 'lw1');
-  }, "listbox wrap: ArrowRight still blocked");
+  }, "listbox wrap: Right still blocked");
 
 </script>

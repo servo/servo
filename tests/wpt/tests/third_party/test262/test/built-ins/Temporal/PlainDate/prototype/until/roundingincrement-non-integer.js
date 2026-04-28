@@ -1,0 +1,24 @@
+// Copyright (C) 2021 Igalia, S.L. All rights reserved.
+// This code is governed by the BSD license found in the LICENSE file.
+
+/*---
+esid: sec-temporal.plaindate.prototype.until
+description: Rounding for roundingIncrement option
+info: |
+    ToTemporalRoundingIncrement ( _normalizedOptions_ )
+
+    1. Let _increment_ be ? GetOption(_normalizedOptions_, *"roundingIncrement"*, *"number"*, *undefined*, *1*<sub>𝔽</sub>).
+    2. If _increment_ is not finite, throw a *RangeError* exception.
+    3. Let _integerIncrement_ be truncate(ℝ(_increment_)).
+    4. If _integerIncrement_ < 1 or _integerIncrement_ > 10<sup>9</sup>, throw a *RangeError* exception.
+    5. Return _integerIncrement_.
+includes: [temporalHelpers.js]
+features: [Temporal]
+---*/
+
+const earlier = new Temporal.PlainDate(2000, 5, 2);
+const later = new Temporal.PlainDate(2000, 5, 7);
+const result = earlier.until(later, { roundingIncrement: 2.5, roundingMode: "trunc" });
+TemporalHelpers.assertDuration(result, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, "roundingIncrement 2.5 truncates to 2");
+const result2 = earlier.until(later, { smallestUnit: "days", roundingIncrement: 1e9 + 0.5, roundingMode: "expand" });
+TemporalHelpers.assertDuration(result2, 0, 0, 0, 1e9, 0, 0, 0, 0, 0, 0, "roundingIncrement 1e9 + 0.5 truncates to 1e9");

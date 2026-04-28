@@ -17,7 +17,6 @@ use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::{pref, prefs};
-use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -638,6 +637,10 @@ impl Fragment {
                 },
                 FragmentStatus::StyleChanged => {
                     builder.reflow_statistics.restyle_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::PositionMaybeChanged => {
+                    builder.reflow_statistics.possibly_moved_fragment_count += 1;
                     base.status = FragmentStatus::Clean;
                 },
                 FragmentStatus::Clean => {},
@@ -1885,8 +1888,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        let common = builder.common_properties(MaxRect::max_rect(), &style);
+        // Note: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in box_shadows.iter().rev() {
             let (rect, clip_mode) = if box_shadow.inset {
                 (*self.padding_rect(), BoxShadowClipMode::Inset)
@@ -1894,16 +1896,33 @@ impl<'a> BuilderForBoxFragment<'a> {
                 (self.border_rect, BoxShadowClipMode::Outset)
             };
 
+            let offset = LayoutVector2D::new(
+                box_shadow.base.horizontal.px(),
+                box_shadow.base.vertical.px(),
+            );
+            let spread = box_shadow.spread.px();
+            let blur = box_shadow.base.blur.px();
+            let clip_rect = match clip_mode {
+                // Inset shadows are always inside the rect.
+                BoxShadowClipMode::Inset => rect,
+                // Match webrender's box_shadow.rs Gaussian blur inflation.
+                // (BLUR_SAMPLE_SCALE * blur).ceil(). BLUR_SAMPLE_SCALE is 3.0.
+                BoxShadowClipMode::Outset => {
+                    let extra_size_from_blur = (blur * 3.0).ceil();
+                    rect.translate(offset)
+                        .inflate(spread, spread)
+                        .inflate(extra_size_from_blur, extra_size_from_blur)
+                },
+            };
+            let common = builder.common_properties(clip_rect, &style);
+
             builder.wr().push_box_shadow(
                 &common,
                 rect,
-                LayoutVector2D::new(
-                    box_shadow.base.horizontal.px(),
-                    box_shadow.base.vertical.px(),
-                ),
+                offset,
                 rgba(style.resolve_color(&box_shadow.base.color)),
-                box_shadow.base.blur.px(),
-                box_shadow.spread.px(),
+                blur,
+                spread,
                 self.border_radius,
                 clip_mode,
             );

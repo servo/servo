@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CSS Images Module Level 3: image-orientation: none / cross-origin / border-image</title>
+<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-120">
+<link rel="match" href="reference/image-orientation-none-cross-origin-border-image-ref.html">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5165">
+<style>
+  #target {
+    width: 100px;
+    height: 50px;
+    border-width: 20px;
+    border-image: url("http://{{hosts[][]}}:{{ports[http][1]}}/css/css-images/image-orientation/support/exif-orientation-6-ru.jpg") 20 fill repeat;
+    image-orientation: none;
+  }
+</style>
+<div id="target"></div>

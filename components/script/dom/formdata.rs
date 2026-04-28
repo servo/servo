@@ -157,7 +157,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(
                 blob,
                 filename,
-                CanGc::note(),
+                CanGc::deprecated_note(),
             ))),
         };
 
@@ -232,7 +232,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
 
     /// <https://xhr.spec.whatwg.org/#dom-formdata-set>
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
-        let file = self.create_an_entry(blob, filename, CanGc::note());
+        let file = self.create_an_entry(blob, filename, CanGc::deprecated_note());
 
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());

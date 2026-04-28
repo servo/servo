@@ -674,7 +674,7 @@ pub(crate) unsafe extern "C" fn generic_method<
         vp,
         Policy::INFO,
         CallJitMethodOp,
-        CanGc::note(),
+        CanGc::deprecated_note(),
     )
 }
 
@@ -698,7 +698,7 @@ pub(crate) unsafe extern "C" fn generic_getter<
         vp,
         Policy::INFO,
         CallJitGetterOp,
-        CanGc::note(),
+        CanGc::deprecated_note(),
     )
 }
 
@@ -727,7 +727,14 @@ pub(crate) unsafe extern "C" fn generic_setter<D: DomTypes, Policy: CallPolicy>(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call::<D, false>(cx, argc, vp, Policy::INFO, call_setter, CanGc::note())
+    generic_call::<D, false>(
+        cx,
+        argc,
+        vp,
+        Policy::INFO,
+        call_setter,
+        CanGc::deprecated_note(),
+    )
 }
 
 /// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>
@@ -750,7 +757,7 @@ pub(crate) unsafe extern "C" fn generic_static_promise_method(
     if static_fn(cx, argc, vp) {
         return true;
     }
-    exception_to_promise(cx, args.rval(), CanGc::note())
+    exception_to_promise(cx, args.rval(), CanGc::deprecated_note())
 }
 
 /// Coverts exception to promise rejection

@@ -2,7 +2,7 @@ The `import` directory contains tests imported from the [SVG 1.1 Second
 Edition test suite](http://www.w3.org/Graphics/SVG/Test/20110816/),
 with tests renamed to contain `-manual` in their name.  These tests need
 review to verify that they are still correct for the latest version of
-SVG (which at the time of writing is [SVG 2](https://svgwg.org/svg2-draft/))
+SVG (which at the time of writing is [SVG 2](https://w3c.github.io/svgwg/svg2-draft/))
 and then need to be converted to reftests or testharness.js-based
 tests.
 

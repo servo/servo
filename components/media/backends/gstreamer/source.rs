@@ -9,13 +9,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use glib::subclass::prelude::*;
 use gstreamer::prelude::*;
 use gstreamer::subclass::prelude::*;
-use once_cell::sync::Lazy;
 use url::Url;
 
 const MAX_SRC_QUEUE_SIZE: u64 = 50 * 1024 * 1024; // 50 MB.
 
 // Implementation sub-module of the GObject
 mod imp {
+    use std::sync::LazyLock;
+
     use super::*;
 
     macro_rules! inner_appsrc_proxy {
@@ -316,20 +317,21 @@ mod imp {
     // Implementation of gstreamer::Element virtual methods
     impl ElementImpl for ServoSrc {
         fn metadata() -> Option<&'static gstreamer::subclass::ElementMetadata> {
-            static ELEMENT_METADATA: Lazy<gstreamer::subclass::ElementMetadata> = Lazy::new(|| {
-                gstreamer::subclass::ElementMetadata::new(
-                    "Servo Media Source",
-                    "Source/Audio/Video",
-                    "Feed player with media data",
-                    "Servo developers",
-                )
-            });
+            static ELEMENT_METADATA: LazyLock<gstreamer::subclass::ElementMetadata> =
+                LazyLock::new(|| {
+                    gstreamer::subclass::ElementMetadata::new(
+                        "Servo Media Source",
+                        "Source/Audio/Video",
+                        "Feed player with media data",
+                        "Servo developers",
+                    )
+                });
 
             Some(&*ELEMENT_METADATA)
         }
 
         fn pad_templates() -> &'static [gstreamer::PadTemplate] {
-            static PAD_TEMPLATES: Lazy<Vec<gstreamer::PadTemplate>> = Lazy::new(|| {
+            static PAD_TEMPLATES: LazyLock<Vec<gstreamer::PadTemplate>> = LazyLock::new(|| {
                 let caps = gstreamer::Caps::new_any();
                 let src_pad_template = gstreamer::PadTemplate::new(
                     "src",

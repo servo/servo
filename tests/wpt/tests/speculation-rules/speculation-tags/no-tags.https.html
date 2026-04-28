@@ -30,6 +30,7 @@ promise_test(async t => {
 }, "Sec-Speculation-Tags: no tags (prefetch)");
 
 promise_test(async t => {
+  assertSpeculationRulesIsSupported('prerender');
   const rcHelper = new PrerenderingRemoteContextHelper();
   const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
 

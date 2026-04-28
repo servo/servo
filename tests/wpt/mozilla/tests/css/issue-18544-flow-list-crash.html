@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Issue 18544 - Flow list crash</title>
+<div style="position:fixed"></div>
+<script>
+window.onload = function() {
+  document.body.children[0].style['column-count'] = 1;
+  document.body.offsetTop;
+  assert_true(true, "Did not crash");
+};
+</script>
+

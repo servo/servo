@@ -1,0 +1,52 @@
+<title>
+  CSS Gap Decorations: flex gap decorations paint past block-end and
+  inline-end container edges via negative `row-rule-inset-cap-end` and
+  `column-rule-inset-cap-end` (ink overflow).
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-065-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 320px;
+
+    column-rule-color: blue;
+    column-rule-style: solid;
+    column-rule-width: 5px;
+
+    row-rule-color: red;
+    row-rule-style: solid;
+    row-rule-width: 5px;
+
+    row-rule-inset-cap-end: -100px;
+    column-rule-inset-cap-end: -100px;
+  }
+
+  .item {
+    width: 100px;
+    height: 100px;
+    background: gray;
+    opacity: 0.5;
+  }
+</style>
+
+<body>
+  <div class="flex-container">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+  </div>
+</body>

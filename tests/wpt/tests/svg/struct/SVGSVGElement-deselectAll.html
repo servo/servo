@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<title>SVGSVGElement.deselectAll()</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#__svg__SVGSVGElement__deselectAll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="outer" width="200" height="200">
+  <text id="svgtext" x="10" y="50">Selectable text</text>
+  <svg id="inner" width="100" height="100">
+    <text id="innertext" x="10" y="50">Inner text</text>
+  </svg>
+</svg>
+<p id="htmltext">HTML paragraph text</p>
+<script>
+const outer = document.getElementById("outer");
+const inner = document.getElementById("inner");
+const svgtext = document.getElementById("svgtext");
+const innertext = document.getElementById("innertext");
+const htmltext = document.getElementById("htmltext");
+
+test(function() {
+  assert_equals(typeof outer.deselectAll, "function",
+    "deselectAll must be a function");
+}, "deselectAll exists on outermost svg element");
+
+test(function() {
+  assert_equals(typeof inner.deselectAll, "function",
+    "deselectAll must be a function on inner svg");
+}, "deselectAll exists on inner svg element");
+
+test(function() {
+  outer.deselectAll();
+}, "deselectAll() does not throw when nothing is selected");
+
+test(function() {
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(svgtext);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  assert_greater_than(sel.rangeCount, 0,
+    "precondition: text must be selected");
+
+  outer.deselectAll();
+
+  assert_equals(sel.rangeCount, 0,
+    "deselectAll must remove all ranges from the selection");
+}, "deselectAll() clears selection of SVG text content");
+
+test(function() {
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(htmltext);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  assert_greater_than(sel.rangeCount, 0,
+    "precondition: HTML text must be selected");
+
+  outer.deselectAll();
+
+  assert_equals(sel.rangeCount, 0,
+    "deselectAll must clear selections even outside the SVG subtree");
+}, "deselectAll() clears selection of HTML content outside the svg");
+
+test(function() {
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(svgtext);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  assert_greater_than(sel.rangeCount, 0,
+    "precondition: text must be selected");
+
+  inner.deselectAll();
+
+  assert_equals(sel.rangeCount, 0,
+    "deselectAll on inner svg must also clear the document selection");
+}, "deselectAll() on inner svg clears the document selection");
+
+test(function() {
+  const sel = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(svgtext);
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  outer.deselectAll();
+
+  assert_true(sel.isCollapsed,
+    "after deselectAll, selection must be collapsed");
+}, "deselectAll() results in a collapsed selection");
+</script>

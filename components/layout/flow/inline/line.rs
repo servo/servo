@@ -9,7 +9,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use fonts::GlyphStore;
 use itertools::Either;
-use layout_api::wrapper_traits::SharedSelection;
+use layout_api::SharedSelection;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::computed_values::position::T as Position;
@@ -232,6 +232,7 @@ impl LineItemLayout<'_, '_> {
                         last_level
                     },
                     LineItem::BlockLevel(..) => last_level,
+                    LineItem::Tab { bidi_level, .. } => *bidi_level,
                 };
                 last_level = level;
                 level
@@ -281,6 +282,7 @@ impl LineItemLayout<'_, '_> {
                 LineItem::AbsolutelyPositioned(_, absolute) => self.layout_absolute(absolute),
                 LineItem::Float(_, float) => self.layout_float(float),
                 LineItem::BlockLevel(_, block_level) => self.layout_block_level(block_level),
+                LineItem::Tab { advance, .. } => self.layout_tab(advance),
             }
         }
 
@@ -758,6 +760,10 @@ impl LineItemLayout<'_, '_> {
     fn containing_block(&self) -> &ContainingBlock<'_> {
         self.layout.containing_block()
     }
+
+    fn layout_tab(&mut self, advance: Au) {
+        self.current_state.inline_advance += advance;
+    }
 }
 
 pub(super) enum LineItem {
@@ -768,9 +774,21 @@ pub(super) enum LineItem {
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
     Float(Option<InlineBoxIdentifier>, FloatLineItem),
     BlockLevel(Option<InlineBoxIdentifier>, ArcRefCell<BoxFragment>),
+    Tab {
+        inline_box_identifier: Option<InlineBoxIdentifier>,
+        advance: Au,
+        bidi_level: Level,
+    },
 }
 
 impl LineItem {
+    pub(crate) fn is_in_flow_content(&self) -> bool {
+        matches!(
+            self,
+            Self::TextRun(..) | Self::Atomic(..) | Self::BlockLevel(..)
+        )
+    }
+
     fn inline_box_identifier(&self) -> Option<InlineBoxIdentifier> {
         match self {
             LineItem::InlineStartBoxPaddingBorderMargin(identifier) => Some(*identifier),
@@ -780,6 +798,10 @@ impl LineItem {
             LineItem::AbsolutelyPositioned(identifier, _) => *identifier,
             LineItem::Float(identifier, _) => *identifier,
             LineItem::BlockLevel(identifier, _) => *identifier,
+            LineItem::Tab {
+                inline_box_identifier,
+                ..
+            } => *inline_box_identifier,
         }
     }
 
@@ -792,6 +814,7 @@ impl LineItem {
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
             LineItem::BlockLevel(..) => true,
+            LineItem::Tab { .. } => false,
         }
     }
 
@@ -804,6 +827,7 @@ impl LineItem {
             LineItem::AbsolutelyPositioned(..) => true,
             LineItem::Float(..) => true,
             LineItem::BlockLevel(..) => true,
+            LineItem::Tab { .. } => false,
         }
     }
 }

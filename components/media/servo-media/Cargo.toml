@@ -14,10 +14,8 @@ name = "servo_media"
 path = "lib.rs"
 
 [dependencies]
-once_cell = "1.18.0"
 servo-media-audio = { workspace = true }
 servo-media-player = { workspace = true }
 servo-media-streams = { workspace = true }
 servo-media-traits = { workspace = true }
 servo-media-webrtc = { workspace = true }
-

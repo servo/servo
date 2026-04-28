@@ -11,7 +11,7 @@ use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
+use layout_api::{ScriptSelection, SharedSelection};
 use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -25,14 +25,17 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTex
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
+use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
@@ -69,26 +72,23 @@ pub(crate) struct HTMLTextAreaElement {
     #[no_trace]
     #[conditional_malloc_size_of]
     shared_selection: SharedSelection,
+
+    /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
+    has_scheduled_selectionchange_event: Cell<bool>,
 }
 
-pub(crate) trait LayoutHTMLTextAreaElementHelpers {
-    fn selection_for_layout(self) -> SharedSelection;
-    fn get_cols(self) -> u32;
-    fn get_rows(self) -> u32;
-}
-
-impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
-    fn selection_for_layout(self) -> SharedSelection {
+impl LayoutDom<'_, HTMLTextAreaElement> {
+    pub(crate) fn selection_for_layout(self) -> SharedSelection {
         self.unsafe_get().shared_selection.clone()
     }
 
-    fn get_cols(self) -> u32 {
+    pub(crate) fn get_cols(self) -> u32 {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("cols"))
             .map_or(DEFAULT_COLS, AttrValue::as_uint)
     }
 
-    fn get_rows(self) -> u32 {
+    pub(crate) fn get_rows(self) -> u32 {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("rows"))
             .map_or(DEFAULT_ROWS, AttrValue::as_uint)
@@ -137,23 +137,24 @@ impl HTMLTextAreaElement {
             validity_state: Default::default(),
             text_input_widget: Default::default(),
             shared_selection: Default::default(),
+            has_scheduled_selectionchange_event: Default::default(),
         }
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLTextAreaElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLTextAreaElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -238,6 +239,40 @@ impl HTMLTextAreaElement {
             self.maybe_update_shared_selection();
         }
     }
+
+    /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
+    fn schedule_a_selection_change_event(&self) {
+        // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
+        if self.has_scheduled_selectionchange_event.get() {
+            return;
+        }
+        // Step 2. Set target's has scheduled selectionchange event to true.
+        self.has_scheduled_selectionchange_event.set(true);
+        // Step 3. Queue a task on the user interaction task source to fire a selectionchange event on target.
+        let this = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .user_interaction_task_source()
+            .queue(
+                // https://w3c.github.io/selection-api/#firing-selectionchange-event
+                task!(selectionchange_task_steps: move |cx| {
+                    let this = this.root();
+                    // Step 1. Set target's has scheduled selectionchange event to false.
+                    this.has_scheduled_selectionchange_event.set(false);
+                    // Step 2. If target is an element, fire an event named selectionchange, which bubbles and not cancelable, at target.
+                    this.upcast::<EventTarget>().fire_event_with_params(cx,
+                        atom!("selectionchange"),
+                        EventBubbles::Bubbles,
+                        EventCancelable::NotCancelable,
+                        EventComposed::Composed,
+                    );
+                    // Step 3. Otherwise, if target is a document, fire an event named selectionchange,
+                    // which does not bubble and not cancelable, at target.
+                    //
+                    // n/a
+                }),
+            );
+    }
 }
 
 impl TextControlElement for HTMLTextAreaElement {
@@ -269,9 +304,19 @@ impl TextControlElement for HTMLTextAreaElement {
         let enabled = self.upcast::<Element>().focus_state();
 
         let mut shared_selection = self.shared_selection.borrow_mut();
-        if range == shared_selection.range && enabled == shared_selection.enabled {
+        let range_remained_equal = range == shared_selection.range;
+        if range_remained_equal && enabled == shared_selection.enabled {
             return;
         }
+
+        if !range_remained_equal {
+            // https://w3c.github.io/selection-api/#selectionchange-event
+            // > When an input or textarea element provide a text selection and its selection changes
+            // > (in either extent or direction),
+            // > the user agent must schedule a selectionchange event on the element.
+            self.schedule_a_selection_change_event();
+        }
+
         *shared_selection = ScriptSelection {
             range,
             character_range: self
@@ -395,7 +440,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         // Step 1: Let oldAPIValue be this element's API value.
         let old_api_value = self.Value();
 
@@ -411,7 +456,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         // "none".
         if old_api_value != self.Value() {
             self.textinput.borrow_mut().clear_selection_to_end();
-            self.handle_text_content_changed(can_gc);
+            self.handle_text_content_changed(CanGc::from_cx(cx));
         }
     }
 
@@ -434,7 +479,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
-    fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
+    fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
         self.selection()
             .set_dom_start(start.map(Utf16CodeUnitLength::from))
     }
@@ -445,7 +490,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
-    fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
+    fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
         self.selection()
             .set_dom_end(end.map(Utf16CodeUnitLength::from))
     }
@@ -456,7 +501,11 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
+    fn SetSelectionDirection(
+        &self,
+        _cx: &mut JSContext,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
         self.selection().set_dom_direction(direction)
     }
 
@@ -690,8 +739,8 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(cx, context);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -704,8 +753,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             el.check_disabled_attribute();
         }
 
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -740,7 +789,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     // copied and modified from htmlinputelement.rs
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
             event.mark_as_handled();
@@ -749,7 +798,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyboard_event);
-                self.handle_key_reaction(action, event, can_gc);
+                self.handle_key_reaction(action, event, CanGc::from_cx(cx));
             }
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
@@ -761,14 +810,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(action, event, can_gc);
+                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(action, event, can_gc);
+                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();
@@ -785,7 +834,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 self.owner_document().event_handler().fire_clipboard_event(
                     None,
                     ClipboardEventType::Change,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {
@@ -798,17 +847,17 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
             if !flags.is_empty() {
                 event.mark_as_handled();
-                self.handle_text_content_changed(can_gc);
+                self.handle_text_content_changed(CanGc::from_cx(cx));
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(event);
         }
 
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
         if let Some(super_type) = self.super_type() {
-            super_type.handle_event(event, can_gc);
+            super_type.handle_event(cx, event);
         }
     }
 
@@ -816,7 +865,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().pop();
 
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
-        self.reset(CanGc::note());
+        self.reset(CanGc::deprecated_note());
     }
 }
 

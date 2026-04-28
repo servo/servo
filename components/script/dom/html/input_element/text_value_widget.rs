@@ -7,7 +7,6 @@ use std::cell::Ref;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
 use script_bindings::root::Dom;
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
@@ -61,11 +60,7 @@ struct TextValueShadowTree {
 
 impl TextValueShadowTree {
     fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
-        let value = Text::new(
-            Default::default(),
-            &shadow_root.owner_document(),
-            CanGc::from_cx(cx),
-        );
+        let value = Text::new(cx, Default::default(), &shadow_root.owner_document());
         Node::replace_all(cx, Some(value.upcast()), shadow_root);
         Self {
             value: value.as_traced(),

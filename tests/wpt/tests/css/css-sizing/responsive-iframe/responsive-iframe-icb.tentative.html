@@ -4,6 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-sizing/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <style>
 iframe {
   border: 1px solid black;
@@ -21,14 +22,13 @@ async_test(t => {
     // Change the `height` of the IFRAME content to `100%`.
     target.contentWindow.postMessage({ name: 'height100p' }, '*');
   }));
-  window.addEventListener('message', t.step_func(e => {
+  window.addEventListener('message', t.step_func(async (e) => {
     if (e.data.name === 'height100pDone') {
       // The `height: 100%` for the `requestResize()` should compute
       // using the original ICB size.
-      requestAnimationFrame(t.step_func(() => {
-        assert_equals(target.offsetHeight, 150 + 2);
-        t.done();
-      }));
+      await waitForAtLeastOneFrame();
+      assert_equals(target.offsetHeight, 150 + 2);
+      t.done();
     }
   }));
 }, "IFRAME content should use the initial ICB to measure the natural size");

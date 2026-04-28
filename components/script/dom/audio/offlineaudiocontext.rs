@@ -179,7 +179,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             .name("OfflineACResolver".to_owned())
             .spawn(move || {
                 let _ = receiver.recv();
-                task_source.queue(task!(resolve: move || {
+                task_source.queue(task!(resolve: move |cx| {
                     let this = this.root();
                     let processed_audio = processed_audio.lock().unwrap();
                     let mut processed_audio: Vec<_> = processed_audio
@@ -196,19 +196,19 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                         this.length,
                         *this.context.SampleRate(),
                         Some(processed_audio.as_slice()),
-                        CanGc::note());
+                        CanGc::from_cx(cx));
                     (*this.pending_rendering_promise.borrow_mut())
                         .take()
                         .unwrap()
-                        .resolve_native(&buffer, CanGc::note());
+                        .resolve_native(&buffer, CanGc::from_cx(cx));
                     let global = &this.global();
                     let window = global.as_window();
                     let event = OfflineAudioCompletionEvent::new(window,
                                                                  atom!("complete"),
                                                                  EventBubbles::DoesNotBubble,
                                                                  EventCancelable::NotCancelable,
-                                                                 &buffer, CanGc::note());
-                    event.upcast::<Event>().fire(this.upcast(), CanGc::note());
+                                                                 &buffer, CanGc::from_cx(cx));
+                    event.upcast::<Event>().fire(this.upcast(), CanGc::from_cx(cx));
                 }));
             })
             .unwrap();

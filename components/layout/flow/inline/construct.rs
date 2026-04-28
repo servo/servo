@@ -7,7 +7,7 @@ use std::char::{ToLowercase, ToUppercase};
 use std::ops::Range;
 
 use icu_segmenter::WordSegmenter;
-use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
+use layout_api::{LayoutNode, SharedSelection};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::selector_parser::PseudoElement;
@@ -100,6 +100,22 @@ pub(crate) struct InlineFormattingContextBuilder {
 }
 
 impl InlineFormattingContextBuilder {
+    /// <https://drafts.csswg.org/css-text/#white-space>:
+    /// > Except where specified otherwise, white space processing in CSS affects only the document
+    /// > white space characters: spaces (U+0020), tabs (U+0009), and segment breaks.
+    ///
+    /// From <https://github.com/w3c/csswg-drafts/issues/5147#issuecomment-637816669>:
+    /// > HTML clearly treats CR, LF, and CRLF as segment breaks.
+    ///
+    /// Other browsers also consider the form feed character (0x0c) to be document white space, it
+    /// seems.
+    ///
+    /// Taken all together, this is equivalent to the WhatWG Infra Standard's definition of ASCII
+    /// white space.
+    pub(crate) fn is_document_white_space(character: char) -> bool {
+        character.is_ascii_whitespace()
+    }
+
     pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
@@ -370,9 +386,9 @@ impl InlineFormattingContextBuilder {
 
                 self.is_empty = self.is_empty &&
                     match white_space_collapse {
-                        WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
+                        WhiteSpaceCollapse::Collapse => Self::is_document_white_space(character),
                         WhiteSpaceCollapse::PreserveBreaks => {
-                            character.is_ascii_whitespace() && character != '\n'
+                            Self::is_document_white_space(character) && character != '\n'
                         },
                         WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
                     };
@@ -550,7 +566,9 @@ where
             // Don't push non-newline whitespace immediately. Instead wait to push it until we
             // know that it isn't followed by a newline. See `push_pending_whitespace_if_needed`
             // above.
-            if character.is_ascii_whitespace() && character != '\n' {
+            if InlineFormattingContextBuilder::is_document_white_space(character) &&
+                character != '\n'
+            {
                 self.inside_white_space = true;
                 continue;
             }

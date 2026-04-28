@@ -23,6 +23,7 @@ class TestRecord:
     negative: Optional[Dict[Text, Text]] = None
     is_only_strict: bool = False
     is_module: bool = False
+    is_async: bool = False
 
 def _yaml_attr_parser(logger: Logger, test_record: TestRecord, attrs: Text, name: Text) -> None:
     import yaml
@@ -41,6 +42,8 @@ def _yaml_attr_parser(logger: Logger, test_record: TestRecord, attrs: Text, name
                         test_record.is_only_strict = True
                     elif flag == "module":
                         test_record.is_module = True
+                    elif flag == "async":
+                        test_record.is_async = True
         elif key == "includes":
             test_record.includes = value
 

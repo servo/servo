@@ -11,13 +11,13 @@
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
-<button id=before>Before</button>
+<button tabindex=0 id=before>Before</button>
 <div id=toolbar focusgroup="toolbar">
-  <button id=first>First</button>
-  <button id=optedout focusgroup="none">opted out</button>
-  <button id=last>Last</button>
+  <button tabindex=0 id=first>First</button>
+  <button tabindex=0 id=optedout focusgroup="none">opted out</button>
+  <button tabindex=0 id=last>Last</button>
 </div>
-<button id=after>After</button>
+<button tabindex=0 id=after>After</button>
 
 <script>
 
@@ -36,9 +36,9 @@
     var first = document.getElementById("first");
     var last = document.getElementById("last");
 
-    // Arrow navigation should skip the opted-out element.
-    await assert_arrow_navigation_bidirectional([first, last]);
-  }, "Arrow navigation skips opted-out element");
+    // Directional navigation should skip the opted-out element.
+    await assert_directional_navigation_bidirectional([first, last]);
+  }, "Directional navigation skips opted-out element");
 
   promise_test(async t => {
     var optedout = document.getElementById("optedout");
@@ -46,8 +46,8 @@
     await focusAndWait(optedout);
     assert_equals(document.activeElement, optedout, "Should be able to manually focus opted-out element");
 
-    // Arrow keys should not work from an opted-out element.
-    await assert_arrow_keys_do_not_move_focus(optedout);
-  }, "Arrow keys do not work from opted-out element");
+    // Directional input should not work from an opted-out element.
+    await assert_directional_input_does_not_move_focus(optedout);
+  }, "Directional input does not work from opted-out element");
 
 </script>

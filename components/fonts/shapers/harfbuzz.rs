@@ -306,18 +306,8 @@ impl Shaper {
         }
     }
 
-    pub(crate) fn shape_text(
-        &self,
-        font: &Font,
-        text: &str,
-        options: &ShapingOptions,
-    ) -> GlyphStore {
-        GlyphStore::with_shaped_glyph_data(
-            font,
-            text,
-            options,
-            &self.shaped_glyph_data(text, options),
-        )
+    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> GlyphStore {
+        GlyphStore::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {

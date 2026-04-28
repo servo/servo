@@ -226,7 +226,7 @@ impl GPUDevice {
         self.global().task_manager().webgpu_task_source().queue(
             task!(fire_uncaptured_error: move || {
                 let this = this.root();
-                let error = GPUError::from_error(&this.global(), error, CanGc::note());
+                let error = GPUError::from_error(&this.global(), error, CanGc::deprecated_note());
 
                 let event = GPUUncapturedErrorEvent::new(
                     &this.global(),
@@ -235,10 +235,10 @@ impl GPUDevice {
                         error,
                         parent: EventInit::empty(),
                     },
-                    CanGc::note(),
+                    CanGc::deprecated_note(),
                 );
 
-                event.upcast::<Event>().fire(this.upcast(), CanGc::note());
+                event.upcast::<Event>().fire(this.upcast(), CanGc::deprecated_note());
             }),
         );
     }
@@ -414,8 +414,8 @@ impl GPUDevice {
                 let this = this.root();
 
                 let lost_promise = &(*this.lost_promise.borrow());
-                let lost = GPUDeviceLostInfo::new(&this.global(), msg.into(), reason, CanGc::note());
-                lost_promise.resolve_native(&*lost, CanGc::note());
+                let lost = GPUDeviceLostInfo::new(&this.global(), msg.into(), reason, CanGc::deprecated_note());
+                lost_promise.resolve_native(&*lost, CanGc::deprecated_note());
             }),
         );
     }
@@ -459,7 +459,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> Fallible<DomRoot<GPUBuffer>> {
-        GPUBuffer::create(self, descriptor, CanGc::note())
+        GPUBuffer::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
@@ -467,7 +467,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPUBindGroupLayoutDescriptor,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        GPUBindGroupLayout::create(self, descriptor, CanGc::note())
+        GPUBindGroupLayout::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
@@ -475,12 +475,12 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
-        GPUPipelineLayout::create(self, descriptor, CanGc::note())
+        GPUPipelineLayout::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
     fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
-        GPUBindGroup::create(self, descriptor, CanGc::note())
+        GPUBindGroup::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
@@ -504,7 +504,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             compute_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         )
     }
 
@@ -530,17 +530,17 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPUCommandEncoderDescriptor,
     ) -> DomRoot<GPUCommandEncoder> {
-        GPUCommandEncoder::create(self, descriptor, CanGc::note())
+        GPUCommandEncoder::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
-        GPUTexture::create(self, descriptor, CanGc::note())
+        GPUTexture::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
     fn CreateSampler(&self, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
-        GPUSampler::create(self, descriptor, CanGc::note())
+        GPUSampler::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
@@ -555,7 +555,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             render_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
-            CanGc::note(),
+            CanGc::deprecated_note(),
         ))
     }
 
@@ -582,7 +582,7 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         &self,
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
-        GPURenderBundleEncoder::create(self, descriptor, CanGc::note())
+        GPURenderBundleEncoder::create(self, descriptor, CanGc::deprecated_note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>

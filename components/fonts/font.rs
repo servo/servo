@@ -32,7 +32,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
-use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight, XLang};
+use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
@@ -389,7 +389,7 @@ pub struct ShapingOptions {
     /// determine the amount of spacing to apply.
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: Au,
+    pub word_spacing: Option<Au>,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
@@ -438,7 +438,7 @@ impl Font {
             debug!("shape_text: Using Harfbuzz.");
             self.shaper
                 .get_or_init(|| Shaper::new(self))
-                .shape_text(self, text, options)
+                .shape_text(text, options)
         };
 
         let shaped_text = Arc::new(glyphs);
@@ -470,7 +470,7 @@ impl Font {
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
     fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> GlyphStore {
-        let mut glyph_store = GlyphStore::new(text, text.len(), options);
+        let mut glyph_store = GlyphStore::new(text.len(), options);
         let mut prev_glyph_id = None;
         for (string_byte_offset, byte) in text.bytes().enumerate() {
             let character = byte as char;
@@ -478,26 +478,22 @@ impl Font {
                 continue;
             };
 
-            let mut advance = advance_for_shaped_glyph(
-                Au::from_f64_px(self.glyph_h_advance(glyph_id)),
-                character,
-                options,
-            );
+            let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
             let offset = prev_glyph_id.map(|prev| {
                 let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
                 advance += h_kerning;
                 Point2D::new(h_kerning, Au::zero())
             });
 
-            glyph_store.add_glyph(
-                character,
-                &ShapedGlyph {
-                    glyph_id,
-                    string_byte_offset,
-                    advance,
-                    offset,
-                },
-            );
+            let mut glyph = ShapedGlyph {
+                glyph_id,
+                string_byte_offset,
+                advance,
+                offset,
+            };
+            glyph.adjust_for_character(character, options);
+
+            glyph_store.add_glyph(character, &glyph);
             prev_glyph_id = Some(glyph_id);
         }
         glyph_store
@@ -600,7 +596,7 @@ impl Deref for FontRef {
 pub struct FallbackKey {
     script: Script,
     unicode_block: Option<UnicodeBlock>,
-    lang: XLang,
+    language: Language,
 }
 
 impl FallbackKey {
@@ -608,7 +604,7 @@ impl FallbackKey {
         Self {
             script: Script::from(options.character),
             unicode_block: options.character.block(),
-            lang: options.lang.clone(),
+            language: options.language,
         }
     }
 }
@@ -656,7 +652,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
-        lang: XLang,
+        language: Language,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -666,7 +662,7 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, lang);
+        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint, language);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
@@ -981,26 +977,4 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
-}
-
-/// Computes the total advance for a glyph, taking `letter-spacing` and `word-spacing` into account.
-pub(super) fn advance_for_shaped_glyph(
-    mut advance: Au,
-    character: char,
-    options: &ShapingOptions,
-) -> Au {
-    if let Some(letter_spacing) = options.letter_spacing_for_character(character) {
-        advance += letter_spacing;
-    };
-
-    // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
-    // space (U+00A0) left in the text after the white space processing rules have been
-    // applied. The effect of the property on other word-separator characters is undefined."
-    // We elect to only space the two required code points.
-    if character == ' ' || character == '\u{a0}' {
-        // https://drafts.csswg.org/css-text-3/#word-spacing-property
-        advance += options.word_spacing;
-    }
-
-    advance
 }

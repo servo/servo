@@ -392,18 +392,23 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
-    fn ReadAsArrayBuffer(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::ArrayBuffer, blob, None, can_gc)
+    fn ReadAsArrayBuffer(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        self.read(cx, FileReaderFunction::ArrayBuffer, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn ReadAsDataURL(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::DataUrl, blob, None, can_gc)
+    fn ReadAsDataURL(&self, cx: &mut js::context::JSContext, blob: &Blob) -> ErrorResult {
+        self.read(cx, FileReaderFunction::DataUrl, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>, can_gc: CanGc) -> ErrorResult {
-        self.read(FileReaderFunction::Text, blob, label, can_gc)
+    fn ReadAsText(
+        &self,
+        cx: &mut js::context::JSContext,
+        blob: &Blob,
+        label: Option<DOMString>,
+    ) -> ErrorResult {
+        self.read(cx, FileReaderFunction::Text, blob, label)
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-abort>
@@ -473,13 +478,11 @@ impl FileReader {
     /// <https://w3c.github.io/FileAPI/#readOperation>
     fn read(
         &self,
+        cx: &mut js::context::JSContext,
         function: FileReaderFunction,
         blob: &Blob,
         label: Option<DOMString>,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        let cx = GlobalScope::get_cx();
-
         // If fr’s state is "loading", throw an InvalidStateError DOMException.
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(Error::InvalidState(None));
@@ -495,10 +498,10 @@ impl FileReader {
         // See the note below in the error steps.
 
         // Let stream be the result of calling get stream on blob.
-        let stream = blob.get_stream(can_gc);
+        let stream = blob.get_stream(cx);
 
         // Let reader be the result of getting a reader from stream.
-        let reader = stream.and_then(|s| s.acquire_default_reader(can_gc))?;
+        let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
 
         let type_ = blob.Type();
 
@@ -521,7 +524,7 @@ impl FileReader {
 
         // Read all bytes from stream with reader.
         reader.read_all_bytes(
-            cx,
+            cx.into(),
             Rc::new(move |blob_contents| {
                 let global = filereader_success.global();
                 let task_manager = global.task_manager();
@@ -574,7 +577,7 @@ impl FileReader {
                     DOMErrorName::OperationError,
                 ));
             }),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }

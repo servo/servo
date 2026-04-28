@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::any::Any;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use glib::BoolError;
 use gstreamer;
 use gstreamer::prelude::*;
-use once_cell::sync::Lazy;
 use servo_media_streams::registry::{
     MediaStreamId, get_stream, register_stream, unregister_stream,
 };
@@ -16,14 +15,14 @@ use servo_media_streams::{MediaOutput, MediaSocket, MediaStream, MediaStreamType
 
 use super::BACKEND_BASE_TIME;
 
-pub static RTP_CAPS_OPUS: Lazy<gstreamer::Caps> = Lazy::new(|| {
+pub static RTP_CAPS_OPUS: LazyLock<gstreamer::Caps> = LazyLock::new(|| {
     gstreamer::Caps::builder("application/x-rtp")
         .field("media", "audio")
         .field("encoding-name", "OPUS")
         .build()
 });
 
-pub static RTP_CAPS_VP8: Lazy<gstreamer::Caps> = Lazy::new(|| {
+pub static RTP_CAPS_VP8: LazyLock<gstreamer::Caps> = LazyLock::new(|| {
     gstreamer::Caps::builder("application/x-rtp")
         .field("media", "video")
         .field("encoding-name", "VP8")

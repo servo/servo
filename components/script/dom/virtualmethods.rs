@@ -5,7 +5,6 @@
 use html5ever::LocalName;
 use js::context::JSContext;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
@@ -119,9 +118,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-move-ext>
-    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(s) = self.super_type() {
-            s.moving_steps(context, can_gc);
+            s.moving_steps(cx, context);
         }
     }
 
@@ -135,9 +134,9 @@ pub(crate) trait VirtualMethods {
     /// Called when a Node is removed from a tree.
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context, can_gc);
+            s.unbind_from_tree(cx, context);
         }
     }
 
@@ -149,9 +148,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// Called during event dispatch after the bubbling phase completes.
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event, can_gc);
+            s.handle_event(cx, event);
         }
     }
 
@@ -164,12 +163,12 @@ pub(crate) trait VirtualMethods {
     /// <https://html.spec.whatwg.org/multipage/#command-steps>
     fn command_steps(
         &self,
+        cx: &mut js::context::JSContext,
         button: DomRoot<HTMLButtonElement>,
         command: CommandState,
-        can_gc: CanGc,
     ) -> bool {
         self.super_type()
-            .is_some_and(|super_type| super_type.command_steps(button, command, can_gc))
+            .is_some_and(|super_type| super_type.command_steps(cx, button, command))
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>

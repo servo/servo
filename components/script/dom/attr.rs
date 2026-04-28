@@ -62,6 +62,7 @@ impl Attr {
     }
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         document: &Document,
         local_name: LocalName,
         value: AttrValue,
@@ -69,14 +70,13 @@ impl Attr {
         namespace: Namespace,
         prefix: Option<Prefix>,
         owner: Option<&Element>,
-        can_gc: CanGc,
     ) -> DomRoot<Attr> {
         Node::reflect_node(
+            cx,
             Box::new(Attr::new_inherited(
                 document, local_name, value, name, namespace, prefix, owner,
             )),
             document,
-            can_gc,
         )
     }
 
@@ -233,26 +233,20 @@ impl Attr {
     }
 }
 
-pub(crate) trait AttrHelpersForLayout<'dom> {
-    fn value(self) -> &'dom AttrValue;
-    fn local_name(self) -> &'dom LocalName;
-    fn namespace(self) -> &'dom Namespace;
-}
-
 #[expect(unsafe_code)]
-impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
+impl<'dom> LayoutDom<'dom, Attr> {
     #[inline]
-    fn value(self) -> &'dom AttrValue {
+    pub(crate) fn value(self) -> &'dom AttrValue {
         unsafe { self.unsafe_get().value.borrow_for_layout() }
     }
 
     #[inline]
-    fn local_name(self) -> &'dom LocalName {
+    pub(crate) fn local_name(self) -> &'dom LocalName {
         &self.unsafe_get().identifier.local_name.0
     }
 
     #[inline]
-    fn namespace(self) -> &'dom Namespace {
+    pub(crate) fn namespace(self) -> &'dom Namespace {
         &self.unsafe_get().identifier.namespace.0
     }
 }

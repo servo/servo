@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Text: parsing shape-subtract with valid values</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextShapeSubtract"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextShapeSubtract"/>
     <h:meta name="assert" content="shape-subtract supports the full grammar 'auto | [ basic-shape | uri ]+'"/>
   </metadata>
   <g id="target"></g>

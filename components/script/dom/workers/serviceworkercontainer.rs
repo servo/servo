@@ -212,11 +212,11 @@ impl RegisterJobResultHandler {
                             JobError::TypeError => {
                                 promise.reject_error(
                                     Error::Type(c"Failed to register a ServiceWorker".to_owned()),
-                                    CanGc::note(),
+                                    CanGc::deprecated_note(),
                                 );
                             },
                             JobError::SecurityError => {
-                                promise.reject_error(Error::Security(None), CanGc::note());
+                                promise.reject_error(Error::Security(None), CanGc::deprecated_note());
                             },
                         }
 
@@ -252,11 +252,11 @@ impl RegisterJobResultHandler {
                         installing_worker,
                         waiting_worker,
                         active_worker,
-                        CanGc::note()
+                        CanGc::deprecated_note()
                     );
 
                     // Step 1.4
-                    promise.resolve_native(&*registration, CanGc::note());
+                    promise.resolve_native(&*registration, CanGc::deprecated_note());
                 }));
 
                 // TODO: step 2, handle equivalent jobs.

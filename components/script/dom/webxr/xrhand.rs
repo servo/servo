@@ -135,7 +135,16 @@ impl XRHand {
                 .find(|&&(_, value)| value == joint)
                 .map(|&(hand_joint, _)| hand_joint)
                 .expect("Invalid joint name");
-            field.map(|_| XRJointSpace::new(global, session, id, joint, hand_joint, CanGc::note()))
+            field.map(|_| {
+                XRJointSpace::new(
+                    global,
+                    session,
+                    id,
+                    joint,
+                    hand_joint,
+                    CanGc::deprecated_note(),
+                )
+            })
         });
         reflect_dom_object(
             Box::new(XRHand::new_inherited(source, &spaces)),

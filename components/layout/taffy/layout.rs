@@ -24,7 +24,7 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
-use crate::layout_box_base::CacheableLayoutResult;
+use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
@@ -380,7 +380,7 @@ impl TaffyContainer {
         positioning_context: &mut PositioningContext,
         content_box_size_override: &ContainingBlock,
         containing_block: &ContainingBlock,
-    ) -> CacheableLayoutResult {
+    ) -> IndependentFormattingContextLayoutResult {
         let mut container_ctx = TaffyContainerContext {
             layout_context,
             positioning_context,
@@ -541,10 +541,7 @@ impl TaffyContainer {
 
                         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                             abs_pos_box.clone(),
-                            PhysicalRect::from_size(PhysicalSize::new(
-                                Au::from_f32_px(output.size.width),
-                                Au::from_f32_px(output.size.height),
-                            )),
+                            content_size,
                             LogicalVec2 {
                                 inline: resolve_alignment(
                                     child.style.clone_align_self().0,
@@ -574,7 +571,7 @@ impl TaffyContainer {
             })
             .collect();
 
-        CacheableLayoutResult {
+        IndependentFormattingContextLayoutResult {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
             content_inline_size_for_table: None,

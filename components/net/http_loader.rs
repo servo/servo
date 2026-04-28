@@ -5,14 +5,11 @@
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::sync::Arc as StdArc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
-use crossbeam_channel::Sender;
-use devtools_traits::{
-    ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
-    HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
-};
+use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
+use devtools_traits::ChromeToDevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
@@ -34,12 +31,12 @@ use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
-use hyper_serde::Serde;
 use ipc_channel::IpcError;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::RequestPolicyContainer;
@@ -56,15 +53,16 @@ use net_traits::response::{
     CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
 };
 use net_traits::{
-    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
-    RedirectEndValue, RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, TlsSecurityInfo, TlsSecurityState,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, NetworkError, RedirectEndValue, RedirectStartValue,
+    ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer, ResourceTimeValue,
+    TlsSecurityInfo, TlsSecurityState,
 };
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
+#[cfg(feature = "tracing")]
+use profile_traits::trace_span;
 use rustc_hash::FxHashMap;
-use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId};
@@ -74,6 +72,8 @@ use tokio::sync::mpsc::{
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
+#[cfg(feature = "tracing")]
+use tracing::Instrument;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{
@@ -82,6 +82,9 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
+use crate::devtools::{
+    prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
+};
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
@@ -404,179 +407,6 @@ fn build_tls_security_info(handshake: &TlsHandshakeInfo, hsts_enabled: bool) -> 
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn prepare_devtools_request(
-    request_id: String,
-    url: ServoUrl,
-    method: Method,
-    headers: HeaderMap,
-    body: Option<Vec<u8>>,
-    pipeline_id: PipelineId,
-    connect_time: Duration,
-    send_time: Duration,
-    destination: Destination,
-    is_xhr: bool,
-    browsing_context_id: BrowsingContextId,
-) -> ChromeToDevtoolsControlMsg {
-    let started_date_time = SystemTime::now();
-    let request = DevtoolsHttpRequest {
-        url,
-        method,
-        headers,
-        body: body.map(DebugVec::from),
-        pipeline_id,
-        started_date_time,
-        time_stamp: started_date_time
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64,
-        connect_time,
-        send_time,
-        destination,
-        is_xhr,
-        browsing_context_id,
-    };
-    let net_event = NetworkEvent::HttpRequestUpdate(request);
-
-    ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
-}
-
-pub fn send_request_to_devtools(
-    msg: ChromeToDevtoolsControlMsg,
-    devtools_chan: &Sender<DevtoolsControlMsg>,
-) {
-    if matches!(msg, ChromeToDevtoolsControlMsg::NetworkEvent(_, ref network_event) if !network_event.forward_to_devtools())
-    {
-        return;
-    }
-    if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)) {
-        error!("DevTools send failed: {e}");
-    }
-}
-
-pub fn send_response_to_devtools(
-    request: &Request,
-    context: &FetchContext,
-    response: &Response,
-    body_data: Option<Vec<u8>>,
-) {
-    let meta = match response.metadata() {
-        Ok(FetchMetadata::Unfiltered(m)) => m,
-        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
-        Err(_) => {
-            log::warn!("No metadata available, skipping devtools response.");
-            return;
-        },
-    };
-    send_response_values_to_devtools(
-        meta.headers.map(Serde::into_inner),
-        meta.status,
-        body_data,
-        response.cache_state,
-        request,
-        context.devtools_chan.clone(),
-    );
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn send_response_values_to_devtools(
-    headers: Option<HeaderMap>,
-    status: HttpStatus,
-    body: Option<Vec<u8>>,
-    cache_state: CacheState,
-    request: &Request,
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-) {
-    if let (Some(devtools_chan), Some(pipeline_id), Some(webview_id)) = (
-        devtools_chan,
-        request.pipeline_id,
-        request.target_webview_id,
-    ) {
-        let browsing_context_id = webview_id.into();
-        let from_cache = matches!(cache_state, CacheState::Local | CacheState::Validated);
-
-        let devtoolsresponse = DevtoolsHttpResponse {
-            headers,
-            status,
-            body: body.map(DebugVec::from),
-            from_cache,
-            pipeline_id,
-            browsing_context_id,
-        };
-        let net_event_response = NetworkEvent::HttpResponse(devtoolsresponse);
-
-        let msg =
-            ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), net_event_response);
-
-        let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
-    }
-}
-
-pub fn send_security_info_to_devtools(
-    request: &Request,
-    context: &FetchContext,
-    response: &Response,
-) {
-    let meta = match response.metadata() {
-        Ok(FetchMetadata::Unfiltered(m)) => m,
-        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
-        Err(_) => {
-            log::warn!("No metadata available, skipping devtools security info.");
-            return;
-        },
-    };
-
-    if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
-        context.devtools_chan.clone(),
-        meta.tls_security_info,
-        request.target_webview_id,
-    ) {
-        let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {
-            browsing_context_id: webview_id.into(),
-            security_info: Some(security_info),
-        });
-
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), update);
-
-        let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
-    }
-}
-
-pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchContext) {
-    // Do not forward data requests to devtools
-    if request.url().scheme() == "data" {
-        return;
-    }
-    if let (Some(devtools_chan), Some(browsing_context_id), Some(pipeline_id)) = (
-        context.devtools_chan.as_ref(),
-        request.target_webview_id.map(|id| id.into()),
-        request.pipeline_id,
-    ) {
-        // Build the partial DevtoolsHttpRequest
-        let devtools_request = DevtoolsHttpRequest {
-            url: request.current_url(),
-            method: request.method.clone(),
-            headers: request.headers.clone(),
-            body: None,
-            pipeline_id,
-            started_date_time: SystemTime::now(),
-            time_stamp: 0,
-            connect_time: Duration::from_millis(0),
-            send_time: Duration::from_millis(0),
-            destination: request.destination,
-            is_xhr: false,
-            browsing_context_id,
-        };
-
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-            request.id.0.to_string(),
-            NetworkEvent::HttpRequest(devtools_request),
-        );
-
-        send_request_to_devtools(msg, devtools_chan);
-    }
-}
-
 fn auth_from_cache(
     auth_cache: &RwLock<AuthCache>,
     origin: &ImmutableOrigin,
@@ -668,13 +498,17 @@ fn log_fetch_terminated_send_failure(terminated_with_error: bool, context: &str)
     );
 }
 
+const FRAGMENT: &AsciiSet = &CONTROLS.add(b'|').add(b'{').add(b'}');
+
 #[allow(clippy::too_many_arguments)]
+#[servo_tracing::instrument(skip_all, fields(url=url.as_str()))]
+/// This sets up the callback infrastructure to send body frames to `body_sender` and fires the client request.
 async fn obtain_response(
     client: &ServoClient,
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
-    body: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
+    body_sender: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
@@ -684,287 +518,292 @@ async fn obtain_response(
     fetch_terminated: UnboundedSender<bool>,
     browsing_context_id: Option<BrowsingContextId>,
 ) -> Result<(HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
-    {
-        let mut headers = request_headers.clone();
+    let mut headers = request_headers.clone();
 
-        let devtools_bytes = StdArc::new(Mutex::new(vec![]));
+    let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
-        // https://url.spec.whatwg.org/#percent-encoded-bytes
-        let encoded_url = url
-            .clone()
-            .into_url()
-            .as_ref()
-            .replace('|', "%7C")
-            .replace('{', "%7B")
-            .replace('}', "%7D");
+    // https://url.spec.whatwg.org/#percent-encoded-bytes
+    let encoded_url = utf8_percent_encode(url.as_str(), FRAGMENT).to_string();
 
-        let request = if let Some(chunk_requester) = body {
-            let (sink, stream) = if source_is_null {
-                // Step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
-                // TODO: this should not be set for HTTP/2(currently not supported?).
-                headers.insert(TRANSFER_ENCODING, HeaderValue::from_static("chunked"));
+    let request = if let Some(chunk_requester) = body_sender {
+        let (sink, stream) = if source_is_null {
+            // Step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
+            // TODO: this should not be set for HTTP/2(currently not supported?).
+            headers.insert(TRANSFER_ENCODING, HeaderValue::from_static("chunked"));
 
-                let (sender, receiver) = channel(1);
-                (BodySink::Chunked(sender), BodyStream::Chunked(receiver))
-            } else {
-                // Note: Hyper seems to already buffer bytes when the request appears not stream-able,
-                // see https://github.com/hyperium/hyper/issues/2232#issuecomment-644322104
-                //
-                // However since this doesn't appear documented, and we're using an ancient version,
-                // for now we buffer manually to ensure we don't stream requests
-                // to servers that might not know how to handle them.
-                let (sender, receiver) = unbounded_channel();
-                (BodySink::Buffered(sender), BodyStream::Buffered(receiver))
-            };
-
-            let (body_chan, body_port) = ipc::channel().unwrap();
-
-            {
-                let mut lock = chunk_requester.lock();
-                if let Some(chunk_requester) = lock.as_mut() {
-                    if let Err(error) = chunk_requester.send(BodyChunkRequest::Connect(body_chan)) {
-                        log_request_body_stream_closed(
-                            "connect to the request body stream",
-                            Some(&error),
-                        );
-                        return Err(request_body_stream_closed_error(
-                            "connect to the request body stream",
-                        ));
-                    }
-
-                    // https://fetch.spec.whatwg.org/#concept-request-transmit-body
-                    // Request the first chunk, corresponding to Step 3 and 4.
-                    if let Err(error) = chunk_requester.send(BodyChunkRequest::Chunk) {
-                        log_request_body_stream_closed(
-                            "request the first request body chunk",
-                            Some(&error),
-                        );
-                        return Err(request_body_stream_closed_error(
-                            "request the first request body chunk",
-                        ));
-                    }
-                } else {
-                    log_request_body_stream_closed("connect to the request body stream", None);
-                    return Err(request_body_stream_closed_error(
-                        "connect to the request body stream",
-                    ));
-                }
-            }
-
-            let devtools_bytes = devtools_bytes.clone();
-            let chunk_requester2 = chunk_requester.clone();
-
-            ROUTER.add_typed_route(
-                body_port,
-                Box::new(move |message| {
-                    info!("Received message");
-                    let bytes = match message.unwrap() {
-                        BodyChunkResponse::Chunk(bytes) => bytes,
-                        BodyChunkResponse::Done => {
-                            // Step 3, abort these parallel steps.
-                            if fetch_terminated.send(false).is_err() {
-                                log_fetch_terminated_send_failure(
-                                    false,
-                                    "handling request body completion",
-                                );
-                            }
-                            sink.close();
-
-                            return;
-                        },
-                        BodyChunkResponse::Error => {
-                            // Step 4 and/or 5.
-                            // TODO: differentiate between the two steps,
-                            // where step 5 requires setting an `aborted` flag on the fetch.
-                            if fetch_terminated.send(true).is_err() {
-                                log_fetch_terminated_send_failure(
-                                    true,
-                                    "handling request body stream error",
-                                );
-                            }
-                            sink.close();
-
-                            return;
-                        },
-                    };
-
-                    devtools_bytes.lock().extend_from_slice(&bytes);
-
-                    // Step 5.1.2.2, transmit chunk over the network,
-                    // currently implemented by sending the bytes to the fetch worker.
-                    sink.transmit_bytes(bytes);
-
-                    // Step 5.1.2.3
-                    // Request the next chunk.
-                    let mut chunk_requester2 = chunk_requester2.lock();
-                    if let Some(chunk_requester2) = chunk_requester2.as_mut() {
-                        if let Err(error) = chunk_requester2.send(BodyChunkRequest::Chunk) {
-                            log_request_body_stream_closed(
-                                "request the next request body chunk",
-                                Some(&error),
-                            );
-                            if fetch_terminated.send(true).is_err() {
-                                log_fetch_terminated_send_failure(
-                                    true,
-                                    "handling failure to request the next request body chunk",
-                                );
-                            }
-                            sink.close();
-                        }
-                    } else {
-                        log_request_body_stream_closed("request the next request body chunk", None);
-                        if fetch_terminated.send(true).is_err() {
-                            log_fetch_terminated_send_failure(
-                                true,
-                                "handling a closed request body stream while requesting the next chunk",
-                            );
-                        }
-                        sink.close();
-                    }
-                }),
-            );
-
-            let body = match stream {
-                BodyStream::Chunked(receiver) => {
-                    let stream = ReceiverStream::new(receiver);
-                    BoxBody::new(http_body_util::StreamBody::new(stream))
-                },
-                BodyStream::Buffered(mut receiver) => {
-                    // Accumulate bytes received over IPC into a vector.
-                    let mut body = vec![];
-                    loop {
-                        match receiver.recv().await {
-                            Some(BodyChunk::Chunk(bytes)) => {
-                                body.extend_from_slice(&bytes);
-                            },
-                            Some(BodyChunk::Done) => break,
-                            None => warn!("Failed to read all chunks from request body."),
-                        }
-                    }
-                    Full::new(body.into()).map_err(|_| unreachable!()).boxed()
-                },
-            };
-            HyperRequest::builder()
-                .method(method)
-                .uri(encoded_url)
-                .body(body)
+            let (sender, receiver) = channel(1);
+            (BodySink::Chunked(sender), BodyStream::Chunked(receiver))
         } else {
-            HyperRequest::builder()
-                .method(method)
-                .uri(encoded_url)
-                .body(
-                    http_body_util::Empty::new()
-                        .map_err(|_| unreachable!())
-                        .boxed(),
-                )
+            // Note: Hyper seems to already buffer bytes when the request appears not stream-able,
+            // see https://github.com/hyperium/hyper/issues/2232#issuecomment-644322104
+            //
+            // However since this doesn't appear documented, and we're using an ancient version,
+            // for now we buffer manually to ensure we don't stream requests
+            // to servers that might not know how to handle them.
+            let (sender, receiver) = unbounded_channel();
+            (BodySink::Buffered(sender), BodyStream::Buffered(receiver))
         };
 
-        context
-            .timing
-            .lock()
-            .set_attribute(ResourceAttribute::DomainLookupStart);
+        obtain_response_setup_router_callback(
+            devtools_bytes.clone(),
+            chunk_requester,
+            sink,
+            fetch_terminated,
+        )?;
 
-        // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
-        // fetch passes the timing allow check
-        let connect_start = CrossProcessInstant::now();
-        context
-            .timing
-            .lock()
-            .set_attribute(ResourceAttribute::ConnectStart(connect_start));
-
-        // TODO: We currently don't know when the handhhake before the connection is done
-        // so our best bet would be to set `secure_connection_start` here when we are currently
-        // fetching on a HTTPS url.
-        if url.scheme() == "https" {
-            context
-                .timing
-                .lock()
-                .set_attribute(ResourceAttribute::SecureConnectionStart);
-        }
-
-        let mut request = match request {
-            Ok(request) => request,
-            Err(error) => return Err(NetworkError::HttpError(error.to_string())),
+        let body = match stream {
+            BodyStream::Chunked(receiver) => {
+                let stream = ReceiverStream::new(receiver);
+                BoxBody::new(http_body_util::StreamBody::new(stream))
+            },
+            BodyStream::Buffered(mut receiver) => {
+                // Accumulate bytes received over IPC into a vector.
+                let mut body = vec![];
+                loop {
+                    match receiver.recv().await {
+                        Some(BodyChunk::Chunk(bytes)) => {
+                            body.extend_from_slice(&bytes);
+                        },
+                        Some(BodyChunk::Done) => break,
+                        None => warn!("Failed to read all chunks from request body."),
+                    }
+                }
+                Full::new(body.into()).map_err(|_| unreachable!()).boxed()
+            },
         };
-        *request.headers_mut() = headers.clone();
+        HyperRequest::builder()
+            .method(method)
+            .uri(encoded_url)
+            .body(body)
+    } else {
+        HyperRequest::builder()
+            .method(method)
+            .uri(encoded_url)
+            .body(
+                http_body_util::Empty::new()
+                    .map_err(|_| unreachable!())
+                    .boxed(),
+            )
+    };
 
-        let connect_end = CrossProcessInstant::now();
+    // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
+    // fetch passes the timing allow check
+    let connect_start = CrossProcessInstant::now();
+    context.timing.set_attributes(&[
+        ResourceAttribute::DomainLookupStart,
+        ResourceAttribute::ConnectStart(connect_start),
+    ]);
+
+    // TODO: We currently don't know when the handhhake before the connection is done
+    // so our best bet would be to set `secure_connection_start` here when we are currently
+    // fetching on a HTTPS url.
+    if url.scheme() == "https" {
         context
             .timing
-            .lock()
-            .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
+            .set_attribute(ResourceAttribute::SecureConnectionStart);
+    }
 
-        let request_id = request_id.map(|v| v.to_owned());
-        let pipeline_id = *pipeline_id;
-        let closure_url = url.clone();
-        let method = method.clone();
-        let send_start = CrossProcessInstant::now();
+    let mut request = match request {
+        Ok(request) => request,
+        Err(error) => return Err(NetworkError::HttpError(error.to_string())),
+    };
+    *request.headers_mut() = headers.clone();
 
-        let host = request.uri().host().unwrap_or("").to_owned();
-        let override_manager = context.state.override_manager.clone();
-        let headers = headers.clone();
-        let is_secure_scheme = url.is_secure_scheme();
+    let connect_end = CrossProcessInstant::now();
+    context
+        .timing
+        .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
-        client
-            .request(request)
-            .and_then(move |res| {
-                let send_end = CrossProcessInstant::now();
+    let request_id = request_id.map(|v| v.to_owned());
+    let pipeline_id = *pipeline_id;
+    let closure_url = url.clone();
+    let method = method.clone();
+    let send_start = CrossProcessInstant::now();
 
-                // TODO(#21271) response_start: immediately after receiving first byte of response
+    let host = request.uri().host().unwrap_or("").to_owned();
+    let override_manager = context.state.override_manager.clone();
+    let headers = headers.clone();
+    let is_secure_scheme = url.is_secure_scheme();
 
-                let msg = if let Some(request_id) = request_id {
-                    if let Some(pipeline_id) = pipeline_id {
-                        if let Some(browsing_context_id) = browsing_context_id {
-                            Some(prepare_devtools_request(
-                                request_id,
-                                closure_url,
-                                method.clone(),
-                                headers,
-                                Some(devtools_bytes.lock().clone()),
-                                pipeline_id,
-                                (connect_end - connect_start).unsigned_abs(),
-                                (send_end - send_start).unsigned_abs(),
-                                destination,
-                                is_xhr,
-                                browsing_context_id,
-                            ))
-                        } else {
-                            debug!("Not notifying devtools (no browsing_context_id)");
-                            None
-                        }
-                        // TODO: ^This is not right, connect_start is taken before contructing the
-                        // request and connect_end at the end of it. send_start is takend before the
-                        // connection too. I'm not sure it's currently possible to get the time at the
-                        // point between the connection and the start of a request.
+    let client_future = client
+        .request(request)
+        .and_then(move |res| {
+            let send_end = CrossProcessInstant::now();
+
+            // TODO(#21271) response_start: immediately after receiving first byte of response
+
+            let msg = if let Some(request_id) = request_id {
+                if let Some(pipeline_id) = pipeline_id {
+                    if let Some(browsing_context_id) = browsing_context_id {
+                        Some(prepare_devtools_request(
+                            request_id,
+                            closure_url,
+                            method.clone(),
+                            headers,
+                            Some(devtools_bytes.lock().clone()),
+                            pipeline_id,
+                            (connect_end - connect_start).unsigned_abs(),
+                            (send_end - send_start).unsigned_abs(),
+                            destination,
+                            is_xhr,
+                            browsing_context_id,
+                        ))
                     } else {
-                        debug!("Not notifying devtools (no pipeline_id)");
+                        debug!("Not notifying devtools (no browsing_context_id)");
                         None
                     }
+                    // TODO: ^This is not right, connect_start is taken before contructing the
+                    // request and connect_end at the end of it. send_start is takend before the
+                    // connection too. I'm not sure it's currently possible to get the time at the
+                    // point between the connection and the start of a request.
                 } else {
-                    debug!("Not notifying devtools (no request_id)");
+                    debug!("Not notifying devtools (no pipeline_id)");
                     None
-                };
+                }
+            } else {
+                debug!("Not notifying devtools (no request_id)");
+                None
+            };
 
-                future::ready(Ok((
-                    Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
-                    msg,
-                )))
-            })
-            .map_err(move |error| {
-                warn!("network error: {error:?}");
-                NetworkError::from_hyper_error(
-                    &error,
-                    override_manager.remove_certificate_failing_verification(host.as_str()),
-                )
-            })
-            .await
+            future::ready(Ok((
+                Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
+                msg,
+            )))
+        })
+        .map_err(move |error| {
+            warn!("network error: {error:?}");
+            NetworkError::from_hyper_error(
+                &error,
+                override_manager.remove_certificate_failing_verification(host.as_str()),
+            )
+        });
+
+    #[cfg(feature = "tracing")]
+    {
+        client_future.instrument(trace_span!("HyperRequest")).await
+    }
+
+    #[cfg(not(feature = "tracing"))]
+    {
+        client_future.await
     }
 }
 
-/// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
+/// Setup the callback mechanism to forward chunks from the request received to the `chunk_requester`.
+fn obtain_response_setup_router_callback(
+    devtools_bytes: StdArc<Mutex<Vec<u8>>>,
+    chunk_requester: StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
+    sink: BodySink,
+    fetch_terminated: UnboundedSender<bool>,
+) -> Result<(), NetworkError> {
+    let (body_chan, body_port) = ipc::channel().unwrap();
+
+    {
+        let mut lock = chunk_requester.lock();
+        if let Some(chunk_requester) = lock.as_mut() {
+            if let Err(error) = chunk_requester.send(BodyChunkRequest::Connect(body_chan)) {
+                log_request_body_stream_closed("connect to the request body stream", Some(&error));
+                return Err(request_body_stream_closed_error(
+                    "connect to the request body stream",
+                ));
+            }
+
+            // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+            // Request the first chunk, corresponding to Step 3 and 4.
+            if let Err(error) = chunk_requester.send(BodyChunkRequest::Chunk) {
+                log_request_body_stream_closed(
+                    "request the first request body chunk",
+                    Some(&error),
+                );
+                return Err(request_body_stream_closed_error(
+                    "request the first request body chunk",
+                ));
+            }
+        } else {
+            log_request_body_stream_closed("connect to the request body stream", None);
+            return Err(request_body_stream_closed_error(
+                "connect to the request body stream",
+            ));
+        }
+    }
+
+    ROUTER.add_typed_route(
+        body_port,
+        Box::new(move |message| {
+            info!("Received message");
+            let bytes = match message.unwrap() {
+                BodyChunkResponse::Chunk(bytes) => bytes,
+                BodyChunkResponse::Done => {
+                    // Step 3, abort these parallel steps.
+                    if fetch_terminated.send(false).is_err() {
+                        log_fetch_terminated_send_failure(
+                            false,
+                            "handling request body completion",
+                        );
+                    }
+                    sink.close();
+
+                    return;
+                },
+                BodyChunkResponse::Error => {
+                    // Step 4 and/or 5.
+                    // TODO: differentiate between the two steps,
+                    // where step 5 requires setting an `aborted` flag on the fetch.
+                    if fetch_terminated.send(true).is_err() {
+                        log_fetch_terminated_send_failure(
+                            true,
+                            "handling request body stream error",
+                        );
+                    }
+                    sink.close();
+
+                    return;
+                },
+            };
+
+            devtools_bytes.lock().extend_from_slice(&bytes);
+
+            // Step 5.1.2.2, transmit chunk over the network,
+            // currently implemented by sending the bytes to the fetch worker.
+            sink.transmit_bytes(bytes);
+
+            // Step 5.1.2.3
+            // Request the next chunk.
+            let mut chunk_requester = chunk_requester.lock();
+            if let Some(chunk_requester) = chunk_requester.as_mut() {
+                if let Err(error) = chunk_requester.send(BodyChunkRequest::Chunk) {
+                    log_request_body_stream_closed(
+                        "request the next request body chunk",
+                        Some(&error),
+                    );
+                    if fetch_terminated.send(true).is_err() {
+                        log_fetch_terminated_send_failure(
+                            true,
+                            "handling failure to request the next request body chunk",
+                        );
+                    }
+                    sink.close();
+                }
+            } else {
+                log_request_body_stream_closed("request the next request body chunk", None);
+                if fetch_terminated.send(true).is_err() {
+                    log_fetch_terminated_send_failure(
+                        true,
+                        "handling a closed request body stream while requesting the next chunk",
+                    );
+                }
+                sink.close();
+            }
+        }),
+    );
+
+    Ok(())
+}
+
+/// [HTTP fetch](https://fetch.spec.whatwg.org/#concept-http-fetch)
 #[async_recursion]
 #[allow(clippy::too_many_arguments)]
-pub async fn http_fetch(
+pub(crate) async fn http_fetch(
     fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     cors_flag: bool,
@@ -976,14 +815,13 @@ pub async fn http_fetch(
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
-    // Step 1 Let request be fetchParams’s request.
+    // Step 1. Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
 
-    // Step 2
-    // Let response and internalResponse be null.
+    // Step 2. Let response and internalResponse be null.
     let mut response: Option<Response> = None;
 
-    // Step 3
+    // Step 3. If request’s service-workers mode is "all", then
     if request.service_workers_mode == ServiceWorkersMode::All {
         // TODO: Substep 1
         // Set response to the result of invoking handle fetch for request.
@@ -1011,9 +849,9 @@ pub async fn http_fetch(
         }
     }
 
-    // Step 4
+    // Step 4. If response is null, then:
     if response.is_none() {
-        // Substep 1
+        // Step 4.1. If makeCORSPreflight is true and one of these conditions is true:
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(request, request.method.clone());
 
@@ -1024,17 +862,19 @@ pub async fn http_fetch(
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
-            // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(request, cache, context).await;
-                // Sub-substep 2
-                if let Some(e) = preflight_result.get_network_error() {
-                    return Response::network_error(e.clone());
+                // Step 4.1.1. Let preflightResponse be the result of running
+                // CORS-preflight fetch given request.
+                let preflight_response = cors_preflight_fetch(request, cache, context).await;
+                // Step 4.1.2. If preflightResponse is a network error, then return preflightResponse.
+                if let Some(error) = preflight_response.get_network_error() {
+                    return Response::network_error(error.clone());
                 }
             }
         }
 
-        // Substep 2
+        // Step 4.2. If request’s redirect mode is "follow",
+        // then set request’s service-workers mode to "none".
         if request.redirect_mode == RedirectMode::Follow {
             request.service_workers_mode = ServiceWorkersMode::None;
         }
@@ -1044,9 +884,10 @@ pub async fn http_fetch(
         //   secure_connection_start)
         context
             .timing
-            .lock()
             .set_attribute(ResourceAttribute::RequestStart);
 
+        // Step 4.3. Set response and internalResponse to the result of
+        // running HTTP-network-or-cache fetch given fetchParams.
         let mut fetch_result = http_network_or_cache_fetch(
             fetch_params,
             authentication_fetch_flag,
@@ -1056,11 +897,14 @@ pub async fn http_fetch(
         )
         .await;
 
-        // Substep 4
+        // Step 4.4. If request’s response tainting is "cors" and a CORS check for request
+        // and response returns failure, then return a network error.
         if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::CorsGeneral);
         }
 
+        // TODO: Step 4.5. If the TAO check for request and response returns failure,
+        // then set request’s timing allow failed flag.
         fetch_result.return_internal = false;
         response = Some(fetch_result);
     }
@@ -1070,7 +914,16 @@ pub async fn http_fetch(
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
 
-    // TODO: Step 5: cross-origin resource policy check
+    // Step 5: If either request’s response tainting or response’s type is "opaque",
+    // and the cross-origin resource policy check with request’s origin, request’s client,
+    // request’s destination, and internalResponse returns blocked, then return a network error.
+    if (request.response_tainting == ResponseTainting::Opaque ||
+        response.response_type == ResponseType::Opaque) &&
+        cross_origin_resource_policy_check(request, &response) ==
+            CrossOriginResourcePolicy::Blocked
+    {
+        return Response::network_error(NetworkError::CrossOriginResponse);
+    }
 
     // Step 6. If internalResponse’s status is a redirect status:
     if response
@@ -1127,19 +980,18 @@ pub async fn http_fetch(
     response.return_internal = true;
     context
         .timing
-        .lock()
         .set_attribute(ResourceAttribute::RedirectCount(
             fetch_params.request.redirect_count as u16,
         ));
 
-    response.resource_timing = Arc::clone(&context.timing);
+    response.resource_timing = context.timing.clone();
 
     // Step 6
     response
 }
 
 // Convenience struct that implements Drop, for setting redirectEnd on function return
-struct RedirectEndTimer(Option<Arc<Mutex<ResourceFetchTiming>>>);
+struct RedirectEndTimer(Option<ResourceFetchTimingContainer>);
 
 impl RedirectEndTimer {
     fn neuter(&mut self) {
@@ -1152,8 +1004,7 @@ impl Drop for RedirectEndTimer {
         let RedirectEndTimer(resource_fetch_timing_opt) = self;
 
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
-            t.lock()
-                .set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
+            t.set_attribute(ResourceAttribute::RedirectEnd(RedirectEndValue::Zero));
         })
     }
 }
@@ -1204,7 +1055,7 @@ fn location_url_for_response(
     location
 }
 
-/// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
+/// [HTTP redirect fetch](https://fetch.spec.whatwg.org/#http-redirect-fetch)
 #[async_recursion]
 pub async fn http_redirect_fetch(
     fetch_params: &mut FetchParams,
@@ -1245,30 +1096,14 @@ pub async fn http_redirect_fetch(
 
     // Step 1 of https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-fetchstart
     // TODO: check origin and timing allow check
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::RedirectStart(
-            RedirectStartValue::FetchStart,
-        ));
-
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::FetchStart);
-
     // start_time should equal redirect_start if nonzero; else fetch_start
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
-
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::StartTime(
-            ResourceTimeValue::RedirectStart,
-        )); // updates start_time only if redirect_start is nonzero (implying TAO)
+    // updates start_time only if redirect_start is nonzero (implying TAO)
+    context.timing.set_attributes(&[
+        ResourceAttribute::RedirectStart(RedirectStartValue::FetchStart),
+        ResourceAttribute::FetchStart,
+        ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
+        ResourceAttribute::StartTime(ResourceTimeValue::RedirectStart),
+    ]);
 
     // Step 7: If request’s redirect count is 20, then return a network error.
     if request.redirect_count >= 20 {
@@ -1353,7 +1188,11 @@ pub async fn http_redirect_fetch(
     // Steps 15-17 relate to timing, which is not implemented 1:1 with the spec.
 
     // Step 18: Append locationURL to request’s URL list.
-    request.url_list.push(location_url);
+    request
+        .url_list
+        .push(UrlWithBlobClaim::from_url_without_having_claimed_blob(
+            location_url,
+        ));
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
     set_requests_referrer_policy_on_redirect(request, response.actual_response());
@@ -1374,12 +1213,9 @@ pub async fn http_redirect_fetch(
     .await;
 
     // TODO: timing allow check
-    context
-        .timing
-        .lock()
-        .set_attribute(ResourceAttribute::RedirectEnd(
-            RedirectEndValue::ResponseEnd,
-        ));
+    context.timing.set_attribute(ResourceAttribute::RedirectEnd(
+        RedirectEndValue::ResponseEnd,
+    ));
     redirect_end_timer.neuter();
 
     fetch_response
@@ -1387,6 +1223,7 @@ pub async fn http_redirect_fetch(
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
 #[async_recursion]
+#[servo_tracing::instrument(skip_all,fields(url=fetch_params.request.url().as_str()))]
 async fn http_network_or_cache_fetch(
     fetch_params: &mut FetchParams,
     authentication_fetch_flag: bool,
@@ -1557,48 +1394,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // Steps 8.16 to 8.18
-    match http_request.cache_mode {
-        // Step 8.16: If httpRequest’s cache mode is "default" and httpRequest’s header list
-        // contains `If-Modified-Since`, `If-None-Match`, `If-Unmodified-Since`, `If-Match`, or
-        // `If-Range`, then set httpRequest’s cache mode to "no-store".
-        CacheMode::Default if is_no_store_cache(&http_request.headers) => {
-            http_request.cache_mode = CacheMode::NoStore;
-        },
-
-        // Note that the following steps (8.17 and 8.18) are being considered for removal:
-        // https://github.com/whatwg/fetch/issues/722#issuecomment-1420264615
-
-        // Step 8.17: If httpRequest’s cache mode is "no-cache", httpRequest’s prevent no-cache
-        // cache-control header modification flag is unset, and httpRequest’s header list does not
-        // contain `Cache-Control`, then append (`Cache-Control`, `max-age=0`) to httpRequest’s
-        // header list.
-        // TODO: Implement request's prevent no-cache cache-control header modification flag
-        // https://fetch.spec.whatwg.org/#no-cache-prevent-cache-control
-        CacheMode::NoCache if !http_request.headers.contains_key(header::CACHE_CONTROL) => {
-            http_request
-                .headers
-                .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(0)));
-        },
-
-        // Step 8.18: If httpRequest’s cache mode is "no-store" or "reload", then:
-        CacheMode::Reload | CacheMode::NoStore => {
-            // Step 8.18.1: If httpRequest’s header list does not contain `Pragma`, then append
-            // (`Pragma`, `no-cache`) to httpRequest’s header list.
-            if !http_request.headers.contains_key(header::PRAGMA) {
-                http_request.headers.typed_insert(Pragma::no_cache());
-            }
-
-            // Step 8.18.2: If httpRequest’s header list does not contain `Cache-Control`, then
-            // append (`Cache-Control`, `no-cache`) to httpRequest’s header list.
-            if !http_request.headers.contains_key(header::CACHE_CONTROL) {
-                http_request
-                    .headers
-                    .typed_insert(CacheControl::new().with_no_cache());
-            }
-        },
-
-        _ => {},
-    }
+    append_cache_data_to_headers(http_request);
 
     // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
     // `identity`) to httpRequest’s header list.
@@ -1752,24 +1548,19 @@ async fn http_network_or_cache_fetch(
     let http_request = &mut http_fetch_params.request;
     let mut response = response.unwrap();
 
-    // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
-    // tests fail. Where should we do it instead? See also #33615
-    if http_request.response_tainting != ResponseTainting::CorsTainting &&
-        cross_origin_resource_policy_check(http_request, &response) ==
-            CrossOriginResourcePolicy::Blocked
-    {
-        return Response::network_error(NetworkError::CorsGeneral);
-    }
-
     // Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    response.url_list = http_request.url_list.clone();
+    response.url_list = http_request
+        .url_list
+        .iter()
+        .map(|claimed_url| claimed_url.url())
+        .collect();
 
     // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
     if http_request.headers.contains_key(RANGE) {
         response.range_requested = true;
     }
 
-    // Step 13 Set response’s request-includes-credentials to includeCredentials.
+    // Step 13. Set response’s request-includes-credentials to includeCredentials.
     response.request_includes_credentials = include_credentials;
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
@@ -1899,6 +1690,7 @@ async fn http_network_or_cache_fetch(
     // Step 18. Return response.
     response
 }
+
 /// If the cache is not ready to construct a response, wait.
 ///
 /// The cache is not ready if a previous fetch checked the cache, found nothing,
@@ -1906,7 +1698,7 @@ async fn http_network_or_cache_fetch(
 ///
 /// Note that this is a different workflow from the one involving `wait_for_cached_response`.
 /// That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
-///
+#[servo_tracing::instrument(skip_all)]
 async fn block_for_cache_ready<'a>(
     context: &'a FetchContext,
     http_request: &mut Request,
@@ -2068,7 +1860,7 @@ fn cross_origin_resource_policy_check(
 }
 
 // Convenience struct that implements Done, for setting responseEnd on function return
-struct ResponseEndTimer(Option<Arc<Mutex<ResourceFetchTiming>>>);
+struct ResponseEndTimer(Option<ResourceFetchTimingContainer>);
 
 impl ResponseEndTimer {
     fn neuter(&mut self) {
@@ -2081,12 +1873,13 @@ impl Drop for ResponseEndTimer {
         let ResponseEndTimer(resource_fetch_timing_opt) = self;
 
         resource_fetch_timing_opt.as_ref().map_or((), |t| {
-            t.lock().set_attribute(ResourceAttribute::ResponseEnd);
+            t.set_attribute(ResourceAttribute::ResponseEnd);
         })
     }
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
+#[servo_tracing::instrument(skip_all,fields(url=fetch_params.request.url().as_str()))]
 async fn http_network_fetch(
     fetch_params: &mut FetchParams,
     credentials_flag: bool,
@@ -2254,10 +2047,10 @@ async fn http_network_fetch(
     });
 
     if !(is_same_origin || req_origin_in_timing_allow || wildcard_present) {
-        context.timing.lock().mark_timing_check_failed();
+        context.timing.inner().mark_timing_check_failed();
     }
 
-    let timing = context.timing.lock().clone();
+    let timing = context.timing.inner().clone();
     let mut response = Response::new(url.clone(), timing);
 
     if let Some(handshake_info) = res.extensions().get::<TlsHandshakeInfo>() {
@@ -2356,9 +2149,7 @@ async fn http_network_fetch(
                     &devtools_request,
                     devtools_chan,
                 );
-                timing_ptr2
-                    .lock()
-                    .set_attribute(ResourceAttribute::ResponseEnd);
+                timing_ptr2.set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender2.send(Data::Done);
                 future::ready(Ok(()))
             })
@@ -2377,9 +2168,7 @@ async fn http_network_fetch(
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
-                timing_ptr3
-                    .lock()
-                    .set_attribute(ResourceAttribute::ResponseEnd);
+                timing_ptr3.set_attribute(ResourceAttribute::ResponseEnd);
                 let _ = done_sender3.send(Data::Done);
             }),
     );
@@ -2444,7 +2233,7 @@ async fn cors_preflight_fetch(
     // referrer policy, mode is "cors", and response tainting is "cors".
     let mut preflight = RequestBuilder::new(
         request.target_webview_id,
-        request.current_url(),
+        request.current_url_with_blob_claim(),
         request.referrer.clone(),
     )
     .method(Method::OPTIONS)
@@ -2466,6 +2255,13 @@ async fn cors_preflight_fetch(
         },
         RequestPolicyContainer::PolicyContainer(policy_container) => policy_container.clone(),
     })
+    .url_list(
+        request
+            .url_list
+            .iter()
+            .map(|claimed_url| claimed_url.url())
+            .collect(),
+    )
     .build();
 
     // Step 2. Append (`Accept`, `*/*`) to preflight’s header list.
@@ -2802,6 +2598,52 @@ fn append_the_fetch_metadata_headers(r: &mut Request) {
 
     // Step 5. Set the Sec-Fetch-User header for r.
     set_the_sec_fetch_user_header(r);
+}
+
+/// Steps 8.16 to 8.18 in [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
+fn append_cache_data_to_headers(http_request: &mut Request) {
+    match http_request.cache_mode {
+        // Step 8.16: If httpRequest’s cache mode is "default" and httpRequest’s header list
+        // contains `If-Modified-Since`, `If-None-Match`, `If-Unmodified-Since`, `If-Match`, or
+        // `If-Range`, then set httpRequest’s cache mode to "no-store".
+        CacheMode::Default if is_no_store_cache(&http_request.headers) => {
+            http_request.cache_mode = CacheMode::NoStore;
+        },
+
+        // Note that the following steps (8.17 and 8.18) are being considered for removal:
+        // https://github.com/whatwg/fetch/issues/722#issuecomment-1420264615
+
+        // Step 8.17: If httpRequest’s cache mode is "no-cache", httpRequest’s prevent no-cache
+        // cache-control header modification flag is unset, and httpRequest’s header list does not
+        // contain `Cache-Control`, then append (`Cache-Control`, `max-age=0`) to httpRequest’s
+        // header list.
+        // TODO: Implement request's prevent no-cache cache-control header modification flag
+        // https://fetch.spec.whatwg.org/#no-cache-prevent-cache-control
+        CacheMode::NoCache if !http_request.headers.contains_key(header::CACHE_CONTROL) => {
+            http_request
+                .headers
+                .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(0)));
+        },
+
+        // Step 8.18: If httpRequest’s cache mode is "no-store" or "reload", then:
+        CacheMode::Reload | CacheMode::NoStore => {
+            // Step 8.18.1: If httpRequest’s header list does not contain `Pragma`, then append
+            // (`Pragma`, `no-cache`) to httpRequest’s header list.
+            if !http_request.headers.contains_key(header::PRAGMA) {
+                http_request.headers.typed_insert(Pragma::no_cache());
+            }
+
+            // Step 8.18.2: If httpRequest’s header list does not contain `Cache-Control`, then
+            // append (`Cache-Control`, `no-cache`) to httpRequest’s header list.
+            if !http_request.headers.contains_key(header::CACHE_CONTROL) {
+                http_request
+                    .headers
+                    .typed_insert(CacheControl::new().with_no_cache());
+            }
+        },
+
+        _ => {},
+    }
 }
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-dest>

@@ -5,6 +5,7 @@
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
@@ -20,7 +21,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -43,17 +44,17 @@ impl HTMLFontElement {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLFontElement> {
         Node::reflect_node_with_proto(
+            cx,
             Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
-            can_gc,
         )
     }
 
@@ -100,15 +101,15 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     make_getter!(Face, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_atomic_setter!(SetFace, "face");
+    make_atomic_setter!(cx, SetFace, "face");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     make_getter!(Size, "size");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-font-size>
-    fn SetSize(&self, value: DOMString, can_gc: CanGc) {
+    fn SetSize(&self, cx: &mut JSContext, value: DOMString) {
         let element = self.upcast::<Element>();
-        element.set_attribute(&local_name!("size"), parse_size(&value), can_gc);
+        element.set_attribute(&local_name!("size"), parse_size(&value), CanGc::from_cx(cx));
     }
 }
 
@@ -143,28 +144,25 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
-pub(crate) trait HTMLFontElementLayoutHelpers {
-    fn get_color(self) -> Option<AbsoluteColor>;
-    fn get_face(self) -> Option<Atom>;
-    fn get_size(self) -> Option<u32>;
-}
-
-impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
-    fn get_color(self) -> Option<AbsoluteColor> {
+impl LayoutDom<'_, HTMLFontElement> {
+    pub(crate) fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_face(self) -> Option<Atom> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("face"))
-            .map(AttrValue::as_atom)
-            .cloned()
+    pub(crate) fn get_face(self) -> Option<Atom> {
+        let face = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("face"));
+        match face {
+            Some(AttrValue::Atom(s)) => Some(s.clone()),
+            _ => None,
+        }
     }
 
-    fn get_size(self) -> Option<u32> {
+    pub(crate) fn get_size(self) -> Option<u32> {
         let size = self
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("size"));

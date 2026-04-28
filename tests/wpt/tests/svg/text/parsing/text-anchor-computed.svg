@@ -4,7 +4,7 @@
      width="800px" height="800px">
   <title>SVG Text: getComputedStyle().textAnchor</title>
   <metadata>
-    <h:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextAnchorProperty"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchorProperty"/>
     <h:meta name="assert" content="text-anchor computed value is the specified keyword."/>
   </metadata>
   <text id="target"></text>

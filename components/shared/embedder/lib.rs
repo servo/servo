@@ -22,6 +22,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use accesskit::TreeUpdate;
+use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -30,6 +31,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_base::Epoch;
 use servo_base::generic_channel::{
     GenericCallback, GenericSender, GenericSharedMemory, SendResult,
 };
@@ -480,6 +482,10 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
+    /// Async permission request for screen wake lock. The callback is invoked
+    /// with the user's decision, which resolves or rejects the pending promise
+    /// without blocking the script thread.
+    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
@@ -508,7 +514,7 @@ pub enum EmbedderMsg {
     /// and the embedder can continue processing it, if necessary.
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, TreeUpdate),
+    AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
 }
 
 impl Debug for EmbedderMsg {
@@ -594,6 +600,7 @@ pub enum PermissionFeature {
     BackgroundSync,
     Bluetooth,
     PersistentStorage,
+    ScreenWakeLock,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.
@@ -646,6 +653,8 @@ pub struct WebResourceRequest {
     )]
     pub headers: HeaderMap,
     pub url: Url,
+    pub destination: Destination,
+    pub referrer_url: Option<Url>,
     pub is_for_main_frame: bool,
     pub is_redirect: bool,
 }
@@ -1141,4 +1150,26 @@ impl UrlRequest {
         self.headers = headers;
         self
     }
+}
+
+/// The type of wake lock to acquire or release.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum WakeLockType {
+    Screen,
+}
+
+/// Trait for platform-specific wake lock support.
+///
+/// Implementations are responsible for interacting with the OS to prevent
+/// the screen (or other resources) from sleeping while a wake lock is held.
+pub trait WakeLockDelegate: Send + Sync {
+    /// Acquire a wake lock of the given type, preventing the associated
+    /// resource from sleeping. Called when the aggregate lock count transitions
+    /// from 0 to 1. Returns an error if the OS fails to grant the lock.
+    fn acquire(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
+
+    /// Release a previously acquired wake lock of the given type, allowing
+    /// the resource to sleep. Called when the aggregate lock count transitions
+    /// from N to 0.
+    fn release(&self, type_: WakeLockType) -> Result<(), Box<dyn std::error::Error>>;
 }

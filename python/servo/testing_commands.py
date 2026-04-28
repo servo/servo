@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import os.path as path
-import re
 import shutil
 import subprocess
 import sys
@@ -64,9 +63,15 @@ TOML_GLOBS = [
     "*.toml",
     ".cargo/*.toml",
     "components/*/*.toml",
-    "components/shared/*/*.toml",
+    "components/*/*/*.toml",
+    "components/media/backends/*/*.toml",
+    "components/media/*/*/*/*.toml",
+    "etc/ci/scenario/*.toml",
     "ports/*/*.toml",
     "support/*/*.toml",
+    "python/tidy/tests/*.toml",
+    "python/tidy/tests/*/*.toml",
+    "tests/unit/*/*.toml",
 ]
 
 
@@ -155,7 +160,6 @@ class MachCommands(CommandBase):
         return call(cmd, env=env, cwd=path.join("etc", "ci", "performance"))
 
     @Command("test-unit", description="Run unit tests", category="testing")
-    @CommandArgument("test_name", nargs=argparse.REMAINDER, help="Only run tests that match this pattern or file path")
     @CommandArgument("--package", "-p", default=None, help="Specific package to test")
     @CommandArgument("--bench", default=False, action="store_true", help="Run in bench mode")
     @CommandArgument(
@@ -169,7 +173,6 @@ class MachCommands(CommandBase):
     def test_unit(
         self,
         build_type: BuildType,
-        test_name: list[str] | None = None,
         params: list[str] | None = None,
         package: str | None = None,
         bench: bool = False,
@@ -179,34 +182,12 @@ class MachCommands(CommandBase):
         nextest_profile: str | None = None,
         **kwargs: Any,
     ) -> int:
-        if test_name is None:
-            test_name = []
-
         self.ensure_bootstrapped()
 
         if package:
             packages = {package}
         else:
             packages = set()
-
-        test_patterns = []
-        for test in test_name:
-            # add package if 'tests/unit/<package>'
-            match = re.search("tests/unit/(\\w+)/?$", test)
-            if match:
-                packages.add(match.group(1))
-            # add package & test if '<package>/<test>', 'tests/unit/<package>/<test>.rs', or similar
-            elif re.search("\\w/\\w", test):
-                tokens = test.split("/")
-                packages.add(tokens[-2])
-                test_prefix = tokens[-1]
-                if test_prefix.endswith(".rs"):
-                    test_prefix = test_prefix[:-3]
-                test_prefix += "::"
-                test_patterns.append(test_prefix)
-            # add test as-is otherwise
-            else:
-                test_patterns.append(test)
 
         self_contained_tests = [
             "servo-background-hang-monitor",
@@ -266,7 +247,6 @@ class MachCommands(CommandBase):
             args += ["-p", "%s_tests" % crate]
         for crate in in_crate_packages:
             args += ["-p", crate]
-        args += test_patterns
 
         if nocapture:
             args += ["--nocapture"]

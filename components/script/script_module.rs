@@ -14,34 +14,32 @@ use std::{mem, ptr};
 
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
-use js::gc::MutableHandleValue;
+use js::gc::{HandleObject, MutableHandleValue};
 use js::jsapi::{
-    CallArgs, CompileJsonModule1, CompileModule1, ExceptionStackBehavior,
-    GetFunctionNativeReserved, GetModuleResolveHook, Handle as RawHandle,
-    HandleValue as RawHandleValue, Heap, JS_ClearPendingException, JS_GetFunctionObject,
-    JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook,
-    SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
-    ThrowOnModuleEvaluationFailure, Value,
+    CallArgs, ExceptionStackBehavior, GetFunctionNativeReserved, GetModuleResolveHook,
+    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_GetFunctionObject,
+    JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour,
+    ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook, SetModuleMetadataHook,
+    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException, ModuleEvaluate};
 use js::rust::wrappers2::{
-    DefineFunctionWithReserved, GetModuleRequestSpecifier, GetModuleRequestType,
-    JS_DefineProperty4, JS_NewStringCopyN, ModuleLink,
+    CompileJsonModule1, CompileModule1, DefineFunctionWithReserved, GetModuleRequestSpecifier,
+    GetModuleRequestType, JS_ClearPendingException, JS_DefineProperty4, JS_GetPendingException,
+    JS_NewStringCopyN, JS_SetPendingException, ModuleEvaluate, ModuleLink,
+    ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
-    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, ToString,
-    transform_str_to_source_text,
+    CompileOptionsWrapper, Handle, HandleValue, ToString, transform_str_to_source_text,
 };
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -62,27 +60,20 @@ use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::DomTypeHolder;
-use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
-use crate::dom::document::Document;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlscriptelement::{
-    HTMLScriptElement, SCRIPT_JS_MIMES, Script, substitute_with_local_script,
-};
-use crate::dom::node::NodeTraits;
+use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -91,16 +82,18 @@ use crate::dom::window::Window;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
-use crate::network_listener::{
-    self, FetchResponseListener, NetworkListener, ResourceTimingListener,
-};
-use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
+use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::realms::{InRealm, enter_auto_realm};
+use crate::script_runtime::{CanGc, IntroductionType};
 use crate::task::NonSendTaskBox;
 
-pub(crate) fn gen_type_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> RethrowError {
-    rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    error.to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), can_gc);
+pub(crate) fn gen_type_error(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    error: Error,
+) -> RethrowError {
+    rooted!(&in(cx) let mut thrown = UndefinedValue());
+    error.to_jsval(cx.into(), global, thrown.handle_mut(), CanGc::from_cx(cx));
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -109,11 +102,11 @@ pub(crate) fn gen_type_error(global: &GlobalScope, error: Error, can_gc: CanGc) 
 pub(crate) struct ModuleObject(RootedTraceableBox<Heap<*mut JSObject>>);
 
 impl ModuleObject {
-    pub(crate) fn new(obj: RustHandleObject) -> ModuleObject {
+    pub(crate) fn new(obj: HandleObject) -> ModuleObject {
         ModuleObject(RootedTraceableBox::from_box(Heap::boxed(obj.get())))
     }
 
-    pub(crate) fn handle(&'_ self) -> js::gc::HandleObject<'_> {
+    pub(crate) fn handle(&'_ self) -> HandleObject<'_> {
         self.0.handle()
     }
 }
@@ -127,10 +120,10 @@ impl RethrowError {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn from_pending_exception(cx: SafeJSContext) -> Self {
-        rooted!(in(*cx) let mut exception = UndefinedValue());
-        assert!(unsafe { JS_GetPendingException(*cx, exception.handle_mut()) });
-        unsafe { JS_ClearPendingException(*cx) };
+    pub(crate) fn from_pending_exception(cx: &mut JSContext) -> Self {
+        rooted!(&in(cx) let mut exception = UndefinedValue());
+        assert!(unsafe { JS_GetPendingException(cx, exception.handle_mut()) });
+        unsafe { JS_ClearPendingException(cx) };
 
         Self::new(Heap::boxed(exception.get()))
     }
@@ -155,14 +148,14 @@ impl Clone for RethrowError {
 pub(crate) struct ModuleScript {
     pub(crate) base_url: ServoUrl,
     pub(crate) options: ScriptFetchOptions,
-    pub(crate) owner: Option<ModuleOwner>,
+    pub(crate) owner: Option<Trusted<GlobalScope>>,
 }
 
 impl ModuleScript {
     pub(crate) fn new(
         base_url: ServoUrl,
         options: ScriptFetchOptions,
-        owner: Option<ModuleOwner>,
+        owner: Option<Trusted<GlobalScope>>,
     ) -> Self {
         ModuleScript {
             base_url,
@@ -292,21 +285,23 @@ impl ModuleTree {
     #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
-    /// Although the CanGc argument appears unused, it represents the GC operations that
-    /// can occur as part of compiling a script.
     fn create_a_javascript_module_script(
+        cx: &mut JSContext,
         source: Rc<DOMString>,
-        owner: ModuleOwner,
+        global: &GlobalScope,
         url: &ServoUrl,
         options: ScriptFetchOptions,
         external: bool,
         line_number: u32,
         introduction_type: Option<&'static CStr>,
-        _can_gc: CanGc,
     ) -> Self {
-        let cx = GlobalScope::get_cx();
-        let global = owner.global();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
+
+        let owner = Trusted::new(global);
 
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
@@ -330,9 +325,9 @@ impl ModuleTree {
 
         unsafe {
             // Step 7. Let result be ParseModule(source, settings's realm, script).
-            rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+            rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
             module_script.set(CompileModule1(
-                *cx,
+                cx,
                 compile_options.ptr,
                 &mut transform_str_to_source_text(&module_source.source.str()),
             ));
@@ -370,17 +365,18 @@ impl ModuleTree {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
-    /// Although the CanGc argument appears unused, it represents the GC operations that
-    /// can occur as part of compiling a script.
     fn create_a_json_module_script(
+        cx: &mut JSContext,
         source: &str,
         global: &GlobalScope,
         url: &ServoUrl,
         introduction_type: Option<&'static CStr>,
-        _can_gc: CanGc,
     ) -> Self {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
 
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
@@ -398,12 +394,12 @@ impl ModuleTree {
 
         let compile_options = fill_module_compile_options(cx, url, introduction_type, 1);
 
-        rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+        rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
 
         unsafe {
             // Step 5. Let result be ParseJSONModule(source).
             module_script.set(CompileJsonModule1(
-                *cx,
+                cx,
                 compile_options.ptr,
                 &mut transform_str_to_source_text(source),
             ));
@@ -427,43 +423,39 @@ impl ModuleTree {
     }
 
     /// Execute the provided module, storing the evaluation return value in the provided
-    /// mutable handle. Although the CanGc appears unused, it represents the GC operations
-    /// possible when evluating arbitrary JS.
+    /// mutable handle.
     #[expect(unsafe_code)]
     pub(crate) fn execute_module(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
-        module_record: js::gc::HandleObject,
+        module_record: HandleObject,
         mut eval_result: MutableHandleValue,
-        _can_gc: CanGc,
     ) -> Result<(), RethrowError> {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
+        let mut realm = AutoRealm::new(
+            cx,
+            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+        );
+        let cx = &mut *realm;
 
         unsafe {
-            let ok = ModuleEvaluate(*cx, module_record, eval_result.reborrow());
+            let ok = ModuleEvaluate(cx, module_record, eval_result.reborrow());
             assert!(ok, "module evaluation failed");
 
-            rooted!(in(*cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
+            rooted!(&in(cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
             if eval_result.is_object() {
                 evaluation_promise.set(eval_result.to_object());
             }
 
             let throw_result = ThrowOnModuleEvaluationFailure(
-                *cx,
-                evaluation_promise.handle().into(),
+                cx,
+                evaluation_promise.handle(),
                 ModuleErrorBehaviour::ThrowModuleErrorsSync,
             );
             if !throw_result {
                 warn!("fail to evaluate module");
 
-                rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
-                JS_ClearPendingException(*cx);
-
-                Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
-                    exception.get(),
-                ))))
+                Err(RethrowError::from_pending_exception(cx))
             } else {
                 debug!("module evaluated successfully");
                 Ok(())
@@ -472,19 +464,20 @@ impl ModuleTree {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn report_error(&self, cx: &mut JSContext, global: &GlobalScope) {
         let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
-            let ar = enter_realm(global);
+            let mut realm = enter_auto_realm(cx, global);
+            let cx = &mut realm.current_realm();
+
+            let in_realm_proof = cx.into();
+            let in_realm = InRealm::Already(&in_realm_proof);
+
             unsafe {
-                JS_SetPendingException(
-                    *GlobalScope::get_cx(),
-                    exception.handle(),
-                    ExceptionStackBehavior::Capture,
-                );
+                JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
             }
-            report_pending_exception(GlobalScope::get_cx(), InRealm::Entered(&ar), can_gc);
+            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
         }
     }
 
@@ -495,7 +488,7 @@ impl ModuleTree {
         specifier: DOMString,
     ) -> Fallible<ServoUrl> {
         // Step 1~3 to get settingsObject and baseURL
-        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.global()));
+        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.root()));
         // Step 1. Let settingsObject and baseURL be null.
         let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
             // Step 2. If referringScript is not null, then:
@@ -623,54 +616,22 @@ impl Callback for ModuleHandler {
     }
 }
 
-/// The owner of the module
-/// It can be `worker` or `script` element
-#[derive(Clone, JSTraceable)]
-pub(crate) enum ModuleOwner {
-    Worker(Trusted<WorkerGlobalScope>),
-    Window(Trusted<HTMLScriptElement>),
-    DynamicModule(Trusted<GlobalScope>),
+#[derive(JSTraceable, MallocSizeOf)]
+struct QueueTaskHandler {
+    #[conditional_malloc_size_of]
+    promise: Rc<Promise>,
 }
 
-impl ModuleOwner {
-    pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
-        match &self {
-            ModuleOwner::Worker(scope) => scope.root().global(),
-            ModuleOwner::Window(script) => (*script.root()).global(),
-            ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
-        }
-    }
+impl Callback for QueueTaskHandler {
+    fn callback(&self, cx: &mut CurrentRealm, _: HandleValue) {
+        let global = GlobalScope::from_current_realm(cx);
+        let promise = TrustedPromise::new(self.promise.clone());
 
-    fn notify_owner_to_finish(&self, cx: &mut JSContext, module_tree: Option<Rc<ModuleTree>>) {
-        match &self {
-            ModuleOwner::Worker(scope) => {
-                scope
-                    .root()
-                    .on_complete(cx, module_tree.map(Script::Module));
-            },
-            ModuleOwner::DynamicModule(_) => {},
-            ModuleOwner::Window(script) => {
-                let script = script.root();
-                let document = script.owner_document();
-
-                let load = match module_tree {
-                    Some(module_tree) => Ok(Script::Module(module_tree)),
-                    None => Err(()),
-                };
-
-                let asynch = script
-                    .upcast::<Element>()
-                    .has_attribute(&local_name!("async"));
-
-                if !asynch && script.get_parser_inserted() {
-                    document.deferred_script_loaded(cx, &script, load);
-                } else if !asynch && !script.get_non_blocking() {
-                    document.asap_in_order_script_loaded(cx, &script, load);
-                } else {
-                    document.asap_script_loaded(cx, &script, load);
-                };
-            },
-        }
+        global.task_manager().networking_task_source().queue(
+            task!(continue_module_loading: move |cx| {
+                promise.root().resolve_native(&(), CanGc::from_cx(cx));
+            }),
+        );
     }
 }
 
@@ -702,7 +663,7 @@ impl ModuleFetchClient {
 /// The context required for asynchronously loading an external module script source.
 struct ModuleContext {
     /// The owner of the module that initiated the request.
-    owner: ModuleOwner,
+    owner: Trusted<GlobalScope>,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -776,15 +737,8 @@ impl FetchResponseListener for ModuleContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let global = self.owner.global();
-        let (url, module_type) = &self.module_request;
-
-        if let ModuleOwner::Window(_) = self.owner {
-            let window = global.downcast::<Window>().unwrap();
-            window
-                .Document()
-                .finish_load(LoadType::Script(url.clone()), cx);
-        }
+        let global = self.owner.root();
+        let (_url, module_type) = &self.module_request;
 
         network_listener::submit_timing(cx, &self, &response, &timing);
 
@@ -855,14 +809,14 @@ impl FetchResponseListener for ModuleContext {
                 }
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+                    cx,
                     Rc::new(DOMString::from(source_text.clone())),
-                    self.owner.clone(),
+                    &global,
                     &final_url,
                     self.options,
                     true,
                     1,
                     self.introduction_type,
-                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
@@ -871,11 +825,11 @@ impl FetchResponseListener for ModuleContext {
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
                 let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+                    cx,
                     &source_text,
                     &global,
                     &final_url,
                     self.introduction_type,
-                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
@@ -886,17 +840,12 @@ impl FetchResponseListener for ModuleContext {
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        match &self.owner {
-            ModuleOwner::Worker(scope) => {
-                if let Some(scope) = scope.root().downcast::<DedicatedWorkerGlobalScope>() {
-                    scope.report_csp_violations(violations);
-                }
-            },
-            _ => {
-                let global = &self.resource_timing_global();
-                global.report_csp_violations(violations, None, None);
-            },
-        };
+        let global = self.owner.root();
+        if let Some(scope) = global.downcast::<DedicatedWorkerGlobalScope>() {
+            scope.report_csp_violations(violations);
+        } else {
+            global.report_csp_violations(violations, None, None);
+        }
     }
 }
 
@@ -908,7 +857,7 @@ impl ResourceTimingListener for ModuleContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.owner.global()
+        self.owner.root()
     }
 }
 
@@ -954,7 +903,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     specifier: RawHandle<*mut JSObject>,
     promise: RawHandle<*mut JSObject>,
 ) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let cx = &mut cx;
     let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
@@ -989,6 +938,10 @@ pub(crate) struct ScriptFetchOptions {
     pub(crate) parser_metadata: ParserMetadata,
     #[no_trace]
     pub(crate) referrer_policy: ReferrerPolicy,
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-fetch-options-render-blocking>
+    /// The boolean value of render-blocking used for the initial fetch and for fetching any imported modules.
+    /// Unless otherwise stated, its value is false.
+    pub(crate) render_blocking: bool,
 }
 
 impl ScriptFetchOptions {
@@ -1000,6 +953,7 @@ impl ScriptFetchOptions {
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             referrer_policy: ReferrerPolicy::EmptyString,
+            render_blocking: false,
         }
     }
 
@@ -1021,6 +975,7 @@ impl ScriptFetchOptions {
             credentials_mode: self.credentials_mode,
             parser_metadata: self.parser_metadata,
             referrer_policy: self.referrer_policy,
+            render_blocking: self.render_blocking,
         }
     }
 }
@@ -1044,7 +999,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSObject>,
 ) -> *mut JSObject {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
@@ -1105,7 +1060,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
     reference_private: RawHandleValue,
     meta_object: RawHandle<*mut JSObject>,
 ) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
@@ -1159,7 +1114,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *mut JSVal) -> bool {
-    // Safety: it is safe to construct a JSContext from engine hook.
+    // SAFETY: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
@@ -1198,11 +1153,11 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
             true
         },
         Err(error) => {
-            let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
+            let resolution_error = gen_type_error(cx, &global_scope, error);
 
             unsafe {
                 JS_SetPendingException(
-                    cx.raw_cx(),
+                    cx,
                     resolution_error.handle(),
                     ExceptionStackBehavior::Capture,
                 );
@@ -1212,16 +1167,21 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     }
 }
 
+#[expect(clippy::too_many_arguments)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
 pub(crate) fn fetch_a_module_worker_script_graph(
     cx: &mut JSContext,
+    global: &GlobalScope,
     url: ServoUrl,
     fetch_client: ModuleFetchClient,
-    owner: ModuleOwner,
+    destination: Destination,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
+    let global_scope = DomRoot::from_ref(global);
+
     // Step 1. Let options be a script fetch options whose cryptographic nonce
     // is the empty string, integrity metadata is the empty string, parser
     // metadata is "not-parser-inserted", credentials mode is credentialsMode,
@@ -1232,6 +1192,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         cryptographic_nonce: "".into(),
         parser_metadata: ParserMetadata::NotParserInserted,
         referrer_policy: ReferrerPolicy::EmptyString,
+        render_blocking: false,
     };
 
     // Step 2. Fetch a single module script given url, fetchClient, destination, options,
@@ -1240,8 +1201,8 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         cx,
         url,
         fetch_client.clone(),
-        owner.clone(),
-        Destination::Worker,
+        global,
+        destination,
         options,
         referrer,
         None,
@@ -1250,17 +1211,18 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         move |cx, module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
-                return owner.notify_owner_to_finish(cx, None);
+                return on_complete(cx, None);
             };
 
             // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
             // and onComplete.
             fetch_the_descendants_and_link_module_script(
                 cx,
+                &global_scope,
                 module,
                 fetch_client,
-                Destination::Worker,
-                owner,
+                destination,
+                on_complete,
             );
         },
     );
@@ -1270,11 +1232,13 @@ pub(crate) fn fetch_a_module_worker_script_graph(
 pub(crate) fn fetch_an_external_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     options: ScriptFetchOptions,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
-    let referrer = owner.global().get_referrer();
-    let fetch_client = ModuleFetchClient::from_global_scope(&owner.global());
+    let referrer = global.get_referrer();
+    let fetch_client = ModuleFetchClient::from_global_scope(global);
+    let global_scope = DomRoot::from_ref(global);
 
     // Step 1. Fetch a single module script given url, settingsObject, "script", options, settingsObject, "client", true,
     // and with the following steps given result:
@@ -1282,7 +1246,7 @@ pub(crate) fn fetch_an_external_module_script(
         cx,
         url,
         fetch_client.clone(),
-        owner.clone(),
+        global,
         Destination::Script,
         options,
         referrer,
@@ -1292,16 +1256,17 @@ pub(crate) fn fetch_an_external_module_script(
         move |cx, module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
-                return owner.notify_owner_to_finish(cx, None);
+                return on_complete(cx, None);
             };
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
             fetch_the_descendants_and_link_module_script(
                 cx,
+                &global_scope,
                 module,
                 fetch_client,
                 Destination::Script,
-                owner,
+                on_complete,
             );
         },
     );
@@ -1318,7 +1283,7 @@ pub(crate) fn fetch_a_modulepreload_module(
 ) {
     let referrer = global.get_referrer();
     let fetch_client = ModuleFetchClient::from_global_scope(global);
-    let owner = ModuleOwner::DynamicModule(Trusted::new(global));
+    let global_scope = DomRoot::from_ref(global);
 
     // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
     // fetching top level JSON/CSS module scripts, but should be possible when preloading.
@@ -1334,7 +1299,7 @@ pub(crate) fn fetch_a_modulepreload_module(
         cx,
         url,
         fetch_client.clone(),
-        owner.clone(),
+        global,
         destination,
         options,
         referrer,
@@ -1346,7 +1311,7 @@ pub(crate) fn fetch_a_modulepreload_module(
             on_complete(cx, result.is_none());
 
             // Step 2. Assert: settingsObject's global object implements Window.
-            assert!(owner.global().is::<Window>());
+            assert!(global_scope.is::<Window>());
 
             // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
@@ -1354,10 +1319,11 @@ pub(crate) fn fetch_a_modulepreload_module(
                 if let Some(module) = result {
                     fetch_the_descendants_and_link_module_script(
                         cx,
+                        &global_scope,
                         module,
                         fetch_client,
                         destination,
-                        owner,
+                        |_, _| {},
                     );
                 }
             }
@@ -1365,35 +1331,39 @@ pub(crate) fn fetch_a_modulepreload_module(
     );
 }
 
+#[expect(clippy::too_many_arguments)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
 pub(crate) fn fetch_inline_module_script(
     cx: &mut JSContext,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     module_script_text: Rc<DOMString>,
     url: ServoUrl,
     options: ScriptFetchOptions,
     line_number: u32,
+    introduction_type: Option<&'static CStr>,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+        cx,
         module_script_text,
-        owner.clone(),
+        global,
         &url,
         options,
         false,
         line_number,
-        Some(IntroductionType::INLINE_SCRIPT),
-        CanGc::from_cx(cx),
+        introduction_type,
     ));
-    let fetch_client = ModuleFetchClient::from_global_scope(&owner.global());
+    let fetch_client = ModuleFetchClient::from_global_scope(global);
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(
         cx,
+        global,
         module_tree,
         fetch_client,
         Destination::Script,
-        owner,
+        on_complete,
     );
 }
 
@@ -1401,13 +1371,12 @@ pub(crate) fn fetch_inline_module_script(
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
 fn fetch_the_descendants_and_link_module_script(
     cx: &mut JSContext,
+    global: &GlobalScope,
     module_script: Rc<ModuleTree>,
     fetch_client: ModuleFetchClient,
     destination: Destination,
-    owner: ModuleOwner,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
-    let global = owner.global();
-
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
     if module_script.get_record().is_none() {
@@ -1417,7 +1386,7 @@ fn fetch_the_descendants_and_link_module_script(
         module_script.set_rethrow_error(parse_error.unwrap());
 
         // Step 2.2. Run onComplete given moduleScript.
-        owner.notify_owner_to_finish(cx, Some(module_script));
+        on_complete(cx, Some(module_script));
 
         // Step 2.3. Return.
         return;
@@ -1433,23 +1402,22 @@ fn fetch_the_descendants_and_link_module_script(
 
     // TODO Step 4. If performFetch was given, set state.[[PerformFetch]] to performFetch.
 
-    // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
-    let loading_promise = load_requested_modules(
-        &mut CurrentRealm::assert(cx),
-        module_script.clone(),
-        Some(Rc::clone(&state)),
-    );
+    let mut realm = enter_auto_realm(cx, global);
+    let cx = &mut realm.current_realm();
 
-    let fulfillment_owner = owner.clone();
+    // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
+    let loading_promise = load_requested_modules(cx, module_script.clone(), Some(state.clone()));
+
+    let global_scope = DomRoot::from_ref(global);
     let fulfilled_module = module_script.clone();
+    let fulfilled_on_complete = on_complete.clone();
 
     // Step 6. Upon fulfillment of loadingPromise, run the following steps:
     let loading_promise_fulfillment = ModuleHandler::new_boxed(Box::new(
-        task!(fulfilled_steps: |cx, fulfillment_owner: ModuleOwner| {
-            let global = fulfillment_owner.global();
+        task!(fulfilled_steps: |cx, global_scope: DomRoot<GlobalScope>| {
             let mut realm = AutoRealm::new(
                 cx,
-                NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+                NonNull::new(global_scope.reflector().get_jsobject().get()).unwrap(),
             );
             let cx = &mut *realm;
 
@@ -1460,43 +1428,40 @@ fn fetch_the_descendants_and_link_module_script(
 
             // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
             if !link {
-                let exception = RethrowError::from_pending_exception(cx.into());
+                let exception = RethrowError::from_pending_exception(cx);
                 fulfilled_module.set_rethrow_error(exception);
             }
 
             // Step 6.2. Run onComplete given moduleScript.
-            fulfillment_owner.notify_owner_to_finish(cx, Some(fulfilled_module));
+            fulfilled_on_complete(cx, Some(fulfilled_module));
         }),
     ));
 
-    let rejection_owner = owner;
-    let rejected_module = module_script;
-
     // Step 7. Upon rejection of loadingPromise, run the following steps:
-    let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
-        task!(rejected_steps: |cx, rejection_owner: ModuleOwner, state: Rc<LoadState>| {
+    let loading_promise_rejection =
+        ModuleHandler::new_boxed(Box::new(task!(rejected_steps: |cx, state: Rc<LoadState>| {
             // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to state.[[ErrorToRethrow]]
             // and run onComplete given moduleScript.
             if let Some(error) = state.error_to_rethrow.borrow().as_ref() {
-                rejected_module.set_rethrow_error(error.clone());
-                rejection_owner.notify_owner_to_finish(cx, Some(rejected_module));
+                module_script.set_rethrow_error(error.clone());
+                on_complete(cx, Some(module_script));
             } else {
                 // Step 7.2. Otherwise, run onComplete given null.
-                rejection_owner.notify_owner_to_finish(cx, None);
+                on_complete(cx, None);
             }
-        }),
-    ));
+        })));
 
     let handler = PromiseNativeHandler::new(
-        &global,
+        global,
         Some(loading_promise_fulfillment),
         Some(loading_promise_rejection),
         CanGc::from_cx(cx),
     );
 
-    let realm = enter_realm(&*global);
-    let comp = InRealm::Entered(&realm);
-    run_a_callback::<DomTypeHolder, _>(&global, || {
+    let in_realm_proof = cx.into();
+    let comp = InRealm::Already(&in_realm_proof);
+
+    run_a_callback::<DomTypeHolder, _>(global, || {
         loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
     });
 }
@@ -1507,7 +1472,7 @@ pub(crate) fn fetch_a_single_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
     fetch_client: ModuleFetchClient,
-    owner: ModuleOwner,
+    global: &GlobalScope,
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
@@ -1516,8 +1481,6 @@ pub(crate) fn fetch_a_single_module_script(
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + 'static,
 ) {
-    let global = owner.global();
-
     // Step 1. Let moduleType be "javascript-or-wasm".
     // Step 2. If moduleRequest was given, then set moduleType to the result of running the
     // module type from module request steps given moduleRequest.
@@ -1540,7 +1503,7 @@ pub(crate) fn fetch_a_single_module_script(
         None => DomRefCell::new(None),
     };
 
-    let global_scope = DomRoot::from_ref(&*global);
+    let global_scope = DomRoot::from_ref(global);
     let module_map_key = module_request.clone();
     let handler = ModuleHandler::new_boxed(Box::new(
         task!(fetch_completed: |cx, global_scope: DomRoot<GlobalScope>| {
@@ -1553,37 +1516,55 @@ pub(crate) fn fetch_a_single_module_script(
         }),
     ));
 
-    let handler = PromiseNativeHandler::new(&global, Some(handler), None, CanGc::note());
+    let handler = PromiseNativeHandler::new(global, Some(handler), None, CanGc::from_cx(cx));
 
-    let realm = enter_realm(&*global);
-    let comp = InRealm::Entered(&realm);
-    run_a_callback::<DomTypeHolder, _>(&global, || {
+    let mut realm = enter_auto_realm(cx, global);
+    let cx = &mut realm.current_realm();
+
+    let in_realm_proof = cx.into();
+    let comp = InRealm::Already(&in_realm_proof);
+
+    run_a_callback::<DomTypeHolder, _>(global, || {
         let has_pending_fetch = pending.borrow().is_some();
-        // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
-        let pending_option = pending.borrow_mut().take();
-        let new_pending =
-            pending_option.unwrap_or_else(|| Promise::new_in_current_realm(comp, CanGc::note()));
-        new_pending.append_native_handler(&handler, comp, CanGc::note());
-        let _ = pending.borrow_mut().insert(new_pending);
+
+        let promise = Promise::new_in_realm(cx);
 
         // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
         // then queue a task on the networking task source to proceed with running the following steps.
         if has_pending_fetch {
+            promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+
+            // Append an handler to the existing pending fetch, once resolved it will queue a task
+            // to run onComplete.
+            let continue_loading_handler = PromiseNativeHandler::new(
+                global,
+                Some(Box::new(QueueTaskHandler { promise })),
+                None,
+                CanGc::from_cx(cx),
+            );
+
+            // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
+            let pending_promise = pending.borrow_mut().take();
+            if let Some(promise) = pending_promise {
+                promise.append_native_handler(&continue_loading_handler, comp, CanGc::from_cx(cx));
+                let _ = pending.borrow_mut().insert(promise);
+            }
             return;
         }
 
-        // We only need a policy container when fetching the root of a module worker.
-        let policy_container = (is_top_level && matches!(owner, ModuleOwner::Worker(_)))
-            .then(|| fetch_client.policy_container.clone());
+        promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+
+        let prev = pending.borrow_mut().replace(promise);
+        assert!(prev.is_none());
 
         // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
         global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
-        let document: Option<DomRoot<Document>> = match &owner {
-            ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-            ModuleOwner::Window(script) => Some(script.root().owner_document()),
-        };
-        let webview_id = document.as_ref().map(|document| document.webview_id());
+        // We only need a policy container when fetching the root of a module worker.
+        let policy_container = (is_top_level && global.is::<WorkerGlobalScope>())
+            .then(|| fetch_client.policy_container.clone());
+
+        let webview_id = global.webview_id();
 
         // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
 
@@ -1606,24 +1587,28 @@ pub(crate) fn fetch_a_single_module_script(
         // TODO Step 11. Set request's initiator type to "script".
 
         // Step 12. Set up the module script request given request and options.
-        let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-            .destination(destination)
-            .parser_metadata(options.parser_metadata)
-            .integrity_metadata(options.integrity_metadata.clone())
-            .credentials_mode(options.credentials_mode)
-            .referrer_policy(options.referrer_policy)
-            .mode(mode)
-            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-            .insecure_requests_policy(fetch_client.insecure_requests_policy)
-            .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
-            .policy_container(fetch_client.policy_container)
-            .client(fetch_client.client)
-            .pipeline_id(Some(fetch_client.pipeline_id))
-            .origin(fetch_client.origin)
-            .https_state(fetch_client.https_state);
+        let request = RequestBuilder::new(
+            webview_id,
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(url.clone()),
+            referrer,
+        )
+        .destination(destination)
+        .parser_metadata(options.parser_metadata)
+        .integrity_metadata(options.integrity_metadata.clone())
+        .credentials_mode(options.credentials_mode)
+        .referrer_policy(options.referrer_policy)
+        .mode(mode)
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
+        .insecure_requests_policy(fetch_client.insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(fetch_client.has_trustworthy_ancestor_origin)
+        .policy_container(fetch_client.policy_container)
+        .client(fetch_client.client)
+        .pipeline_id(Some(fetch_client.pipeline_id))
+        .origin(fetch_client.origin)
+        .https_state(fetch_client.https_state);
 
         let context = ModuleContext {
-            owner,
+            owner: Trusted::new(global),
             data: vec![],
             metadata: None,
             module_request,
@@ -1633,32 +1618,18 @@ pub(crate) fn fetch_a_single_module_script(
             policy_container,
         };
 
-        let network_listener = NetworkListener::new(
-            context,
-            global.task_manager().networking_task_source().to_sendable(),
-        );
-        match document {
-            Some(document) => {
-                document.loader_mut().fetch_async_with_callback(
-                    LoadType::Script(url),
-                    request,
-                    network_listener.into_callback(),
-                );
-            },
-            None => global.fetch_with_network_listener(request, network_listener),
-        };
+        let task_source = global.task_manager().networking_task_source().to_sendable();
+        global.fetch(request, context, task_source);
     })
 }
 
-#[expect(unsafe_code)]
 fn fill_module_compile_options(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     url: &ServoUrl,
     introduction_type: Option<&'static CStr>,
     line_number: u32,
 ) -> CompileOptionsWrapper {
-    let mut options =
-        unsafe { CompileOptionsWrapper::new_raw(*cx, cformat!("{url}"), line_number) };
+    let mut options = CompileOptionsWrapper::new(cx, cformat!("{url}"), line_number);
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);
     }
@@ -1726,29 +1697,25 @@ impl ImportMap {
 
 /// <https://html.spec.whatwg.org/multipage/#register-an-import-map>
 pub(crate) fn register_import_map(
+    cx: &mut JSContext,
     global: &GlobalScope,
     result: Fallible<ImportMap>,
-    can_gc: CanGc,
 ) {
     match result {
         Ok(new_import_map) => {
             // Step 2. Merge existing and new import maps, given global and result's import map.
-            merge_existing_and_new_import_maps(global, new_import_map, can_gc);
+            merge_existing_and_new_import_maps(global, new_import_map);
         },
         Err(exception) => {
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
-            throw_dom_exception(GlobalScope::get_cx(), global, exception, can_gc);
+            throw_dom_exception(cx.into(), global, exception, CanGc::from_cx(cx));
         },
     }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#merge-existing-and-new-import-maps>
-fn merge_existing_and_new_import_maps(
-    global: &GlobalScope,
-    new_import_map: ImportMap,
-    can_gc: CanGc,
-) {
+fn merge_existing_and_new_import_maps(global: &GlobalScope, new_import_map: ImportMap) {
     // Step 1. Let newImportMapScopes be a deep copy of newImportMap's scopes.
     let new_import_map_scopes = new_import_map.scopes;
 
@@ -1804,7 +1771,6 @@ fn merge_existing_and_new_import_maps(
                 global,
                 scope_imports,
                 &old_import_map.scopes[&scope_prefix],
-                can_gc,
             );
             old_import_map
                 .scopes
@@ -1854,12 +1820,8 @@ fn merge_existing_and_new_import_maps(
 
     // Step 7. Set oldImportMap's imports to the result of merge module specifier maps,
     // given newImportMapImports and oldImportMap's imports.
-    let merged_module_specifier_map = merge_module_specifier_maps(
-        global,
-        new_import_map_imports,
-        &old_import_map.imports,
-        can_gc,
-    );
+    let merged_module_specifier_map =
+        merge_module_specifier_maps(global, new_import_map_imports, &old_import_map.imports);
     old_import_map.imports = merged_module_specifier_map;
 
     // https://html.spec.whatwg.org/multipage/#the-resolution-algorithm
@@ -1874,7 +1836,6 @@ fn merge_module_specifier_maps(
     global: &GlobalScope,
     new_map: ModuleSpecifierMap,
     old_map: &ModuleSpecifierMap,
-    _can_gc: CanGc,
 ) -> ModuleSpecifierMap {
     // Step 1. Let mergedMap be a deep copy of oldMap.
     let mut merged_map = old_map.clone();
@@ -1900,7 +1861,7 @@ fn merge_module_specifier_maps(
 
 /// <https://html.spec.whatwg.org/multipage/#parse-an-import-map-string>
 pub(crate) fn parse_an_import_map_string(
-    module_owner: ModuleOwner,
+    global: &GlobalScope,
     input: Rc<DOMString>,
     base_url: ServoUrl,
 ) -> Fallible<ImportMap> {
@@ -1929,7 +1890,7 @@ pub(crate) fn parse_an_import_map_string(
         // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
         // normalizing a module specifier map given parsed["imports"] and baseURL.
         sorted_and_normalized_imports =
-            sort_and_normalize_module_specifier_map(&module_owner.global(), imports, &base_url);
+            sort_and_normalize_module_specifier_map(global, imports, &base_url);
     }
 
     // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
@@ -1945,8 +1906,7 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
         // normalizing scopes given parsed["scopes"] and baseURL.
-        sorted_and_normalized_scopes =
-            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url)?;
+        sorted_and_normalized_scopes = sort_and_normalize_scopes(global, scopes, &base_url)?;
     }
 
     // Step 7. Let normalizedIntegrity be an empty ordered map.
@@ -1962,8 +1922,7 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 8.2 Set normalizedIntegrity to the result of normalizing
         // a module integrity map given parsed["integrity"] and baseURL.
-        normalized_integrity =
-            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url);
+        normalized_integrity = normalize_module_integrity_map(global, integrity, &base_url);
     }
 
     // Step 9. If parsed's keys contains any items besides "imports", "scopes", or "integrity",
@@ -1972,7 +1931,7 @@ pub(crate) fn parse_an_import_map_string(
     parsed.retain(|k, _| !matches!(k.as_str(), "imports" | "scopes" | "integrity"));
     if !parsed.is_empty() {
         Console::internal_warn(
-            &module_owner.global(),
+            global,
             "Invalid top-level key was present in the import map.
                 Only \"imports\", \"scopes\", and \"integrity\" are allowed."
                 .to_string(),
