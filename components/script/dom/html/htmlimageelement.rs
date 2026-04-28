@@ -2146,9 +2146,9 @@ impl VirtualMethods for HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage#the-img-element:html-element-moving-steps>
     #[expect(unsafe_code)]
-    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(super_type) = self.super_type() {
-            super_type.moving_steps(context, can_gc);
+            super_type.moving_steps(cx, context);
         }
         // TODO: https://github.com/servo/servo/issues/43044
         let mut cx = unsafe { temp_cx() };
