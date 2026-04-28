@@ -13,8 +13,10 @@ description.workspace = true
 path = "lib.rs"
 
 [features]
+default = ["use-jemalloc"]
 allocation-tracking = ["backtrace", "dep:rustc-hash", "log"]
-use-system-allocator = ["libc"]
+use-system-allocator = []
+use-jemalloc = ["dep:tikv-jemalloc-sys", "dep:tikv-jemallocator"]
 
 [dependencies]
 backtrace = { workspace = true, optional = true }
@@ -22,9 +24,9 @@ log = { workspace = true, optional = true }
 rustc-hash = { workspace = true, optional = true }
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
-libc = { workspace = true, optional = true }
-tikv-jemalloc-sys = { workspace = true }
-tikv-jemallocator = { workspace = true }
+libc = { workspace = true }
+tikv-jemalloc-sys = { workspace = true, optional = true }
+tikv-jemallocator = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true, features = ["Win32_System_Memory"] }
