@@ -1542,6 +1542,7 @@ impl FetchResponseListener for ParserContext {
 
         if status.is_ok() {
             parser.document.set_redirect_count(timing.redirect_count);
+            parser.document.set_redirect_start(timing.redirect_start);
         }
 
         parser.last_chunk_received.set(true);

@@ -503,6 +503,7 @@ impl Performance {
             "domComplete" => document.get_dom_complete(),
             "loadEventStart" => document.get_load_event_start(),
             "loadEventEnd" => document.get_load_event_end(),
+            "redirectStart" => document.get_redirect_start(),
             other => {
                 if cfg!(debug_assertions) {
                     unreachable!("{other:?} is not the name of a timestamp");
@@ -542,7 +543,8 @@ impl Performance {
                         "domContentLoadedEventEnd" |
                         "domComplete" |
                         "loadEventStart" |
-                        "loadEventEnd"
+                        "loadEventEnd" |
+                        "redirectStart"
                 ) {
                     self.convert_a_name_to_a_timestamp(&name.str())
                 }
