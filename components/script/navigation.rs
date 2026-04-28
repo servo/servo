@@ -350,7 +350,7 @@ fn navigate_to_fragment(
     let Some(fragment) = url.fragment() else {
         unreachable!("Must always have a fragment");
     };
-    doc.scroll_to_the_fragment(fragment, CanGc::from_cx(cx));
+    doc.scroll_to_the_fragment(cx, fragment);
     // Step 16. Let traversable be navigable's traversable navigable.
     // TODO
     // Step 17. Append the following session history synchronous navigation steps involving navigable to traversable:

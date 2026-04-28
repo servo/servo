@@ -1186,7 +1186,7 @@ impl HTMLFormElement {
                     // some other action that brings the element to the user's attention.
 
                     // Here we run focusing steps and scroll element into view.
-                    html_elem.Focus(&FocusOptions::default(), CanGc::from_cx(cx));
+                    html_elem.Focus(cx, &FocusOptions::default());
                     first = false;
                 }
             }

@@ -1291,10 +1291,10 @@ pub(crate) fn handle_will_send_keys(
 
         if !element.is_active_element() {
             html_element.Focus(
+                cx,
                 &FocusOptions {
                     preventScroll: true,
                 },
-                CanGc::from_cx(cx),
             );
         } else {
             element_has_focus = element.focus_state();
@@ -1837,10 +1837,10 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
 
     // Step 3. Invoke the focusing steps for the element.
     html_element.Focus(
+        cx,
         &FocusOptions {
             preventScroll: true,
         },
-        CanGc::from_cx(cx),
     );
 
     // Step 4. Run clear algorithm for element.
@@ -1857,7 +1857,7 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
     event_target.fire_bubbling_event(cx, atom!("change"));
 
     // Step 5. Run the unfocusing steps for the element.
-    html_element.Blur(CanGc::from_cx(cx));
+    html_element.Blur(cx);
 
     Ok(())
 }
@@ -2011,10 +2011,10 @@ pub(crate) fn handle_element_click(
                         match container.downcast::<HTMLElement>() {
                             Some(html_element) => {
                                 html_element.Focus(
+                                    cx,
                                     &FocusOptions {
                                         preventScroll: true,
                                     },
-                                    CanGc::from_cx(cx),
                                 );
                             },
                             None => return Err(ErrorStatus::UnknownError),

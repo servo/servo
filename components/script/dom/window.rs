@@ -1298,9 +1298,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // TODO: Implement this.
 
         // Step 4. Run the focusing steps with current.
-        document
-            .focus_handler()
-            .focus(FocusableArea::Viewport, CanGc::from_cx(cx));
+        document.focus_handler().focus(cx, FocusableArea::Viewport);
 
         // Step 5. If current is a top-level traversable, user agents are encouraged to trigger some
         // sort of notification to indicate to the user that the page is attempting to gain focus.

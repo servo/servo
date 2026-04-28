@@ -80,7 +80,7 @@ pub(crate) trait Validatable {
             );
             if let Some(html_elem) = self.as_element().downcast::<HTMLElement>() {
                 // Run focusing steps and scroll into view.
-                html_elem.Focus(&FocusOptions::default(), CanGc::from_cx(cx));
+                html_elem.Focus(cx, &FocusOptions::default());
             }
         }
 
