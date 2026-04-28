@@ -345,10 +345,6 @@ function handlePauseAndRespond(frame, pauseReason) {
         return undefined;
     }
 
-    if (frame) {
-
-    }
-
     let frameActorId = createFrameActor(frame, pipelineId);
 
     // <https://github.com/mozilla-firefox/firefox/blob/63719d122f9214f37fd1d285a91897b8345b88b0/js/src/doc/Debugger/Debugger.Script.md?plain=1#L293-L303>
@@ -359,6 +355,11 @@ function handlePauseAndRespond(frame, pauseReason) {
         column: offsetMetadata.columnNumber - 1,
         line: offsetMetadata.lineNumber
     };
+
+    const source = frame.script.source;
+    if (source != null && isBlackBoxed(source.id, frameOffset.line, frameOffset.column)) {
+        return undefined;
+    }
 
     // Notify devtools and enter pause loop. This blocks until Resume.
     pauseAndRespond(
@@ -651,6 +652,14 @@ function isBlackBoxed(spidermonkeyId, line, column) {
         return false;
     } else if (sourceBlackboxing.length === 0) {
         return true;
+    }
+
+    for (const range in sourceBlackboxing) {
+        const matchesStart = range.start.line < line
+                || (range.start.line === line && range.start.column <= column);
+        const matchesEnd = range.end.line > line
+                || (range.end.line === line && range.end.column >= column);
+        if (matchesStart && matchesEnd) return true;
     }
 
     // TODO
