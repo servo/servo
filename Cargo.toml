@@ -305,6 +305,9 @@ webxr-api = { package = "servo-webxr-api", version = "0.1.0", path = "components
 xpath = { package = "servo-xpath", version = "0.1.0", path = "components/xpath" }
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
+[workspace.metadata.vet]
+store = { path = "./etc/supply-chain" }
+
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
 # consider RSA key generation tests fail due to timeout.

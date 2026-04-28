@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import shlex
+import shutil
 from subprocess import CompletedProcess
 from typing import Any
 
@@ -163,6 +164,20 @@ class MachCommands(CommandBase):
         status = self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
         assert isinstance(status, int)
         return status
+
+    @Command("vet", description="Run cargo vet", category="devenv")
+    @CommandArgument("params", default=[], nargs="...", help="Command-line arguments to be passed through to clippy")
+    def vet(self, params: list[str]) -> int:
+        if not shutil.which("cargo-vet"):
+            print("cargo-vet not found. Please install it with `cargo install cargo-vet` --locked")
+            return 1
+        cmd = ["cargo", "vet"]
+        cmd.extend(params)
+        # See `cargo vet --help` description of `--filter-graph`. This will keep only the dependency tree starting
+        # from libservo, i.e. exclude all dependencies coming only from ServoShell or other test executables.
+        # This greatly reduces the number of dependencies to vet.
+        cmd.extend(["--filter-graph", "exclude(all(is_workspace_member(true),not(name(libservo))))"])
+        return call(cmd)
 
     @Command("fetch", description="Fetch Rust, Cargo and Cargo dependencies", category="devenv")
     def fetch(self) -> int:
