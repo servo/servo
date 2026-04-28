@@ -629,12 +629,15 @@ impl HTMLIFrameElement {
         }
     }
 
+    /// Returns true if the contained pipeline was updated, false otherwise.
+    /// This can occur if the iframe's nested browsing context has changed
+    /// since the asynchronous update was started.
     pub(crate) fn update_pipeline_id(
         &self,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
         cx: &mut JSContext,
-    ) {
+    ) -> bool {
         // For all updates except the one for the initial blank document,
         // we need to set the flag back to false because the navigation is complete,
         // because the goal is to, when a navigation is pending, to skip the async load
@@ -645,7 +648,7 @@ impl HTMLIFrameElement {
         if self.pending_pipeline_id.get() != Some(new_pipeline_id) &&
             reason == UpdatePipelineIdReason::Navigation
         {
-            return;
+            return false;
         }
 
         self.pipeline_id.set(Some(new_pipeline_id));
@@ -658,6 +661,7 @@ impl HTMLIFrameElement {
         }
 
         self.upcast::<Node>().dirty(NodeDamage::Other);
+        true
     }
 
     fn new_inherited(
