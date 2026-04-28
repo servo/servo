@@ -61,13 +61,11 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
-use std::time::Duration;
+use std::sync::{LazyLock, Once, OnceLock, mpsc};
 use std::{fs, thread};
 
-use dpi::PhysicalSize;
 use euclid::{Point2D, Rect, Scale, Size2D};
 use keyboard_types::{Key, NamedKey};
 use log::{LevelFilter, debug, error, info, trace, warn};
@@ -88,7 +86,7 @@ use raw_window_handle::{
 };
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PrefValue, WebViewId, WindowRenderingContext, Zero,
+    MediaSessionPlaybackState, PrefValue, Zero,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -100,9 +98,10 @@ use xcomponent_sys::{
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
 
-use super::app::{App, AppInitOptions, EmbeddedPlatformWindow, VsyncRefreshDriver};
+use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
+use crate::window::ServoShellWindowId;
 
 /// Queue length for the thread-safe function to submit URL updates to ArkTS
 const UPDATE_URL_QUEUE_SIZE: usize = 1;
@@ -123,10 +122,7 @@ static TERMINATE_CALLBACK: OnceLock<
 static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
-
-/// Currently we do not support different contexts for different windows but we might want to change tabs.
-/// For this we store the window context for every tab and change the compositor by hand.
-static NATIVE_WEBVIEWS: Mutex<Vec<NativeWebViewComponents>> = Mutex::new(Vec::new());
+static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
 
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
@@ -352,19 +348,57 @@ pub(super) enum ServoAction {
         width: i32,
         height: i32,
     },
-    FocusWebview(u32),
+    FocusWindow(u32, Vec<u32>),
     CreatePlatformWindow(XComponentWrapper, WindowWrapper),
-    NewWebview(XComponentWrapper, WindowWrapper),
+    RemovePlatformWindow(u32, Vec<u32>),
 }
 
-/// Storing webview related items
-struct NativeWebViewComponents {
-    /// The id of the related webview
-    id: WebViewId,
-    /// The XComponentWrapper for the above webview
-    xcomponent: XComponentWrapper,
-    /// The WindowWrapper for the above webview
-    window: WindowWrapper,
+impl std::fmt::Debug for ServoAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::WakeUp => write!(f, "WakeUp"),
+            Self::LoadUrl(arg0) => f.debug_tuple("LoadUrl").field(arg0).finish(),
+            Self::GoBack => write!(f, "GoBack"),
+            Self::GoForward => write!(f, "GoForward"),
+            Self::TouchEvent {
+                kind,
+                x,
+                y,
+                pointer_id,
+            } => f
+                .debug_struct("TouchEvent")
+                .field("kind", kind)
+                .field("x", x)
+                .field("y", y)
+                .field("pointer_id", pointer_id)
+                .finish(),
+            Self::KeyUp(arg0) => f.debug_tuple("KeyUp").field(arg0).finish(),
+            Self::KeyDown(arg0) => f.debug_tuple("KeyDown").field(arg0).finish(),
+            Self::InsertText(arg0) => f.debug_tuple("InsertText").field(arg0).finish(),
+            Self::ImeDeleteForward(arg0) => f.debug_tuple("ImeDeleteForward").field(arg0).finish(),
+            Self::ImeDeleteBackward(arg0) => {
+                f.debug_tuple("ImeDeleteBackward").field(arg0).finish()
+            },
+            Self::ImeSendEnter => write!(f, "ImeSendEnter"),
+            Self::Vsync => write!(f, "Vsync"),
+            Self::Resize { width, height } => f
+                .debug_struct("Resize")
+                .field("width", width)
+                .field("height", height)
+                .finish(),
+            Self::FocusWindow(arg0, arkts_ids) => f
+                .debug_tuple("FocusWindow")
+                .field(arg0)
+                .field(arkts_ids)
+                .finish(),
+            Self::CreatePlatformWindow(..) => f.debug_tuple("CreatePlatformWindow").finish(),
+            Self::RemovePlatformWindow(window, arkts_ids) => f
+                .debug_tuple("RemovePlatformWindow")
+                .field(window)
+                .field(arkts_ids)
+                .finish(),
+        }
+    }
 }
 
 impl ServoAction {
@@ -381,6 +415,9 @@ impl ServoAction {
     // todo: consider making this take `self`, so we don't need to needlessly clone.
     fn do_action(&self, servo: &Rc<App>) {
         use ServoAction::*;
+        if !(matches!(self, ServoAction::Vsync) || matches!(self, ServoAction::WakeUp)) {
+            trace!("ACTION {:?}", self);
+        }
         match self {
             WakeUp => {
                 servo.spin_event_loop();
@@ -419,31 +456,28 @@ impl ServoAction {
             Resize { width, height } => {
                 servo.resize(Rect::new(Point2D::origin(), Size2D::new(*width, *height)))
             },
-            FocusWebview(arkts_id) => {
-                if let Some(native_webview_components) =
-                    NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
+            FocusWindow(arkts_index, arkts_ids) => {
+                let windows = servo.state.windows();
+                if let Some(window) = arkts_ids
+                    .get(*arkts_index as usize)
+                    .and_then(|value| windows.get(&ServoShellWindowId::from(*value as u64)))
                 {
-                    let webview = servo
-                        .active_or_newest_webview()
-                        .expect("Should always start with at least one WebView");
-                    if webview.id() != native_webview_components.id {
-                        servo.activate_webview(native_webview_components.id);
-                        servo.pause_painting();
-                        let (window_handle, viewport_rect) = get_raw_window_handle(
-                            native_webview_components.xcomponent.0,
-                            native_webview_components.window.0,
-                        );
-                        servo.resume_painting(window_handle, viewport_rect);
-                        let url = webview
-                            .url()
-                            .map(|u| u.to_string())
-                            .unwrap_or(String::from("about:blank"));
-                        SET_URL_BAR_CB
-                            .get()
-                            .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
+                    servo.state.focus_window(window.clone());
+                    if let Some(webview) = window.active_webview() {
+                        webview.focus();
+                        if let Some(url) = webview.url() {
+                            SET_URL_BAR_CB.get().map(|f| {
+                                f.call(url.to_string(), ThreadsafeFunctionCallMode::Blocking)
+                            });
+                        }
                     }
                 } else {
-                    error!("Could not find webview to activate");
+                    error!(
+                        "Could not find window to activate. Arkts_index {}, arkts_ids {:?}, window_ids {:?}",
+                        arkts_index,
+                        arkts_ids,
+                        windows.keys().collect::<Vec<_>>(),
+                    );
                 }
             },
             CreatePlatformWindow(xcomponent, native_window) => {
@@ -459,42 +493,30 @@ impl ServoAction {
                     window_handle,
                     viewport_rect,
                     hidpi_factor,
+                    Some(ServoShellWindowId::from(
+                        NEXT_WINDOW_ID.load(std::sync::atomic::Ordering::SeqCst),
+                    )),
                 );
-                // TODO: creating the window and creating the webview should be separate.
-                let webview = servo.create_and_activate_toplevel_webview(servo.initial_url());
-                let id = webview.id();
-                NATIVE_WEBVIEWS
-                    .lock()
-                    .unwrap()
-                    .push(NativeWebViewComponents {
-                        id,
-                        xcomponent: xcomponent.clone(),
-                        window: native_window.clone(),
-                    });
             },
-            NewWebview(xcomponent, window) => {
-                servo.pause_painting();
-                let webview =
-                    servo.create_and_activate_toplevel_webview("about:blank".parse().unwrap());
-                let (window_handle, viewport_rect) = get_raw_window_handle(xcomponent.0, window.0);
-
-                servo.resume_painting(window_handle, viewport_rect);
-                let id = webview.id();
-                NATIVE_WEBVIEWS
-                    .lock()
-                    .unwrap()
-                    .push(NativeWebViewComponents {
-                        id,
-                        xcomponent: xcomponent.clone(),
-                        window: window.clone(),
-                    });
-                let url = webview
-                    .url()
-                    .map(|u| u.to_string())
-                    .unwrap_or(String::from("about:blank"));
-                SET_URL_BAR_CB
-                    .get()
-                    .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
+            RemovePlatformWindow(arkts_index, arkts_ids) => {
+                let windows = servo.state.windows();
+                if let Some(window_to_remove) = arkts_ids
+                    .get(*arkts_index as usize)
+                    .map(|id| ServoShellWindowId::from(*id as u64))
+                    .and_then(|window_id| windows.get(&window_id))
+                {
+                    if let Some(window_to_focus) =
+                        servo.state.windows().get(&ServoShellWindowId::from(0))
+                    {
+                        servo.state.focus_window(window_to_focus.clone());
+                        if let Some(webview) = window_to_focus.active_webview() {
+                            webview.focus();
+                        }
+                        window_to_remove.schedule_close();
+                    } else {
+                        error!("Window is already closed.");
+                    }
+                }
             },
         };
     }
@@ -575,8 +597,11 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
         }
         info!("Enabled Vsync!");
     } else {
-        call(ServoAction::NewWebview(xc_wrapper, window_wrapper))
-            .expect("Servo main thread channel not initialized");
+        call(ServoAction::CreatePlatformWindow(
+            xc_wrapper,
+            window_wrapper,
+        ))
+        .expect("Servo main thread channel not initialized");
     }
     info!("Returning from on_surface_created_cb");
 }
@@ -942,9 +967,19 @@ pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
 }
 
 #[napi]
-fn focus_webview(id: u32) {
-    debug!("Focusing webview {id} from napi");
-    call(ServoAction::FocusWebview(id)).expect("Could not focus webview");
+fn focus_webview(index: u32, arkts_ids: Vec<u32>) {
+    debug!("Focusing webview {index} from napi");
+    call(ServoAction::FocusWindow(index, arkts_ids)).expect("Could not focus webview");
+}
+
+#[napi]
+fn delete_webview(index: u32, arkts_ids: Vec<u32>) {
+    call(ServoAction::RemovePlatformWindow(index, arkts_ids)).expect("Could not delete webview");
+}
+
+#[napi]
+fn next_window_id(id: u32) {
+    NEXT_WINDOW_ID.store(id.into(), std::sync::atomic::Ordering::SeqCst);
 }
 
 struct OhosImeOptions {
