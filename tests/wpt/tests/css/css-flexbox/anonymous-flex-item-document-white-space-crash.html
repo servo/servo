@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<link rel="assert" href="Flex containers that only contain document white space should not cause a crash">
+<link rel="help" href="https://github.com/servo/servo/issues/43550">
+
+<div style="display: flex">&#10;&#13;</div>
+<div style="display: flex">&#13;</div>
+<div style="display: flex">&#12;</div>
