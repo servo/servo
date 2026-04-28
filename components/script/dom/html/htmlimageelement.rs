@@ -30,7 +30,6 @@ use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
 use regex::Regex;
 use rustc_hash::FxHashSet;
-use script_bindings::script_runtime::temp_cx;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
@@ -2145,14 +2144,10 @@ impl VirtualMethods for HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#the-img-element:html-element-moving-steps>
-    #[expect(unsafe_code)]
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(super_type) = self.super_type() {
             super_type.moving_steps(cx, context);
         }
-        // TODO: https://github.com/servo/servo/issues/43044
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
 
         // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
         if let Some(old_parent) = context.old_parent {
