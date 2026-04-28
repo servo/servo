@@ -208,7 +208,7 @@ pub(crate) fn execute_delete_command(
         );
         let child = start_node
             .children_unrooted(cx.no_gc())
-            .nth(offset as usize - 1)
+            .nth(start_offset as usize - 1)
             .map(|node| node.as_rooted());
         if let Some(child) = child {
             if child.is_editable() && child.is_invisible() {
