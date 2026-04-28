@@ -178,7 +178,7 @@ impl HTMLElement {
             return;
         }
         let document = self.owner_document();
-        let Some(selection) = document.GetSelection(CanGc::from_cx(cx)) else {
+        let Some(selection) = document.GetSelection(cx) else {
             return;
         };
         let range = self

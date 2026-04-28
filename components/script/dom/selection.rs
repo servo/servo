@@ -50,11 +50,11 @@ impl Selection {
         }
     }
 
-    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<Selection> {
+    pub(crate) fn new(cx: &mut JSContext, document: &Document) -> DomRoot<Selection> {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -260,7 +260,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
-    fn Collapse(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
+    fn Collapse(&self, cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
         if let Some(node) = node {
             if node.is_doctype() {
                 // w3c/selection-api#118
@@ -277,7 +277,14 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             }
 
             // Steps 4-5
-            let range = Range::new(&self.document, node, offset, node, offset, can_gc);
+            let range = Range::new(
+                &self.document,
+                node,
+                offset,
+                node,
+                offset,
+                CanGc::from_cx(cx),
+            );
 
             // Step 6
             self.set_range(&range);
@@ -295,27 +302,23 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     // TODO: When implementing actual selection UI, this may be the correct
     // method to call as the start-of-selection action, after a
     // selectstart event has fired and not been cancelled.
-    fn SetPosition(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
-        self.Collapse(node, offset, can_gc)
+    fn SetPosition(&self, cx: &mut JSContext, node: Option<&Node>, offset: u32) -> ErrorResult {
+        self.Collapse(cx, node, offset)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapsetostart>
-    fn CollapseToStart(&self, can_gc: CanGc) -> ErrorResult {
+    fn CollapseToStart(&self, cx: &mut JSContext) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(
-                Some(&*range.start_container()),
-                range.start_offset(),
-                can_gc,
-            )
+            self.Collapse(cx, Some(&*range.start_container()), range.start_offset())
         } else {
             Err(Error::InvalidState(None))
         }
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapsetoend>
-    fn CollapseToEnd(&self, can_gc: CanGc) -> ErrorResult {
+    fn CollapseToEnd(&self, cx: &mut JSContext) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(Some(&*range.end_container()), range.end_offset(), can_gc)
+            self.Collapse(cx, Some(&*range.end_container()), range.end_offset())
         } else {
             Err(Error::InvalidState(None))
         }
@@ -324,7 +327,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-extend
     // TODO: When implementing actual selection UI, this may be the correct
     // method to call as the continue-selection action
-    fn Extend(&self, node: &Node, offset: u32, can_gc: CanGc) -> ErrorResult {
+    fn Extend(&self, cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
         if !self.is_same_root(node) {
             // Step 1
             return Ok(());
@@ -350,7 +353,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                     offset,
                     node,
                     offset,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ));
                 self.direction.set(Direction::Forwards);
             } else {
@@ -371,7 +374,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                         old_anchor_offset,
                         node,
                         offset,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ));
                     self.direction.set(Direction::Forwards);
                 } else {
@@ -382,7 +385,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                         offset,
                         old_anchor_node,
                         old_anchor_offset,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     ));
                     self.direction.set(Direction::Backwards);
                 }
@@ -397,11 +400,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     /// <https://w3c.github.io/selection-api/#dom-selection-setbaseandextent>
     fn SetBaseAndExtent(
         &self,
+        cx: &mut JSContext,
         anchor_node: &Node,
         anchor_offset: u32,
         focus_node: &Node,
         focus_offset: u32,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1
         if anchor_node.is_doctype() || focus_node.is_doctype() {
@@ -433,7 +436,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 focus_offset,
                 anchor_node,
                 anchor_offset,
-                can_gc,
+                CanGc::from_cx(cx),
             ));
             self.direction.set(Direction::Backwards);
         } else {
@@ -443,7 +446,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 anchor_offset,
                 focus_node,
                 focus_offset,
-                can_gc,
+                CanGc::from_cx(cx),
             ));
             self.direction.set(Direction::Forwards);
         }
@@ -451,7 +454,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-selectallchildren>
-    fn SelectAllChildren(&self, node: &Node, can_gc: CanGc) -> ErrorResult {
+    fn SelectAllChildren(&self, cx: &mut JSContext, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // w3c/selection-api#118
             return Err(Error::InvalidNodeType(None));
@@ -469,7 +472,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             0,
             node,
             node.children_count(),
-            can_gc,
+            CanGc::from_cx(cx),
         ));
 
         self.direction.set(Direction::Forwards);

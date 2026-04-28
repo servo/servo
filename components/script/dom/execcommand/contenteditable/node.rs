@@ -135,7 +135,7 @@ where
         unreachable!("Must always be able to move");
     }
 
-    let Some(selection) = node.owner_document().GetSelection(CanGc::from_cx(cx)) else {
+    let Some(selection) = node.owner_document().GetSelection(cx) else {
         return;
     };
     let Some(active_range) = selection.active_range() else {
@@ -628,7 +628,7 @@ where
         // add one to that boundary point's offset.
         if let Some(range) = first_in_node_list
             .owner_document()
-            .GetSelection(CanGc::from_cx(cx))
+            .GetSelection(cx)
             .and_then(|selection| selection.active_range())
         {
             let parent_of_new_parent = new_parent.GetParentNode().expect("Must have a parent");
