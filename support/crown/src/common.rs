@@ -18,6 +18,9 @@ use rustc_type_ir::Upcast as _;
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
 pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
+    if path.is_empty() {
+        return false;
+    }
     let def_path = cx.tcx.def_path(def_id);
     let krate = &cx.tcx.crate_name(def_path.krate);
     if krate != &path[0] {
