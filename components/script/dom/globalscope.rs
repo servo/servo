@@ -2183,21 +2183,21 @@ impl GlobalScope {
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
     pub(crate) fn get_blob_stream(
         &self,
+        cx: &mut js::context::JSContext,
         blob_id: &BlobId,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStream>> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                return ReadableStream::new_from_bytes(self, bytes, can_gc);
+                return ReadableStream::new_from_bytes(cx, self, bytes);
             },
             BlobResult::File(id, size) => (id, size),
         };
 
         let stream = ReadableStream::new_with_external_underlying_source(
+            cx,
             self,
             UnderlyingSourceType::Blob(size),
-            can_gc,
         )?;
 
         let recv = self.send_msg(file_id);

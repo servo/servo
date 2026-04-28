@@ -541,16 +541,16 @@ impl Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-clone>
-    fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
+    fn clone_from(cx: &mut js::context::JSContext, r: &Request) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
-        let headers_guard = r.Headers(can_gc).get_guard();
+        let headers_guard = r.Headers(CanGc::from_cx(cx)).get_guard();
 
         // Step 1. Let newRequest be a copy of request, except for its body.
         let mut new_req_inner = req.clone();
         let body = new_req_inner.body.take();
 
-        let r_clone = Request::new(&r.global(), None, url, can_gc);
+        let r_clone = Request::new(&r.global(), None, url, CanGc::from_cx(cx));
         *r_clone.request.borrow_mut() = new_req_inner;
 
         // Step 2. If request’s body is non-null, set newRequest’s body
@@ -560,11 +560,11 @@ impl Request {
         }
 
         r_clone
-            .Headers(can_gc)
-            .copy_from_headers(r.Headers(can_gc))?;
-        r_clone.Headers(can_gc).set_guard(headers_guard);
+            .Headers(CanGc::from_cx(cx))
+            .copy_from_headers(r.Headers(CanGc::from_cx(cx)))?;
+        r_clone.Headers(CanGc::from_cx(cx)).set_guard(headers_guard);
 
-        clone_body_stream_for_dom_body(&r.body_stream, &r_clone.body_stream, can_gc)?;
+        clone_body_stream_for_dom_body(cx, &r.body_stream, &r_clone.body_stream)?;
 
         // Step 3. Return newRequest.
         Ok(r_clone)
@@ -716,20 +716,23 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-clone>
-    fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
+    fn Clone(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<Request>> {
         // Step 1. If this is unusable, then throw a TypeError.
         if self.is_unusable() {
             return Err(Error::Type(c"Request is unusable".to_owned()));
         }
 
         // Step 2. Let clonedRequest be the result of cloning this’s request.
-        let cloned_request = Request::clone_from(self, can_gc)?;
+        let cloned_request = Request::clone_from(cx, self)?;
         // Step 3. Assert: this’s signal is non-null.
         let signal = self.signal.get().expect("Should always be initialized");
         // Step 4. Let clonedSignal be the result of creating a dependent
         // abort signal from « this’s signal », using AbortSignal and this’s relevant realm.
-        let cloned_signal =
-            AbortSignal::create_dependent_abort_signal(vec![signal], &self.global(), can_gc);
+        let cloned_signal = AbortSignal::create_dependent_abort_signal(
+            vec![signal],
+            &self.global(),
+            CanGc::from_cx(cx),
+        );
         // Step 5. Let clonedRequestObject be the result of creating a Request object,
         // given clonedRequest, this’s headers’s guard, clonedSignal and this’s relevant realm.
         //

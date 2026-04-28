@@ -52,9 +52,9 @@ use crate::task_source::SendableTaskSource;
 
 /// <https://fetch.spec.whatwg.org/#concept-body-clone>
 pub(crate) fn clone_body_stream_for_dom_body(
+    cx: &mut js::context::JSContext,
     original_body_stream: &MutNullableDom<ReadableStream>,
     cloned_body_stream: &MutNullableDom<ReadableStream>,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // To clone a body *body*, run these steps:
 
@@ -63,7 +63,7 @@ pub(crate) fn clone_body_stream_for_dom_body(
     };
 
     // step 1. Let « out1, out2 » be the result of teeing body’s stream.
-    let branches = stream.tee(true, can_gc)?;
+    let branches = stream.tee(cx, true)?;
     let out1 = &*branches[0];
     let out2 = &*branches[1];
 
@@ -505,7 +505,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBuffer(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+                let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -516,7 +516,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBufferView(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+                let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -558,7 +558,7 @@ impl Extractable for Vec<u8> {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.clone();
         let total_bytes = self.len();
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -583,7 +583,7 @@ impl Extractable for Blob {
             Some(blob_type)
         };
         let total_bytes = self.Size() as usize;
-        let stream = self.get_stream(CanGc::from_cx(cx))?;
+        let stream = self.get_stream(cx)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -603,7 +603,7 @@ impl Extractable for DOMString {
         let bytes = self.as_bytes().to_owned();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from("text/plain;charset=UTF-8"));
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -627,7 +627,7 @@ impl Extractable for FormData {
             "multipart/form-data; boundary={}",
             boundary
         )));
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -649,7 +649,7 @@ impl Extractable for URLSearchParams {
         let content_type = Some(DOMString::from(
             "application/x-www-form-urlencoded;charset=UTF-8",
         ));
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),

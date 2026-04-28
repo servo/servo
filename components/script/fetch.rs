@@ -219,7 +219,7 @@ pub(crate) fn Fetch(
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
-    let response = Response::new(global, CanGc::from_cx(cx));
+    let response = Response::new(cx, global);
     response
         .Headers(CanGc::from_cx(cx))
         .set_guard(Guard::Immutable);

@@ -498,7 +498,7 @@ impl FileReader {
         // See the note below in the error steps.
 
         // Let stream be the result of calling get stream on blob.
-        let stream = blob.get_stream(CanGc::from_cx(cx));
+        let stream = blob.get_stream(cx);
 
         // Let reader be the result of getting a reader from stream.
         let reader = stream.and_then(|s| s.acquire_default_reader(CanGc::from_cx(cx)))?;
