@@ -43,6 +43,7 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_storage_manager_api_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
+    "largest_contentful_paint_enabled",
     "layout_columns_enabled",
     "layout_container_queries_enabled",
     "layout_grid_enabled",
