@@ -7,11 +7,12 @@ use std::fs::File;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
-use std::{fs, io};
+use std::{fs, io, thread};
 
 use log::{debug, error, warn};
 use read_fonts::FileRef::{Collection, Font as OHOS_Font};
 use read_fonts::{FileRef, FontRef, TableProvider};
+use serde::{Deserialize, Serialize};
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -20,6 +21,9 @@ use style::values::computed::{
 };
 use unicode_script::Script;
 
+use crate::platform::freetype::ohos::font_cache::{
+    font_file_cached_on_disk, read_from_disk, serialize_and_write_to_disk_wrapper,
+};
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,
@@ -36,7 +40,7 @@ static OHOS_FONTS_DIR: &str = env!("OHOS_SDK_FONTS_DIR");
 #[cfg(not(ohos_mock))]
 static OHOS_FONTS_DIR: &str = "/system/fonts";
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 // HarmonyOS only comes in Condensed and Normal variants
 enum FontWidth {
     Condensed,
@@ -53,7 +57,7 @@ impl From<FontWidth> for StyleFontStretch {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 struct Font {
     // `LocalFontIdentifier` uses `Atom` for string interning and requires a String or str, so we
     // already require a String here, instead of using a PathBuf.
@@ -63,19 +67,21 @@ struct Font {
     width: FontWidth,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FontFamily {
     name: String,
     fonts: Vec<Font>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FontAlias {
     from: String,
     to: String,
     weight: Option<i32>,
 }
 
-struct FontList {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub(super) struct FontList {
     families: Vec<FontFamily>,
     aliases: Vec<FontAlias>,
 }
@@ -258,9 +264,31 @@ fn get_family_name_and_generate_font_struct(
 
 impl FontList {
     fn new() -> FontList {
-        FontList {
-            families: Self::detect_installed_font_families(),
-            aliases: Self::fallback_font_aliases(),
+        if !font_file_cached_on_disk() {
+            let font_list = FontList {
+                families: Self::detect_installed_font_families(),
+                aliases: Self::fallback_font_aliases(),
+            };
+
+            let font_list_clone = font_list.clone();
+            thread::spawn(move || serialize_and_write_to_disk_wrapper(font_list_clone));
+            return font_list;
+        }
+
+        match read_from_disk() {
+            Ok(font_list) => font_list,
+            Err(e) => {
+                error!(
+                    "Servo fails to read cached FontList from disk. Error message: {:?}",
+                    e
+                );
+
+                // Since reading from disk fails, we have no choice but to generate the FontList...
+                return FontList {
+                    families: Self::detect_installed_font_families(),
+                    aliases: Self::fallback_font_aliases(),
+                };
+            },
         }
     }
 

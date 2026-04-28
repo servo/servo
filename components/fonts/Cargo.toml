@@ -37,8 +37,10 @@ malloc_size_of_derive = { workspace = true }
 memmap2 = { workspace = true }
 net_traits = { workspace = true }
 num-traits = { workspace = true }
+ohos-deviceinfo-sys = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
+postcard = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 rustc-hash = { workspace = true }
