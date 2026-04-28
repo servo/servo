@@ -146,4 +146,5 @@ pub(crate) mod like;
 pub(crate) mod proxyhandler;
 pub(crate) mod str;
 pub(crate) mod weakref;
+pub(crate) mod root;
 pub(crate) mod xmlname;

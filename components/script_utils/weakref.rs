@@ -9,11 +9,11 @@ use std::ops::{Deref, DerefMut, Drop};
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::root::DomRoot;
 pub(crate) use script_bindings::weakref::*;
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::JSTraceable;
+use crate::cell::DomRefCell;
+use js::gc::Traceable as JSTraceable;
 
 /// A mutable weak reference to a JS-managed DOM object. On tracing,
 /// the contained weak reference is dropped if the pointee was already
