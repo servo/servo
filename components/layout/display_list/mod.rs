@@ -1902,21 +1902,27 @@ impl<'a> BuilderForBoxFragment<'a> {
             );
             let spread = box_shadow.spread.px();
             let blur = box_shadow.base.blur.px();
-            let shifted = rect.translate(offset);
-            let spread_rect = shifted.inflate(spread, spread);
-            let shadow_rect = spread_rect.inflate(blur, blur);
-            let common = builder.common_properties(rect.union(&shadow_rect), &style);
+            let clip_rect = match clip_mode {
+                // Inset shadows are always inside the rect.
+                BoxShadowClipMode::Inset => rect,
+                // Match webrender's box_shadow.rs Gaussian blur inflation.
+                // (BLUR_SAMPLE_SCALE * blur).ceil(). BLUR_SAMPLE_SCALE is 3.0.
+                BoxShadowClipMode::Outset => {
+                    let extra_size_from_blur = (blur * 3.0).ceil();
+                    rect.translate(offset)
+                        .inflate(spread, spread)
+                        .inflate(extra_size_from_blur, extra_size_from_blur)
+                },
+            };
+            let common = builder.common_properties(clip_rect, &style);
 
             builder.wr().push_box_shadow(
                 &common,
                 rect,
-                LayoutVector2D::new(
-                    box_shadow.base.horizontal.px(),
-                    box_shadow.base.vertical.px(),
-                ),
+                offset,
                 rgba(style.resolve_color(&box_shadow.base.color)),
-                box_shadow.base.blur.px(),
-                box_shadow.spread.px(),
+                blur,
+                spread,
                 self.border_radius,
                 clip_mode,
             );
