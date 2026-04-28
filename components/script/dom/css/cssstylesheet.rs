@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::StyleSheetBinding::StyleSheetMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
@@ -172,6 +173,29 @@ impl CSSStyleSheet {
 
     pub(crate) fn disabled(&self) -> bool {
         self.style_stylesheet.borrow().disabled()
+    }
+
+    pub(crate) fn href(&self) -> Option<DOMString> {
+        self.upcast::<StyleSheet>().GetHref()
+    }
+
+    pub(crate) fn title(&self) -> DOMString {
+        self.upcast::<StyleSheet>().GetTitle().unwrap_or_default()
+    }
+
+    pub(crate) fn get_rule_count(&self) -> u32 {
+        let sheet = self.style_stylesheet.borrow();
+        let guard = sheet.shared_lock.read();
+        sheet.contents(&guard).rules.read_with(&guard).0.len() as u32
+    }
+
+    pub(crate) fn origin(&self) -> Origin {
+        let guard = self.style_shared_lock.read();
+        self.style_stylesheet()
+            .clone()
+            .contents
+            .read_with(&guard)
+            .origin
     }
 
     pub(crate) fn owner_node(&self) -> Option<DomRoot<Element>> {

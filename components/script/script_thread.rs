@@ -2128,6 +2128,12 @@ impl ScriptThread {
                     reply,
                 )
             },
+            DevtoolScriptControlMsg::GetStyleSheets(id, reply) => {
+                devtools::handle_get_stylesheets(&documents, id, reply);
+            },
+            DevtoolScriptControlMsg::GetStyleSheetText(id, index, reply) => {
+                devtools::handle_get_stylesheet_text(cx, &documents, id, index, reply);
+            },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
                 devtools::handle_get_children(cx, &self.devtools_state, id, &node_id, reply)
             },

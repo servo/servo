@@ -29,6 +29,7 @@ use crate::actors::blackboxing::BlackboxingActor;
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::console::ConsoleActor;
 use crate::actors::root::RootActor;
+use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
@@ -387,11 +388,11 @@ impl Actor for WatcherActor {
                             }
                         },
                         "stylesheet" => {
-                            // TODO: Fetch actual stylesheets from the script thread.
-                            // For now, send an empty array.
-                            let empty: Vec<serde_json::Value> = vec![];
+                            let stylesheets_actor = registry.find::<StyleSheetsActor>(
+                                &browsing_context_actor.style_sheets_name,
+                            );
                             browsing_context_actor.resources_array(
-                                empty,
+                                stylesheets_actor.get_stylesheets_data(&browsing_context_actor),
                                 resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,
