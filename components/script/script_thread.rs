@@ -2989,27 +2989,31 @@ impl ScriptThread {
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
-        if let Some(frame_element) = frame_element {
-            frame_element.update_pipeline_id(new_pipeline_id, reason, cx);
-        }
+        let Some(frame_element) = frame_element else {
+            return;
+        };
+        if !frame_element.update_pipeline_id(new_pipeline_id, reason, cx) {
+            return;
+        };
 
-        if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
-            // Ensure that the state of any local window proxies accurately reflects
-            // the new pipeline.
-            let _ = self.window_proxies.local_window_proxy(
-                cx,
-                &self.senders,
-                &self.documents,
-                &window,
-                browsing_context_id,
-                webview_id,
-                Some(parent_pipeline_id),
-                // Any local window proxy has already been created, so there
-                // is no need to pass along existing opener information that
-                // will be discarded.
-                None,
-            );
-        }
+        let Some(window) = self.documents.borrow().find_window(new_pipeline_id) else {
+            return;
+        };
+        // Ensure that the state of any local window proxies accurately reflects
+        // the new pipeline.
+        let _ = self.window_proxies.local_window_proxy(
+            cx,
+            &self.senders,
+            &self.documents,
+            &window,
+            browsing_context_id,
+            webview_id,
+            Some(parent_pipeline_id),
+            // Any local window proxy has already been created, so there
+            // is no need to pass along existing opener information that
+            // will be discarded.
+            None,
+        );
     }
 
     fn handle_update_history_state_msg(
