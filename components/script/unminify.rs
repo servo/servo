@@ -65,22 +65,27 @@ pub(crate) fn execute_js_beautify(input: &Path, output: File, file_type: Beautif
     }
 }
 
-pub(crate) fn create_output_file(
+pub fn create_output_file(
     unminified_dir: String,
     url: &ServoUrl,
     external: Option<bool>,
 ) -> Result<File, Error> {
     let path = PathBuf::from(unminified_dir);
 
+    // Strip the query string from the URL before using it as a file path.
+    // '?' is a reserved character on Windows and causes file creation to fail
+    // silently. BeforeHost..AfterPath stops the slice before the '?' separator.
+    let url_path = &url[url::Position::BeforeHost..url::Position::AfterPath];
+
     let (base, has_name) = match url.as_str().ends_with('/') {
         true => (
-            path.join(&url[url::Position::BeforeHost..])
+            path.join(url_path)
                 .as_path()
                 .to_owned(),
             false,
         ),
         false => (
-            path.join(&url[url::Position::BeforeHost..])
+            path.join(url_path)
                 .parent()
                 .unwrap()
                 .to_owned(),
@@ -92,7 +97,7 @@ pub(crate) fn create_output_file(
 
     let path = if external.unwrap_or(true) && has_name {
         // External.
-        path.join(&url[url::Position::BeforeHost..])
+        path.join(url_path)
     } else {
         // Inline file or url ends with '/'
         base.join(Uuid::new_v4().to_string())

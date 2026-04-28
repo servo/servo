@@ -5,6 +5,8 @@
 #[cfg(test)]
 mod encoding_detection;
 #[cfg(test)]
+mod unminify;
+#[cfg(test)]
 mod htmlareaelement;
 #[cfg(test)]
 mod htmlimageelement;
