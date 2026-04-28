@@ -139,7 +139,6 @@ pub(crate) mod error;
 pub(crate) mod principals;
 pub(crate) mod refcounted;
 pub(crate) mod reflector;
-pub(crate) mod root;
 pub(crate) mod serializable;
 pub(crate) mod settings_stack;
 pub(crate) mod structuredclone;

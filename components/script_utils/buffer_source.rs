@@ -46,7 +46,7 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::script_runtime::{CanGc, JSContext};
-use script_bindings::trace::RootedTraceableBox;
+use script_bindings::trace::{CustomTraceable, RootedTraceableBox};
 use js::gc::Traceable as JSTraceable;
 
 #[cfg(feature = "webgpu")]
@@ -750,12 +750,12 @@ pub(crate) fn byte_size(byte_type: Type) -> u64 {
     }
 }
 
-#[derive(Clone, Eq, JSTraceable2, MallocSizeOf, PartialEq)]
+#[derive(Clone, Eq, /* JSTraceable2,*/ MallocSizeOf, PartialEq)]
 pub(crate) enum Constructor {
     DataView,
     Name(
         #[ignore_malloc_size_of = "mozjs"]
-        #[no_trace]
+        //#[no_trace]
         Type,
     ),
 }

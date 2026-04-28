@@ -30,7 +30,7 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
 }
 
 
-#[derive(JSTraceable2)]
+//#[derive(JSTraceable2)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct CachedFrozenArray {
     frozen_value: DomRefCell<Option<Heap<JSVal>>>,

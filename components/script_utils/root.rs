@@ -148,14 +148,14 @@ impl<T> Clone for LayoutDom<'_, T> {
     }
 }
 
-impl LayoutDom<'_, Node> {
+impl<T> LayoutDom<'_, T> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
     pub(crate) unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> Self {
         assert_in_layout();
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
-            value: unsafe { &*(addr as *const Node) },
+            value: unsafe { &*(addr as *const T) },
         }
     }
 }
@@ -166,7 +166,7 @@ impl LayoutDom<'_, Node> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable2)]
+//#[derive(JSTraceable2)]
 pub(crate) struct MutDom<T: DomObject> {
     val: UnsafeCell<Dom<T>>,
 }
@@ -284,7 +284,7 @@ impl<'a, T: Castable> UnrootedDom<'a, T> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable)]
+//#[derive(JSTraceable2)]
 pub(crate) struct MutNullableDom<T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
 }
