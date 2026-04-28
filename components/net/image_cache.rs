@@ -737,7 +737,7 @@ impl ImageCacheFactoryImpl {
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
-            thread_pool: ThreadPool::current_threadpool(),
+            thread_pool: ThreadPool::global(),
             fontdb: Arc::new(fontdb),
         }
     }

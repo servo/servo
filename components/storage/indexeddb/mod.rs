@@ -801,7 +801,7 @@ impl IndexedDBManager {
             port,
             manager_sender,
             databases: HashMap::new(),
-            thread_pool: ThreadPool::current_threadpool(),
+            thread_pool: ThreadPool::global(),
             serial_number_counter: 0,
             connection_queues: Default::default(),
             connections: Default::default(),
