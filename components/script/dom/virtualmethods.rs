@@ -5,7 +5,6 @@
 use html5ever::LocalName;
 use js::context::JSContext;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
