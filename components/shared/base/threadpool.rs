@@ -51,22 +51,23 @@ impl ThreadPoolState {
     }
 }
 
-/// Threadpools used throughout servo (except layout/stylo and webrender).
+/// The thread pools used throughout Servo, apart from those used by Layout and WebRender which
+/// are handled separately.
 pub struct ThreadPool {
     pool: rayon::ThreadPool,
     state: Arc<Mutex<ThreadPoolState>>,
 }
 
-static GLOBAL_THREADPOOL: OnceLock<Arc<ThreadPool>> = OnceLock::new();
+static GLOBAL_THREAD_POOL: OnceLock<Arc<ThreadPool>> = OnceLock::new();
 
 impl ThreadPool {
-    /// Gets the current threadpool for the process.
-    pub fn current_threadpool() -> Arc<Self> {
-        let pool = GLOBAL_THREADPOOL.get_or_init(|| {
+    /// Get the global thread pool for the process.
+    pub fn global() -> Arc<Self> {
+        let pool = GLOBAL_THREAD_POOL.get_or_init(|| {
             let paralellism = thread::available_parallelism()
-                .map(|i| i.get())
-                .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-                .min(pref!(threadpools_workers_max) as usize);
+                .map(|parallelism| parallelism.get())
+                .unwrap_or(pref!(thread_pool_fallback_workers) as usize)
+                .min(pref!(thread_pool_workers_max) as usize);
             let pool = rayon::ThreadPoolBuilder::new()
                 .thread_name(move |i| format!("GlobalPool#{i}"))
                 .num_threads(paralellism)

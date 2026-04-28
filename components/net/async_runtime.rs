@@ -48,8 +48,8 @@ pub fn init_async_runtime() -> Box<dyn AsyncRuntime> {
         .worker_threads(
             thread::available_parallelism()
                 .map(|i| i.get())
-                .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
-                .min(servo_config::pref!(threadpools_async_runtime_workers_max).max(1) as usize),
+                .unwrap_or(servo_config::pref!(thread_pool_fallback_workers) as usize)
+                .min(servo_config::pref!(thread_pool_async_runtime_workers_max).max(1) as usize),
         )
         .enable_io()
         .enable_time()

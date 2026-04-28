@@ -786,7 +786,7 @@ mod tests {
     }
 
     fn get_pool() -> Arc<ThreadPool> {
-        ThreadPool::current_threadpool()
+        ThreadPool::global()
     }
 
     #[test]

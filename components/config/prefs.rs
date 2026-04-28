@@ -326,14 +326,14 @@ pub struct Preferences {
     pub shell_background_color_rgba: [f64; 4],
     pub webgl_testing_context_creation_error: bool,
     /// Maximum number of workers for the main thread pool
-    pub threadpools_workers_max: u64,
-    /// Number of workers per threadpool, if we fail to detect how much
+    pub thread_pool_workers_max: u64,
+    /// Number of workers per thread pool, if we fail to detect how much
     /// parallelism is available at runtime.
-    pub threadpools_fallback_worker_num: u64,
-    /// Maximum number of workers for the Networking async runtime thread pool
-    pub threadpools_async_runtime_workers_max: u64,
-    /// Maximum number of workers for webrender
-    pub threadpools_webrender_workers_max: u64,
+    pub thread_pool_fallback_workers: u64,
+    /// Maximum number of workers for the asynchronous networking runtime thread pool
+    pub thread_pool_async_runtime_workers_max: u64,
+    /// Maximum number of workers for WebRender
+    pub thread_pool_webrender_workers_max: u64,
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
     /// order to set the value to the default value for the given platform.
     pub user_agent: String,
@@ -498,14 +498,14 @@ impl Preferences {
             network_use_webpki_roots: false,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
-            threadpools_workers_max: 4,
-            threadpools_async_runtime_workers_max: 6,
-            threadpools_fallback_worker_num: 3,
-            threadpools_webrender_workers_max: 4,
+            log_filter: String::new(),
+            thread_pool_workers_max: 4,
+            thread_pool_async_runtime_workers_max: 6,
+            thread_pool_fallback_workers: 3,
+            thread_pool_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
             viewport_meta_enabled: false,
-            log_filter: String::new(),
         }
     }
 
