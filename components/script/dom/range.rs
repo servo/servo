@@ -896,7 +896,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             },
             _ => {
                 // Steps 4-5.
-                let child = start_node.ChildNodes(CanGc::from_cx(cx)).Item(start_offset);
+                let child = start_node.ChildNodes(cx).Item(start_offset);
                 (child, DomRoot::from_ref(&*start_node))
             },
         };
