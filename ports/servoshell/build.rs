@@ -102,7 +102,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .join("platform")
             .join("openharmony")
             .join("libservoshell.ver");
-        let version_script_str = version_script.to_str().expect("utf-8");
+        let version_script_str = version_script.to_str().expect("Expected UTF-8 text");
         assert!(
             version_script.exists(),
             "Expected version script to exist at path `{version_script_str}`"
