@@ -6151,8 +6151,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
-    fn QueryCommandIndeterm(&self, command_id: DOMString) -> bool {
-        self.is_command_indeterminate(command_id)
+    fn QueryCommandIndeterm(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
+        self.is_command_indeterminate(cx, command_id)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
