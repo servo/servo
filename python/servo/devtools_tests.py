@@ -1255,6 +1255,91 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
                 done.result(1)
 
+    def test_stylesheet_inline(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/stylesheets/inline_style.html")
+        with Devtools.connect() as devtools:
+            done = Future()
+            stylesheets_data = []
+
+            def on_resource(data):
+                for [resource_type, resources] in data["array"]:
+                    if resource_type == "stylesheet":
+                        stylesheets_data.extend(resources)
+                        done.set_result(None)
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_resource,
+            )
+            devtools.watcher.watch_resources([Resources.STYLESHEET])
+            done.result(1)
+
+            # Inline sheets won't have href.
+            inline_sheet = stylesheets_data[0]
+            self.assertIsNone(inline_sheet.get("href"))
+            self.assertEqual(inline_sheet["ruleCount"], 2)
+            self.assertFalse(inline_sheet["system"])
+            self.assertFalse(inline_sheet["disabled"])
+
+    def test_stylesheet_linked(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/stylesheets/linked_style.html")
+        with Devtools.connect() as devtools:
+            done = Future()
+            stylesheets_data = []
+
+            def on_resource(data):
+                for [resource_type, resources] in data["array"]:
+                    if resource_type == "stylesheet":
+                        stylesheets_data.extend(resources)
+                        done.set_result(None)
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_resource,
+            )
+            devtools.watcher.watch_resources([Resources.STYLESHEET])
+            done.result(1)
+
+            # Linked sheets have linked css as href.
+            linked_sheet = stylesheets_data[0]
+            self.assertEqual(f"{self.base_urls[0]}/stylesheets/styles.css", linked_sheet["href"])
+            self.assertFalse(linked_sheet["system"])
+            self.assertEqual(linked_sheet["ruleCount"], 1)
+            self.assertFalse(linked_sheet["disabled"])
+
+    def test_stylesheet_content(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/stylesheets/linked_style.html")
+        with Devtools.connect() as devtools:
+            founded_resources = []
+            done = Future()
+
+            def on_resource(data):
+                for [resource_type, resources] in data["array"]:
+                    if resource_type == "stylesheet":
+                        founded_resources.extend(resources)
+                        done.set_result(None)
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_resource,
+            )
+            devtools.watcher.watch_resources([Resources.STYLESHEET])
+            done.result(1)
+
+            # Test getText by sending the resource id.
+            reply = devtools.client.send_receive(
+                {
+                    "to": devtools.targets[0]["styleSheetsActor"],
+                    "type": "getText",
+                    "resourceId": founded_resources[0]["resourceId"],
+                }
+            )
+            style_text = reply["text"]["initial"]
+            self.assertIn("body { background: green; font-size: small; }", style_text)
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
     def setUpClass(cls):
