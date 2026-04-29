@@ -18,7 +18,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
@@ -692,6 +692,7 @@ pub struct AuthCache {
 
 pub struct CoreResourceManager {
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
     request_interceptor: RequestInterceptor,
@@ -713,6 +714,7 @@ impl CoreResourceManager {
     ) -> CoreResourceManager {
         CoreResourceManager {
             devtools_sender,
+            embedder_proxy: embedder_proxy.clone(),
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy.clone(), blob_token_communicator),
             request_interceptor: RequestInterceptor::new(embedder_proxy),
@@ -769,6 +771,9 @@ impl CoreResourceManager {
 
         let request = request_builder.build();
         let url = request.current_url();
+        let target_webview_id = request.target_webview_id;
+        let is_for_main_frame = matches!(request.destination, Destination::Document);
+        let embedder_proxy = self.embedder_proxy.clone();
 
         // In the case of a valid blob URL, acquiring a token granting access to a file,
         // regardless if the URL is revoked after token acquisition.
@@ -824,7 +829,7 @@ impl CoreResourceManager {
                 in_flight_keep_alive_records,
             };
 
-            match res_init_ {
+            let response = match res_init_ {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
 
@@ -847,11 +852,26 @@ impl CoreResourceManager {
                     ) {
                         request_body_stream_closer.disarm();
                     }
+                    response
                 },
-                None => {
-                    fetch(request, &mut sender, &context).await;
-                },
+                None => fetch(request, &mut sender, &context).await,
             };
+
+            // Forward error to embedder
+            if !response.status.is_success() && is_for_main_frame {
+                if let Some(target_webview_id) = target_webview_id {
+                    if let Some(status_code) = response.status.try_code() {
+                        embedder_proxy.send(NetToEmbedderMsg::RequestError(
+                            target_webview_id,
+                            status_code,
+                        ));
+                    } else {
+                        error!("Could not convert status code");
+                    }
+                } else {
+                    error!("Response error while target_webview_id or get_network_error is None.");
+                };
+            }
 
             // Remove token after fetch.
             if let Some(id) = blob_url_file_id.as_ref() {

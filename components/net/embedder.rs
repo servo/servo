@@ -39,4 +39,6 @@ pub enum NetToEmbedderMsg {
     EmbedderGetCookiesForUrlResponse(CookieOperationId, Vec<Cookie<'static>>),
     /// Response to a [`CoreResourceMsg::EmbedderSetCookieForUrl`] request.
     EmbedderSetCookieForUrlResponse(CookieOperationId),
+    /// Returns errors that we encounter while handling the networking.
+    RequestError(WebViewId, http::StatusCode),
 }

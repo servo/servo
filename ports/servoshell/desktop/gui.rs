@@ -450,6 +450,7 @@ impl Gui {
                                         );
                                     }
                                 },
+                                LoadStatus::Failed(_) => {},
                             }
                             ui.add_space(2.0);
 
