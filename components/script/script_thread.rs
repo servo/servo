@@ -1199,7 +1199,7 @@ impl ScriptThread {
             self.process_pending_input_events(cx, *pipeline_id);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
-            let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));
+            let resized = document.window().run_the_resize_steps(cx);
 
             // > 9. For each doc of docs, run the scroll steps for doc.
             document.run_the_scroll_steps(cx);
