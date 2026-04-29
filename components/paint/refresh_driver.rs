@@ -6,16 +6,14 @@ use std::cell::{Cell, LazyCell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread::{self, JoinHandle};
-use std::time::Duration;
 
-use crossbeam_channel::{Sender, select};
+use crossbeam_channel::Sender;
 use embedder_traits::{EventLoopWaker, RefreshDriver};
 use log::warn;
 use servo_constellation_traits::EmbedderToConstellationMessage;
-use timers::{BoxedTimerCallback, TimerEventRequest, TimerScheduler};
 
 use crate::painter::Painter;
+use crate::timer::TimerDriver;
 use crate::webview_renderer::WebViewRenderer;
 
 /// The [`BaseRefreshDriver`] is a "base class" for [`RefreshDriver`] trait
@@ -40,9 +38,9 @@ impl BaseRefreshDriver {
     pub(crate) fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
         refresh_driver: Option<Rc<dyn RefreshDriver>>,
-        timer_refresh_driver: &LazyCell<Rc<TimerRefreshDriver>>,
+        timer_driver: &LazyCell<Rc<TimerDriver>>,
     ) -> Self {
-        let refresh_driver = refresh_driver.unwrap_or_else(|| (**timer_refresh_driver).clone());
+        let refresh_driver = refresh_driver.unwrap_or_else(|| (**timer_driver).clone());
         Self {
             waiting_for_frame: Arc::new(AtomicBool::new(false)),
             event_loop_waker,
@@ -177,83 +175,5 @@ impl RefreshDriverObserver for AnimationRefreshDriverObserver {
 
         self.animating.set(true);
         true
-    }
-}
-
-enum TimerThreadMessage {
-    Request(TimerEventRequest),
-    Quit,
-}
-
-/// A thread that manages a [`TimerScheduler`] running in the background of the
-/// [`RefreshDriver`]. This is necessary because we need a reliable way of waking up the
-/// embedder's main thread, which may just be sleeping until the `EventLoopWaker` asks it
-/// to wake up.
-///
-/// It would be nice to integrate this somehow into the embedder thread, but it would
-/// require both some communication with the embedder and for all embedders to be well
-/// behave respecting wakeup timeouts -- a bit too much to ask at the moment.
-pub(crate) struct TimerRefreshDriver {
-    sender: Sender<TimerThreadMessage>,
-    join_handle: Option<JoinHandle<()>>,
-}
-
-impl Default for TimerRefreshDriver {
-    fn default() -> Self {
-        let (sender, receiver) = crossbeam_channel::unbounded::<TimerThreadMessage>();
-        let join_handle = thread::Builder::new()
-            .name(String::from("PaintTimerThread"))
-            .spawn(move || {
-                let mut scheduler = TimerScheduler::default();
-
-                loop {
-                    select! {
-                        recv(receiver) -> message => {
-                            match message {
-                                Ok(TimerThreadMessage::Request(request)) => {
-                                    scheduler.schedule_timer(request);
-                                },
-                                _ => return,
-                            }
-                        },
-                        recv(scheduler.wait_channel()) -> _message => {
-                            scheduler.dispatch_completed_timers();
-                        },
-                    };
-                }
-            })
-            .expect("Could not create RefreshDriver timer thread.");
-
-        Self {
-            sender,
-            join_handle: Some(join_handle),
-        }
-    }
-}
-
-impl TimerRefreshDriver {
-    pub(crate) fn queue_timer(&self, duration: Duration, callback: BoxedTimerCallback) {
-        let _ = self
-            .sender
-            .send(TimerThreadMessage::Request(TimerEventRequest {
-                callback,
-                duration,
-            }));
-    }
-}
-
-impl RefreshDriver for TimerRefreshDriver {
-    fn observe_next_frame(&self, new_start_frame_callback: Box<dyn Fn() + Send + 'static>) {
-        const FRAME_DURATION: Duration = Duration::from_millis(1000 / 120);
-        self.queue_timer(FRAME_DURATION, new_start_frame_callback);
-    }
-}
-
-impl Drop for TimerRefreshDriver {
-    fn drop(&mut self) {
-        let _ = self.sender.send(TimerThreadMessage::Quit);
-        if let Some(join_handle) = self.join_handle.take() {
-            let _ = join_handle.join();
-        }
     }
 }

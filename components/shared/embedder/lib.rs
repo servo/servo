@@ -896,7 +896,7 @@ impl UntrustedNodeAddress {
 }
 
 /// The result of a hit test in `Paint`.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct PaintHitTestResult {
     /// The pipeline id of the resulting item.
     pub pipeline_id: PipelineId,

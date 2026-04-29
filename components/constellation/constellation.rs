@@ -1598,6 +1598,9 @@ where
             EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
                 self.set_accessibility_active(webview_id, active);
             },
+            EmbedderToConstellationMessage::ShowContextMenu(webview_id, event, hit_test) => {
+                self.show_context_menu(webview_id, event, hit_test);
+            },
         }
     }
 
@@ -3240,6 +3243,38 @@ where
             pipeline_id,
             ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active, epoch),
             "Set accessibility active after closure",
+        );
+    }
+
+    fn show_context_menu(
+        &mut self,
+        webview_id: WebViewId,
+        event: InputEventAndId,
+        hit_test_result: PaintHitTestResult,
+    ) {
+        // Get the web view using its ID.
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            warn!("Got context menu event for unknown WebViewId: {webview_id:?}");
+            return;
+        };
+
+        // Get webview's pipeline ID.
+        let Some(pipeline_id) = webview.active_top_level_pipeline_id else {
+            return;
+        };
+
+        // Construct event without any mouse or keyboard modifiers.
+        let constellation_event = ConstellationInputEvent {
+            event,
+            hit_test_result: Some(hit_test_result),
+            active_keyboard_modifiers: Default::default(),
+            pressed_mouse_buttons: Default::default(),
+        };
+
+        self.send_message_to_pipeline(
+            pipeline_id,
+            ScriptThreadMessage::ShowContextMenu(pipeline_id, constellation_event),
+            "Show contet menu after closure",
         );
     }
 

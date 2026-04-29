@@ -4,12 +4,19 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
-use embedder_traits::{InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId};
+use crossbeam_channel::Sender;
+use embedder_traits::{
+    InputEventAndId, InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId,
+};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::id::WebViewId;
+use servo_constellation_traits::EmbedderToConstellationMessage;
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceVector2D};
 
@@ -17,7 +24,19 @@ use self::TouchSequenceState::*;
 use crate::paint::RepaintReason;
 use crate::painter::Painter;
 use crate::refresh_driver::{BaseRefreshDriver, RefreshDriverObserver};
+use crate::timer::{PaintTimerId, TimerDriver};
 use crate::webview_renderer::{ScrollEvent, ScrollZoomEvent, WebViewRenderer};
+
+/// Minimum time before a tap is considered a long-press (touch context menu).
+const LONG_PRESS_DURATION: Duration = Duration::from_millis(500);
+/// Square of the minimum number of `DeviceIndependentPixel` to begin touch scrolling/Pinching.
+const TOUCH_PAN_MIN_SCREEN_PX_SQUARED: f32 = 100.0;
+/// Factor by which the flinging velocity changes on each tick.
+const FLING_SCALING_FACTOR: f32 = 0.95;
+/// Minimum velocity required for transitioning to fling when panning ends.
+const FLING_MIN_SCREEN_PX: f32 = 3.0;
+/// Maximum velocity when flinging.
+const FLING_MAX_SCREEN_PX: f32 = 4000.0;
 
 /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
 /// The ID is the same for all events between `Down` and `Up` or `Cancel`
@@ -40,15 +59,6 @@ impl TouchSequenceId {
     }
 }
 
-/// Minimum number of `DeviceIndependentPixel` to begin touch scrolling/Pinching.
-const TOUCH_PAN_MIN_SCREEN_PX: f32 = 10.0;
-/// Factor by which the flinging velocity changes on each tick.
-const FLING_SCALING_FACTOR: f32 = 0.95;
-/// Minimum velocity required for transitioning to fling when panning ends.
-const FLING_MIN_SCREEN_PX: f32 = 3.0;
-/// Maximum velocity when flinging.
-const FLING_MAX_SCREEN_PX: f32 = 4000.0;
-
 pub struct TouchHandler {
     /// The [`WebViewId`] of the `WebView` this [`TouchHandler`] is associated with.
     webview_id: WebViewId,
@@ -60,6 +70,9 @@ pub struct TouchHandler {
     pub(crate) pending_touch_input_events: RefCell<FxHashMap<InputEventId, PendingTouchInputEvent>>,
     /// Whether or not the [`FlingRefreshDriverObserver`] is currently observing frames for fling.
     observing_frames_for_fling: Cell<bool>,
+    embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+    /// Thread for scheduling timer-based callbacks.
+    timer_driver: Rc<TimerDriver>,
 }
 
 /// Whether the default move action is allowed or not.
@@ -102,6 +115,7 @@ pub struct TouchSequenceInfo {
     /// - We had a touch move larger than the minimum distance OR
     /// - We had multiple active touchpoints OR
     /// - `preventDefault()` was called in a touch_down or touch_up handler
+    /// - A long-press was triggered
     pub prevent_click: bool,
     /// Whether move is allowed, prevented or the result is still pending.
     /// Once the first move has been processed by script, we can transition to
@@ -117,6 +131,10 @@ pub struct TouchSequenceInfo {
     pending_touch_move_actions: Vec<ScrollZoomEvent>,
     /// Cache for the last touch hit test result.
     hit_test_result_cache: Option<HitTestResultCache>,
+    /// Whether the context menu was opened as a result of this touch sequence.
+    context_menu_opened: Arc<AtomicBool>,
+    /// ID of the pending context menu callback.
+    context_menu_timer: Option<PaintTimerId>,
 }
 
 impl TouchSequenceInfo {
@@ -210,7 +228,11 @@ pub(crate) struct FlingAction {
 }
 
 impl TouchHandler {
-    pub(crate) fn new(webview_id: WebViewId) -> Self {
+    pub(crate) fn new(
+        webview_id: WebViewId,
+        embedder_to_constellation_sender: Sender<EmbedderToConstellationMessage>,
+        timer_driver: Rc<TimerDriver>,
+    ) -> Self {
         let finished_info = TouchSequenceInfo {
             state: TouchSequenceState::Finished,
             active_touch_points: vec![],
@@ -219,6 +241,8 @@ impl TouchHandler {
             prevent_move: TouchMoveAllowed::Pending,
             pending_touch_move_actions: vec![],
             hit_test_result_cache: None,
+            context_menu_opened: Default::default(),
+            context_menu_timer: None,
         };
         // We insert a simulated initial touch sequence, which is already finished,
         // so that we always have one element in the map, which simplifies creating
@@ -226,6 +250,8 @@ impl TouchHandler {
         let mut touch_sequence_map = FxHashMap::default();
         touch_sequence_map.insert(TouchSequenceId::new(), finished_info);
         TouchHandler {
+            embedder_to_constellation_sender,
+            timer_driver,
             webview_id,
             current_sequence_id: TouchSequenceId::new(),
             touch_sequence_map,
@@ -264,6 +290,11 @@ impl TouchHandler {
 
     pub(crate) fn prevent_click(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
+            // Cancel context menu timer, since the default touch action was prevented.
+            if let Some(timer_id) = sequence.context_menu_timer.take() {
+                self.timer_driver.cancel_timer(timer_id);
+            }
+
             sequence.prevent_click = true;
         } else {
             warn!("TouchSequenceInfo corresponding to the sequence number has been deleted.");
@@ -343,7 +374,14 @@ impl TouchHandler {
         self.touch_sequence_map.get_mut(&sequence_id)
     }
 
-    pub(crate) fn on_touch_down(&mut self, touch_id: TouchId, point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_down(
+        &mut self,
+        touch_id: TouchId,
+        point: Point2D<f32, DevicePixel>,
+        event_and_id: InputEventAndId,
+        hit_test_result: Option<PaintHitTestResult>,
+        scale: Scale<f32, CSSPixel, DevicePixel>,
+    ) {
         // if the current sequence ID does not exist in the map, then it was already handled
         if !self
             .touch_sequence_map
@@ -353,25 +391,51 @@ impl TouchHandler {
         {
             self.current_sequence_id.next();
             debug!("Entered new touch sequence: {:?}", self.current_sequence_id);
+
+            // Schedule timer to open the context menu.
+            let context_menu_opened = Arc::new(AtomicBool::new(false));
+            let context_menu_timer = hit_test_result.map(|hit_test_result| {
+                self.schedule_context_menu_timer(
+                    hit_test_result,
+                    event_and_id,
+                    context_menu_opened.clone(),
+                )
+            });
+
+            // Initialize hit test result cache.
+            let hit_test_result_cache = hit_test_result.map(|value| HitTestResultCache {
+                value,
+                device_pixels_per_page: scale,
+            });
+
             let active_touch_points = vec![TouchPoint::new(touch_id, point)];
             self.touch_sequence_map.insert(
                 self.current_sequence_id,
                 TouchSequenceInfo {
+                    context_menu_opened,
+                    context_menu_timer,
                     state: Touching,
                     active_touch_points,
                     touch_ids_in_move: FxHashSet::default(),
                     prevent_click: false,
                     prevent_move: TouchMoveAllowed::Pending,
                     pending_touch_move_actions: vec![],
-                    hit_test_result_cache: None,
+                    hit_test_result_cache,
                 },
             );
         } else {
             debug!("Touch down in sequence {:?}.", self.current_sequence_id);
+
+            // Ignore new touch points after context menu event has fired.
             let touch_sequence = self.get_current_touch_sequence_mut();
+            if touch_sequence.context_menu_opened.load(Ordering::Relaxed) {
+                return;
+            }
+
             touch_sequence
                 .active_touch_points
                 .push(TouchPoint::new(touch_id, point));
+
             match touch_sequence.active_touch_points.len() {
                 2.. => {
                     touch_sequence.state = MultiTouch;
@@ -380,9 +444,50 @@ impl TouchHandler {
                     unreachable!("Secondary touch_down event with less than 2 fingers active?");
                 },
             }
+
             // Multiple fingers prevent a click.
             touch_sequence.prevent_click = true;
+
+            // Inhibit context menu for sequences with multiple touch points.
+            if let Some(timer_id) = touch_sequence.context_menu_timer.take() {
+                self.timer_driver.cancel_timer(timer_id);
+            }
         }
+    }
+
+    /// Start the timer for opening the context menu.
+    fn schedule_context_menu_timer(
+        &self,
+        hit_test_result: PaintHitTestResult,
+        event_and_id: InputEventAndId,
+        context_menu_opened: Arc<AtomicBool>,
+    ) -> PaintTimerId {
+        let sender = self.embedder_to_constellation_sender.clone();
+        let event_and_id = Cell::new(Some(event_and_id));
+        let webview_id = self.webview_id;
+
+        let callback = Box::new(move || {
+            // Ignore callback after the first invocation.
+            let event_and_id = match event_and_id.replace(None) {
+                Some(event_and_id) => event_and_id,
+                None => return,
+            };
+
+            // Dispatch context menu event to be handled by the script thread.
+            let _ = sender
+                .send(EmbedderToConstellationMessage::ShowContextMenu(
+                    webview_id,
+                    event_and_id,
+                    hit_test_result,
+                ))
+                .inspect_err(|err| warn!("Could not send message to constellation: {err:?}"));
+
+            // Mark touch sequence as having been used to open the context menu.
+            // This is used to inhibit further touch events from firing after the menu was opened.
+            context_menu_opened.store(true, Ordering::Relaxed);
+        });
+
+        self.timer_driver.queue_timer(LONG_PRESS_DURATION, callback)
     }
 
     pub(crate) fn notify_new_frame_start(&mut self) -> Option<FlingAction> {
@@ -443,10 +548,16 @@ impl TouchHandler {
         point: Point2D<f32, DevicePixel>,
         scale: f32,
     ) -> Option<ScrollZoomEvent> {
-        // As `TouchHandler` is per `WebViewRenderer` which is per `WebView` we might get a Touch Sequence Move that
-        // started with a down on a different webview. As the touch_sequence id is only changed on touch_down this
-        // move event gets a touch id which is already cleaned up.
+        // Ignore touch motion after context menu event has fired.
         let touch_sequence = self.try_get_current_touch_sequence_mut()?;
+        if touch_sequence.context_menu_opened.load(Ordering::Relaxed) {
+            return None;
+        }
+
+        // As `TouchHandler` is per `WebViewRenderer` which is per `WebView` we might get a Touch
+        // Sequence Move that started with a down on a different webview. As the touch_sequence id
+        // is only changed on touch_down this move event gets a touch id which is already cleaned
+        // up.
         let idx = match touch_sequence
             .active_touch_points
             .iter_mut()
@@ -458,10 +569,13 @@ impl TouchHandler {
                 return None;
             },
         };
+
         let old_point = touch_sequence.active_touch_points[idx].point;
         let delta = point - old_point;
+        let distance_squared = delta.x.powi(2) + delta.y.powi(2);
         touch_sequence.update_hit_test_result_cache_pointer(delta);
 
+        let mut timer_pending_cancel = None;
         let action = match touch_sequence.touch_count() {
             1 => {
                 if let Panning { ref mut velocity } = touch_sequence.state {
@@ -476,21 +590,21 @@ impl TouchHandler {
                         scroll: Scroll::Delta((-delta).into()),
                         point,
                     }))
-                } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale ||
-                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale
-                {
+                } else if distance_squared > TOUCH_PAN_MIN_SCREEN_PX_SQUARED * scale {
                     let _span = profile_traits::info_span!(
                         "TouchHandler::ScrollBegin",
                         delta = ?delta,
                     )
                     .entered();
+
                     touch_sequence.state = Panning {
                         velocity: Vector2D::new(delta.x, delta.y),
                     };
-                    // No clicks should be issued after we transitioned to move.
-                    touch_sequence.prevent_click = true;
-                    // update the touch point
                     touch_sequence.active_touch_points[idx].point = point;
+
+                    // Inhibit clicks and context menu after we transitioned to move.
+                    timer_pending_cancel = touch_sequence.context_menu_timer.take();
+                    touch_sequence.prevent_click = true;
 
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
@@ -505,8 +619,7 @@ impl TouchHandler {
             },
             2 => {
                 if touch_sequence.state == Pinching ||
-                    delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale ||
-                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale
+                    distance_squared > TOUCH_PAN_MIN_SCREEN_PX_SQUARED * scale
                 {
                     touch_sequence.state = Pinching;
                     let (d0, _) = touch_sequence.pinch_distance_and_center();
@@ -528,18 +641,26 @@ impl TouchHandler {
                 None
             },
         };
+
         // If the touch action is not `NoAction` and the first move has not been processed,
-        //  set pending_touch_move_action.
+        // set pending_touch_move_action.
         if let Some(action) = action {
             if touch_sequence.prevent_move == TouchMoveAllowed::Pending {
                 touch_sequence.add_pending_touch_move_action(action);
             }
         }
 
+        // Handle context menu timer dismissal.
+        if let Some(timer_id) = timer_pending_cancel {
+            self.timer_driver.cancel_timer(timer_id);
+        }
+
         action
     }
 
     pub(crate) fn on_touch_up(&mut self, touch_id: TouchId, point: Point2D<f32, DevicePixel>) {
+        let current_sequence_id = self.current_sequence_id;
+
         let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
             warn!("Current touch sequence not found");
             return;
@@ -555,6 +676,13 @@ impl TouchHandler {
                 None
             },
         };
+
+        // Ignore touch release after context menu event has fired.
+        if touch_sequence.context_menu_opened.load(Ordering::Relaxed) {
+            touch_sequence.state = Finished;
+            return;
+        }
+
         match touch_sequence.state {
             Touching => {
                 if touch_sequence.prevent_click {
@@ -608,6 +736,7 @@ impl TouchHandler {
                 error!("Touch-up received, but touch handler already in post-touchup state.")
             },
         }
+
         #[cfg(debug_assertions)]
         if touch_sequence.active_touch_points.is_empty() {
             debug_assert!(
@@ -619,8 +748,13 @@ impl TouchHandler {
         debug!(
             "Touch up with remaining active touchpoints: {:?}, in sequence {:?}",
             touch_sequence.active_touch_points.len(),
-            self.current_sequence_id
+            current_sequence_id
         );
+
+        // Ensure context menus aren't fired after touch release.
+        if let Some(timer_id) = touch_sequence.context_menu_timer.take() {
+            self.timer_driver.cancel_timer(timer_id);
+        }
     }
 
     pub(crate) fn on_touch_cancel(&mut self, touch_id: TouchId, _point: Point2D<f32, DevicePixel>) {
@@ -641,8 +775,14 @@ impl TouchHandler {
                 return;
             },
         }
+
         if touch_sequence.active_touch_points.is_empty() {
             touch_sequence.state = Finished;
+        }
+
+        // Cancel pending context menu timers if the touch sequence was cancelled.
+        if let Some(timer_id) = touch_sequence.context_menu_timer.take() {
+            self.timer_driver.cancel_timer(timer_id);
         }
     }
 
@@ -654,7 +794,7 @@ impl TouchHandler {
         sequence
             .hit_test_result_cache
             .as_ref()
-            .map(|cache| Some(cache.value.clone()))?
+            .map(|cache| Some(cache.value))?
     }
 
     pub(crate) fn set_hit_test_result_cache_value(

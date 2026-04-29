@@ -60,6 +60,7 @@ use crate::paint::{RepaintReason, WebRenderDebugOption};
 use crate::refresh_driver::{AnimationRefreshDriverObserver, BaseRefreshDriver};
 use crate::render_notifier::RenderNotifier;
 use crate::screenshot::ScreenshotTaker;
+use crate::timer::TimerDriver;
 use crate::web_content_animation::WebContentAnimator;
 use crate::webrender_external_images::WebGLExternalImages;
 use crate::webview_renderer::{PinchZoomResult, ScrollResult, UnknownWebView, WebViewRenderer};
@@ -91,6 +92,9 @@ pub(crate) struct Painter {
 
     /// The [`BaseRefreshDriver`] which manages the painting of `WebView`s during animations.
     refresh_driver: Rc<BaseRefreshDriver>,
+
+    /// Thread for scheduling timer-based callbacks.
+    timer_driver: Rc<TimerDriver>,
 
     /// A [`RefreshDriverObserver`] for WebView content animations.
     animation_refresh_driver_observer: Rc<AnimationRefreshDriverObserver>,
@@ -180,11 +184,11 @@ impl Painter {
         WindowGLContext::initialize_image_handler(&mut external_image_handlers);
 
         let embedder_to_constellation_sender = paint.embedder_to_constellation_sender.clone();
-        let timer_refresh_driver = LazyCell::default();
+        let timer_driver = LazyCell::default();
         let refresh_driver = Rc::new(BaseRefreshDriver::new(
             paint.event_loop_waker.clone_box(),
             rendering_context.refresh_driver(),
-            &timer_refresh_driver,
+            &timer_driver,
         ));
         let animation_refresh_driver_observer = Rc::new(AnimationRefreshDriverObserver::new(
             embedder_to_constellation_sender.clone(),
@@ -262,7 +266,12 @@ impl Painter {
         let gl_version = webrender_gl.get_string(gleam::gl::VERSION);
         info!("Running on {gl_renderer} with OpenGL version {gl_version}");
 
+        let timer_driver = (*timer_driver).clone();
+        let web_content_animator =
+            WebContentAnimator::new(paint.event_loop_waker.clone_box(), timer_driver.clone());
+
         let painter = Painter {
+            timer_driver,
             painter_id,
             embedder_to_constellation_sender,
             webview_renderers: Default::default(),
@@ -280,10 +289,7 @@ impl Painter {
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
             animation_image_cache: FxHashMap::default(),
-            web_content_animator: WebContentAnimator::new(
-                paint.event_loop_waker.clone_box(),
-                (*timer_refresh_driver).clone(),
-            ),
+            web_content_animator,
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -1219,6 +1225,7 @@ impl Painter {
                 viewport_details,
                 self.embedder_to_constellation_sender.clone(),
                 self.refresh_driver.clone(),
+                self.timer_driver.clone(),
                 self.webrender_document,
             ));
     }

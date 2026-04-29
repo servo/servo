@@ -14,7 +14,7 @@ use servo_base::id::WebViewId;
 use servo_config::prefs;
 use webrender_api::{ColorF, PropertyBindingKey, PropertyValue};
 
-use crate::refresh_driver::TimerRefreshDriver;
+use crate::timer::TimerDriver;
 use crate::webview_renderer::WebViewRenderer;
 
 /// The amount of the time the caret blinks before ceasing, in order to preserve power. User
@@ -31,7 +31,7 @@ pub(crate) const CARET_BLINK_TIMEOUT: Duration = Duration::from_secs(30);
 /// currently) nor animations due to touch events such as fling.
 pub(crate) struct WebContentAnimator {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    timer_refresh_driver: Rc<TimerRefreshDriver>,
+    timer_driver: Rc<TimerDriver>,
     caret_visible: Cell<bool>,
     timer_scheduled: Cell<bool>,
     need_update: Arc<AtomicBool>,
@@ -40,11 +40,11 @@ pub(crate) struct WebContentAnimator {
 impl WebContentAnimator {
     pub(crate) fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        timer_refresh_driver: Rc<TimerRefreshDriver>,
+        timer_driver: Rc<TimerDriver>,
     ) -> Self {
         Self {
             event_loop_waker,
-            timer_refresh_driver,
+            timer_driver,
             caret_visible: Cell::new(true),
             timer_scheduled: Default::default(),
             need_update: Default::default(),
@@ -62,7 +62,7 @@ impl WebContentAnimator {
 
         let event_loop_waker = self.event_loop_waker.clone();
         let need_update = self.need_update.clone();
-        self.timer_refresh_driver.queue_timer(
+        self.timer_driver.queue_timer(
             caret_blink_time,
             Box::new(move || {
                 need_update.store(true, Ordering::Relaxed);
