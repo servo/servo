@@ -929,7 +929,26 @@ impl Element {
             }
         }
 
-        let window_proxy = self.owner_window().window_proxy();
+        let window = self.owner_window();
+
+        // If window is top level then try to scroll into view the visual viewport that is associated
+        // with the window. If there are no visual viewport, then we doesn't need to do anything since
+        // the visual viewport is the same as the layout viewport.
+        if window.is_top_level() {
+            if container.is_none() &&
+                let Some(visual_viewport) = window.get_visual_viewport()
+            {
+                visual_viewport.scroll_target_into_view_with_options(
+                    behavior,
+                    block,
+                    inline,
+                    get_target_rect(),
+                );
+            }
+            return;
+        }
+
+        let window_proxy = window.window_proxy();
         let Some(frame_element) = window_proxy.frame_element() else {
             return;
         };

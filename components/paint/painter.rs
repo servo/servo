@@ -25,6 +25,7 @@ use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
     ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableDisplayListPayload,
     SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
+    WebViewViewportScrollType,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -914,11 +915,14 @@ impl Painter {
         &mut self,
         webview_id: WebViewId,
         delta: LayoutVector2D,
+        scroll_type: WebViewViewportScrollType,
     ) {
         let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) else {
             return;
         };
-        let (pinch_zoom_result, scroll_results) = webview_renderer.scroll_viewport_by_delta(delta);
+        let (pinch_zoom_result, scroll_results) =
+            webview_renderer.scroll_viewport_by_delta(delta, scroll_type);
+
         self.send_zoom_and_scroll_offset_updates(
             pinch_zoom_result == PinchZoomResult::DidPinchZoom,
             scroll_results,

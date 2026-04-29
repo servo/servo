@@ -4,12 +4,13 @@
 
 use std::cell::Cell;
 
+use app_units::Au;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
-use euclid::{Rect, Scale, Size2D};
-use paint_api::PinchZoomInfos;
+use euclid::{Rect, Scale, Size2D, Vector2D};
+use paint_api::{PinchZoomInfos, WebViewViewportScrollType};
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot};
@@ -19,6 +20,7 @@ use webrender_api::units::DevicePixel;
 
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::window::Window;
 
 /// <https://drafts.csswg.org/cssom-view/#the-visualviewport-interface>
@@ -120,6 +122,54 @@ impl VisualViewport {
         self.window
             .Document()
             .finish_handle_scroll_event(self.upcast());
+    }
+
+    /// Apply scroll into view algorithm to the [`VisualViewport`]. This essentially implement
+    /// steps 1.3.1 of <https://drafts.csswg.org/cssom-view/#scroll-a-target-into-view>.
+    // TODO: It could be better for `VisualViewport` to be integrated as one of the `ScrollingBox`
+    // types. Thus, moving all of these utilities into `ScrollingBox`. Although we should define
+    // other behavior like keyboard scroll for `VisualViewport`.
+    pub(crate) fn scroll_target_into_view_with_options(
+        &self,
+        _behavior: ScrollBehavior,
+        block: ScrollAxisState,
+        inline: ScrollAxisState,
+        target_rect: Rect<Au, CSSPixel>,
+    ) {
+        let device_pixel_ratio = self.window.device_pixel_ratio();
+        let to_pixel = |value: Au| value.to_nearest_pixel(device_pixel_ratio.0);
+
+        let visual_viewport_rect = self.viewport_rect.get();
+        let target_rect_top_left = target_rect.origin.map(to_pixel) - visual_viewport_rect.origin;
+        let target_rect_bottom_right =
+            target_rect.max().map(to_pixel) - visual_viewport_rect.origin;
+
+        // TODO: Together with the implementation within `ScrollingBox` we are not considering the
+        // writing mode properly for the VisualViewport. From reverse engineering, it should
+        // follow the writing mode of root node.
+        let scroll_position = Vector2D::new(
+            ScrollingBox::calculate_scroll_position_one_axis(
+                inline,
+                target_rect_top_left.x,
+                target_rect_bottom_right.x,
+                visual_viewport_rect.width(),
+                visual_viewport_rect.origin.x,
+            ),
+            ScrollingBox::calculate_scroll_position_one_axis(
+                block,
+                target_rect_top_left.y,
+                target_rect_bottom_right.y,
+                visual_viewport_rect.height(),
+                visual_viewport_rect.origin.y,
+            ),
+        );
+
+        let scroll_delta = scroll_position - visual_viewport_rect.origin.to_vector();
+        self.window.paint_api().scroll_viewport_by_delta(
+            self.window.webview_id(),
+            scroll_delta.cast_unit(),
+            WebViewViewportScrollType::PinchZoomOnly,
+        );
     }
 }
 
