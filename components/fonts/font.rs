@@ -616,10 +616,10 @@ impl FallbackKey {
 pub struct FontGroup {
     /// The [`FontDescriptor`] which describes the properties of the fonts that should
     /// be loaded for this [`FontGroup`].
-    descriptor: FontDescriptor,
+    pub descriptor: FontDescriptor,
     /// The families that have been loaded for this [`FontGroup`]. This correponds to the
     /// list of fonts specified in CSS.
-    families: SmallVec<[FontGroupFamily; 8]>,
+    pub families: SmallVec<[FontGroupFamily; 8]>,
     /// A list of fallbacks that have been used in this [`FontGroup`]. Currently this
     /// can grow indefinitely, but maybe in the future it should be an LRU cache.
     /// It's unclear if this is the right thing to do. Perhaps fallbacks should
@@ -690,6 +690,11 @@ impl FontGroup {
         let char_in_template =
             |template: FontTemplateRef| template.char_in_unicode_range(options.character);
 
+        if let Some(font) = self.find_using_system_font_api(codepoint) {
+            return font_or_synthesized_small_caps(font);
+        }
+
+        #[cfg(not(target_os = "android"))]
         if let Some(font) = self.find(
             font_context,
             &char_in_template,
@@ -731,6 +736,12 @@ impl FontGroup {
         }
 
         first_font
+    }
+
+    // TODO: In the future, add support for other platforms as well if possible.
+    #[cfg(not(target_os = "android"))]
+    pub fn find_using_system_font_api(&self, _character: char) -> Option<FontRef> {
+        None
     }
 
     /// Find the first available font in the group, or the first available fallback font.
@@ -870,8 +881,8 @@ impl FontGroupFamilyTemplate {
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
 #[derive(MallocSizeOf)]
-struct FontGroupFamily {
-    family_descriptor: FontFamilyDescriptor,
+pub struct FontGroupFamily {
+    pub family_descriptor: FontFamilyDescriptor,
     members: OnceLock<Vec<FontGroupFamilyTemplate>>,
 }
 

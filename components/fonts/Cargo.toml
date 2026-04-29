@@ -74,7 +74,7 @@ servo-allocator = { workspace = true }
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 
 [target.'cfg(target_os = "android")'.dependencies]
-xml = "1.1"
+ndk = { version = "0.9.0", features = ["api-level-29"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }
