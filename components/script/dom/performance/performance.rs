@@ -719,6 +719,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     /// <https://w3c.github.io/user-timing/#dom-performance-measure>
     fn Measure(
         &self,
+        cx: &mut JSContext,
         measure_name: DOMString,
         start_or_measure_options: StringOrPerformanceMeasureOptions,
         end_mark: Option<DOMString>,
@@ -728,7 +729,11 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
             &start_or_measure_options
         {
-            if options.start.is_some() || options.duration.is_some() || options.end.is_some() {
+            if options.start.is_some() ||
+                options.duration.is_some() ||
+                options.end.is_some() ||
+                options.detail.get().is_object_or_null()
+            {
                 // Step 1.1 If endMark is given, throw a TypeError.
                 if end_mark.is_some() {
                     return Err(Error::Type(
@@ -795,7 +800,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         };
 
         // Step 3. Compute start time as follows:
-        let start_time = match start_or_measure_options {
+        let start_time = match &start_or_measure_options {
             StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) => {
                 // Step 3.1 If startOrMeasureOptions is a PerformanceMeasureOptions object, and if its start member exists,
                 // let start time be the value returned by running the convert a mark to a timestamp algorithm passing in
@@ -827,7 +832,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             StringOrPerformanceMeasureOptions::String(string) => {
                 // Step 3.3 Otherwise, if startOrMeasureOptions is a DOMString, let start time be the value returned
                 // by running the convert a mark to a timestamp algorithm passing in startOrMeasureOptions.
-                self.convert_a_mark_to_a_timestamp(&StringOrDouble::String(string))?
+                self.convert_a_mark_to_a_timestamp(&StringOrDouble::String(string.clone()))?
             },
         };
 
@@ -837,7 +842,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         // Step 7. Set entry’s startTime attribute to start time.
         // Step 8. Set entry’s duration attribute to the duration from start time to end time.
         // The resulting duration value MAY be negative.
-        // TODO: Step 9. Set entry’s detail attribute as follows:
+
         let entry = PerformanceMeasure::new(
             &self.global(),
             measure_name,
@@ -845,6 +850,31 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             end_time - start_time,
             Default::default(),
         );
+
+        // Step 9. Set entry’s detail attribute as follows:
+        rooted!(&in(cx) let mut detail = NullValue());
+        // Step 9.1. If startOrMeasureOptions is a PerformanceMeasureOptions object and startOrMeasureOptions’s detail member exists:
+        if let StringOrPerformanceMeasureOptions::PerformanceMeasureOptions(options) =
+            &start_or_measure_options
+        {
+            if !options.detail.get().is_null_or_undefined() {
+                // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
+                let record = structuredclone::write(cx.into(), options.detail.handle(), None)?;
+
+                // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
+                structuredclone::read(
+                    &self.global(),
+                    record,
+                    detail.handle_mut(),
+                    CanGc::from_cx(cx),
+                )?;
+            }
+        }
+        // Step 9.2. Otherwise, set it to null.
+        //
+        // Note: This is already the default value we set when creating the detail above
+
+        entry.set_detail(detail.handle());
 
         // Step 10. Queue a PerformanceEntry entry.
         // Step 11. Add entry to the performance entry buffer. (This is done in queue_entry itself)
