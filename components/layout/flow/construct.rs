@@ -328,8 +328,13 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
             .expect("Anonymous table contents should include some table-level element");
         let trailing_contents = contents.split_off(last_element_index + 1);
 
-        let (table_info, ifc) =
-            Table::construct_anonymous(self.context, self.info, contents, self.propagated_data);
+        let (table_info, ifc) = Table::construct_anonymous(
+            self.context,
+            self,
+            self.info,
+            contents,
+            self.propagated_data,
+        );
 
         if inline_table {
             self.ensure_inline_formatting_context_builder()
@@ -363,6 +368,10 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         for content in trailing_contents {
             match content {
                 AnonymousTableContent::Text(info, text) => self.handle_text(&info, text),
+                AnonymousTableContent::EnterDisplayContents(styles) => {
+                    self.enter_display_contents(styles)
+                },
+                AnonymousTableContent::LeaveDisplayContents => self.leave_display_contents(),
                 AnonymousTableContent::Element { .. } => {
                     unreachable!("All elements were placed inside the table")
                 },
@@ -439,6 +448,11 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+        if !self.anonymous_table_content.is_empty() {
+            self.anonymous_table_content
+                .push(AnonymousTableContent::EnterDisplayContents(styles));
+            return;
+        }
         self.display_contents_shared_styles.push(styles.clone());
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             builder.enter_display_contents(styles);
@@ -446,6 +460,11 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     }
 
     fn leave_display_contents(&mut self) {
+        if !self.anonymous_table_content.is_empty() {
+            self.anonymous_table_content
+                .push(AnonymousTableContent::LeaveDisplayContents);
+            return;
+        }
         self.display_contents_shared_styles.pop();
         if let Some(builder) = self.inline_formatting_context_builder.as_mut() {
             builder.leave_display_contents();
