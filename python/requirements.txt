@@ -39,4 +39,4 @@ Mako == 1.3.11
 geckordp == 1.0.3
 
 # For Python static type checking
-pyrefly == 0.23.1
+pyrefly == 0.63.1
