@@ -61,6 +61,7 @@ use xml5ever::serialize::TraversalScope::{
 };
 
 use crate::conversions::Convert;
+use crate::dom::MoveContext;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, is_relevant_attribute};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
@@ -4546,6 +4547,46 @@ impl VirtualMethods for Element {
         if let Some(ref value) = self.name_attribute() {
             if self.containing_shadow_root().is_none() {
                 doc.unregister_element_name(self, value.clone());
+            }
+        }
+    }
+
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.moving_steps(context, can_gc);
+        }
+
+        // Below is adhoc code required due to servo specific optimisations.
+
+        let old_document = context.old_parent.map(|p| p.owner_document());
+        let old_shadow_root = context.old_parent.and_then(|p| p.containing_shadow_root());
+
+        let new_document = self.owner_document();
+        let new_shadow_root = self.containing_shadow_root();
+
+        if let Some(ref id) = *self.id_attribute.borrow() {
+            if let Some(ref old_shadow_root) = old_shadow_root {
+                old_shadow_root.unregister_element_id(self, id.clone(), can_gc);
+            } else if let Some(ref old_document) = old_document {
+                old_document.unregister_element_id(self, id.clone(), can_gc);
+            }
+
+            if let Some(ref new_shadow_root) = new_shadow_root {
+                new_shadow_root.register_element_id(self, id.clone(), can_gc);
+            } else {
+                new_document.register_element_id(self, id.clone(), can_gc);
+            }
+        }
+
+        if let Some(ref name) = self.name_attribute() {
+            if old_shadow_root.is_none() {
+                if let Some(ref old_document) = old_document {
+                    old_document.unregister_element_name(self, name.clone());
+                }
+            }
+
+            if new_shadow_root.is_none() {
+                new_document.register_element_name(self, name.clone());
             }
         }
     }
