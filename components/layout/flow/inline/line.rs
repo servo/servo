@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::GlyphStore;
+use fonts::ShapedText;
 use itertools::Either;
 use layout_api::SharedSelection;
 use malloc_size_of_derive::MallocSizeOf;
@@ -846,7 +846,7 @@ pub(super) struct TextRunLineItem {
     pub info: Arc<FontAndScriptInfo>,
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
-    pub text: Vec<std::sync::Arc<GlyphStore>>,
+    pub text: Vec<std::sync::Arc<ShapedText>>,
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
@@ -917,7 +917,7 @@ impl TextRunLineItem {
     pub(crate) fn merge_if_possible(
         &mut self,
         new_info: &Arc<FontAndScriptInfo>,
-        new_glyph_store: &Arc<GlyphStore>,
+        new_glyph_store: &Arc<ShapedText>,
         new_offsets: &Option<TextRunOffsets>,
         new_inline_styles: &SharedInlineStyles,
     ) -> bool {

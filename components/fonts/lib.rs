@@ -27,7 +27,7 @@ pub use font_context::{
 pub use font_store::FontTemplates;
 pub use fonts_traits::*;
 pub(crate) use glyph::*;
-pub use glyph::{GlyphInfo, GlyphStore};
+pub use glyph::{GlyphInfo, ShapedText};
 use icu_locid::subtags::Language;
 pub use platform::font_list::fallback_font_families;
 pub(crate) use shapers::*;
