@@ -3074,7 +3074,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>
-    fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
+    fn GetClientRects(&self, cx: &mut JSContext) -> DomRoot<DOMRectList> {
         let win = self.owner_window();
         let raw_rects = self.upcast::<Node>().border_boxes();
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
@@ -3085,15 +3085,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             })
             .collect();
-        DOMRectList::new(&win, rects, can_gc)
+        DOMRectList::new(&win, rects, CanGc::from_cx(cx))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect>
-    fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
+    fn GetBoundingClientRect(&self, cx: &mut JSContext) -> DomRoot<DOMRect> {
         let win = self.owner_window();
         let rect = self.upcast::<Node>().border_box().unwrap_or_default();
         debug_assert!(rect.size.width.to_f64_px() >= 0.0 && rect.size.height.to_f64_px() >= 0.0);
@@ -3103,7 +3103,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             rect.origin.y.to_f64_px(),
             rect.size.width.to_f64_px(),
             rect.size.height.to_f64_px(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
