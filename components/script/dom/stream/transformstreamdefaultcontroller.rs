@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{
     ExceptionStackBehavior, Heap, JS_IsExceptionPending, JS_SetPendingException, JSObject,
 };
@@ -38,7 +39,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::{DecompressionStream, TransformStream};
 use crate::realms::{InRealm, enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for TransformTransformPromiseRejection {}
 
@@ -175,7 +176,7 @@ impl TransformStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-perform-transform>
     pub(crate) fn transform_stream_default_controller_perform_transform(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
     ) -> Fallible<Rc<Promise>> {
@@ -204,7 +205,7 @@ impl TransformStreamDefaultController {
 
     pub(crate) fn perform_transform(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
     ) -> Fallible<Rc<Promise>> {
@@ -362,10 +363,9 @@ impl TransformStreamDefaultController {
 
     pub(crate) fn perform_cancel(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         let result = match &self.transformer_type {
             // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
@@ -381,22 +381,22 @@ impl TransformStreamDefaultController {
                 // callback this value transformer.
                 let algo = cancel.borrow().clone();
                 if let Some(cancel) = algo {
-                    rooted!(in(*cx) let this_object = transform_obj.get());
+                    rooted!(&in(cx) let this_object = transform_obj.get());
                     cancel
                         .Call_(
                             &this_object.handle(),
                             chunk,
                             ExceptionHandling::Rethrow,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         )
                         .unwrap_or_else(|e| {
-                            let p = Promise::new(global, can_gc);
-                            p.reject_error(e, can_gc);
+                            let p = Promise::new2(cx, global);
+                            p.reject_error(e, CanGc::from_cx(cx));
                             p
                         })
                 } else {
                     // Step 4. Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
-                    Promise::new_resolved(global, cx, (), can_gc)
+                    Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
                 }
             },
             TransformerType::Decoder(_) => {
@@ -408,7 +408,7 @@ impl TransformStreamDefaultController {
                 // Step 7.2 If result is a Promise, then return result.
                 // Note: Not applicable.
                 // Step 7.3 Return a promise resolved with undefined.
-                Promise::new_resolved(global, cx, (), can_gc)
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
             },
             TransformerType::Encoder(_) => {
                 // <https://streams.spec.whatwg.org/#transformstream-set-up>
@@ -419,7 +419,7 @@ impl TransformStreamDefaultController {
                 // Step 7.2 If result is a Promise, then return result.
                 // Note: Not applicable.
                 // Step 7.3 Return a promise resolved with undefined.
-                Promise::new_resolved(global, cx, (), can_gc)
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
             },
             TransformerType::Compressor(_) => {
                 // <https://streams.spec.whatwg.org/#transformstream-set-up>
@@ -430,7 +430,7 @@ impl TransformStreamDefaultController {
                 // Step 7.2 If result is a Promise, then return result.
                 // Note: Not applicable.
                 // Step 7.3 Return a promise resolved with undefined.
-                Promise::new_resolved(global, cx, (), can_gc)
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
             },
             TransformerType::Decompressor(_) => {
                 // <https://streams.spec.whatwg.org/#transformstream-set-up>
@@ -441,7 +441,7 @@ impl TransformStreamDefaultController {
                 // Step 7.2 If result is a Promise, then return result.
                 // Note: Not applicable.
                 // Step 7.3 Return a promise resolved with undefined.
-                Promise::new_resolved(global, cx, (), can_gc)
+                Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
             },
         };
 
@@ -450,7 +450,7 @@ impl TransformStreamDefaultController {
 
     pub(crate) fn perform_flush(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
     ) -> Fallible<Rc<Promise>> {
         let result = match &self.transformer_type {
@@ -590,7 +590,7 @@ impl TransformStreamDefaultController {
     #[expect(unsafe_code)]
     pub(crate) fn enqueue(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
     ) -> Fallible<()> {
@@ -653,12 +653,7 @@ impl TransformStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-error>
-    pub(crate) fn error(
-        &self,
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        reason: SafeHandleValue,
-    ) {
+    pub(crate) fn error(&self, cx: &mut JSContext, global: &GlobalScope, reason: SafeHandleValue) {
         // Perform ! TransformStreamError(controller.[[stream]], e).
         self.stream
             .get()
@@ -687,7 +682,7 @@ impl TransformStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-terminate>
-    fn terminate(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
+    fn terminate(&self, cx: &mut JSContext, global: &GlobalScope) {
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().expect("stream is null");
 
@@ -731,20 +726,20 @@ impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#ts-default-controller-enqueue>
-    fn Enqueue(&self, cx: &mut js::context::JSContext, chunk: SafeHandleValue) -> Fallible<()> {
+    fn Enqueue(&self, cx: &mut JSContext, chunk: SafeHandleValue) -> Fallible<()> {
         // Perform ? TransformStreamDefaultControllerEnqueue(this, chunk).
         self.enqueue(cx, &self.global(), chunk)
     }
 
     /// <https://streams.spec.whatwg.org/#ts-default-controller-error>
-    fn Error(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Fallible<()> {
+    fn Error(&self, cx: &mut JSContext, reason: SafeHandleValue) -> Fallible<()> {
         // Perform ? TransformStreamDefaultControllerError(this, e).
         self.error(cx, &self.global(), reason);
         Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#ts-default-controller-terminate>
-    fn Terminate(&self, cx: &mut js::context::JSContext) -> Fallible<()> {
+    fn Terminate(&self, cx: &mut JSContext) -> Fallible<()> {
         // Perform ? TransformStreamDefaultControllerTerminate(this).
         self.terminate(cx, &self.global());
         Ok(())

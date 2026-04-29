@@ -7,6 +7,7 @@ use std::ptr::{self};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -42,8 +43,8 @@ use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::create_writable_stream;
 use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkType;
 use crate::dom::types::{PromiseNativeHandler, TransformStreamDefaultController, WritableStream};
-use crate::realms::{enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for TransformBackPressureChangePromiseFulfillment {}
 
@@ -443,7 +444,7 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transformstream-set-up>
     pub(crate) fn set_up(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         transformer_type: TransformerType,
     ) -> Fallible<()> {
@@ -514,7 +515,7 @@ impl TransformStream {
     #[expect(clippy::too_many_arguments)]
     fn initialize(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         start_promise: Rc<Promise>,
         writable_high_water_mark: f64,
@@ -659,7 +660,7 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
     pub(crate) fn transform_stream_default_sink_write_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
     ) -> Fallible<Rc<Promise>> {
@@ -713,10 +714,9 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-abort-algorithm>
     pub(crate) fn transform_stream_default_sink_abort_algorithm(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         // Let controller be stream.[[controller]].
         let controller = self.controller.get().expect("controller is not set");
@@ -730,10 +730,10 @@ impl TransformStream {
         let readable = self.readable.get().expect("readable stream is not set");
 
         // Let controller.[[finishPromise]] be a new promise.
-        controller.set_finish_promise(Promise::new(global, can_gc));
+        controller.set_finish_promise(Promise::new2(cx, global));
 
         // Let cancelPromise be the result of performing controller.[[cancelAlgorithm]], passing reason.
-        let cancel_promise = controller.perform_cancel(cx, global, reason, can_gc)?;
+        let cancel_promise = controller.perform_cancel(cx, global, reason)?;
 
         // Perform ! TransformStreamDefaultControllerClearAlgorithms(controller).
         controller.clear_algorithms();
@@ -750,11 +750,13 @@ impl TransformStream {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
             })),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        let realm = enter_realm(global);
-        let comp = InRealm::Entered(&realm);
-        cancel_promise.append_native_handler(&handler, comp, can_gc);
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+
+        let comp = InRealm::Already(&cx.into());
+        cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
 
         // Return controller.[[finishPromise]].
         let finish_promise = controller
@@ -766,7 +768,7 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-close-algorithm>
     pub(crate) fn transform_stream_default_sink_close_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
     ) -> Fallible<Rc<Promise>> {
         // Let controller be stream.[[controller]].
@@ -824,10 +826,9 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-source-cancel>
     pub(crate) fn transform_stream_default_source_cancel(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         // Let controller be stream.[[controller]].
         let controller = self
@@ -847,10 +848,10 @@ impl TransformStream {
             .ok_or(Error::Type(c"writable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
-        controller.set_finish_promise(Promise::new(global, can_gc));
+        controller.set_finish_promise(Promise::new2(cx, global));
 
         // Let cancelPromise be the result of performing controller.[[cancelAlgorithm]], passing reason.
-        let cancel_promise = controller.perform_cancel(cx, global, reason, can_gc)?;
+        let cancel_promise = controller.perform_cancel(cx, global, reason)?;
 
         // Perform ! TransformStreamDefaultControllerClearAlgorithms(controller).
         controller.clear_algorithms();
@@ -869,16 +870,18 @@ impl TransformStream {
                 controller: Dom::from_ref(&controller),
                 stream: Dom::from_ref(self),
             })),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Return controller.[[finishPromise]].
         let finish_promise = controller
             .get_finish_promise()
             .expect("finish promise is not set");
-        let realm = enter_realm(global);
-        let comp = InRealm::Entered(&realm);
-        cancel_promise.append_native_handler(&handler, comp, can_gc);
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+
+        let comp = InRealm::Already(&cx.into());
+        cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
         Ok(finish_promise)
     }
 
@@ -908,7 +911,7 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-error-writable-and-unblock-write>
     pub(crate) fn error_writable_and_unblock_write(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
@@ -933,12 +936,7 @@ impl TransformStream {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-error>
-    pub(crate) fn error(
-        &self,
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-        error: SafeHandleValue,
-    ) {
+    pub(crate) fn error(&self, cx: &mut JSContext, global: &GlobalScope, error: SafeHandleValue) {
         // Perform ! ReadableStreamDefaultControllerError(stream.[[readable]].[[controller]], e).
         self.get_readable()
             .get_default_controller()
@@ -953,7 +951,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     /// <https://streams.spec.whatwg.org/#ts-constructor>
     #[expect(unsafe_code)]
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         transformer: Option<*mut JSObject>,
@@ -1081,10 +1079,7 @@ impl Transferable for TransformStream {
     type Data = TransformStreamData;
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps②>
-    fn transfer(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<(MessagePortId, TransformStreamData)> {
+    fn transfer(&self, cx: &mut JSContext) -> Fallible<(MessagePortId, TransformStreamData)> {
         let global = self.global();
         let mut realm = enter_auto_realm(cx, &*global);
         let mut realm = realm.current_realm();
@@ -1147,7 +1142,7 @@ impl Transferable for TransformStream {
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps②>
     fn transfer_receive(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         owner: &GlobalScope,
         _id: MessagePortId,
         data: TransformStreamData,

@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::typedarray::ArrayBufferViewU8;
 
@@ -30,7 +31,7 @@ pub(crate) struct ByteTeeReadIntoRequestMicrotask {
 }
 
 impl ByteTeeReadIntoRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn microtask_chunk_steps(&self, cx: &mut JSContext) {
         self.tee_read_request
             .chunk_steps(self.chunk.clone(), cx)
             .expect("Failed to enqueue chunk");
@@ -113,7 +114,7 @@ impl ByteTeeReadIntoRequest {
     pub(crate) fn chunk_steps(
         &self,
         chunk: HeapBufferSource<ArrayBufferViewU8>,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> Fallible<()> {
         // Set readAgainForBranch1 to false.
         self.read_again_for_branch_1.set(false);
@@ -207,7 +208,7 @@ impl ByteTeeReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-close-steps%E2%91%A1>
     pub(crate) fn close_steps(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         chunk: Option<HeapBufferSource<ArrayBufferViewU8>>,
     ) -> Fallible<()> {
         // Set reading to false.
@@ -282,7 +283,7 @@ impl ByteTeeReadIntoRequest {
 
     pub(crate) fn pull_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
     ) {
         self.tee_underlying_source

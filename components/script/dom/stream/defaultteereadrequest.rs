@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::AutoRealm;
@@ -32,7 +33,7 @@ pub(crate) struct DefaultTeeReadRequestMicrotask {
 }
 
 impl MicrotaskRunnable for DefaultTeeReadRequestMicrotask {
-    fn handler(&self, cx: &mut js::context::JSContext) {
+    fn handler(&self, cx: &mut JSContext) {
         self.tee_read_request.chunk_steps(cx, &self.chunk);
     }
 
@@ -99,7 +100,7 @@ impl DefaultTeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     pub(crate) fn stream_cancel(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) {
@@ -121,7 +122,7 @@ impl DefaultTeeReadRequest {
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[expect(clippy::borrowed_box)]
-    pub(crate) fn chunk_steps(&self, cx: &mut js::context::JSContext, chunk: &Box<Heap<JSVal>>) {
+    pub(crate) fn chunk_steps(&self, cx: &mut JSContext, chunk: &Box<Heap<JSVal>>) {
         let global = &self.stream.global();
         // Set readAgain to false.
         self.read_again.set(false);
@@ -186,7 +187,7 @@ impl DefaultTeeReadRequest {
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
-    pub(crate) fn close_steps(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn close_steps(&self, cx: &mut JSContext) {
         // Set reading to false.
         self.reading.set(false);
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerClose(branch_1.[[controller]]).
@@ -211,7 +212,7 @@ impl DefaultTeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     fn readable_stream_default_controller_enqueue(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         stream: &ReadableStream,
         chunk: SafeHandleValue,
     ) {
@@ -225,7 +226,7 @@ impl DefaultTeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     fn readable_stream_default_controller_close(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         stream: &ReadableStream,
     ) {
         stream.get_default_controller().close(cx);
@@ -235,14 +236,14 @@ impl DefaultTeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
     fn readable_stream_default_controller_error(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         stream: &ReadableStream,
         error: SafeHandleValue,
     ) {
         stream.get_default_controller().error(cx, error);
     }
 
-    pub(crate) fn pull_algorithm(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn pull_algorithm(&self, cx: &mut JSContext) {
         self.tee_underlying_source.pull_algorithm(cx);
     }
 }

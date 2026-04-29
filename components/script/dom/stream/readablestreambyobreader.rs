@@ -8,6 +8,7 @@ use std::mem;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
@@ -76,11 +77,7 @@ impl ReadIntoRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-close-steps%E2%91%A0>
-    pub fn close_steps(
-        &self,
-        cx: &mut js::context::JSContext,
-        chunk: Option<RootedTraceableBox<Heap<JSVal>>>,
-    ) {
+    pub fn close_steps(&self, cx: &mut JSContext, chunk: Option<RootedTraceableBox<Heap<JSVal>>>) {
         match self {
             ReadIntoRequest::Read(promise) => match chunk {
                 // close steps, given chunk
@@ -305,7 +302,7 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    pub(crate) fn cancel(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn cancel(&self, cx: &mut JSContext) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         // Let readIntoRequests be reader.[[readIntoRequests]].
         let mut read_into_requests = self.take_read_into_requests();
@@ -325,7 +322,7 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         view: HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
         read_into_request: &ReadIntoRequest,
@@ -423,7 +420,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
     fn Read(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         view: CustomAutoRooterGuard<ArrayBufferView>,
         options: &ReadableStreamBYOBReaderReadOptions,
     ) -> Rc<Promise> {
@@ -533,7 +530,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut JSContext, reason: SafeHandleValue) -> Rc<Promise> {
         self.generic_cancel(cx, &self.global(), reason)
     }
 }
