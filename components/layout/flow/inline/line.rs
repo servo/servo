@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::ShapedText;
+use fonts::ShapedTextSlice;
 use itertools::Either;
 use layout_api::SharedSelection;
 use malloc_size_of_derive::MallocSizeOf;
@@ -545,9 +545,9 @@ impl LineItemLayout<'_, '_> {
         let mut inline_advance = text_item
             .text
             .iter()
-            .map(|glyph_store| {
-                number_of_justification_opportunities += glyph_store.total_word_separators();
-                glyph_store.total_advance()
+            .map(|shaped_text_slice| {
+                number_of_justification_opportunities += shaped_text_slice.total_word_separators();
+                shaped_text_slice.total_advance()
             })
             .sum();
 
@@ -846,7 +846,7 @@ pub(super) struct TextRunLineItem {
     pub info: Arc<FontAndScriptInfo>,
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
-    pub text: Vec<std::sync::Arc<ShapedText>>,
+    pub text: Vec<Arc<ShapedTextSlice>>,
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
@@ -917,7 +917,7 @@ impl TextRunLineItem {
     pub(crate) fn merge_if_possible(
         &mut self,
         new_info: &Arc<FontAndScriptInfo>,
-        new_glyph_store: &Arc<ShapedText>,
+        new_glyph_store: &Arc<ShapedTextSlice>,
         new_offsets: &Option<TextRunOffsets>,
         new_inline_styles: &SharedInlineStyles,
     ) -> bool {
