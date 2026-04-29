@@ -28,7 +28,7 @@ use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
 use crate::indexeddb::map_backend_error_to_dom_error;
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::CanGc;
 
 #[derive(Clone)]
@@ -57,7 +57,8 @@ impl OpenRequestListener {
 
         rooted!(&in(cx) let mut rval = UndefinedValue());
 
-        let _ac = enter_realm(&*open_request);
+        let mut realm = enter_auto_realm(cx, &*open_request);
+        let cx = &mut realm.current_realm();
 
         match result {
             Ok(version) => {
