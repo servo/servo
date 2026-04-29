@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomPointId, DomPointIndex};
@@ -84,8 +85,8 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint>
-    fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
-        Self::new_from_init(global, init, can_gc)
+    fn FromPoint(cx: &mut JSContext, global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new_from_init(global, init, CanGc::from_cx(cx))
     }
 
     /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>

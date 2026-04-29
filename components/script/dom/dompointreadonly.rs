@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomPointId, DomPointIndex};
@@ -90,8 +91,8 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint>
-    fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
-        Self::new(global, init.x, init.y, init.z, init.w, can_gc)
+    fn FromPoint(cx: &mut JSContext, global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new(global, init.x, init.y, init.z, init.w, CanGc::from_cx(cx))
     }
 
     /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
@@ -118,8 +119,8 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     /// <https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix>
     fn MatrixTransform(
         &self,
+        cx: &mut JSContext,
         matrix: &DOMMatrixInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMPoint>> {
         // Let matrixObject be the result of invoking create a DOMMatrix from the dictionary matrix.
         let matrix_object = match dommatrixinit_to_matrix(matrix) {
@@ -146,7 +147,7 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
         Ok(DOMPoint::new_from_init(
             &self.global(),
             &transformed_point,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 }
