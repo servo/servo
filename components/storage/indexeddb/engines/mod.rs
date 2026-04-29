@@ -52,6 +52,11 @@ pub trait KvsEngine: MallocSizeOf {
     );
 
     fn key_generator_current_number(&self, store_name: &str) -> Option<i32>;
+    fn set_key_generator_current_number(
+        &self,
+        store_name: &str,
+        current_number: i32,
+    ) -> Result<(), Self::Error>;
     fn key_path(&self, store_name: &str) -> Option<KeyPath>;
     fn object_store_names(&self) -> Result<Vec<String>, Self::Error>;
     fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error>;
