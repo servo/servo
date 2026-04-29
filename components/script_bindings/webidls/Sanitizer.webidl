@@ -23,8 +23,8 @@ interface Sanitizer {
   boolean allowElement(SanitizerElementWithAttributes element);
   boolean removeElement(SanitizerElement element);
   boolean replaceElementWithChildren(SanitizerElement element);
-  // boolean allowAttribute(SanitizerAttribute attribute);
-  // boolean removeAttribute(SanitizerAttribute attribute);
+  boolean allowAttribute(SanitizerAttribute attribute);
+  boolean removeAttribute(SanitizerAttribute attribute);
   // boolean setComments(boolean allow);
   // boolean setDataAttributes(boolean allow);
 
