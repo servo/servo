@@ -320,9 +320,11 @@ opt-level = 3
 [profile.dev.package.tikv-jemalloc-sys]
 opt-level = 1
 
-[profile.release]
-opt-level = 3
+# An optimized build for CI, to improve test runtime, but with debug assertions turned on.
+[profile.checked-release]
+inherits = "release"
 debug-assertions = true
+overflow-checks = true
 
 # Disk-space is limited in CI, so we disabled features that are not needed for code coverage.
 # Locally using the default `dev` profile is perfectly fine.
@@ -334,7 +336,7 @@ debug = false
 # A profile between `dev` and `release` which aims to offer a compromise between
 # fast incremental rebuilds and runtime speed.
 [profile.medium]
-inherits = "release"
+inherits = "dev"
 opt-level = 2
 incremental = true
 debug = "line-tables-only"
