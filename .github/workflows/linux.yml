@@ -355,17 +355,6 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --yes --skip-lints
-      - name: Determine options
-        id: options
-        run: |
-          if [[ ${{ runner.environment }} == 'self-hosted' ]];
-          then
-            CARGO_PROFILE=dev
-          else
-            # github hosted runners don't have enough diskspace for the dev profile.
-            CARGO_PROFILE=coverage
-          fi
-          echo "cargo_profile=${CARGO_PROFILE}" | tee $GITHUB_OUTPUT
       - name: Run unit-tests with coverage
         shell: bash
         env:
@@ -373,7 +362,7 @@ jobs:
           LANG: en-US
         run: |
           ./mach test-unit --code-coverage \
-              --profile=${{ steps.options.outputs.cargo_profile }} \
+              --profile=coverage \
               --llvm-cov-option=--codecov \
               --llvm-cov-option=--output-path=codecov.json
       - name: Upload coverage to Codecov
