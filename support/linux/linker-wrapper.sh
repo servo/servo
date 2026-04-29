@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-set -euo pipefail
-
 # This is a linker wrapper script that is intended to run on Linux CI systems,
 # and serialize linker invocations by rustc to avoid out of memory issues.
 # We assume that `clang` is in PATH and the linker driver. Rustc chooses `cc`
@@ -17,6 +15,10 @@ set -euo pipefail
 # to this script via another environment variable, perhaps via mach.
 # Maybe it could make sense to integrate this wrapper into mach, to also prevent OOM errors
 # during local development.
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 real_linker_driver=clang
 
