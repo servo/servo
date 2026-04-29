@@ -7,7 +7,7 @@ use std::sync::Arc;
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use euclid::{Point2D, Rect, Size2D};
-use fonts::{FontMetrics, ShapedText};
+use fonts::{FontMetrics, ShapedTextSlice};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::id::PipelineId;
@@ -71,7 +71,7 @@ pub(crate) struct TextFragment {
     pub font_metrics: Arc<FontMetrics>,
     pub font_key: FontInstanceKey,
     #[conditional_malloc_size_of]
-    pub glyphs: Vec<Arc<ShapedText>>,
+    pub glyphs: Vec<Arc<ShapedTextSlice>>,
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
@@ -363,7 +363,7 @@ impl TextFragment {
             "Text num_glyphs={} box={:?}",
             self.glyphs
                 .iter()
-                .map(|glyph_store| glyph_store.len())
+                .map(|shaped_text_slice| shaped_text_slice.glyph_count())
                 .sum::<usize>(),
             self.base.rect
         ));
