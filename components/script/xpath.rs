@@ -27,6 +27,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::element::attributes::storage::AttributeStorage;
 use crate::dom::node::{Node, NodeTraits, PrecedingNodeIterator, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
@@ -210,7 +211,7 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
 
     fn attributes(&self) -> impl Iterator<Item = Self::Attribute> {
         struct AttributeIterator<'a> {
-            attributes: Ref<'a, [Dom<Attr>]>,
+            attributes: Ref<'a, AttributeStorage>,
             position: usize,
         }
 
@@ -218,9 +219,9 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
             type Item = XPathWrapper<DomRoot<Attr>>;
 
             fn next(&mut self) -> Option<Self::Item> {
-                let attribute = self.attributes.get(self.position)?;
+                let attr_ref = self.attributes.get(self.position)?;
                 self.position += 1;
-                Some(attribute.as_rooted().into())
+                Some(DomRoot::from_ref(attr_ref.as_attr().unwrap()).into())
             }
 
             fn size_hint(&self) -> (usize, Option<usize>) {
@@ -229,8 +230,9 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
             }
         }
 
+        // XPath needs full DOM attribute nodes.
         AttributeIterator {
-            attributes: self.0.attrs(),
+            attributes: self.0.dom_attrs(),
             position: 0,
         }
     }

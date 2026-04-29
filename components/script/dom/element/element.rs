@@ -32,7 +32,7 @@ use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
 use servo_arc::Arc as ServoArc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
@@ -51,7 +51,7 @@ use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
-use style::values::{AtomIdent, CSSFloat, computed, specified};
+use style::values::{AtomIdent, CSSFloat, GenericAtomIdent, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
@@ -105,6 +105,9 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::{
+    AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
+};
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -178,7 +181,7 @@ pub struct Element {
     namespace: Namespace,
     #[no_trace]
     prefix: DomRefCell<Option<Prefix>>,
-    attrs: DomRefCell<Vec<Dom<Attr>>>,
+    attrs: DomRefCell<AttributeStorage>,
     #[no_trace]
     id_attribute: DomRefCell<Option<Atom>>,
     /// <https://dom.spec.whatwg.org/#concept-element-is-value>
@@ -303,7 +306,7 @@ impl Element {
             tag_name: TagName::new(),
             namespace,
             prefix: DomRefCell::new(prefix),
-            attrs: DomRefCell::new(vec![]),
+            attrs: Default::default(),
             id_attribute: DomRefCell::new(None),
             is: DomRefCell::new(None),
             style_attribute: DomRefCell::new(None),
@@ -1036,15 +1039,18 @@ pub(crate) fn is_valid_shadow_host_name(name: &LocalName) -> bool {
 }
 
 #[inline]
+#[expect(unsafe_code)]
 pub(crate) fn get_attr_for_layout<'dom>(
     elem: LayoutDom<'dom, Element>,
     namespace: &Namespace,
     name: &LocalName,
 ) -> Option<&'dom AttrValue> {
-    elem.attrs()
+    let storage = unsafe { elem.unsafe_get().attrs.borrow_for_layout() };
+    storage
+        .entries()
         .iter()
-        .find(|attr| name == attr.local_name() && namespace == attr.namespace())
-        .map(|attr| attr.value())
+        .find(|e| name == e.local_name_for_layout() && namespace == e.namespace_for_layout())
+        .map(|e| e.value_for_layout())
 }
 
 impl<'dom> LayoutDom<'dom, Element> {
@@ -1069,10 +1075,17 @@ impl<'dom> LayoutDom<'dom, Element> {
         parent_element.local_name() == &local_name!("html")
     }
 
+    /// Iterate over attribute local names for layout, handling mixed Raw and Dom entries.
     #[expect(unsafe_code)]
     #[inline]
-    pub(crate) fn attrs(self) -> &'dom [LayoutDom<'dom, Attr>] {
-        unsafe { LayoutDom::to_layout_slice(self.unsafe_get().attrs.borrow_for_layout()) }
+    pub(crate) fn each_attr_name_for_layout<F>(self, mut callback: F)
+    where
+        F: FnMut(&LocalName),
+    {
+        let storage = unsafe { self.unsafe_get().attrs.borrow_for_layout() };
+        for entry in storage.entries() {
+            callback(entry.local_name_for_layout());
+        }
     }
 
     #[inline]
@@ -1589,17 +1602,17 @@ impl<'dom> LayoutDom<'dom, Element> {
     }
 
     #[inline]
+    #[expect(unsafe_code)]
     pub(crate) fn get_attr_vals_for_layout(
         self,
         name: &LocalName,
     ) -> impl Iterator<Item = &'dom AttrValue> {
-        self.attrs().iter().filter_map(move |attr| {
-            if name == attr.local_name() {
-                Some(attr.value())
-            } else {
-                None
-            }
-        })
+        let storage = unsafe { self.unsafe_get().attrs.borrow_for_layout() };
+        storage
+            .entries()
+            .iter()
+            .filter(move |e| name == e.local_name_for_layout())
+            .map(|e| e.value_for_layout())
     }
 
     #[expect(unsafe_code)]
@@ -1669,8 +1682,23 @@ impl Element {
             .map(DomRoot::from_ref)
     }
 
-    pub(crate) fn attrs(&self) -> Ref<'_, [Dom<Attr>]> {
-        Ref::map(self.attrs.borrow(), |attrs| &**attrs)
+    pub(crate) fn attrs(&self) -> Ref<'_, AttributeStorage> {
+        self.attrs.borrow()
+    }
+
+    pub(crate) fn attrs_mut(&self) -> RefMut<'_, AttributeStorage> {
+        self.attrs.borrow_mut()
+    }
+
+    pub(crate) fn dom_attrs(&self) -> Ref<'_, AttributeStorage> {
+        // Materialize all entries to Dom<Attr> so callers can access full Attr nodes.
+        {
+            let mut storage = self.attrs.borrow_mut();
+            for i in 0..storage.len() {
+                storage.ensure_dom(i, self);
+            }
+        }
+        self.attrs.borrow()
     }
 
     /// Element branch of <https://dom.spec.whatwg.org/#locate-a-namespace>
@@ -1708,24 +1736,31 @@ impl Element {
             // is "xmlns", and local name is prefix, or if prefix is null and it has an attribute
             // whose namespace is the XMLNS namespace, namespace prefix is null, and local name is
             // "xmlns", then return its value if it is not the empty string, and null otherwise.
-            let attr = Ref::filter_map(self.attrs(), |attrs| {
-                attrs.iter().find(|attr| {
-                    if attr.namespace() != &ns!(xmlns) {
-                        return false;
-                    }
-                    match (attr.prefix(), prefix.as_ref()) {
-                        (Some(&namespace_prefix!("xmlns")), Some(prefix)) => {
-                            attr.local_name() == prefix
-                        },
-                        (None, None) => attr.local_name() == &local_name!("xmlns"),
-                        _ => false,
-                    }
-                })
-            })
-            .ok();
+            let found_ns = element.attrs.borrow().iter().find_map(|attr| {
+                if attr.namespace() != &ns!(xmlns) {
+                    return None;
+                }
+                match (attr.prefix(), prefix.as_ref()) {
+                    (Some(&namespace_prefix!("xmlns")), Some(prefix)) => {
+                        if attr.local_name() == prefix {
+                            Some(Namespace::from(&**attr.value()))
+                        } else {
+                            None
+                        }
+                    },
+                    (None, None) => {
+                        if attr.local_name() == &local_name!("xmlns") {
+                            Some(Namespace::from(&**attr.value()))
+                        } else {
+                            None
+                        }
+                    },
+                    _ => None,
+                }
+            });
 
-            if let Some(attr) = attr {
-                return (**attr.value()).into();
+            if let Some(ns) = found_ns {
+                return ns;
             }
         }
 
@@ -1813,7 +1848,7 @@ impl Element {
                 if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
                     **attr.value() == *namespace
                 {
-                    return Some(attr.LocalName());
+                    return Some(DOMString::from(&**attr.local_name()));
                 }
             }
         }
@@ -1875,7 +1910,6 @@ impl Element {
         }
     }
 
-    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn push_new_attribute(
         &self,
@@ -1887,27 +1921,36 @@ impl Element {
         reason: AttributeMutationReason,
         can_gc: CanGc,
     ) {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-        let attr = Attr::new(
-            cx,
-            &self.node.owner_doc(),
-            local_name,
+        // Build ContentAttributeData on the stack. We keep the original on the
+        // stack for the AttrRef (used by handle_attribute_changes / attribute_mutated),
+        // and push a clone into the RefCell. This avoids holding a RefCell borrow
+        // while attribute_mutated callbacks run (they may call get_attribute() etc.).
+        let data = ContentAttributeData {
+            identifier: AttrIdentifier {
+                local_name: GenericAtomIdent(local_name),
+                name: GenericAtomIdent(name),
+                namespace: GenericAtomIdent(namespace),
+                prefix: prefix.map(GenericAtomIdent),
+            },
             value,
-            name,
-            namespace,
-            prefix,
-            Some(self),
-        );
-        self.push_attribute(&attr, reason, can_gc);
+        };
+        let attr_ref = AttrRef::Raw(&data);
+        self.will_mutate_attr(attr_ref);
+        // Step 1: Append to attribute list (push clone, keep original on stack).
+        self.attrs.borrow_mut().push_raw(ContentAttributeData {
+            identifier: data.identifier.clone(),
+            value: data.value.clone(),
+        });
+        // Step 4: Handle attribute changes using stack-local AttrRef.
+        let new_value = DOMString::from(&**attr_ref.value());
+        self.handle_attribute_changes(attr_ref, None, Some(new_value), reason, can_gc);
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
     #[expect(unsafe_code)]
     fn handle_attribute_changes(
         &self,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         old_value: Option<&AttrValue>,
         new_value: Option<DOMString>,
         reason: AttributeMutationReason,
@@ -1962,14 +2005,14 @@ impl Element {
         // Clone to avoid double borrow
         let old_value = &attr.value().clone();
         // Step 2. Set attribute’s value to value.
-        self.will_mutate_attr(attr);
+        self.will_mutate_attr(AttrRef::Dom(attr));
         attr.swap_value(&mut value);
         // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
         //
         // Put on a separate line to avoid double borrow
         let new_value = DOMString::from(&**attr.value());
         self.handle_attribute_changes(
-            attr,
+            AttrRef::Dom(attr),
             Some(old_value),
             Some(new_value),
             AttributeMutationReason::Directly,
@@ -1993,13 +2036,13 @@ impl Element {
         // Handled by callers of this function and asserted here.
         assert!(attr.upcast::<Node>().owner_doc() == self.node.owner_doc());
         // Step 1. Append attribute to element’s attribute list.
-        self.will_mutate_attr(attr);
-        self.attrs.borrow_mut().push(Dom::from_ref(attr));
+        self.will_mutate_attr(AttrRef::Dom(attr));
+        self.attrs.borrow_mut().push_dom(attr);
         // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
         //
         // Put on a separate line to avoid double borrow
         let new_value = DOMString::from(&**attr.value());
-        self.handle_attribute_changes(attr, None, Some(new_value), reason, can_gc);
+        self.handle_attribute_changes(AttrRef::Dom(attr), None, Some(new_value), reason, can_gc);
     }
 
     /// This is the inner logic for:
@@ -2012,11 +2055,14 @@ impl Element {
         namespace: &Namespace,
         local_name: &LocalName,
     ) -> Option<DomRoot<Attr>> {
-        self.attrs
+        let idx = self
+            .attrs
             .borrow()
             .iter()
-            .find(|attr| attr.local_name() == local_name && attr.namespace() == namespace)
-            .map(|js| DomRoot::from_ref(&**js))
+            .position(|a| a.local_name() == local_name && a.namespace() == namespace)?;
+        let mut storage = self.attrs.borrow_mut();
+        let attr = storage.ensure_dom(idx, self);
+        Some(DomRoot::from_ref(&**attr))
     }
 
     /// This is the inner logic for:
@@ -2035,12 +2081,10 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
     pub(crate) fn get_attribute_by_name(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         let name = &self.parsed_name(name);
-        let maybe_attribute = self
-            .attrs
-            .borrow()
-            .iter()
-            .find(|a| a.name() == name)
-            .map(|js| DomRoot::from_ref(&**js));
+        let idx = self.attrs.borrow().iter().position(|a| a.name() == name)?;
+        let mut storage = self.attrs.borrow_mut();
+        let attr = storage.ensure_dom(idx, self);
+        let attr_dom = Some(DomRoot::from_ref(&**attr));
         fn id_and_name_must_be_atoms(name: &LocalName, maybe_attr: &Option<DomRoot<Attr>>) -> bool {
             if *name == local_name!("id") || *name == local_name!("name") {
                 match maybe_attr {
@@ -2051,8 +2095,8 @@ impl Element {
                 true
             }
         }
-        debug_assert!(id_and_name_must_be_atoms(name, &maybe_attribute));
-        maybe_attribute
+        debug_assert!(id_and_name_must_be_atoms(name, &attr_dom));
+        attr_dom
     }
 
     pub(crate) fn set_attribute_from_parser(
@@ -2142,18 +2186,18 @@ impl Element {
         find: F,
         can_gc: CanGc,
     ) where
-        F: Fn(&Attr) -> bool,
+        F: Fn(AttrRef<'_>) -> bool,
     {
         // Step 1. Let attribute be the result of getting an attribute given namespace, localName, and element.
-        let attr = self
-            .attrs
-            .borrow()
-            .iter()
-            .find(|attr| find(attr))
-            .map(|js| DomRoot::from_ref(&**js));
-        if let Some(attr) = attr {
+        // First check if a matching attribute exists (works for both Raw and Dom).
+        let found_idx = self.attrs.borrow().iter().position(find);
+        if let Some(idx) = found_idx {
+            let attr = {
+                let mut storage = self.attrs.borrow_mut();
+                DomRoot::from_ref(&**storage.ensure_dom(idx, self))
+            };
             // Step 3. Change attribute to value.
-            self.will_mutate_attr(&attr);
+            self.will_mutate_attr(AttrRef::Dom(&attr));
             self.change_attribute(&attr, value, can_gc);
         } else {
             // Step 2. If attribute is null, create an attribute whose namespace is namespace,
@@ -2208,20 +2252,23 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-remove>
     fn remove_first_matching_attribute<F>(&self, find: F, can_gc: CanGc) -> Option<DomRoot<Attr>>
     where
-        F: Fn(&Attr) -> bool,
+        F: Fn(AttrRef<'_>) -> bool,
     {
-        let idx = self.attrs.borrow().iter().position(|attr| find(attr));
+        let idx = self.attrs.borrow().iter().position(find);
         idx.map(|idx| {
-            let attr = DomRoot::from_ref(&*(*self.attrs.borrow())[idx]);
+            let attr = {
+                let mut storage = self.attrs.borrow_mut();
+                DomRoot::from_ref(&**storage.ensure_dom(idx, self))
+            };
 
             // Step 2. Remove attribute from element’s attribute list.
-            self.will_mutate_attr(&attr);
+            self.will_mutate_attr(AttrRef::Dom(&attr));
             self.attrs.borrow_mut().remove(idx);
             // Step 3. Set attribute’s element to null.
             attr.set_owner(None);
             // Step 4. Handle attribute changes for attribute with element, attribute’s value, and null.
             self.handle_attribute_changes(
-                &attr,
+                AttrRef::Dom(&attr),
                 Some(&attr.value()),
                 None,
                 AttributeMutationReason::Directly,
@@ -2255,33 +2302,47 @@ impl Element {
             .any(|attr| attr.local_name() == local_name && attr.namespace() == &ns!())
     }
 
-    pub(crate) fn will_mutate_attr(&self, attr: &Attr) {
+    pub(crate) fn will_mutate_attr(&self, attr: AttrRef<'_>) {
         let node = self.upcast::<Node>();
         node.owner_doc().element_attr_will_change(self, attr);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
-    fn update_style_attribute(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn update_style_attribute(&self, attr: AttrRef<'_>, mutation: AttributeMutation) {
         let doc = self.upcast::<Node>().owner_doc();
         // Modifying the `style` attribute might change style.
         *self.style_attribute.borrow_mut() = match mutation {
             AttributeMutation::Set(..) => {
-                // This is the fast path we use from
-                // CSSStyleDeclaration.
-                //
-                // Juggle a bit to keep the borrow checker happy
-                // while avoiding the extra clone.
-                let is_declaration = matches!(*attr.value(), AttrValue::Declaration(..));
+                let maybe_block = if let Some(attr) = attr.as_attr() {
+                    // This is the fast path we use from
+                    // CSSStyleDeclaration.
+                    //
+                    // Juggle a bit to keep the borrow checker happy
+                    // while avoiding the extra clone.
+                    let is_declaration = matches!(*attr.value(), AttrValue::Declaration(..));
+                    if is_declaration {
+                        let mut value = AttrValue::String(String::new());
+                        attr.swap_value(&mut value);
+                        let (serialization, block) = match value {
+                            AttrValue::Declaration(s, b) => (s, b),
+                            _ => unreachable!(),
+                        };
+                        let mut value = AttrValue::String(serialization);
+                        attr.swap_value(&mut value);
+                        Some(block)
+                    } else {
+                        None
+                    }
+                } else {
+                    let value = attr.value();
+                    if let AttrValue::Declaration(_, ref block) = *value {
+                        Some(block.clone())
+                    } else {
+                        None
+                    }
+                };
 
-                let block = if is_declaration {
-                    let mut value = AttrValue::String(String::new());
-                    attr.swap_value(&mut value);
-                    let (serialization, block) = match value {
-                        AttrValue::Declaration(s, b) => (s, b),
-                        _ => unreachable!(),
-                    };
-                    let mut value = AttrValue::String(serialization);
-                    attr.swap_value(&mut value);
+                let block = if let Some(block) = maybe_block {
                     block
                 } else {
                     let win = self.owner_window();
@@ -2364,7 +2425,10 @@ impl Element {
         });
 
         let old_attr = if let Some(position) = position {
-            let old_attr = DomRoot::from_ref(&*self.attrs.borrow()[position]);
+            let old_attr = {
+                let mut storage = self.attrs.borrow_mut();
+                DomRoot::from_ref(&**storage.ensure_dom(position, self))
+            };
 
             // Step 4. If oldAttr is attr, return attr.
             if &*old_attr == attr {
@@ -2380,8 +2444,10 @@ impl Element {
             // Skipped, as that points to self.
 
             // Step 2. Replace oldAttribute by newAttribute in element’s attribute list.
-            self.will_mutate_attr(attr);
-            self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
+            self.will_mutate_attr(AttrRef::Dom(attr));
+            self.attrs
+                .borrow_mut()
+                .set(position, AttributeEntry::Dom(Dom::from_ref(attr)));
             // Step 3. Set newAttribute’s element to element.
             attr.set_owner(Some(self));
             // Step 4. Set newAttribute’s node document to element’s node document.
@@ -2390,7 +2456,7 @@ impl Element {
             old_attr.set_owner(None);
             // Step 6. Handle attribute changes for oldAttribute with element, oldAttribute’s value, and newAttribute’s value.
             self.handle_attribute_changes(
-                attr,
+                AttrRef::Dom(attr),
                 Some(&old_attr.value()),
                 Some(verified_value),
                 AttributeMutationReason::Directly,
@@ -2822,7 +2888,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributenames>
     fn GetAttributeNames(&self) -> Vec<DOMString> {
-        self.attrs.borrow().iter().map(|attr| attr.Name()).collect()
+        self.attrs
+            .borrow()
+            .iter()
+            .map(|attr| DOMString::from(&**attr.name()))
+            .collect()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattribute>
@@ -3028,8 +3098,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         cx: &mut js::context::JSContext,
         attr: &Attr,
     ) -> Fallible<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|a| a == attr, CanGc::from_cx(cx))
-            .ok_or(Error::NotFound(None))
+        // The attr parameter passed here is already a Dom<Attr> that is somewhere present in the DOM,
+        // hence already materialized. That means that `as_attr()` will never fail.
+        self.remove_first_matching_attribute(
+            |a| a.as_attr().is_some_and(|a| std::ptr::eq(a, attr)),
+            CanGc::from_cx(cx),
+        )
+        .ok_or(Error::NotFound(None))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
@@ -4292,7 +4367,7 @@ impl VirtualMethods for Element {
         Some(self.upcast::<Node>() as &dyn VirtualMethods)
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         // FIXME: This should be more fine-grained, not all elements care about these.
         if attr.local_name() == &local_name!("lang") {
             return true;
@@ -4306,7 +4381,7 @@ impl VirtualMethods for Element {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()
@@ -4989,7 +5064,7 @@ impl AttributeMutation<'_> {
         }
     }
 
-    pub(crate) fn new_value<'b>(&self, attr: &'b Attr) -> Option<Ref<'b, AttrValue>> {
+    pub(crate) fn new_value<'b>(&self, attr: AttrRef<'b>) -> Option<AttrValueRef<'b>> {
         match *self {
             AttributeMutation::Set(..) => Some(attr.value()),
             AttributeMutation::Removed => None,

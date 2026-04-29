@@ -44,10 +44,17 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
     fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
-        self.owner
-            .attrs()
-            .get(index as usize)
-            .map(|js| DomRoot::from_ref(&**js))
+        let index: usize = index as _;
+        let mut storage = self.owner.attrs_mut();
+        if storage.len() < index {
+            None
+        } else {
+            storage.ensure_dom(index, &self.owner);
+            storage
+                .get(index)
+                .and_then(|a| a.as_attr())
+                .map(DomRoot::from_ref)
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem>

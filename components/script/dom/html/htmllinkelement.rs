@@ -30,7 +30,6 @@ use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
 use webrender_api::units::DeviceIntSize;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
@@ -45,6 +44,7 @@ use crate::dom::css::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
@@ -247,7 +247,7 @@ impl VirtualMethods for HTMLLinkElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

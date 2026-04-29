@@ -227,7 +227,8 @@ impl Element {
             return false;
         }
 
-        let only_attribute = attrs.first().expect("Size is 1").local_name();
+        let first_attr = attrs.first().expect("Size is 1");
+        let only_attribute = first_attr.local_name();
 
         // > It is an a element with exactly one attribute, which is href.
         if matches!(

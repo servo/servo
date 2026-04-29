@@ -8,11 +8,10 @@ use servo_arc::Arc as ServoArc;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScriptURLOrUSVString};
-use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutationReason, Element};
 use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
@@ -187,7 +186,7 @@ impl Element {
     /// 1. It uses the same fast-path as CSSStyleDeclaration
     /// 2. It also avoids the CSP checks when cloning (it shouldn't run any when cloning
     ///    existing valid attributes)
-    fn compute_attribute_value_with_style_fast_path(&self, attr: &Dom<Attr>) -> AttrValue {
+    fn compute_attribute_value_with_style_fast_path(&self, attr: AttrRef<'_>) -> AttrValue {
         if *attr.local_name() == local_name!("style") {
             if let Some(ref pdb) = *self.style_attribute().borrow() {
                 let document = self.owner_document();
