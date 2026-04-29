@@ -154,7 +154,7 @@ pub(crate) fn generate_key(
             .filter(|&usage| *usage == KeyUsage::Sign)
             .cloned()
             .collect(),
-        Handle::Ed25519PrivateKey(seed),
+        Handle::Ed25519PrivateKey(seed.into()),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -287,7 +287,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519PrivateKey(curve_private_key),
+                Handle::Ed25519PrivateKey(curve_private_key.into()),
             )
         },
         // If format is "jwk":
@@ -388,7 +388,7 @@ pub(crate) fn import_key(
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
-                    Handle::Ed25519PrivateKey(d),
+                    Handle::Ed25519PrivateKey(d.into()),
                 )
             }
             // Otherwise:

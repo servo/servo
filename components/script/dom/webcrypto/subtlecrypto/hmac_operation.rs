@@ -160,7 +160,7 @@ pub(crate) fn generate_key(
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
-        Handle::Hmac(key_data),
+        Handle::Hmac(key_data.into()),
     );
 
     // Step 16. Return key.
@@ -360,7 +360,7 @@ pub(crate) fn import_key(
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
-        Handle::Hmac(truncated_data),
+        Handle::Hmac(truncated_data.into()),
     );
 
     // Step 15. Return key.

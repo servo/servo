@@ -8726,6 +8726,7 @@ dependencies = [
  "wgpu-types",
  "x25519-dalek",
  "xml5ever",
+ "zeroize",
 ]
 
 [[package]]
