@@ -215,10 +215,10 @@ impl DocumentFocusHandler {
                 // (including non-element nodes, such as text nodes)
                 // matches the conditions for matching :focus.
                 let node = element.upcast::<Node>();
-                if let Some(ref parent) = node.GetParentNode() &&
-                    let Some(parent) = parent.downcast::<Element>()
-                {
-                    parent.set_focus_within_state(new_state);
+                for ancestor in node.inclusive_ancestors_in_flat_tree() {
+                    if let Some(ancestor_el) = ancestor.downcast::<Element>() {
+                        ancestor_el.set_focus_within_state(new_state);
+                    }
                 }
                 return;
             };
@@ -398,8 +398,8 @@ impl DocumentFocusHandler {
             // because of the popping we do at the start of these steps.
             let related_blur_target = match new_focus_chain.last() {
                 Some(FocusableArea::Node { node, .. })
-                    if index == last_old_focus_chain_entry &&
-                        matches!(entry, FocusableArea::Node { .. }) =>
+                    if index == last_old_focus_chain_entry
+                        && matches!(entry, FocusableArea::Node { .. }) =>
                 {
                     Some(node.upcast())
                 },
@@ -475,8 +475,8 @@ impl DocumentFocusHandler {
             // because of the popping we do at the start of these steps.
             let related_focus_target = match old_focus_chain.last() {
                 Some(FocusableArea::Node { node, .. })
-                    if index == last_new_focus_chain_entry &&
-                        matches!(entry, FocusableArea::Node { .. }) =>
+                    if index == last_new_focus_chain_entry
+                        && matches!(entry, FocusableArea::Node { .. }) =>
                 {
                     Some(node.upcast())
                 },
