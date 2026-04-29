@@ -8,7 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
-use fonts::ShapedText;
+use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
@@ -1050,7 +1050,7 @@ impl Fragment {
         let mut start_advance = None;
         let mut end_advance = None;
         for glyph_store in fragment.glyphs.iter() {
-            let glyph_store_character_count = glyph_store.total_characters();
+            let glyph_store_character_count = glyph_store.character_count();
             if current_character_index + glyph_store_character_count <
                 shared_selection.character_range.start
             {
@@ -1941,7 +1941,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 }
 
 fn glyphs(
-    glyph_runs: &[Arc<ShapedText>],
+    shaped_text_slices: &[Arc<ShapedTextSlice>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
@@ -1949,9 +1949,9 @@ fn glyphs(
     let mut glyphs = vec![];
     let mut largest_advance = Au::zero();
 
-    for run in glyph_runs {
-        for glyph in run.glyphs() {
-            if !run.is_whitespace() || include_whitespace {
+    for shaped_text_slice in shaped_text_slices {
+        for glyph in shaped_text_slice.glyphs() {
+            if !shaped_text_slice.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),

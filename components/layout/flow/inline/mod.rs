@@ -83,7 +83,7 @@ use app_units::{Au, MAX_AU};
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, FontRef, ShapedText};
+use fonts::{FontMetrics, FontRef, ShapedTextSlice};
 use icu_locid::LanguageIdentifier;
 use icu_locid::subtags::{Language, language};
 use icu_properties::{self, LineBreak as ICULineBreak};
@@ -529,7 +529,7 @@ impl LineUnderConstruction {
                     text_run
                         .text
                         .iter()
-                        .map(|glyph_store| glyph_store.total_word_separators())
+                        .map(|shaped_text_slice| shaped_text_slice.total_word_separators())
                         .sum::<usize>(),
                 ),
                 _ => None,
@@ -1561,7 +1561,7 @@ impl InlineFormattingContextLayout<'_> {
 
     fn push_glyph_store_to_unbreakable_segment(
         &mut self,
-        glyph_store: Arc<ShapedText>,
+        glyph_store: Arc<ShapedTextSlice>,
         text_run: &TextRun,
         info: &Arc<FontAndScriptInfo>,
         offsets: Option<TextRunOffsets>,

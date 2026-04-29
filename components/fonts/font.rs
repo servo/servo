@@ -364,10 +364,6 @@ impl Font {
 bitflags! {
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct ShapingFlags: u8 {
-        /// Set if the text is entirely whitespace.
-        const IS_WHITESPACE_SHAPING_FLAG = 1 << 0;
-        /// Set if the text ends with whitespace.
-        const ENDS_WITH_WHITESPACE_SHAPING_FLAG = 1 << 1;
         /// Set if we are to ignore ligatures.
         const IGNORE_LIGATURES_SHAPING_FLAG = 1 << 2;
         /// Set if we are to disable kerning.
@@ -470,7 +466,7 @@ impl Font {
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
     fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> ShapedText {
-        let mut glyph_store = ShapedText::new(text.len(), options);
+        let mut glyph_store = ShapedText::new(text.len(), false /* is_rtl */);
         let mut prev_glyph_id = None;
         for (string_byte_offset, byte) in text.bytes().enumerate() {
             let character = byte as char;

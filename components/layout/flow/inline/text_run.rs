@@ -7,7 +7,9 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use fonts::{FontContext, FontRef, ShapedText, ShapingFlags, ShapingOptions};
+use fonts::{
+    FontContext, FontRef, ShapedTextSlice, ShapedTextSlicer, ShapingFlags, ShapingOptions,
+};
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
 use log::warn;
@@ -145,7 +147,7 @@ pub(crate) struct TextRunSegment {
 
     /// The shaped runs within this segment.
     #[conditional_malloc_size_of]
-    pub runs: Vec<Arc<ShapedText>>,
+    pub runs: Vec<Arc<ShapedTextSlice>>,
 }
 
 impl TextRunSegment {
@@ -233,19 +235,6 @@ impl TextRunSegment {
         }
     }
 
-    fn shape_and_push_range(
-        &mut self,
-        range: &Range<usize>,
-        formatting_context_text: &str,
-        options: &ShapingOptions,
-    ) {
-        self.runs.push(
-            self.info
-                .font
-                .shape_text(&formatting_context_text[range.clone()], options),
-        );
-    }
-
     /// Shape the text of this [`TextRunSegment`], first finding "words" for the shaper by processing
     /// the linebreaks found in the owning [`super::InlineFormattingContext`]. Linebreaks are filtered,
     /// based on the style of the parent inline box.
@@ -255,14 +244,19 @@ impl TextRunSegment {
         formatting_context_text: &str,
         linebreaker: &mut LineBreaker,
     ) {
-        let options: ShapingOptions = (&*self.info).into();
-
         // Gather the linebreaks that apply to this segment from the inline formatting context's collection
         // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
         // piece of text is processed.
         let range = self.byte_range.clone();
         let linebreaks = linebreaker.advance_to_linebreaks_in_range(self.byte_range.clone());
         let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
+
+        let options: ShapingOptions = (&*self.info).into();
+        let mut shaped_text_slicer = ShapedTextSlicer::new(
+            self.info
+                .font
+                .shape_text(&formatting_context_text[range.clone()], &options),
+        );
 
         self.runs.clear();
         self.runs.reserve(linebreaks.len());
@@ -275,7 +269,6 @@ impl TextRunSegment {
 
         let mut last_slice = self.byte_range.start..self.byte_range.start;
         for break_index in linebreak_iter {
-            let mut options = options;
             if *break_index == self.byte_range.start {
                 self.break_at_start = true;
                 continue;
@@ -289,6 +282,7 @@ impl TextRunSegment {
             let mut whitespace = slice.end..slice.end;
             let rev_char_indices = word.char_indices().rev().peekable();
 
+            let mut non_whitespace_slice_ends_with_whitespace = false;
             let mut ends_with_whitespace = false;
             if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
                 .take_while(|&(_, character)| char_is_whitespace(character))
@@ -306,9 +300,7 @@ impl TextRunSegment {
                     !can_break_anywhere
                 {
                     whitespace.start += first_white_space_character.len_utf8();
-                    options
-                        .flags
-                        .insert(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG);
+                    non_whitespace_slice_ends_with_whitespace = true;
                 }
 
                 slice.end = whitespace.start;
@@ -329,34 +321,36 @@ impl TextRunSegment {
 
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
-                self.shape_and_push_range(&slice, formatting_context_text, &options);
+                let character_count = formatting_context_text[slice].chars().count();
+                self.runs.push(shaped_text_slicer.slice_for_character_count(
+                    character_count,
+                    false, /* is_whitespace */
+                    non_whitespace_slice_ends_with_whitespace,
+                ));
             }
 
             if whitespace.is_empty() {
                 continue;
             }
 
-            options.flags.insert(
-                ShapingFlags::IS_WHITESPACE_SHAPING_FLAG |
-                    ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG,
-            );
-
             // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
             // between each white space character in the white space that we trimmed off.
             if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces {
-                let start_index = whitespace.start;
-                for (index, character) in formatting_context_text[whitespace].char_indices() {
-                    let index = start_index + index;
-                    self.shape_and_push_range(
-                        &(index..index + character.len_utf8()),
-                        formatting_context_text,
-                        &options,
-                    );
+                for _ in formatting_context_text[whitespace].chars() {
+                    self.runs.push(shaped_text_slicer.slice_for_character_count(
+                        1, true, /* is_whitespace */
+                        true, /* ends_with_whitespace */
+                    ));
                 }
                 continue;
             }
 
-            self.shape_and_push_range(&whitespace, formatting_context_text, &options);
+            let character_count = formatting_context_text[whitespace].chars().count();
+            self.runs.push(shaped_text_slicer.slice_for_character_count(
+                character_count,
+                true, /* is_whitespace */
+                true, /* ends_with_whitespace */
+            ));
         }
     }
 }
