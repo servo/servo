@@ -616,7 +616,7 @@ impl DocumentEventHandler {
                 if !old_target_is_ancestor_of_new_target {
                     for element in old_target
                         .upcast::<Node>()
-                        .inclusive_ancestors(ShadowIncluding::No)
+                        .inclusive_ancestors(ShadowIncluding::Yes)
                         .filter_map(DomRoot::downcast::<Element>)
                     {
                         element.set_hover_state(false);
