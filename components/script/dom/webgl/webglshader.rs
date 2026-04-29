@@ -9,13 +9,13 @@ use std::sync::Once;
 
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
+use script_bindings::cell::DomRefCell;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
     WebGLVersion, webgl_channel,
 };
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;

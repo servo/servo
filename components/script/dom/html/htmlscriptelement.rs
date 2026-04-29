@@ -19,6 +19,7 @@ use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use script_bindings::cell::DomRefCell;
 use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -28,7 +29,6 @@ use uuid::Uuid;
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;

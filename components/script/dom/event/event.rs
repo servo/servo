@@ -11,13 +11,13 @@ use dom_struct::dom_struct;
 use embedder_traits::InputEventResult;
 use js::rust::HandleObject;
 use keyboard_types::{Key, NamedKey};
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::PointerEventBinding::PointerEventMethods;
 use script_bindings::match_domstring_ascii;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;

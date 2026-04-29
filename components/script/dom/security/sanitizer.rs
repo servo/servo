@@ -9,8 +9,8 @@ use dom_struct::dom_struct;
 use html5ever::{Namespace, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SanitizerAttribute, SanitizerAttributeNamespace, SanitizerConfig, SanitizerElement,
     SanitizerElementNamespace, SanitizerElementNamespaceWithAttributes,

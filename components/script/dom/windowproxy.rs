@@ -31,6 +31,7 @@ use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::MutDomObject;
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
@@ -45,7 +46,6 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;

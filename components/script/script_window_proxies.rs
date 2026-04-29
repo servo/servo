@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use rustc_hash::FxBuildHasher;
+use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
@@ -11,7 +12,6 @@ use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::document_collection::DocumentCollection;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::{GlobalScope, Window};

@@ -7,10 +7,10 @@ use std::collections::HashMap;
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use crate::dom::bindings::root::DomRoot;

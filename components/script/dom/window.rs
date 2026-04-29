@@ -65,6 +65,7 @@ use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
@@ -103,7 +104,6 @@ use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeO
 use super::bindings::trace::HashMapTracedValues;
 use super::performanceresourcetiming::InitiatorType;
 use super::types::SVGSVGElement;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };

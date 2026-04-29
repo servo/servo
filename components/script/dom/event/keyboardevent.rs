@@ -9,9 +9,9 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, Modifiers, NamedKey};
+use script_bindings::cell::DomRefCell;
 use style::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;

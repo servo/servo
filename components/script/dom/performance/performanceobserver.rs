@@ -7,12 +7,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::cell::DomRefCell;
 
 use super::performance::PerformanceEntryList;
 use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceEntryList as DOMPerformanceEntryList;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
     PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,

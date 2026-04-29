@@ -7,12 +7,12 @@ use std::cell::Cell;
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
+use script_bindings::cell::DomRefCell;
 use servo_base::id::ServiceWorkerRegistrationId;
 use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use uuid::Uuid;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{
     ServiceWorkerRegistrationMethods, ServiceWorkerUpdateViaCache,
 };

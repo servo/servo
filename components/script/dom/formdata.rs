@@ -5,10 +5,10 @@
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use servo_constellation_traits::BlobImpl;
 
 use super::bindings::trace::NoTrace;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};

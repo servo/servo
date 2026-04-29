@@ -12,6 +12,7 @@ use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
@@ -19,7 +20,6 @@ use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};

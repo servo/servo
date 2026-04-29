@@ -7,9 +7,9 @@ use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;

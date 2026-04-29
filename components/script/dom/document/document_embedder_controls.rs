@@ -14,6 +14,7 @@ use js::context::JSContext;
 use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
@@ -27,7 +28,6 @@ use servo_url::ServoUrl;
 use webrender_api::units::{DeviceIntRect, DevicePoint};
 
 use crate::dom::activation::Activatable;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::inputevent::HitTestResult;

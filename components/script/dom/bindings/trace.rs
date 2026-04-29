@@ -43,7 +43,6 @@ use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use rustc_hash::FxBuildHasher;
 pub(crate) use script_bindings::trace::*;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::html::htmlimageelement::SourceSet;
@@ -52,12 +51,6 @@ use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::StreamConsumer;
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
-
-unsafe impl<T: CustomTraceable> CustomTraceable for DomRefCell<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        unsafe { (*self).borrow().trace(trc) }
-    }
-}
 
 /// Wrapper type for nop traceble
 ///
@@ -265,12 +258,6 @@ pub(crate) fn trace_string(tracer: *mut JSTracer, description: &str, s: &Heap<*m
             s.ptr.get() as *mut _,
             GCTraceKindToAscii(TraceKind::String),
         );
-    }
-}
-
-unsafe impl<T: JSTraceable> JSTraceable for DomRefCell<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        unsafe { (*self).borrow().trace(trc) };
     }
 }
 

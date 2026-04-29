@@ -8,12 +8,12 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use script_bindings::cell::DomRefCell;
 use servo_base::id::ServiceWorkerId;
 use servo_constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
     ServiceWorkerMethods, ServiceWorkerState,

@@ -5,10 +5,10 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionResultMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatus_Binding::PermissionStatusMethods;

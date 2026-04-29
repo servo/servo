@@ -8,12 +8,12 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use paint_api::SerializableImageData;
 use pixels::Snapshot;
+use script_bindings::cell::DomRefCell;
 use servo_base::Epoch;
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageDescriptor, ImageFormat, ImageKey};
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::ImageBitmapMethods;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapRenderingContextBinding::ImageBitmapRenderingContextMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;

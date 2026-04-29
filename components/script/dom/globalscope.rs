@@ -56,6 +56,7 @@ use profile_traits::{
     time as profile_time,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::settings_stack::run_a_script;
 use servo_base::generic_channel;
@@ -83,7 +84,6 @@ use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use super::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use super::transformstream::CrossRealmTransform;
 use crate::DomTypeHolder;
-use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;

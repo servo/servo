@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // For compile-fail tests only.
-// pub use crate::dom::bindings::cell::DomRefCell;
+// pub use script_bindings::cell::DomRefCell;
 pub use crate::dom::bindings::refcounted::TrustedPromise;
 // pub use crate::dom::bindings::root::Dom;
 pub use crate::dom::bindings::str::{ByteString, DOMString};

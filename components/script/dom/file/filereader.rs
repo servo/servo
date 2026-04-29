@@ -14,10 +14,10 @@ use js::jsval::{self, JSVal};
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
+use script_bindings::cell::DomRefCell;
 use script_bindings::num::Finite;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
     FileReaderConstants, FileReaderMethods,

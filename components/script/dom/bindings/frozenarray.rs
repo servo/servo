@@ -6,8 +6,8 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::MutableHandleValue;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::script_runtime::{CanGc, JSContext};
 

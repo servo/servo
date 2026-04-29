@@ -10,6 +10,7 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
@@ -17,7 +18,6 @@ use style::stylesheets::{Stylesheet, StylesheetInDocument, UrlExtraData};
 use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;

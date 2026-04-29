@@ -6,8 +6,8 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{ScrollSetting, VTTRegionMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;

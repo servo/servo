@@ -4,12 +4,12 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::AssociatedMemory;
 use script_bindings::root::DomRoot;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLMsgSender};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGLObjectBinding::WebGLObjectMethods;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::USVString;

@@ -5,13 +5,13 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 use webgpu_traits::{WebGPU, WebGPURenderBundle, WebGPURequest};
 use wgpu_core::command::{
     RenderBundleEncoder, RenderBundleEncoderDescriptor, bundle_ffi as wgpu_bundle,
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
     GPURenderBundleEncoderMethods,

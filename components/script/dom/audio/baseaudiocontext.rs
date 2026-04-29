@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{
@@ -39,7 +40,6 @@ use crate::dom::audio::oscillatornode::OscillatorNode;
 use crate::dom::audio::pannernode::PannerNode;
 use crate::dom::audio::stereopannernode::StereoPannerNode;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::AnalyserOptions;
 use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{

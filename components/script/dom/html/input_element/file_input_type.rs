@@ -9,6 +9,7 @@ use embedder_traits::{EmbedderControlRequest, FilePickerRequest, FilterPattern, 
 use html5ever::{local_name, ns};
 use js::context::JSContext;
 use markup5ever::QualName;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::FileListBinding::FileListMethods;
 use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
@@ -21,7 +22,6 @@ use script_bindings::script_runtime::CanGc;
 use style::selector_parser::PseudoElement;
 use style::str::split_commas;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};

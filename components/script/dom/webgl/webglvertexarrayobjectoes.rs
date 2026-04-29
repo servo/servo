@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::Ref;
 use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
-use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl::vertexarrayobject::{VertexArrayObject, VertexAttribData};

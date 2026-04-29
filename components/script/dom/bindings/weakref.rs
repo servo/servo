@@ -8,9 +8,9 @@ use std::ops::{Deref, DerefMut, Drop};
 
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use script_bindings::cell::DomRefCell;
 pub(crate) use script_bindings::weakref::*;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 

@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
@@ -18,7 +19,6 @@ use servo_media::webrtc::{
 };
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{

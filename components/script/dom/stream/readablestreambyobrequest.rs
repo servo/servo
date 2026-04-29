@@ -5,10 +5,10 @@
 use dom_struct::dom_struct;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
+use script_bindings::cell::DomRefCell;
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};

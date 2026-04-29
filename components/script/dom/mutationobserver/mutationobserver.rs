@@ -9,8 +9,8 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, ns};
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
     MutationCallback, MutationObserverInit,

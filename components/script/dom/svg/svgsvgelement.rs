@@ -9,6 +9,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
@@ -19,7 +20,6 @@ use uuid::Uuid;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;

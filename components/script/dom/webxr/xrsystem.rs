@@ -10,12 +10,12 @@ use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use profile_traits::ipc;
+use script_bindings::cell::DomRefCell;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
 };

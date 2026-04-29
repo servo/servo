@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::domstring::DOMString;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};

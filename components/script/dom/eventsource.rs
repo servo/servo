@@ -17,11 +17,11 @@ use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods,
 };
