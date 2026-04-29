@@ -388,11 +388,11 @@ impl Actor for WatcherActor {
                             }
                         },
                         "stylesheet" => {
-                            let stylesheets_actor = registry.find::<StyleSheetsActor>(
+                            let style_sheets_actor = registry.find::<StyleSheetsActor>(
                                 &browsing_context_actor.style_sheets_name,
                             );
                             browsing_context_actor.resources_array(
-                                stylesheets_actor.get_stylesheets_data(&browsing_context_actor),
+                                style_sheets_actor.get_stylesheets_data(&browsing_context_actor),
                                 resource.into(),
                                 ResourceArrayType::Available,
                                 &mut request,

@@ -276,7 +276,7 @@ pub(crate) fn handle_get_stylesheet_text(
         }
 
         // For styles which are not inline, Reconstruct the CSS from rules.
-        let rules = stylesheet.GetCssRules(cx).ok()?;
+        let rules = stylesheet.rulelist(cx);
         let mut css_text = String::new();
         for i in 0..rules.Length() {
             if let Some(rule) = rules.Item(cx, i) {

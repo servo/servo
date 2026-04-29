@@ -96,6 +96,7 @@ impl Actor for StyleSheetsActor {
                 };
                 request.reply_final(&msg)?
             },
+            /// TODO: Fix CSS text formatting of external sheets, match same as source.
             "getText" => {
                 let resource_id = msg.get("resourceId").and_then(|v| v.as_str()).unwrap_or("");
                 let index = resource_id
@@ -160,7 +161,7 @@ impl StyleSheetsActor {
                 browsing_context_actor.pipeline_id(),
                 tx,
             ));
-        let style_sheets = rx.recv().unwrap_or_else(|_| vec![]);
+        let style_sheets = rx.recv().unwrap();
         style_sheets
             .into_iter()
             .map(|info| StyleSheetData {

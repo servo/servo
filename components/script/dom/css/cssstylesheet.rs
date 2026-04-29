@@ -157,7 +157,7 @@ impl CSSStyleSheet {
         )
     }
 
-    fn rulelist(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
+    pub(crate) fn rulelist(&self, cx: &mut JSContext) -> DomRoot<CSSRuleList> {
         self.rule_list.or_init(|| {
             let sheet = self.style_stylesheet.borrow();
             let guard = sheet.shared_lock.read();
