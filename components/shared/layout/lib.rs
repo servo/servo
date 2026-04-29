@@ -42,7 +42,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
-use pixels::RasterImage;
+use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
 use profile_traits::time;
 pub use pseudo_element_chain::PseudoElementChain;
@@ -763,14 +763,21 @@ pub struct ImageAnimationState {
     #[conditional_malloc_size_of]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
+    pub current_loop_count: Option<u32>,
     frame_start_time: f64,
 }
 
 impl ImageAnimationState {
     pub fn new(image: Arc<RasterImage>, last_update_time: f64) -> Self {
+        let current_loop_count = match &image.loop_count {
+            None => unreachable!("Loop_count of Animated Image should not be None"),
+            Some(repeat) if Repeat::Infinite == *repeat => None,
+            _ => Some(0),
+        };
         Self {
             image,
             active_frame: 0,
+            current_loop_count,
             frame_start_time: last_update_time,
         }
     }
@@ -800,6 +807,15 @@ impl ImageAnimationState {
         if self.image.frames.len() <= 1 {
             return false;
         }
+        if let Some(repeat) = &self.image.loop_count &&
+            let Repeat::Finite(loop_times) = repeat
+        {
+            if let Some(current_loop_count) = self.current_loop_count {
+                if current_loop_count >= loop_times.get() {
+                    return false;
+                }
+            }
+        }
         let image = &self.image;
         let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
@@ -811,8 +827,12 @@ impl ImageAnimationState {
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
+        let mut advance_loop = 0;
         while remain_time_interval > 0.0 {
             next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
+            if next_active_frame_id == 0 {
+                advance_loop += 1;
+            }
             remain_time_interval -= image
                 .frames
                 .get(next_active_frame_id)
@@ -820,6 +840,17 @@ impl ImageAnimationState {
                 .delay()
                 .unwrap()
                 .as_secs_f64();
+        }
+        if let Some(Repeat::Finite(repeat_times)) = self.image.loop_count {
+            if let Some(current_loop_cnt) = self.current_loop_count {
+                let new_loop_cnt = current_loop_cnt + advance_loop;
+                self.current_loop_count = Some(new_loop_cnt);
+                // the "now" time value exceed the time value after iterating through loop_cnt times.
+                if new_loop_cnt >= repeat_times.get() {
+                    // should freeze at last frame
+                    return self.active_frame != (self.image.frames.len() - 1);
+                }
+            }
         }
         if self.active_frame == next_active_frame_id {
             return false;
@@ -933,15 +964,16 @@ pub fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
 
 #[cfg(test)]
 mod test {
+    use std::num::{NonZero, NonZeroU32};
     use std::sync::Arc;
     use std::time::Duration;
 
-    use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
+    use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat};
 
     use crate::ImageAnimationState;
 
     #[test]
-    fn test() {
+    fn test_animated_image_update() {
         let image_frames: Vec<ImageFrame> = std::iter::repeat_with(|| ImageFrame {
             delay: Some(Duration::from_millis(100)),
             byte_range: 0..1,
@@ -960,6 +992,7 @@ mod test {
             bytes: Arc::new(vec![1]),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
+            loop_count: Some(Repeat::Infinite),
             is_opaque: false,
         };
         let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
@@ -978,5 +1011,50 @@ mod test {
         );
         assert_eq!(image_animation_state.active_frame, 1);
         assert_eq!(image_animation_state.frame_start_time, 0.101);
+    }
+
+    #[test]
+    fn test_finite_image_repeat() {
+        let image_frames: Vec<ImageFrame> = std::iter::repeat_with(|| ImageFrame {
+            delay: Some(Duration::from_millis(100)),
+            byte_range: 0..1,
+            width: 100,
+            height: 100,
+        })
+        .take(2)
+        .collect();
+        let image = RasterImage {
+            metadata: ImageMetadata {
+                width: 100,
+                height: 100,
+            },
+            format: PixelFormat::BGRA8,
+            id: None,
+            bytes: Arc::new(vec![1]),
+            frames: image_frames,
+            cors_status: CorsStatus::Unsafe,
+            loop_count: Some(Repeat::Finite(NonZeroU32::new(1).unwrap())),
+            is_opaque: false,
+        };
+        let mut image_animation_state = ImageAnimationState::new(Arc::new(image), 0.0);
+
+        assert_eq!(image_animation_state.active_frame, 0);
+        assert_eq!(image_animation_state.frame_start_time, 0.0);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.101),
+            true
+        );
+        assert_eq!(image_animation_state.active_frame, 1);
+        assert_eq!(image_animation_state.frame_start_time, 0.101);
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.202),
+            false
+        );
+        assert_eq!(
+            image_animation_state.update_frame_for_animation_timeline_value(0.303),
+            false
+        );
+
+        assert_eq!(image_animation_state.active_frame, 1);
     }
 }
