@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomRectId, DomRectIndex};
@@ -15,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    Reflector, reflect_dom_object, reflect_dom_object_with_proto,
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
@@ -110,13 +111,13 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn FromRect(
+        cx: &mut JSContext,
         global: &GlobalScope,
         other: &DOMRectInit,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
         let dom_rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object(Box::new(dom_rect), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(dom_rect), global, cx)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x>
