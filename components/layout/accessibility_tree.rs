@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::collections::VecDeque;
 use std::sync::LazyLock;
 
 use accesskit::Role;
 use layout_api::{LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
 use servo_base::Epoch;
 use style::dom::OpaqueNode;
@@ -68,13 +69,22 @@ impl AccessibilityTree {
         tree_update: &mut AccessibilityUpdate,
     ) -> bool {
         // TODO: read accessibility damage (right now, assume damage is complete)
-        let (node_id, updated) = self.update_node(dom_node);
+        let (node_id, mut updated) = self.update_node(dom_node);
 
         let mut any_descendant_updated = false;
         for dom_child in dom_node.flat_tree_children() {
             // TODO: We actually need to propagate damage within the accessibility tree, rather than
             // assuming it matches the DOM tree, but this will do for now.
             any_descendant_updated |= self.update_node_and_children(&dom_child, tree_update);
+        }
+
+        if any_descendant_updated {
+            let node_ref = self.assert_node_by_id(node_id);
+            let mut node = node_ref.borrow_mut();
+            if let Some(text) = self.label_from_descendants(&node) {
+                node.accesskit_node.set_label(text);
+                updated = true;
+            }
         }
 
         if updated {
@@ -119,6 +129,33 @@ impl AccessibilityTree {
 
         // TODO: only return true if any update actually happened
         (node.id, true)
+    }
+
+    fn label_from_descendants(&self, node: &AccessibilityNode) -> Option<String> {
+        if !NAME_FROM_CONTENTS_ROLES.contains(&node.accesskit_node.role()) {
+            return None;
+        }
+        let mut children: VecDeque<accesskit::NodeId> = VecDeque::default();
+        children.extend(node.accesskit_node.children());
+        let mut text = String::new();
+        while let Some(child_id) = children.pop_front() {
+            let child = self.assert_node_by_id(child_id);
+            let accesskit_node = &child.borrow().accesskit_node;
+            match accesskit_node.role() {
+                Role::TextRun => {
+                    if let Some(child_text) = accesskit_node.value() {
+                        text.push_str(child_text);
+                    }
+                },
+                _ => {
+                    for id in accesskit_node.children().iter().rev() {
+                        children.push_front(*id);
+                    }
+                },
+            }
+        }
+        let text: String = text.trim().to_owned();
+        Some(text)
     }
 
     fn get_or_create_node(
@@ -266,3 +303,6 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
     .into_iter()
     .collect()
 });
+
+static NAME_FROM_CONTENTS_ROLES: LazyLock<FxHashSet<Role>> =
+    LazyLock::new(|| [(Role::Heading)].into_iter().collect());
