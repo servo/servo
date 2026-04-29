@@ -180,6 +180,9 @@ pub(crate) struct DocumentEventHandler {
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently clicked.
     most_recently_clicked_element: MutNullableDom<Element>,
+    /// The element that was activated on mousedown and should retain :active state until mouseup.
+    /// <https://github.com/servo/servo/issues/43862>
+    current_active_element: MutNullableDom<Element>,
     /// The most recent mouse movement point, used for processing `mouseleave` events.
     #[no_trace]
     most_recent_mousemove_point: Cell<Option<Point2D<f32, CSSPixel>>>,
@@ -216,6 +219,7 @@ impl DocumentEventHandler {
             down_button_count: Cell::new(0),
             current_hover_target: Default::default(),
             most_recently_clicked_element: Default::default(),
+            current_active_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
             active_touch_points: Default::default(),
@@ -440,7 +444,6 @@ impl DocumentEventHandler {
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 element.set_hover_state(false);
-                self.element_for_activation(element).set_active_state(false);
             }
 
             if let Some(hit_test_result) = self
@@ -618,7 +621,6 @@ impl DocumentEventHandler {
                         .filter_map(DomRoot::downcast::<Element>)
                     {
                         element.set_hover_state(false);
-                        self.element_for_activation(element).set_active_state(false);
                     }
                 }
 
@@ -847,12 +849,17 @@ impl DocumentEventHandler {
         // If the element is being actively pointed at the element is being activated.
         // Disabled elements can also be activated.
         if event.action == MouseButtonAction::Down {
-            self.element_for_activation(element.clone())
-                .set_active_state(true);
+            let activation_element = self.element_for_activation(element.clone());
+            activation_element.set_active_state(true);
+            self.current_active_element.set(Some(&*activation_element));
         }
         if event.action == MouseButtonAction::Up {
-            self.element_for_activation(element.clone())
-                .set_active_state(false);
+            if let Some(active_element) = self.current_active_element.take() {
+                active_element.set_active_state(false);
+            } else {
+                self.element_for_activation(element.clone())
+                    .set_active_state(false);
+            }
         }
 
         // https://w3c.github.io/uievents/#hit-test
