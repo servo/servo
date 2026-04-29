@@ -500,6 +500,13 @@ pub async fn main_fetch(
         request.referrer_policy = policy_container.get_referrer_policy();
     }
 
+    let referrer_is_fetchable = match &request.referrer {
+        Referrer::ReferrerUrl(url) | Referrer::Client(url) => {
+            context.protocols.is_fetchable(url.scheme())
+        },
+        Referrer::NoReferrer => false,
+    };
+
     let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
@@ -568,6 +575,8 @@ pub async fn main_fetch(
                 // Note: Although it is not part of the specification, we make an exception here
                 // for custom protocols that are explicitly marked as active for fetch.
                 context.protocols.is_fetchable(current_scheme) ||
+
+                referrer_is_fetchable ||
                 // request's mode is "navigate" or "websocket"
                 matches!(
                     request.mode,

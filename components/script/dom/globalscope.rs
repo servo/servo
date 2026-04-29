@@ -2678,7 +2678,11 @@ impl GlobalScope {
 
             // Substep 3."client".2.2. If document’s origin is an opaque origin, return no referrer.
             if let ImmutableOrigin::Opaque(_) = document.origin().immutable() {
-                return Referrer::NoReferrer;
+                // Here we allow referrer for resource:// URLs so that internal pages
+                // (e.g. PDF.js viewer) can fetch cross-origin resources.
+                if document.url().scheme() != "resource" {
+                    return Referrer::NoReferrer;
+                }
             }
 
             let mut url = document.url();

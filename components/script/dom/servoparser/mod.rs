@@ -929,6 +929,9 @@ pub(crate) struct ParserContext {
     parent_info: Option<PipelineId>,
     target_snapshot_params: TargetSnapshotParams,
     load_origin: LoadOrigin,
+    /// Buffer for collecting pdf bytes when loading a pdf document.
+    /// The bytes are passed to the pdf.js viewer after the document finishes loading.
+    pdf_bytes: Option<Vec<u8>>,
 }
 
 impl ParserContext {
@@ -960,6 +963,7 @@ impl ParserContext {
             },
             target_snapshot_params,
             load_origin,
+            pdf_bytes: None,
         }
     }
 
@@ -1051,6 +1055,17 @@ impl ParserContext {
         // some mechanism other than rendering the content in a navigable, then skip this step.
         // Otherwise, if the type is one of the following types:
         let Some(media_type) = MimeClassifier::get_media_type(&mime_type) else {
+            // If we are dealing with a content type of type application/pdf, load the PDF.js viewer.
+            if mime_type.essence_str() == "application/pdf" {
+                // Start collecting pdf bytes, the resource_header already has the first chunk.
+                self.pdf_bytes = Some(self.navigation_params.resource_header.clone());
+
+                // Mark as synthesized because the subsequent chunks are collected, not parsed.
+                self.is_synthesized_document = true;
+                parser.document.mark_as_internal();
+                parser.last_chunk_received.set(true);
+                return;
+            }
             let page = format!(
                 "<html><body><p>Unknown content type ({}).</p></body></html>",
                 &mime_type,
@@ -1230,6 +1245,49 @@ impl ParserContext {
         // Step 7. Act as if the user agent had stopped parsing document.
         parser.last_chunk_received.set(true);
         parser.parse_sync(cx);
+    }
+
+    /// Inject pdf data into the pdf.js viewer page by adding a script element
+    /// that sends the data via postMessage, which is the same mechanism Firefox uses.
+    fn inject_pdf_data_into_viewer(
+        &self,
+        parser: &ServoParser,
+        pdf_bytes: &[u8],
+        cx: &mut js::context::JSContext,
+    ) {
+        let base64_data = base64::engine::general_purpose::STANDARD.encode(pdf_bytes);
+
+        let document = &parser.document;
+        let script = Element::create(
+            cx,
+            QualName::new(None, ns!(html), local_name!("script")),
+            None,
+            document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+        );
+
+        let js_code = format!(
+            r#"(function() {{
+                var b64 = "{}";
+                var raw = atob(b64);
+                var arr = new Uint8Array(raw.length);
+                for (var i = 0; i < raw.length; i++) {{ arr[i] = raw.charCodeAt(i); }}
+                window.postMessage({{ pdfjsLoadAction: "complete", data: arr }}, "*");
+            }})()"#,
+            base64_data
+        );
+
+        script
+            .upcast::<Node>()
+            .set_text_content_for_element(cx, Some(DOMString::from(js_code)));
+
+        if let Some(body) = document.GetBody() {
+            let _ = body
+                .upcast::<Node>()
+                .AppendChild(cx, script.upcast::<Node>());
+        }
     }
 
     /// Store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
@@ -1485,6 +1543,10 @@ impl FetchResponseListener for ParserContext {
         payload: Vec<u8>,
     ) {
         if self.is_synthesized_document {
+            // If we're collecting PDF bytes, we should append the chunk to the buffer.
+            if let Some(ref mut pdf_bytes) = self.pdf_bytes {
+                pdf_bytes.extend_from_slice(&payload);
+            }
             return;
         }
         let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
@@ -1522,6 +1584,27 @@ impl FetchResponseListener for ParserContext {
             None => return,
         };
         if parser.aborted.get() || self.is_synthesized_document {
+            // If we collected pdf bytes, redirect to the viewer with the data as a data URL.
+            if let Some(pdf_bytes) = self.pdf_bytes.take() {
+                use base64::Engine as _;
+                let base64_data = base64::engine::general_purpose::STANDARD.encode(&pdf_bytes);
+                let data_url = format!("data:application/pdf;base64,{}", base64_data);
+                let encoded_data_url = percent_encoding::utf8_percent_encode(
+                    &data_url,
+                    percent_encoding::NON_ALPHANUMERIC,
+                );
+                let viewer_url =
+                    format!("resource://pdfjs/web/viewer.html?file={encoded_data_url}");
+                let page = format!(
+                    "<html><head>\
+                     <meta http-equiv=\"refresh\" content=\"0;url={viewer_url}\">\
+                     </head><body></body></html>",
+                );
+                parser.push_string_input_chunk(page);
+                parser.last_chunk_received.set(true);
+                parser.parse_sync(cx);
+            }
+            self.submit_resource_timing();
             return;
         }
 
