@@ -520,7 +520,7 @@ pub(crate) fn handle_get_layout(
         .downcast::<Element>()
         .expect("should be getting layout of element");
 
-    let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
+    let rect = element.GetBoundingClientRect(cx);
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
