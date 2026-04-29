@@ -7,7 +7,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use fonts::{FontContext, FontRef, GlyphStore, ShapingFlags, ShapingOptions};
+use fonts::{FontContext, FontRef, ShapedText, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
 use log::warn;
@@ -135,7 +135,7 @@ pub(crate) struct TextRunSegment {
 
     /// The shaped runs within this segment.
     #[conditional_malloc_size_of]
-    pub runs: Vec<Arc<GlyphStore>>,
+    pub runs: Vec<Arc<ShapedText>>,
 }
 
 impl TextRunSegment {

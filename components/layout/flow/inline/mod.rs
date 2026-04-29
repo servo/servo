@@ -83,7 +83,7 @@ use app_units::{Au, MAX_AU};
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, FontRef, GlyphStore};
+use fonts::{FontMetrics, FontRef, ShapedText};
 use icu_locid::LanguageIdentifier;
 use icu_locid::subtags::{Language, language};
 use icu_properties::{self, LineBreak as ICULineBreak};
@@ -1561,7 +1561,7 @@ impl InlineFormattingContextLayout<'_> {
 
     fn push_glyph_store_to_unbreakable_segment(
         &mut self,
-        glyph_store: Arc<GlyphStore>,
+        glyph_store: Arc<ShapedText>,
         text_run: &TextRun,
         info: &Arc<FontAndScriptInfo>,
         offsets: Option<TextRunOffsets>,
