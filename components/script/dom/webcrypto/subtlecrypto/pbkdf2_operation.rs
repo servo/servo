@@ -120,7 +120,7 @@ pub(crate) fn import_key(
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
-        Handle::Pbkdf2(key_data.to_vec()),
+        Handle::Pbkdf2(key_data.to_vec().into()),
     );
 
     // Step 9. Return key.

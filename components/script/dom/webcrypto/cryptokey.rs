@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
 use malloc_size_of::MallocSizeOf;
 use script_bindings::conversions::SafeToJSValConvertible;
+use zeroize::Zeroizing;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -25,7 +26,11 @@ pub(crate) enum CryptoKeyOrCryptoKeyPair {
     CryptoKeyPair(CryptoKeyPair),
 }
 
-/// The underlying cryptographic data this key represents
+/// The underlying cryptographic data this key represents.
+///
+/// Please make sure the inner types for secret variants implement the `zeroize::ZeroizeOnDrop`
+/// trait, which signifies that the type will call `Zeroize::zeroize` on `Drop` to securely erase
+/// the secret from memory.
 pub(crate) enum Handle {
     RsaPrivateKey(rsa::RsaPrivateKey),
     RsaPublicKey(rsa::RsaPublicKey),
@@ -35,16 +40,16 @@ pub(crate) enum Handle {
     P256PublicKey(p256::PublicKey),
     P384PublicKey(p384::PublicKey),
     P521PublicKey(p521::PublicKey),
-    Ed25519PrivateKey(Vec<u8>),
+    Ed25519PrivateKey(Zeroizing<Vec<u8>>),
     Ed25519PublicKey(Vec<u8>),
     X25519PrivateKey(x25519_dalek::StaticSecret),
     X25519PublicKey(x25519_dalek::PublicKey),
     Aes128Key(aes::cipher::crypto_common::Key<aes::Aes128>),
     Aes192Key(aes::cipher::crypto_common::Key<aes::Aes192>),
     Aes256Key(aes::cipher::crypto_common::Key<aes::Aes256>),
-    HkdfSecret(Vec<u8>),
-    Pbkdf2(Vec<u8>),
-    Hmac(Vec<u8>),
+    HkdfSecret(Zeroizing<Vec<u8>>),
+    Pbkdf2(Zeroizing<Vec<u8>>),
+    Hmac(Zeroizing<Vec<u8>>),
     MlKem512PrivateKey((ml_kem::B32, ml_kem::B32)),
     MlKem768PrivateKey((ml_kem::B32, ml_kem::B32)),
     MlKem1024PrivateKey((ml_kem::B32, ml_kem::B32)),
@@ -60,7 +65,7 @@ pub(crate) enum Handle {
     MlDsa65PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa65>>),
     MlDsa87PublicKey(Box<ml_dsa::EncodedVerifyingKey<ml_dsa::MlDsa87>>),
     ChaCha20Poly1305Key(chacha20poly1305::Key),
-    Argon2Password(Vec<u8>),
+    Argon2Password(Zeroizing<Vec<u8>>),
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
