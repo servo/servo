@@ -11,6 +11,7 @@ use js::context::JSContext;
 use keyboard_types::Modifiers;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
@@ -203,7 +204,22 @@ impl DocumentFocusHandler {
         fn recursively_set_focus_status(element: &Element, new_state: bool) {
             element.set_focus_state(new_state);
 
+            // From https://drafts.csswg.org/selectors/#the-focus-within-pseudo:
+            // The :focus-within pseudo-class applies to any element (or pseudo-element)
+            // for which the :focus pseudo-class applies...
+            element.set_focus_within_state(new_state);
+
             let Some(shadow_root) = element.containing_shadow_root() else {
+                // ...as well as to an element (or pseudo-element)
+                // whose descendant in the flat tree
+                // (including non-element nodes, such as text nodes)
+                // matches the conditions for matching :focus.
+                let node = element.upcast::<Node>();
+                if let Some(ref parent) = node.GetParentNode() &&
+                    let Some(parent) = parent.downcast::<Element>()
+                {
+                    parent.set_focus_within_state(new_state);
+                }
                 return;
             };
             recursively_set_focus_status(&shadow_root.Host(), new_state);
