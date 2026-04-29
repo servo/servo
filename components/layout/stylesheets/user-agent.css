@@ -295,8 +295,7 @@ th {
 thead, tbody, tfoot, table > tr { vertical-align: middle; }
 tr, td, th { vertical-align: inherit; }
 
-
-table, td, th { border-color: gray; }
+/* https://html.spec.whatwg.org/multipage/rendering.html#tables-2 */
 thead, tbody, tfoot, tr { border-color: inherit; }
 table:matches(
   [rules=none i], [rules=groups i], [rules=rows i],
