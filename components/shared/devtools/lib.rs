@@ -408,6 +408,8 @@ pub enum DevtoolScriptControlMsg {
     Resume(Option<String>, Option<String>),
     ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
     GetEnvironment(String, GenericSender<String>),
+    Blackbox(u32, Option<((u32, u32), (u32, u32))>),
+    Unblackbox(u32, Option<((u32, u32), (u32, u32))>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]

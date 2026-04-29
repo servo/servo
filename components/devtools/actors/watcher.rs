@@ -476,7 +476,7 @@ impl WatcherActor {
         let thread_configuration_name = ThreadConfigurationActor::register(registry);
         let breakpoint_list_name =
             BreakpointListActor::register(registry, browsing_context_name.clone());
-        let blackboxing_name = BlackboxingActor::register(registry);
+        let blackboxing_name = BlackboxingActor::register(registry, browsing_context_name.clone());
 
         let name = registry.new_name::<Self>();
         let actor = Self {

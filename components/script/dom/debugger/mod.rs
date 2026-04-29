@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) mod debuggeradddebuggeeevent;
+pub(crate) mod debuggerblackboxevent;
 pub(crate) mod debuggerclearbreakpointevent;
 pub(crate) mod debuggerevalevent;
 pub(crate) mod debuggerframeevent;
@@ -12,3 +13,4 @@ pub(crate) mod debuggerglobalscope;
 pub(crate) mod debuggerinterruptevent;
 pub(crate) mod debuggerresumeevent;
 pub(crate) mod debuggersetbreakpointevent;
+pub(crate) mod debuggerunblackboxevent;

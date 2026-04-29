@@ -26,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::GenericBi
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::{
     EnvironmentInfo, EnvironmentVariable,
 };
-use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
+use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding::{self};
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
 };
@@ -42,12 +42,14 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debugger::debuggerblackboxevent::DebuggerBlackboxEvent;
 use crate::dom::debugger::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debugger::debuggerframeevent::DebuggerFrameEvent;
 use crate::dom::debugger::debuggergetenvironmentevent::DebuggerGetEnvironmentEvent;
 use crate::dom::debugger::debuggerinterruptevent::DebuggerInterruptEvent;
 use crate::dom::debugger::debuggerresumeevent::DebuggerResumeEvent;
 use crate::dom::debugger::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
+use crate::dom::debugger::debuggerunblackboxevent::DebuggerUnblackboxEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{
     DebuggerAddDebuggeeEvent, DebuggerEvalEvent, DebuggerGetPossibleBreakpointsEvent, Event,
@@ -356,6 +358,42 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerClearBreakpointEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_blackbox(
+        &self,
+        spidermonkey_id: u32,
+        range: Option<((u32, u32), (u32, u32))>,
+        can_gc: CanGc,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerBlackboxEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            range,
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerBlackboxEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_unblackbox(
+        &self,
+        spidermonkey_id: u32,
+        range: Option<((u32, u32), (u32, u32))>,
+        can_gc: CanGc,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerUnblackboxEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            range,
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerUnblackboxEvent::new"
         );
     }
 }

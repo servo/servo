@@ -23,3 +23,8 @@ dictionary PipelineIdInit {
     required unsigned long namespaceId;
     required unsigned long index;
 };
+
+dictionary DebuggerSourceLocation {
+    required unsigned long line;
+    required unsigned long column;
+};

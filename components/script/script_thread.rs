@@ -2271,6 +2271,14 @@ impl ScriptThread {
                     .fire_resume(cx, resume_limit_type, frame_actor_id);
                 self.debugger_paused.set(false);
             },
+            DevtoolScriptControlMsg::Blackbox(spidermonkey_id, range) => {
+                self.debugger_global
+                    .fire_blackbox(spidermonkey_id, range, CanGc::from_cx(cx));
+            },
+            DevtoolScriptControlMsg::Unblackbox(spidermonkey_id, range) => {
+                self.debugger_global
+                    .fire_unblackbox(spidermonkey_id, range, CanGc::from_cx(cx));
+            },
         }
     }
 
