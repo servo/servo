@@ -26,13 +26,14 @@ use wgc::id;
 use wgc::id::DeviceId;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::BufferMapOperation;
+pub use wgpu_core as wgc;
 use wgpu_core::command::RenderPassDescriptor;
 use wgpu_core::device::DeviceError;
 use wgpu_core::pipeline::{CreateComputePipelineError, CreateRenderPipelineError};
 use wgpu_core::resource::BufferAccessResult;
+pub use wgpu_types as wgt;
 use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
-pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::canvas_context::WebGpuExternalImageMap;
 use crate::poll_thread::Poller;

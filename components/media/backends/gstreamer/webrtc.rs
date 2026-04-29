@@ -7,15 +7,18 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{cmp, mem};
 
+use glib;
 use glib::prelude::*;
+use gstreamer;
 use gstreamer::prelude::*;
+use gstreamer_sdp;
+use gstreamer_webrtc;
 use log::warn;
 use servo_media_streams::MediaStreamType;
 use servo_media_streams::registry::{MediaStreamId, get_stream};
 use servo_media_webrtc::datachannel::DataChannelId;
 use servo_media_webrtc::thread::InternalEvent;
 use servo_media_webrtc::{WebRtcController as WebRtcThread, *};
-use {glib, gstreamer, gstreamer_sdp, gstreamer_webrtc};
 
 use super::BACKEND_BASE_TIME;
 use crate::datachannel::GStreamerWebRtcDataChannel;

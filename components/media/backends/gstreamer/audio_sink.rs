@@ -8,13 +8,14 @@ use std::sync::mpsc::Sender;
 use std::thread::Builder;
 
 use byte_slice_cast::*;
+use gstreamer;
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSrc, AppSrcCallbacks};
+use gstreamer_audio;
 use servo_media_audio::block::{Chunk, FRAMES_PER_BLOCK};
 use servo_media_audio::render_thread::AudioRenderThreadMsg;
 use servo_media_audio::sink::{AudioSink, AudioSinkError};
 use servo_media_streams::MediaSocket;
-use {gstreamer, gstreamer_audio};
 
 use crate::media_stream::GstreamerMediaSocket;
 

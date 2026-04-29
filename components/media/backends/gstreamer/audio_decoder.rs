@@ -6,11 +6,13 @@ use std::io::{Cursor, Read};
 use std::sync::{Arc, Mutex, mpsc};
 
 use byte_slice_cast::*;
+use gstreamer;
 use gstreamer::prelude::*;
+use gstreamer_app;
+use gstreamer_audio;
 use servo_media_audio::decoder::{
     AudioDecoder, AudioDecoderCallbacks, AudioDecoderError, AudioDecoderOptions,
 };
-use {gstreamer, gstreamer_app, gstreamer_audio};
 
 pub struct GStreamerAudioDecoderProgress(
     gstreamer::buffer::MappedBuffer<gstreamer::buffer::Readable>,
