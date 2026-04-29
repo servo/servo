@@ -323,7 +323,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             for impl_def_id in impl_def_ids {
                 let type_impl = cx
                     .tcx
-                    .associated_items(impl_def_id)
+                    .associated_items(*impl_def_id)
                     .find_by_ident_and_kind(cx.tcx, trait_item.ident, ty::AssocTag::Type, trait_id)
                     .unwrap();
 
