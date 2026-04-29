@@ -3347,7 +3347,7 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Handle the pending viewport resize.
-    fn run_resize_steps_for_layout_viewport(&self, can_gc: CanGc) -> bool {
+    fn run_resize_steps_for_layout_viewport(&self, cx: &mut js::context::JSContext) -> bool {
         let Some((new_size, size_type)) = self.take_unhandled_resize_event() else {
             return false;
         };
@@ -3386,9 +3386,11 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            uievent.upcast::<Event>().fire(self.upcast(), can_gc);
+            uievent
+                .upcast::<Event>()
+                .fire(self.upcast(), CanGc::from_cx(cx));
         }
 
         true
@@ -3398,11 +3400,11 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Returns true if there were any pending viewport resize events.
-    pub(crate) fn run_the_resize_steps(&self, can_gc: CanGc) -> bool {
-        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(can_gc);
+    pub(crate) fn run_the_resize_steps(&self, cx: &mut js::context::JSContext) -> bool {
+        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(cx);
 
         if self.has_changed_visual_viewport_dimension.get() {
-            let visual_viewport = self.get_or_init_visual_viewport(can_gc);
+            let visual_viewport = self.get_or_init_visual_viewport(CanGc::from_cx(cx));
 
             let uievent = UIEvent::new(
                 self,
@@ -3412,11 +3414,11 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             uievent
                 .upcast::<Event>()
-                .fire(visual_viewport.upcast(), can_gc);
+                .fire(visual_viewport.upcast(), CanGc::from_cx(cx));
 
             self.has_changed_visual_viewport_dimension.set(false);
         }
