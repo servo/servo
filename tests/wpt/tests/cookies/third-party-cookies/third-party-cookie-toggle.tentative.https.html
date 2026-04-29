@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+  <meta charset="utf-8"/>
+  <title>Test toggling third-party cookies via TestUtils</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/get-host-info.sub.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
+
+  <body>
+  <script>
+  const otherOrigin = get_host_info().HTTPS_NOTSAMESITE_ORIGIN;
+  const attrs = "Secure;Path=/;SameSite=None";
+
+  promise_test(async () => {
+    TestUtils.setAcceptThirdPartyCookies(false);
+    await credFetch(`${otherOrigin}/cookies/resources/set.py?blocked_test=val;${attrs}`);
+    const resp = await credFetch(`${otherOrigin}/cookies/resources/list.py`);
+    const cookies = await resp.json();
+    assert_false(cookies.hasOwnProperty('blocked_test'),
+      'Cookie should not be stored when 3P cookies are blocked');
+  }, 'Third-party cookies are blocked when setAcceptThirdPartyCookies(false)');
+
+  promise_test(async () => {
+    TestUtils.setAcceptThirdPartyCookies(true);
+    await credFetch(`${otherOrigin}/cookies/resources/set.py?accepted_test=val;${attrs}`);
+    const resp = await credFetch(`${otherOrigin}/cookies/resources/list.py`);
+    const cookies = await resp.json();
+    assert_true(cookies.hasOwnProperty('accepted_test'),
+      'Cookie should be stored when 3P cookies are accepted');
+  }, 'Third-party cookies are accepted when setAcceptThirdPartyCookies(true)');
+
+  promise_test(async () => {
+    TestUtils.setAcceptThirdPartyCookies(false);
+    await credFetch(`${otherOrigin}/cookies/resources/set.py?reblocked_test=val;${attrs}`);
+    const resp = await credFetch(`${otherOrigin}/cookies/resources/list.py`);
+    const cookies = await resp.json();
+    assert_false(cookies.hasOwnProperty('reblocked_test'),
+      'Cookie should be blocked again after re-disabling');
+  }, 'Third-party cookies can be toggled back to blocked');
+  </script>
+  </body>

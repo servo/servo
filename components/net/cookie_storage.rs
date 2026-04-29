@@ -26,6 +26,7 @@ pub struct CookieStorage {
     version: u32,
     cookies_map: HashMap<String, Vec<ServoCookie>>,
     max_per_host: usize,
+    accept_third_party_cookies: bool,
 }
 
 #[derive(Debug)]
@@ -40,6 +41,7 @@ impl CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
+            accept_third_party_cookies: true,
         }
     }
 
@@ -141,6 +143,14 @@ impl CookieStorage {
                 cookie.set_expiry_time_in_past();
             }
         }
+    }
+
+    pub fn set_accept_third_party_cookies(&mut self, accept: bool) {
+        self.accept_third_party_cookies = accept;
+    }
+
+    pub fn accept_third_party_cookies(&mut self) -> bool {
+        self.accept_third_party_cookies
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.3

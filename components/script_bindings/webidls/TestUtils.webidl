@@ -9,4 +9,5 @@
 [Exposed=(Window,Worker), Pref="dom_testutils_enabled"]
 namespace TestUtils {
   [NewObject] Promise<undefined> gc();
+  undefined setAcceptThirdPartyCookies(boolean accept);
 };
