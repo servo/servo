@@ -57,7 +57,8 @@ impl OpenRequestListener {
 
         rooted!(&in(cx) let mut rval = UndefinedValue());
 
-        let _ac = enter_realm(&*open_request);
+        let mut realm = enter_auto_realm(cx, &*open_request);
+        let cx = &mut realm.current_realm();
 
         match result {
             Ok(version) => {
