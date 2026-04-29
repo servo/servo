@@ -735,15 +735,15 @@ impl EventTarget {
         // Step 1.14
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx.into(), funobj)
+                OnErrorEventHandlerNonNull::new(cx, funobj)
             }))
         } else if ty == &atom!("beforeunload") {
             Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx.into(), funobj)
+                OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
             }))
         } else {
             Some(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx.into(), funobj)
+                EventHandlerNonNull::new(cx, funobj)
             }))
         }
     }
@@ -757,7 +757,7 @@ impl EventTarget {
     ) {
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx.into(), listener.callback())
+                EventHandlerNonNull::new(cx, listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -772,7 +772,7 @@ impl EventTarget {
     ) {
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx.into(), listener.callback())
+                OnErrorEventHandlerNonNull::new(cx, listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -787,7 +787,7 @@ impl EventTarget {
     ) {
         let event_listener = listener.map(|listener| {
             InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx.into(), listener.callback())
+                OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
             }))
         });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
@@ -802,7 +802,7 @@ impl EventTarget {
         let listener = self.get_inline_event_listener(cx, &Atom::from(ty));
         unsafe {
             listener.map(|listener| {
-                CallbackContainer::new(cx.into(), listener.parent().callback_holder().get())
+                CallbackContainer::new(cx, listener.parent().callback_holder().get())
             })
         }
     }
