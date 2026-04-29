@@ -96,7 +96,7 @@ impl Actor for StyleSheetsActor {
                 };
                 request.reply_final(&msg)?
             },
-            /// TODO: Fix CSS text formatting of external sheets, match same as source.
+            // TODO: Improve CSS text formatting for remote stylesheets to match as source.
             "getText" => {
                 let resource_id = msg.get("resourceId").and_then(|v| v.as_str()).unwrap_or("");
                 let index = resource_id
