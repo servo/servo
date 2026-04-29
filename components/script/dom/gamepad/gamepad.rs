@@ -6,6 +6,7 @@ use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
+use js::context::JSContext;
 use js::rust::MutableHandleValue;
 
 use super::gamepadbutton::GamepadButton;
@@ -22,7 +23,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 // This value is for determining when to consider a gamepad as having a user gesture
 // from an axis tilt. This matches the threshold in Chromium.
@@ -167,7 +168,7 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>
-    fn Axes(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
+    fn Axes(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_axes.get_or_init(
             || self.axes.borrow().clone(),
             cx.into(),
@@ -177,7 +178,7 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-buttons>
-    fn Buttons(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn Buttons(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         self.frozen_buttons.get_or_init(
             || {
                 self.buttons
@@ -185,9 +186,9 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
                     .map(|b| DomRoot::from_ref(&**b))
                     .collect()
             },
-            cx,
+            cx.into(),
             retval,
-            CanGc::deprecated_note(),
+            CanGc::from_cx(cx),
         );
     }
 
