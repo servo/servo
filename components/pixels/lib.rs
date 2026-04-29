@@ -12,7 +12,7 @@ use std::time::Duration;
 use std::{cmp, fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::codecs::{bmp, gif, ico, jpeg, png, webp};
+use image::codecs::{avif, bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
 use image::{
@@ -557,6 +557,9 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                 GenericImageDecoder::Ico(image_decoder) => {
                     decode_static_image(cors_status, *image_decoder)
                 },
+                GenericImageDecoder::Avif(image_decoder) => {
+                    decode_static_image(cors_status, *image_decoder)
+                },
             }
         },
     }
@@ -576,6 +579,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
         Ok(ImageFormat::Ico)
+    } else if is_avif(buffer) {
+        Ok(ImageFormat::Avif)
     } else {
         Err("Image Format Not Supported")
     }
@@ -705,6 +710,29 @@ fn is_webp(buffer: &[u8]) -> bool {
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
 }
 
+fn is_avif(buffer: &[u8]) -> bool {
+    // Need at least 12 bytes: size (4) + "ftyp" (4) + brand (4)
+    if buffer.len() < 12 {
+        return false;
+    }
+
+    // Ignore the first 4 bytes that are the MP4 box size.
+
+    // Check for "ftyp" box at offset 4
+    if &buffer[4..8] != b"ftyp" {
+        return false;
+    }
+
+    // Check major brand
+    let major_brand = &buffer[8..12];
+
+    if major_brand == b"avif" || major_brand == b"avis" {
+        return true;
+    }
+
+    false
+}
+
 enum GenericImageDecoder<R: std::io::BufRead + std::io::Seek> {
     Png(Box<png::PngDecoder<R>>),
     Gif(Box<gif::GifDecoder<R>>),
@@ -712,6 +740,7 @@ enum GenericImageDecoder<R: std::io::BufRead + std::io::Seek> {
     Jpeg(Box<jpeg::JpegDecoder<R>>),
     Bmp(Box<bmp::BmpDecoder<R>>),
     Ico(Box<ico::IcoDecoder<R>>),
+    Avif(Box<avif::AvifDecoder<R>>),
 }
 
 fn make_decoder(
@@ -729,6 +758,7 @@ fn make_decoder(
         ImageFormat::Jpeg => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
         ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
         ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
+        ImageFormat::Avif => GenericImageDecoder::Avif(Box::new(avif::AvifDecoder::new(reader)?)),
         _ => {
             return Err(ImageError::Unsupported(
                 ImageFormatHint::Exact(format).into(),
