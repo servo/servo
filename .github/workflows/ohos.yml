@@ -73,7 +73,7 @@ jobs:
         uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         timeout-minutes: 30
-        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest --skip-gstreamer-deps
       - name: Setup OpenHarmony SDK
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v0.2.4

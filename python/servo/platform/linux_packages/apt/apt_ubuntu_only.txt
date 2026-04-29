@@ -1,2 +1,3 @@
 # This package does not exist on debian
+# Currently this whole file will be excluded by the --skip_gstreamer_deps flag
 libgstreamer-plugins-good1.0-dev

@@ -117,7 +117,8 @@ def bootstrap_command_only(topdir: str) -> int:
         skip_platform = "--skip-platform" in sys.argv
         skip_lints = "--skip-lints" in sys.argv
         skip_nextest = "--skip-nextest" in sys.argv
-        servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
+        skip_gstreamer_deps = "--skip-gstreamer-deps" in sys.argv
+        servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest, skip_gstreamer_deps)
     except NotImplementedError as exception:
         print(exception)
         return 1
