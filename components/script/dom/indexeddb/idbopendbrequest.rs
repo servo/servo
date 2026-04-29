@@ -126,15 +126,21 @@ impl IDBOpenDBRequest {
 
     pub(crate) fn get_or_init_connection(
         &self,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         name: String,
         version: u64,
         upgraded: bool,
-        can_gc: CanGc,
     ) -> DomRoot<IDBDatabase> {
         self.pending_connection.or_init(|| {
             debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
-            IDBDatabase::new(global, name.into(), self.get_id(), version, can_gc)
+            IDBDatabase::new(
+                global,
+                name.into(),
+                self.get_id(),
+                version,
+                CanGc::from_cx(cx),
+            )
         })
     }
 
@@ -271,15 +277,20 @@ impl IDBOpenDBRequest {
         matches
     }
 
-    pub fn dispatch_success(&self, name: String, version: u64, upgraded: bool, can_gc: CanGc) {
+    pub fn dispatch_success(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: String,
+        version: u64,
+        upgraded: bool,
+    ) {
         let global = self.global();
-        let result = self.get_or_init_connection(&global, name, version, upgraded, can_gc);
+        let result = self.get_or_init_connection(cx, &global, name, version, upgraded);
         self.idbrequest.set_ready_state_done();
-        let cx = GlobalScope::get_cx();
 
         let _ac = enter_realm(&*result);
-        rooted!(in(*cx) let mut result_val = UndefinedValue());
-        result.safe_to_jsval(cx, result_val.handle_mut(), CanGc::deprecated_note());
+        rooted!(&in(cx) let mut result_val = UndefinedValue());
+        result.safe_to_jsval(cx.into(), result_val.handle_mut(), CanGc::from_cx(cx));
         self.set_result(result_val.handle());
 
         let event = Event::new(
@@ -287,9 +298,9 @@ impl IDBOpenDBRequest {
             Atom::from("success"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::deprecated_note(),
+            CanGc::from_cx(cx),
         );
-        event.fire(self.upcast(), CanGc::deprecated_note());
+        event.fire(self.upcast(), CanGc::from_cx(cx));
     }
 
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbopendbrequest-blocked>
