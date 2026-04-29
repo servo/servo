@@ -51,7 +51,7 @@ def speedometer_to_bmf(speedometer: dict[str, Any], bmf_output: str, profile: st
         json.dump(output, f, indent=4)
 
 
-def run_speedometer():
+def run_speedometer() -> None:
     driver = common_function_for_servo_test.create_driver()
     try:
         driver.get("https://servospeedometer.netlify.app")

@@ -16,7 +16,7 @@ import common_function_for_servo_test
 import common_function_for_mossel
 
 
-def operator():
+def operator() -> None:
     IMPLICIT_WAIT_TIME = 6
     driver = common_function_for_servo_test.create_driver()
     # This is used to wait for element retrieval if not found

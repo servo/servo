@@ -15,7 +15,7 @@ from selenium import webdriver
 from time import sleep
 
 
-def load_mossel(driver: webdriver.Remote):
+def load_mossel(driver: webdriver.Remote) -> None:
     PAGE_URL = "https://m.huaweimossel.com"
     driver.set_page_load_timeout(30)
     while True:
@@ -38,7 +38,7 @@ def load_mossel(driver: webdriver.Remote):
 # Note that the pop-up may not exist, either because we did this in the past
 # which sets localstorage, or the website does not have seasonal promotions/recommendations.
 # ASSUMPTION: driver is already created, and implicit wait is set properly.
-def close_popup(driver: webdriver.Remote):
+def close_popup(driver: webdriver.Remote) -> None:
     popup_css_selector = (
         "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view "
         "> uni-view:nth-child(5) "
@@ -55,7 +55,7 @@ def close_popup(driver: webdriver.Remote):
         print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.")
 
 
-def click_category(driver: webdriver.Remote):
+def click_category(driver: webdriver.Remote) -> None:
     print("Clicking 'Categories' element.")
     category_css_selector = "div.uni-tabbar__item:nth-child(3)"
     try:
@@ -66,7 +66,7 @@ def click_category(driver: webdriver.Remote):
     category_element.click()
 
 
-def identify_element_in_category(driver: webdriver.Remote):
+def identify_element_in_category(driver: webdriver.Remote) -> None:
     driver.implicitly_wait(30)
     target_css_selector = "#goodsGroup"
     while True:

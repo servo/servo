@@ -20,7 +20,7 @@ import common_function_for_servo_test
 from selenium.webdriver.common.by import By
 
 
-def operator():
+def operator() -> None:
     driver = common_function_for_servo_test.create_driver()
 
     popup_css_selector = (
@@ -88,4 +88,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_framerate_with_video", "https://m.huaweimossel.com")
+    common_function_for_servo_test.run_test(operator, "mossel_framerate_with_video", url="https://m.huaweimossel.com")
