@@ -13375,6 +13375,15 @@
       }
      ]
     ],
+    "sequential-focus-navigation-starting-from-non-sequentially-focusable-element.html": [
+     "b26314cc872eb46e292c03db072753255dc8e4e6",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "sequential-focus-navigation-starting-point-001.html": [
      "4fecfba641a3acec0132d1d21fc862e02b182416",
      [

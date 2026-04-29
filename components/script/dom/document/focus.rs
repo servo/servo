@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
+use std::cmp::Ordering;
 
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
@@ -21,7 +22,9 @@ use servo_constellation_traits::{
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
-use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
+use crate::dom::{
+    Document, Event, EventBubbles, EventCancelable, Node, NodeTraits, ShadowIncluding,
+};
 use crate::realms::enter_realm;
 
 /// The kind of focusable area a [`FocusableArea`] is. A [`FocusableArea`] may be click focusable,
@@ -600,5 +603,261 @@ impl DocumentFocusHandler {
                 direction,
                 true, /* allow focusing viewport */
             );
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#selection-mechanism>
+///
+/// This also incorporates the case where the starting point is a navigable
+/// as that is a distinct set of behaviors from the two kinds of mechanisms
+/// listed in the specification.
+pub(crate) enum SequentialFocusNavigationMechanism {
+    Dom,
+    Sequential(i32 /* focused_element_tab_index */),
+    Navigable,
+}
+
+enum Continue {
+    Yes,
+    No,
+}
+
+pub(crate) struct SequentialFocusNavigationSearch {
+    window: DomRoot<Window>,
+    direction: SequentialFocusDirection,
+    mechanism: SequentialFocusNavigationMechanism,
+    starting_point: Option<DomRoot<Node>>,
+    current_winner: Option<(DomRoot<Element>, i32)>,
+    passed_starting_point: bool,
+}
+
+impl SequentialFocusNavigationSearch {
+    pub(crate) fn new(
+        window: DomRoot<Window>,
+        direction: SequentialFocusDirection,
+        mechanism: SequentialFocusNavigationMechanism,
+        starting_point: Option<DomRoot<Node>>,
+    ) -> Self {
+        // If there's no starting point, the starting point is actually the root element, which
+        // we always have passed.
+        let passed_starting_point = starting_point.is_none();
+        Self {
+            window,
+            direction,
+            mechanism,
+            starting_point,
+            current_winner: Default::default(),
+            passed_starting_point,
+        }
+    }
+
+    pub(crate) fn search(mut self) -> Option<DomRoot<Element>> {
+        for node in self
+            .window
+            .Document()
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
+            // Never keep the focus on the same node.
+            if Some(&*node) == self.starting_point.as_deref() {
+                self.passed_starting_point = true;
+                continue;
+            }
+
+            let Some(candidate_element) = node.downcast::<Element>() else {
+                continue;
+            };
+
+            if !candidate_element.is_sequentially_focusable() {
+                continue;
+            }
+
+            let result = match self.mechanism {
+                SequentialFocusNavigationMechanism::Dom => {
+                    self.process_element_for_dom_traversal(candidate_element)
+                },
+                SequentialFocusNavigationMechanism::Sequential(focused_element_tab_index) => self
+                    .process_element_for_sequential_traversal(
+                        candidate_element,
+                        focused_element_tab_index,
+                    ),
+                SequentialFocusNavigationMechanism::Navigable => {
+                    self.process_element_for_navigable_starting_point_traversal(candidate_element)
+                },
+            };
+
+            if matches!(result, Continue::No) {
+                break;
+            }
+        }
+
+        Some(self.current_winner?.0)
+    }
+
+    fn select_new_winner(&mut self, element: &Element, element_tab_index: i32) {
+        self.current_winner = Some((DomRoot::from_ref(element), element_tab_index));
+    }
+
+    fn process_element_for_dom_traversal(&mut self, candidate_element: &Element) -> Continue {
+        match self.direction {
+            // direction is "forward"
+            // > Let candidate be the first suitable sequentially focusable area after starting point,
+            // > in starting point's Document's sequential focus navigation order, if any; or else
+            // > null
+            SequentialFocusDirection::Forward if self.passed_starting_point => {
+                self.select_new_winner(
+                    candidate_element,
+                    candidate_element
+                        .explicitly_set_tab_index()
+                        .unwrap_or_default(),
+                );
+                Continue::No
+            },
+            // If searching forward, do not consider anything until passing the starting point.
+            SequentialFocusDirection::Forward => Continue::Yes,
+            // direction is "backward"
+            // > Let candidate be the last suitable sequentially focusable area before starting
+            // > point, in starting point's Document's sequential focus navigation order, if any; or
+            // > else null
+            SequentialFocusDirection::Backward if !self.passed_starting_point => {
+                self.select_new_winner(
+                    candidate_element,
+                    candidate_element
+                        .explicitly_set_tab_index()
+                        .unwrap_or_default(),
+                );
+                Continue::Yes
+            },
+            // There is no possible winner after the starting point when searching backward.
+            SequentialFocusDirection::Backward => Continue::No,
+        }
+    }
+
+    fn process_element_for_navigable_starting_point_traversal(
+        &mut self,
+        candidate_element: &Element,
+    ) -> Continue {
+        let candidate_element_tab_index = candidate_element
+            .explicitly_set_tab_index()
+            .unwrap_or_default();
+
+        let Some((_, winning_tab_index)) = self.current_winner else {
+            self.select_new_winner(candidate_element, candidate_element_tab_index);
+            return Continue::Yes;
+        };
+
+        let ordering = compare_tab_indices(candidate_element_tab_index, winning_tab_index);
+        match self.direction {
+            // direction is "forward"
+            // > Let candidate be the first suitable sequentially focusable area in starting point's
+            // > active document, if any; or else null
+            //
+            // Pick the lowest, prioritizing the earlier node when equal.
+            SequentialFocusDirection::Forward if ordering == Ordering::Less => {
+                self.select_new_winner(candidate_element, candidate_element_tab_index);
+            },
+            // direction is "backward"
+            // > Let candidate be the last suitable sequentially focusable area in starting point's
+            // > active document, if any; or else null
+            //
+            // Pick the highest, prioritizing the later node when equal.
+            SequentialFocusDirection::Backward if ordering != Ordering::Less => {
+                self.select_new_winner(candidate_element, candidate_element_tab_index);
+            },
+            _ => {},
+        }
+        Continue::Yes
+    }
+
+    fn process_element_for_sequential_traversal(
+        &mut self,
+        candidate_element: &Element,
+        focused_element_tab_index: i32,
+    ) -> Continue {
+        let candidate_element_tab_index = candidate_element
+            .explicitly_set_tab_index()
+            .unwrap_or_default();
+        let ordering = compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
+        match self.direction {
+            SequentialFocusDirection::Forward => {
+                // If moving forward the first element with equal tab index after the current
+                // element is the winner.
+                if self.passed_starting_point && ordering == Ordering::Equal {
+                    self.select_new_winner(candidate_element, candidate_element_tab_index);
+                    return Continue::No;
+                }
+                // If the candidate element does not have a lesser tab index, then discard it.
+                if ordering != Ordering::Less {
+                    return Continue::Yes;
+                }
+                let Some((_, winning_tab_index)) = self.current_winner else {
+                    // If this candidate has a tab index which is one greater than the current
+                    // tab index, then we know it is the winner, because we give precedence to
+                    // elements earlier in the DOM.
+                    if candidate_element_tab_index == focused_element_tab_index + 1 {
+                        self.select_new_winner(candidate_element, candidate_element_tab_index);
+                        return Continue::No;
+                    }
+
+                    self.select_new_winner(candidate_element, candidate_element_tab_index);
+                    return Continue::Yes;
+                };
+
+                // If the candidate element has a lesser tab index than the current winner,
+                // then it becomes the winner.
+                if compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
+                    Ordering::Less
+                {
+                    self.select_new_winner(candidate_element, candidate_element_tab_index);
+                }
+                Continue::Yes
+            },
+            SequentialFocusDirection::Backward => {
+                // If moving backward the last element with an equal tab index that precedes
+                // the focused element in the DOM is the winner.
+                if !self.passed_starting_point && ordering == Ordering::Equal {
+                    self.select_new_winner(candidate_element, candidate_element_tab_index);
+                    return Continue::Yes;
+                }
+                // If the candidate does not have a greater tab index, then discard it.
+                if ordering != Ordering::Greater {
+                    return Continue::Yes;
+                }
+                let Some((_, winning_tab_index)) = self.current_winner else {
+                    self.select_new_winner(candidate_element, candidate_element_tab_index);
+                    return Continue::Yes;
+                };
+                // If the candidate element's tab index is not less than the current winner,
+                // then it becomes the new winner. This means that when the tab indices are
+                // equal, we give preference to the last one in DOM order.
+                if compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
+                    Ordering::Less
+                {
+                    self.select_new_winner(candidate_element, candidate_element_tab_index);
+                }
+                Continue::Yes
+            },
+        }
+    }
+}
+
+/// Compare two tab indices according to <https://html.spec.whatwg.org/multipage/#tabindex-value>.
+///
+/// `Ordering::Less`: The index should come before the other in sequential focus order.
+/// `Ordering::Equal`: The two indices should be processed in DOM order, respecting focus direction
+/// and focus scopes.
+/// `Ordering::Greater`: The index should come after the other in sequential focus order.
+///
+/// Note that a tabindex of 0 should come after all others, which is essentially why we need this
+/// function.
+fn compare_tab_indices(a: i32, b: i32) -> Ordering {
+    if a == b {
+        Ordering::Equal
+    } else if a == 0 {
+        Ordering::Greater
+    } else if b == 0 {
+        Ordering::Less
+    } else {
+        a.cmp(&b)
     }
 }
