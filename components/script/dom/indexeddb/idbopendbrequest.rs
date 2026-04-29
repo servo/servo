@@ -288,7 +288,8 @@ impl IDBOpenDBRequest {
         let result = self.get_or_init_connection(cx, &global, name, version, upgraded);
         self.idbrequest.set_ready_state_done();
 
-        let _ac = enter_realm(&*result);
+        let mut realm = enter_auto_realm(cx, &*result);
+        let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut result_val = UndefinedValue());
         result.safe_to_jsval(cx.into(), result_val.handle_mut(), CanGc::from_cx(cx));
         self.set_result(result_val.handle());
