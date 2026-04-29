@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::ObjectValue;
 use js::rust::HandleValue as SafeHandleValue;
 
 use crate::dom::bindings::error::Error;
@@ -110,13 +110,7 @@ impl DefaultTeeUnderlyingSource {
             // Set readAgain to true.
             self.read_again.set(true);
             // Return a promise resolved with undefined.
-            rooted!(&in(cx) let mut rval = UndefinedValue());
-            return Promise::new_resolved(
-                &self.stream.global(),
-                cx.into(),
-                rval.handle(),
-                CanGc::from_cx(cx),
-            );
+            return Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx));
         }
 
         // Set reading to true.
@@ -146,13 +140,7 @@ impl DefaultTeeUnderlyingSource {
         self.reader.read(cx, &read_request);
 
         // Return a promise resolved with undefined.
-        rooted!(&in(cx) let mut rval = UndefinedValue());
-        Promise::new_resolved(
-            &self.stream.global(),
-            cx.into(),
-            rval.handle(),
-            CanGc::from_cx(cx),
-        )
+        Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
