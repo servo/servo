@@ -398,8 +398,8 @@ impl DocumentFocusHandler {
             // because of the popping we do at the start of these steps.
             let related_blur_target = match new_focus_chain.last() {
                 Some(FocusableArea::Node { node, .. })
-                    if index == last_old_focus_chain_entry
-                        && matches!(entry, FocusableArea::Node { .. }) =>
+                    if index == last_old_focus_chain_entry &&
+                        matches!(entry, FocusableArea::Node { .. }) =>
                 {
                     Some(node.upcast())
                 },
@@ -475,8 +475,8 @@ impl DocumentFocusHandler {
             // because of the popping we do at the start of these steps.
             let related_focus_target = match old_focus_chain.last() {
                 Some(FocusableArea::Node { node, .. })
-                    if index == last_new_focus_chain_entry
-                        && matches!(entry, FocusableArea::Node { .. }) =>
+                    if index == last_new_focus_chain_entry &&
+                        matches!(entry, FocusableArea::Node { .. }) =>
                 {
                     Some(node.upcast())
                 },
