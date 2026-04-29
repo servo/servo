@@ -918,6 +918,9 @@ macro_rules! match_domstring_ascii_inner {
 /// );
 /// assert_eq!(value, 3);
 /// ```
+///
+/// The `RefCell` inside `DOMString` is borrowed for the duration of the `match`,
+/// so the string cannot be accessed again inside a `match` arm.
 #[macro_export]
 macro_rules! match_domstring_ascii {
     ($input:expr, $($tail:tt)*) => {
