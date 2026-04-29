@@ -14,13 +14,13 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
 use super::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::{
     ReadableStreamBYOBReaderMethods, ReadableStreamBYOBReaderReadOptions,
 };

@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use time::OffsetDateTime;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString};
 use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
 use crate::dom::input_element::HTMLInputElement;

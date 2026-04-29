@@ -9,6 +9,7 @@ use std::collections::VecDeque;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::NullValue;
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -22,7 +23,6 @@ use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
 use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
 };

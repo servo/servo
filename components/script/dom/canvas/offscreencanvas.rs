@@ -11,6 +11,7 @@ use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::inheritance::Castable;
 use script_bindings::weakref::WeakRef;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
@@ -19,7 +20,6 @@ use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::conversions::Convert;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
     OffscreenRenderingContext as RootedOffscreenRenderingContext, OffscreenRenderingContextId,

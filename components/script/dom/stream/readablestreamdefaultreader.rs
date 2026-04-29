@@ -12,10 +12,10 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use script_bindings::cell::DomRefCell;
 
 use super::byteteereadrequest::ByteTeeReadRequest;
 use super::readablebytestreamcontroller::ReadableByteStreamController;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
 };

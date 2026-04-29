@@ -18,6 +18,7 @@ use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use rand::random;
 use rustc_hash::FxBuildHasher;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::match_domstring_ascii;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
@@ -28,7 +29,6 @@ use stylo_dom::ElementState;
 
 use crate::body::Extractable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;

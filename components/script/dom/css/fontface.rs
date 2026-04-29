@@ -9,6 +9,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use fonts::{FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontFamilyName};
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
 use style::properties::font_face::Descriptors;
@@ -16,7 +17,6 @@ use style::stylesheets::{CssRuleType, FontFaceRule, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::css::parser_context_for_document_with_reporter;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
     FontFaceDescriptors, FontFaceLoadStatus, FontFaceMethods,
 };

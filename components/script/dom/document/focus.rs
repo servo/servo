@@ -7,6 +7,7 @@ use std::cell::{Cell, Ref};
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -18,7 +19,6 @@ use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
 };
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};

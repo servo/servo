@@ -20,6 +20,7 @@ use net_traits::{
     FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
 use pixels::PixelFormat;
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -31,7 +32,6 @@ use stylo_atoms::Atom;
 use webrender_api::units::DeviceIntSize;
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use crate::dom::bindings::inheritance::Castable;

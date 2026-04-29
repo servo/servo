@@ -8,9 +8,9 @@ use std::ptr::NonNull;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, Value};
 use malloc_size_of::MallocSizeOf;
+use script_bindings::cell::DomRefCell;
 use script_bindings::conversions::SafeToJSValConvertible;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };

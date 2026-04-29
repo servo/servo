@@ -18,13 +18,13 @@ use net_traits::request::{
     Request as NetTraitsRequest, RequestBuilder, RequestMode as NetTraitsRequestMode,
     TraversableForUserPrompts,
 };
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use servo_url::ServoUrl;
 
 use crate::body::{BodyMixin, BodyType, Extractable, clone_body_stream_for_dom_body, consume_body};
 use crate::conversions::Convert;
 use crate::dom::abortsignal::AbortSignal;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     ReferrerPolicy, RequestCache, RequestCredentials, RequestDestination, RequestInfo, RequestInit,

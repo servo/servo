@@ -49,6 +49,7 @@ use net_traits::request::{
 };
 use net_traits::response::HttpsState;
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
@@ -60,7 +61,6 @@ use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::DomTypeHolder;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,

@@ -11,10 +11,10 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, MutableHandleValue};
+use script_bindings::cell::DomRefCell;
 use script_bindings::record::Record;
 use servo_constellation_traits::BlobImpl;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{
     ClipboardItemMethods, ClipboardItemOptions, PresentationStyle,
 };

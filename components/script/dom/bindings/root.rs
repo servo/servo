@@ -35,8 +35,8 @@ use js::jsapi::{Heap, JSObject, JSTracer, Value};
 use js::rust::HandleValue;
 use layout_api::TrustedNodeAddress;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use script_bindings::assert::{assert_in_layout, assert_in_script};
 pub(crate) use script_bindings::root::*;
-use style::thread_state;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
@@ -214,10 +214,6 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
     fn eq(&self, other: &T) -> bool {
         unsafe { **self.val.get() == *other }
     }
-}
-
-pub(crate) fn assert_in_layout() {
-    debug_assert!(thread_state::get().is_layout());
 }
 
 /// A struct to make Unrooted Dom objects work. By taking a no_gc as reference, we ensure that the lifetime of this object

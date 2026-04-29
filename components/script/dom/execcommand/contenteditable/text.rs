@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use script_bindings::cell::Ref;
 use script_bindings::inheritance::Castable;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
-use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;

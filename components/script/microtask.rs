@@ -12,10 +12,10 @@ use std::rc::Rc;
 
 use js::jsapi::JobQueueMayNotBeEmpty;
 use js::realm::AutoRealm;
+use script_bindings::cell::DomRefCell;
 use servo_base::id::PipelineId;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;

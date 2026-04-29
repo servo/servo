@@ -11,6 +11,7 @@ use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::http_status::HttpStatus;
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use servo_url::ServoUrl;
 use url::Position;
@@ -18,7 +19,6 @@ use url::Position;
 use crate::body::{
     BodyMixin, BodyType, Extractable, ExtractedBody, clone_body_stream_for_dom_body, consume_body,
 };
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::{

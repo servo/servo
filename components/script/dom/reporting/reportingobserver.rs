@@ -8,12 +8,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSPViolationReportBodyBinding::CSPViolationReportBody;
 use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::{
     Report, ReportList, ReportingObserverCallback, ReportingObserverMethods,

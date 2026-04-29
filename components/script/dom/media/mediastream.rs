@@ -4,10 +4,10 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::cell::{DomRefCell, Ref};
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto_and_cx};

@@ -11,10 +11,10 @@ use euclid::{Rect, Size2D};
 use html5ever::ns;
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
+use script_bindings::cell::DomRefCell;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
     ResizeObserverBoxOptions, ResizeObserverCallback, ResizeObserverMethods, ResizeObserverOptions,
 };

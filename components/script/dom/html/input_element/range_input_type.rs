@@ -6,13 +6,13 @@ use std::cell::Ref;
 use html5ever::{local_name, ns};
 use js::context::JSContext;
 use markup5ever::QualName;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use script_bindings::root::Dom;
 use script_bindings::script_runtime::CanGc;
 use style::selector_parser::PseudoElement;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;

@@ -8,6 +8,7 @@ use embedder_traits::{EmbedderControlRequest, RgbColor};
 use html5ever::{local_name, ns};
 use js::context::JSContext;
 use markup5ever::QualName;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -21,7 +22,6 @@ use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document_embedder_controls::ControlElement;

@@ -7,9 +7,9 @@
 use dom_struct::dom_struct;
 use indexmap::IndexMap;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithInterfaceBinding::TestBindingMaplikeWithInterfaceMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::like::Maplike;

@@ -8,6 +8,7 @@ use std::cell::Cell;
 use std::cmp;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::DomObject as _;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
@@ -15,7 +16,6 @@ use servo_canvas_traits::webgl::{
     WebGLError, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;

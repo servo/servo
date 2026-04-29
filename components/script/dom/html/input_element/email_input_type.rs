@@ -4,10 +4,10 @@
 
 use itertools::Itertools;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use style::str::split_commas;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
 use crate::dom::input_element::HTMLInputElement;

@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
@@ -22,7 +23,6 @@ use style::stylesheets::{
 use super::cssrulelist::{CSSRuleList, RulesSource};
 use super::stylesheet::StyleSheet;
 use super::stylesheetlist::StyleSheetListOwner;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };

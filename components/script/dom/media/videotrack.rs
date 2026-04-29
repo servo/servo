@@ -5,8 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};

@@ -12,9 +12,9 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
     Transformer, TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
