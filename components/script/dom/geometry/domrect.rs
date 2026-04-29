@@ -17,7 +17,9 @@ use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_wit
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::domrectreadonly::{DOMRectReadOnly, create_a_domrectreadonly_from_the_dictionary};
+use crate::dom::geometry::domrectreadonly::{
+    DOMRectReadOnly, create_a_domrectreadonly_from_the_dictionary,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 

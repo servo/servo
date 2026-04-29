@@ -28,7 +28,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
-use crate::dom::dommatrix::DOMMatrix;
+use crate::dom::geometry::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::path2d::Path2D;
 use crate::script_runtime::CanGc;

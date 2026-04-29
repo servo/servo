@@ -7,7 +7,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::domrect::DOMRect;
+use crate::dom::geometry::domrect::DOMRect;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

@@ -15,7 +15,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::canvasgradient::ToFillOrStrokeStyle;
-use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
+use crate::dom::geometry::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 
 /// <https://html.spec.whatwg.org/multipage/#canvaspattern>

@@ -41,7 +41,7 @@ use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dommatrix::DOMMatrix;
-use crate::dom::dompoint::DOMPoint;
+use crate::dom::geometry::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};

@@ -102,10 +102,10 @@ use crate::dom::customelementregistry::{
 };
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::domrect::DOMRect;
-use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
+use crate::dom::geometry::domrect::DOMRect;
+use crate::dom::geometry::domrectlist::DOMRectList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbodyelement::HTMLBodyElement;

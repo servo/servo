@@ -14,8 +14,8 @@ use super::bindings::num::Finite;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
+use crate::dom::geometry::domrectreadonly::DOMRectReadOnly;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

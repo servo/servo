@@ -21,7 +21,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::dommatrixreadonly::{
+use crate::dom::geometry::dommatrixreadonly::{
     DOMMatrixReadOnly, dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix,
 };
 use crate::dom::globalscope::GlobalScope;
