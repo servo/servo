@@ -22,7 +22,6 @@ use rusqlite::Error as RusqliteError;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use servo_base::threadpool::ThreadPool;
-use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::client_storage::StorageProxyMap;
 use storage_traits::indexeddb::{
@@ -798,19 +797,11 @@ impl IndexedDBManager {
     ) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
-        // Uses an estimate of the system cpus to process IndexedDB transactions
-        // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
-        // If no information can be obtained about the system, uses 4 threads as a default
-        let thread_count = thread::available_parallelism()
-            .map(|i| i.get())
-            .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
-            .min(pref!(threadpools_indexeddb_workers_max).max(1) as usize);
-
         IndexedDBManager {
             port,
             manager_sender,
             databases: HashMap::new(),
-            thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
+            thread_pool: ThreadPool::global(),
             serial_number_counter: 0,
             connection_queues: Default::default(),
             connections: Default::default(),

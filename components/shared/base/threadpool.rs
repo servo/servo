@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
 use log::debug;
+use servo_config::pref;
 
 /// The state of the thread-pool used by CoreResource.
 struct ThreadPoolState {
@@ -50,22 +51,34 @@ impl ThreadPoolState {
     }
 }
 
-/// Threadpool used by Fetch and file operations.
+/// The thread pools used throughout Servo, apart from those used by Layout and WebRender which
+/// are handled separately.
 pub struct ThreadPool {
     pool: rayon::ThreadPool,
     state: Arc<Mutex<ThreadPoolState>>,
 }
 
+static GLOBAL_THREAD_POOL: OnceLock<Arc<ThreadPool>> = OnceLock::new();
+
 impl ThreadPool {
-    pub fn new(num_threads: usize, pool_name: String) -> Self {
-        debug!("Creating new ThreadPool with {num_threads} threads!");
-        let pool = rayon::ThreadPoolBuilder::new()
-            .thread_name(move |i| format!("{pool_name}#{i}"))
-            .num_threads(num_threads)
-            .build()
-            .unwrap();
-        let state = Arc::new(Mutex::new(ThreadPoolState::new()));
-        Self { pool, state }
+    /// Get the global thread pool for the process.
+    pub fn global() -> Arc<Self> {
+        let pool = GLOBAL_THREAD_POOL.get_or_init(|| {
+            let paralellism = thread::available_parallelism()
+                .map(|parallelism| parallelism.get())
+                .unwrap_or(pref!(thread_pool_fallback_workers) as usize)
+                .min(pref!(thread_pool_workers_max) as usize);
+            let pool = rayon::ThreadPoolBuilder::new()
+                .thread_name(move |i| format!("GlobalPool#{i}"))
+                .num_threads(paralellism)
+                .build()
+                .unwrap();
+            Arc::new(Self {
+                pool,
+                state: Arc::new(Mutex::new(ThreadPoolState::new())),
+            })
+        });
+        pool.clone()
     }
 
     /// Spawn work on the thread-pool, if still active.
