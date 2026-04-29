@@ -103,9 +103,9 @@ impl Response {
         )
     }
 
-    pub(crate) fn error_stream(&self, error: Error, can_gc: CanGc) {
+    pub(crate) fn error_stream(&self, cx: &mut js::context::JSContext, error: Error) {
         if let Some(body) = self.fetch_body_stream.get() {
-            body.error_native(error, can_gc);
+            body.error_native(cx, error);
         }
     }
 
@@ -548,19 +548,19 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub(crate) fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+    pub(crate) fn stream_chunk(&self, cx: &mut js::context::JSContext, chunk: Vec<u8>) {
         self.is_body_empty.set(false);
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.fetch_body_stream.get() {
-            body.enqueue_native(chunk, can_gc);
+            body.enqueue_native(cx, chunk);
         }
     }
 
-    pub(crate) fn finish(&self, can_gc: CanGc) {
+    pub(crate) fn finish(&self, cx: &mut js::context::JSContext) {
         if let Some(body) = self.fetch_body_stream.get() {
-            body.controller_close_native(can_gc);
+            body.controller_close_native(cx);
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {

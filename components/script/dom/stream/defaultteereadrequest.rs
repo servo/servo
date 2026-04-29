@@ -142,16 +142,16 @@ impl DefaultTeeReadRequest {
             {
                 // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
+                    cx,
                     &self.branch_1,
                     clone_result.handle(),
-                    CanGc::from_cx(cx),
                 );
 
                 // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
+                    cx,
                     &self.branch_2,
                     clone_result.handle(),
-                    CanGc::from_cx(cx),
                 );
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
                 self.stream_cancel(cx, global, clone_result.handle());
@@ -186,20 +186,20 @@ impl DefaultTeeReadRequest {
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
-    pub(crate) fn close_steps(&self, can_gc: CanGc) {
+    pub(crate) fn close_steps(&self, cx: &mut js::context::JSContext) {
         // Set reading to false.
         self.reading.set(false);
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerClose(branch_1.[[controller]]).
         if !self.canceled_1.get() {
-            self.readable_stream_default_controller_close(&self.branch_1, can_gc);
+            self.readable_stream_default_controller_close(cx, &self.branch_1);
         }
         // If canceled_2 is false, perform ! ReadableStreamDefaultControllerClose(branch_2.[[controller]]).
         if !self.canceled_2.get() {
-            self.readable_stream_default_controller_close(&self.branch_2, can_gc);
+            self.readable_stream_default_controller_close(cx, &self.branch_2);
         }
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), can_gc);
+            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-error-steps>
@@ -223,23 +223,26 @@ impl DefaultTeeReadRequest {
 
     /// Call into close of the default controller of a stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    fn readable_stream_default_controller_close(&self, stream: &ReadableStream, can_gc: CanGc) {
-        stream.get_default_controller().close(can_gc);
+    fn readable_stream_default_controller_close(
+        &self,
+        cx: &mut js::context::JSContext,
+        stream: &ReadableStream,
+    ) {
+        stream.get_default_controller().close(cx);
     }
 
     /// Call into error of the default controller of stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
     fn readable_stream_default_controller_error(
         &self,
+        cx: &mut js::context::JSContext,
         stream: &ReadableStream,
         error: SafeHandleValue,
-        can_gc: CanGc,
     ) {
-        stream.get_default_controller().error(error, can_gc);
+        stream.get_default_controller().error(cx, error);
     }
 
     pub(crate) fn pull_algorithm(&self, cx: &mut js::context::JSContext) {
-        self.tee_underlying_source
-            .pull_algorithm(CanGc::from_cx(cx));
+        self.tee_underlying_source.pull_algorithm(cx);
     }
 }

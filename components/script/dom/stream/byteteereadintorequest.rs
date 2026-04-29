@@ -152,11 +152,11 @@ impl ByteTeeReadIntoRequest {
 
                 // Perform ! ReadableByteStreamControllerError(byobBranch.[[controller]], cloneResult.[[Value]]).
                 let byob_branch_controller = self.byob_branch.get_byte_controller();
-                byob_branch_controller.error(error_value.handle(), CanGc::from_cx(cx));
+                byob_branch_controller.error(cx, error_value.handle());
 
                 // Perform ! ReadableByteStreamControllerError(otherBranch.[[controller]], cloneResult.[[Value]]).
                 let other_branch_controller = self.other_branch.get_byte_controller();
-                other_branch_controller.error(error_value.handle(), CanGc::from_cx(cx));
+                other_branch_controller.error(cx, error_value.handle());
 
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
                 let cancel_result =
@@ -175,11 +175,7 @@ impl ByteTeeReadIntoRequest {
                 // ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
                 if !byob_canceled {
                     let byob_branch_controller = self.byob_branch.get_byte_controller();
-                    byob_branch_controller.respond_with_new_view(
-                        cx.into(),
-                        chunk,
-                        CanGc::from_cx(cx),
-                    )?;
+                    byob_branch_controller.respond_with_new_view(cx, chunk)?;
                 }
 
                 // Perform ! ReadableByteStreamControllerEnqueue(otherBranch.[[controller]], clonedChunk).
@@ -191,7 +187,7 @@ impl ByteTeeReadIntoRequest {
             // ! ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
 
             let byob_branch_controller = self.byob_branch.get_byte_controller();
-            byob_branch_controller.respond_with_new_view(cx.into(), chunk, CanGc::from_cx(cx))?;
+            byob_branch_controller.respond_with_new_view(cx, chunk)?;
         }
 
         // Set reading to false.
@@ -211,11 +207,9 @@ impl ByteTeeReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-close-steps%E2%91%A1>
     pub(crate) fn close_steps(
         &self,
+        cx: &mut js::context::JSContext,
         chunk: Option<HeapBufferSource<ArrayBufferViewU8>>,
-        can_gc: CanGc,
     ) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
-
         // Set reading to false.
         self.reading.set(false);
 
@@ -236,13 +230,13 @@ impl ByteTeeReadIntoRequest {
         // If byobCanceled is false, perform ! ReadableByteStreamControllerClose(byobBranch.[[controller]]).
         if !byob_canceled {
             let byob_branch_controller = self.byob_branch.get_byte_controller();
-            byob_branch_controller.close(cx, can_gc)?;
+            byob_branch_controller.close(cx)?;
         }
 
         // If otherCanceled is false, perform ! ReadableByteStreamControllerClose(otherBranch.[[controller]]).
         if !other_canceled {
             let other_branch_controller = self.other_branch.get_byte_controller();
-            other_branch_controller.close(cx, can_gc)?;
+            other_branch_controller.close(cx)?;
         }
 
         // If chunk is not undefined,
@@ -259,7 +253,7 @@ impl ByteTeeReadIntoRequest {
                 // ReadableByteStreamControllerRespondWithNewView(byobBranch.[[controller]], chunk).
                 if !byob_canceled {
                     let byob_branch_controller = self.byob_branch.get_byte_controller();
-                    byob_branch_controller.respond_with_new_view(cx, chunk, can_gc)?;
+                    byob_branch_controller.respond_with_new_view(cx, chunk)?;
                 }
 
                 // If otherCanceled is false and otherBranch.[[controller]].[[pendingPullIntos]] is not empty,
@@ -267,7 +261,7 @@ impl ByteTeeReadIntoRequest {
                 if !other_canceled {
                     let other_branch_controller = self.other_branch.get_byte_controller();
                     if other_branch_controller.get_pending_pull_intos_size() > 0 {
-                        other_branch_controller.respond(cx, 0, can_gc)?;
+                        other_branch_controller.respond(cx, 0)?;
                     }
                 }
             }
@@ -275,7 +269,7 @@ impl ByteTeeReadIntoRequest {
 
         // If byobCanceled is false or otherCanceled is false, resolve cancelPromise with undefined.
         if !byob_canceled || !other_canceled {
-            self.cancel_promise.resolve_native(&(), can_gc);
+            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
 
         Ok(())
@@ -292,6 +286,6 @@ impl ByteTeeReadIntoRequest {
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
     ) {
         self.tee_underlying_source
-            .pull_algorithm(byte_tee_pull_algorithm, CanGc::from_cx(cx));
+            .pull_algorithm(cx, byte_tee_pull_algorithm);
     }
 }

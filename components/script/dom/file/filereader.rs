@@ -524,8 +524,8 @@ impl FileReader {
 
         // Read all bytes from stream with reader.
         reader.read_all_bytes(
-            cx.into(),
-            Rc::new(move |blob_contents| {
+            cx,
+            Rc::new(move |_cx, blob_contents| {
                 let global = filereader_success.global();
                 let task_manager = global.task_manager();
                 let task_source = task_manager.file_reading_task_source();
@@ -577,7 +577,6 @@ impl FileReader {
                     DOMErrorName::OperationError,
                 ));
             }),
-            CanGc::from_cx(cx),
         );
         Ok(())
     }

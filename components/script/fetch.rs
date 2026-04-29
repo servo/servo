@@ -201,7 +201,7 @@ fn abort_fetch_call(
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
     if let Some(body) = response.body() {
         if body.is_readable() {
-            body.error(abort_reason, CanGc::from_cx(cx));
+            body.error(cx, abort_reason);
         }
     }
 }
@@ -228,7 +228,7 @@ pub(crate) fn Fetch(
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
     let request_object = match Request::Constructor(cx, global, None, input, init) {
         Err(e) => {
-            response.error_stream(e.clone(), CanGc::from_cx(cx));
+            response.error_stream(cx, e.clone());
             promise.reject_error(e, CanGc::from_cx(cx));
             return promise;
         },
@@ -573,10 +573,7 @@ impl FetchResponseListener for FetchContext {
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::from_cx(cx));
-                response.error_stream(
-                    Error::Type(c"Network error occurred".to_owned()),
-                    CanGc::from_cx(cx),
-                );
+                response.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
                 return;
             },
             // Step 12.4. Set responseObject to the result of creating a Response object,
@@ -635,7 +632,7 @@ impl FetchResponseListener for FetchContext {
         chunk: Vec<u8>,
     ) {
         let response = self.response_object.root();
-        response.stream_chunk(chunk, CanGc::from_cx(cx));
+        response.stream_chunk(cx, chunk);
     }
 
     fn process_response_eof(
@@ -649,13 +646,10 @@ impl FetchResponseListener for FetchContext {
         let _ac = enter_realm(&*response_object);
         if let Err(ref error) = response {
             if *error == NetworkError::DecompressionError {
-                response_object.error_stream(
-                    Error::Type(c"Network error occurred".to_owned()),
-                    CanGc::from_cx(cx),
-                );
+                response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
             }
         }
-        response_object.finish(CanGc::from_cx(cx));
+        response_object.finish(cx);
         // TODO
         // ... trailerObject is not supported in Servo yet.
 

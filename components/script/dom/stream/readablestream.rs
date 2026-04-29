@@ -753,7 +753,7 @@ impl PipeTo {
 
         // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
         self.reader
-            .release(CanGc::from_cx(cx))
+            .release(cx)
             .expect("Releasing the reader should not fail");
 
         // If signal is not undefined, remove abortAlgorithm from signal.
@@ -1000,8 +1000,8 @@ impl ReadableStream {
             global,
             UnderlyingSourceType::Memory(bytes.len()),
         )?;
-        stream.enqueue_native(bytes, CanGc::from_cx(cx));
-        stream.controller_close_native(CanGc::from_cx(cx));
+        stream.enqueue_native(cx, bytes);
+        stream.controller_close_native(cx);
         Ok(stream)
     }
 
@@ -1050,19 +1050,18 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub(crate) fn perform_pull_steps(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         read_request: &ReadRequest,
-        can_gc: CanGc,
     ) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_steps(read_request, can_gc),
+                .perform_pull_steps(cx, read_request),
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_steps(cx, read_request, can_gc),
+                .perform_pull_steps(cx, read_request),
             None => {
                 unreachable!("Stream does not have a controller.");
             },
@@ -1074,17 +1073,16 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn perform_pull_into(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
-        can_gc: CanGc,
     ) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_into(cx, read_into_request, view, min, can_gc),
+                .perform_pull_into(cx, read_into_request, view, min),
             _ => {
                 unreachable!(
                     "Pulling a chunk from a stream with a default controller using a BYOB reader"
@@ -1138,12 +1136,12 @@ impl ReadableStream {
 
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
-    pub(crate) fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
+    pub(crate) fn enqueue_native(&self, cx: &mut js::context::JSContext, bytes: Vec<u8>) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .enqueue_native(bytes, can_gc),
+                .enqueue_native(cx, bytes),
             _ => {
                 unreachable!(
                     "Enqueueing chunk to a stream from Rust on other than default controller"
@@ -1153,7 +1151,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub(crate) fn error(&self, e: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
 
@@ -1175,7 +1173,7 @@ impl ReadableStream {
 
         if let Some(reader) = default_reader {
             // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
-            reader.error(e, can_gc);
+            reader.error(cx, e);
             return;
         }
 
@@ -1189,7 +1187,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-            reader.error_read_into_requests(e, can_gc);
+            reader.error_read_into_requests(e, CanGc::from_cx(cx));
         }
 
         // If reader is undefined, return.
@@ -1202,22 +1200,26 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
-    pub(crate) fn error_native(&self, error: Error, can_gc: CanGc) {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut error_val = UndefinedValue());
-        error.to_jsval(cx, &self.global(), error_val.handle_mut(), can_gc);
-        self.error(error_val.handle(), can_gc);
+    pub(crate) fn error_native(&self, cx: &mut js::context::JSContext, error: Error) {
+        rooted!(&in(cx) let mut error_val = UndefinedValue());
+        error.to_jsval(
+            cx.into(),
+            &self.global(),
+            error_val.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        self.error(cx, error_val.handle());
     }
 
     /// Call into the controller's `Close` method.
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub(crate) fn controller_close_native(&self, can_gc: CanGc) {
+    pub(crate) fn controller_close_native(&self, cx: &mut js::context::JSContext) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => {
                 let _ = controller
                     .get()
                     .expect("Stream should have controller.")
-                    .Close(can_gc);
+                    .Close(cx);
             },
             _ => {
                 unreachable!("Native closing is only done on default controllers.")
@@ -1347,7 +1349,7 @@ impl ReadableStream {
     /// must be done after `start_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub(crate) fn stop_reading(&self, can_gc: CanGc) {
+    pub(crate) fn stop_reading(&self, cx: &mut js::context::JSContext) {
         let reader_ref = self.reader.borrow();
 
         match reader_ref.as_ref() {
@@ -1357,7 +1359,7 @@ impl ReadableStream {
                 };
 
                 drop(reader_ref);
-                reader.release(can_gc).expect("Reader release cannot fail.");
+                reader.release(cx).expect("Reader release cannot fail.");
             },
             _ => {
                 unreachable!("Native stop reading can only be done with a default reader.")
@@ -1452,7 +1454,12 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool, can_gc: CanGc) {
+    pub(crate) fn fulfill_read_request(
+        &self,
+        cx: &mut js::context::JSContext,
+        chunk: SafeHandleValue,
+        done: bool,
+    ) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
 
@@ -1470,12 +1477,12 @@ impl ReadableStream {
 
                 if done {
                     // step 6 - If done is true, perform readRequest’s close steps.
-                    request.close_steps(can_gc);
+                    request.close_steps(cx);
                 } else {
                     // step 7 - Otherwise, perform readRequest’s chunk steps, given chunk.
                     let result = RootedTraceableBox::new(Heap::default());
                     result.set(*chunk);
-                    request.chunk_steps(result, &self.global(), can_gc);
+                    request.chunk_steps(cx, result, &self.global());
                 }
             },
             _ => {
@@ -1489,9 +1496,9 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-into-request>
     pub(crate) fn fulfill_read_into_request(
         &self,
+        cx: &mut js::context::JSContext,
         chunk: SafeHandleValue,
         done: bool,
-        can_gc: CanGc,
     ) {
         // Assert: ! ReadableStreamHasBYOBReader(stream) is true.
         assert!(self.has_byob_reader());
@@ -1516,11 +1523,11 @@ impl ReadableStream {
                 let result = RootedTraceableBox::new(Heap::default());
                 if done {
                     result.set(*chunk);
-                    read_into_request.close_steps(Some(result), can_gc);
+                    read_into_request.close_steps(cx, Some(result));
                 } else {
                     // Otherwise, perform readIntoRequest’s chunk steps, given chunk.
                     result.set(*chunk);
-                    read_into_request.chunk_steps(result, can_gc);
+                    read_into_request.chunk_steps(result, CanGc::from_cx(cx));
                 }
             },
             _ => {
@@ -1532,7 +1539,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    pub(crate) fn close(&self, can_gc: CanGc) {
+    pub(crate) fn close(&self, cx: &mut js::context::JSContext) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
         // Set stream.[[state]] to "closed".
@@ -1552,7 +1559,7 @@ impl ReadableStream {
 
         if let Some(reader) = default_reader {
             // steps 5 & 6 for a default reader
-            reader.close(can_gc);
+            reader.close(cx);
             return;
         }
 
@@ -1567,7 +1574,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // steps 5 & 6 for a BYOB reader
-            reader.close(can_gc);
+            reader.close(CanGc::from_cx(cx));
         }
 
         // If reader is undefined, return.
@@ -1597,7 +1604,7 @@ impl ReadableStream {
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).
-        self.close(CanGc::from_cx(cx));
+        self.close(cx);
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         let byob_reader = {
@@ -1610,7 +1617,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-            reader.cancel(CanGc::from_cx(cx));
+            reader.cancel(cx);
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
@@ -2380,7 +2387,7 @@ impl CrossRealmTransformReadable {
         // Otherwise, if type is "close",
         if type_string == "close" {
             // Perform ! ReadableStreamDefaultControllerClose(controller).
-            self.controller.close(CanGc::from_cx(cx));
+            self.controller.close(cx);
 
             // Disentangle port.
             global.disentangle_port(cx, port);
@@ -2389,7 +2396,7 @@ impl CrossRealmTransformReadable {
         // Otherwise, if type is "error",
         if type_string == "error" {
             // Perform ! ReadableStreamDefaultControllerError(controller, value).
-            self.controller.error(value.handle(), CanGc::from_cx(cx));
+            self.controller.error(cx, value.handle());
 
             // Disentangle port.
             global.disentangle_port(cx, port);
@@ -2413,8 +2420,7 @@ impl CrossRealmTransformReadable {
         port.cross_realm_transform_send_error(rooted_error.handle(), CanGc::from_cx(cx));
 
         // Perform ! ReadableStreamDefaultControllerError(controller, error).
-        self.controller
-            .error(rooted_error.handle(), CanGc::from_cx(cx));
+        self.controller.error(cx, rooted_error.handle());
 
         // Disentangle port.
         global.disentangle_port(cx, port);
