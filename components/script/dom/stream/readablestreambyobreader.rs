@@ -36,7 +36,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#read-into-request>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -76,7 +76,11 @@ impl ReadIntoRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-close-steps%E2%91%A0>
-    pub fn close_steps(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>, can_gc: CanGc) {
+    pub fn close_steps(
+        &self,
+        cx: &mut js::context::JSContext,
+        chunk: Option<RootedTraceableBox<Heap<JSVal>>>,
+    ) {
         match self {
             ReadIntoRequest::Read(promise) => match chunk {
                 // close steps, given chunk
@@ -86,7 +90,7 @@ impl ReadIntoRequest {
                         done: Some(true),
                         value: chunk,
                     },
-                    can_gc,
+                    CanGc::from_cx(cx),
                 ),
                 None => {
                     let result = RootedTraceableBox::new(Heap::default());
@@ -96,7 +100,7 @@ impl ReadIntoRequest {
                             done: Some(true),
                             value: result,
                         },
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 },
             },
@@ -105,16 +109,16 @@ impl ReadIntoRequest {
             } => match chunk {
                 Some(chunk) => byte_tee_read_into_request
                     .close_steps(
+                        cx,
                         Some(HeapBufferSource::<ArrayBufferViewU8>::new(
                             BufferSource::ArrayBufferView(RootedTraceableBox::from_box(
                                 Heap::boxed(chunk.get().to_object()),
                             )),
                         )),
-                        can_gc,
                     )
                     .expect("close steps should not fail"),
                 None => byte_tee_read_into_request
-                    .close_steps(None, can_gc)
+                    .close_steps(cx, None)
                     .expect("close steps should not fail"),
             },
         }
@@ -159,21 +163,20 @@ impl Callback for ByteTeeClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
     /// Upon rejection of `reader.closedPromise` with reason `r``,
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         // If thisReader is not reader, return.
         if self.reader_version.get() != self.expected_version {
             return;
         }
 
         // Perform ! ReadableByteStreamControllerError(branch1.[[controller]], r).
-        self.branch_1_controller.error(v, can_gc);
+        self.branch_1_controller.error(cx, v);
 
         // Perform ! ReadableByteStreamControllerError(branch2.[[controller]], r).
-        self.branch_2_controller.error(v, can_gc);
+        self.branch_2_controller.error(cx, v);
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), can_gc);
+            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
     }
 }
@@ -302,7 +305,7 @@ impl ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    pub(crate) fn cancel(&self, can_gc: CanGc) {
+    pub(crate) fn cancel(&self, cx: &mut js::context::JSContext) {
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         // Let readIntoRequests be reader.[[readIntoRequests]].
         let mut read_into_requests = self.take_read_into_requests();
@@ -310,7 +313,7 @@ impl ReadableStreamBYOBReader {
         // Perform readIntoRequest’s close steps, given undefined.
         for request in read_into_requests.drain(0..) {
             // Perform readIntoRequest’s close steps, given undefined.
-            request.close_steps(None, can_gc);
+            request.close_steps(cx, None);
         }
     }
 
@@ -322,11 +325,10 @@ impl ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn read(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         view: HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
         read_into_request: &ReadIntoRequest,
-        can_gc: CanGc,
     ) {
         // Let stream be reader.[[stream]].
 
@@ -339,15 +341,14 @@ impl ReadableStreamBYOBReader {
         stream.set_is_disturbed(true);
         // If stream.[[state]] is "errored", perform readIntoRequest’s error steps given stream.[[storedError]].
         if stream.is_errored() {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             stream.get_stored_error(error.handle_mut());
 
-            read_into_request.error_steps(error.handle(), can_gc);
+            read_into_request.error_steps(error.handle(), CanGc::from_cx(cx));
         } else {
             // Otherwise,
             // perform ! ReadableByteStreamControllerPullInto(stream.[[controller]], view, min, readIntoRequest).
-            stream.perform_pull_into(cx, read_into_request, view, min, can_gc);
+            stream.perform_pull_into(cx, read_into_request, view, min);
         }
     }
 
@@ -509,7 +510,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let read_into_request = ReadIntoRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamBYOBReaderRead(this, view, options["min"], readIntoRequest).
-        self.read(cx.into(), view, min, &read_into_request, CanGc::from_cx(cx));
+        self.read(cx, view, min, &read_into_request);
 
         // Return promise.
         promise

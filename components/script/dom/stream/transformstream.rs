@@ -181,30 +181,28 @@ struct CancelPromiseFulfillment {
 impl Callback for CancelPromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
         if self.readable.is_errored() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             self.readable.get_stored_error(error.handle_mut());
             self.controller
                 .get_finish_promise()
                 .expect("finish promise is not set")
-                .reject_native(&error.handle(), can_gc);
+                .reject_native(&error.handle(), CanGc::from_cx(cx));
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], reason).
-            rooted!(in(*cx) let mut reason = UndefinedValue());
+            rooted!(&in(cx) let mut reason = UndefinedValue());
             reason.set(self.reason.get());
             self.readable
                 .get_default_controller()
-                .error(reason.handle(), can_gc);
+                .error(cx, reason.handle());
 
             // Resolve controller.[[finishPromise]] with undefined.
             self.controller
                 .get_finish_promise()
                 .expect("finish promise is not set")
-                .resolve_native(&(), can_gc);
+                .resolve_native(&(), CanGc::from_cx(cx));
         }
     }
 }
@@ -223,16 +221,14 @@ struct CancelPromiseRejection {
 impl Callback for CancelPromiseRejection {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
-        self.readable.get_default_controller().error(v, can_gc);
+        self.readable.get_default_controller().error(cx, v);
 
         // Reject controller.[[finishPromise]] with r.
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject(cx, v, can_gc);
+            .reject(cx.into(), v, CanGc::from_cx(cx));
     }
 }
 
@@ -330,8 +326,6 @@ struct FlushPromiseFulfillment {
 impl Callback for FlushPromiseFulfillment {
     /// Reacting to flushpromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // If flushPromise was fulfilled, then:
         let finish_promise = self
             .controller
@@ -340,16 +334,16 @@ impl Callback for FlushPromiseFulfillment {
 
         // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
         if self.readable.is_errored() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             self.readable.get_stored_error(error.handle_mut());
-            finish_promise.reject(cx, error.handle(), can_gc);
+            finish_promise.reject(cx.into(), error.handle(), CanGc::from_cx(cx));
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerClose(readable.[[controller]]).
-            self.readable.get_default_controller().close(can_gc);
+            self.readable.get_default_controller().close(cx);
 
             // Resolve controller.[[finishPromise]] with undefined.
-            finish_promise.resolve_native(&(), can_gc);
+            finish_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
     }
 }
@@ -368,17 +362,15 @@ struct FlushPromiseRejection {
 impl Callback for FlushPromiseRejection {
     /// Reacting to flushpromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // If flushPromise was rejected with reason r, then:
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
-        self.readable.get_default_controller().error(v, can_gc);
+        self.readable.get_default_controller().error(cx, v);
 
         // Reject controller.[[finishPromise]] with r.
         self.controller
             .get_finish_promise()
             .expect("finish promise is not set")
-            .reject(cx, v, can_gc);
+            .reject(cx.into(), v, CanGc::from_cx(cx));
     }
 }
 
@@ -950,7 +942,7 @@ impl TransformStream {
         // Perform ! ReadableStreamDefaultControllerError(stream.[[readable]].[[controller]], e).
         self.get_readable()
             .get_default_controller()
-            .error(error, CanGc::from_cx(cx));
+            .error(cx, error);
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, e).
         self.error_writable_and_unblock_write(cx, global, error);

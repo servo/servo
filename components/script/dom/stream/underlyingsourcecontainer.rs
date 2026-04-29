@@ -185,8 +185,8 @@ impl UnderlyingSourceContainer {
     #[expect(unsafe_code)]
     pub(crate) fn call_pull_algorithm(
         &self,
+        cx: &mut js::context::JSContext,
         controller: Controller,
-        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
             UnderlyingSourceType::Js(source, this_obj) => {
@@ -196,7 +196,7 @@ impl UnderlyingSourceContainer {
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             ExceptionHandling::Rethrow,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         )
                     };
                     return Some(result);
@@ -205,32 +205,32 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(tee_underlying_source) => {
                 // Call the pull algorithm for the appropriate branch.
-                Some(Ok(tee_underlying_source.pull_algorithm(can_gc)))
+                Some(Ok(tee_underlying_source.pull_algorithm(cx)))
             },
             UnderlyingSourceType::Transfer(port) => {
                 // Let pullAlgorithm be the following steps:
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
-                let cx = GlobalScope::get_cx();
-
                 // Perform ! PackAndPostMessage(port, "pull", undefined).
-                rooted!(in(*cx) let mut value = UndefinedValue());
-                port.pack_and_post_message("pull", value.handle(), can_gc)
+                rooted!(&in(cx) let mut value = UndefinedValue());
+                port.pack_and_post_message("pull", value.handle(), CanGc::from_cx(cx))
                     .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.
-                let promise = Promise::new(&self.global(), can_gc);
-                promise.resolve_native(&(), can_gc);
+                let promise = Promise::new2(cx, &self.global());
+                promise.resolve_native(&(), CanGc::from_cx(cx));
                 Some(Ok(promise))
             },
             UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
-                Some(Ok(tee_underlyin_source.pull_algorithm(None, can_gc)))
+                Some(Ok(tee_underlyin_source.pull_algorithm(cx, None)))
             },
             // Note: other source type have no pull steps for now.
             UnderlyingSourceType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourcePullAlgorithm(stream).
-                Some(stream.transform_stream_default_source_pull(&self.global(), can_gc))
+                Some(
+                    stream.transform_stream_default_source_pull(&self.global(), CanGc::from_cx(cx)),
+                )
             },
             _ => None,
         }

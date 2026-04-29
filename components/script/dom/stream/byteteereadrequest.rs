@@ -143,8 +143,8 @@ impl ByteTeeReadRequest {
             let branch_1_controller = self.branch_1.get_byte_controller();
             let branch_2_controller = self.branch_2.get_byte_controller();
 
-            branch_1_controller.error(error_value.handle(), CanGc::from_cx(cx));
-            branch_2_controller.error(error_value.handle(), CanGc::from_cx(cx));
+            branch_1_controller.error(cx, error_value.handle());
+            branch_2_controller.error(cx, error_value.handle());
 
             let cancel_result = self
                 .stream
@@ -225,8 +225,7 @@ impl ByteTeeReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-steps%E2%91%A2>
-    pub(crate) fn close_steps(&self, can_gc: CanGc) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn close_steps(&self, cx: &mut js::context::JSContext) -> Fallible<()> {
         let branch_1_controller = self.branch_1.get_byte_controller();
         let branch_2_controller = self.branch_2.get_byte_controller();
 
@@ -235,29 +234,29 @@ impl ByteTeeReadRequest {
 
         // If canceled1 is false, perform ! ReadableByteStreamControllerClose(branch1.[[controller]]).
         if !self.canceled_1.get() {
-            branch_1_controller.close(cx, can_gc)?;
+            branch_1_controller.close(cx)?;
         }
 
         // If canceled2 is false, perform ! ReadableByteStreamControllerClose(branch2.[[controller]]).
         if !self.canceled_2.get() {
-            branch_2_controller.close(cx, can_gc)?;
+            branch_2_controller.close(cx)?;
         }
 
         // If branch1.[[controller]].[[pendingPullIntos]] is not empty,
         // perform ! ReadableByteStreamControllerRespond(branch1.[[controller]], 0).
         if branch_1_controller.get_pending_pull_intos_size() > 0 {
-            branch_1_controller.respond(cx, 0, can_gc)?;
+            branch_1_controller.respond(cx, 0)?;
         }
 
         // If branch2.[[controller]].[[pendingPullIntos]] is not empty,
         // perform ! ReadableByteStreamControllerRespond(branch2.[[controller]], 0).
         if branch_2_controller.get_pending_pull_intos_size() > 0 {
-            branch_2_controller.respond(cx, 0, can_gc)?;
+            branch_2_controller.respond(cx, 0)?;
         }
 
         // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
-            self.cancel_promise.resolve_native(&(), can_gc);
+            self.cancel_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
 
         Ok(())
@@ -275,6 +274,6 @@ impl ByteTeeReadRequest {
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
     ) {
         self.tee_underlying_source
-            .pull_algorithm(byte_tee_pull_algorithm, CanGc::from_cx(cx));
+            .pull_algorithm(cx, byte_tee_pull_algorithm);
     }
 }

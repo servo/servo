@@ -320,16 +320,14 @@ impl js::gc::Rootable for TransmitBodyPromiseHandler {}
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         let _realm = InRealm::Already(&cx.into());
-        let cx = cx.into();
-        let is_done = match get_read_promise_done(cx, &v, can_gc) {
+        let is_done = match get_read_promise_done(cx.into(), &v, CanGc::from_cx(cx)) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 // TODO: terminate fetch.
                 let _ = self.control_sender.send(BodyChunkRequest::Done);
-                return self.stream.stop_reading(can_gc);
+                return self.stream.stop_reading(cx);
             },
         };
 
@@ -337,15 +335,15 @@ impl Callback for TransmitBodyPromiseHandler {
             // Step 5.3, the "done" steps.
             // TODO: queue a fetch task on request to process request end-of-body.
             let _ = self.control_sender.send(BodyChunkRequest::Done);
-            return self.stream.stop_reading(can_gc);
+            return self.stream.stop_reading(cx);
         }
 
-        let chunk = match get_read_promise_bytes(cx, &v, can_gc) {
+        let chunk = match get_read_promise_bytes(cx.into(), &v, CanGc::from_cx(cx)) {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 let _ = self.control_sender.send(BodyChunkRequest::Error);
-                return self.stream.stop_reading(can_gc);
+                return self.stream.stop_reading(cx);
             },
         };
 
@@ -379,7 +377,7 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        self.stream.stop_reading(CanGc::from_cx(cx));
+        self.stream.stop_reading(cx);
     }
 }
 
@@ -769,26 +767,30 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let mime_type = object.get_mime_type(can_gc);
     let success_promise = promise.clone();
 
+    // TODO: https://github.com/servo/servo/pull/44254
+    #[allow(unsafe_code)]
+    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+    let cx = &mut cx;
+
     // Read all bytes from reader, given successSteps and errorSteps.
     // Note: spec uses an intermediary concept of `fully_read`,
     // which seems useful when invoking fetch from other places.
     // TODO: #36049
     reader.read_all_bytes(
         cx,
-        Rc::new(move |bytes: &[u8]| {
+        Rc::new(move |cx, bytes: &[u8]| {
             resolve_result_promise(
                 body_type,
                 &success_promise,
                 mime_type.clone(),
                 bytes.to_vec(),
-                cx,
-                can_gc,
+                cx.into(),
+                CanGc::from_cx(cx),
             );
         }),
         Rc::new(move |cx, v| {
-            error_promise.reject(cx, v, can_gc);
+            error_promise.reject(cx.into(), v, CanGc::from_cx(cx));
         }),
-        can_gc,
     );
 
     promise

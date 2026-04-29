@@ -288,25 +288,23 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let success_promise = promise.clone();
         let failure_promise = promise.clone();
         reader.read_all_bytes(
-            cx.into(),
-            Rc::new(move |bytes| {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+            cx,
+            Rc::new(move |cx, bytes| {
+                rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
                 // 4. Return the result of transforming promise by a fulfillment handler that returns a new
                 //    [ArrayBuffer]
                 let array_buffer = create_buffer_source::<ArrayBufferU8>(
-                    cx,
+                    cx.into(),
                     bytes,
                     js_object.handle_mut(),
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 )
                 .expect("Converting input to ArrayBufferU8 should never fail");
-                success_promise.resolve_native(&array_buffer, CanGc::deprecated_note());
+                success_promise.resolve_native(&array_buffer, CanGc::from_cx(cx));
             }),
             Rc::new(move |cx, value| {
-                failure_promise.reject(cx, value, CanGc::deprecated_note());
+                failure_promise.reject(cx.into(), value, CanGc::from_cx(cx));
             }),
-            CanGc::from_cx(cx),
         );
 
         promise
@@ -333,23 +331,21 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let p_success = p.clone();
         let p_failure = p.clone();
         reader.read_all_bytes(
-            cx.into(),
-            Rc::new(move |bytes| {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+            cx,
+            Rc::new(move |cx, bytes| {
+                rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
                 let arr = create_buffer_source::<Uint8>(
-                    cx,
+                    cx.into(),
                     bytes,
                     js_object.handle_mut(),
-                    CanGc::deprecated_note(),
+                    CanGc::from_cx(cx),
                 )
                 .expect("Converting input to uint8 array should never fail");
-                p_success.resolve_native(&arr, CanGc::deprecated_note());
+                p_success.resolve_native(&arr, CanGc::from_cx(cx));
             }),
             Rc::new(move |cx, v| {
-                p_failure.reject(cx, v, CanGc::deprecated_note());
+                p_failure.reject(cx.into(), v, CanGc::from_cx(cx));
             }),
-            CanGc::from_cx(cx),
         );
         p
     }

@@ -696,7 +696,7 @@ impl TransformStreamDefaultController {
         let readable_controller = readable.get_default_controller();
 
         // Perform ! ReadableStreamDefaultControllerClose(readableController).
-        readable_controller.close(CanGc::from_cx(cx));
+        readable_controller.close(cx);
 
         // Let error be a TypeError exception indicating that the stream has been terminated.
         let error = Error::Type(c"stream has been terminated".to_owned());
