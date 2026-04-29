@@ -39,7 +39,7 @@ struct OpenRequestListener {
 impl OpenRequestListener {
     /// The continuation of the parallel steps of
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbfactory-deletedatabase>
-    fn handle_delete_db(&self, result: BackendResult<u64>, can_gc: CanGc) {
+    fn handle_delete_db(&self, cx: &mut js::context::JSContext, result: BackendResult<u64>) {
         // Step 4.1: Let result be the result of deleting a database, with storageKey, name, and request.
         // Note: done with the `result` argument.
 
@@ -55,8 +55,7 @@ impl OpenRequestListener {
         // Note: setting the done flag here as it is done in both branches below.
         open_request.idbrequest.set_ready_state_done();
 
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+        rooted!(&in(cx) let mut rval = UndefinedValue());
 
         let _ac = enter_realm(&*open_request);
 
@@ -73,7 +72,7 @@ impl OpenRequestListener {
                     Atom::from("success"),
                     version,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             Err(err) => {
@@ -84,15 +83,15 @@ impl OpenRequestListener {
                 // and fire an event named error at request
                 // with its bubbles and cancelable attributes initialized to true.
                 let error = map_backend_error_to_dom_error(err);
-                open_request.set_error(Some(error), can_gc);
+                open_request.set_error(Some(error), CanGc::from_cx(cx));
                 let event = Event::new(
                     &global,
                     Atom::from("error"),
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
-                event.fire(open_request.upcast(), can_gc);
+                event.fire(open_request.upcast(), CanGc::from_cx(cx));
             },
         }
     }
@@ -226,8 +225,8 @@ impl IDBOpenDBRequest {
         };
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
             let response_listener = response_listener.clone();
-            task_source.queue(task!(request_callback: move || {
-                response_listener.handle_delete_db(message.unwrap(), CanGc::deprecated_note());
+            task_source.queue(task!(request_callback: move |cx| {
+                response_listener.handle_delete_db(cx, message.unwrap());
             }))
         })
         .expect("Could not create delete database callback");
