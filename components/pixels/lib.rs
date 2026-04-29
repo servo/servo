@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+mod jxl;
 mod snapshot;
+
+use jxl::{decode_jxl, is_jxl};
 
 use std::borrow::Cow;
 use std::io::Cursor;
@@ -517,6 +520,14 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
+    // JPEG XL is not supported by the `image` crate, so it has its own
+    // dedicated detection / decoder path. Keep it before `detect_image_format`
+    // because the JXL container signature does not collide with any other
+    // supported format.
+    if is_jxl(buffer) {
+        return decode_jxl(buffer, cors_status);
+    }
+
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
         Err(msg) => {
@@ -576,6 +587,10 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
         Ok(ImageFormat::Ico)
+    } else if is_jxl(buffer) {
+        // JPEG XL is not in `image::ImageFormat`; callers that hit this
+        // branch should fall back to [`decode_jxl`].
+        Err("Image format is JPEG XL; use decode_jxl")
     } else {
         Err("Image Format Not Supported")
     }

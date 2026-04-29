@@ -13,9 +13,16 @@ description.workspace = true
 name = "pixels"
 path = "lib.rs"
 
+[features]
+# Enables JPEG XL decoding via the `jxl-rs` crate (with SIMD acceleration).
+# Off by default; embedders opt-in via `servo/jxl` (or `servoshell/jxl`,
+# which is part of servoshell's default feature set).
+jxl = ["dep:jxl"]
+
 [dependencies]
 euclid = { workspace = true }
 image = { workspace = true }
+jxl = { workspace = true, optional = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }

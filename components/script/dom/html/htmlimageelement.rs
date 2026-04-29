@@ -95,6 +95,7 @@ const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
     "image/gif",
     "image/jpeg",
     "image/jpg",
+    "image/jxl",
     "image/pjpeg",
     "image/png",
     "image/apng",

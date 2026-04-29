@@ -106,6 +106,7 @@ icu_locid = "1.5.0"
 icu_properties = "1.5.0"
 icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
+jxl = { version = "0.4", default-features = false, features = ["all-simd"] }
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }
 inventory = { version = "0.3.24" }
