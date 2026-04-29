@@ -228,6 +228,41 @@ impl Fragment {
         }
     }
 
+    /// From <https://drafts.csswg.org/css-overflow-3/#scrollable>:
+    /// > This padding represents, within the scrollable overflow rectangle, the box’s own padding
+    /// > so that when its content is scrolled to its end, there is padding between the edge of its
+    /// > in-flow (or floated) content and the border edge of the box. It typically ends up being
+    /// > exactly the same size as the box’s own padding, except in a few cases—​such as when an
+    /// > out-of-flow positioned element, or the visible overflow of a descendent, has already
+    /// > increased the size of the scrollable overflow rectangle outside the conceptual “content
+    /// > edge” of the scroll container’s content.
+    pub(crate) fn scrollable_overflow_padding_contribution_for_parent(
+        &self,
+    ) -> Option<PhysicalRect<Au>> {
+        match self {
+            // TODO: This should consider the box in pre-relative-adjusted position state.
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let box_fragment = fragment.borrow();
+                if !box_fragment
+                    .style()
+                    .clone_position()
+                    .is_absolutely_positioned()
+                {
+                    Some(box_fragment.margin_rect())
+                } else {
+                    None
+                }
+            },
+            // TODO: Using PositioningFragment's content rect are not correct, since it is not
+            // representing the inline bounds of the underlying fragments correctly.
+            Fragment::Positioning(fragment) => Some(fragment.borrow().base.rect),
+            Fragment::AbsoluteOrFixedPositioned(_) => None,
+            Fragment::Text(..) | Fragment::Image(..) | Fragment::IFrame(..) => {
+                Some(self.base()?.rect)
+            },
+        }
+    }
+
     pub(crate) fn cumulative_box_area_rect(&self, area: BoxAreaType) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => Some(match area {
