@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct XRBoundedReferenceSpace {
@@ -69,25 +69,25 @@ impl XRBoundedReferenceSpace {
 
 impl XRBoundedReferenceSpaceMethods<crate::DomTypeHolder> for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
-    fn BoundsGeometry(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn BoundsGeometry(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
         if let Some(bounds) = self.reference_space.get_bounds() {
             let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
                 .into_iter()
                 .map(|point| {
                     DOMPointReadOnly::new(
+                        cx,
                         &self.global(),
                         point.x.into(),
                         0.0,
                         point.y.into(),
                         1.0,
-                        can_gc,
                     )
                 })
                 .collect();
 
-            to_frozen_array(&points, cx, retval, can_gc)
+            to_frozen_array(&points, cx.into(), retval, CanGc::from_cx(cx))
         } else {
-            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx, retval, can_gc)
+            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx.into(), retval, CanGc::from_cx(cx))
         }
     }
 }
