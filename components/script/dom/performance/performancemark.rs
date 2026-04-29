@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::gc::HandleValue;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::MutableHandleValue;
@@ -17,6 +18,12 @@ impl_performance_entry_struct!(
         detail: Heap<JSVal>,
     }
 );
+
+impl PerformanceMark {
+    pub(crate) fn set_detail(&self, handle: HandleValue<'_>) {
+        self.detail.set(handle.get());
+    }
+}
 
 impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
     fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
