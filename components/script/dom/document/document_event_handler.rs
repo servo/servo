@@ -1624,6 +1624,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     #[cfg(feature = "gamepad")]
     fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+        use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+        use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
+
         let trusted_window = Trusted::new(&*self.window);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>

@@ -184,7 +184,7 @@ impl<T: DomObject> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub(crate) fn new(ptr: &T) -> Trusted<T> {
+    pub fn new(ptr: &T) -> Trusted<T> {
         fn add_live_reference(
             ptr: *const libc::c_void,
         ) -> (Arc<TrustedReference>, *const LiveDOMReferences) {
@@ -206,7 +206,7 @@ impl<T: DomObject> Trusted<T> {
     /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Fails if used on
     /// a different thread than the original value from which this `Trusted<T>` was
     /// obtained.
-    pub(crate) fn root(&self) -> DomRoot<T> {
+    pub fn root(&self) -> DomRoot<T> {
         fn validate(owner_thread: *const LiveDOMReferences) {
             assert!(LIVE_REFERENCES.with(|r| {
                 let r = r.borrow();

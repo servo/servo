@@ -9,10 +9,10 @@ use indexmap::IndexMap;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::like::Maplike;
 
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithInterfaceBinding::TestBindingMaplikeWithInterfaceMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::like::Maplike;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;

@@ -4,7 +4,6 @@
 
 //! Implementation of `setlike<...>` and `maplike<..., ...>` WebIDL declarations.
 
-
 /// Usage:
 /// ```rust
 /// pub(crate) struct TestBindingSetlike {
