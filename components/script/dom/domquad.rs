@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomQuadId, DomQuadIndex};
@@ -94,33 +95,47 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromrect>
-    fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
+    fn FromRect(cx: &mut JSContext, global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64, can_gc),
-            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64, can_gc),
+            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64, CanGc::from_cx(cx)),
+            &DOMPoint::new(
+                global,
+                other.x + other.width,
+                other.y,
+                0f64,
+                1f64,
+                CanGc::from_cx(cx),
+            ),
             &DOMPoint::new(
                 global,
                 other.x + other.width,
                 other.y + other.height,
                 0f64,
                 1f64,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
-            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64, can_gc),
-            can_gc,
+            &DOMPoint::new(
+                global,
+                other.x,
+                other.y + other.height,
+                0f64,
+                1f64,
+                CanGc::from_cx(cx),
+            ),
+            CanGc::from_cx(cx),
         )
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromquad>
-    fn FromQuad(global: &GlobalScope, other: &DOMQuadInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
+    fn FromQuad(cx: &mut JSContext, global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &DOMPoint::new_from_init(global, &other.p1, can_gc),
-            &DOMPoint::new_from_init(global, &other.p2, can_gc),
-            &DOMPoint::new_from_init(global, &other.p3, can_gc),
-            &DOMPoint::new_from_init(global, &other.p4, can_gc),
-            can_gc,
+            &DOMPoint::new_from_init(global, &other.p1, CanGc::from_cx(cx)),
+            &DOMPoint::new_from_init(global, &other.p2, CanGc::from_cx(cx)),
+            &DOMPoint::new_from_init(global, &other.p3, CanGc::from_cx(cx)),
+            &DOMPoint::new_from_init(global, &other.p4, CanGc::from_cx(cx)),
+            CanGc::from_cx(cx),
         )
     }
 
@@ -145,7 +160,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-getbounds>
-    fn GetBounds(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
+    fn GetBounds(&self, cx: &mut JSContext) -> DomRoot<DOMRect> {
         // https://drafts.fxtf.org/geometry/#nan-safe-minimum
         let nan_safe_minimum = |a: f64, b: f64| {
             if a.is_nan() || b.is_nan() {
@@ -204,7 +219,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
             top,
             right - left,
             bottom - top,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }
