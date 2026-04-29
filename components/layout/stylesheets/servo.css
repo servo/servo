@@ -3,7 +3,7 @@ input[type="hidden"] {
 }
 
 /* Textual inputs */
-input,
+input:not([type="file"]),
 textarea {
   background: white;
   border: solid grey 1px;
@@ -176,7 +176,6 @@ input[type="file"] {
   display: inline-block;
   border: none;
   background: transparent;
-  color: inherit;
   padding-inline-end: 0.5em;
 }
 
