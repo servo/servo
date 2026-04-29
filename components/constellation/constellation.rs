@@ -162,8 +162,8 @@ use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
     DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData,
     IFrameSizeMsg, Job, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
-    PaintMetricEvent, PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders,
-    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
+    PaintMetricEvent, PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerMsg,
+    SWManagerSenders, ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
     ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TargetSnapshotParams,
     TraversalDirection, UserContentManagerAction, WindowSizeType,
 };
@@ -1934,8 +1934,12 @@ where
             },
             ScriptToConstellationMessage::FocusRemoteBrowsingContext(
                 focused_browsing_context_id,
+                remote_focus_operation,
             ) => {
-                self.handle_focus_remote_browsing_context(focused_browsing_context_id);
+                self.handle_focus_remote_browsing_context(
+                    focused_browsing_context_id,
+                    remote_focus_operation,
+                );
             },
             ScriptToConstellationMessage::SetThrottledComplete(throttled) => {
                 self.handle_set_throttled_complete(source_pipeline_id, throttled);
@@ -4550,7 +4554,11 @@ where
         self.focus_browsing_context(Some(pipeline_id), focused_browsing_context_id);
     }
 
-    fn handle_focus_remote_browsing_context(&mut self, target: BrowsingContextId) {
+    fn handle_focus_remote_browsing_context(
+        &mut self,
+        target: BrowsingContextId,
+        operation: RemoteFocusOperation,
+    ) {
         let Some(browsing_context) = self.browsing_contexts.get(&target) else {
             return warn!("{target:?} not found for focus message");
         };
@@ -4560,7 +4568,7 @@ where
         };
         if let Err(error) = pipeline
             .event_loop
-            .send(ScriptThreadMessage::FocusDocument(pipeline_id))
+            .send(ScriptThreadMessage::FocusDocument(pipeline_id, operation))
         {
             self.handle_send_error(pipeline_id, error);
         }
@@ -4796,7 +4804,10 @@ where
                 let _ = response_sender.send(is_open);
             },
             WebDriverCommandMsg::FocusBrowsingContext(browsing_context_id) => {
-                self.handle_focus_remote_browsing_context(browsing_context_id);
+                self.handle_focus_remote_browsing_context(
+                    browsing_context_id,
+                    RemoteFocusOperation::Viewport,
+                );
             },
             // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {

@@ -89,9 +89,10 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
+    LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
+    WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -1841,8 +1842,8 @@ impl ScriptThread {
             ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(pipeline_id, sequence) => {
                 self.handle_unfocus_document_as_part_of_focusing_steps(cx, pipeline_id, sequence);
             },
-            ScriptThreadMessage::FocusDocument(pipeline_id) => {
-                self.handle_focus_document(cx, pipeline_id);
+            ScriptThreadMessage::FocusDocument(pipeline_id, remote_focus_operation) => {
+                self.handle_focus_document(cx, pipeline_id, remote_focus_operation);
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
@@ -2863,12 +2864,22 @@ impl ScriptThread {
         );
     }
 
-    fn handle_focus_document(&self, cx: &mut js::context::JSContext, pipeline_id: PipelineId) {
+    fn handle_focus_document(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+        remote_focus_operation: RemoteFocusOperation,
+    ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Unknown {pipeline_id:?} for FocusDocument message.");
             return;
         };
-        document.window().Focus(cx);
+        match remote_focus_operation {
+            RemoteFocusOperation::Viewport => document.window().Focus(cx),
+            RemoteFocusOperation::Sequential(direction, iframe_browsing_context_id) => document
+                .focus_handler()
+                .sequential_focus_from_another_document(cx, iframe_browsing_context_id, direction),
+        }
     }
 
     fn handle_unfocus_document_as_part_of_focusing_steps(
