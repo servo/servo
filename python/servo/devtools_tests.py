@@ -82,14 +82,15 @@ def set_breakpoint(devtools, source_url, line, column):
     )
 
 
-# Wait for the debugger to pause and return the data of that paused location
-def wait_for_pause(client, thread_actor, timeout=3):
+# Call a trigger and wait for the debugger to pause and return the data of that paused location
+def wait_for_pause(client, thread_actor, trigger, timeout=3):
     future = Future()
 
     def on_paused(data):
         future.set_result(data)
 
     client.add_event_listener(thread_actor, "paused", on_paused)
+    trigger()
     return future.result(timeout)
 
 
@@ -254,9 +255,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line_str = min(positions.keys(), key=int)
             line, column = int(line_str), positions[line_str][0]
 
-            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
+            def trigger():
+                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
 
-            paused_data = wait_for_pause(devtools.client, thread_actor)
+            paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
@@ -266,9 +268,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             thread_actor = attach_thread(devtools)
             console_actor = devtools.targets[0]["consoleActor"]
 
-            devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
+            def trigger():
+                devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
 
-            paused_data = wait_for_pause(devtools.client, thread_actor)
+            paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
             frame_actor = paused_data.get("frame", {}).get("actor")
             self.assertIsNotNone(frame_actor)
 
@@ -313,9 +316,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         with Devtools.connect() as devtools:
             thread_actor = attach_thread(devtools)
 
-            devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
+            def trigger():
+                devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
 
-            paused_data = wait_for_pause(devtools.client, thread_actor)
+            paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
             self.assertEqual(paused_data.get("type"), "paused")
             why = paused_data.get("why", {})
             self.assertEqual(why.get("type"), "interrupted")
@@ -337,10 +341,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line, column = 10, positions["10"][0]
 
             # Set breakpoint at the end() call
-            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", line, column)
+            def trigger():
+                set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", line, column)
 
             # Pause and breakpoint hit, this is necessary for stepping hooks
-            paused_data = wait_for_pause(devtools.client, thread_actor)
+            paused_data = wait_for_pause(devtools.client, thread_actor, trigger)
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
