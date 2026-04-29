@@ -1929,7 +1929,7 @@ impl ScriptThread {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
                     window
                         .image_cache()
-                        .fill_key_cache_with_batch_of_keys(image_keys);
+                        .dispatch_fill_key_cache_with_batch_of_keys(image_keys);
                 } else {
                     warn!(
                         "Could not find window corresponding to an image cache to send image keys to pipeline {:?}",

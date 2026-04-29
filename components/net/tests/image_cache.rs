@@ -42,7 +42,7 @@ fn handle_pending_key_requests(cache: &Arc<dyn ImageCache>, receiver: &Receiver<
         let keys: Vec<_> = (0..10)
             .map(|i| ImageKey::new(webrender_api::IdNamespace(42), i as u32))
             .collect();
-        cache.fill_key_cache_with_batch_of_keys(keys);
+        cache.dispatch_fill_key_cache_with_batch_of_keys(keys);
     }
 }
 
