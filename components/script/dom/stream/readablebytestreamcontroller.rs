@@ -34,7 +34,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreambyobrequest::ReadableStreamBYOBRequest;
 use crate::realms::{InRealm, enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
 #[derive(JSTraceable, MallocSizeOf)]
@@ -359,7 +359,7 @@ impl ReadableByteStreamController {
                     // Let emptyView be ! Construct(ctor, « pullIntoDescriptor’s buffer,
                     // pullIntoDescriptor’s byte offset, 0 »).
                     if let Ok(empty_view) = create_buffer_source_with_constructor(
-                        cx.into(),
+                        cx,
                         &ctor,
                         &pull_into_descriptor.buffer,
                         pull_into_descriptor.byte_offset as usize,
@@ -384,11 +384,11 @@ impl ReadableByteStreamController {
                 if self.queue_total_size.get() > 0.0 {
                     // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(
                     // controller, pullIntoDescriptor) is true,
-                    if self.fill_pull_into_descriptor_from_queue(cx.into(), &pull_into_descriptor) {
+                    if self.fill_pull_into_descriptor_from_queue(cx, &pull_into_descriptor) {
                         // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(
                         // pullIntoDescriptor).
                         if let Ok(filled_view) =
-                            self.convert_pull_into_descriptor(cx.into(), &pull_into_descriptor)
+                            self.convert_pull_into_descriptor(cx, &pull_into_descriptor)
                         {
                             // Perform ! ReadableByteStreamControllerHandleQueueDrain(controller).
                             self.handle_queue_drain(cx);
@@ -640,7 +640,7 @@ impl ReadableByteStreamController {
 
             // Let filledPullIntos be the result of performing
             // ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx.into());
+            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
             // For each filledPullInto of filledPullIntos,
             for filled_pull_into in filled_pull_intos {
@@ -692,7 +692,7 @@ impl ReadableByteStreamController {
 
         // Let filledPullIntos be the result of performing
         // ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-        let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx.into());
+        let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
         // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], pullIntoDescriptor).
         self.commit_pull_into_descriptor(cx, &pull_into_descriptor)
@@ -812,8 +812,7 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollergetbyobrequest>
     pub(crate) fn get_byob_request(
         &self,
-        cx: SafeJSContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<Option<DomRoot<ReadableStreamBYOBRequest>>> {
         // If controller.[[byobRequest]] is null and controller.[[pendingPullIntos]] is not empty,
         let pending_pull_intos = self.pending_pull_intos.borrow();
@@ -837,7 +836,7 @@ impl ReadableByteStreamController {
             .expect("Construct Uint8Array failed");
 
             // Let byobRequest be a new ReadableStreamBYOBRequest.
-            let byob_request = ReadableStreamBYOBRequest::new(&self.global(), can_gc);
+            let byob_request = ReadableStreamBYOBRequest::new(&self.global(), CanGc::from_cx(cx));
 
             // Set byobRequest.[[controller]] to controller.
             byob_request.set_controller(Some(&DomRoot::from_ref(self)));
@@ -1082,7 +1081,7 @@ impl ReadableByteStreamController {
 
                 // Let transferredView be ! Construct(%Uint8Array%, « transferredBuffer, byteOffset, byteLength »).
                 let transferred_view = create_buffer_source_with_constructor(
-                    cx.into(),
+                    cx,
                     &Constructor::Name(Type::Uint8),
                     &transferred_buffer,
                     byte_offset,
@@ -1103,7 +1102,7 @@ impl ReadableByteStreamController {
 
             // Let filledPullIntos be the result of performing !
             // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx.into());
+            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
 
             // For each filledPullInto of filledPullIntos,
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
@@ -1156,7 +1155,7 @@ impl ReadableByteStreamController {
 
         // Let filledView be ! ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor).
         let filled_view = self
-            .convert_pull_into_descriptor(cx.into(), pull_into_descriptor)
+            .convert_pull_into_descriptor(cx, pull_into_descriptor)
             .expect("convert_pull_into_descriptor failed");
 
         rooted!(&in(cx) let mut view_value = UndefinedValue());
@@ -1183,7 +1182,7 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-convert-pull-into-descriptor>
     pub(crate) fn convert_pull_into_descriptor(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         pull_into_descriptor: &PullIntoDescriptor,
     ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
         // Let bytesFilled be pullIntoDescriptor’s bytes filled.
@@ -1201,7 +1200,7 @@ impl ReadableByteStreamController {
         // Let buffer be ! TransferArrayBuffer(pullIntoDescriptor’s buffer).
         let buffer = pull_into_descriptor
             .buffer
-            .transfer_array_buffer(cx)
+            .transfer_array_buffer(cx.into())
             .expect("TransferArrayBuffer failed");
 
         // Return ! Construct(pullIntoDescriptor’s view constructor,
@@ -1219,7 +1218,7 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-process-pull-into-descriptors-using-queue>
     pub(crate) fn process_pull_into_descriptors_using_queue(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
     ) -> Vec<PullIntoDescriptor> {
         // Assert: controller.[[closeRequested]] is false.
         assert!(!self.close_requested.get());
@@ -1260,7 +1259,7 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-fill-pull-into-descriptor-from-queue>
     pub(crate) fn fill_pull_into_descriptor_from_queue(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         pull_into_descriptor: &PullIntoDescriptor,
     ) -> bool {
         // Let maxBytesToCopy be min(controller.[[queueTotalSize]],
@@ -1280,7 +1279,7 @@ impl ReadableByteStreamController {
         let mut ready = false;
 
         // Assert: ! IsDetachedBuffer(pullIntoDescriptor’s buffer) is false.
-        assert!(!pull_into_descriptor.buffer.is_detached_buffer(cx));
+        assert!(!pull_into_descriptor.buffer.is_detached_buffer(cx.into()));
 
         // Assert: pullIntoDescriptor’s bytes filled < pullIntoDescriptor’s minimum fill.
         assert!(pull_into_descriptor.bytes_filled.get() < pull_into_descriptor.minimum_fill);
@@ -1328,7 +1327,7 @@ impl ReadableByteStreamController {
             // Assert: ! CanCopyDataBlockBytes(descriptorBuffer, destStart,
             // queueBuffer, queueByteOffset, bytesToCopy) is true.
             assert!(descriptor_buffer.can_copy_data_block_bytes(
-                cx,
+                cx.into(),
                 dest_start as usize,
                 queue_buffer,
                 queue_byte_offset,
@@ -1338,7 +1337,7 @@ impl ReadableByteStreamController {
             // Perform ! CopyDataBlockBytes(descriptorBuffer.[[ArrayBufferData]], destStart,
             // queueBuffer.[[ArrayBufferData]], queueByteOffset, bytesToCopy).
             descriptor_buffer.copy_data_block_bytes(
-                cx,
+                cx.into(),
                 dest_start as usize,
                 queue_buffer,
                 queue_byte_offset,
@@ -1454,7 +1453,7 @@ impl ReadableByteStreamController {
     ) -> Fallible<()> {
         // Let cloneResult be CloneArrayBuffer(buffer, byteOffset, byteLength, %ArrayBuffer%).
         if let Ok(clone_result) =
-            buffer.clone_array_buffer(cx.into(), byte_offset as usize, byte_length as usize)
+            buffer.clone_array_buffer(cx, byte_offset as usize, byte_length as usize)
         {
             // Perform ! ReadableByteStreamControllerEnqueueChunkToQueue
             // (controller, cloneResult.[[Value]], 0, byteLength).
@@ -1546,7 +1545,7 @@ impl ReadableByteStreamController {
 
         // Let view be ! Construct(%Uint8Array%, « entry’s buffer, entry’s byte offset, entry’s byte length »).
         let view = create_buffer_source_with_constructor(
-            cx.into(),
+            cx,
             &Constructor::Name(Type::Uint8),
             &entry.buffer,
             entry.byte_offset,
@@ -1874,7 +1873,7 @@ impl ReadableByteStreamController {
         if let Some(auto_allocate_chunk_size) = auto_allocate_chunk_size {
             // create_array_buffer_with_size
             // Let buffer be Construct(%ArrayBuffer%, « autoAllocateChunkSize »).
-            match create_array_buffer_with_size(cx.into(), auto_allocate_chunk_size as usize) {
+            match create_array_buffer_with_size(cx, auto_allocate_chunk_size as usize) {
                 Ok(buffer) => {
                     // Let pullIntoDescriptor be a new pull-into descriptor with
                     // buffer buffer.[[Value]]
@@ -1956,11 +1955,10 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
     /// <https://streams.spec.whatwg.org/#rbs-controller-byob-request>
     fn GetByobRequest(
         &self,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<Option<DomRoot<ReadableStreamBYOBRequest>>> {
-        let cx = GlobalScope::get_cx();
         // Return ! ReadableByteStreamControllerGetBYOBRequest(this).
-        self.get_byob_request(cx, can_gc)
+        self.get_byob_request(cx)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-desired-size>
