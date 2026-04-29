@@ -320,9 +320,6 @@ opt-level = 3
 [profile.dev.package.tikv-jemalloc-sys]
 opt-level = 1
 
-[profile.release]
-opt-level = 3
-
 # An optimized build for CI, to improve test runtime, but with debug assertions turned on.
 [profile.checked-release]
 inherits = "release"
