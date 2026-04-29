@@ -9,9 +9,8 @@ use itertools::Itertools;
 use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::jsapi::{
-    ClippedTime, HandleValueArray, IsArrayBufferObject, IsDetachedArrayBufferObject,
-    JS_GetArrayBufferViewBuffer, JS_GetStringLength, JS_IsArrayBufferViewObject, NewArrayObject,
-    PropertyKey,
+    ClippedTime, IsArrayBufferObject, IsDetachedArrayBufferObject, JS_GetArrayBufferViewBuffer,
+    JS_GetStringLength, JS_IsArrayBufferViewObject, NewArrayObject1, PropertyKey,
 };
 use js::jsval::{DoubleValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::SameValue;
@@ -100,8 +99,7 @@ pub fn key_type_to_jsval(
         IndexedDBKeyType::Array(a) => unsafe {
             // Step 3.1. Let array be the result of executing the ECMAScript Array
             // constructor with no arguments.
-            let empty_args = HandleValueArray::empty();
-            rooted!(&in(cx) let array = NewArrayObject(cx.raw_cx(), &empty_args));
+            rooted!(&in(cx) let array = NewArrayObject1(cx.raw_cx(), 0));
 
             // Step 3.2. Assert: array is not an abrupt completion.
             assert!(
