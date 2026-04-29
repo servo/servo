@@ -360,6 +360,7 @@ jobs:
         env:
           NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
           LANG: en-US
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: "${{github.workspace}}/support/linux/linker-wrapper.sh"
         run: |
           ./mach test-unit --code-coverage \
               --profile=coverage \
