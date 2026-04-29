@@ -459,6 +459,10 @@ impl ResourceChannelManager {
                     .delete_cookies_for_sites(&sites);
                 let _ = sender.send(());
             },
+            CoreResourceMsg::DeleteSessionCookies(sender) => {
+                http_state.cookie_jar.write().clear_session_cookies();
+                let _ = sender.send(());
+            },
             CoreResourceMsg::DeleteCookies(request, sender) => {
                 http_state
                     .cookie_jar
