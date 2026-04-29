@@ -4,7 +4,6 @@
 
 //! Implementation of `setlike<...>` and `maplike<..., ...>` WebIDL declarations.
 
-pub(crate) use script_bindings::like::*;
 
 /// Usage:
 /// ```rust
