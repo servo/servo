@@ -9,6 +9,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import sys
 import time
 import subprocess
 
@@ -29,7 +30,7 @@ def operator():
         "> uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid "
         "> uni-view > uni-view > uni-button:nth-child(1)"
     )
-    print("Waiting for popup to appear ...")
+    print("Waiting for popup to appear ...", file=sys.stderr)
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
         expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
     )
@@ -38,28 +39,28 @@ def operator():
     # Step 2. Click to close the pop-up
     birthday_ = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
     birthday_.click()
-    print("Closed the popup")
+    print("Closed the popup", file=sys.stderr)
 
     # Step 3. Click to page: recommend
-    print("Click 'recommend'")
+    print("Click 'recommend'", file=sys.stderr)
     cmd = ["hdc", "shell", "uinput -T -c 630 2556"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(5)
 
-    print("Waiting for page to finish loading")
+    print("Waiting for page to finish loading", file=sys.stderr)
     WebDriverWait(driver, 10).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
-    print("document.readyState == complete")
+    print("document.readyState == complete", file=sys.stderr)
 
     # Step 4. Click on the first recommend
-    print("Searching for 'first_recommend'...")
+    print("Searching for 'first_recommend'...", file=sys.stderr)
     first_good = driver.find_element(By.CSS_SELECTOR, "#wf-list > uni-view:nth-child(4) > uni-view > img")
-    print("Clicking 'first_recommend'.")
+    print("Clicking 'first_recommend'.", file=sys.stderr)
     first_good.click()
 
     time.sleep(5)
 
     # Step 5. Trace
-    print("Starting hitrace!")
+    print("Starting hitrace!", file=sys.stderr)
     cmd = [
         "hdc",
         "shell",
@@ -68,20 +69,20 @@ def operator():
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(5)
 
-    print("Swiping ...")
+    print("Swiping ...", file=sys.stderr)
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 770 30"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=2)
 
     process.wait(timeout=15)
     stdout, stderr = process.communicate()
-    print("hitrace command complete. Output:")
-    print(stdout.decode())
+    print("hitrace command complete. Output:", file=sys.stderr)
+    print(stdout.decode(), file=sys.stderr)
     if stderr:
-        print("Error message:")
-        print(stderr.decode())
+        print("Error message:", file=sys.stderr)
+        print(stderr.decode(), file=sys.stderr)
 
     frame_rate = common_function_for_servo_test.calculate_frame_rate()
-    print(f"framerate is {frame_rate}")
+    print(f"framerate is {frame_rate}", file=sys.stderr)
 
     if frame_rate < 115:
         raise RuntimeError(f"Actual frame rate is {frame_rate}, expected >= 115")

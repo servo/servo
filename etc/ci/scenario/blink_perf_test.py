@@ -113,7 +113,7 @@ class LocalFileServe:
         self.port = port
 
     def __enter__(self):
-        print(f"Serving local test files on port {self.port}")
+        print(f"Serving local test files on port {self.port}", file=sys.stderr)
 
         class StaticHandler(SimpleHTTPRequestHandler):
             def __init__(self, *args, **kwargs):
@@ -143,7 +143,7 @@ def run_single_test(
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
     url = f"http://127.0.0.1:{port}/{serve_path}/{test_file_name}"
-    print(f"Testing url: {url}")
+    print(f"Testing url: {url}", file=sys.stderr)
     text = None
     try:
         before_get = time.perf_counter()
@@ -161,7 +161,7 @@ def run_single_test(
             raise TimeoutError(
                 f"Page loading took {(after_get - before_get):.2f}s (> {cli_args.page_loading_timeout}s limit)"
             )
-        print(f">>> Page loading took {(after_get - before_get):.2f}s")
+        print(f">>> Page loading took {(after_get - before_get):.2f}s", file=sys.stderr)
 
         avg_line, min_line, max_line = None, None, None
         start_time, latest_time = time.perf_counter(), 0
@@ -184,16 +184,16 @@ def run_single_test(
                 return TestResult(value=avg_line, lower_value=min_line, upper_value=max_line, unit=unit)
             time.sleep(1)
     except NoSuchElementException:
-        print("Could not find log?")
+        print("Could not find log?", file=sys.stderr)
         return AbortReason.NotFound
     except Exception as e:
-        print(f"Some other exception for this test case: {e}")
+        print(f"Some other exception for this test case: {e}", file=sys.stderr)
         return AbortReason.Panic
     return AbortReason.NotFound
 
 
 def oswalk_error(error: OSError):
-    print(error)
+    print(error, file=sys.stderr)
     sys.exit(1)
 
 
@@ -324,7 +324,7 @@ def memory_report_to_bencher_metrics(
 
 def verbose_print(str_to_print: str, is_verbose: bool = False):
     if is_verbose:
-        print(str_to_print)
+        print(str_to_print, file=sys.stderr)
 
 
 def run_tests(port, cli_args):
@@ -347,7 +347,7 @@ def run_tests(port, cli_args):
                         skip_until = None
                     if filePath in skipped_tests:
                         continue
-                    print("Starting new servo instance...")
+                    print("Starting new servo instance...", file=sys.stderr)
                     cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver --psn=--pref=session_history_max_length=1"
                     hdc.cmd(cmd_str, timeout=10)
                     with HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60):
@@ -386,7 +386,10 @@ def run_tests(port, cli_args):
                                     memory_report = get_memory_report_str(webdriver)
 
                                     if isinstance(memory_report, ParseError):
-                                        print(f"Test memory parsing failed: {memory_report.message}")
+                                        print(
+                                            f"Test memory parsing failed: {memory_report.message}",
+                                            file=sys.stderr,
+                                        )
                                     else:
                                         verbose_print(
                                             f"memory after test {memory_report}",
@@ -408,7 +411,7 @@ def run_tests(port, cli_args):
                         if csv_writer:
                             csv_file.flush()
                     stop_servo()
-        print(f"final_result {final_result}")
+        print(f"final_result {final_result}", file=sys.stderr)
     finally:
         if csv_file:
             csv_file.close()
@@ -470,15 +473,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     hdc = HarmonyDeviceConnector()
     try:
-        print("Stopping potential old servo instance ...")
+        print("Stopping potential old servo instance ...", file=sys.stderr)
         stop_servo()
         setup_hdc_forward(webdriver_port=WEBDRIVER_PORT, host_service_port=BLINK_PERF_FILES_SERVE_PORT)
         with LocalFileServe(BLINK_PERF_FILES_SERVE_PORT):
             run_tests(BLINK_PERF_FILES_SERVE_PORT, cli_args=args)
     except Exception as e:
-        print(f"Test failed with error: {e} (exception: {type(e)})")
+        print(f"Test failed with error: {e} (exception: {type(e)})", file=sys.stderr)
         hdc.screenshot("Blink_perf_test_error.jpg")
         stop_servo()
         sys.exit(1)
-    print("\033[32mTest Succeeded.\033[0m")
+    print("\033[32mTest Succeeded.\033[0m", file=sys.stderr)
     stop_servo()

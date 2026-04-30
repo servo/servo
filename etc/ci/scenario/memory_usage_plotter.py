@@ -203,15 +203,15 @@ class NonBlockingMemoryLogging:
         if self.options.create_own_webdriver:
             self.driver = create_driver(timeout=1)
             if self.driver is None:
-                print("Doublecheck that servo is running and has `--psn=--webdriver`")
+                print("Doublecheck that servo is running and has `--psn=--webdriver`", file=sys.stderr)
                 sys.exit(0)
 
         if self.options.verbose:
-            print(f"Memory plotter options: {self.options}")
+            print(f"Memory plotter options: {self.options}", file=sys.stderr)
 
         # check for the `file` mode
         if options.mode is None:
-            print("No mode has been specified. Exiting")
+            print("No mode has been specified. Exiting", file=sys.stderr)
             sys.exit(1)
         if options.mode == "plot" and options.from_dump is not None:
             raise_if_input_invalid(options.from_dump)
@@ -247,7 +247,7 @@ class NonBlockingMemoryLogging:
                 self.hdc = HarmonyDeviceConnector()
                 self.options.pid = get_servo_pid(PACKAGE_NAME, self.hdc)
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
-                print(f"Failed to get servo PID: {e}")
+                print(f"Failed to get servo PID: {e}", file=sys.stderr)
             else:
                 self._thread.start()
                 if self.options.pre_time is not None:
@@ -272,7 +272,7 @@ class NonBlockingMemoryLogging:
             self._stop_event.set()
             self._thread.join()
             if self.options.verbose:
-                print(self.log)
+                print(self.log, file=sys.stderr)
             if self.options.log_to_file:
                 self.csv_file.close()
             if self.options.plot:
@@ -286,7 +286,7 @@ class NonBlockingMemoryLogging:
     def event(self, event_name: str = None):
         memory_point = get_memory_info(self.options.pid)
         if self.options.verbose:
-            print(memory_point)
+            print(memory_point, file=sys.stderr)
         sample = MemorySample(
             timestamp=time.time(),
             RSS_MB=memory_point.vm_rss_kb / 1024,
@@ -300,7 +300,7 @@ class NonBlockingMemoryLogging:
 
     def verbose_print(self, to_print: str) -> None:
         if self.options.verbose:
-            print(to_print)
+            print(to_print, file=sys.stderr)
 
     def plot_memory_log(self) -> None:
         if not self.log.samples:
@@ -449,4 +449,4 @@ if __name__ == "__main__":
     args.create_own_webdriver = True
     with NonBlockingMemoryLogging(args) as worker:
         time.sleep(2)
-        print("Exiting memory_usage_plotter.py")
+        print("Exiting memory_usage_plotter.py", file=sys.stderr)

@@ -9,6 +9,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import sys
 from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium import webdriver
@@ -23,15 +24,15 @@ def load_mossel(driver: webdriver.Remote):
             driver.get(PAGE_URL)
             try:
                 driver.find_element(By.CSS_SELECTOR, ".uni-async-error")
-                print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
+                print("\033[31mMossel timeout JS triggered, reloading...\033[0m", file=sys.stderr)
             except NoSuchElementException:
                 break
         except Exception as e:
-            print(f"\033[31mPage load failed: {e}\033[0m")
-            print("Retrying...")
+            print(f"\033[31mPage load failed: {e}\033[0m", file=sys.stderr)
+            print("Retrying...", file=sys.stderr)
             continue
 
-    print("\033[32mPage loaded.\033[0m")
+    print("\033[32mPage loaded.\033[0m", file=sys.stderr)
 
 
 # Click to close the pop-up
@@ -45,18 +46,18 @@ def close_popup(driver: webdriver.Remote):
         "> uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid "
         "> uni-view > uni-view > uni-button:nth-child(1)"
     )
-    print("Waiting for popup to appear ...")
+    print("Waiting for popup to appear ...", file=sys.stderr)
     try:
         birthday_element = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
         birthday_element.click()
-        print("Closed the popup")
+        print("Closed the popup", file=sys.stderr)
         sleep(1)
     except NoSuchElementException:
-        print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.")
+        print(f"Failed to find pop_up element with selector `{popup_css_selector}`. Skip it.", file=sys.stderr)
 
 
 def click_category(driver: webdriver.Remote):
-    print("Clicking 'Categories' element.")
+    print("Clicking 'Categories' element.", file=sys.stderr)
     category_css_selector = "div.uni-tabbar__item:nth-child(3)"
     try:
         category_element = driver.find_element(By.CSS_SELECTOR, category_css_selector)
@@ -71,16 +72,16 @@ def identify_element_in_category(driver: webdriver.Remote):
     target_css_selector = "#goodsGroup"
     while True:
         try:
-            print("Finding components ...")
+            print("Finding components ...", file=sys.stderr)
             driver.find_element(By.CSS_SELECTOR, target_css_selector)
             break
         except NoSuchElementException:
             # We hit the timeout JS, reload and try again.
-            print("\033[31mMossel timeout JS triggered, reloading...\033[0m")
+            print("\033[31mMossel timeout JS triggered, reloading...\033[0m", file=sys.stderr)
             try:
                 driver.refresh()
             except Exception as e:
-                print(f"\033[31mPage refresh failed: {e}\033[0m")
-                print("Retrying...")
+                print(f"\033[31mPage refresh failed: {e}\033[0m", file=sys.stderr)
+                print("Retrying...", file=sys.stderr)
                 continue
-    print("\033[32mComponents found!\033[0m")
+    print("\033[32mComponents found!\033[0m", file=sys.stderr)

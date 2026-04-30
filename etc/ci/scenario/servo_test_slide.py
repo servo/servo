@@ -9,6 +9,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import sys
 import time
 import subprocess
 
@@ -44,19 +45,19 @@ def operator():
     # Step 4. Find components which indicates the page has loaded, before sliding.
     common_function_for_mossel.identify_element_in_category(driver)
 
-    print("Ready to swipe.")
+    print("Ready to swipe.", file=sys.stderr)
     # Step 4. Slide and check if it actually happened.
-    print("Screenshot before swiping.")
+    print("Screenshot before swiping.", file=sys.stderr)
     before = driver.get_screenshot_as_base64()
     time.sleep(1)
 
-    print("swiping...")
+    print("swiping...", file=sys.stderr)
     memory_logging.event("swiping")
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(5)
 
-    print("Screenshot after swiping.")
+    print("Screenshot after swiping.", file=sys.stderr)
     after = driver.get_screenshot_as_base64()
 
     if before == after:

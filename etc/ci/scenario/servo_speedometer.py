@@ -58,31 +58,34 @@ def run_speedometer():
         driver.implicitly_wait(10)
         start_button = driver.find_element(By.CLASS_NAME, "start-tests-button")
     except NoSuchElementException:
-        print("Error: Could not find the start button. There might be a network issue, or the page changed")
+        print(
+            "Error: Could not find the start button. There might be a network issue, or the page changed",
+            file=sys.stderr,
+        )
         raise
-    print("Clicking start button")
+    print("Clicking start button", file=sys.stderr)
     start_button.click()
-    print("Waiting for speedometer run to finish")
+    print("Waiting for speedometer run to finish", file=sys.stderr)
     for i in range(10):
         time.sleep(30)
         finished = driver.execute_script("return globalThis.benchmarkClient._hasResults")
         if finished:
             break
-    print("Getting benchmark result")
+    print("Getting benchmark result", file=sys.stderr)
     result = driver.execute_script("return globalThis.benchmarkClient._formattedJSONResult({modern: true})")
     try:
         speedometer_json = json.loads(result)
     except json.decoder.JSONDecodeError:
-        print("Error: Failed to parse speedometer results")
-        print(f"json result: `{result}`")
+        print("Error: Failed to parse speedometer results", file=sys.stderr)
+        print(f"json result: `{result}`", file=sys.stderr)
         raise
 
-    print("Writing to file")
+    print("Writing to file", file=sys.stderr)
     try:
         speedometer_to_bmf(speedometer_json, "speedometer.json", sys.argv[1])
     except IndexError:
         # this will be caught by the main exec so we are probably in a cache run.
-        print("You need to supply a profile. Not storing data.")
+        print("You need to supply a profile. Not storing data.", file=sys.stderr)
 
 
 if __name__ == "__main__":
@@ -90,6 +93,6 @@ if __name__ == "__main__":
     try:
         sys.argv[1]
     except IndexError:
-        print("Usage: You need to supply a profile for the bencher bmf output")
+        print("Usage: You need to supply a profile for the bencher bmf output", file=sys.stderr)
         sys.exit(1)
     common_function_for_servo_test.run_test(run_speedometer, "speedometer")

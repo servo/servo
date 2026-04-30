@@ -9,6 +9,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import sys
 import time
 import subprocess
 
@@ -29,7 +30,7 @@ def operator():
         "> uni-view.m-popup.m-popup_transition.m-mask_show.m-mask_fade.m-popup_push.m-fixed_mid "
         "> uni-view > uni-view > uni-button:nth-child(1)"
     )
-    print("Waiting for popup to appear ...")
+    print("Waiting for popup to appear ...", file=sys.stderr)
     WebDriverWait(driver, 20, ignored_exceptions=[NoSuchWindowException, NoSuchElementException]).until(
         expected_conditions.presence_of_element_located((By.CSS_SELECTOR, popup_css_selector))
     )
@@ -38,17 +39,17 @@ def operator():
     # Step 2. Click to close the pop-up
     popup = driver.find_element(By.CSS_SELECTOR, popup_css_selector)
     popup.click()
-    print("Closed the popup.")
+    print("Closed the popup.", file=sys.stderr)
 
     driver.implicitly_wait(10)
     time.sleep(5)
 
     # Step 3. Click on 'Birthday Benefits'
-    print("Scrolling down to 'Birthday Benefits'")
+    print("Scrolling down to 'Birthday Benefits'", file=sys.stderr)
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(5)
-    print("Searching for 'Birthday Benefits' element ...")
+    print("Searching for 'Birthday Benefits' element ...", file=sys.stderr)
     birthday_ = driver.find_element(
         By.CSS_SELECTOR,
         (
@@ -57,18 +58,18 @@ def operator():
             "> div > div > uni-view:nth-child(4) > uni-view:nth-child(2)"
         ),
     )
-    print("Clicking 'Birthday Benefits' ...")
+    print("Clicking 'Birthday Benefits' ...", file=sys.stderr)
     birthday_.click()
 
-    print("Waiting for page to finish loading")
+    print("Waiting for page to finish loading", file=sys.stderr)
     WebDriverWait(driver, 10).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
-    print("document.readyState == complete")
+    print("document.readyState == complete", file=sys.stderr)
     # Todo: Inspect the webpage and find better mechanism of waiting for the page to be fully loaded.
-    print("Waiting another 10 seconds ...")
+    print("Waiting another 10 seconds ...", file=sys.stderr)
     time.sleep(10)
 
     # Step 4. Trace
-    print("Starting hitrace!")
+    print("Starting hitrace!", file=sys.stderr)
     cmd = [
         "hdc",
         "shell",
@@ -77,20 +78,20 @@ def operator():
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     time.sleep(5)
 
-    print("Swiping ...")
+    print("Swiping ...", file=sys.stderr)
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 770 30"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=2)
 
     process.wait(timeout=15)
     stdout, stderr = process.communicate()
-    print("hitrace command complete. Output:")
-    print(stdout.decode())
+    print("hitrace command complete. Output:", file=sys.stderr)
+    print(stdout.decode(), file=sys.stderr)
     if stderr:
-        print("Error message:")
-        print(stderr.decode())
+        print("Error message:", file=sys.stderr)
+        print(stderr.decode(), file=sys.stderr)
 
     frame_rate = common_function_for_servo_test.calculate_frame_rate()
-    print(f"framerate is {frame_rate}")
+    print(f"framerate is {frame_rate}", file=sys.stderr)
 
     if frame_rate < 115:
         raise RuntimeError(f"Actual frame rate is {frame_rate}, expected >= 115")

@@ -16,6 +16,7 @@
 
 import subprocess
 import argparse
+import sys
 import time
 
 import common_function_for_servo_test
@@ -36,16 +37,16 @@ def google_test():
     PAGE_URL = "https://www.google.com"
     driver = common_function_for_servo_test.create_driver()
     driver.get(PAGE_URL)
-    print("Page loaded.")
+    print("Page loaded.", file=sys.stderr)
     driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
 
 def run_test(name: str, f):
-    print(colors.GREEN + name + colors.ENDC)
+    print(colors.GREEN + name + colors.ENDC, file=sys.stderr)
     try:
         common_function_for_servo_test.run_test(f, "servo", common_function_for_servo_test.MitmProxyRunType.RECORD)
     except Exception:
-        print(f"Test {name} failed")
+        print(f"Test {name} failed", file=sys.stderr)
 
 
 if __name__ == "__main__":
@@ -67,7 +68,7 @@ if __name__ == "__main__":
             "ssl_insecure=true",
         ]
     )
-    print(f"Writing to {args.dump_file}")
+    print(f"Writing to {args.dump_file}", file=sys.stderr)
 
     time.sleep(5)
     run_test("Running servo_test_open_page_servo", servo_test_open_page_servo.operator)
@@ -77,5 +78,5 @@ if __name__ == "__main__":
     run_test("Running Servo Speedometer", servo_speedometer.run_speedometer)
     run_test("Google", google_test)
 
-    print("FINISHED!")
+    print("FINISHED!", file=sys.stderr)
     mitmproxy.terminate()

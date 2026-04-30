@@ -59,7 +59,7 @@ class MitmProxy:
         # for record the external recorder will record
         # make sure mitmproxy is installed
         if self.use_proxy == MitmProxyRunType.REPLAY:
-            print("Running mitmproxy for replay")
+            print("Running mitmproxy for replay", file=sys.stderr)
             self.mitmproxy = subprocess.Popen(
                 [
                     "mitmdump",
@@ -76,7 +76,7 @@ class MitmProxy:
                 ]
             )
         elif self.use_proxy == MitmProxyRunType.FORWARD:
-            print("Running mitmproxy in forwarding mode")
+            print("Running mitmproxy in forwarding mode", file=sys.stderr)
             self.mitmproxy = subprocess.Popen(
                 [
                     "mitmdump",
@@ -93,7 +93,7 @@ class MitmProxy:
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         if self.mitmproxy:
-            print("Killing mitmproxy")
+            print("Killing mitmproxy", file=sys.stderr)
             self.mitmproxy.kill()
             time.sleep(2)
 
@@ -106,18 +106,18 @@ def calculate_frame_rate():
     by calculating the number of frames per second.
     :return: frame rate
     """
-    print("Prepare to create local dir to put trace file...")
+    print("Prepare to create local dir to put trace file...", file=sys.stderr)
     target_path = os.path.join(pathlib.Path(os.path.dirname(__file__)).parent.parent.parent, "target")
     os.makedirs(target_path, exist_ok=True)
     ci_testing_path = os.path.join(target_path, "ci_testing")
     os.makedirs(ci_testing_path, exist_ok=True)
-    print("Create local dir success.")
+    print("Create local dir success.", file=sys.stderr)
 
     file_name = os.path.join(ci_testing_path, "my_trace.html")
     cmd = ["hdc", "file", "recv", "/data/local/tmp/my_trace.html", f"{file_name}"]
-    print("Pulling trace file from device...")
+    print("Pulling trace file from device...", file=sys.stderr)
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    print(f"Pull trace file to {file_name} success.")
+    print(f"Pull trace file to {file_name} success.", file=sys.stderr)
 
     trace_key = "H:ReceiveVsync"
     check_list = []
@@ -145,12 +145,12 @@ def calculate_frame_rate():
     shutil.rmtree(target_path)
     framerate = round(float((len(matching_lines) - 1) / interval_time), 2)
     if framerate > 120:
-        print(f"Framerate {framerate} is unexpectedly higher than 120")
+        print(f"Framerate {framerate} is unexpectedly higher than 120", file=sys.stderr)
     return min(framerate, 120.00)
 
 
 def create_driver(timeout: int = 10) -> webdriver.Remote:
-    print("Trying to create driver")
+    print("Trying to create driver", file=sys.stderr)
     options = ArgOptions()
     options.set_capability("browserName", "servo")
     driver = None
@@ -161,13 +161,17 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
         except (ConnectionError, ProtocolError):
             time.sleep(0.2)
         except Exception as e:
-            print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
+            print(f"Unexpected exception when creating webdriver: {e}, {type(e)}", file=sys.stderr)
             time.sleep(1)
     if driver is None:
-        print(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
+        print(
+            f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)",
+            file=sys.stderr,
+        )
     else:
         print(
             f"Established Webdriver connection in {time.time() - start_time}s",
+            file=sys.stderr,
         )
     return driver
 
@@ -193,16 +197,16 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
         cmd = ["hdc", "rport", f"tcp:{port}", f"tcp:{port}"]
     else:
         cmd = ["hdc", "fport", f"tcp:{port}", f"tcp:{port}"]
-    print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
+    print(f"Setting up HDC port forwarding: {' '.join(cmd)}", file=sys.stderr)
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     if result.stdout.startswith("[Fail]TCP Port listen failed"):
-        print("Forward failed")
+        print("Forward failed", file=sys.stderr)
         return PortMapResult.FORWARD_FAILED
     elif result.stdout.startswith("[Fail]"):
-        print("Forward failed other way")
+        print("Forward failed other way", file=sys.stderr)
         raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
 
-    print("Port forward successful")
+    print("Port forward successful", file=sys.stderr)
     return PortMapResult.SUCCESSFUL
 
 
@@ -221,23 +225,23 @@ def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, ho
                 return
             time.sleep(0.2)
         except FileNotFoundError:
-            print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
+            print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.", file=sys.stderr)
             raise
         except subprocess.TimeoutExpired:
-            print(f"HDC port forwarding timed out on port {webdriver_port}")
+            print(f"HDC port forwarding timed out on port {webdriver_port}", file=sys.stderr)
             raise
         except Exception as e:
-            print(f"failed to setup HDC forwarding: {e}")
+            print(f"failed to setup HDC forwarding: {e}", file=sys.stderr)
             raise
     raise TimeoutError("HDC port forwarding timed out")
 
 
 def stop_servo():
     """stop servo application"""
-    print("Prepare to stop Test Application...")
+    print("Prepare to stop Test Application...", file=sys.stderr)
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    print("Stop Test Application successful!")
+    print("Stop Test Application successful!", file=sys.stderr)
 
 
 def element_scroll_into_view_and_rect(driver: webdriver.Remote, element: WebElement):
@@ -278,7 +282,7 @@ def element_screenshot(element: WebElement, filename: str):
         raise ValueError(f"Invalid file type: {filename}. Expected a .jpg/.jpeg file.")
 
     try:
-        print(f"Scrolling {element}")
+        print(f"Scrolling {element}", file=sys.stderr)
         region = element_scroll_into_view_and_rect(element)
         time.sleep(2)
         hdc = HarmonyDeviceConnector()
@@ -288,7 +292,7 @@ def element_screenshot(element: WebElement, filename: str):
         save_path = filename + ".png"
         region.save(save_path)
     except Exception as e:
-        print(f"Element Screenshot failed with error: {e}")
+        print(f"Element Screenshot failed with error: {e}", file=sys.stderr)
 
 
 def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
@@ -323,13 +327,16 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
     """
     try:
         if not is_servo_window_focused(hdc):
-            print("The focused window does not belong to servo. Sending back-event to try and close the window.")
+            print(
+                "The focused window does not belong to servo. Sending back-event to try and close the window.",
+                file=sys.stderr,
+            )
             # The USB pop-up can be dismissed by simulating the back key-event.
             hdc.cmd("uitest uiInput keyEvent Back")
         if not is_servo_window_focused(hdc):
-            print("The focused window still isn't servo. Giving up.")
+            print("The focused window still isn't servo. Giving up.", file=sys.stderr)
     except Exception as e:
-        print(f"Internal error trying to close the USB pop-up overlay: {e}. Ignoring...")
+        print(f"Internal error trying to close the USB pop-up overlay: {e}. Ignoring...", file=sys.stderr)
 
 
 # We always load "about:blank" first, and then use
@@ -342,21 +349,21 @@ def run_test(
 ):
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
-        print("Setting mitmproxy replay")
+        print("Setting mitmproxy replay", file=sys.stderr)
         use_mitmproxy = MitmProxyRunType.REPLAY
 
     dump_file = pathlib.Path("/tmp/mitmproxy-dump")
     if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
-        print(f"Dump file {dump_file} did not exist. We will abort")
+        print(f"Dump file {dump_file} did not exist. We will abort", file=sys.stderr)
         return
     hdc = HarmonyDeviceConnector()
     try:
-        print("Stopping potential old servo instance ...")
+        print("Stopping potential old servo instance ...", file=sys.stderr)
         stop_servo()
 
         setup_hdc_forward()
         with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
-            print("Starting new servo instance...")
+            print("Starting new servo instance...", file=sys.stderr)
             time.sleep(5)
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
             if use_mitmproxy.should_servo_proxy():
@@ -371,9 +378,9 @@ def run_test(
                 close_usb_popup(hdc)
                 test_fn()
     except Exception as e:
-        print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
+        print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})", file=sys.stderr)
         hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
         stop_servo()
         sys.exit(1)
-    print("\033[32mTest Succeeded.\033[0m")
+    print("\033[32mTest Succeeded.\033[0m", file=sys.stderr)
     stop_servo()

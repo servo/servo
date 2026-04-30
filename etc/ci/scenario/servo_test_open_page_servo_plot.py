@@ -9,6 +9,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import sys
 from selenium.common import NoSuchElementException
 
 import common_function_for_servo_test
@@ -30,13 +31,13 @@ def operator():
     memory_logging.event("Get servo.org")
     driver.get(PAGE_URL)
 
-    print("Page loaded.")
+    print("Page loaded.", file=sys.stderr)
     memory_logging.event("Page loaded.")
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
     driver.implicitly_wait(IMPLICIT_WAIT_TIME)
 
-    print("Finding components ...")
+    print("Finding components ...", file=sys.stderr)
     goal_css_selector1 = "#homeHero > div.hero-body > div.container > div > a:nth-child(1)"
 
     goal_css_selector2 = "#homeHero > div.hero-body > div.container > h1"
@@ -47,7 +48,7 @@ def operator():
     except NoSuchElementException:
         raise NoSuchElementException("Components not found. Test failed.")
 
-    print("Find components successful!")
+    print("Find components successful!", file=sys.stderr)
     memory_logging.stop()
 
 

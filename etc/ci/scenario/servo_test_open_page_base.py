@@ -10,6 +10,7 @@
 # except according to those terms.
 
 
+import sys
 from selenium.common import NoSuchElementException
 
 import common_function_for_servo_test
@@ -28,7 +29,7 @@ def operator():
     # Step 2. Click to close the pop-up
     common_function_for_mossel.close_popup(driver)
 
-    print("Finding components ...")
+    print("Finding components ...", file=sys.stderr)
     target_css_selector = "#app > uni-app > uni-page > uni-page-wrapper > uni-page-body > uni-view > uni-view.idx-swiper.m-bgWhite.m-main > uni-scroll-view:nth-child(1) > div > div > div > uni-view:nth-child(3)"
 
     try:
@@ -36,7 +37,7 @@ def operator():
     except NoSuchElementException:
         raise NoSuchElementException("Components not found. Test failed.")
 
-    print("Find components successful!")
+    print("Find components successful!", file=sys.stderr)
 
 
 if __name__ == "__main__":
