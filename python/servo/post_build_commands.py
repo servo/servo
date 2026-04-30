@@ -145,7 +145,7 @@ class PostBuildCommands(CommandBase):
             if usb:
                 args += ["-d"]
             shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
-            shell.communicate("\n".join(script) + "\n")
+            shell.communicate(("\n".join(script) + "\n").encode())
             return shell.wait()
 
         args = [servo_binary]

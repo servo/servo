@@ -485,6 +485,9 @@ class PackageCommands(CommandBase):
         elif is_windows():
             pkg_path = path.join(path.dirname(binary_path), "msi", "Servo.msi")
             exec_command = ["msiexec", "/i", pkg_path]
+        else:
+            print('install command not supported for the current target')
+            return 1
 
         if not path.exists(pkg_path):
             print("Servo package not found. Packaging servo...")

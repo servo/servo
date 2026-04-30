@@ -55,6 +55,7 @@ from WebIDL import (
     IDLUnresolvedIdentifier,
     IDLMaplikeOrSetlikeOrIterableBase,
     IDLConstructor,
+    IDLObjectWithIdentifier,
 )
 
 from configuration import (
@@ -684,11 +685,15 @@ class CGMethodCall(CGThing):
 
 
 def dictionaryHasSequenceMember(dictionary: IDLDictionary) -> bool:
-    return (any(typeIsSequenceOrHasSequenceMember(m.type) for m in
-                dictionary.members)
-            or (dictionary.parent
-                # pyrefly: ignore  # bad-argument-type
-                and dictionaryHasSequenceMember(dictionary.parent)))
+    for member in dictionary.members:
+        if typeIsSequenceOrHasSequenceMember(member.type):
+            return True
+
+    if dictionary.parent:
+        # pyrefly: ignore  # bad-argument-type
+        return dictionaryHasSequenceMember(dictionary.parent)
+
+    return False
 
 
 def typeIsSequenceOrHasSequenceMember(type: IDLType) -> bool:
@@ -4424,7 +4429,7 @@ class CGSwitch(CGList):
     Each case is a CGCase.  The default is a CGThing for the body of
     the default case, if any.
     """
-    def __init__(self, expression: str, cases: list[CGThing], default: CGThing | None = None) -> None:
+    def __init__(self, expression: str, cases: list[CGCase], default: CGThing | None = None) -> None:
         CGList.__init__(self, [CGIndenter(c) for c in cases], "\n")
         self.prepend(CGWrapper(CGGeneric(expression),
                                pre="match ", post=" {"))
@@ -5615,7 +5620,7 @@ class CGUnionConversionStruct(CGThing):
     def from_jsval(self) -> CGWrapper:
         memberTypes = cast(list[IDLType], self.type.flatMemberTypes)
         names = []
-        conversions = []
+        conversions: list[CGThing] = []
 
         def get_name(memberType: IDLType) -> str:
             if self.type.isGeckoInterface():
@@ -6103,7 +6108,9 @@ class CGClass(CGThing):
         result += ' {\n'
 
         if self.bases:
-            self.members = [ClassMember("parent", self.bases[0].name, "pub")] + self.members
+            parent_name = self.bases[0].name
+            assert parent_name is not None
+            self.members = [ClassMember("parent", parent_name, "pub")] + self.members
 
         result += CGIndenter(CGGeneric(self.extradeclarations),
                              len(self.indent)).define()
@@ -7194,7 +7201,7 @@ class CGInterfaceTrait(CGThing):
                 return False
             return functools.reduce((lambda x, y: x or y[1] == '*mut RawJSContext'), arguments, False)
 
-        methods = []
+        methods: list[CGThing] = []
         exposureSet = list(descriptor.interface.exposureSet)
         exposedGlobal = "GlobalScope" if len(exposureSet) > 1 else exposureSet[0]
         hasLength = False
@@ -7385,7 +7392,7 @@ class CGDescriptor(CGThing):
                 return f'{name} as {descriptor.name}{name}'
             return name
 
-        cgThings = []
+        cgThings: list[CGThing] = []
 
         defaultToJSONMethod = None
         unscopableNames = []
@@ -7554,26 +7561,28 @@ class CGDescriptor(CGThing):
 
         cgThings.append(CGInitStatics(descriptor))
 
-        cgThings = CGList(cgThings, '\n')
+        cgRoot: CGThing = CGList(cgThings, '\n')
 
         # Add imports
         # These are inside the generated module
-        cgThings = CGImports(cgThings, descriptors=[descriptor], callbacks=[],
-                             dictionaries=[], enums=[], typedefs=[], imports=[
+        cgRoot = CGImports(cgRoot, descriptors=[descriptor], callbacks=[],
+                           dictionaries=[], enums=[], typedefs=[], imports=[
             'crate::import::module::*',
         ], config=config)
 
-        cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
-                                         cgThings, public=True),
-                             post='\n')
+        cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
+                                       cgRoot, public=True),
+                           post='\n')
 
         if reexports:
             reexports = ', '.join([reexportedName(name) for name in reexports])
             namespace = toBindingNamespace(descriptor.name)
-            cgThings = CGList([CGGeneric(f'pub use self::{namespace}::{{{reexports}}};'),
-                               cgThings], '\n')
+            cgRoot = CGList([
+                CGGeneric(f'pub use self::{namespace}::{{{reexports}}};'),
+                cgRoot
+            ], '\n')
 
-        self.cgRoot = cgThings
+        self.cgRoot = cgRoot
 
     def define(self) -> str:
         return self.cgRoot.define()
@@ -8396,7 +8405,7 @@ def argument_type(descriptorProvider: DescriptorProvider,
 
 def method_arguments(descriptorProvider: DescriptorProvider,
                      returnType: IDLType,
-                     arguments: list[IDLArgument],
+                     arguments: Iterable[IDLArgument | FakeArgument],
                      passJSBits: bool = True,
                      trailing: tuple[str, str] | None = None,
                      cx_no_gc: bool = False,
@@ -8455,8 +8464,15 @@ def return_type(descriptorProvider: DescriptorProvider, rettype: IDLType, infall
 
 
 class CGNativeMember(ClassMethod):
-    def __init__(self, descriptorProvider: DescriptorProvider, member: IDLMethod, name: str, signature: tuple[IDLType, list[IDLArgument]], extendedAttrs: dict[str, Any],
-                 breakAfter: bool = True, passJSBitsAsNeeded: bool = True, visibility: str = "public",
+    def __init__(self,
+                 descriptorProvider: DescriptorProvider,
+                 member: IDLMethod | IDLAttribute | FakeMember,
+                 name: str,
+                 signature: tuple[IDLType, list[IDLArgument | FakeArgument]],
+                 extendedAttrs: dict[str, Any],
+                 breakAfter: bool = True,
+                 passJSBitsAsNeeded: bool = True,
+                 visibility: str = "public",
                  unsafe: bool = False) -> None:
         """
         If passJSBitsAsNeeded is false, we don't automatically pass in a
@@ -8484,7 +8500,7 @@ class CGNativeMember(ClassMethod):
         typeDecl = return_type(self.descriptorProvider, type, infallible)
         return typeDecl
 
-    def getArgs(self, returnType: IDLType, argList: list[IDLArgument]) -> list[Argument]:
+    def getArgs(self, returnType: IDLType, argList: list[IDLArgument | FakeArgument]) -> list[Argument]:
         return [Argument(arg[1], arg[0]) for arg in method_arguments(self.descriptorProvider,
                                                                      returnType,
                                                                      argList,
@@ -8492,7 +8508,7 @@ class CGNativeMember(ClassMethod):
 
 
 class CGCallback(CGClass):
-    def __init__(self, idlObject: IDLCallback, descriptorProvider: DescriptorProvider, baseName: str, methods: list[CallbackMethod]) -> None:
+    def __init__(self, idlObject: IDLObjectWithIdentifier, descriptorProvider: DescriptorProvider, baseName: str, methods: Iterable[CallbackMethod]) -> None:
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         name = idlObject.identifier.name
@@ -8502,7 +8518,7 @@ class CGCallback(CGClass):
         # CGNativeMember infrastructure, but that infrastructure can't deal
         # with templates and most especially template arguments.  So just
         # cheat and have CallbackMember compute all those things for us.
-        realMethods = []
+        realMethods: list[CallbackMethod | ClassMethod] = []
         for method in methods:
             if not method.needThisHandling:
                 realMethods.append(method)
@@ -8659,7 +8675,7 @@ class FakeMember():
 
 
 class CallbackMember(CGNativeMember):
-    def __init__(self, sig: tuple[IDLType, list[IDLArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
+    def __init__(self, sig: tuple[IDLType, list[IDLArgument | FakeArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
         """
         needThisHandling is True if we need to be able to accept a specified
         thisObj, False otherwise.
@@ -8770,7 +8786,7 @@ class CallbackMember(CGNativeMember):
         # And slap them together.
         return CGList(argConversionsCG, "\n\n").define() + "\n\n"
 
-    def getArgConversion(self, i: int, arg: IDLArgument) -> str:
+    def getArgConversion(self, i: int, arg: IDLArgument | FakeArgument) -> str:
         argval = arg.identifier.name
 
         if arg.variadic:
@@ -8802,7 +8818,7 @@ class CallbackMember(CGNativeMember):
             )
         return conversion
 
-    def getArgs(self, returnType: IDLType, argList: list[IDLArgument]) -> list[Argument]:
+    def getArgs(self, returnType: IDLType, argList: list[IDLArgument | FakeArgument]) -> list[Argument]:
         args = CGNativeMember.getArgs(self, returnType, argList)
         if not self.needThisHandling:
             # Since we don't need this handling, we're the actual method that
@@ -8844,7 +8860,7 @@ class CallbackMember(CGNativeMember):
 
 
 class CallbackMethod(CallbackMember):
-    def __init__(self, sig: tuple[IDLType, list[IDLArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
+    def __init__(self, sig: tuple[IDLType, list[IDLArgument | FakeArgument]], name: str, descriptorProvider: DescriptorProvider, needThisHandling: bool) -> None:
         CallbackMember.__init__(self, sig, name, descriptorProvider,
                                 needThisHandling)
 
@@ -8910,7 +8926,7 @@ class CallbackOperationBase(CallbackMethod):
     """
     Common class for implementing various callback operations.
     """
-    def __init__(self, signature: tuple[IDLType, list[IDLArgument]], jsName: str, nativeName: str, descriptor: Descriptor, singleOperation: bool) -> None:
+    def __init__(self, signature: tuple[IDLType, list[IDLArgument | FakeArgument]], jsName: str, nativeName: str, descriptor: Descriptor, singleOperation: bool) -> None:
         self.singleOperation = singleOperation
         self.methodName = jsName
         CallbackMethod.__init__(self, signature, nativeName, descriptor, singleOperation)
@@ -8985,7 +9001,8 @@ class CGMaplikeOrSetlikeMethodGenerator(CGGeneric):
         """
         # like iterables are implemented seperatly as we are actually implementing them
         if methodName in ["keys", "values", "entries", "forEach"]:
-            CGIterableMethodGenerator.__init__(self, descriptor, likeable, methodName)
+            cgIterableMethod = CGIterableMethodGenerator(descriptor, likeable, methodName)
+            CGGeneric.__init__(self, cgIterableMethod.define())
         elif methodName in ["size", "clear"]:  # zero arguments
             CGGeneric.__init__(self, fill(
                 """
