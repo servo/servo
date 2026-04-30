@@ -137,7 +137,7 @@ pub(crate) struct CachedResponse {
 pub(crate) type CacheEntry = std::sync::Arc<TokioRwLock<Vec<CachedResource>>>;
 type QuickCache =
     Cache<CacheKey, CacheEntry, UnitWeighter, DefaultHashBuilder, MemoryCacheLifecycle>;
-type QuickCachePlaceeholderGuard<'a> = PlaceholderGuard<
+type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
     'a,
     CacheKey,
     CacheEntry,
@@ -960,7 +960,7 @@ pub enum CachedResourcesOrGuard<'a> {
     /// The value of the resource in the cache.
     Value(OwnedRwLockWriteGuard<Vec<CachedResource>>),
     /// A guard that blocks requests to the cache entry this guard is for.
-    Guard(QuickCachePlaceeholderGuard<'a>),
+    Guard(QuickCachePlaceholderGuard<'a>),
 }
 
 impl<'a> CachedResourcesOrGuard<'a> {

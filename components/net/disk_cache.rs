@@ -87,7 +87,7 @@ impl DiskCache {
                 if let Err(e) = db.execute(
                     "CREATE TABLE disk_cache_table (
                 key VARCHAR PRIMARY KEY,
-                data VARCHAR NOT NULL,
+                data BLOB NOT NULL,
                 size INTEGER NOT NULL,
                 insertion_timestamp INTEGER NOT NULL);",
                     [],
