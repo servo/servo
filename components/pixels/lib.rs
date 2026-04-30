@@ -581,6 +581,10 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
     }
 }
 
+#[expect(
+    clippy::manual_checked_ops,
+    reason = "This code becomes less readable by applying the lint"
+)]
 pub fn unmultiply_inplace<const SWAP_RB: bool>(pixels: &mut [u8]) {
     for rgba in pixels.chunks_mut(4) {
         let a = rgba[3] as u32;
@@ -634,6 +638,10 @@ pub fn transform_inplace(pixels: &mut [u8], multiply: Multiply, swap_rb: bool, c
     }
 }
 
+#[expect(
+    clippy::manual_checked_ops,
+    reason = "This code becomes less readable by applying the lint"
+)]
 pub fn generic_transform_inplace<
     const MULTIPLY: u8, // 1 premultiply, 2 unmultiply
     const SWAP_RB: bool,

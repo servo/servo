@@ -293,15 +293,13 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // sequence (empty or otherwise), throw an "InvalidAccessError" DOMException.
         if auto_increment {
             match key_path {
-                Some(StringOrStringSequence::String(path)) => {
-                    if path.is_empty() {
-                        return Err(Error::InvalidAccess(None));
-                    }
+                Some(StringOrStringSequence::String(path)) if path.is_empty() => {
+                    return Err(Error::InvalidAccess(None));
                 },
                 Some(StringOrStringSequence::StringSequence(_)) => {
                     return Err(Error::InvalidAccess(None));
                 },
-                None => {},
+                _ => {},
             }
         }
 

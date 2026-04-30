@@ -1257,24 +1257,22 @@ impl Node {
             // and either the CSS styling flag is false, or new value is "xxx-large":
             // let new parent be the result of calling createElement("font") on the ownerDocument of node,
             // then set the size attribute of new parent to the number from the following table based on new value:
-            CommandName::FontSize => {
-                if !css_styling_flag || new_value == "xxx-large" {
-                    let size = match &*new_value.str() {
-                        "x-small" => 1,
-                        "small" => 2,
-                        "medium" => 3,
-                        "large" => 4,
-                        "x-large" => 5,
-                        "xx-large" => 6,
-                        "xxx-large" => 7,
-                        _ => 0,
-                    };
+            CommandName::FontSize if !css_styling_flag || new_value == "xxx-large" => {
+                let size = match &*new_value.str() {
+                    "x-small" => 1,
+                    "small" => 2,
+                    "medium" => 3,
+                    "large" => 4,
+                    "x-large" => 5,
+                    "xx-large" => 6,
+                    "xxx-large" => 7,
+                    _ => 0,
+                };
 
-                    if size > 0 {
-                        let new_font_element = document.create_element(cx, "font");
-                        new_font_element.set_int_attribute(cx, &local_name!("size"), size);
-                        new_parent = Some(new_font_element);
-                    }
+                if size > 0 {
+                    let new_font_element = document.create_element(cx, "font");
+                    new_font_element.set_int_attribute(cx, &local_name!("size"), size);
+                    new_parent = Some(new_font_element);
                 }
             },
             CommandName::Subscript | CommandName::Superscript => {
@@ -1319,6 +1317,7 @@ impl Node {
                 css_property.set_for_element(cx, new_parent_html_element, new_value.clone());
             }
         }
+        #[expect(clippy::collapsible_match, reason = "That would be unreadable.")]
         match command {
             // Step 18. If command is "strikethrough", and new value is "line-through",
             // and the effective command value of "strikethrough" for new parent is not "line-through",

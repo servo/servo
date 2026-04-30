@@ -225,13 +225,16 @@ impl Response {
     }
 
     pub fn actual_response(&self) -> &Response {
-        if self.return_internal && self.internal_response.is_some() {
-            self.internal_response.as_ref().unwrap()
-        } else {
-            self
+        match &self.internal_response {
+            Some(internal_response) if self.return_internal => internal_response,
+            _ => self,
         }
     }
 
+    #[expect(
+        clippy::unnecessary_unwrap,
+        reason = "match doesn't work, the borrow checker is overly conservative about &mut here"
+    )]
     pub fn actual_response_mut(&mut self) -> &mut Response {
         if self.return_internal && self.internal_response.is_some() {
             self.internal_response.as_mut().unwrap()
@@ -241,10 +244,9 @@ impl Response {
     }
 
     pub fn to_actual(self) -> Response {
-        if self.return_internal && self.internal_response.is_some() {
-            *self.internal_response.unwrap()
-        } else {
-            self
+        match self.internal_response {
+            Some(internal_response) if self.return_internal => *internal_response,
+            _ => self,
         }
     }
 

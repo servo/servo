@@ -2526,6 +2526,10 @@ pub fn serialize_origin(origin: &ImmutableOrigin) -> headers::Origin {
 }
 
 /// <https://fetch.spec.whatwg.org/#append-a-request-origin-header>
+#[expect(
+    clippy::collapsible_match,
+    reason = "The current way follows the spec more closely"
+)]
 fn append_a_request_origin_header(request: &mut Request) {
     // Step 1. Assert: request’s origin is not "client".
     let Origin::Origin(request_origin) = &request.origin else {

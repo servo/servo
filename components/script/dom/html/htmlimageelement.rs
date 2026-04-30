@@ -799,8 +799,7 @@ impl HTMLImageElement {
             // Step 2.2. Otherwise, if the image source has a width descriptor, replace the width
             // descriptor with a pixel density descriptor with a value of the width descriptor value
             // divided by source size and a unit of x.
-            if image_source.descriptor.width.is_some() {
-                let width = image_source.descriptor.width.unwrap();
+            if let Some(width) = image_source.descriptor.width {
                 image_source.descriptor.density = Some(width as f64 / source_size.to_f64_px());
             } else {
                 // Step 2.3. Otherwise, give the image source a pixel density descriptor of 1x.

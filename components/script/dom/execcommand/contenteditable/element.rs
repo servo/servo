@@ -30,13 +30,12 @@ impl Element {
     pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<DOMString> {
         match command {
             // Step 1. If command is "backColor" or "hiliteColor" and the Element's display property does not have resolved value "inline", return null.
-            CommandName::BackColor | CommandName::HiliteColor => {
+            CommandName::BackColor | CommandName::HiliteColor
                 if self
                     .resolved_display_value()
-                    .is_none_or(|display| display != DisplayOutside::Inline)
-                {
-                    return None;
-                }
+                    .is_none_or(|display| display != DisplayOutside::Inline) =>
+            {
+                return None;
             },
             // Step 2. If command is "createLink" or "unlink":
             CommandName::CreateLink | CommandName::Unlink => {

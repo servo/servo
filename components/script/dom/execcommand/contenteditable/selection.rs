@@ -597,10 +597,7 @@ impl Selection {
             // Step 32.8. While children's last member is not a br,
             // and children's last member's nextSibling is an inline node,
             // append children's last member's nextSibling to children.
-            loop {
-                let Some(last) = children.last() else {
-                    break;
-                };
+            while let Some(last) = children.last() {
                 if last.is::<HTMLBRElement>() {
                     break;
                 }

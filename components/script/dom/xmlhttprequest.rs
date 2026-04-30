@@ -1757,14 +1757,10 @@ pub(crate) fn is_field_value(slice: &[u8]) -> bool {
     slice.iter().all(|&x| {
         // http://tools.ietf.org/html/rfc2616#section-2.2
         match x {
-            13 => {
+            13 if (prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT) => {
                 // CR
-                if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT {
-                    prev = PreviousCharacter::CR;
-                    true
-                } else {
-                    false
-                }
+                prev = PreviousCharacter::CR;
+                true
             },
             10 if prev == PreviousCharacter::CR => {
                 // LF

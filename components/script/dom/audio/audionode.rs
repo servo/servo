@@ -350,10 +350,10 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
             {
                 return Err(Error::InvalidState(None));
             },
-            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
-                if value == ChannelCountMode::Max {
-                    return Err(Error::NotSupported(None));
-                }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode)
+                if value == ChannelCountMode::Max =>
+            {
+                return Err(Error::NotSupported(None));
             },
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioScheduledSourceNode(
                 AudioScheduledSourceNodeTypeId::StereoPannerNode,
