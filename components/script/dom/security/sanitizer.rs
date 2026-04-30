@@ -523,12 +523,9 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
 
                     // Step 4.5.1.2. Assert: element["removeAttributes"] with default « » does not
                     // contain attribute.
-                    debug_assert!(
-                        !element
-                            .remove_attributes()
-                            .unwrap_or_default()
-                            .contains(&attribute)
-                    );
+                    debug_assert!(!element.remove_attributes().is_some_and(
+                        |element_remove_attributes| element_remove_attributes.contains(&attribute)
+                    ));
                 }
             }
 
