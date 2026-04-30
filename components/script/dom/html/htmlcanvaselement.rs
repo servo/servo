@@ -211,7 +211,10 @@ impl HTMLCanvasElement {
         }
     }
 
-    fn get_or_init_2d_context(&self, can_gc: CanGc) -> Option<DomRoot<CanvasRenderingContext2D>> {
+    fn get_or_init_2d_context(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<CanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 RenderingContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
@@ -221,7 +224,12 @@ impl HTMLCanvasElement {
 
         let window = self.owner_window();
         let size = self.get_size();
-        let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc)?;
+        let context = CanvasRenderingContext2D::new(
+            window.as_global_scope(),
+            self,
+            size,
+            CanGc::from_cx(cx),
+        )?;
         self.set_rendering_context(|| RenderingContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -229,7 +237,7 @@ impl HTMLCanvasElement {
     /// <https://html.spec.whatwg.org/multipage/#canvas-context-bitmaprenderer>
     fn get_or_init_bitmaprenderer_context(
         &self,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ImageBitmapRenderingContext>> {
         // Return the same object as was returned the last time the method was
         // invoked with this same first argument.
@@ -247,7 +255,8 @@ impl HTMLCanvasElement {
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
 
         // Step 2. Set this's context mode to bitmaprenderer.
-        let context = ImageBitmapRenderingContext::new(&self.owner_global(), &canvas, can_gc);
+        let context =
+            ImageBitmapRenderingContext::new(&self.owner_global(), &canvas, CanGc::from_cx(cx));
         self.set_rendering_context(|| RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
 
         // Step 3. Return context.
@@ -256,9 +265,8 @@ impl HTMLCanvasElement {
 
     fn get_or_init_webgl_context(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         options: HandleValue,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
@@ -270,14 +278,14 @@ impl HTMLCanvasElement {
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
-        let attrs = Self::get_gl_attributes(cx, options, can_gc)?;
+        let attrs = Self::get_gl_attributes(cx, options)?;
         let context = WebGLRenderingContext::new(
             &window,
             &canvas,
             WebGLVersion::WebGL1,
             size,
             attrs,
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         self.set_rendering_context(|| RenderingContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
@@ -285,12 +293,13 @@ impl HTMLCanvasElement {
 
     fn get_or_init_webgl2_context(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         options: HandleValue,
-        can_gc: CanGc,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        if !WebGL2RenderingContext::is_webgl2_enabled(cx, self.global().reflector().get_jsobject())
-        {
+        if !WebGL2RenderingContext::is_webgl2_enabled(
+            cx.into(),
+            self.global().reflector().get_jsobject(),
+        ) {
             return None;
         }
         if let Some(ctx) = self.context() {
@@ -303,8 +312,9 @@ impl HTMLCanvasElement {
         let canvas =
             RootedHTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let size = self.get_size();
-        let attrs = Self::get_gl_attributes(cx, options, can_gc)?;
-        let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
+        let attrs = Self::get_gl_attributes(cx, options)?;
+        let context =
+            WebGL2RenderingContext::new(&window, &canvas, size, attrs, CanGc::from_cx(cx))?;
         self.set_rendering_context(|| RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -315,7 +325,10 @@ impl HTMLCanvasElement {
     }
 
     #[cfg(feature = "webgpu")]
-    fn get_or_init_webgpu_context(&self, can_gc: CanGc) -> Option<DomRoot<GPUCanvasContext>> {
+    fn get_or_init_webgpu_context(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<GPUCanvasContext>> {
         use servo_base::generic_channel;
 
         if let Some(ctx) = self.context() {
@@ -333,7 +346,8 @@ impl HTMLCanvasElement {
             .recv()
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
-                let context = GPUCanvasContext::new(&global_scope, self, channel, can_gc);
+                let context =
+                    GPUCanvasContext::new(&global_scope, self, channel, CanGc::from_cx(cx));
                 self.set_rendering_context(|| RenderingContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })
@@ -350,15 +364,14 @@ impl HTMLCanvasElement {
 
     #[expect(unsafe_code)]
     fn get_gl_attributes(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         options: HandleValue,
-        can_gc: CanGc,
     ) -> Option<GLContextAttributes> {
         unsafe {
-            match WebGLContextAttributes::new(cx, options, can_gc) {
+            match WebGLContextAttributes::new(cx.into(), options, CanGc::from_cx(cx)) {
                 Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
                 Ok(ConversionResult::Failure(error)) => {
-                    throw_type_error(*cx, &error);
+                    throw_type_error(cx.raw_cx(), &error);
                     None
                 },
                 _ => {
@@ -469,10 +482,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext>
     fn GetContext(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         id: DOMString,
         options: HandleValue,
-        can_gc: CanGc,
     ) -> Fallible<Option<RootedRenderingContext>> {
         // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
@@ -481,20 +493,20 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
         Ok(match &*id.str() {
             "2d" => self
-                .get_or_init_2d_context(can_gc)
+                .get_or_init_2d_context(cx)
                 .map(RootedRenderingContext::CanvasRenderingContext2D),
             "bitmaprenderer" => self
-                .get_or_init_bitmaprenderer_context(can_gc)
+                .get_or_init_bitmaprenderer_context(cx)
                 .map(RootedRenderingContext::ImageBitmapRenderingContext),
             "webgl" | "experimental-webgl" => self
-                .get_or_init_webgl_context(cx, options, can_gc)
+                .get_or_init_webgl_context(cx, options)
                 .map(RootedRenderingContext::WebGLRenderingContext),
             "webgl2" | "experimental-webgl2" => self
-                .get_or_init_webgl2_context(cx, options, can_gc)
+                .get_or_init_webgl2_context(cx, options)
                 .map(RootedRenderingContext::WebGL2RenderingContext),
             #[cfg(feature = "webgpu")]
             "webgpu" => self
-                .get_or_init_webgpu_context(can_gc)
+                .get_or_init_webgpu_context(cx)
                 .map(RootedRenderingContext::GPUCanvasContext),
             _ => None,
         })
@@ -625,7 +637,10 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-transfercontroltooffscreen>
-    fn TransferControlToOffscreen(&self, can_gc: CanGc) -> Fallible<DomRoot<OffscreenCanvas>> {
+    fn TransferControlToOffscreen(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<DomRoot<OffscreenCanvas>> {
         if self.context_mode.borrow().is_some() {
             // Step 1.
             // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
@@ -643,7 +658,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             self.Width().into(),
             self.Height().into(),
             Some(WeakRef::new(self)),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 4. Set this canvas element's context mode to placeholder.
