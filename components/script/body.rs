@@ -11,11 +11,11 @@ use http::HeaderMap;
 use http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JS_ClearPendingException, JSObject, Value as JSValue};
+use js::jsapi::{Heap, JSObject, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
-use js::rust::wrappers::{JS_GetPendingException, JS_ParseJSON};
+use js::rust::wrappers2::{JS_ClearPendingException, JS_GetPendingException, JS_ParseJSON};
 use js::typedarray::{ArrayBufferU8, Uint8};
 use mime::{self, Mime};
 use mime_multipart_hyper1::{Node, read_multipart_body};
@@ -46,7 +46,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::urlsearchparams::URLSearchParams;
-use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
@@ -691,8 +691,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
 
     // Enter the realm of the object whose body is being consumed.
     let mut realm = enter_auto_realm(cx, &*global);
-    let cx = &mut realm.current_realm();
-    let _comp = InRealm::Entered(&realm);
+    let cx: &mut _ = &mut realm.current_realm();
 
     // Let promise be a new promise.
     // Note: re-ordered so we can return the promise below.
@@ -868,14 +867,14 @@ fn run_json_data_algorithm(
     rooted!(&in(cx) let mut rval = UndefinedValue());
     unsafe {
         if !JS_ParseJSON(
-            cx.raw_cx(),
+            cx,
             json_text.as_ptr(),
             json_text.len() as u32,
             rval.handle_mut(),
         ) {
             rooted!(&in(cx) let mut exception = UndefinedValue());
-            assert!(JS_GetPendingException(cx.raw_cx(), exception.handle_mut()));
-            JS_ClearPendingException(cx.raw_cx());
+            assert!(JS_GetPendingException(cx, exception.handle_mut()));
+            JS_ClearPendingException(cx);
             return Ok(FetchedData::JSException(RootedTraceableBox::from_box(
                 Heap::boxed(exception.get()),
             )));
