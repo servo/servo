@@ -135,8 +135,7 @@ impl AccessibilityTree {
         if !NAME_FROM_CONTENTS_ROLES.contains(&node.accesskit_node.role()) {
             return None;
         }
-        let mut children: VecDeque<accesskit::NodeId> = VecDeque::default();
-        children.extend(node.accesskit_node.children());
+        let mut children = VecDeque::from(node.accesskit_node.children());
         let mut text = String::new();
         while let Some(child_id) = children.pop_front() {
             let child = self.assert_node_by_id(child_id);
@@ -154,8 +153,7 @@ impl AccessibilityTree {
                 },
             }
         }
-        let text: String = text.trim().to_owned();
-        Some(text)
+        Some(text.trim().to_owned())
     }
 
     fn get_or_create_node(
@@ -304,5 +302,6 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
     .collect()
 });
 
+/// <https://w3c.github.io/aria/#namefromcontent>
 static NAME_FROM_CONTENTS_ROLES: LazyLock<FxHashSet<Role>> =
     LazyLock::new(|| [(Role::Heading)].into_iter().collect());
