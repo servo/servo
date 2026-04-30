@@ -559,7 +559,8 @@ impl ReadableStreamDefaultController {
             Promise::new_rejected(&global, cx.into(), rval.handle(), CanGc::from_cx(cx))
         });
 
-        let comp = InRealm::Already(&cx.into());
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
         promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
     }
 

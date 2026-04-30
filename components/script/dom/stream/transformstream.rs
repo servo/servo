@@ -754,8 +754,8 @@ impl TransformStream {
         );
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-
-        let comp = InRealm::Already(&cx.into());
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
         cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
 
         // Return controller.[[finishPromise]].
@@ -879,8 +879,8 @@ impl TransformStream {
             .expect("finish promise is not set");
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
-
-        let comp = InRealm::Already(&cx.into());
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
         cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
         Ok(finish_promise)
     }
