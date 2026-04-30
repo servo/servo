@@ -474,7 +474,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut configuration = self.configuration.borrow_mut();
 
         // Step 2. Assert: configuration is valid.
-        assert!(configuration.is_valid());
+        debug_assert!(configuration.is_valid());
 
         // Step 3. Set attribute to the result of canonicalize a sanitizer attribute with attribute.
         let attribute = attribute.canonicalize();
@@ -523,7 +523,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
 
                     // Step 4.5.1.2. Assert: element["removeAttributes"] with default « » does not
                     // contain attribute.
-                    assert!(
+                    debug_assert!(
                         !element
                             .remove_attributes()
                             .unwrap_or_default()
@@ -960,7 +960,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-attribute>
     fn remove_attribute(&mut self, attribute: SanitizerAttribute) -> bool {
         // Step 1. Assert: configuration is valid.
-        assert!(self.is_valid());
+        debug_assert!(self.is_valid());
 
         // Step 2. Set attribute to the result of canonicalize a sanitizer attribute with attribute.
         let attribute = attribute.canonicalize();
