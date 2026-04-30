@@ -144,6 +144,6 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         // Step 3 Return a new File object representing the actual data
         // of the item represented by the DataTransferItem object.
         self.item_kind()
-            .and_then(|item| item.as_file(&self.global(), CanGc::from_cx(cx)))
+            .and_then(|item| item.as_file(cx, &self.global()))
     }
 }

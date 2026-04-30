@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use js::context::JSContext;
 use pixels::RasterImage;
 use servo_constellation_traits::BlobImpl;
 
@@ -46,7 +47,11 @@ impl Kind {
 
     // TODO for now we create a new BlobImpl
     // since File constructor requires moving it.
-    pub(crate) fn as_file(&self, global: &GlobalScope, can_gc: CanGc) -> Option<DomRoot<File>> {
+    pub(crate) fn as_file(
+        &self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+    ) -> Option<DomRoot<File>> {
         match self {
             Kind::Text { .. } => None,
             Kind::File { bytes, name, type_ } => Some(File::new(
@@ -54,7 +59,7 @@ impl Kind {
                 BlobImpl::new_from_bytes(bytes.clone(), type_.clone()),
                 name.clone(),
                 None,
-                can_gc,
+                CanGc::from_cx(cx),
             )),
         }
     }
@@ -232,8 +237,8 @@ impl DragDataStore {
 
     pub(crate) fn files(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
-        can_gc: CanGc,
         file_list: &mut Vec<DomRoot<File>>,
     ) {
         // Step 3 If the data store is in the protected mode return the empty list.
@@ -244,7 +249,7 @@ impl DragDataStore {
         // Step 4 For each item in the drag data store item list whose kind is File, add the item's data to the list L.
         self.item_list
             .values()
-            .filter_map(|item| item.as_file(global, can_gc))
+            .filter_map(|item| item.as_file(cx, global))
             .for_each(|file| file_list.push(file));
     }
 

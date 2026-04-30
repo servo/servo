@@ -22,7 +22,7 @@ use crate::dom::filelist::FileList;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::window::Window;
 use crate::drag_data_store::{DragDataStore, Mode};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 const VALID_DROP_EFFECTS: [&str; 4] = ["none", "copy", "link", "move"];
 const VALID_EFFECTS_ALLOWED: [&str; 9] = [
@@ -261,7 +261,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
         // Step 2 If the DataTransfer is not associated with a data store return the empty list.
         if let Some(data_store) = self.data_store.borrow().as_ref() {
-            data_store.files(&self.global(), CanGc::from_cx(cx), &mut files);
+            data_store.files(cx, &self.global(), &mut files);
         }
 
         // Step 5
