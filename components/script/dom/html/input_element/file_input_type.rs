@@ -35,11 +35,6 @@ use crate::dom::input_element::HTMLInputElement;
 use crate::dom::input_element::input_type::SpecificInputType;
 use crate::dom::node::{Node, NodeTraits};
 
-const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
-const DEFAULT_FILE_INPUT_MULTIPLE_VALUE: &str = "No files chosen";
-const SELECTOR_BUTTON_TEXT: &str = "Choose file";
-const SELECTOR_BUTTON_MULTIPLE_TEXT: &str = "Choose files";
-
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct FileInputType {
@@ -140,22 +135,29 @@ impl SpecificInputType for FileInputType {
     }
 
     fn value_for_shadow_dom(&self, input: &HTMLInputElement) -> DOMString {
+        let l10n = servo_l10n::bundle("servo");
+
         let Some(filelist) = self.filelist.get() else {
             if input.Multiple() {
-                return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                return l10n.get("input-file-no-files-chosen").into();
             }
-            return DEFAULT_FILE_INPUT_VALUE.into();
+            return l10n.get("input-file-no-file-chosen").into();
         };
         let length = filelist.Length();
         if length > 1 {
-            return format!("{length} files").into();
+            return l10n
+                .get_with_args(
+                    "input-file-multiple-count",
+                    &servo_l10n::l10n_args!["count" => length as i64],
+                )
+                .into();
         }
 
         let Some(first_item) = filelist.Item(0) else {
             if input.Multiple() {
-                return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                return l10n.get("input-file-no-files-chosen").into();
             }
-            return DEFAULT_FILE_INPUT_VALUE.into();
+            return l10n.get("input-file-no-file-chosen").into();
         };
         first_item.name().to_string().into()
     }
@@ -297,17 +299,21 @@ impl FileInputShadowTree {
     }
 
     pub(crate) fn update(&self, cx: &mut JSContext, input_value: DOMString, multiple: bool) {
+        let l10n = servo_l10n::bundle("servo");
         if multiple {
             self.selector_button
                 .upcast::<Node>()
                 .set_text_content_for_element(
                     cx,
-                    Some(DOMString::from(SELECTOR_BUTTON_MULTIPLE_TEXT)),
+                    Some(l10n.get("input-file-selector-button-multiple").into()),
                 );
         } else {
             self.selector_button
                 .upcast::<Node>()
-                .set_text_content_for_element(cx, Some(DOMString::from(SELECTOR_BUTTON_TEXT)));
+                .set_text_content_for_element(
+                    cx,
+                    Some(l10n.get("input-file-selector-button").into()),
+                );
         }
 
         self.value_container

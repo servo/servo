@@ -4,6 +4,8 @@
 
 use std::{env, panic};
 
+use servo_l10n::{FileLocaleReader, register, set_locale_reader};
+
 use crate::desktop::app::App;
 use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::panic_hook;
@@ -12,6 +14,12 @@ use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 pub fn main() {
     crate::crash_handler::install();
     crate::init_crypto();
+
+    // The l10n data is under resource_protocol to allow access for internal pages.
+    let l10n_root = crate::resources::resource_protocol_dir_path().join("locales");
+    let locale_reader = FileLocaleReader::new(&l10n_root);
+    set_locale_reader(Box::new(locale_reader));
+    register("servoshell");
 
     // TODO: once log-panics is released, can this be replaced by
     // log_panics::init()?

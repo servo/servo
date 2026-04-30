@@ -291,7 +291,7 @@ impl Gui {
         let label = match (webview.page_title(), webview.url()) {
             (Some(title), _) if !title.is_empty() => title,
             (_, Some(url)) => url.to_string(),
-            _ => "New Tab".into(),
+            _ => servo_l10n::bundle("servoshell").get("toolbar-new-tab"),
         };
 
         let inactive_bg_color = ui.visuals().window_fill;
@@ -375,6 +375,7 @@ impl Gui {
         self.rendering_context
             .make_current()
             .expect("Could not make RenderingContext current");
+        let l10n = servo_l10n::bundle("servoshell");
         let Self {
             rendering_context,
             context,
@@ -404,7 +405,7 @@ impl Gui {
                                 ui.add_enabled(self.can_go_back, Gui::toolbar_button("⏴"));
                             back_button.widget_info(|| {
                                 let mut info = WidgetInfo::new(WidgetType::Button);
-                                info.label = Some("Back".into());
+                                info.label = Some(l10n.get("toolbar-back"));
                                 info
                             });
                             if back_button.clicked() {
@@ -416,7 +417,7 @@ impl Gui {
                                 ui.add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"));
                             forward_button.widget_info(|| {
                                 let mut info = WidgetInfo::new(WidgetType::Button);
-                                info.label = Some("Forward".into());
+                                info.label = Some(l10n.get("toolbar-forward"));
                                 info
                             });
                             if forward_button.clicked() {
@@ -429,7 +430,7 @@ impl Gui {
                                     let stop_button = ui.add(Gui::toolbar_button("X"));
                                     stop_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("Stop".into());
+                                        info.label = Some(l10n.get("toolbar-stop"));
                                         info
                                     });
                                     if stop_button.clicked() {
@@ -440,7 +441,7 @@ impl Gui {
                                     let reload_button = ui.add(Gui::toolbar_button("↻"));
                                     reload_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("Reload".into());
+                                        info.label = Some(l10n.get("toolbar-reload"));
                                         info
                                     });
                                     if reload_button.clicked() {
@@ -461,10 +462,12 @@ impl Gui {
                                         state.experimental_preferences_enabled();
                                     let prefs_toggle = ui
                                         .toggle_value(&mut experimental_preferences_enabled, "☢")
-                                        .on_hover_text("Enable experimental prefs");
+                                        .on_hover_text(
+                                            l10n.get("toolbar-experimental-prefs-tooltip"),
+                                        );
                                     prefs_toggle.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("Enable experimental preferences".into());
+                                        info.label = Some(l10n.get("toolbar-experimental-prefs"));
                                         info.selected = Some(experimental_preferences_enabled);
                                         info
                                     });
@@ -483,7 +486,7 @@ impl Gui {
                                         ui.available_size(),
                                         egui::TextEdit::singleline(location)
                                             .id(location_id)
-                                            .hint_text("Search or enter address"),
+                                            .hint_text(l10n.get("toolbar-search-placeholder")),
                                     );
 
                                     if location_field.changed() {
@@ -545,7 +548,7 @@ impl Gui {
                             let new_tab_button = ui.add(Gui::toolbar_button("+"));
                             new_tab_button.widget_info(|| {
                                 let mut info = WidgetInfo::new(WidgetType::Button);
-                                info.label = Some("New tab".into());
+                                info.label = Some(l10n.get("toolbar-new-tab-button"));
                                 info
                             });
                             if new_tab_button.clicked() {
@@ -556,7 +559,7 @@ impl Gui {
                             let new_window_button = ui.add(Gui::toolbar_button("⊞"));
                             new_window_button.widget_info(|| {
                                 let mut info = WidgetInfo::new(WidgetType::Button);
-                                info.label = Some("New window".into());
+                                info.label = Some(l10n.get("toolbar-new-window-button"));
                                 info
                             });
                             if new_window_button.clicked() {

@@ -16,6 +16,30 @@ use std::rc::Rc;
 use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 use servo::{JSValue, WebViewBuilder, run_content_process};
 use servo_config::{opts, prefs};
+use servo_l10n::resources::LocaleReaderMethods;
+use servo_l10n::set_locale_reader;
+
+/// A minimal locale reader that provides just enough to pass the unit tests.
+struct TestLocaleReader {}
+
+impl LocaleReaderMethods for TestLocaleReader {
+    fn load_bundle(&self, _bundle: &str, _locale: &str) -> Option<String> {
+        let servo_en_us = r#"
+context-menu-open-link = Open Link in New View
+context-menu-copy-link = Copy Link
+context-menu-open-image = Open Image in New View
+context-menu-copy-image-link = Copy Image Link
+context-menu-cut = Cut
+context-menu-copy = Copy
+context-menu-paste = Paste
+context-menu-select-all = Select All
+context-menu-back = Back
+context-menu-forward = Forward
+context-menu-reload = Reload
+"#;
+        Some(servo_en_us.into())
+    }
+}
 
 fn test_multiprocess_preference_observer() {
     let servo_test = ServoTest::new_with_builder(|builder| {
@@ -58,6 +82,9 @@ fn main() {
     }
 
     if let Some(token) = token {
+        let locale_reader = TestLocaleReader {};
+        set_locale_reader(Box::new(locale_reader));
+
         return run_content_process(token);
     }
 

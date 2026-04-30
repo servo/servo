@@ -78,6 +78,7 @@ mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
+servo-l10n = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }

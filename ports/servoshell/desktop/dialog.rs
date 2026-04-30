@@ -99,9 +99,10 @@ impl Dialog {
     }
 
     pub fn new_permission_request_dialog(permission_request: PermissionRequest) -> Self {
-        let message = format!(
-            "Do you want to grant permission for {:?}?",
-            permission_request.feature()
+        let message = servo_l10n::get_with_args(
+            "servoshell",
+            "permission-message",
+            &servo_l10n::l10n_args!["feature" => format!("{:?}", permission_request.feature())],
         );
         Dialog::Permission {
             message,
@@ -143,6 +144,8 @@ impl Dialog {
 
     /// Returns false if the dialog has been closed, or true otherwise.
     pub fn update(&mut self, ctx: &egui::Context) -> bool {
+        let l10n = servo_l10n::bundle("servoshell");
+
         enum DialogAction {
             Dismiss,
             Submit,
@@ -209,7 +212,7 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Close").clicked() ||
+                            if ui.button(l10n.get("dialog-close")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
                                 is_open = false;
@@ -237,12 +240,12 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Ok").clicked() ||
+                            if ui.button(l10n.get("dialog-ok")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Enter))
                             {
                                 dialog_action = DialogAction::Submit;
                             }
-                            if ui.button("Cancel").clicked() ||
+                            if ui.button(l10n.get("dialog-cancel")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
                                 dialog_action = DialogAction::Dismiss;
@@ -280,13 +283,13 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Ok").clicked() ||
+                            if ui.button(l10n.get("dialog-ok")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Enter))
                             {
                                 prompt_dialog.set_current_value(&prompt_text);
                                 dialog_action = DialogAction::Submit;
                             }
-                            if ui.button("Cancel").clicked() ||
+                            if ui.button(l10n.get("dialog-cancel")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
                                 dialog_action = DialogAction::Dismiss;
@@ -329,16 +332,14 @@ impl Dialog {
 
                     frame.content_ui.add_space(10.0);
 
-                    frame
-                        .content_ui
-                        .label("This site is asking you to sign in.");
+                    frame.content_ui.label(l10n.get("auth-message"));
                     frame.content_ui.add_space(10.0);
 
-                    frame.content_ui.label("Username:");
+                    frame.content_ui.label(l10n.get("auth-username"));
                     frame.content_ui.text_edit_singleline(username);
                     frame.content_ui.add_space(10.0);
 
-                    frame.content_ui.label("Password:");
+                    frame.content_ui.label(l10n.get("auth-password"));
                     frame
                         .content_ui
                         .add(egui::TextEdit::singleline(password).password(true));
@@ -349,7 +350,7 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Sign in").clicked() ||
+                            if ui.button(l10n.get("auth-sign-in")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Enter))
                             {
                                 let request =
@@ -357,7 +358,7 @@ impl Dialog {
                                 request.authenticate(username.clone(), password.clone());
                                 is_open = false;
                             }
-                            if ui.button("Cancel").clicked() ||
+                            if ui.button(l10n.get("dialog-cancel")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
                                 is_open = false;
@@ -376,7 +377,7 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Allow").clicked() ||
+                            if ui.button(l10n.get("permission-allow")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Enter))
                             {
                                 let request =
@@ -384,7 +385,7 @@ impl Dialog {
                                 request.allow();
                                 is_open = false;
                             }
-                            if ui.button("Deny").clicked() ||
+                            if ui.button(l10n.get("permission-deny")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
                                 let request =
@@ -408,7 +409,9 @@ impl Dialog {
                         let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
                         frame.content_ui.set_min_width(MINIMUM_UI_ELEMENT_WIDTH);
 
-                        frame.content_ui.heading("Choose a Device");
+                        frame
+                            .content_ui
+                            .heading(l10n.get("bluetooth-choose-device"));
                         frame.content_ui.add_space(10.0);
 
                         let devices = request.devices();
@@ -433,7 +436,7 @@ impl Dialog {
                         ui,
                         |_ui| {},
                         |ui| {
-                            if ui.button("Ok").clicked() ||
+                            if ui.button(l10n.get("dialog-ok")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Enter))
                             {
                                 let request =
@@ -444,7 +447,7 @@ impl Dialog {
                                 }
                                 is_open = false;
                             }
-                            if ui.button("Cancel").clicked() ||
+                            if ui.button(l10n.get("dialog-cancel")).clicked() ||
                                 ui.input(|i| i.key_pressed(egui::Key::Escape))
                             {
                                 let request =
@@ -614,13 +617,13 @@ impl Dialog {
 
                         ui.add_space(10.);
 
-                        if ui.button("Dismiss").clicked() ||
+                        if ui.button(l10n.get("color-picker-dismiss")).clicked() ||
                             ui.input(|i| i.key_pressed(egui::Key::Escape))
                         {
                             is_open = false;
                             prompt.select(None);
                         }
-                        if ui.button("Select").clicked() {
+                        if ui.button(l10n.get("color-picker-select")).clicked() {
                             is_open = false;
                             let selected_color = RgbColor {
                                 red: current_color.r(),

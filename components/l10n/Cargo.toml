@@ -1,0 +1,20 @@
+[package]
+name = "servo-l10n"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_l10n"
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = { workspace = true }
+fluent-bundle = "0.16"
+log = { workspace = true }
+net_traits = { workspace = true }
+parking_lot = { workspace = true }
+unic-langid = "0.9"
