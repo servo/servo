@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
 use script_bindings::cformat;
@@ -434,7 +435,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
     fn CreateBuffer(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
