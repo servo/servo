@@ -968,11 +968,12 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
 
             // Step 3.2. Set modified to the result of remove attribute from
             // configuration["attributes"].
-            let mut modified = if let Some(configuration_attributes) = &mut self.attributes {
-                configuration_attributes.remove_item(&attribute)
-            } else {
-                false
-            };
+            let mut modified = self
+                .attributes
+                .as_mut()
+                .is_some_and(|configuration_attributes| {
+                    configuration_attributes.remove_item(&attribute)
+                });
 
             // Step 3.3. Comment: Fix-up per-element allow and remove lists.
 
