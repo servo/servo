@@ -6,16 +6,23 @@ use std::cell::{Cell, Ref};
 
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
+use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
-use servo_constellation_traits::ScriptToConstellationMessage;
+use servo_base::id::BrowsingContextId;
+use servo_constellation_traits::{
+    RemoteFocusOperation, ScriptToConstellationMessage, SequentialFocusDirection,
+};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
+use crate::realms::enter_realm;
 
 /// The kind of focusable area a [`FocusableArea`] is. A [`FocusableArea`] may be click focusable,
 /// sequentially focusable, or both.
@@ -241,10 +248,10 @@ impl DocumentFocusHandler {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
-    pub(crate) fn focus(&self, new_focus_target: FocusableArea, can_gc: CanGc) {
+    pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: FocusableArea) {
         let old_focus_chain = self.current_focus_chain();
         let new_focus_chain = new_focus_target.focus_chain();
-        self.focus_update_steps(new_focus_chain, old_focus_chain, &new_focus_target, can_gc);
+        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, &new_focus_target);
 
         // Advertise the change in the focus chain.
         // <https://html.spec.whatwg.org/multipage/#focus-chain>
@@ -292,10 +299,10 @@ impl DocumentFocusHandler {
     /// <https://html.spec.whatwg.org/multipage/#focus-update-steps>
     pub(crate) fn focus_update_steps(
         &self,
+        cx: &mut JSContext,
         mut new_focus_chain: Vec<FocusableArea>,
         mut old_focus_chain: Vec<FocusableArea>,
         new_focus_target: &FocusableArea,
-        can_gc: CanGc,
     ) {
         let new_focus_chain_was_empty = new_focus_chain.is_empty();
 
@@ -379,10 +386,10 @@ impl DocumentFocusHandler {
             // blur event target, with related blur target as the related target.
             if let Some(blur_event_target) = blur_event_target {
                 self.fire_focus_event(
+                    cx,
                     FocusEventType::Blur,
                     blur_event_target,
                     related_blur_target,
-                    can_gc,
                 );
             }
         }
@@ -395,7 +402,7 @@ impl DocumentFocusHandler {
                 .element()
                 .and_then(|element| element.downcast::<HTMLElement>())
             {
-                html_element.handle_focus_state_for_contenteditable(can_gc);
+                html_element.handle_focus_state_for_contenteditable(cx);
             }
         }
 
@@ -457,10 +464,10 @@ impl DocumentFocusHandler {
             // focus event target, with related focus target as the related target.
             if let Some(focus_event_target) = focus_event_target {
                 self.fire_focus_event(
+                    cx,
                     FocusEventType::Focus,
                     focus_event_target,
                     related_focus_target,
-                    can_gc,
                 );
             }
         }
@@ -469,10 +476,10 @@ impl DocumentFocusHandler {
     /// <https://html.spec.whatwg.org/multipage/#fire-a-focus-event>
     pub(crate) fn fire_focus_event(
         &self,
+        cx: &mut JSContext,
         focus_event_type: FocusEventType,
         event_target: &EventTarget,
         related_target: Option<&EventTarget>,
-        can_gc: CanGc,
     ) {
         let event_name = match focus_event_type {
             FocusEventType::Focus => "focus".into(),
@@ -487,11 +494,11 @@ impl DocumentFocusHandler {
             Some(&self.window),
             0i32,
             related_target,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
-        event.fire(event_target, can_gc);
+        event.fire(event_target, CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
@@ -500,7 +507,7 @@ impl DocumentFocusHandler {
     /// > focus changed during ongoing navigation to false.
     ///
     /// TODO: Handle the "focus changed during ongoing navigation" flag.
-    pub(crate) fn perform_focus_fixup_rule(&self, can_gc: CanGc) {
+    pub(crate) fn perform_focus_fixup_rule(&self, cx: &mut JSContext) {
         if self
             .focused_area
             .borrow()
@@ -509,6 +516,89 @@ impl DocumentFocusHandler {
         {
             return;
         }
-        self.focus(FocusableArea::Viewport, can_gc);
+        self.focus(cx, FocusableArea::Viewport);
+    }
+
+    pub(crate) fn sequentially_focus_child_iframe_local_or_remote(
+        &self,
+        cx: &mut JSContext,
+        iframe_element: &HTMLIFrameElement,
+        direction: SequentialFocusDirection,
+    ) {
+        if let Some(content_document) = iframe_element.GetContentDocument() {
+            // The <iframe> is in the same `ScriptThread` and we have direct access to it. We can
+            // move the focus directly.
+            content_document
+                .focus_handler()
+                .sequential_focus_from_another_document(cx, None, direction);
+        } else if let Some(browsing_context_id) = iframe_element.browsing_context_id() {
+            self.window.send_to_constellation(
+                ScriptToConstellationMessage::FocusRemoteBrowsingContext(
+                    browsing_context_id,
+                    RemoteFocusOperation::Sequential(direction, None),
+                ),
+            );
+        } else {
+            iframe_element
+                .upcast::<Node>()
+                .run_the_focusing_steps(cx, None);
+        }
+    }
+
+    pub(crate) fn sequentially_focus_parent_local_or_remote(
+        &self,
+        cx: &mut JSContext,
+        direction: SequentialFocusDirection,
+    ) {
+        let window_proxy = self.window.window_proxy();
+        if let Some(iframe) = window_proxy.frame_element() {
+            // The parent browsing context is in the same `ScriptThread` and we have direct access
+            // to it. We can move the focus directly.
+            let browsing_context_id = iframe
+                .downcast::<HTMLIFrameElement>()
+                .and_then(|iframe_element| iframe_element.browsing_context_id());
+            iframe
+                .owner_document()
+                .focus_handler()
+                .sequential_focus_from_another_document(cx, browsing_context_id, direction);
+        } else if let Some(browsing_context_id) = window_proxy
+            .parent()
+            .map(|parent| parent.browsing_context_id())
+        {
+            self.window.send_to_constellation(
+                ScriptToConstellationMessage::FocusRemoteBrowsingContext(
+                    browsing_context_id,
+                    RemoteFocusOperation::Sequential(
+                        direction,
+                        Some(window_proxy.browsing_context_id()),
+                    ),
+                ),
+            );
+        }
+    }
+
+    pub(crate) fn sequential_focus_from_another_document(
+        &self,
+        cx: &mut JSContext,
+        browsing_context_id: Option<BrowsingContextId>,
+        direction: SequentialFocusDirection,
+    ) {
+        let _realm = enter_realm(&*self.window);
+        let starting_point = browsing_context_id.and_then(|browsing_context_id| {
+            self.window
+                .Document()
+                .iframes()
+                .get(browsing_context_id)
+                .map(|iframe| DomRoot::from_ref(iframe.element.upcast::<Node>()))
+        });
+        self.window
+            .Document()
+            .event_handler()
+            .sequential_focus_navigation_loop(
+                cx,
+                starting_point,
+                direction,
+                true, /* allow focusing viewport */
+            );
     }
 }

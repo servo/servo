@@ -14,7 +14,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::selection::Selection;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#legacy-font-size-for>
 pub(crate) fn legacy_font_size_for(pixel_size: f32, document: &Document) -> DOMString {
@@ -125,7 +124,7 @@ pub(crate) fn value_for_fontsize_command(
     document: &Document,
 ) -> Option<DOMString> {
     // Step 1. If the active range is null, return the empty string.
-    let selection = document.GetSelection(CanGc::from_cx(cx))?;
+    let selection = document.GetSelection(cx)?;
     let active_range = selection.active_range()?;
     // Step 2. Let pixel size be the effective command value of the first formattable
     // node that is effectively contained in the active range, or if there is no such node,

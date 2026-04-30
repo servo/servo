@@ -205,6 +205,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
                 window_handle,
                 init_opts.viewport_rect,
                 hidpi_scale_factor,
+                None,
             );
             *app.borrow_mut() = Some(new_app);
         });

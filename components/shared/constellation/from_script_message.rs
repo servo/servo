@@ -635,9 +635,13 @@ pub enum ScriptToConstellationMessage {
     /// The second field is a sequence number that the constellation should use
     /// when sending a focus-related message to the sender pipeline next time.
     FocusAncestorBrowsingContextsForFocusingSteps(Option<BrowsingContextId>, FocusSequenceNumber),
-    /// Have the Constellation trigger a remote call to `Focus` on the `Window` of the given
-    /// [`BrowsingContextId`].
-    FocusRemoteBrowsingContext(BrowsingContextId),
+    /// Focus a remote `BrowsingContext` and run the focusing steps. This is used in two situations:
+    /// - When calling the DOM `focus()` API on a remote `Window` as well as from
+    ///   WebDriver. The difference between this and `FocusDocumentAsPartOfFocusingSteps` is that this
+    ///   version actually does run the focusing steps and may result in blur and focus events firing
+    ///   up the frame tree.
+    /// - When doing sequential focus navigation into and out of frames.
+    FocusRemoteBrowsingContext(BrowsingContextId, RemoteFocusOperation),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(BrowsingContextId, GenericSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is
@@ -779,4 +783,25 @@ impl Default for TargetSnapshotParams {
             iframe_element_referrer_policy: ReferrerPolicy::EmptyString,
         }
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#sequential-focus-direction>
+///
+/// > A sequential focus direction is one of two possible values: "forward", or "backward". They are
+/// > used in the below algorithms to describe the direction in which sequential focus travels at the
+/// > user's request.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum SequentialFocusDirection {
+    Forward,
+    Backward,
+}
+
+/// The type of focus operation to do on a remote document.
+#[derive(Deserialize, Serialize)]
+pub enum RemoteFocusOperation {
+    /// Focus the entire viewport of the remote document.
+    Viewport,
+    /// Do sequential focus navigation using the `<iframe>` element with the given
+    /// [`BrowsingContextId`] as the starting point and in the given direction.
+    Sequential(SequentialFocusDirection, Option<BrowsingContextId>),
 }

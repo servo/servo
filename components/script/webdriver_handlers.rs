@@ -727,7 +727,7 @@ fn get_element_in_view_center_point(cx: &mut JSContext, element: &Element) -> Op
     let doc = element.owner_document();
     // Step 1: Let rectangle be the first element of the DOMRect sequence
     // returned by calling getClientRects() on element.
-    element.GetClientRects(CanGc::from_cx(cx)).first().map(|rectangle| {
+    element.GetClientRects(cx).first().map(|rectangle| {
         let x = rectangle.X();
         let y = rectangle.Y();
         let width = rectangle.Width();
@@ -1291,10 +1291,10 @@ pub(crate) fn handle_will_send_keys(
 
         if !element.is_active_element() {
             html_element.Focus(
+                cx,
                 &FocusOptions {
                     preventScroll: true,
                 },
-                CanGc::from_cx(cx),
             );
         } else {
             element_has_focus = element.focus_state();
@@ -1604,7 +1604,7 @@ pub(crate) fn handle_get_rect(
                 // Step 4-5
                 // We pass the rect instead of element so we don't have to
                 // call `GetBoundingClientRect` twice.
-                let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
+                let rect = element.GetBoundingClientRect(cx);
                 let (x, y) = calculate_absolute_position(documents, &pipeline, &rect)?;
 
                 // Step 6-7
@@ -1629,7 +1629,7 @@ pub(crate) fn handle_scroll_and_get_bounding_client_rect(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 scroll_into_view(cx, &element, documents, &pipeline);
 
-                let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
+                let rect = element.GetBoundingClientRect(cx);
                 Rect::new(
                     Point2D::new(rect.X() as f32, rect.Y() as f32),
                     Size2D::new(rect.Width() as f32, rect.Height() as f32),
@@ -1837,10 +1837,10 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
 
     // Step 3. Invoke the focusing steps for the element.
     html_element.Focus(
+        cx,
         &FocusOptions {
             preventScroll: true,
         },
-        CanGc::from_cx(cx),
     );
 
     // Step 4. Run clear algorithm for element.
@@ -1857,7 +1857,7 @@ fn clear_a_resettable_element(cx: &mut JSContext, element: &Element) -> Result<(
     event_target.fire_bubbling_event(cx, atom!("change"));
 
     // Step 5. Run the unfocusing steps for the element.
-    html_element.Blur(CanGc::from_cx(cx));
+    html_element.Blur(cx);
 
     Ok(())
 }
@@ -2011,10 +2011,10 @@ pub(crate) fn handle_element_click(
                         match container.downcast::<HTMLElement>() {
                             Some(html_element) => {
                                 html_element.Focus(
+                                    cx,
                                     &FocusOptions {
                                         preventScroll: true,
                                     },
-                                    CanGc::from_cx(cx),
                                 );
                             },
                             None => return Err(ErrorStatus::UnknownError),

@@ -43,8 +43,6 @@ pub trait KvsEngine: MallocSizeOf {
     #[expect(dead_code)]
     fn close_store(&self, store_name: &str) -> Result<(), Self::Error>;
 
-    fn delete_database(self) -> Result<(), Self::Error>;
-
     fn process_transaction(
         &self,
         transaction: KvsTransaction,

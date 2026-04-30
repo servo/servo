@@ -45,6 +45,8 @@ pub(crate) struct EmbeddedPlatformWindow {
     current_can_go_forward: Cell<bool>,
     /// The current load status of the active WebView.
     current_load_status: Cell<Option<LoadStatus>>,
+
+    id: ServoShellWindowId,
 }
 
 impl PlatformWindow for EmbeddedPlatformWindow {
@@ -53,7 +55,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     }
 
     fn id(&self) -> ServoShellWindowId {
-        0.into()
+        self.id
     }
 
     fn screen_geometry(&self) -> ScreenGeometry {
@@ -101,7 +103,9 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         if url_changed {
             let new_url_string = new_url.as_ref().map(Url::to_string).unwrap_or_default();
             *self.current_url.borrow_mut() = new_url;
-            self.host.on_url_changed(new_url_string);
+            if self.has_platform_focus() {
+                self.host.on_url_changed(new_url_string);
+            }
         }
 
         let new_back_forward = (
@@ -267,7 +271,7 @@ pub(crate) struct AppInitOptions {
 }
 
 pub struct App {
-    state: Rc<RunningAppState>,
+    pub(crate) state: Rc<RunningAppState>,
     // TODO: multi-window support, like desktop version.
     // This is just an intermediate state, to split refactoring into
     // multiple PRs.
@@ -316,6 +320,7 @@ impl App {
         window_handle: WindowHandle,
         viewport_rect: Rect<i32, DevicePixel>,
         hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+        window_id: Option<ServoShellWindowId>,
     ) {
         let viewport_size = viewport_rect.size;
         let refresh_driver = Rc::new(VsyncRefreshDriver::default());
@@ -328,7 +333,9 @@ impl App {
             )
             .expect("Could not create RenderingContext"),
         );
+        let id = window_id.unwrap_or(ServoShellWindowId::next());
         let platform_window = Rc::new(EmbeddedPlatformWindow {
+            id,
             host: self.host.clone(),
             rendering_context,
             refresh_driver,
@@ -355,10 +362,8 @@ impl App {
 
     pub(crate) fn window(&self) -> Rc<ServoShellWindow> {
         self.state
-            .windows()
-            .values()
-            .nth(0)
-            .expect("Should always have one open window")
+            .focused_window()
+            .expect("There is always an active window")
             .clone()
     }
 

@@ -633,17 +633,17 @@ fn stream_handle_incoming(
 ) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, CanGc::from_cx(cx));
+            stream.enqueue_native(cx, b);
         },
         Err(e) => {
-            stream.error_native(e, CanGc::from_cx(cx));
+            stream.error_native(cx, e);
         },
     }
 }
 
 /// Callback used to close streams as part of FileListener.
 fn stream_handle_eof(cx: &mut js::context::JSContext, stream: &ReadableStream) {
-    stream.controller_close_native(CanGc::from_cx(cx));
+    stream.controller_close_native(cx);
 }
 
 impl FileListener {
@@ -2183,21 +2183,21 @@ impl GlobalScope {
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
     pub(crate) fn get_blob_stream(
         &self,
+        cx: &mut js::context::JSContext,
         blob_id: &BlobId,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStream>> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                return ReadableStream::new_from_bytes(self, bytes, can_gc);
+                return ReadableStream::new_from_bytes(cx, self, bytes);
             },
             BlobResult::File(id, size) => (id, size),
         };
 
         let stream = ReadableStream::new_with_external_underlying_source(
+            cx,
             self,
             UnderlyingSourceType::Blob(size),
-            can_gc,
         )?;
 
         let recv = self.send_msg(file_id);
@@ -3314,11 +3314,10 @@ impl GlobalScope {
 
     pub(crate) fn structured_clone(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
         retval: MutableHandleValue,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         let mut rooted = CustomAutoRooter::new(
             options
@@ -3327,11 +3326,13 @@ impl GlobalScope {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
-        let data = structuredclone::write(cx, value, Some(guard))?;
+        #[expect(unsafe_code)]
+        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
-        structuredclone::read(self, data, retval, can_gc)?;
+        let data = structuredclone::write(cx.into(), value, Some(guard))?;
+
+        structuredclone::read(self, data, retval, CanGc::from_cx(cx))?;
 
         Ok(())
     }

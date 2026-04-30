@@ -1186,7 +1186,7 @@ impl HTMLFormElement {
                     // some other action that brings the element to the user's attention.
 
                     // Here we run focusing steps and scroll element into view.
-                    html_elem.Focus(&FocusOptions::default(), CanGc::from_cx(cx));
+                    html_elem.Focus(cx, &FocusOptions::default());
                     first = false;
                 }
             }
@@ -1874,14 +1874,14 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         }
     }
 
-    fn moving_steps(&self, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext) {
         // If movedNode is a form-associated element with a non-null form owner and movedNode and
         // its form owner are no longer in the same tree, then reset the form owner of movedNode.
         let same_subtree = self
             .form_owner()
             .is_none_or(|form| self.to_element().is_in_same_home_subtree(&*form));
         if !same_subtree {
-            self.reset_form_owner(can_gc)
+            self.reset_form_owner(CanGc::from_cx(cx))
         }
     }
 

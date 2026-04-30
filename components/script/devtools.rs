@@ -8,17 +8,20 @@ use std::str;
 
 use devtools_traits::{
     AncestorData, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
-    EventListenerInfo, MatchedRule, NodeInfo, NodeStyle, RuleModification, TimelineMarker,
-    TimelineMarkerType,
+    EventListenerInfo, MatchedRule, NodeInfo, NodeStyle, RuleModification, StyleSheetInfo,
+    TimelineMarker, TimelineMarkerType,
 };
 use js::context::JSContext;
 use markup5ever::{LocalName, ns};
 use rustc_hash::FxHashMap;
+use script_bindings::codegen::GenericBindings::CSSRuleBinding::CSSRuleMethods;
+use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::root::Dom;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use style::attr::AttrValue;
+use style::stylesheets::Origin;
 
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
@@ -226,6 +229,66 @@ pub(crate) fn handle_get_document_element(
     reply.send(info).unwrap();
 }
 
+pub(crate) fn handle_get_stylesheets(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: GenericSender<Vec<StyleSheetInfo>>,
+) {
+    let mut stylesheets = vec![];
+    if let Some(document) = documents.find_document(pipeline) {
+        let node = document.upcast::<Node>();
+        for i in 0..node.stylesheet_list_owner().stylesheet_count() {
+            if let Some(s) = node.stylesheet_list_owner().stylesheet_at(i) {
+                stylesheets.push(StyleSheetInfo {
+                    href: s.href().map(|h| h.to_string()),
+                    disabled: s.disabled(),
+                    title: s.title().to_string(),
+                    style_sheet_index: i as i32,
+                    system: s.origin() == Origin::UserAgent,
+                    rule_count: s.get_rule_count(),
+                });
+            }
+        }
+    }
+    reply.send(stylesheets).unwrap();
+}
+
+pub(crate) fn handle_get_stylesheet_text(
+    cx: &mut JSContext,
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    index: i32,
+    reply: GenericSender<Option<String>>,
+) {
+    let text = (|| {
+        let document = documents.find_document(pipeline)?;
+        let stylesheet = document
+            .upcast::<Node>()
+            .stylesheet_list_owner()
+            .stylesheet_at(index as usize)?;
+
+        // For inline, Prefer the original "authored" source from the owner node (e.g., <style> tag).
+        if let Some(node) = stylesheet.owner_node() {
+            let text = node.upcast::<Node>().GetTextContent().unwrap_or_default();
+            if !text.is_empty() {
+                return Some(text.to_string());
+            }
+        }
+
+        // For styles which are not inline, Reconstruct the CSS from rules.
+        let rules = stylesheet.rulelist(cx);
+        let mut css_text = String::new();
+        for i in 0..rules.Length() {
+            if let Some(rule) = rules.Item(cx, i) {
+                css_text.push_str(&rule.CssText().to_string());
+                css_text.push('\n');
+            }
+        }
+        Some(css_text)
+    })();
+    reply.send(text).unwrap();
+}
+
 pub(crate) fn handle_get_children(
     cx: &mut JSContext,
     state: &DevtoolsState,
@@ -244,7 +307,7 @@ pub(crate) fn handle_get_children(
     let mut pipeline_state = state.mut_pipeline_state_for(pipeline).unwrap();
 
     let inline: Vec<_> = parent
-        .children()
+        .children_unrooted(cx.no_gc())
         .map(|child| {
             let window = child.owner_window();
             let Some(elem) = child.downcast::<Element>() else {
@@ -520,7 +583,7 @@ pub(crate) fn handle_get_layout(
         .downcast::<Element>()
         .expect("should be getting layout of element");
 
-    let rect = element.GetBoundingClientRect(CanGc::from_cx(cx));
+    let rect = element.GetBoundingClientRect(cx);
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 

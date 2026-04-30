@@ -1172,6 +1172,8 @@ mod test {
             method: Method::GET,
             headers: HeaderMap::default(),
             url: Url::parse("https://example.com").expect("Guaranteed by argument"),
+            destination: content_security_policy::Destination::Document,
+            referrer_url: None,
             is_for_main_frame: false,
             is_redirect: false,
         };

@@ -530,7 +530,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-clonerange>
-    fn CloneRange(&self, can_gc: CanGc) -> DomRoot<Range> {
+    fn CloneRange(&self, cx: &mut JSContext) -> DomRoot<Range> {
         let start_node = self.start_container();
         let owner_doc = start_node.owner_doc();
         Range::new(
@@ -539,7 +539,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             self.start_offset(),
             &self.end_container(),
             self.end_offset(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
@@ -1190,7 +1190,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-range-getclientrects>
-    fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
+    fn GetClientRects(&self, cx: &mut JSContext) -> DomRoot<DOMRectList> {
         let start = self.start_container();
         let window = start.owner_window();
 
@@ -1203,16 +1203,16 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             })
             .collect();
 
-        DOMRectList::new(&window, client_rects, can_gc)
+        DOMRectList::new(&window, client_rects, CanGc::from_cx(cx))
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect>
-    fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
+    fn GetBoundingClientRect(&self, cx: &mut JSContext) -> DomRoot<DOMRect> {
         let window = self.start_container().owner_window();
 
         // Step 1. Let list be the result of invoking getClientRects() on the same range this method was invoked on.
@@ -1230,7 +1230,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             bounding_rect.origin.y.to_f64_px(),
             bounding_rect.size.width.to_f64_px(),
             bounding_rect.size.height.to_f64_px(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }

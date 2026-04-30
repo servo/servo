@@ -5,7 +5,6 @@
 use html5ever::LocalName;
 use js::context::JSContext;
 use script_bindings::root::DomRoot;
-use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
@@ -119,9 +118,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-move-ext>
-    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(s) = self.super_type() {
-            s.moving_steps(context, can_gc);
+            s.moving_steps(cx, context);
         }
     }
 

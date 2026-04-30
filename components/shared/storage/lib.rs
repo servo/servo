@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericSend, GenericSender, SendResult};
 use servo_url::ImmutableOrigin;
 
-use crate::client_storage::ClientStorageThreadMessage;
+use crate::client_storage::{ClientStorageThreadHandle, ClientStorageThreadMessage};
 use crate::indexeddb::IndexedDBThreadMsg;
 use crate::webstorage_thread::{OriginDescriptor, WebStorageThreadMsg, WebStorageType};
 
@@ -65,6 +65,10 @@ impl StorageThreads {
     ) -> SendResult {
         self.client_storage_thread
             .send(ClientStorageThreadMessage::Estimate { origin, sender })
+    }
+
+    pub fn client_storage_handle(&self) -> ClientStorageThreadHandle {
+        self.client_storage_thread.clone().into()
     }
 
     // TODO: Consider changing to `webstorage_sites`

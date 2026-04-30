@@ -557,7 +557,6 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         cx: &mut js::context::JSContext,
         data: Option<DocumentOrXMLHttpRequestBodyInit>,
     ) -> ErrorResult {
-        let can_gc = CanGc::from_cx(cx);
         // Step 1. If this’s state is not opened, then throw an "InvalidStateError" DOMException.
         // Step 2. If this’s send() flag is set, then throw an "InvalidStateError" DOMException.
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
@@ -581,7 +580,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 };
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
+                let stream = ReadableStream::new_from_bytes(cx, &global, bytes)?;
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -618,7 +617,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
+                let stream = ReadableStream::new_from_bytes(cx, &global, bytes)?;
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -630,7 +629,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc)?;
+                let stream = ReadableStream::new_from_bytes(cx, &global, bytes)?;
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),

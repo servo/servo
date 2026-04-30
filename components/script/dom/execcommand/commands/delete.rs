@@ -17,7 +17,6 @@ use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-delete-command>
 pub(crate) fn execute_delete_command(
@@ -64,7 +63,11 @@ pub(crate) fn execute_delete_command(
         // Step 4.2. Otherwise, if node has a child with index offset − 1 and that child is an editable invisible node,
         // remove that child from node, then subtract one from offset.
         if offset > 0 {
-            if let Some(child) = node.children().nth(offset as usize - 1) {
+            let child = node
+                .children_unrooted(cx.no_gc())
+                .nth(offset as usize - 1)
+                .map(|node| node.as_rooted());
+            if let Some(child) = child {
                 if child.is_editable() && child.is_invisible() {
                     child.remove_self(cx);
                     offset -= 1;
@@ -80,7 +83,11 @@ pub(crate) fn execute_delete_command(
             continue;
         }
         if offset > 0 {
-            if let Some(child) = node.children().nth(offset as usize - 1) {
+            let child = node
+                .children_unrooted(cx.no_gc())
+                .nth(offset as usize - 1)
+                .map(|node| node.as_rooted());
+            if let Some(child) = child {
                 // Step 4.4. Otherwise, if node has a child with index offset − 1 and that child is an editable a,
                 // remove that child from node, preserving its descendants. Then return true.
                 if child.is_editable() && child.is::<HTMLAnchorElement>() {
@@ -108,7 +115,7 @@ pub(crate) fn execute_delete_command(
     if (node.is::<Text>() && offset != 0) ||
         (offset > 0 &&
             node.is_block_node() &&
-            node.children()
+            node.children_unrooted(cx.no_gc())
                 .nth(offset as usize - 1)
                 .is_some_and(|child| {
                     child.is::<HTMLBRElement>() ||
@@ -117,17 +124,11 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 5.1. Call collapse(node, offset) on the context object's selection.
-        if selection
-            .Collapse(Some(&node), offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Collapse(cx, Some(&node), offset).is_err() {
             unreachable!("Must not fail to collapse");
         }
         // Step 5.2. Call extend(node, offset − 1) on the context object's selection.
-        if selection
-            .Extend(&node, offset - 1, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Extend(cx, &node, offset - 1).is_err() {
             unreachable!("Must not fail to extend");
         }
         // Step 5.3. Delete the selection.
@@ -198,7 +199,11 @@ pub(crate) fn execute_delete_command(
             start_offset > 0,
             "Must always have a start_offset greater than one"
         );
-        if let Some(child) = start_node.children().nth(start_offset as usize - 1) {
+        let child = start_node
+            .children_unrooted(cx.no_gc())
+            .nth(start_offset as usize - 1)
+            .map(|node| node.as_rooted());
+        if let Some(child) = child {
             if child.is_editable() && child.is_invisible() {
                 child.remove_self(cx);
                 start_offset -= 1;
@@ -214,7 +219,7 @@ pub(crate) fn execute_delete_command(
 
     // Step 11. If the child of start node with index start offset is a table, return true.
     if start_node
-        .children()
+        .children_unrooted(cx.no_gc())
         .nth(start_offset as usize)
         .is_some_and(|child| child.is::<HTMLTableElement>())
     {
@@ -229,7 +234,7 @@ pub(crate) fn execute_delete_command(
     if offset == 0 &&
         (start_offset > 0 &&
             start_node
-                .children()
+                .children_unrooted(cx.no_gc())
                 .nth(start_offset as usize - 1)
                 .is_some_and(|child| {
                     child.is::<HTMLHRElement>() ||
@@ -241,16 +246,13 @@ pub(crate) fn execute_delete_command(
     {
         // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
         if selection
-            .Collapse(Some(&start_node), start_offset - 1, CanGc::from_cx(cx))
+            .Collapse(cx, Some(&start_node), start_offset - 1)
             .is_err()
         {
             unreachable!("Must not fail to collapse");
         }
         // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        if selection
-            .Extend(&start_node, start_offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Extend(cx, &start_node, start_offset).is_err() {
             unreachable!("Must not fail to extend");
         }
         // Step 13.3. Delete the selection.
@@ -262,10 +264,7 @@ pub(crate) fn execute_delete_command(
             Default::default(),
         );
         // Step 13.4. Call collapse(node, offset) on the selection.
-        if selection
-            .Collapse(Some(&node), offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if selection.Collapse(cx, Some(&node), offset).is_err() {
             unreachable!("Must not fail to collapse");
         }
         // Step 13.5. Return true.
@@ -285,7 +284,11 @@ pub(crate) fn execute_delete_command(
         if start_offset == 0 {
             break;
         }
-        let Some(child) = start_node.children().nth(start_offset as usize - 1) else {
+        let child = start_node
+            .children_unrooted(cx.no_gc())
+            .nth(start_offset as usize - 1)
+            .map(|node| node.as_rooted());
+        let Some(child) = child else {
             break;
         };
         // Step 16.1. If start node's child with index start offset minus one
@@ -303,14 +306,14 @@ pub(crate) fn execute_delete_command(
 
     // Step 17. Call collapse(start node, start offset) on the context object's selection.
     if selection
-        .Collapse(Some(&start_node), start_offset, CanGc::from_cx(cx))
+        .Collapse(cx, Some(&start_node), start_offset)
         .is_err()
     {
         unreachable!("Must not fail to collapse");
     }
 
     // Step 18. Call extend(node, offset) on the context object's selection.
-    if selection.Extend(&node, offset, CanGc::from_cx(cx)).is_err() {
+    if selection.Extend(cx, &node, offset).is_err() {
         unreachable!("Must not fail to extend");
     }
 

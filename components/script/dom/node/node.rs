@@ -1518,10 +1518,10 @@ impl Node {
             // inclusiveDescendant and oldParent.
             // Otherwise, run the moving steps with inclusiveDescendant and null.
             if descendant.deref() == node {
-                vtable_for(&descendant).moving_steps(&context, CanGc::from_cx(cx));
+                vtable_for(&descendant).moving_steps(cx, &context);
             } else {
                 context.old_parent = None;
-                vtable_for(&descendant).moving_steps(&context, CanGc::from_cx(cx));
+                vtable_for(&descendant).moving_steps(cx, &context);
             }
 
             // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
@@ -4728,7 +4728,6 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
         Node::containing_shadow_root(self.upcast())
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn stylesheet_list_owner(&self) -> StyleSheetListOwner {
         self.containing_shadow_root()
             .map(|shadow_root| StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root)))
@@ -4772,9 +4771,9 @@ impl VirtualMethods for Node {
         }
     }
 
-    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(super_type) = self.super_type() {
-            super_type.moving_steps(context, can_gc);
+            super_type.moving_steps(cx, context);
         }
 
         // Ranges should only drain to the parent from inclusive non-shadow

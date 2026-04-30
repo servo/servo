@@ -84,12 +84,14 @@ impl<'dom> ModernContainerJob<'dom> {
                         .push_text(flex_text_run.text, &flex_text_run.info);
                 }
 
-                let inline_formatting_context = inline_formatting_context_builder.finish(
-                    builder.context,
-                    true,  /* has_first_formatted_line */
-                    false, /* is_single_line_text_box */
-                    builder.info.style.to_bidi_level(),
-                )?;
+                let inline_formatting_context = inline_formatting_context_builder
+                    .finish(
+                        builder.context,
+                        true,  /* has_first_formatted_line */
+                        false, /* is_single_line_text_box */
+                        builder.info.style.to_bidi_level(),
+                    )
+                    .expect("Did not expect document white space only text runs");
 
                 let block_formatting_context = BlockFormattingContext::from_block_container(
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
@@ -178,14 +180,14 @@ struct ModernContainerTextRun<'dom> {
 }
 
 impl ModernContainerTextRun<'_> {
-    /// <https://drafts.csswg.org/css-text/#white-space>
+    /// <https://drafts.csswg.org/css-flexbox/#flex-items>:
+    /// > However, if the entire text sequences contains only document white space characters (i.e.
+    /// > characters that can be affected by the white-space property) it is instead not rendered
+    /// > (just as if its text nodes were display:none).
     fn is_only_document_white_space(&self) -> bool {
-        // FIXME: is this the right definition? See
-        // https://github.com/w3c/csswg-drafts/issues/5146
-        // https://github.com/w3c/csswg-drafts/issues/5147
         self.text
             .bytes()
-            .all(|byte| matches!(byte, b' ' | b'\n' | b'\t'))
+            .all(|byte| InlineFormattingContextBuilder::is_document_white_space(byte.into()))
     }
 }
 

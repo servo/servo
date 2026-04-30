@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
 use script_bindings::cformat;
@@ -434,10 +435,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
     fn CreateBuffer(
         &self,
+        cx: &mut JSContext,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBuffer>> {
         if number_of_channels == 0 ||
             number_of_channels > MAX_CHANNEL_COUNT ||
@@ -447,12 +448,12 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             return Err(Error::NotSupported(None));
         }
         Ok(AudioBuffer::new(
+            cx,
             self.global().as_window(),
             number_of_channels,
             length,
             *sample_rate,
             None,
-            can_gc,
         ))
     }
 
@@ -537,12 +538,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                             0
                         };
                         let buffer = AudioBuffer::new(
+                            cx,
                             this.global().as_window(),
                             decoded_audio.len() as u32 /* number of channels */,
                             length as u32,
                             this.sample_rate,
                             Some(decoded_audio.as_slice()),
-                            CanGc::from_cx(cx));
+                        );
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid_));
                         let resolver = resolvers.remove(&uuid_).unwrap();

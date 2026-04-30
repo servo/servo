@@ -32,7 +32,7 @@ pub fn register(lint_store: &mut LintStore) {
 /// "Incorrect" usage includes:
 ///
 ///  - Not being used in a struct/enum field which is not `#[crown::unrooted_must_root_lint::must_root]` itself
-///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
+///  - Being used as a function argument.
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a
@@ -412,15 +412,6 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                         lint.span(arg.span);
                     })
                 }
-            }
-
-            if !in_new_function &&
-                is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
-            {
-                cx.lint(UNROOTED_MUST_ROOT, |lint| {
-                    lint.primary_message("Type must be rooted.");
-                    lint.span(decl.output.span());
-                })
             }
         }
 

@@ -515,9 +515,9 @@ impl VirtualMethods for HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-option-element:html-element-moving-steps>
-    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
         if let Some(super_type) = self.super_type() {
-            super_type.moving_steps(context, can_gc);
+            super_type.moving_steps(cx, context);
         }
 
         // The option HTML element moving steps, given movedNode and oldParent, are to run update an
@@ -529,8 +529,8 @@ impl VirtualMethods for HTMLOptionElement {
                 .find_map(DomRoot::downcast::<HTMLSelectElement>)
             {
                 select
-                    .validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                    .validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
                 select.ask_for_reset();
             }
 
@@ -544,6 +544,6 @@ impl VirtualMethods for HTMLOptionElement {
         element.check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 }

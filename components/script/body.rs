@@ -52,9 +52,9 @@ use crate::task_source::SendableTaskSource;
 
 /// <https://fetch.spec.whatwg.org/#concept-body-clone>
 pub(crate) fn clone_body_stream_for_dom_body(
+    cx: &mut js::context::JSContext,
     original_body_stream: &MutNullableDom<ReadableStream>,
     cloned_body_stream: &MutNullableDom<ReadableStream>,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // To clone a body *body*, run these steps:
 
@@ -63,7 +63,7 @@ pub(crate) fn clone_body_stream_for_dom_body(
     };
 
     // step 1. Let « out1, out2 » be the result of teeing body’s stream.
-    let branches = stream.tee(true, can_gc)?;
+    let branches = stream.tee(cx, true)?;
     let out1 = &*branches[0];
     let out2 = &*branches[1];
 
@@ -320,16 +320,14 @@ impl js::gc::Rootable for TransmitBodyPromiseHandler {}
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-        let can_gc = CanGc::from_cx(cx);
         let _realm = InRealm::Already(&cx.into());
-        let cx = cx.into();
-        let is_done = match get_read_promise_done(cx, &v, can_gc) {
+        let is_done = match get_read_promise_done(cx.into(), &v, CanGc::from_cx(cx)) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 // TODO: terminate fetch.
                 let _ = self.control_sender.send(BodyChunkRequest::Done);
-                return self.stream.stop_reading(can_gc);
+                return self.stream.stop_reading(cx);
             },
         };
 
@@ -337,15 +335,15 @@ impl Callback for TransmitBodyPromiseHandler {
             // Step 5.3, the "done" steps.
             // TODO: queue a fetch task on request to process request end-of-body.
             let _ = self.control_sender.send(BodyChunkRequest::Done);
-            return self.stream.stop_reading(can_gc);
+            return self.stream.stop_reading(cx);
         }
 
-        let chunk = match get_read_promise_bytes(cx, &v, can_gc) {
+        let chunk = match get_read_promise_bytes(cx.into(), &v, CanGc::from_cx(cx)) {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 let _ = self.control_sender.send(BodyChunkRequest::Error);
-                return self.stream.stop_reading(can_gc);
+                return self.stream.stop_reading(cx);
             },
         };
 
@@ -379,7 +377,7 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        self.stream.stop_reading(CanGc::from_cx(cx));
+        self.stream.stop_reading(cx);
     }
 }
 
@@ -505,7 +503,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBuffer(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+                let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -516,7 +514,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBufferView(typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+                let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -558,7 +556,7 @@ impl Extractable for Vec<u8> {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.clone();
         let total_bytes = self.len();
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -583,7 +581,7 @@ impl Extractable for Blob {
             Some(blob_type)
         };
         let total_bytes = self.Size() as usize;
-        let stream = self.get_stream(CanGc::from_cx(cx))?;
+        let stream = self.get_stream(cx)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -603,7 +601,7 @@ impl Extractable for DOMString {
         let bytes = self.as_bytes().to_owned();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from("text/plain;charset=UTF-8"));
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -627,7 +625,7 @@ impl Extractable for FormData {
             "multipart/form-data; boundary={}",
             boundary
         )));
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -649,7 +647,7 @@ impl Extractable for URLSearchParams {
         let content_type = Some(DOMString::from(
             "application/x-www-form-urlencoded;charset=UTF-8",
         ));
-        let stream = ReadableStream::new_from_bytes(global, bytes, CanGc::from_cx(cx))?;
+        let stream = ReadableStream::new_from_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -769,26 +767,30 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let mime_type = object.get_mime_type(can_gc);
     let success_promise = promise.clone();
 
+    // TODO: https://github.com/servo/servo/pull/44254
+    #[allow(unsafe_code)]
+    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+    let cx = &mut cx;
+
     // Read all bytes from reader, given successSteps and errorSteps.
     // Note: spec uses an intermediary concept of `fully_read`,
     // which seems useful when invoking fetch from other places.
     // TODO: #36049
     reader.read_all_bytes(
         cx,
-        Rc::new(move |bytes: &[u8]| {
+        Rc::new(move |cx, bytes: &[u8]| {
             resolve_result_promise(
                 body_type,
                 &success_promise,
                 mime_type.clone(),
                 bytes.to_vec(),
-                cx,
-                can_gc,
+                cx.into(),
+                CanGc::from_cx(cx),
             );
         }),
         Rc::new(move |cx, v| {
-            error_promise.reject(cx, v, can_gc);
+            error_promise.reject(cx.into(), v, CanGc::from_cx(cx));
         }),
-        can_gc,
     );
 
     promise

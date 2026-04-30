@@ -13,6 +13,7 @@ use script_bindings::inheritance::Castable;
 use servo_base::generic_channel::GenericSend;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+use storage_traits::client_storage::{StorageIdentifier, StorageProxyMap, StorageType};
 use storage_traits::indexeddb::{
     BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, SyncOperation,
 };
@@ -301,11 +302,11 @@ impl IDBFactory {
                 // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
                 // Step 3. Set transaction’s scope to connection’s object store set.
                 let connection = request.get_or_init_connection(
+                    cx,
                     &self.global(),
                     name.clone(),
                     version,
                     upgraded,
-                    CanGc::from_cx(cx),
                 );
                 connection.set_object_store_names_from_backend(object_store_names);
 
@@ -313,7 +314,7 @@ impl IDBFactory {
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                request.dispatch_success(name, version, upgraded, CanGc::from_cx(cx));
+                request.dispatch_success(cx, name, version, upgraded);
             },
             ConnectionMsg::Upgrade {
                 name,
@@ -332,13 +333,7 @@ impl IDBFactory {
                     );
                 };
 
-                let connection = request.get_or_init_connection(
-                    &global,
-                    name,
-                    version,
-                    false,
-                    CanGc::from_cx(cx),
-                );
+                let connection = request.get_or_init_connection(cx, &global, name, version, false);
                 // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
                 // Step 3. Set transaction’s scope to connection’s object store set.
                 connection.set_object_store_names_from_backend(object_store_names);
@@ -375,13 +370,8 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::VersionChange."
                     );
                 };
-                let connection = request.get_or_init_connection(
-                    &global,
-                    name.clone(),
-                    version,
-                    false,
-                    CanGc::from_cx(cx),
-                );
+                let connection =
+                    request.get_or_init_connection(cx, &global, name.clone(), version, false);
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
                 connection.dispatch_versionchange(old_version, Some(version), CanGc::from_cx(cx));
@@ -494,6 +484,7 @@ impl IDBFactory {
         name: DOMString,
         version: Option<u64>,
         request: &IDBOpenDBRequest,
+        proxy_map: StorageProxyMap,
     ) -> Result<(), ()> {
         let global = self.global();
         let request_id = request.get_id();
@@ -515,6 +506,7 @@ impl IDBFactory {
             name.to_string(),
             version,
             request.get_id(),
+            proxy_map,
         );
 
         // Note: algo continues in parallel.
@@ -539,18 +531,48 @@ impl IDBFactory {
             })
             .collect();
         let origin = global.origin().immutable().clone();
+        let Ok(proxy_map) = self.obtain_a_local_storage_bottle_map(&global, origin.clone()) else {
+            debug_assert!(false, "Failed to obtain a proxy map.");
+            return;
+        };
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(
                 SyncOperation::AbortPendingUpgrades {
                     pending_upgrades,
                     origin,
+                    proxy_map,
                 },
             ))
             .is_err()
         {
             error!("Failed to send SyncOperation::AbortPendingUpgrade");
         }
+    }
+
+    /// The indexeddb call into
+    /// <https://storage.spec.whatwg.org/#obtain-a-local-storage-bottle-map>
+    fn obtain_a_local_storage_bottle_map(
+        &self,
+        global: &GlobalScope,
+        origin: ImmutableOrigin,
+    ) -> Result<StorageProxyMap, Error> {
+        let handle = global.storage_threads().client_storage_handle();
+        let message = handle
+            .obtain_a_storage_bottle_map(
+                StorageType::Local,
+                global.webview_id(),
+                StorageIdentifier::IndexedDB,
+                origin,
+            )
+            .recv();
+        let Ok(response) = message else {
+            return Err(Error::Operation(None));
+        };
+        let Ok(proxy_map) = response else {
+            return Err(Error::Operation(None));
+        };
+        Ok(proxy_map)
     }
 }
 
@@ -573,12 +595,17 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Security(None));
         };
 
+        // Note: switching to obtaining a storage bottle map,
+        // as per https://github.com/w3c/IndexedDB/pull/334/
+        let proxy_map =
+            self.obtain_a_local_storage_bottle_map(&global, global.origin().immutable().clone())?;
+
         // Step 4: Let request be a new open request.
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 5: Runs in parallel
         if self
-            .open_database(storage_key, name, version, &request)
+            .open_database(storage_key, name, version, &request, proxy_map)
             .is_err()
         {
             return Err(Error::Operation(None));
@@ -599,12 +626,17 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
             return Err(Error::Security(None));
         };
 
+        // Note: switching to obtaining a storage bottle map,
+        // as per https://github.com/w3c/IndexedDB/pull/334/
+        let proxy_map =
+            self.obtain_a_local_storage_bottle_map(&global, global.origin().immutable().clone())?;
+
         // Step 3: Let request be a new open request
         let request = IDBOpenDBRequest::new(&self.global(), CanGc::deprecated_note());
 
         // Step 4: Runs in parallel
         if request
-            .delete_database(storage_key, name.to_string())
+            .delete_database(storage_key, name.to_string(), proxy_map)
             .is_err()
         {
             return Err(Error::Operation(None));

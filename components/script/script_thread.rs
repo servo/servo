@@ -89,9 +89,10 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
+    LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
+    WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -1198,7 +1199,7 @@ impl ScriptThread {
             self.process_pending_input_events(cx, *pipeline_id);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
-            let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));
+            let resized = document.window().run_the_resize_steps(cx);
 
             // > 9. For each doc of docs, run the scroll steps for doc.
             document.run_the_scroll_steps(cx);
@@ -1252,9 +1253,7 @@ impl ScriptThread {
             // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
             // > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
             // > focus changed during ongoing navigation to false.
-            document
-                .focus_handler()
-                .perform_focus_fixup_rule(CanGc::from_cx(cx));
+            document.focus_handler().perform_focus_fixup_rule(cx);
 
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
@@ -1824,13 +1823,9 @@ impl ScriptThread {
                 reason,
                 cx,
             ),
-            ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url) => self
-                .handle_update_history_state_msg(
-                    pipeline_id,
-                    history_state_id,
-                    url,
-                    CanGc::from_cx(cx),
-                ),
+            ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url) => {
+                self.handle_update_history_state_msg(cx, pipeline_id, history_state_id, url)
+            },
             ScriptThreadMessage::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
@@ -1847,8 +1842,8 @@ impl ScriptThread {
             ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(pipeline_id, sequence) => {
                 self.handle_unfocus_document_as_part_of_focusing_steps(cx, pipeline_id, sequence);
             },
-            ScriptThreadMessage::FocusDocument(pipeline_id) => {
-                self.handle_focus_document(cx, pipeline_id);
+            ScriptThreadMessage::FocusDocument(pipeline_id, remote_focus_operation) => {
+                self.handle_focus_document(cx, pipeline_id, remote_focus_operation);
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
@@ -2133,6 +2128,12 @@ impl ScriptThread {
                     id,
                     reply,
                 )
+            },
+            DevtoolScriptControlMsg::GetStyleSheets(id, reply) => {
+                devtools::handle_get_stylesheets(&documents, id, reply);
+            },
+            DevtoolScriptControlMsg::GetStyleSheetText(id, index, reply) => {
+                devtools::handle_get_stylesheet_text(cx, &documents, id, index, reply);
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
                 devtools::handle_get_children(cx, &self.devtools_state, id, &node_id, reply)
@@ -2862,19 +2863,29 @@ impl ScriptThread {
             .unwrap_or(FocusableArea::Viewport);
 
         focus_handler.focus_update_steps(
+            cx,
             focusable_area.focus_chain(),
             focus_handler.current_focus_chain(),
             &focusable_area,
-            CanGc::from_cx(cx),
         );
     }
 
-    fn handle_focus_document(&self, cx: &mut js::context::JSContext, pipeline_id: PipelineId) {
+    fn handle_focus_document(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+        remote_focus_operation: RemoteFocusOperation,
+    ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Unknown {pipeline_id:?} for FocusDocument message.");
             return;
         };
-        document.window().Focus(cx);
+        match remote_focus_operation {
+            RemoteFocusOperation::Viewport => document.window().Focus(cx),
+            RemoteFocusOperation::Sequential(direction, iframe_browsing_context_id) => document
+                .focus_handler()
+                .sequential_focus_from_another_document(cx, iframe_browsing_context_id, direction),
+        }
     }
 
     fn handle_unfocus_document_as_part_of_focusing_steps(
@@ -2907,10 +2918,10 @@ impl ScriptThread {
         }
 
         focus_handler.focus_update_steps(
+            cx,
             vec![],
             focus_handler.current_focus_chain(),
             &FocusableArea::Viewport,
-            CanGc::from_cx(cx),
         );
     }
 
@@ -2995,42 +3006,44 @@ impl ScriptThread {
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
-        if let Some(frame_element) = frame_element {
-            frame_element.update_pipeline_id(new_pipeline_id, reason, cx);
-        }
+        let Some(frame_element) = frame_element else {
+            return;
+        };
+        if !frame_element.update_pipeline_id(new_pipeline_id, reason, cx) {
+            return;
+        };
 
-        if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
-            // Ensure that the state of any local window proxies accurately reflects
-            // the new pipeline.
-            let _ = self.window_proxies.local_window_proxy(
-                cx,
-                &self.senders,
-                &self.documents,
-                &window,
-                browsing_context_id,
-                webview_id,
-                Some(parent_pipeline_id),
-                // Any local window proxy has already been created, so there
-                // is no need to pass along existing opener information that
-                // will be discarded.
-                None,
-            );
-        }
+        let Some(window) = self.documents.borrow().find_window(new_pipeline_id) else {
+            return;
+        };
+        // Ensure that the state of any local window proxies accurately reflects
+        // the new pipeline.
+        let _ = self.window_proxies.local_window_proxy(
+            cx,
+            &self.senders,
+            &self.documents,
+            &window,
+            browsing_context_id,
+            webview_id,
+            Some(parent_pipeline_id),
+            // Any local window proxy has already been created, so there
+            // is no need to pass along existing opener information that
+            // will be discarded.
+            None,
+        );
     }
 
     fn handle_update_history_state_msg(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
-        can_gc: CanGc,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             return warn!("update history state after pipeline {pipeline_id} closed.",);
         };
-        window
-            .History()
-            .activate_state(history_state_id, url, can_gc);
+        window.History().activate_state(cx, history_state_id, url);
     }
 
     fn handle_remove_history_states(

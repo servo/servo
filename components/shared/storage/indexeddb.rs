@@ -15,6 +15,8 @@ use servo_base::generic_channel::GenericSender;
 use servo_url::origin::ImmutableOrigin;
 use uuid::Uuid;
 
+use crate::client_storage::StorageProxyMap;
+
 // TODO Box<dyn Error> is not serializable, fix needs to be found
 pub type DbError = String;
 /// A DbResult wraps any part of a call that has to reach into the backend (in this case sqlite.rs)
@@ -577,13 +579,18 @@ pub enum SyncOperation {
         Option<u64>,
         // The id of the request.
         Uuid,
+        // The Storage proxy map.
+        StorageProxyMap,
     ),
 
     /// Deletes the database
     DeleteDatabase(
         GenericCallback<BackendResult<u64>>,
         ImmutableOrigin,
-        String, // Database
+        // Database name.
+        String,
+        // The Storage proxy map.
+        StorageProxyMap,
         Uuid,
     ),
 
@@ -598,13 +605,7 @@ pub enum SyncOperation {
     AbortPendingUpgrades {
         pending_upgrades: HashMap<String, HashSet<Uuid>>,
         origin: ImmutableOrigin,
-    },
-
-    /// Abort the current pending upgrade.
-    AbortPendingUpgrade {
-        name: String,
-        id: Uuid,
-        origin: ImmutableOrigin,
+        proxy_map: StorageProxyMap,
     },
 
     NotifyEndOfVersionChange {

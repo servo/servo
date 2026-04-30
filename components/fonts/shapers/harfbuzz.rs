@@ -32,7 +32,7 @@ use read_fonts::types::Tag;
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
-    BASE, Font, FontBaseline, FontTableMethods, GlyphId, GlyphStore, KERN, LIGA, ShapingFlags,
+    BASE, Font, FontBaseline, FontTableMethods, GlyphId, KERN, LIGA, ShapedText, ShapingFlags,
     ShapingOptions, fixed_to_float, float_to_fixed,
 };
 
@@ -306,8 +306,8 @@ impl Shaper {
         }
     }
 
-    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> GlyphStore {
-        GlyphStore::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
+    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions) -> ShapedText {
+        ShapedText::with_shaped_glyph_data(text, options, &self.shaped_glyph_data(text, options))
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {

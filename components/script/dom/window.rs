@@ -1298,9 +1298,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // TODO: Implement this.
 
         // Step 4. Run the focusing steps with current.
-        document
-            .focus_handler()
-            .focus(FocusableArea::Viewport, CanGc::from_cx(cx));
+        document.focus_handler().focus(cx, FocusableArea::Viewport);
 
         // Step 5. If current is a top-level traversable, user agents are encouraged to trigger some
         // sort of notification to indicate to the user that the page is attempting to gain focus.
@@ -2206,10 +2204,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-window-getselection>
-    fn GetSelection(&self) -> Option<DomRoot<Selection>> {
-        self.document
-            .get()
-            .and_then(|d| d.GetSelection(CanGc::deprecated_note()))
+    fn GetSelection(&self, cx: &mut JSContext) -> Option<DomRoot<Selection>> {
+        self.document.get().and_then(|d| d.GetSelection(cx))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
@@ -2382,14 +2378,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
     fn StructuredClone(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
-        can_gc: CanGc,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
         self.as_global_scope()
-            .structured_clone(cx, value, options, retval, can_gc)
+            .structured_clone(cx, value, options, retval)
     }
 
     fn TrustedTypes(&self, cx: &mut JSContext) -> DomRoot<TrustedTypePolicyFactory> {
@@ -3352,7 +3347,7 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Handle the pending viewport resize.
-    fn run_resize_steps_for_layout_viewport(&self, can_gc: CanGc) -> bool {
+    fn run_resize_steps_for_layout_viewport(&self, cx: &mut js::context::JSContext) -> bool {
         let Some((new_size, size_type)) = self.take_unhandled_resize_event() else {
             return false;
         };
@@ -3391,9 +3386,11 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            uievent.upcast::<Event>().fire(self.upcast(), can_gc);
+            uievent
+                .upcast::<Event>()
+                .fire(self.upcast(), CanGc::from_cx(cx));
         }
 
         true
@@ -3403,11 +3400,11 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Returns true if there were any pending viewport resize events.
-    pub(crate) fn run_the_resize_steps(&self, can_gc: CanGc) -> bool {
-        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(can_gc);
+    pub(crate) fn run_the_resize_steps(&self, cx: &mut js::context::JSContext) -> bool {
+        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(cx);
 
         if self.has_changed_visual_viewport_dimension.get() {
-            let visual_viewport = self.get_or_init_visual_viewport(can_gc);
+            let visual_viewport = self.get_or_init_visual_viewport(CanGc::from_cx(cx));
 
             let uievent = UIEvent::new(
                 self,
@@ -3417,11 +3414,11 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             uievent
                 .upcast::<Event>()
-                .fire(visual_viewport.upcast(), can_gc);
+                .fire(visual_viewport.upcast(), CanGc::from_cx(cx));
 
             self.has_changed_visual_viewport_dimension.set(false);
         }

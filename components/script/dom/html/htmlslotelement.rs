@@ -528,7 +528,6 @@ impl js::gc::Rootable for Slottable {}
 
 impl js::gc::Initialize for Slottable {
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     unsafe fn initial() -> Option<Self> {
         None
     }

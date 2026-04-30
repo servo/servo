@@ -22,6 +22,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
+use crate::flow::inline::SharedInlineStyles;
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
@@ -50,6 +51,8 @@ impl ResolvedSlotAndLocation<'_> {
 
 pub(crate) enum AnonymousTableContent<'dom> {
     Text(NodeAndStyleInfo<'dom>, Cow<'dom, str>),
+    EnterDisplayContents(SharedInlineStyles),
+    LeaveDisplayContents,
     Element {
         info: NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
@@ -63,6 +66,7 @@ impl AnonymousTableContent<'_> {
         match self {
             Self::Element { .. } => false,
             Self::Text(_, text) => text.chars().all(char_is_whitespace),
+            Self::EnterDisplayContents(_) | Self::LeaveDisplayContents => true,
         }
     }
 
@@ -86,6 +90,7 @@ impl Table {
 
     pub(crate) fn construct_anonymous<'dom>(
         context: &LayoutContext,
+        parent: &mut impl TraversalHandler<'dom>,
         parent_info: &NodeAndStyleInfo<'dom>,
         contents: Vec<AnonymousTableContent<'dom>>,
         propagated_data: PropagatedBoxTreeData,
@@ -112,6 +117,13 @@ impl Table {
                     // We only collect that whitespace in case we need to re-emit trailing whitespace
                     // after we've added our anonymous table.
                 },
+                // Since the table builder skips text, we don't have to handle `display: contents` there.
+                // But we need to handle it for the parent builder, because it may contain trailing
+                // whitespace which won't be placed inside the table.
+                AnonymousTableContent::EnterDisplayContents(styles) => {
+                    parent.enter_display_contents(styles)
+                },
+                AnonymousTableContent::LeaveDisplayContents => parent.leave_display_contents(),
             }
         }
 
@@ -707,6 +719,10 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
                 AnonymousTableContent::Text(info, text) => {
                     row_builder.handle_text(&info, text);
                 },
+                AnonymousTableContent::EnterDisplayContents(styles) => {
+                    row_builder.enter_display_contents(styles)
+                },
+                AnonymousTableContent::LeaveDisplayContents => row_builder.leave_display_contents(),
             }
         }
 
@@ -742,6 +758,16 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
     fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         self.current_anonymous_row_content
             .push(AnonymousTableContent::Text(info.clone(), text));
+    }
+
+    fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+        self.current_anonymous_row_content
+            .push(AnonymousTableContent::EnterDisplayContents(styles));
+    }
+
+    fn leave_display_contents(&mut self) {
+        self.current_anonymous_row_content
+            .push(AnonymousTableContent::LeaveDisplayContents);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#forming-a-table>
@@ -985,6 +1011,10 @@ impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a
                 AnonymousTableContent::Text(info, text) => {
                     row_builder.handle_text(&info, text);
                 },
+                AnonymousTableContent::EnterDisplayContents(styles) => {
+                    row_builder.enter_display_contents(styles)
+                },
+                AnonymousTableContent::LeaveDisplayContents => row_builder.leave_display_contents(),
             }
         }
 
@@ -1010,6 +1040,16 @@ impl<'dom> TraversalHandler<'dom> for TableRowGroupBuilder<'_, '_, 'dom, '_> {
     fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         self.current_anonymous_row_content
             .push(AnonymousTableContent::Text(info.clone(), text));
+    }
+
+    fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+        self.current_anonymous_row_content
+            .push(AnonymousTableContent::EnterDisplayContents(styles));
+    }
+
+    fn leave_display_contents(&mut self) {
+        self.current_anonymous_row_content
+            .push(AnonymousTableContent::LeaveDisplayContents);
     }
 
     fn handle_element(
@@ -1118,6 +1158,10 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
                 AnonymousTableContent::Text(info, text) => {
                     builder.handle_text(&info, text);
                 },
+                AnonymousTableContent::EnterDisplayContents(styles) => {
+                    builder.enter_display_contents(styles)
+                },
+                AnonymousTableContent::LeaveDisplayContents => builder.leave_display_contents(),
             }
         }
 
@@ -1150,6 +1194,16 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
     fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         self.current_anonymous_cell_content
             .push(AnonymousTableContent::Text(info.clone(), text));
+    }
+
+    fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
+        self.current_anonymous_cell_content
+            .push(AnonymousTableContent::EnterDisplayContents(styles));
+    }
+
+    fn leave_display_contents(&mut self) {
+        self.current_anonymous_cell_content
+            .push(AnonymousTableContent::LeaveDisplayContents);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows>
@@ -1248,6 +1302,8 @@ struct TableColumnGroupBuilder {
 
 impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
     fn handle_text(&mut self, _info: &NodeAndStyleInfo<'dom>, _text: Cow<'dom, str>) {}
+    fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
+    fn leave_display_contents(&mut self) {}
     fn handle_element(
         &mut self,
         info: &NodeAndStyleInfo<'dom>,

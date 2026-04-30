@@ -144,7 +144,7 @@ pub(crate) struct BrowsingContextActor {
     css_properties_name: String,
     pub(crate) inspector_name: String,
     reflow_name: String,
-    style_sheets_name: String,
+    pub style_sheets_name: String,
     pub thread_name: String,
     _tab: String,
     // Different pipelines may run on different script threads.
@@ -229,7 +229,8 @@ impl BrowsingContextActor {
 
         let reflow_name = ReflowActor::register(registry);
 
-        let style_sheets_name = StyleSheetsActor::register(registry);
+        let style_sheets_name =
+            StyleSheetsActor::register(registry, script_sender.clone(), name.clone());
 
         let tab_descriptor_name =
             TabDescriptorActor::register(registry, name.clone(), is_top_level_global);

@@ -714,7 +714,7 @@ pub(crate) fn write(
     transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
 ) -> Fallible<StructuredSerializedData> {
     unsafe {
-        rooted!(in(*cx) let mut val = UndefinedValue());
+        rooted!(&in(cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {
             transfer.safe_to_jsval(cx, val.handle_mut(), CanGc::deprecated_note());
         }

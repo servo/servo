@@ -29,7 +29,6 @@ use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 
 #[derive(Default, PartialEq)]
 pub(crate) enum SelectionDeletionBlockMerging {
@@ -197,12 +196,12 @@ impl Selection {
         {
             // Step 6.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(CanGc::from_cx(cx)).is_err() {
+                if self.CollapseToStart(cx).is_err() {
                     unreachable!("Should be able to collapse to start");
                 }
             } else {
                 // Step 6.2. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(CanGc::from_cx(cx)).is_err() {
+                if self.CollapseToEnd(cx).is_err() {
                     unreachable!("Should be able to collapse to end");
                 }
             }
@@ -227,18 +226,12 @@ impl Selection {
         }
 
         // Step 9. Call collapse(start node, start offset) on the context object's selection.
-        if self
-            .Collapse(Some(&start_node), start_offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if self.Collapse(cx, Some(&start_node), start_offset).is_err() {
             unreachable!("Must always be able to collapse");
         }
 
         // Step 10. Call extend(end node, end offset) on the context object's selection.
-        if self
-            .Extend(&end_node, end_offset, CanGc::from_cx(cx))
-            .is_err()
-        {
+        if self.Extend(cx, &end_node, end_offset).is_err() {
             unreachable!("Must always be able to extend");
         }
 
@@ -337,12 +330,12 @@ impl Selection {
                 start_node.canonicalize_whitespace(start_offset, false);
                 // Step 21.3. If direction is "forward", call collapseToStart() on the context object's selection.
                 if direction == SelectionDeleteDirection::Forward {
-                    if self.CollapseToStart(CanGc::from_cx(cx)).is_err() {
+                    if self.CollapseToStart(cx).is_err() {
                         unreachable!("Should be able to collapse to start");
                     }
                 } else {
                     // Step 21.4. Otherwise, call collapseToEnd() on the context object's selection.
-                    if self.CollapseToEnd(CanGc::from_cx(cx)).is_err() {
+                    if self.CollapseToEnd(cx).is_err() {
                         unreachable!("Should be able to collapse to end");
                     }
                 }
@@ -408,10 +401,11 @@ impl Selection {
             node.remove_self(cx);
             // Step 25.3. If the block node of parent has no visible children, and parent is editable or an editing host,
             // call createElement("br") on the context object and append the result as the last child of parent.
-            if parent
-                .block_node_of()
-                .is_some_and(|block_node| block_node.children().all(|child| child.is_invisible())) &&
-                parent.is_editable_or_editing_host()
+            if parent.block_node_of().is_some_and(|block_node| {
+                block_node
+                    .children_unrooted(cx.no_gc())
+                    .all(|child| child.is_invisible())
+            }) && parent.is_editable_or_editing_host()
             {
                 let br = context_object.create_element(cx, "br");
                 if parent.AppendChild(cx, br.upcast()).is_err() {
@@ -477,12 +471,12 @@ impl Selection {
         {
             // Step 30.1. If direction is "forward", call collapseToStart() on the context object's selection.
             if direction == SelectionDeleteDirection::Forward {
-                if self.CollapseToStart(CanGc::from_cx(cx)).is_err() {
+                if self.CollapseToStart(cx).is_err() {
                     unreachable!("Should be able to collapse to start");
                 }
             } else {
                 // Step 30.2. Otherwise, call collapseToEnd() on the context object's selection.
-                if self.CollapseToEnd(CanGc::from_cx(cx)).is_err() {
+                if self.CollapseToEnd(cx).is_err() {
                     unreachable!("Should be able to collapse to end");
                 }
             }
@@ -512,7 +506,10 @@ impl Selection {
             let mut reference_node = end_block.clone();
             // Step 32.2. While reference node is not a child of start block, set reference node to its parent.
             loop {
-                if start_block.children().all(|child| child != reference_node) {
+                if start_block
+                    .children_unrooted(cx.no_gc())
+                    .all(|child| child != &reference_node)
+                {
                     reference_node = reference_node
                         .GetParentNode()
                         .expect("Must always have a parent, at least start_block");
@@ -523,11 +520,7 @@ impl Selection {
             // Step 32.3. Call collapse() on the context object's selection,
             // with first argument start block and second argument the index of reference node.
             if self
-                .Collapse(
-                    Some(&start_block),
-                    reference_node.index(),
-                    CanGc::from_cx(cx),
-                )
+                .Collapse(cx, Some(&start_block), reference_node.index())
                 .is_err()
             {
                 unreachable!("Must always be able to collapse");
@@ -653,7 +646,7 @@ impl Selection {
             // Step 33.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
             if self
-                .Collapse(Some(&start_block), start_block.len(), CanGc::from_cx(cx))
+                .Collapse(cx, Some(&start_block), start_block.len())
                 .is_err()
             {
                 unreachable!("Must always be able to collapse");
@@ -723,7 +716,7 @@ impl Selection {
             // Step 34.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
             if self
-                .Collapse(Some(&start_block), start_block.len(), CanGc::from_cx(cx))
+                .Collapse(cx, Some(&start_block), start_block.len())
                 .is_err()
             {
                 unreachable!("Must always be able to collapse");

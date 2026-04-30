@@ -48,7 +48,9 @@ use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
-use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
+use servo_constellation_traits::{
+    KeyboardScroll, ScriptToConstellationMessage, SequentialFocusDirection,
+};
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
@@ -74,8 +76,8 @@ use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::types::{
     ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
-    WheelEvent, Window,
+    HTMLAnchorElement, HTMLElement, HTMLIFrameElement, HTMLLabelElement, MouseEvent, Touch,
+    TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
@@ -926,7 +928,7 @@ impl DocumentEventHandler {
                     self.window
                         .Document()
                         .focus_handler()
-                        .focus(node.find_click_focusable_area(), CanGc::from_cx(cx));
+                        .focus(cx, node.find_click_focusable_area());
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -1444,9 +1446,7 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document
-                    .focus_handler()
-                    .focus(FocusableArea::Viewport, CanGc::from_cx(cx));
+                document.focus_handler().focus(cx, FocusableArea::Viewport);
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
@@ -1976,7 +1976,7 @@ impl DocumentEventHandler {
                 // > If the key is the Tab key, the default action MUST be to shift the document focus
                 // > from the currently focused element (if any) to the new focused element, as
                 // > described in Focus Event Types
-                self.sequential_focus_navigation_via_keyboard_event(event, CanGc::from_cx(cx));
+                self.sequential_focus_navigation_via_keyboard_event(cx, event);
                 return;
             },
             _ => return,
@@ -2000,18 +2000,22 @@ impl DocumentEventHandler {
             .filter(|node| node.is_connected())
     }
 
-    fn sequential_focus_navigation_via_keyboard_event(&self, event: &KeyboardEvent, can_gc: CanGc) {
+    fn sequential_focus_navigation_via_keyboard_event(
+        &self,
+        cx: &mut JSContext,
+        event: &KeyboardEvent,
+    ) {
         let direction = if event.modifiers().contains(Modifiers::SHIFT) {
             SequentialFocusDirection::Backward
         } else {
             SequentialFocusDirection::Forward
         };
 
-        self.sequential_focus_navigation(direction, can_gc);
+        self.sequential_focus_navigation(cx, direction);
     }
 
-    /// <<https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
-    fn sequential_focus_navigation(&self, direction: SequentialFocusDirection, can_gc: CanGc) {
+    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
+    fn sequential_focus_navigation(&self, cx: &mut JSContext, direction: SequentialFocusDirection) {
         // > When the user requests that focus move from the currently focused area of a top-level
         // > traversable to the next or previous focusable area (e.g., as the default action of
         // > pressing the tab key), or when the user requests that focus sequentially move to a
@@ -2022,10 +2026,6 @@ impl DocumentEventHandler {
         // > user requested to move focus sequentially from there, or else the top-level traversable
         // > itself, if the user instead requested to move focus from outside the top-level
         // > traversable.
-        //
-        // TODO: We do not yet implement support for doing sequential focus navigation between traversibles
-        // according to the specification, so the implementation is currently adapted to work with a single
-        // traversible.
         //
         // Note: Here `None` represents the current traversible.
         let mut starting_point = self
@@ -2054,6 +2054,23 @@ impl DocumentEventHandler {
         //
         // Note: This is handled by the `direction` argument to this method.
 
+        self.sequential_focus_navigation_loop(
+            cx,
+            starting_point,
+            direction,
+            false, /* allow_focusing_viewport */
+        );
+    }
+
+    /// The inner loop ("Loop") of:
+    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
+    pub(crate) fn sequential_focus_navigation_loop(
+        &self,
+        cx: &mut JSContext,
+        starting_point: Option<DomRoot<Node>>,
+        direction: SequentialFocusDirection,
+        allow_focusing_viewport: bool,
+    ) {
         // > 4. Loop: Let selection mechanism be "sequential" if starting point is a navigable or if
         // > starting point is in its Document's sequential focus navigation order.
         // > Otherwise, starting point is not in its Document's sequential focus navigation order;
@@ -2070,21 +2087,50 @@ impl DocumentEventHandler {
 
         // > 6. If candidate is not null, then run the focusing steps for candidate and return.
         if let Some(candidate) = candidate {
-            self.focus_and_scroll_to_element_for_key_event(&candidate, can_gc);
+            self.focus_and_scroll_to_element_for_key_event(cx, &candidate);
+            // We can't simply run the focusing steps, because:
+            //  1. The focusing steps do not scroll to the element.
+            //  2. When focus shifts to a child navigable (iframe) we have special behavior to reach
+            //     across document boundaries to focus the first focusable element in the iframe.
+            match candidate.downcast::<HTMLIFrameElement>() {
+                Some(iframe_element) => self
+                    .window
+                    .Document()
+                    .focus_handler()
+                    .sequentially_focus_child_iframe_local_or_remote(cx, iframe_element, direction),
+                None => self.focus_and_scroll_to_element_for_key_event(cx, &candidate),
+            }
             return;
         }
 
         // > 7. Otherwise, unset the sequential focus navigation starting point.
         self.sequential_focus_navigation_starting_point.clear();
 
+        // This is not in the specification, but there's a difference between moving focus into
+        // a child `<iframe>` and within a Document. If no suitable focusable area can be found
+        // when moving into an `<iframe>`, we want to focus the `<iframe>`'s viewport itself.
+        if allow_focusing_viewport {
+            self.window
+                .Document()
+                .focus_handler()
+                .focus(cx, FocusableArea::Viewport);
+            return;
+        }
+
         // > 8. If starting point is a top-level traversable, or a focusable area in the top-level
         // > traversable, the user agent should transfer focus to its own controls appropriately (if
         // > any), honouring direction, and then return.
         // TODO: Implement this.
+        if self.window.is_top_level() {
+            return;
+        }
 
         // > 9. Otherwise, starting point is a focusable area in a child navigable. Set starting
         // > point to that child navigable's parent and return to the step labeled loop.
-        // TODO: Implement this.
+        self.window
+            .Document()
+            .focus_handler()
+            .sequentially_focus_parent_local_or_remote(cx, direction);
     }
 
     fn find_element_for_tab_focus_following_element(
@@ -2092,7 +2138,7 @@ impl DocumentEventHandler {
         direction: SequentialFocusDirection,
         starting_point: DomRoot<Node>,
     ) -> Option<DomRoot<Element>> {
-        let root_node = self.window.Document().GetDocumentElement()?;
+        let root_node = self.window.Document();
         let focused_element_tab_index = starting_point
             .downcast::<Element>()
             .and_then(Element::explicitly_set_tab_index)
@@ -2190,7 +2236,7 @@ impl DocumentEventHandler {
         &self,
         direction: SequentialFocusDirection,
     ) -> Option<DomRoot<Element>> {
-        let root_node = self.window.Document().GetDocumentElement()?;
+        let root_node = self.window.Document();
         let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
         for node in root_node
             .upcast::<Node>()
@@ -2503,15 +2549,13 @@ impl DocumentEventHandler {
 
         // This behavior is unspecified, but all browsers do this. When activating the element it is
         // focused and scrolled into view.
-        self.focus_and_scroll_to_element_for_key_event(html_element.upcast(), CanGc::from_cx(cx));
+        self.focus_and_scroll_to_element_for_key_event(cx, html_element.upcast());
         command.perform_action(cx);
         true
     }
 
-    fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
-        element
-            .upcast::<Node>()
-            .run_the_focusing_steps(None, can_gc);
+    fn focus_and_scroll_to_element_for_key_event(&self, cx: &mut JSContext, element: &Element) {
+        element.upcast::<Node>().run_the_focusing_steps(cx, None);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
@@ -2524,17 +2568,6 @@ impl DocumentEventHandler {
             None,
         );
     }
-}
-
-/// <https://html.spec.whatwg.org/multipage/#sequential-focus-direction>
-///
-/// > A sequential focus direction is one of two possible values: "forward", or "backward". They are
-/// > used in the below algorithms to describe the direction in which sequential focus travels at the
-/// > user's request.
-#[derive(Clone, Copy, PartialEq)]
-enum SequentialFocusDirection {
-    Forward,
-    Backward,
 }
 
 fn compare_tab_indices(a: i32, b: i32) -> Ordering {

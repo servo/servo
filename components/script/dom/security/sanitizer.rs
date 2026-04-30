@@ -1946,7 +1946,7 @@ fn built_in_non_replaceable_elements_list() -> Vec<SanitizerElement> {
             namespace: Some(ns!(svg).to_string().into()),
         }),
         SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-            name: "mathml".into(),
+            name: "math".into(),
             namespace: Some(ns!(mathml).to_string().into()),
         }),
     ]
