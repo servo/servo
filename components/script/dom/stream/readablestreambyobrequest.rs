@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::Ref;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
@@ -60,8 +58,8 @@ impl ReadableStreamBYOBRequest {
         }
     }
 
-    pub(crate) fn get_view(&self) -> Ref<'_, HeapBufferSource<ArrayBufferViewU8>> {
-        self.view.borrow()
+    pub(crate) fn get_view(&self) -> RootedTraceableBox<HeapBufferSource<ArrayBufferViewU8>> {
+        RootedTraceableBox::new(self.view.borrow().clone())
     }
 }
 
