@@ -1005,7 +1005,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
                         .contains(&attribute)
                     {
                         // Step 3.4.1.2.1. Assert: modified is true.
-                        modified = true;
+                        assert!(modified);
 
                         // Step 3.4.1.2.2. Remove attribute from element["removeAttributes"].
                         if let Some(element_remove_attributes) = element.remove_attributes_mut() {
