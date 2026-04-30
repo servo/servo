@@ -4728,7 +4728,6 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
         Node::containing_shadow_root(self.upcast())
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn stylesheet_list_owner(&self) -> StyleSheetListOwner {
         self.containing_shadow_root()
             .map(|shadow_root| StyleSheetListOwner::ShadowRoot(Dom::from_ref(&*shadow_root)))

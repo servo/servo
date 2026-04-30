@@ -181,7 +181,6 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
 }
 
 /// <https://drafts.fxtf.org/geometry/#ref-for-create-a-domrectreadonly-from-the-dictionary>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) -> DOMRectReadOnly {
     // NOTE: We trivially combine all three steps into one
 

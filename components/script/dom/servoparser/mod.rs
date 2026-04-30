@@ -1648,6 +1648,7 @@ impl Sink {
 
 impl TreeSink for Sink {
     type Output = Self;
+
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn finish(self) -> Self {
         self
@@ -1659,13 +1660,11 @@ impl TreeSink for Sink {
     where
         Self: 'a;
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn get_document(&self) -> Dom<Node> {
         Dom::from_ref(self.document.upcast())
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn get_template_contents(&self, target: &Dom<Node>) -> Dom<Node> {
         // TODO: https://github.com/servo/servo/issues/42839
         let mut cx = unsafe { temp_cx() };
@@ -1691,7 +1690,6 @@ impl TreeSink for Sink {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_element(
         &self,
         name: QualName,
@@ -1724,7 +1722,6 @@ impl TreeSink for Sink {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_comment(&self, text: StrTendril) -> Dom<Node> {
         // TODO: https://github.com/servo/servo/issues/42839
         let mut cx = unsafe { temp_cx() };
@@ -1739,7 +1736,6 @@ impl TreeSink for Sink {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn create_pi(&self, target: StrTendril, data: StrTendril) -> Dom<Node> {
         // TODO: https://github.com/servo/servo/issues/42839
         let mut cx = unsafe { temp_cx() };
