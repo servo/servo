@@ -18,7 +18,7 @@ use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DataTransferItemList {
@@ -51,7 +51,7 @@ impl DataTransferItemList {
         )
     }
 
-    pub(crate) fn frozen_types(&self, cx: JSContext, retval: MutableHandleValue, can_gc: CanGc) {
+    pub(crate) fn frozen_types(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
         self.frozen_types.get_or_init(
             || {
                 self.data_store
@@ -59,9 +59,9 @@ impl DataTransferItemList {
                     .as_ref()
                     .map_or(Vec::new(), |data_store| data_store.types())
             },
-            cx,
+            cx.into(),
             retval,
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 
@@ -82,7 +82,11 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item>
-    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<DataTransferItem>> {
+    fn IndexedGetter(
+        &self,
+        cx: &mut js::context::JSContext,
+        index: u32,
+    ) -> Option<DomRoot<DataTransferItem>> {
         // Step 1 Return null if it isn't associated with a data store
         let option = self.data_store.borrow();
         let data_store = match option.as_ref() {
@@ -92,16 +96,16 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
 
         // Step 2
         data_store.get_by_index(index as usize).map(|(id, _)| {
-            DataTransferItem::new(&self.global(), Rc::clone(&self.data_store), *id, can_gc)
+            DataTransferItem::new(cx, &self.global(), Rc::clone(&self.data_store), *id)
         })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
     fn Add(
         &self,
+        cx: &mut js::context::JSContext,
         data: DOMString,
         mut type_: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
         let mut option = self.data_store.borrow_mut();
@@ -120,16 +124,20 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
             // Step 3 Determine the value of the indexed property corresponding to the newly added item,
             // and return that value (a newly created DataTransferItem object).
             Some(DataTransferItem::new(
+                cx,
                 &self.global(),
                 Rc::clone(&self.data_store),
                 id,
-                can_gc,
             ))
         })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
-    fn Add_(&self, data: &File, can_gc: CanGc) -> Fallible<Option<DomRoot<DataTransferItem>>> {
+    fn Add_(
+        &self,
+        cx: &mut js::context::JSContext,
+        data: &File,
+    ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
         let mut option = self.data_store.borrow_mut();
         let data_store = match option.as_mut() {
@@ -151,10 +159,10 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
             // Step 3 Determine the value of the indexed property corresponding to the newly added item,
             // and return that value (a newly created DataTransferItem object).
             Some(DataTransferItem::new(
+                cx,
                 &self.global(),
                 Rc::clone(&self.data_store),
                 id,
-                can_gc,
             ))
         })
     }
