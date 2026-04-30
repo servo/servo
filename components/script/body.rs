@@ -690,7 +690,8 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     let global = object.global();
 
     // Enter the realm of the object whose body is being consumed.
-    let realm = enter_realm(&*global);
+    let mut realm = enter_auto_realm(cx, &*global);
+    let cx = &mut realm.current_realm();
     let _comp = InRealm::Entered(&realm);
 
     // Let promise be a new promise.
