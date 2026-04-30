@@ -473,7 +473,16 @@ def run_python_type_checker() -> Iterator[tuple[str, int, str]]:
         pass
     else:
         for error in errors:
-            diagnostic = PyreflyDiagnostic(**error)
+            diagnostic = PyreflyDiagnostic(
+                line=error['line'],
+                column=error['column'],
+                stop_line=error['stop_line'],
+                stop_column=error['stop_column'],
+                path=error['path'],
+                code=error['code'],
+                name=error['name'],
+                description=error['description'],
+                concise_description=error['concise_description'])
             yield relative_path(diagnostic.path), diagnostic.line, diagnostic.concise_description
 
 
