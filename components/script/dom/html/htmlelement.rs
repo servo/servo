@@ -676,8 +676,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         match lower_value.as_ref() {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
             "inherit" => {
-                self.element
-                    .remove_attribute_by_name(attr_name, CanGc::from_cx(cx));
+                self.element.remove_attribute_by_name(cx, attr_name);
             },
             // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
@@ -769,7 +768,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn SetAutofocus(&self, cx: &mut JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, CanGc::from_cx(cx));
+            .set_bool_attribute(cx, &local_name!("autofocus"), autofocus);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
@@ -780,7 +779,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(&local_name!("tabindex"), tab_index, CanGc::from_cx(cx));
+            .set_int_attribute(cx, &local_name!("tabindex"), tab_index);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-accesskey

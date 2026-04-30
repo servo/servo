@@ -433,7 +433,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         };
         // Step 7.2. If original parent has an id attribute, unset it.
         if let Some(element) = original_parent.downcast::<Element>() {
-            element.remove_attribute_by_name(&local_name!("id"), CanGc::from_cx(cx));
+            element.remove_attribute_by_name(cx, &local_name!("id"));
         }
         // Step 7.3. Insert cloned parent into the parent of original parent immediately before original parent.
         if parent_of_original_parent
@@ -1270,11 +1270,7 @@ impl Node {
 
                     if size > 0 {
                         let new_font_element = document.create_element(cx, "font");
-                        new_font_element.set_int_attribute(
-                            &local_name!("size"),
-                            size,
-                            CanGc::from_cx(cx),
-                        );
+                        new_font_element.set_int_attribute(cx, &local_name!("size"), size);
                         new_parent = Some(new_font_element);
                     }
                 }

@@ -140,7 +140,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn SetAutofocus(&self, cx: &mut JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, CanGc::from_cx(cx));
+            .set_bool_attribute(cx, &local_name!("autofocus"), autofocus);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-focus>
@@ -199,6 +199,6 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(&local_name!("tabindex"), tab_index, CanGc::from_cx(cx));
+            .set_int_attribute(cx, &local_name!("tabindex"), tab_index);
     }
 }

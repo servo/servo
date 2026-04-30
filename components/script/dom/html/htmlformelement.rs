@@ -505,11 +505,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
     fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(
-            &local_name!("rel"),
-            rel,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rellist>

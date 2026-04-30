@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use js::context::JSContext;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
@@ -184,9 +185,9 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         self.element
-            .set_tokenlist_attribute(&self.local_name, value, can_gc);
+            .set_tokenlist_attribute(cx, &self.local_name, value);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-replace>

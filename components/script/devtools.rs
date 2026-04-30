@@ -709,10 +709,7 @@ pub(crate) fn handle_modify_attribute(
                     CanGc::from_cx(cx),
                 );
             },
-            None => elem.RemoveAttribute(
-                DOMString::from(modification.attribute_name),
-                CanGc::from_cx(cx),
-            ),
+            None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
         }
     }
 }

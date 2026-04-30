@@ -30,21 +30,30 @@ impl Element {
 
     pub(crate) fn set_atomic_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: &LocalName,
         value: DOMString,
-        can_gc: CanGc,
     ) {
-        self.set_attribute(local_name, AttrValue::from_atomic(value.into()), can_gc);
+        self.set_attribute(
+            local_name,
+            AttrValue::from_atomic(value.into()),
+            CanGc::from_cx(cx),
+        );
     }
 
-    pub(crate) fn set_bool_attribute(&self, local_name: &LocalName, value: bool, can_gc: CanGc) {
+    pub(crate) fn set_bool_attribute(
+        &self,
+        cx: &mut JSContext,
+        local_name: &LocalName,
+        value: bool,
+    ) {
         if self.has_attribute(local_name) == value {
             return;
         }
         if value {
-            self.set_string_attribute(local_name, DOMString::new(), can_gc);
+            self.set_string_attribute(local_name, DOMString::new(), CanGc::from_cx(cx));
         } else {
-            self.remove_attribute(&ns!(), local_name, can_gc);
+            self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));
         }
     }
 
@@ -140,14 +149,14 @@ impl Element {
 
     pub(crate) fn set_tokenlist_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: &LocalName,
         value: DOMString,
-        can_gc: CanGc,
     ) {
         self.set_attribute(
             local_name,
             AttrValue::from_serialized_tokenlist(value.into()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 
@@ -160,8 +169,12 @@ impl Element {
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens), can_gc);
     }
 
-    pub(crate) fn set_int_attribute(&self, local_name: &LocalName, value: i32, can_gc: CanGc) {
-        self.set_attribute(local_name, AttrValue::Int(value.to_string(), value), can_gc);
+    pub(crate) fn set_int_attribute(&self, cx: &mut JSContext, local_name: &LocalName, value: i32) {
+        self.set_attribute(
+            local_name,
+            AttrValue::Int(value.to_string(), value),
+            CanGc::from_cx(cx),
+        );
     }
 
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {

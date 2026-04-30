@@ -2199,10 +2199,10 @@ impl Element {
 
     pub(crate) fn remove_attribute_by_name(
         &self,
+        cx: &mut JSContext,
         name: &LocalName,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|attr| attr.name() == name, can_gc)
+        self.remove_first_matching_attribute(|attr| attr.name() == name, CanGc::from_cx(cx))
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-remove>
@@ -2784,7 +2784,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-id>
     fn SetId(&self, cx: &mut JSContext, id: DOMString) {
-        self.set_atomic_attribute(&local_name!("id"), id, CanGc::from_cx(cx));
+        self.set_atomic_attribute(cx, &local_name!("id"), id);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
@@ -2794,7 +2794,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
     fn SetClassName(&self, cx: &mut JSContext, class: DOMString) {
-        self.set_tokenlist_attribute(&local_name!("class"), class, CanGc::from_cx(cx));
+        self.set_tokenlist_attribute(cx, &local_name!("class"), class);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classlist>
@@ -2895,7 +2895,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Some(_index) => match force {
                 // Step 5.
                 None | Some(false) => {
-                    self.remove_attribute_by_name(&name, CanGc::from_cx(cx));
+                    self.remove_attribute_by_name(cx, &name);
                     Ok(false)
                 },
                 // Step 6.
@@ -3005,9 +3005,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattribute>
-    fn RemoveAttribute(&self, name: DOMString, can_gc: CanGc) {
+    fn RemoveAttribute(&self, cx: &mut js::context::JSContext, name: DOMString) {
         let name = self.parsed_name(name);
-        self.remove_attribute_by_name(&name, can_gc);
+        self.remove_attribute_by_name(cx, &name);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattributens>

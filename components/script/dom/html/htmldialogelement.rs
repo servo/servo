@@ -131,7 +131,7 @@ impl HTMLDialogElement {
         self.queue_dialog_toggle_event_task("closed", "open", source);
 
         // Step 11. Add an open attribute to subject, whose value is the empty string.
-        subject.set_bool_attribute(&local_name!("open"), true, CanGc::from_cx(cx));
+        subject.set_bool_attribute(cx, &local_name!("open"), true);
         subject.set_open_state(true);
 
         // TODO: Step 12. Assert: subject's close watcher is not null.
@@ -337,7 +337,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         self.queue_dialog_toggle_event_task("closed", "open", None);
 
         // Step 6. Add an open attribute to this, whose value is the empty string.
-        element.set_bool_attribute(&local_name!("open"), true, CanGc::from_cx(cx));
+        element.set_bool_attribute(cx, &local_name!("open"), true);
         element.set_open_state(true);
 
         // TODO: Step 7. Set this's previously focused element to the focused element.
