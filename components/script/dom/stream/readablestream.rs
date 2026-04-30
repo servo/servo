@@ -851,7 +851,6 @@ impl PartialEq for ReaderType {
 }
 
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_readable_stream(
     cx: &mut JSContext,
     global: &GlobalScope,
@@ -895,7 +894,6 @@ pub(crate) fn create_readable_stream(
 }
 
 /// <https://streams.spec.whatwg.org/#abstract-opdef-createreadablebytestream>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 fn readable_byte_stream_tee(
     cx: &mut JSContext,
     global: &GlobalScope,
@@ -1008,7 +1006,6 @@ impl ReadableStream {
 
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_external_underlying_source(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -1740,7 +1737,7 @@ impl ReadableStream {
         let branch_1 = readable_byte_stream_tee(
             cx,
             &self.global(),
-            UnderlyingSourceType::TeeByte(Dom::from_ref(&byte_tee_source_1)),
+            UnderlyingSourceType::TeeByte(&byte_tee_source_1),
         );
         byte_tee_source_1.set_branch_1(&branch_1);
         byte_tee_source_2.set_branch_1(&branch_1);
@@ -1749,7 +1746,7 @@ impl ReadableStream {
         let branch_2 = readable_byte_stream_tee(
             cx,
             &self.global(),
-            UnderlyingSourceType::TeeByte(Dom::from_ref(&byte_tee_source_2)),
+            UnderlyingSourceType::TeeByte(&byte_tee_source_2),
         );
         byte_tee_source_1.set_branch_2(&branch_2);
         byte_tee_source_2.set_branch_2(&branch_2);
@@ -1808,8 +1805,7 @@ impl ReadableStream {
             CanGc::from_cx(cx),
         );
 
-        let underlying_source_type_branch_1 =
-            UnderlyingSourceType::Tee(Dom::from_ref(&tee_source_1));
+        let underlying_source_type_branch_1 = UnderlyingSourceType::Tee(&tee_source_1);
 
         let tee_source_2 = DefaultTeeUnderlyingSource::new(
             &reader,
@@ -1826,8 +1822,7 @@ impl ReadableStream {
             CanGc::from_cx(cx),
         );
 
-        let underlying_source_type_branch_2 =
-            UnderlyingSourceType::Tee(Dom::from_ref(&tee_source_2));
+        let underlying_source_type_branch_2 = UnderlyingSourceType::Tee(&tee_source_2);
 
         // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
         let branch_1 = create_readable_stream(
@@ -2021,7 +2016,7 @@ impl ReadableStream {
         }
 
         let controller = ReadableByteStreamController::new(
-            UnderlyingSourceType::Js(underlying_source_dict, Heap::default()),
+            UnderlyingSourceType::Js(underlying_source_dict),
             strategy_hwm,
             global,
             CanGc::from_cx(cx),
@@ -2057,7 +2052,7 @@ impl ReadableStream {
         // Let controller be a new ReadableStreamDefaultController.
         let controller = ReadableStreamDefaultController::new(
             &self.global(),
-            UnderlyingSourceType::Transfer(Dom::from_ref(port)),
+            UnderlyingSourceType::Transfer(port),
             0.,
             size_algorithm,
             CanGc::from_cx(cx),
@@ -2141,7 +2136,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
             let controller = ReadableStreamDefaultController::new(
                 global,
-                UnderlyingSourceType::Js(underlying_source_dict, Heap::default()),
+                UnderlyingSourceType::Js(underlying_source_dict),
                 high_water_mark,
                 size_algorithm,
                 CanGc::from_cx(cx),

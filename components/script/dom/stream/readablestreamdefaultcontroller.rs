@@ -342,7 +342,6 @@ pub(crate) struct ReadableStreamDefaultController {
 }
 
 impl ReadableStreamDefaultController {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -368,7 +367,6 @@ impl ReadableStreamDefaultController {
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
