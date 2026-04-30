@@ -190,19 +190,16 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
         let type_override = match_domstring_ascii!(format,
             // Step 5 If format equals "text", change it to "text/plain".
-            "text" => Some("text/plain"),
+            "text" => Some(DOMString::from("text/plain")),
             // Step 6 If format equals "url", change it to "text/uri-list" and set convert-to-URL to true.
             "url" => {
                 convert_to_url = true;
-                Some("text/uri-list")
+                Some(DOMString::from("text/uri-list"))
             },
             _ => None,
         );
-        let type_ = if let Some(t) = type_override {
-            DOMString::from(t)
-        } else {
-            format.clone()
-        };
+        // Clone outside of `match_domstring_ascii!` to avoid "RefCell already borrowed" panic
+        let type_ = type_override.unwrap_or_else(|| format.clone());
 
         let data = data_store.find_matching_text(&type_);
 
