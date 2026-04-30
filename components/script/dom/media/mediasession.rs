@@ -10,11 +10,11 @@ use embedder_traits::{
     MediaSessionActionType, MediaSessionEvent,
 };
 use rustc_hash::FxBuildHasher;
+use script_bindings::cell::DomRefCell;
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::{
     MediaMetadataInit, MediaMetadataMethods,

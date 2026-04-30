@@ -31,6 +31,7 @@ use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::time_profile;
+use script_bindings::cell::DomRefCell;
 use script_bindings::script_runtime::temp_cx;
 use script_traits::DocumentActivity;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -43,7 +44,6 @@ use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
 
 use crate::document_loader::{DocumentLoader, LoadType};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };

@@ -8,6 +8,7 @@ use std::collections::{HashMap, HashSet};
 use dom_struct::dom_struct;
 use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use servo_base::id::ScriptEventLoopId;
@@ -16,7 +17,6 @@ use storage_traits::indexeddb::{
 };
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{
     IDBObjectStoreParameters, IDBTransactionDurability,

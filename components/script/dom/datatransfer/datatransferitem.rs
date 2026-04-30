@@ -7,9 +7,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };

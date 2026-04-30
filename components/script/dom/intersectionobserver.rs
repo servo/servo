@@ -12,6 +12,7 @@ use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
 use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::cell::DomRefCell;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_geometry::f32_rect_to_au_rect;
 use style::parser::Parse;
@@ -23,7 +24,6 @@ use url::Url;
 
 use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
 };

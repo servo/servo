@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use devtools_traits::AttrInfo;
 use html5ever::{LocalName, Namespace, Prefix};
+use script_bindings::cell::DomRefCell;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
 use style::attr::{AttrIdentifier, AttrValue};
 
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::root::ToLayout;
 use crate::dom::element::Element;
 use crate::dom::node::node::NodeTraits;

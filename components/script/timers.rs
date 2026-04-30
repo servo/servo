@@ -15,13 +15,13 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
 use rustc_hash::FxHashMap;
+use script_bindings::cell::DomRefCell;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use timers::{BoxedTimerCallback, TimerEventRequest};
 
 use crate::dom::bindings::callback::ExceptionHandling::Report;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::error::Fallible;

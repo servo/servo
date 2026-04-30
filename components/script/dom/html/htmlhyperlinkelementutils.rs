@@ -4,9 +4,9 @@
 
 use html5ever::local_name;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, USVString};

@@ -12,12 +12,12 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsval::JSVal;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
+use script_bindings::cell::DomRefCell;
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
 use crate::ScriptThread;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};

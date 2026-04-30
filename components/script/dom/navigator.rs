@@ -20,13 +20,13 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use regex::Regex;
+#[cfg(feature = "gamepad")]
+use script_bindings::cell::DomRefCell;
 use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
 use crate::body::Extractable;
-#[cfg(feature = "gamepad")]
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;

@@ -8,10 +8,10 @@ use dom_struct::dom_struct;
 use euclid::Point2D;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
+use script_bindings::cell::DomRefCell;
 use style::Atom;
 use style_traits::CSSPixel;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::PointerEventBinding::{
     PointerEventInit, PointerEventMethods,

@@ -12,12 +12,12 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::{ScriptSelection, SharedSelection};
+use script_bindings::cell::DomRefCell;
 use servo_base::text::Utf16CodeUnitLength;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;

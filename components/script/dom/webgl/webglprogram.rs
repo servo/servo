@@ -7,13 +7,13 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
     WebGLProgramId, WebGLResult, webgl_channel,
 };
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;

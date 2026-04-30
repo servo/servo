@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 use servo_base::generic_channel::GenericCallback;
 use webgpu_traits::{
     WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURenderPipelineResponse,
@@ -10,7 +11,6 @@ use webgpu_traits::{
 };
 use wgpu_core::pipeline::RenderPipelineDescriptor;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};

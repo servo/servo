@@ -8590,7 +8590,6 @@ dependencies = [
 name = "servo-script"
 version = "0.2.0"
 dependencies = [
- "accountable-refcell",
  "aes",
  "aes-gcm",
  "aes-kw",
@@ -8733,6 +8732,7 @@ dependencies = [
 name = "servo-script-bindings"
 version = "0.2.0"
 dependencies = [
+ "accountable-refcell",
  "bitflags 2.11.1",
  "crossbeam-channel",
  "encoding_rs",

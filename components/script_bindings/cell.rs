@@ -6,20 +6,22 @@
 
 use std::cell::{BorrowError, BorrowMutError};
 #[cfg(not(feature = "refcell_backtrace"))]
-pub(crate) use std::cell::{Ref, RefCell, RefMut};
+pub use std::cell::{Ref, RefCell, RefMut};
 
 #[cfg(feature = "refcell_backtrace")]
-pub(crate) use accountable_refcell::{Ref, RefCell, RefMut};
+pub use accountable_refcell::{Ref, RefCell, RefMut};
+use js::jsapi::JSTracer;
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOfOps};
 
-use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
+use crate::CustomTraceable;
+use crate::assert::{assert_in_layout, assert_in_script};
 
 /// A mutable field in the DOM.
 ///
 /// This extends the API of `std::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
-pub(crate) struct DomRefCell<T> {
+pub struct DomRefCell<T> {
     value: RefCell<T>,
 }
 
@@ -47,7 +49,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently mutably borrowed.
     #[expect(unsafe_code)]
-    pub(crate) unsafe fn borrow_for_layout(&self) -> &T {
+    pub unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();
         unsafe {
             self.value
@@ -69,7 +71,7 @@ impl<T> DomRefCell<T> {
     /// Panics if this is called from anywhere other than the script thread.
     #[expect(unsafe_code)]
     #[allow(clippy::mut_from_ref)]
-    pub(crate) unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
+    pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         assert_in_script();
         unsafe { &mut *self.value.as_ptr() }
     }
@@ -88,7 +90,7 @@ impl<T> DomRefCell<T> {
     /// Panics if this is called from anywhere other than the layout thread.
     #[expect(unsafe_code)]
     #[allow(clippy::mut_from_ref)]
-    pub(crate) unsafe fn borrow_mut_for_layout(&self) -> &mut T {
+    pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         assert_in_layout();
         unsafe { &mut *self.value.as_ptr() }
     }
@@ -98,7 +100,7 @@ impl<T> DomRefCell<T> {
 // ===================================================
 impl<T> DomRefCell<T> {
     /// Create a new `DomRefCell` containing `value`.
-    pub(crate) fn new(value: T) -> DomRefCell<T> {
+    pub fn new(value: T) -> DomRefCell<T> {
         DomRefCell {
             value: RefCell::new(value),
         }
@@ -115,7 +117,7 @@ impl<T> DomRefCell<T> {
     /// Panics if this is called from anywhere other than the script thread.
     /// Use borrow_for_layout if the borrowed data might used during layout.
     #[track_caller]
-    pub(crate) fn borrow(&self) -> Ref<'_, T> {
+    pub fn borrow(&self) -> Ref<'_, T> {
         assert_in_script();
         self.value.borrow()
     }
@@ -130,7 +132,7 @@ impl<T> DomRefCell<T> {
     /// Panics if the value is currently borrowed.
     /// Panics if this is called from anywhere other than the script thread.
     #[track_caller]
-    pub(crate) fn borrow_mut(&self) -> RefMut<'_, T> {
+    pub fn borrow_mut(&self) -> RefMut<'_, T> {
         assert_in_script();
         self.value.borrow_mut()
     }
@@ -145,7 +147,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub(crate) fn try_borrow(&self) -> Result<Ref<'_, T>, BorrowError> {
+    pub fn try_borrow(&self) -> Result<Ref<'_, T>, BorrowError> {
         assert_in_script();
         self.value.try_borrow()
     }
@@ -160,7 +162,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub(crate) fn try_borrow_mut(&self) -> Result<RefMut<'_, T>, BorrowMutError> {
+    pub fn try_borrow_mut(&self) -> Result<RefMut<'_, T>, BorrowMutError> {
         assert_in_script();
         self.value.try_borrow_mut()
     }
@@ -172,7 +174,19 @@ impl<T: Default> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if the value is currently borrowed.
-    pub(crate) fn take(&self) -> T {
+    pub fn take(&self) -> T {
         self.value.take()
+    }
+}
+
+unsafe impl<T: CustomTraceable> CustomTraceable for DomRefCell<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        unsafe { (*self).borrow().trace(trc) }
+    }
+}
+
+unsafe impl<T: js::gc::Traceable> js::gc::Traceable for DomRefCell<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        unsafe { (*self).borrow().trace(trc) };
     }
 }

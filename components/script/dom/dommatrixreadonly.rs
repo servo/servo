@@ -15,6 +15,7 @@ use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
 use js::typedarray::{Float32Array, Float64Array, HeapFloat32Array, HeapFloat64Array};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::cformat;
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::id::{DomMatrixId, DomMatrixIndex};
@@ -25,7 +26,6 @@ use url::Url;
 
 use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::buffer_source::create_buffer_source;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
     DOMMatrix2DInit, DOMMatrixInit, DOMMatrixMethods,
 };

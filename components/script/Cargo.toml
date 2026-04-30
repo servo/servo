@@ -23,7 +23,7 @@ jitspew = ['js/jitspew']
 js_backtrace = []
 js_jit = ["js/jit"]
 profilemozjs = ['js/profilemozjs']
-refcell_backtrace = ["accountable-refcell"]
+refcell_backtrace = ["script_bindings/refcell_backtrace"]
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
@@ -40,7 +40,6 @@ webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 
 [dependencies]
-accountable-refcell = { workspace = true, optional = true }
 aes = { workspace = true }
 aes-gcm = { workspace = true }
 aes-kw = { workspace = true }

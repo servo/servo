@@ -10,6 +10,7 @@ use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
@@ -19,7 +20,6 @@ use storage_traits::indexeddb::{
     IndexedDBThreadMsg, SyncOperation,
 };
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
 use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBObjectStoreMethods;

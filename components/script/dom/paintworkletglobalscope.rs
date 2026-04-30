@@ -23,6 +23,7 @@ use js::rust::wrappers2::{
 };
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
+use script_bindings::cell::DomRefCell;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_base::id::{PipelineId, WebViewId};
 use servo_config::pref;
@@ -33,7 +34,6 @@ use webrender_api::units::DevicePixel;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::CallbackContainer;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkletGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;

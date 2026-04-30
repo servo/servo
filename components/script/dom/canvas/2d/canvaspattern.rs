@@ -6,9 +6,9 @@ use dom_struct::dom_struct;
 use euclid::default::{Size2D, Transform2D};
 use js::context::JSContext;
 use pixels::{SharedSnapshot, Snapshot};
+use script_bindings::cell::DomRefCell;
 use servo_canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasPatternMethods;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::error::ErrorResult;

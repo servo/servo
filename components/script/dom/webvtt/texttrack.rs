@@ -5,8 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
 };

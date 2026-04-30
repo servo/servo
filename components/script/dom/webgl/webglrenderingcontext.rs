@@ -21,6 +21,7 @@ use js::typedarray::{
     TypedArrayElementCreator, Uint32Array,
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
+use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::AssociatedMemory;
 use serde::{Deserialize, Serialize};
@@ -37,7 +38,6 @@ use servo_config::pref;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
-use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;

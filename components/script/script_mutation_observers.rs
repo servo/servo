@@ -7,10 +7,10 @@ use std::rc::Rc;
 
 use js::context::JSContext;
 use script_bindings::callback::ExceptionHandling;
+use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
 use crate::microtask::{Microtask, MicrotaskQueue};
 

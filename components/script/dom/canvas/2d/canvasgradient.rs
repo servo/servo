@@ -4,12 +4,12 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use servo_canvas_traits::canvas::{
     CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle,
 };
 
 use super::canvas_state::parse_color;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasGradientMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;

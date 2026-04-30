@@ -10,10 +10,10 @@ use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
 use js::context::JSContext;
+use script_bindings::cell::{DomRefCell, Ref};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Fallible;

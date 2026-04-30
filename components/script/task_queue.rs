@@ -10,10 +10,10 @@ use std::default::Default;
 
 use crossbeam_channel::{self, Receiver, Sender};
 use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
 use servo_base::id::PipelineId;
 use strum::VariantArray;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;

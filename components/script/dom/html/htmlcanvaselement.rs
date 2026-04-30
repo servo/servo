@@ -13,6 +13,7 @@ use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
+use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::weakref::WeakRef;
 use servo_base::Epoch;
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
@@ -27,7 +28,6 @@ use webrender_api::ImageKey;
 use crate::canvas_context::{CanvasContext, RenderingContext};
 use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     BlobCallback, HTMLCanvasElementMethods, RenderingContext as RootedRenderingContext,
 };

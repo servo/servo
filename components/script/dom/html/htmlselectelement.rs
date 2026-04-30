@@ -7,7 +7,7 @@ use std::iter;
 
 use crate::dom::activation::Activatable;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::bindings::cell::{DomRefCell, Ref};
+use script_bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;

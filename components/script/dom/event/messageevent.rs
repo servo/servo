@@ -6,9 +6,9 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use script_bindings::cell::DomRefCell;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;

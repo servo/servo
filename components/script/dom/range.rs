@@ -12,10 +12,10 @@ use euclid::Rect;
 use js::context::JSContext;
 use js::jsapi::JSTracer;
 use js::rust::HandleObject;
+use script_bindings::cell::DomRefCell;
 use style_traits::CSSPixel;
 
 use crate::dom::abstractrange::{AbstractRange, BoundaryPoint, bp_position};
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
