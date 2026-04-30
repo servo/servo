@@ -59,6 +59,7 @@ paint_api = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
+postcard = { workspace = true }
 quick_cache = { version = "0.6.18", default-features = false, features = ["ahash"] }
 regex = { workspace = true }
 resvg = { workspace = true }
@@ -66,6 +67,7 @@ rustc-hash = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
+rusqlite = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
 servo-base = { workspace = true }
@@ -73,6 +75,8 @@ servo-config = { workspace = true }
 servo-default-resources = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
+sea-query = { workspace = true }
+sea-query-rusqlite = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true, optional = true }
