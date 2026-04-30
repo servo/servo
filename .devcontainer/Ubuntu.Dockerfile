@@ -37,7 +37,7 @@ FROM base AS rust_builder
 
 # TODO: We would need to use `ARG` and install specific versions, to ensure
 # that the tools are updated and not always cached.
-RUN cargo install cargo-deny cargo-nextest taplo-cli cargo-about --locked
+RUN cargo install cargo-deny cargo-nextest taplo-cli --locked
 
 
 FROM base AS final
@@ -46,6 +46,5 @@ COPY --from=rust_builder \
     /usr/local/cargo/bin/cargo-deny \
     /usr/local/cargo/bin/cargo-nextest \
     /usr/local/cargo/bin/taplo \
-    /usr/local/cargo/bin/cargo-about \
     /usr/local/cargo/bin/
 COPY --from=uv /uv /uvx /bin/
