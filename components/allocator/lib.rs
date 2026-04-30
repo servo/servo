@@ -53,7 +53,14 @@ pub static enclosing_size: Option<EnclosingSizeFn> = Some(crate::enclosing_size_
 #[cfg(not(feature = "allocation-tracking"))]
 pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
-#[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]
+// If both `use-jemalloc` and `use-system-allocator` are selected, use the system allocator.
+// `use-jemalloc` is selected by default in servoshell, and we mainly have the feature to be able
+// to remove the compile time dependency on jemalloc.
+#[cfg(all(
+    feature = "use-jemalloc",
+    not(feature = "use-system-allocator"),
+    not(any(windows, target_env = "ohos"))
+))]
 mod platform {
     use std::os::raw::c_void;
 
@@ -77,9 +84,14 @@ mod platform {
     }
 }
 
+// If no allocator feature is selected, use the system allocator.
 #[cfg(all(
     not(windows),
-    any(feature = "use-system-allocator", target_env = "ohos")
+    any(
+        feature = "use-system-allocator",
+        target_env = "ohos",
+        not(feature = "use-jemalloc")
+    ),
 ))]
 mod platform {
     pub use std::alloc::System as Allocator;
