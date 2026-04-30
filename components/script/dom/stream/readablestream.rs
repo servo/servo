@@ -11,6 +11,7 @@ use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -60,7 +61,7 @@ use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
-use crate::realms::{enter_realm, InRealm, enter_auto_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
@@ -426,7 +427,7 @@ impl PipeTo {
     #[expect(unsafe_code)]
     fn write_chunk(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
     ) -> bool {
@@ -741,7 +742,7 @@ impl PipeTo {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
-    fn finalize(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
+    fn finalize(&self, cx: &mut JSContext, global: &GlobalScope) {
         *self.state.borrow_mut() = PipeToState::Finalized;
 
         // Perform ! WritableStreamDefaultWriterRelease(writer).
@@ -753,7 +754,7 @@ impl PipeTo {
 
         // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
         self.reader
-            .release(CanGc::from_cx(cx))
+            .release(cx)
             .expect("Releasing the reader should not fail");
 
         // If signal is not undefined, remove abortAlgorithm from signal.
@@ -852,7 +853,7 @@ impl PartialEq for ReaderType {
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_readable_stream(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
     queuing_strategy: Option<Rc<QueuingStrategySize>>,
@@ -896,7 +897,7 @@ pub(crate) fn create_readable_stream(
 /// <https://streams.spec.whatwg.org/#abstract-opdef-createreadablebytestream>
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 fn readable_byte_stream_tee(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
 ) -> DomRoot<ReadableStream> {
@@ -991,7 +992,7 @@ impl ReadableStream {
 
     /// Build a stream backed by a Rust source that has already been read into memory.
     pub(crate) fn new_from_bytes(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         bytes: Vec<u8>,
     ) -> Fallible<DomRoot<ReadableStream>> {
@@ -1000,8 +1001,8 @@ impl ReadableStream {
             global,
             UnderlyingSourceType::Memory(bytes.len()),
         )?;
-        stream.enqueue_native(bytes, CanGc::from_cx(cx));
-        stream.controller_close_native(CanGc::from_cx(cx));
+        stream.enqueue_native(cx, bytes);
+        stream.controller_close_native(cx);
         Ok(stream)
     }
 
@@ -1009,7 +1010,7 @@ impl ReadableStream {
     /// Note: external sources are always paired with a default controller.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_with_external_underlying_source(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         source: UnderlyingSourceType,
     ) -> Fallible<DomRoot<ReadableStream>> {
@@ -1048,21 +1049,16 @@ impl ReadableStream {
     /// Call into the pull steps of the controller,
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn perform_pull_steps(
-        &self,
-        cx: SafeJSContext,
-        read_request: &ReadRequest,
-        can_gc: CanGc,
-    ) {
+    pub(crate) fn perform_pull_steps(&self, cx: &mut JSContext, read_request: &ReadRequest) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_steps(read_request, can_gc),
+                .perform_pull_steps(cx, read_request),
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_steps(cx, read_request, can_gc),
+                .perform_pull_steps(cx, read_request),
             None => {
                 unreachable!("Stream does not have a controller.");
             },
@@ -1074,17 +1070,16 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-byob-reader-read>
     pub(crate) fn perform_pull_into(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
         min: u64,
-        can_gc: CanGc,
     ) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_into(cx, read_into_request, view, min, can_gc),
+                .perform_pull_into(cx, read_into_request, view, min),
             _ => {
                 unreachable!(
                     "Pulling a chunk from a stream with a default controller using a BYOB reader"
@@ -1138,12 +1133,12 @@ impl ReadableStream {
 
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
-    pub(crate) fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
+    pub(crate) fn enqueue_native(&self, cx: &mut JSContext, bytes: Vec<u8>) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .enqueue_native(bytes, can_gc),
+                .enqueue_native(cx, bytes),
             _ => {
                 unreachable!(
                     "Enqueueing chunk to a stream from Rust on other than default controller"
@@ -1153,7 +1148,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub(crate) fn error(&self, e: SafeHandleValue, can_gc: CanGc) {
+    pub(crate) fn error(&self, cx: &mut JSContext, e: SafeHandleValue) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
 
@@ -1175,7 +1170,7 @@ impl ReadableStream {
 
         if let Some(reader) = default_reader {
             // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
-            reader.error(e, can_gc);
+            reader.error(cx, e);
             return;
         }
 
@@ -1189,7 +1184,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
-            reader.error_read_into_requests(e, can_gc);
+            reader.error_read_into_requests(e, CanGc::from_cx(cx));
         }
 
         // If reader is undefined, return.
@@ -1202,22 +1197,26 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
-    pub(crate) fn error_native(&self, error: Error, can_gc: CanGc) {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut error_val = UndefinedValue());
-        error.to_jsval(cx, &self.global(), error_val.handle_mut(), can_gc);
-        self.error(error_val.handle(), can_gc);
+    pub(crate) fn error_native(&self, cx: &mut JSContext, error: Error) {
+        rooted!(&in(cx) let mut error_val = UndefinedValue());
+        error.to_jsval(
+            cx.into(),
+            &self.global(),
+            error_val.handle_mut(),
+            CanGc::from_cx(cx),
+        );
+        self.error(cx, error_val.handle());
     }
 
     /// Call into the controller's `Close` method.
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub(crate) fn controller_close_native(&self, can_gc: CanGc) {
+    pub(crate) fn controller_close_native(&self, cx: &mut JSContext) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => {
                 let _ = controller
                     .get()
                     .expect("Stream should have controller.")
-                    .Close(can_gc);
+                    .Close(cx);
             },
             _ => {
                 unreachable!("Native closing is only done on default controllers.")
@@ -1327,7 +1326,7 @@ impl ReadableStream {
     /// and before `stop_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn read_a_chunk(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    pub(crate) fn read_a_chunk(&self, cx: &mut JSContext) -> Rc<Promise> {
         match self.reader.borrow().as_ref() {
             Some(ReaderType::Default(reader)) => {
                 let Some(reader) = reader.get() else {
@@ -1347,7 +1346,7 @@ impl ReadableStream {
     /// must be done after `start_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    pub(crate) fn stop_reading(&self, can_gc: CanGc) {
+    pub(crate) fn stop_reading(&self, cx: &mut JSContext) {
         let reader_ref = self.reader.borrow();
 
         match reader_ref.as_ref() {
@@ -1357,7 +1356,7 @@ impl ReadableStream {
                 };
 
                 drop(reader_ref);
-                reader.release(can_gc).expect("Reader release cannot fail.");
+                reader.release(cx).expect("Reader release cannot fail.");
             },
             _ => {
                 unreachable!("Native stop reading can only be done with a default reader.")
@@ -1452,7 +1451,12 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    pub(crate) fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool, can_gc: CanGc) {
+    pub(crate) fn fulfill_read_request(
+        &self,
+        cx: &mut JSContext,
+        chunk: SafeHandleValue,
+        done: bool,
+    ) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
 
@@ -1470,12 +1474,12 @@ impl ReadableStream {
 
                 if done {
                     // step 6 - If done is true, perform readRequest’s close steps.
-                    request.close_steps(can_gc);
+                    request.close_steps(cx);
                 } else {
                     // step 7 - Otherwise, perform readRequest’s chunk steps, given chunk.
                     let result = RootedTraceableBox::new(Heap::default());
                     result.set(*chunk);
-                    request.chunk_steps(result, &self.global(), can_gc);
+                    request.chunk_steps(cx, result, &self.global());
                 }
             },
             _ => {
@@ -1489,9 +1493,9 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-into-request>
     pub(crate) fn fulfill_read_into_request(
         &self,
+        cx: &mut JSContext,
         chunk: SafeHandleValue,
         done: bool,
-        can_gc: CanGc,
     ) {
         // Assert: ! ReadableStreamHasBYOBReader(stream) is true.
         assert!(self.has_byob_reader());
@@ -1516,11 +1520,11 @@ impl ReadableStream {
                 let result = RootedTraceableBox::new(Heap::default());
                 if done {
                     result.set(*chunk);
-                    read_into_request.close_steps(Some(result), can_gc);
+                    read_into_request.close_steps(cx, Some(result));
                 } else {
                     // Otherwise, perform readIntoRequest’s chunk steps, given chunk.
                     result.set(*chunk);
-                    read_into_request.chunk_steps(result, can_gc);
+                    read_into_request.chunk_steps(result, CanGc::from_cx(cx));
                 }
             },
             _ => {
@@ -1532,7 +1536,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    pub(crate) fn close(&self, can_gc: CanGc) {
+    pub(crate) fn close(&self, cx: &mut JSContext) {
         // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
         // Set stream.[[state]] to "closed".
@@ -1552,7 +1556,7 @@ impl ReadableStream {
 
         if let Some(reader) = default_reader {
             // steps 5 & 6 for a default reader
-            reader.close(can_gc);
+            reader.close(cx);
             return;
         }
 
@@ -1567,7 +1571,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // steps 5 & 6 for a BYOB reader
-            reader.close(can_gc);
+            reader.close(CanGc::from_cx(cx));
         }
 
         // If reader is undefined, return.
@@ -1576,7 +1580,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     pub(crate) fn cancel(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) -> Rc<Promise> {
@@ -1597,7 +1601,7 @@ impl ReadableStream {
             return promise;
         }
         // Perform ! ReadableStreamClose(stream).
-        self.close(CanGc::from_cx(cx));
+        self.close(cx);
 
         // If reader is not undefined and reader implements ReadableStreamBYOBReader,
         let byob_reader = {
@@ -1610,7 +1614,7 @@ impl ReadableStream {
 
         if let Some(reader) = byob_reader {
             // step 6.1, 6.2 & 6.3 of https://streams.spec.whatwg.org/#readable-stream-cancel
-            reader.cancel(CanGc::from_cx(cx));
+            reader.cancel(cx);
         }
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
@@ -1645,8 +1649,10 @@ impl ReadableStream {
             Some(rejection_handler),
             CanGc::from_cx(cx),
         );
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
+        let mut realm = enter_auto_realm(cx, &*global);
+        let cx = &mut realm.current_realm();
+        let in_realm_proof = cx.into();
+        let comp = InRealm::Already(&in_realm_proof);
         source_cancel_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
 
         // Return the result of reacting to sourceCancelPromise
@@ -1661,7 +1667,7 @@ impl ReadableStream {
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
-    fn byte_tee(&self, cx: &mut js::context::JSContext) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn byte_tee(&self, cx: &mut JSContext) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
         // Assert: stream.[[controller]] implements ReadableByteStreamController.
 
@@ -1760,7 +1766,7 @@ impl ReadableStream {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn default_tee(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         clone_for_branch_2: bool,
     ) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
@@ -1963,7 +1969,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
     pub(crate) fn tee(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         clone_for_branch_2: bool,
     ) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
@@ -1988,7 +1994,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller-from-underlying-source>
     fn set_up_byte_controller(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         underlying_source_dict: JsUnderlyingSource,
         underlying_source_handle: SafeHandleObject,
@@ -2033,7 +2039,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     pub(crate) fn setup_cross_realm_transform_readable(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         port: &MessagePort,
     ) {
         let port_id = port.message_port_id();
@@ -2077,7 +2083,7 @@ impl ReadableStream {
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-constructor>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         underlying_source: Option<*mut JSObject>,
@@ -2158,7 +2164,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
-    fn Cancel(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut JSContext, reason: SafeHandleValue) -> Rc<Promise> {
         let global = self.global();
         if self.is_locked() {
             // If ! IsReadableStreamLocked(this) is true,
@@ -2197,7 +2203,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-tee>
-    fn Tee(&self, cx: &mut js::context::JSContext) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn Tee(&self, cx: &mut JSContext) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Return ? ReadableStreamTee(this, false).
         self.tee(cx, false)
     }
@@ -2380,7 +2386,7 @@ impl CrossRealmTransformReadable {
         // Otherwise, if type is "close",
         if type_string == "close" {
             // Perform ! ReadableStreamDefaultControllerClose(controller).
-            self.controller.close(CanGc::from_cx(cx));
+            self.controller.close(cx);
 
             // Disentangle port.
             global.disentangle_port(cx, port);
@@ -2389,7 +2395,7 @@ impl CrossRealmTransformReadable {
         // Otherwise, if type is "error",
         if type_string == "error" {
             // Perform ! ReadableStreamDefaultControllerError(controller, value).
-            self.controller.error(value.handle(), CanGc::from_cx(cx));
+            self.controller.error(cx, value.handle());
 
             // Disentangle port.
             global.disentangle_port(cx, port);
@@ -2413,8 +2419,7 @@ impl CrossRealmTransformReadable {
         port.cross_realm_transform_send_error(rooted_error.handle(), CanGc::from_cx(cx));
 
         // Perform ! ReadableStreamDefaultControllerError(controller, error).
-        self.controller
-            .error(rooted_error.handle(), CanGc::from_cx(cx));
+        self.controller.error(cx, rooted_error.handle());
 
         // Disentangle port.
         global.disentangle_port(cx, port);
@@ -2501,10 +2506,7 @@ impl Transferable for ReadableStream {
     type Data = MessagePortImpl;
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps>
-    fn transfer(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<(MessagePortId, MessagePortImpl)> {
+    fn transfer(&self, cx: &mut JSContext) -> Fallible<(MessagePortId, MessagePortImpl)> {
         // Step 1. If ! IsReadableStreamLocked(value) is true, throw a
         // "DataCloneError" DOMException.
         if self.is_locked() {
@@ -2545,7 +2547,7 @@ impl Transferable for ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps>
     fn transfer_receive(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         owner: &GlobalScope,
         id: MessagePortId,
         port_impl: MessagePortImpl,

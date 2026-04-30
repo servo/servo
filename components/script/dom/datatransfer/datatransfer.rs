@@ -22,7 +22,7 @@ use crate::dom::filelist::FileList;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::window::Window;
 use crate::drag_data_store::{DragDataStore, Mode};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 const VALID_DROP_EFFECTS: [&str; 4] = ["none", "copy", "link", "move"];
 const VALID_EFFECTS_ALLOWED: [&str; 9] = [
@@ -165,8 +165,8 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-types>
-    fn Types(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        self.items.frozen_types(cx, retval, can_gc);
+    fn Types(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
+        self.items.frozen_types(cx, retval);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
@@ -255,16 +255,16 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
-    fn Files(&self, can_gc: CanGc) -> DomRoot<FileList> {
+    fn Files(&self, cx: &mut js::context::JSContext) -> DomRoot<FileList> {
         // Step 1 Start with an empty list.
         let mut files = Vec::new();
 
         // Step 2 If the DataTransfer is not associated with a data store return the empty list.
         if let Some(data_store) = self.data_store.borrow().as_ref() {
-            data_store.files(&self.global(), can_gc, &mut files);
+            data_store.files(cx, &self.global(), &mut files);
         }
 
         // Step 5
-        FileList::new(self.global().as_window(), files, can_gc)
+        FileList::new(self.global().as_window(), files, CanGc::from_cx(cx))
     }
 }

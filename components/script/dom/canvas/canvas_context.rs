@@ -37,7 +37,6 @@ impl HTMLCanvasElementOrOffscreenCanvas {
 
 impl From<&RootedHTMLCanvasElementOrOffscreenCanvas> for HTMLCanvasElementOrOffscreenCanvas {
     /// Returns a traced version suitable for use as member of other DOM objects.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn from(
         value: &RootedHTMLCanvasElementOrOffscreenCanvas,
     ) -> HTMLCanvasElementOrOffscreenCanvas {

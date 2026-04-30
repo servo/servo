@@ -103,9 +103,9 @@ impl Response {
         )
     }
 
-    pub(crate) fn error_stream(&self, error: Error, can_gc: CanGc) {
+    pub(crate) fn error_stream(&self, cx: &mut js::context::JSContext, error: Error) {
         if let Some(body) = self.fetch_body_stream.get() {
-            body.error_native(error, can_gc);
+            body.error_native(cx, error);
         }
     }
 
@@ -139,8 +139,8 @@ impl BodyMixin for Response {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
-        let headers = self.Headers(can_gc);
+    fn get_mime_type(&self, cx: &mut js::context::JSContext) -> Vec<u8> {
+        let headers = self.Headers(CanGc::from_cx(cx));
         headers.extract_mime_type()
     }
 }
@@ -378,33 +378,33 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-text>
-    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Text, can_gc)
+    fn Text(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Text)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-blob>
-    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Blob, can_gc)
+    fn Blob(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Blob)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-formdata>
-    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::FormData, can_gc)
+    fn FormData(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::FormData)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-json>
-    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Json, can_gc)
+    fn Json(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Json)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-arraybuffer>
-    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::ArrayBuffer, can_gc)
+    fn ArrayBuffer(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::ArrayBuffer)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
-    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
-        consume_body(self, BodyType::Bytes, can_gc)
+    fn Bytes(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+        consume_body(cx, self, BodyType::Bytes)
     }
 }
 
@@ -548,19 +548,19 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub(crate) fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+    pub(crate) fn stream_chunk(&self, cx: &mut js::context::JSContext, chunk: Vec<u8>) {
         self.is_body_empty.set(false);
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.fetch_body_stream.get() {
-            body.enqueue_native(chunk, can_gc);
+            body.enqueue_native(cx, chunk);
         }
     }
 
-    pub(crate) fn finish(&self, can_gc: CanGc) {
+    pub(crate) fn finish(&self, cx: &mut js::context::JSContext) {
         if let Some(body) = self.fetch_body_stream.get() {
-            body.controller_close_native(can_gc);
+            body.controller_close_native(cx);
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {

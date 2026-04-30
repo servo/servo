@@ -7,6 +7,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -30,7 +31,7 @@ use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes,
 use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{AbortController, AbortSignal, TransformStream};
 use crate::realms::{InRealm, enter_auto_realm};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 impl js::gc::Rootable for CloseAlgorithmFulfillmentHandler {}
 
@@ -442,7 +443,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     pub(crate) fn setup(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         stream: &WritableStream,
     ) -> Result<(), Error> {
@@ -484,7 +485,7 @@ impl WritableStreamDefaultController {
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         // Let startPromise be a promise resolved with startResult.
-        let start_promise = self.start_algorithm(cx.into(), global, CanGc::from_cx(cx))?;
+        let start_promise = self.start_algorithm(cx, global)?;
 
         let rooted_default_controller = DomRoot::from_ref(self);
 
@@ -515,7 +516,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-close>
-    pub(crate) fn close(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
+    pub(crate) fn close(&self, cx: &mut JSContext, global: &GlobalScope) {
         // Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
         self.queue
             .enqueue_value_with_size(EnqueuedValue::CloseSentinel)
@@ -525,12 +526,7 @@ impl WritableStreamDefaultController {
     }
 
     #[expect(unsafe_code)]
-    fn start_algorithm(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        can_gc: CanGc,
-    ) -> Fallible<Rc<Promise>> {
+    fn start_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> Fallible<Rc<Promise>> {
         match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
                 start,
@@ -540,15 +536,15 @@ impl WritableStreamDefaultController {
             } => {
                 let algo = start.borrow().clone();
                 let start_promise = if let Some(start) = algo {
-                    rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-                    rooted!(in(*cx) let mut result: JSVal);
-                    rooted!(in(*cx) let this_object = self.underlying_sink_obj.get());
+                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
+                    rooted!(&in(cx) let mut result: JSVal);
+                    rooted!(&in(cx) let this_object = self.underlying_sink_obj.get());
                     start.Call_(
                         &this_object.handle(),
                         self,
                         result.handle_mut(),
                         ExceptionHandling::Rethrow,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     )?;
                     let is_promise = unsafe {
                         if result.is_object() {
@@ -559,20 +555,25 @@ impl WritableStreamDefaultController {
                         }
                     };
                     if is_promise {
-                        Promise::new_with_js_promise(result_object.handle(), cx)
+                        Promise::new_with_js_promise(result_object.handle(), cx.into())
                     } else {
-                        Promise::new_resolved(global, cx, result.get(), can_gc)
+                        Promise::new_resolved(global, cx.into(), result.get(), CanGc::from_cx(cx))
                     }
                 } else {
                     // Let startAlgorithm be an algorithm that returns undefined.
-                    Promise::new_resolved(global, cx, (), can_gc)
+                    Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx))
                 };
 
                 Ok(start_promise)
             },
             UnderlyingSinkType::Transfer { .. } => {
                 // Let startAlgorithm be an algorithm that returns undefined.
-                Ok(Promise::new_resolved(global, cx, (), can_gc))
+                Ok(Promise::new_resolved(
+                    global,
+                    cx.into(),
+                    (),
+                    CanGc::from_cx(cx),
+                ))
             },
             UnderlyingSinkType::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
@@ -584,7 +585,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-writablestreamcontroller-abortsteps>
     pub(crate) fn abort_steps(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) -> Rc<Promise> {
@@ -644,12 +645,7 @@ impl WritableStreamDefaultController {
             UnderlyingSinkType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSinkAbortAlgorithm(stream, reason).
                 stream
-                    .transform_stream_default_sink_abort_algorithm(
-                        cx.into(),
-                        global,
-                        reason,
-                        CanGc::from_cx(cx),
-                    )
+                    .transform_stream_default_sink_abort_algorithm(cx, global, reason)
                     .expect("Transform stream default sink abort algorithm should not fail.")
             },
         };
@@ -663,7 +659,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-writealgorithm>
     fn call_write_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         chunk: SafeHandleValue,
         global: &GlobalScope,
     ) -> Rc<Promise> {
@@ -747,11 +743,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
-    fn call_close_algorithm(
-        &self,
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-    ) -> Rc<Promise> {
+    fn call_close_algorithm(&self, cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         match &self.underlying_sink_type {
             UnderlyingSinkType::Js {
                 abort: _,
@@ -807,7 +799,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close>
-    pub(crate) fn process_close(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
+    pub(crate) fn process_close(&self, cx: &mut JSContext, global: &GlobalScope) {
         // Let stream be controller.[[stream]].
         let Some(stream) = self.stream.get() else {
             unreachable!("Controller should have a stream");
@@ -854,7 +846,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed>
-    fn advance_queue_if_needed(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
+    fn advance_queue_if_needed(&self, cx: &mut JSContext, global: &GlobalScope) {
         // Let stream be controller.[[stream]].
         let Some(stream) = self.stream.get() else {
             unreachable!("Controller should have a stream");
@@ -911,12 +903,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write>
-    fn process_write(
-        &self,
-        cx: &mut js::context::JSContext,
-        chunk: SafeHandleValue,
-        global: &GlobalScope,
-    ) {
+    fn process_write(&self, cx: &mut JSContext, chunk: SafeHandleValue, global: &GlobalScope) {
         // Let stream be controller.[[stream]].
         let Some(stream) = self.stream.get() else {
             unreachable!("Controller should have a stream");
@@ -971,7 +958,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size>
     pub(crate) fn get_chunk_size(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
     ) -> f64 {
@@ -1017,7 +1004,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-write>
     pub(crate) fn write(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
         chunk_size: f64,
@@ -1068,7 +1055,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error-if-needed>
     pub(crate) fn error_if_needed(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         error: SafeHandleValue,
         global: &GlobalScope,
     ) {
@@ -1087,7 +1074,7 @@ impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error>
     fn error(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         stream: &WritableStream,
         e: SafeHandleValue,
         global: &GlobalScope,

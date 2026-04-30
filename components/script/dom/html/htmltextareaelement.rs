@@ -586,7 +586,6 @@ impl HTMLTextAreaElement {
         self.handle_text_content_changed(can_gc);
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }

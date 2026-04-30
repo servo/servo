@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomQuadId, DomQuadIndex};
@@ -12,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOM
 use crate::dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods};
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -43,30 +44,30 @@ impl DOMQuad {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         p1: &DOMPoint,
         p2: &DOMPoint,
         p3: &DOMPoint,
         p4: &DOMPoint,
-        can_gc: CanGc,
     ) -> DomRoot<DOMQuad> {
-        Self::new_with_proto(global, None, p1, p2, p3, p4, can_gc)
+        Self::new_with_proto(cx, global, None, p1, p2, p3, p4)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         p1: &DOMPoint,
         p2: &DOMPoint,
         p3: &DOMPoint,
         p4: &DOMPoint,
-        can_gc: CanGc,
     ) -> DomRoot<DOMQuad> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -74,54 +75,46 @@ impl DOMQuad {
 impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-domquad>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         p1: &DOMPointInit,
         p2: &DOMPointInit,
         p3: &DOMPointInit,
         p4: &DOMPointInit,
     ) -> Fallible<DomRoot<DOMQuad>> {
+        let p1 = DOMPoint::new_from_init(cx, global, p1);
+        let p2 = DOMPoint::new_from_init(cx, global, p2);
+        let p3 = DOMPoint::new_from_init(cx, global, p3);
+        let p4 = DOMPoint::new_from_init(cx, global, p4);
         Ok(DOMQuad::new_with_proto(
-            global,
-            proto,
-            &DOMPoint::new_from_init(global, p1, can_gc),
-            &DOMPoint::new_from_init(global, p2, can_gc),
-            &DOMPoint::new_from_init(global, p3, can_gc),
-            &DOMPoint::new_from_init(global, p4, can_gc),
-            can_gc,
+            cx, global, proto, &p1, &p2, &p3, &p4,
         ))
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromrect>
-    fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
-        DOMQuad::new(
+    fn FromRect(cx: &mut JSContext, global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
+        let p1 = DOMPoint::new(cx, global, other.x, other.y, 0f64, 1f64);
+        let p2 = DOMPoint::new(cx, global, other.x + other.width, other.y, 0f64, 1f64);
+        let p3 = DOMPoint::new(
+            cx,
             global,
-            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64, can_gc),
-            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64, can_gc),
-            &DOMPoint::new(
-                global,
-                other.x + other.width,
-                other.y + other.height,
-                0f64,
-                1f64,
-                can_gc,
-            ),
-            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64, can_gc),
-            can_gc,
-        )
+            other.x + other.width,
+            other.y + other.height,
+            0f64,
+            1f64,
+        );
+        let p4 = DOMPoint::new(cx, global, other.x, other.y + other.height, 0f64, 1f64);
+        DOMQuad::new(cx, global, &p1, &p2, &p3, &p4)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-fromquad>
-    fn FromQuad(global: &GlobalScope, other: &DOMQuadInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
-        DOMQuad::new(
-            global,
-            &DOMPoint::new_from_init(global, &other.p1, can_gc),
-            &DOMPoint::new_from_init(global, &other.p2, can_gc),
-            &DOMPoint::new_from_init(global, &other.p3, can_gc),
-            &DOMPoint::new_from_init(global, &other.p4, can_gc),
-            can_gc,
-        )
+    fn FromQuad(cx: &mut JSContext, global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
+        let p1 = DOMPoint::new_from_init(cx, global, &other.p1);
+        let p2 = DOMPoint::new_from_init(cx, global, &other.p2);
+        let p3 = DOMPoint::new_from_init(cx, global, &other.p3);
+        let p4 = DOMPoint::new_from_init(cx, global, &other.p4);
+        DOMQuad::new(cx, global, &p1, &p2, &p3, &p4)
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-p1>
@@ -145,7 +138,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-domquad-getbounds>
-    fn GetBounds(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
+    fn GetBounds(&self, cx: &mut JSContext) -> DomRoot<DOMRect> {
         // https://drafts.fxtf.org/geometry/#nan-safe-minimum
         let nan_safe_minimum = |a: f64, b: f64| {
             if a.is_nan() || b.is_nan() {
@@ -204,7 +197,7 @@ impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
             top,
             right - left,
             bottom - top,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }
@@ -231,25 +224,50 @@ impl Serializable for DOMQuad {
         Ok((DomQuadId::new(), serialized))
     }
 
+    #[expect(unsafe_code)]
     fn deserialize(
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
     {
-        let make_point = |src: DomPoint| -> DomRoot<DOMPoint> {
-            DOMPoint::new(owner, src.x, src.y, src.z, src.w, can_gc)
-        };
-        Ok(Self::new(
+        // TODO: https://github.com/servo/servo/issues/44588
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let p1 = DOMPoint::new(
+            &mut cx,
             owner,
-            &make_point(serialized.p1),
-            &make_point(serialized.p2),
-            &make_point(serialized.p3),
-            &make_point(serialized.p4),
-            can_gc,
-        ))
+            serialized.p1.x,
+            serialized.p1.y,
+            serialized.p1.z,
+            serialized.p1.w,
+        );
+        let p2 = DOMPoint::new(
+            &mut cx,
+            owner,
+            serialized.p2.x,
+            serialized.p2.y,
+            serialized.p2.z,
+            serialized.p2.w,
+        );
+        let p3 = DOMPoint::new(
+            &mut cx,
+            owner,
+            serialized.p3.x,
+            serialized.p3.y,
+            serialized.p3.z,
+            serialized.p3.w,
+        );
+        let p4 = DOMPoint::new(
+            &mut cx,
+            owner,
+            serialized.p4.x,
+            serialized.p4.y,
+            serialized.p4.z,
+            serialized.p4.w,
+        );
+        Ok(Self::new(&mut cx, owner, &p1, &p2, &p3, &p4))
     }
 
     fn serialized_storage<'a>(

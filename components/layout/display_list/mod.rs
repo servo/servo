@@ -8,7 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
-use fonts::GlyphStore;
+use fonts::ShapedText;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
@@ -1941,7 +1941,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 }
 
 fn glyphs(
-    glyph_runs: &[Arc<GlyphStore>],
+    glyph_runs: &[Arc<ShapedText>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,

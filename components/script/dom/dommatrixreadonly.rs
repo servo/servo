@@ -799,7 +799,11 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint>
-    fn TransformPoint(&self, point: &DOMPointInit, can_gc: CanGc) -> DomRoot<DOMPoint> {
+    fn TransformPoint(
+        &self,
+        cx: &mut js::context::JSContext,
+        point: &DOMPointInit,
+    ) -> DomRoot<DOMPoint> {
         // Euclid always normalizes the homogeneous coordinate which is usually the right
         // thing but may (?) not be compliant with the CSS matrix spec (or at least is
         // probably not the behavior web authors will expect even if it is mathematically
@@ -812,7 +816,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
         let z = point.x * mat.m13 + point.y * mat.m23 + point.z * mat.m33 + point.w * mat.m43;
         let w = point.x * mat.m14 + point.y * mat.m24 + point.z * mat.m34 + point.w * mat.m44;
 
-        DOMPoint::new(&self.global(), x, y, z, w, can_gc)
+        DOMPoint::new(cx, &self.global(), x, y, z, w)
     }
 
     /// <https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array>

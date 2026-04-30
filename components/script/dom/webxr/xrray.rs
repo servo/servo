@@ -101,26 +101,26 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>
-    fn Origin(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Origin(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
+            cx,
             &self.global(),
             self.ray.origin.x as f64,
             self.ray.origin.y as f64,
             self.ray.origin.z as f64,
             1.,
-            can_gc,
         )
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-direction>
-    fn Direction(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Direction(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
+            cx,
             &self.global(),
             self.ray.direction.x as f64,
             self.ray.direction.y as f64,
             self.ray.direction.z as f64,
             0.,
-            can_gc,
         )
     }
 

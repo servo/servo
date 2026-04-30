@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use servo_base::id::{DomPointId, DomPointIndex};
@@ -14,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrixInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
@@ -45,30 +46,30 @@ impl DOMPointReadOnly {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         x: f64,
         y: f64,
         z: f64,
         w: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMPointReadOnly> {
-        Self::new_with_proto(global, None, x, y, z, w, can_gc)
+        Self::new_with_proto(cx, global, None, x, y, z, w)
     }
 
     fn new_with_proto(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,
         y: f64,
         z: f64,
         w: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMPointReadOnly> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
@@ -76,22 +77,22 @@ impl DOMPointReadOnly {
 impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     /// <https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         x: f64,
         y: f64,
         z: f64,
         w: f64,
     ) -> Fallible<DomRoot<DOMPointReadOnly>> {
         Ok(DOMPointReadOnly::new_with_proto(
-            global, proto, x, y, z, w, can_gc,
+            cx, global, proto, x, y, z, w,
         ))
     }
 
     /// <https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint>
-    fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
-        Self::new(global, init.x, init.y, init.z, init.w, can_gc)
+    fn FromPoint(cx: &mut JSContext, global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+        Self::new(cx, global, init.x, init.y, init.z, init.w)
     }
 
     /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
@@ -118,8 +119,8 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     /// <https://drafts.fxtf.org/geometry/Overview.html#transform-a-point-with-a-matrix>
     fn MatrixTransform(
         &self,
+        cx: &mut JSContext,
         matrix: &DOMMatrixInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMPoint>> {
         // Let matrixObject be the result of invoking create a DOMMatrix from the dictionary matrix.
         let matrix_object = match dommatrixinit_to_matrix(matrix) {
@@ -144,9 +145,9 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
         // Return the result of invoking transform a point with a matrix, given the current point
         // and matrixObject. The current point does not get modified.
         Ok(DOMPoint::new_from_init(
+            cx,
             &self.global(),
             &transformed_point,
-            can_gc,
         ))
     }
 }
@@ -191,21 +192,21 @@ impl Serializable for DOMPointReadOnly {
         Ok((DomPointId::new(), serialized))
     }
 
+    #[expect(unsafe_code)]
     fn deserialize(
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
-    ) -> Result<DomRoot<Self>, ()>
-    where
-        Self: Sized,
-    {
+        _can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()> {
+        // TODO: https://github.com/servo/servo/issues/44588
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         Ok(Self::new(
+            &mut cx,
             owner,
             serialized.x,
             serialized.y,
             serialized.z,
             serialized.w,
-            can_gc,
         ))
     }
 

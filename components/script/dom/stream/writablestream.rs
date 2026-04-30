@@ -9,6 +9,7 @@ use std::ptr::{self};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -252,7 +253,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-erroring>
-    pub(crate) fn finish_erroring(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
+    pub(crate) fn finish_erroring(&self, cx: &mut JSContext, global: &GlobalScope) {
         // Assert: stream.[[state]] is "erroring".
         assert!(self.is_erroring());
 
@@ -341,7 +342,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-reject-close-and-closed-promise-if-needed>
-    fn reject_close_and_closed_promise_if_needed(&self, cx: &mut js::context::JSContext) {
+    fn reject_close_and_closed_promise_if_needed(&self, cx: &mut JSContext) {
         // Assert: stream.[[state]] is "errored".
         assert!(self.is_errored());
 
@@ -397,7 +398,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-start-erroring>
     pub(crate) fn start_erroring(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
@@ -435,7 +436,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-deal-with-rejection>
     pub(crate) fn deal_with_rejection(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
@@ -547,7 +548,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-close-with-error>
     pub(crate) fn finish_in_flight_close_with_error(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
@@ -584,7 +585,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-finish-in-flight-write-with-error>
     pub(crate) fn finish_in_flight_write_with_error(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
     ) {
@@ -736,11 +737,7 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
-    pub(crate) fn close(
-        &self,
-        cx: &mut js::context::JSContext,
-        global: &GlobalScope,
-    ) -> Rc<Promise> {
+    pub(crate) fn close(&self, cx: &mut JSContext, global: &GlobalScope) -> Rc<Promise> {
         // Let state be stream.[[state]].
         // If state is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
@@ -867,7 +864,7 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     pub(crate) fn setup_cross_realm_transform_writable(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         port: &MessagePort,
     ) {
         let port_id = port.message_port_id();
@@ -921,7 +918,7 @@ impl WritableStream {
     #[allow(clippy::too_many_arguments)]
     fn setup_from_underlying_sink(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         stream: &WritableStream,
         underlying_sink_obj: SafeHandleObject,
@@ -979,7 +976,7 @@ impl WritableStream {
 /// <https://streams.spec.whatwg.org/#create-writable-stream>
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_writable_stream(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     writable_high_water_mark: f64,
     writable_size_algorithm: Rc<QueuingStrategySize>,
@@ -1012,7 +1009,7 @@ pub(crate) fn create_writable_stream(
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     /// <https://streams.spec.whatwg.org/#ws-constructor>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         underlying_sink: Option<*mut JSObject>,
@@ -1225,10 +1222,7 @@ impl Transferable for WritableStream {
     type Data = MessagePortImpl;
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps①>
-    fn transfer(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<(MessagePortId, MessagePortImpl)> {
+    fn transfer(&self, cx: &mut JSContext) -> Fallible<(MessagePortId, MessagePortImpl)> {
         // Step 1. If ! IsWritableStreamLocked(value) is true, throw a
         // "DataCloneError" DOMException.
         if self.is_locked() {
@@ -1269,7 +1263,7 @@ impl Transferable for WritableStream {
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps①>
     fn transfer_receive(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         owner: &GlobalScope,
         id: MessagePortId,
         port_impl: MessagePortImpl,

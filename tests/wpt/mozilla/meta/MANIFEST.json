@@ -13357,6 +13357,24 @@
       }
      ]
     ],
+    "sequential-focus-navigation-across-documents-001.html": [
+     "40c2ff0e0fd0e85110825c7836eb767880d6dd61",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-across-documents-002.html": [
+     "e8ddf03b4fb8247db5426e477386d4e687ae3930",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "sequential-focus-navigation-starting-point-001.html": [
      "4fecfba641a3acec0132d1d21fc862e02b182416",
      [

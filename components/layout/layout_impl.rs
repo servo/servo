@@ -396,9 +396,7 @@ impl Layout for LayoutThread {
 
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
-            let stacking_context_tree = stacking_context_tree
-                .as_ref()
-                .expect("Should always have a StackingContextTree for box area queries");
+            let stacking_context_tree = stacking_context_tree.as_ref()?;
             process_box_area_request(
                 stacking_context_tree,
                 node,
@@ -418,16 +416,15 @@ impl Layout for LayoutThread {
             // If we have not built a fragment tree yet, there is no way we have layout information for
             // this query, which can be run without forcing a layout (for IntersectionObserver).
             if self.fragment_tree.borrow().is_none() {
-                return Box::new(std::iter::empty()) as CSSPixelRectIterator;
+                return None;
             }
 
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
-            let stacking_context_tree = stacking_context_tree
-                .as_ref()
-                .expect("Should always have a StackingContextTree for box area queries");
-            process_box_areas_request(stacking_context_tree, node, area)
+            let stacking_context_tree = stacking_context_tree.as_ref()?;
+            Some(process_box_areas_request(stacking_context_tree, node, area))
         })
+        .unwrap_or_else(|| Box::new(std::iter::empty()))
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -458,12 +455,10 @@ impl Layout for LayoutThread {
         with_layout_state(|| {
             let node = unsafe { ServoLayoutNode::new(&node) };
             let stacking_context_tree = self.stacking_context_tree.borrow();
-            let stacking_context_tree = stacking_context_tree
-                .as_ref()
-                .expect("Should always have a StackingContextTree for offset parent queries");
+            let stacking_context_tree = stacking_context_tree.as_ref()?;
             process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
-                .unwrap_or_default()
         })
+        .unwrap_or_default()
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -474,12 +469,7 @@ impl Layout for LayoutThread {
     ) -> Option<ScrollContainerResponse> {
         with_layout_state(|| {
             let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
-            let viewport_overflow = self
-                .box_tree
-                .borrow()
-                .as_ref()
-                .expect("Should have a BoxTree for all scroll container queries.")
-                .viewport_overflow;
+            let viewport_overflow = self.box_tree.borrow().as_ref()?.viewport_overflow;
             process_scroll_container_query(node, flags, viewport_overflow)
         })
     }

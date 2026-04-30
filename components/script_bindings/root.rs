@@ -191,7 +191,6 @@ impl<T> Hash for Dom<T> {
 
 impl<T> Clone for Dom<T> {
     #[inline]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn clone(&self) -> Self {
         assert_in_script();
         Dom { ptr: self.ptr }
@@ -200,7 +199,6 @@ impl<T> Clone for Dom<T> {
 
 impl<T: DomObject> Dom<T> {
     /// Create a `Dom<T>` from a `&T`
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn from_ref(obj: &T) -> Dom<T> {
         assert_in_script();
         Dom {
@@ -256,7 +254,6 @@ where
     ///
     /// # Safety
     /// TODO: unclear why this is marked unsafe.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub unsafe fn from_box(value: Box<T>) -> Self {
         Self {
             ptr: Box::leak(value).into(),
@@ -328,7 +325,6 @@ impl<T: DomObject> DomRoot<T> {
     ///
     /// This should never be used to create on-stack values. Instead these values should always
     /// end up as members of other DOM objects.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn as_traced(&self) -> Dom<T> {
         Dom::from_ref(self)
     }

@@ -41,7 +41,7 @@ use crate::platform::font_list::fallback_font_families;
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateDescriptor, FontTemplateRef,
-    FontTemplateRefMethods, GlyphId, GlyphStore, LocalFontIdentifier, ShapedGlyph, Shaper,
+    FontTemplateRefMethods, GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper,
 };
 
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
@@ -199,7 +199,7 @@ impl FontMetrics {
 struct CachedShapeData {
     glyph_advances: HashMap<GlyphId, FractionalPixel>,
     glyph_indices: HashMap<char, Option<GlyphId>>,
-    shaped_text: HashMap<ShapeCacheEntry, Arc<GlyphStore>>,
+    shaped_text: HashMap<ShapeCacheEntry, Arc<ShapedText>>,
 }
 
 impl malloc_size_of::MallocSizeOf for CachedShapeData {
@@ -418,7 +418,7 @@ struct ShapeCacheEntry {
 }
 
 impl Font {
-    pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
+    pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
             options: *options,
@@ -469,8 +469,8 @@ impl Font {
     }
 
     /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
-    fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> GlyphStore {
-        let mut glyph_store = GlyphStore::new(text.len(), options);
+    fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> ShapedText {
+        let mut glyph_store = ShapedText::new(text.len(), options);
         let mut prev_glyph_id = None;
         for (string_byte_offset, byte) in text.bytes().enumerate() {
             let character = byte as char;

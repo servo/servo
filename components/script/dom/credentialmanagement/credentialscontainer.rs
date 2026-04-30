@@ -4,6 +4,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use script_bindings::codegen::GenericBindings::CredentialsContainerBinding::{
     CredentialCreationOptions, CredentialRequestOptions,
 };
@@ -12,7 +13,7 @@ use script_bindings::error::{Error, Fallible};
 
 use crate::dom::bindings::codegen::Bindings::CredentialsContainerBinding::CredentialsContainerMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::credentialmanagement::credential::Credential;
 use crate::dom::globalscope::GlobalScope;
@@ -42,10 +43,11 @@ impl CredentialsContainer {
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-request-a-credential>
     fn request_credential(
         &self,
+        cx: &mut CurrentRealm,
         options: &CredentialRequestOptions<DomTypeHolder>,
     ) -> Fallible<Rc<Promise>> {
         // Step 1. Let settings be the current settings object.
-        let global = self.global();
+        let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
         // Step 3. Let document be settings’s relevant global object's associated Document.
@@ -62,9 +64,13 @@ impl CredentialsContainer {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-store-a-credential>
-    fn store_credential(&self, _credential: &Credential) -> Fallible<Rc<Promise>> {
+    fn store_credential(
+        &self,
+        cx: &mut CurrentRealm,
+        _credential: &Credential,
+    ) -> Fallible<Rc<Promise>> {
         // Step 1. Let settings be the current settings object.
-        let global = self.global();
+        let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
         // Step 3. If settings’s relevant global object's associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
@@ -77,10 +83,11 @@ impl CredentialsContainer {
     /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-create-a-credential>
     fn create_credential(
         &self,
+        cx: &mut CurrentRealm,
         _options: &CredentialCreationOptions<DomTypeHolder>,
     ) -> Fallible<Rc<Promise>> {
         // Step 1. Let settings be the current settings object.
-        let global = self.global();
+        let global = GlobalScope::from_current_realm(cx);
         // Step 2. Assert: settings is a secure context.
         assert!(global.is_secure_context());
         // Step 3. Let global be settings’ global object.
@@ -96,18 +103,26 @@ impl CredentialsContainer {
 
 impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-get>
-    fn Get(&self, options: &CredentialRequestOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
-        self.request_credential(options)
+    fn Get(
+        &self,
+        cx: &mut CurrentRealm,
+        options: &CredentialRequestOptions<DomTypeHolder>,
+    ) -> Fallible<Rc<Promise>> {
+        self.request_credential(cx, options)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-store>
-    fn Store(&self, credential: &Credential) -> Fallible<Rc<Promise>> {
-        self.store_credential(credential)
+    fn Store(&self, cx: &mut CurrentRealm, credential: &Credential) -> Fallible<Rc<Promise>> {
+        self.store_credential(cx, credential)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-create>
-    fn Create(&self, options: &CredentialCreationOptions<DomTypeHolder>) -> Fallible<Rc<Promise>> {
-        self.create_credential(options)
+    fn Create(
+        &self,
+        cx: &mut CurrentRealm,
+        options: &CredentialCreationOptions<DomTypeHolder>,
+    ) -> Fallible<Rc<Promise>> {
+        self.create_credential(cx, options)
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>

@@ -128,30 +128,23 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position>
-    fn Position(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Position(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         self.position.or_init(|| {
             let t = &self.transform.translation;
-            DOMPointReadOnly::new(
-                &self.global(),
-                t.x.into(),
-                t.y.into(),
-                t.z.into(),
-                1.0,
-                can_gc,
-            )
+            DOMPointReadOnly::new(cx, &self.global(), t.x.into(), t.y.into(), t.z.into(), 1.0)
         })
     }
     /// <https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation>
-    fn Orientation(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
+    fn Orientation(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMPointReadOnly> {
         self.orientation.or_init(|| {
             let r = &self.transform.rotation;
             DOMPointReadOnly::new(
+                cx,
                 &self.global(),
                 r.i.into(),
                 r.j.into(),
                 r.k.into(),
                 r.r.into(),
-                can_gc,
             )
         })
     }

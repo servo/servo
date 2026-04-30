@@ -1811,7 +1811,6 @@ impl HTMLInputElement {
         self.input_type().as_specific().sanitize_value(self, value);
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }

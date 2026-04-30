@@ -89,9 +89,10 @@ use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::{opts, pref, prefs};
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
+    LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
+    ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
+    ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
+    WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -1198,7 +1199,7 @@ impl ScriptThread {
             self.process_pending_input_events(cx, *pipeline_id);
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
-            let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));
+            let resized = document.window().run_the_resize_steps(cx);
 
             // > 9. For each doc of docs, run the scroll steps for doc.
             document.run_the_scroll_steps(cx);
@@ -1208,7 +1209,7 @@ impl ScriptThread {
                 // 10. For each doc of docs, evaluate media queries and report changes for doc.
                 document
                     .window()
-                    .evaluate_media_queries_and_report_changes(CanGc::from_cx(cx));
+                    .evaluate_media_queries_and_report_changes(cx);
 
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.
@@ -1841,8 +1842,8 @@ impl ScriptThread {
             ScriptThreadMessage::UnfocusDocumentAsPartOfFocusingSteps(pipeline_id, sequence) => {
                 self.handle_unfocus_document_as_part_of_focusing_steps(cx, pipeline_id, sequence);
             },
-            ScriptThreadMessage::FocusDocument(pipeline_id) => {
-                self.handle_focus_document(cx, pipeline_id);
+            ScriptThreadMessage::FocusDocument(pipeline_id, remote_focus_operation) => {
+                self.handle_focus_document(cx, pipeline_id, remote_focus_operation);
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, cx)
@@ -2127,6 +2128,12 @@ impl ScriptThread {
                     id,
                     reply,
                 )
+            },
+            DevtoolScriptControlMsg::GetStyleSheets(id, reply) => {
+                devtools::handle_get_stylesheets(&documents, id, reply);
+            },
+            DevtoolScriptControlMsg::GetStyleSheetText(id, index, reply) => {
+                devtools::handle_get_stylesheet_text(cx, &documents, id, index, reply);
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
                 devtools::handle_get_children(cx, &self.devtools_state, id, &node_id, reply)
@@ -2863,12 +2870,22 @@ impl ScriptThread {
         );
     }
 
-    fn handle_focus_document(&self, cx: &mut js::context::JSContext, pipeline_id: PipelineId) {
+    fn handle_focus_document(
+        &self,
+        cx: &mut js::context::JSContext,
+        pipeline_id: PipelineId,
+        remote_focus_operation: RemoteFocusOperation,
+    ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Unknown {pipeline_id:?} for FocusDocument message.");
             return;
         };
-        document.window().Focus(cx);
+        match remote_focus_operation {
+            RemoteFocusOperation::Viewport => document.window().Focus(cx),
+            RemoteFocusOperation::Sequential(direction, iframe_browsing_context_id) => document
+                .focus_handler()
+                .sequential_focus_from_another_document(cx, iframe_browsing_context_id, direction),
+        }
     }
 
     fn handle_unfocus_document_as_part_of_focusing_steps(

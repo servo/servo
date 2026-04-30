@@ -97,10 +97,10 @@ pub(super) trait TraversalHandler<'dom> {
     );
 
     /// Notify the handler that we are about to recurse into a `display: contents` element.
-    fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
+    fn enter_display_contents(&mut self, _: SharedInlineStyles);
 
     /// Notify the handler that we have finished a `display: contents` element.
-    fn leave_display_contents(&mut self) {}
+    fn leave_display_contents(&mut self);
 }
 
 fn traverse_children_of<'dom>(

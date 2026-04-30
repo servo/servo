@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::ObjectValue;
 use js::rust::HandleValue as SafeHandleValue;
 
 use crate::dom::bindings::error::Error;
@@ -104,15 +104,13 @@ impl DefaultTeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
-    pub(crate) fn pull_algorithm(&self, can_gc: CanGc) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
+    pub(crate) fn pull_algorithm(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
             self.read_again.set(true);
             // Return a promise resolved with undefined.
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            return Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc);
+            return Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx));
         }
 
         // Set reading to true.
@@ -130,7 +128,7 @@ impl DefaultTeeUnderlyingSource {
             self.clone_for_branch_2.clone(),
             self.cancel_promise.clone(),
             self,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Rooting: the tee read request is rooted above.
@@ -139,11 +137,10 @@ impl DefaultTeeUnderlyingSource {
         };
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
-        self.reader.read(cx, &read_request, can_gc);
+        self.reader.read(cx, &read_request);
 
         // Return a promise resolved with undefined.
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        Promise::new_resolved(&self.stream.global(), cx, rval.handle(), can_gc)
+        Promise::new_resolved(&self.stream.global(), cx.into(), (), CanGc::from_cx(cx))
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>

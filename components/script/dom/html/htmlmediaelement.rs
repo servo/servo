@@ -458,7 +458,6 @@ enum SrcObject {
 }
 
 impl From<MediaStreamOrBlob> for SrcObject {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn from(src_object: MediaStreamOrBlob) -> SrcObject {
         match src_object {
             MediaStreamOrBlob::Blob(blob) => SrcObject::Blob(Dom::from_ref(&*blob)),

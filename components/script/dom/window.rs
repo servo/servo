@@ -190,7 +190,7 @@ use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -3347,7 +3347,7 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Handle the pending viewport resize.
-    fn run_resize_steps_for_layout_viewport(&self, can_gc: CanGc) -> bool {
+    fn run_resize_steps_for_layout_viewport(&self, cx: &mut js::context::JSContext) -> bool {
         let Some((new_size, size_type)) = self.take_unhandled_resize_event() else {
             return false;
         };
@@ -3386,9 +3386,11 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            uievent.upcast::<Event>().fire(self.upcast(), can_gc);
+            uievent
+                .upcast::<Event>()
+                .fire(self.upcast(), CanGc::from_cx(cx));
         }
 
         true
@@ -3398,11 +3400,11 @@ impl Window {
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
     /// Returns true if there were any pending viewport resize events.
-    pub(crate) fn run_the_resize_steps(&self, can_gc: CanGc) -> bool {
-        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(can_gc);
+    pub(crate) fn run_the_resize_steps(&self, cx: &mut js::context::JSContext) -> bool {
+        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(cx);
 
         if self.has_changed_visual_viewport_dimension.get() {
-            let visual_viewport = self.get_or_init_visual_viewport(can_gc);
+            let visual_viewport = self.get_or_init_visual_viewport(CanGc::from_cx(cx));
 
             let uievent = UIEvent::new(
                 self,
@@ -3412,11 +3414,11 @@ impl Window {
                 Some(self),
                 0i32,
                 0u32,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             uievent
                 .upcast::<Event>()
-                .fire(visual_viewport.upcast(), can_gc);
+                .fire(visual_viewport.upcast(), CanGc::from_cx(cx));
 
             self.has_changed_visual_viewport_dimension.set(false);
         }
@@ -3426,10 +3428,14 @@ impl Window {
 
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub(crate) fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
-        let _realm = enter_realm(self);
-
+    pub(crate) fn evaluate_media_queries_and_report_changes(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         rooted_vec!(let mut mql_list);
+
         self.media_query_lists.for_each(|mql| {
             if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
@@ -3445,11 +3451,11 @@ impl Window {
                 false,
                 mql.Media(),
                 mql.Matches(),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             event
                 .upcast::<Event>()
-                .fire(mql.upcast::<EventTarget>(), can_gc);
+                .fire(mql.upcast::<EventTarget>(), CanGc::from_cx(cx));
         }
     }
 

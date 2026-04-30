@@ -633,17 +633,17 @@ fn stream_handle_incoming(
 ) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, CanGc::from_cx(cx));
+            stream.enqueue_native(cx, b);
         },
         Err(e) => {
-            stream.error_native(e, CanGc::from_cx(cx));
+            stream.error_native(cx, e);
         },
     }
 }
 
 /// Callback used to close streams as part of FileListener.
 fn stream_handle_eof(cx: &mut js::context::JSContext, stream: &ReadableStream) {
-    stream.controller_close_native(CanGc::from_cx(cx));
+    stream.controller_close_native(cx);
 }
 
 impl FileListener {

@@ -42,8 +42,9 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::prefs::PrefValue;
 use servo_constellation_traits::{
-    KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
-    ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams, WindowSizeType,
+    KeyboardScroll, LoadData, NavigationHistoryBehavior, RemoteFocusOperation,
+    ScriptToConstellationSender, ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams,
+    WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -235,11 +236,13 @@ pub enum ScriptThreadMessage {
     /// `<iframe>` losing focus. This does not do anything for a top-level `Document`, which can never
     /// lose focus (apart from losing system focus, which is a separate concept).
     UnfocusDocumentAsPartOfFocusingSteps(PipelineId, FocusSequenceNumber),
-    /// Focus a `Document` and run the focusing steps. This is used when calling the DOM `focus()`
-    /// API on a remote `Window` as well as from WebDriver. The difference between this and
-    /// `FocusDocumentAsPartOfFocusingSteps` is that this version actually does run the focusing
-    /// steps and may result in blur and focus events firing up the frame tree.
-    FocusDocument(PipelineId),
+    /// Focus a `Document` and run the focusing steps. This is used in two situations:
+    /// - When calling the DOM `focus()` API on a remote `Window` as well as from
+    ///   WebDriver. The difference between this and `FocusDocumentAsPartOfFocusingSteps` is that this
+    ///   version actually does run the focusing steps and may result in blur and focus events firing
+    ///   up the frame tree.
+    /// - When doing sequential focus navigation into and out of frames.
+    FocusDocument(PipelineId, RemoteFocusOperation),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
