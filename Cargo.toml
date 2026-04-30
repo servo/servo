@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "components/l10n",
     "components/media/examples",
     "components/xpath",
     "ports/servoshell",
@@ -276,6 +277,7 @@ servo-constellation = { version = "0.1.0", path = "components/constellation" }
 servo-constellation-traits = { version = "0.1.0", path = "components/shared/constellation" }
 servo-default-resources = { version = "0.1.0", path = "components/default-resources" }
 servo-geometry = { version = "0.1.0", path = "components/geometry" }
+servo-l10n = { version = "0.1.0", path = "components/l10n" }
 servo-media = { version = "0.1.0", path = "components/media/servo-media" }
 servo-media-audio = { version = "0.1.0", path = "components/media/audio" }
 servo-media-auto = { version = "0.1.0", path = "components/media/backends/auto" }

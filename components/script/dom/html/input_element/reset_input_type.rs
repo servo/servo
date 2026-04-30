@@ -13,8 +13,6 @@ use crate::dom::input_element::HTMLInputElement;
 use crate::dom::input_element::input_type::SpecificInputType;
 use crate::dom::node::NodeTraits;
 
-const DEFAULT_RESET_VALUE: &str = "Reset";
-
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ResetInputType {
@@ -23,7 +21,7 @@ pub(crate) struct ResetInputType {
 
 impl SpecificInputType for ResetInputType {
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
-        DEFAULT_RESET_VALUE.into()
+        servo_l10n::get("servo", "input-reset-default").into()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior>

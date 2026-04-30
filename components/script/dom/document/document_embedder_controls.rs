@@ -281,6 +281,8 @@ impl DocumentEmbedderControls {
 
         let mut info = ContextMenuElementInformation::default();
         let mut items = Vec::new();
+        let l10n = servo_l10n::bundle("servo");
+
         if let Some(anchor_element) = anchor_element.as_ref() {
             info.flags.insert(ContextMenuElementInformationFlags::Link);
             info.link_url = anchor_element
@@ -289,12 +291,12 @@ impl DocumentEmbedderControls {
 
             items.extend(vec![
                 ContextMenuItem::Item {
-                    label: "Open Link in New View".into(),
+                    label: l10n.get("context-menu-open-link"),
                     action: ContextMenuAction::OpenLinkInNewWebView,
                     enabled: true,
                 },
                 ContextMenuItem::Item {
-                    label: "Copy Link".into(),
+                    label: l10n.get("context-menu-copy-link"),
                     action: ContextMenuAction::CopyLink,
                     enabled: true,
                 },
@@ -310,12 +312,12 @@ impl DocumentEmbedderControls {
 
             items.extend(vec![
                 ContextMenuItem::Item {
-                    label: "Open Image in New View".into(),
+                    label: l10n.get("context-menu-open-image"),
                     action: ContextMenuAction::OpenImageInNewView,
                     enabled: true,
                 },
                 ContextMenuItem::Item {
-                    label: "Copy Image Link".into(),
+                    label: l10n.get("context-menu-copy-image-link"),
                     action: ContextMenuAction::CopyImageLink,
                     enabled: true,
                 },
@@ -335,22 +337,22 @@ impl DocumentEmbedderControls {
 
             items.extend(vec![
                 ContextMenuItem::Item {
-                    label: "Cut".into(),
+                    label: l10n.get("context-menu-cut"),
                     action: ContextMenuAction::Cut,
                     enabled: has_selection,
                 },
                 ContextMenuItem::Item {
-                    label: "Copy".into(),
+                    label: l10n.get("context-menu-copy"),
                     action: ContextMenuAction::Copy,
                     enabled: has_selection,
                 },
                 ContextMenuItem::Item {
-                    label: "Paste".into(),
+                    label: l10n.get("context-menu-paste"),
                     action: ContextMenuAction::Paste,
                     enabled: true,
                 },
                 ContextMenuItem::Item {
-                    label: "Select All".into(),
+                    label: l10n.get("context-menu-select-all"),
                     action: ContextMenuAction::SelectAll,
                     enabled: text_input_element.has_selectable_text(),
                 },
@@ -360,17 +362,17 @@ impl DocumentEmbedderControls {
 
         items.extend(vec![
             ContextMenuItem::Item {
-                label: "Back".into(),
+                label: l10n.get("context-menu-back"),
                 action: ContextMenuAction::GoBack,
                 enabled: true,
             },
             ContextMenuItem::Item {
-                label: "Forward".into(),
+                label: l10n.get("context-menu-forward"),
                 action: ContextMenuAction::GoForward,
                 enabled: true,
             },
             ContextMenuItem::Item {
-                label: "Reload".into(),
+                label: l10n.get("context-menu-reload"),
                 action: ContextMenuAction::Reload,
                 enabled: true,
             },

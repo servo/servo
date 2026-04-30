@@ -846,6 +846,9 @@ impl Servo {
         let preferences = builder.preferences.map(|opts| *opts);
         servo_config::prefs::set(preferences.unwrap_or_default());
 
+        // Register the core "servo" localization bundle.
+        servo_l10n::register("servo");
+
         use std::sync::atomic::Ordering;
 
         style::context::DEFAULT_DISABLE_STYLE_SHARING_CACHE.store(
@@ -1258,6 +1261,9 @@ pub fn run_content_process(token: String) {
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::initialize_options(unprivileged_content.opts());
     prefs::set(unprivileged_content.prefs().clone());
+
+    // Register the core "servo" localization bundle for this content process.
+    servo_l10n::register("servo");
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {

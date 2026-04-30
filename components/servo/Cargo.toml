@@ -122,6 +122,7 @@ servo-config = { workspace = true }
 servo-constellation = { workspace = true }
 servo-constellation-traits = { workspace = true }
 servo-geometry = { workspace = true }
+servo-l10n = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
