@@ -191,12 +191,13 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
                         processed_audio.resize(this.length as usize, Vec::new())
                     }
                     let buffer = AudioBuffer::new(
+                        cx,
                         this.global().as_window(),
                         this.channel_count,
                         this.length,
                         *this.context.SampleRate(),
                         Some(processed_audio.as_slice()),
-                        CanGc::from_cx(cx));
+                    );
                     (*this.pending_rendering_promise.borrow_mut())
                         .take()
                         .unwrap()
