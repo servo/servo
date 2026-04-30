@@ -4,6 +4,7 @@
 
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
+use style::color::ColorFlags;
 use style::properties::PropertyDeclarationId;
 use style::properties::generated::{LonghandId, ShorthandId};
 use style::values::specified::text::TextDecorationLine;
@@ -13,9 +14,10 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::execcommand::commands::backcolor::execute_backcolor_command;
 use crate::dom::execcommand::commands::bold::execute_bold_command;
 use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
 use crate::dom::execcommand::commands::delete::execute_delete_command;
@@ -51,7 +53,6 @@ impl From<DefaultSingleLineContainerName> for DOMString {
 
 /// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
 #[derive(Clone, Copy, Eq, PartialEq)]
-#[expect(unused)] // TODO(25005): implement all commands
 pub(crate) enum CssPropertyName {
     BackgroundColor,
     FontFamily,
@@ -68,7 +69,23 @@ impl CssPropertyName {
 
         Some(
             match self {
-                CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
+                CssPropertyName::BackgroundColor => {
+                    let background_color = style.clone_background_color();
+                    if let Some(absolute_color) = background_color.as_absolute() {
+                        // Used as an early-exit when figuring out on which element to resolve
+                        // the style in `effective_command_value`
+                        if absolute_color.is_transparent() {
+                            return None;
+                        }
+                        // Requires legacy SRGB syntax, which is what all tests expect.
+                        // E.g. it should use `rgba()` instead of `rgb()`, even if the alpha
+                        // is zero.
+                        let mut absolute_color = *absolute_color;
+                        absolute_color.flags.insert(ColorFlags::IS_LEGACY_SRGB);
+                        return Some(absolute_color.to_css_string().into());
+                    }
+                    background_color.to_css_string()
+                },
                 CssPropertyName::FontFamily => {
                     // Detached font elements (e.g. does created with `document.createElement`
                     // and not yet present in DOM) dont have a computed style for `fontFamily`.
@@ -376,6 +393,19 @@ impl CommandName {
                                     ("400", "normal")
                             )
                     },
+                    CommandName::BackColor => {
+                        // https://w3c.github.io/editing/docs/execCommand/#the-backcolor-command
+                        // > Either both strings are valid CSS colors and have the same red, green, blue, and alpha components,
+                        // > or neither string is a valid CSS color.
+                        let first_is_valid_color = first_str.str().is_valid_simple_color_string();
+                        let second_is_valid_color = second_str.str().is_valid_simple_color_string();
+
+                        if first_is_valid_color && second_is_valid_color {
+                            first_str == second_str
+                        } else {
+                            !first_is_valid_color && !second_is_valid_color
+                        }
+                    },
                     // > or both are strings and they're equal and the command does not define any equivalent values,
                     _ => first_str == second_str,
                 }
@@ -410,6 +440,7 @@ impl CommandName {
         // > This is defined for certain inline formatting commands, and is used in algorithms specific to those commands.
         // > It is an implementation detail, and is not exposed to authors.
         Some(match self {
+            CommandName::BackColor => CssPropertyName::BackgroundColor,
             CommandName::Bold => CssPropertyName::FontWeight,
             CommandName::FontName => CssPropertyName::FontFamily,
             CommandName::FontSize => CssPropertyName::FontSize,
@@ -465,6 +496,7 @@ impl CommandName {
         value: DOMString,
     ) -> bool {
         match self {
+            CommandName::BackColor => execute_backcolor_command(cx, document, selection, value),
             CommandName::Bold => execute_bold_command(cx, document, selection),
             CommandName::DefaultParagraphSeparator => {
                 execute_default_paragraph_separator_command(document, value)

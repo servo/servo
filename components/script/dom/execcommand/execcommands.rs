@@ -117,11 +117,15 @@ impl Document {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
         Some(match &*command_id.str().to_lowercase() {
+            "backcolor" => CommandName::BackColor,
             "bold" => CommandName::Bold,
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontname" => CommandName::FontName,
             "fontsize" => CommandName::FontSize,
+            // https://w3c.github.io/editing/docs/execCommand/#the-hilitecolor-command
+            // > For historical reasons, backColor and hiliteColor behave identically.
+            "hilitecolor" => CommandName::BackColor,
             "italic" => CommandName::Italic,
             "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,

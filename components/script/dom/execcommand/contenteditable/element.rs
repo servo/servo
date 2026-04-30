@@ -31,7 +31,12 @@ impl Element {
         match command {
             // Step 1. If command is "backColor" or "hiliteColor" and the Element's display property does not have resolved value "inline", return null.
             CommandName::BackColor | CommandName::HiliteColor => {
-                // TODO
+                if self
+                    .resolved_display_value()
+                    .is_none_or(|display| display != DisplayOutside::Inline)
+                {
+                    return None;
+                }
             },
             // Step 2. If command is "createLink" or "unlink":
             CommandName::CreateLink | CommandName::Unlink => {

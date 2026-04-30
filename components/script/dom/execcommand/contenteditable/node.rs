@@ -2056,10 +2056,17 @@ impl Node {
             CommandName::BackColor | CommandName::HiliteColor => {
                 // Step 4.1. While the resolved value of "background-color" on node is any fully transparent value,
                 // and node's parent is an Element, set node to its parent.
-                // TODO
-                // Step 4.2. Return the resolved value of "background-color" for node.
-                // TODO
-                None
+                let mut current_element = Some(DomRoot::from_ref(element));
+                while let Some(element) = current_element {
+                    if let Some(background_color) =
+                        CssPropertyName::BackgroundColor.resolved_value_for_node(&element)
+                    {
+                        // Step 4.2. Return the resolved value of "background-color" for node.
+                        return Some(background_color);
+                    }
+                    current_element = element.upcast::<Node>().GetParentElement();
+                }
+                Some("rgba(0, 0, 0, 0)".into())
             },
             // Step 5. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {
