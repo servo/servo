@@ -4,6 +4,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::realms::{AlreadyInRealm, InRealm};
 use script_bindings::str::{DOMString, USVString};
 
@@ -59,15 +60,15 @@ impl CredentialMethods<DomTypeHolder> for Credential {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable>
-    fn IsConditionalMediationAvailable(_global: &Window, can_gc: CanGc) -> Rc<Promise> {
+    fn IsConditionalMediationAvailable(cx: &mut JSContext, _global: &Window) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<DomTypeHolder>();
         // FIXME:(arihant2math) return false
-        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
+        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::from_cx(cx))
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-willrequestconditionalcreation>
-    fn WillRequestConditionalCreation(_global: &Window, can_gc: CanGc) -> Rc<Promise> {
+    fn WillRequestConditionalCreation(cx: &mut JSContext, _global: &Window) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<DomTypeHolder>();
-        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
+        Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::from_cx(cx))
     }
 }
