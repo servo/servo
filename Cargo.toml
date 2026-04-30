@@ -228,7 +228,7 @@ wio = "0.2"
 wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xml5ever = "0.39"
-yuv = { version = "0.8.13", features = ["rayon"] }
+yuv = { version = "0.8.14", features = ["rayon"] }
 
 ############################################################################################
 ## Workspace-local dependencies
