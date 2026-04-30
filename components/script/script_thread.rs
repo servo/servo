@@ -1209,7 +1209,7 @@ impl ScriptThread {
                 // 10. For each doc of docs, evaluate media queries and report changes for doc.
                 document
                     .window()
-                    .evaluate_media_queries_and_report_changes(CanGc::from_cx(cx));
+                    .evaluate_media_queries_and_report_changes(cx);
 
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.

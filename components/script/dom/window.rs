@@ -190,7 +190,7 @@ use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -3428,10 +3428,14 @@ impl Window {
 
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub(crate) fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
-        let _realm = enter_realm(self);
-
+    pub(crate) fn evaluate_media_queries_and_report_changes(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         rooted_vec!(let mut mql_list);
+
         self.media_query_lists.for_each(|mql| {
             if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
@@ -3447,11 +3451,11 @@ impl Window {
                 false,
                 mql.Media(),
                 mql.Matches(),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             event
                 .upcast::<Event>()
-                .fire(mql.upcast::<EventTarget>(), can_gc);
+                .fire(mql.upcast::<EventTarget>(), CanGc::from_cx(cx));
         }
     }
 
