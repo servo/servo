@@ -10,6 +10,10 @@ textarea {
   color: black;
 }
 
+input[type="radio"] {
+  border: none;
+}
+
 textarea {
     padding: 2px;
 }
@@ -40,6 +44,10 @@ textarea:disabled {
   cursor: unset;
   color: grey;
   border-color: lightgrey;
+}
+
+input[type="radio"]:disabled {
+  border: none;
 }
 
 /* FIXME(#36982): Use `display: block; align-content: center` instead of flex. */
@@ -150,7 +158,8 @@ input[type="color"]:focus,
 input[type="range"]:focus,
 input[type="reset"]:focus,
 input[type="submit"]:focus,
-input[type="file"]:focus::file-selector-button {
+input[type="file"]:focus::file-selector-button,
+input[type="radio"]:focus {
   outline: none;
 }
 
@@ -261,7 +270,6 @@ input[type="range"]:disabled::slider-thumb {
 /* Checkbox and radio button inputs */
 input[type="checkbox"],
 input[type="radio"] {
-  border: 1px solid grey;
   margin-inline: 4px 2px;
 
   /* Offset the outline a bit so that it doesn't just make the rounded border thicker. */
@@ -271,8 +279,11 @@ input[type="radio"] {
   position: relative;
 }
 
-input[type="checkbox"]:disabled,
-input[type="radio"]:disabled {
+input[type="checkbox"] {
+  border: 1px solid grey;
+}
+
+input[type="checkbox"]:disabled {
   border-color: lightgrey;
 }
 
@@ -316,21 +327,34 @@ input[type="checkbox"]:indeterminate::before {
 
 input[type="radio"] {
   display: inline-block;
-  border-radius: 50%;
 
   /* Radio buttons do not grow or shrink with their surrounding font size. */
-  min-height: 14px;
-  min-width: 14px;
-  max-height: 14px;
-  max-width: 14px;
-  height: 14px;
-  width: 14px;
-
-  /* Offset the outline a bit so that it doesn't just make the rounded border thicker. */
-  outline-offset: 0.4px;
+  min-height: 10px;
+  min-width: 10px;
+  max-height: 100%;
+  max-width: 100%;
+  height: 10px;
+  width: 10px;
 }
 
 input[type="radio"]::before {
+  content: "";
+  background: transparent;
+
+  /* Ring have a fixed size regardless of the text surrounding them. */
+  width: 10px;
+  height: 10px;
+
+  /* Center the bullet in the containing block. */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid grey;
+  border-radius: 50%;
+}
+
+input[type="radio"]::after {
   content: "";
   background: transparent;
 
@@ -346,11 +370,11 @@ input[type="radio"]::before {
   border-radius: 50%;
 }
 
-input[type="radio"]:checked::before {
+input[type="radio"]:checked::after {
   background: black;
 }
 
-input[type="radio"]:checked:disabled::before {
+input[type="radio"]:checked:disabled::after {
   background: grey;
 }
 
