@@ -51,6 +51,8 @@ pub(crate) struct QueueEntry {
     byte_length: usize,
 }
 
+impl js::gc::Rootable for QueueEntry {}
+
 impl QueueEntry {
     pub(crate) fn new(
         buffer: RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>,
@@ -97,6 +99,8 @@ pub(crate) struct PullIntoDescriptor {
     /// <https://streams.spec.whatwg.org/#pull-into-descriptor-reader-type>
     reader_type: Option<ReaderType>,
 }
+
+impl js::gc::Rootable for PullIntoDescriptor {}
 
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
@@ -269,7 +273,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-pull-into>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn perform_pull_into(
         &self,
         cx: &mut JSContext,
@@ -330,7 +333,7 @@ impl ReadableByteStreamController {
                 // view constructor ctor
                 // reader type  "byob"
                 let buffer_byte_length = buffer.byte_length();
-                let pull_into_descriptor = PullIntoDescriptor {
+                let pull_into_descriptor = RootedTraceableBox::new(PullIntoDescriptor {
                     buffer: *buffer.into_box(),
                     buffer_byte_length: buffer_byte_length as u64,
                     byte_offset: byte_offset as u64,
@@ -340,14 +343,14 @@ impl ReadableByteStreamController {
                     element_size,
                     view_constructor: ctor.clone(),
                     reader_type: Some(ReaderType::Byob),
-                };
+                });
 
                 // If controller.[[pendingPullIntos]] is not empty,
                 {
                     let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
                     if !pending_pull_intos.is_empty() {
                         // Append pullIntoDescriptor to controller.[[pendingPullIntos]].
-                        pending_pull_intos.push(pull_into_descriptor);
+                        pending_pull_intos.push(*pull_into_descriptor.into_box());
 
                         // Perform ! ReadableStreamAddReadIntoRequest(stream, readIntoRequest).
                         stream.add_read_into_request(read_into_request);
@@ -436,7 +439,7 @@ impl ReadableByteStreamController {
                 {
                     self.pending_pull_intos
                         .borrow_mut()
-                        .push(pull_into_descriptor);
+                        .push(*pull_into_descriptor.into_box());
                 }
                 // Perform ! ReadableStreamAddReadIntoRequest(stream, readIntoRequest).
                 stream.add_read_into_request(read_into_request);
@@ -558,7 +561,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-closed-state>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn respond_in_closed_state(&self, cx: &mut JSContext) -> Fallible<()> {
         let pending_pull_intos = self.pending_pull_intos.borrow();
         let first_descriptor = pending_pull_intos.first().unwrap();
@@ -587,19 +589,17 @@ impl ReadableByteStreamController {
         // If ! ReadableStreamHasBYOBReader(stream) is true,
         if stream.has_byob_reader() {
             // Let filledPullIntos be a new empty list.
-            let mut filled_pull_intos = Vec::new();
+            rooted!(&in(cx) let mut filled_pull_intos = Vec::new());
 
             // While filledPullIntos’s size < ! ReadableStreamGetNumReadIntoRequests(stream),
             while filled_pull_intos.len() < stream.get_num_read_into_requests() {
                 // Let pullIntoDescriptor be ! ReadableByteStreamControllerShiftPendingPullInto(controller).
-                let pull_into_descriptor = self.shift_pending_pull_into();
-
                 // Append pullIntoDescriptor to filledPullIntos.
-                filled_pull_intos.push(pull_into_descriptor);
+                filled_pull_intos.push(self.shift_pending_pull_into());
             }
 
             // For each filledPullInto of filledPullIntos,
-            for filled_pull_into in filled_pull_intos {
+            for filled_pull_into in &*filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
                 self.commit_pull_into_descriptor(cx, &filled_pull_into)
                     .expect("commit_pull_into_descriptor failed");
@@ -610,7 +610,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-respond-in-readable-state>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn respond_in_readable_state(&self, cx: &mut JSContext, bytes_written: u64) -> Fallible<()> {
         let pending_pull_intos = self.pending_pull_intos.borrow();
         let first_descriptor = pending_pull_intos.first().unwrap();
@@ -634,10 +633,10 @@ impl ReadableByteStreamController {
 
             // Let filledPullIntos be the result of performing
             // ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
+            rooted!(&in(cx) let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx));
 
             // For each filledPullInto of filledPullIntos,
-            for filled_pull_into in filled_pull_intos {
+            for filled_pull_into in &*filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]]
                 // , filledPullInto).
                 self.commit_pull_into_descriptor(cx, &filled_pull_into)
@@ -657,7 +656,7 @@ impl ReadableByteStreamController {
         drop(pending_pull_intos);
 
         // Perform ! ReadableByteStreamControllerShiftPendingPullInto(controller).
-        let pull_into_descriptor = self.shift_pending_pull_into();
+        rooted!(&in(cx) let pull_into_descriptor = self.shift_pending_pull_into());
 
         // Let remainderSize be the remainder after dividing pullIntoDescriptor’s bytes
         // filled by pullIntoDescriptor’s element size.
@@ -686,14 +685,14 @@ impl ReadableByteStreamController {
 
         // Let filledPullIntos be the result of performing
         // ! ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-        let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
+        rooted!(&in(cx) let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx));
 
         // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], pullIntoDescriptor).
         self.commit_pull_into_descriptor(cx, &pull_into_descriptor)
             .expect("commit_pull_into_descriptor failed");
 
         // For each filledPullInto of filledPullIntos,
-        for filled_pull_into in filled_pull_intos {
+        for filled_pull_into in &*filled_pull_intos {
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], filledPullInto).
             self.commit_pull_into_descriptor(cx, &filled_pull_into)
                 .expect("commit_pull_into_descriptor failed");
@@ -975,7 +974,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn enqueue(
         &self,
         cx: &mut JSContext,
@@ -1099,11 +1097,11 @@ impl ReadableByteStreamController {
 
             // Let filledPullIntos be the result of performing !
             // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
+            rooted!(&in(cx) let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx));
 
             // For each filledPullInto of filledPullIntos,
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
-            for filled_pull_into in filled_pull_intos {
+            for filled_pull_into in &*filled_pull_intos {
                 self.commit_pull_into_descriptor(cx, &filled_pull_into)
                     .expect("commit_pull_into_descriptor failed");
             }
@@ -1213,7 +1211,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-process-pull-into-descriptors-using-queue>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn process_pull_into_descriptors_using_queue(
         &self,
         cx: &mut js::context::JSContext,
@@ -1222,7 +1219,7 @@ impl ReadableByteStreamController {
         assert!(!self.close_requested.get());
 
         // Let filledPullIntos be a new empty list.
-        let mut filled_pull_intos = Vec::new();
+        rooted!(&in(cx) let mut filled_pull_intos = Vec::new());
 
         // While controller.[[pendingPullIntos]] is not empty,
         loop {
@@ -1243,15 +1240,13 @@ impl ReadableByteStreamController {
             // If ! ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) is true,
             if fill_pull_result {
                 // Perform ! ReadableByteStreamControllerShiftPendingPullInto(controller).
-                let pull_into_descriptor = self.shift_pending_pull_into();
-
                 // Append pullIntoDescriptor to filledPullIntos.
-                filled_pull_intos.push(pull_into_descriptor);
+                filled_pull_intos.push(self.shift_pending_pull_into());
             }
         }
 
         // Return filledPullIntos.
-        filled_pull_intos
+        filled_pull_intos.take()
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-fill-pull-into-descriptor-from-queue>
@@ -1475,7 +1470,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue-chunk-to-queue>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn enqueue_chunk_to_queue(
         &self,
         buffer: RootedTraceableBox<HeapBufferSource<ArrayBufferU8>>,
@@ -1483,10 +1477,10 @@ impl ReadableByteStreamController {
         byte_length: usize,
     ) {
         // Let entry be a new ReadableByteStreamQueueEntry object.
-        let entry = QueueEntry::new(buffer, byte_offset, byte_length);
-
         // Append entry to controller.[[queue]].
-        self.queue.borrow_mut().push_back(entry);
+        self.queue
+            .borrow_mut()
+            .push_back(QueueEntry::new(buffer, byte_offset, byte_length));
 
         // Set controller.[[queueTotalSize]] to controller.[[queueTotalSize]] + byteLength.
         self.queue_total_size
@@ -1515,7 +1509,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn fill_read_request_from_queue(
         &self,
         cx: &mut JSContext,
@@ -1528,8 +1521,7 @@ impl ReadableByteStreamController {
 
         // Let entry be controller.[[queue]][0].
         // Remove entry from controller.[[queue]].
-        let entry = self.remove_entry();
-        //FIXME: use first() and remove afterwards?
+        rooted!(&in(cx) let entry = self.remove_entry());
 
         // Set controller.[[queueTotalSize]] to controller.[[queueTotalSize]] − entry’s byte length.
         self.queue_total_size
@@ -1769,20 +1761,19 @@ impl ReadableByteStreamController {
     }
 
     // <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontroller-releasesteps
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn perform_release_steps(&self) -> Fallible<()> {
         // If this.[[pendingPullIntos]] is not empty,
         let mut pending_pull_intos = self.pending_pull_intos.borrow_mut();
         if !pending_pull_intos.is_empty() {
             // Let firstPendingPullInto be this.[[pendingPullIntos]][0].
-            let mut first_pending_pull_into = pending_pull_intos.remove(0);
+            let mut first_pending_pull_into = RootedTraceableBox::new(pending_pull_intos.remove(0));
 
             // Set firstPendingPullInto’s reader type to "none".
             first_pending_pull_into.reader_type = None;
 
             // Set this.[[pendingPullIntos]] to the list « firstPendingPullInto »
             pending_pull_intos.clear();
-            pending_pull_intos.push(first_pending_pull_into);
+            pending_pull_intos.push(*first_pending_pull_into.into_box());
         }
         Ok(())
     }
@@ -1830,7 +1821,6 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn perform_pull_steps(&self, cx: &mut JSContext, read_request: &ReadRequest) {
         // Let stream be this.[[stream]].
         let stream = self.stream.get().unwrap();
@@ -1869,22 +1859,21 @@ impl ReadableByteStreamController {
                     // element size 1
                     // view constructor %Uint8Array%
                     // reader type  "default"
-                    let pull_into_descriptor = PullIntoDescriptor {
-                        buffer: *buffer.into_box(),
-                        buffer_byte_length: auto_allocate_chunk_size,
-                        byte_length: auto_allocate_chunk_size,
-                        byte_offset: 0,
-                        bytes_filled: Cell::new(0),
-                        minimum_fill: 1,
-                        element_size: 1,
-                        view_constructor: Constructor::Name(Type::Uint8),
-                        reader_type: Some(ReaderType::Default),
-                    };
 
                     // Append pullIntoDescriptor to this.[[pendingPullIntos]].
                     self.pending_pull_intos
                         .borrow_mut()
-                        .push(pull_into_descriptor);
+                        .push(PullIntoDescriptor {
+                            buffer: *buffer.into_box(),
+                            buffer_byte_length: auto_allocate_chunk_size,
+                            byte_length: auto_allocate_chunk_size,
+                            byte_offset: 0,
+                            bytes_filled: Cell::new(0),
+                            minimum_fill: 1,
+                            element_size: 1,
+                            view_constructor: Constructor::Name(Type::Uint8),
+                            reader_type: Some(ReaderType::Default),
+                        });
                 },
                 Err(error) => {
                     // If buffer is an abrupt completion,
