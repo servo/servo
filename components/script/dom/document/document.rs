@@ -4369,8 +4369,7 @@ impl Document {
 
         // Steps 4 through 7 occur inside `send_pending_events().`
         let _realm = enter_realm(self);
-        self.animations()
-            .send_pending_events(self.window(), CanGc::from_cx(cx));
+        self.animations().send_pending_events(self.window(), cx);
     }
 
     pub(crate) fn image_animation_manager(&self) -> Ref<'_, ImageAnimationManager> {
