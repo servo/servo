@@ -177,9 +177,10 @@ pub(crate) struct DocumentEventHandler {
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
     last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
-    /// The number of currently down buttons, used to decide which kind
-    /// of pointer event to dispatch on MouseDown/MouseUp.
-    down_button_count: Cell<u32>,
+    /// The number of mouse buttons currently being pressed. This is used to ensure
+    /// that `pointerup` and `pointerdown` events are only sent when transitioning from
+    /// having no mouse buttons pressed to having any and vice-versa.
+    mouse_buttons_down: Cell<u32>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently clicked.
@@ -217,7 +218,7 @@ impl DocumentEventHandler {
             coalesced_wheel_event_ids: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
-            down_button_count: Cell::new(0),
+            mouse_buttons_down: Cell::new(0),
             current_hover_target: Default::default(),
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
@@ -883,7 +884,7 @@ impl DocumentEventHandler {
                 .reset_click_count_if_necessary(event.button, hit_test_result.point_in_frame);
         }
 
-        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_button_event(
+        let mouse_event = MouseEvent::for_platform_button_event(
             cx,
             mouse_event_type,
             event,
@@ -892,7 +893,7 @@ impl DocumentEventHandler {
             &hit_test_result,
             input_event.active_keyboard_modifiers,
             self.click_counting_info.borrow().count + 1,
-        ));
+        );
 
         match event.action {
             MouseButtonAction::Down => {
@@ -900,26 +901,34 @@ impl DocumentEventHandler {
                     .set(Some(hit_test_result.point_in_frame));
 
                 // Step 6. Dispatch pointerdown event.
-                let down_button_count = self.down_button_count.get();
-
-                let event_type = if down_button_count == 0 {
-                    "pointerdown"
+                let mouse_buttons_down = self.mouse_buttons_down.get();
+                let pointer_event_name = if mouse_buttons_down == 0 {
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointerdown>
+                    // > The user agent MUST fire a pointer event named pointerdown when a pointer enters
+                    // > the active buttons state. For mouse, this is when the device transitions from no
+                    // > buttons depressed to at least one button depressed.
+                    "pointerdown".into()
                 } else {
-                    "pointermove"
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointermove>:
+                    // > The user agent MUST fire a pointer event named pointermove when a pointer
+                    // > changes any properties that don't fire pointerdown or pointerup events. This
+                    // > includes any changes to coordinates, pressure, tangential pressure, tilt, twist,
+                    // > contact geometry (width and height) or chorded buttons.
+                    "pointermove".into()
                 };
-                let pointer_event = dom_event
-                    .downcast::<MouseEvent>()
-                    .unwrap()
-                    .to_pointer_event(event_type.into(), CanGc::from_cx(cx));
-
-                pointer_event
+                mouse_event
+                    .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
                     .upcast::<Event>()
                     .fire(node.upcast(), CanGc::from_cx(cx));
 
-                self.down_button_count.set(down_button_count + 1);
+                self.mouse_buttons_down.set(mouse_buttons_down + 1);
 
                 // Step 7. Let result = dispatch event at target
-                let result = dom_event.dispatch(node.upcast(), false, CanGc::from_cx(cx));
+                let result = mouse_event.upcast::<Event>().dispatch(
+                    node.upcast(),
+                    false,
+                    CanGc::from_cx(cx),
+                );
 
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
@@ -947,28 +956,32 @@ impl DocumentEventHandler {
             // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
             MouseButtonAction::Up => {
                 // Step 6. Dispatch pointerup event.
-                let down_button_count = self.down_button_count.get();
-
-                if down_button_count > 0 {
-                    self.down_button_count.set(down_button_count - 1);
-                }
-
-                let event_type = if down_button_count == 0 {
-                    "pointerup"
+                let mouse_buttons_down = self.mouse_buttons_down.get();
+                let pointer_event_name = if mouse_buttons_down == 1 {
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointerup>:
+                    // > The user agent MUST fire a pointer event named pointerup when a pointer leaves
+                    // > the active buttons state. For mouse, this is when the device transitions from at
+                    // > least one button depressed to no buttons depressed.
+                    "pointerup".into()
                 } else {
-                    "pointermove"
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointermove>:
+                    // > The user agent MUST fire a pointer event named pointermove when a pointer
+                    // > changes any properties that don't fire pointerdown or pointerup events. This
+                    // > includes any changes to coordinates, pressure, tangential pressure, tilt, twist,
+                    // > contact geometry (width and height) or chorded buttons.
+                    "pointermove".into()
                 };
-                let pointer_event = dom_event
-                    .downcast::<MouseEvent>()
-                    .unwrap()
-                    .to_pointer_event(event_type.into(), CanGc::from_cx(cx));
-
-                pointer_event
+                mouse_event
+                    .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
                     .upcast::<Event>()
                     .fire(node.upcast(), CanGc::from_cx(cx));
+                self.mouse_buttons_down
+                    .set(mouse_buttons_down.saturating_sub(1));
 
                 // Step 7. dispatch event at target.
-                dom_event.dispatch(node.upcast(), false, CanGc::from_cx(cx));
+                mouse_event
+                    .upcast::<Event>()
+                    .dispatch(node.upcast(), false, CanGc::from_cx(cx));
 
                 // Click counts should still work for other buttons even though they
                 // do not trigger "click" and "dblclick" events, so we increment
