@@ -1693,10 +1693,10 @@ impl ReadableStream {
         let canceled_2 = Rc::new(Cell::new(false));
 
         // Let reason1 be undefined.
-        let reason_1 = Rc::new(Heap::boxed(UndefinedValue()));
+        let reason_1 = Rc::new(Heap::default());
 
         // Let reason2 be undefined.
-        let reason_2 = Rc::new(Heap::boxed(UndefinedValue()));
+        let reason_2 = Rc::new(Heap::default());
 
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new2(cx, &self.global());
@@ -1787,9 +1787,9 @@ impl ReadableStream {
         let canceled_2 = Rc::new(Cell::new(false));
 
         // Let reason1 be undefined.
-        let reason_1 = Rc::new(Heap::boxed(UndefinedValue()));
+        let reason_1 = Rc::new(Heap::default());
         // Let reason2 be undefined.
-        let reason_2 = Rc::new(Heap::boxed(UndefinedValue()));
+        let reason_2 = Rc::new(Heap::default());
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new2(cx, &self.global());
 

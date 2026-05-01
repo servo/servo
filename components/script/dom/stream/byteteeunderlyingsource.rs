@@ -58,11 +58,9 @@ pub(crate) struct ByteTeeUnderlyingSource {
     #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Mozjs"]
-    #[allow(clippy::redundant_allocation)]
-    reason_1: Rc<Box<Heap<Value>>>,
+    reason_1: Rc<Heap<Value>>,
     #[ignore_malloc_size_of = "Mozjs"]
-    #[allow(clippy::redundant_allocation)]
-    reason_2: Rc<Box<Heap<Value>>>,
+    reason_2: Rc<Heap<Value>>,
     #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
     #[conditional_malloc_size_of]
@@ -73,7 +71,6 @@ pub(crate) struct ByteTeeUnderlyingSource {
 
 impl ByteTeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::redundant_allocation)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         reader: Rc<RefCell<ReaderType>>,
@@ -83,8 +80,8 @@ impl ByteTeeUnderlyingSource {
         read_again_for_branch_2: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
-        reason_1: Rc<Box<Heap<Value>>>,
-        reason_2: Rc<Box<Heap<Value>>>,
+        reason_1: Rc<Heap<Value>>,
+        reason_2: Rc<Heap<Value>>,
         cancel_promise: Rc<Promise>,
         reader_version: Rc<Cell<u64>>,
         tee_cancel_algorithm: ByteTeeCancelAlgorithm,

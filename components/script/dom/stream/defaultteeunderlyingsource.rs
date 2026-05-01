@@ -45,11 +45,9 @@ pub(crate) struct DefaultTeeUnderlyingSource {
     #[conditional_malloc_size_of]
     clone_for_branch_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "mozjs"]
-    #[expect(clippy::redundant_allocation)]
-    reason_1: Rc<Box<Heap<Value>>>,
+    reason_1: Rc<Heap<Value>>,
     #[ignore_malloc_size_of = "mozjs"]
-    #[expect(clippy::redundant_allocation)]
-    reason_2: Rc<Box<Heap<Value>>>,
+    reason_2: Rc<Heap<Value>>,
     #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
     tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
@@ -57,7 +55,7 @@ pub(crate) struct DefaultTeeUnderlyingSource {
 
 impl DefaultTeeUnderlyingSource {
     #[expect(clippy::too_many_arguments)]
-    #[expect(clippy::redundant_allocation)]
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         reader: &ReadableStreamDefaultReader,
         stream: &ReadableStream,
@@ -66,8 +64,8 @@ impl DefaultTeeUnderlyingSource {
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         clone_for_branch_2: Rc<Cell<bool>>,
-        reason_1: Rc<Box<Heap<Value>>>,
-        reason_2: Rc<Box<Heap<Value>>>,
+        reason_1: Rc<Heap<Value>>,
+        reason_2: Rc<Heap<Value>>,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: DefaultTeeCancelAlgorithm,
         can_gc: CanGc,
