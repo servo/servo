@@ -427,7 +427,10 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
         // Step 3. If this's custom element definition set contains an item with name name,
         // then throw a "NotSupportedError" DOMException.
         if self.definitions.borrow().contains_key(&name) {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(format!(
+                "{} has already been defined as a custom element",
+                name
+            ))));
         }
 
         // Step 4. If this's custom element definition set contains an
