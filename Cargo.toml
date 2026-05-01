@@ -115,7 +115,7 @@ js = { package = "mozjs", version = "=0.15.11", default-features = false, featur
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
-lru = "0.17"
+lru = "0.18"
 log = "0.4.29"
 mach2 = "0.6"
 malloc_size_of_derive = "0.1"
