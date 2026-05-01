@@ -292,9 +292,9 @@ impl RequestListener {
             event
                 .upcast::<Event>()
                 .fire_with_legacy_output_did_listeners_throw(
+                    cx,
                     request.upcast(),
                     &did_listeners_throw,
-                    CanGc::from_cx(cx),
                 );
             // Step 8: If transaction’s state is active, then:
             if transaction.is_active() {
@@ -371,9 +371,9 @@ impl RequestListener {
         let default_not_prevented = event
             .upcast::<Event>()
             .fire_with_legacy_output_did_listeners_throw(
+                cx,
                 request.upcast(),
                 &did_listeners_throw,
-                CanGc::from_cx(cx),
             );
         // Step 8: If transaction’s state is active, then:
         if transaction.is_active() {

@@ -337,13 +337,7 @@ impl IDBFactory {
                 // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
                 // Step 3. Set transaction’s scope to connection’s object store set.
                 connection.set_object_store_names_from_backend(object_store_names);
-                request.upgrade_db_version(
-                    &connection,
-                    old_version,
-                    version,
-                    transaction,
-                    CanGc::from_cx(cx),
-                );
+                request.upgrade_db_version(cx, &connection, old_version, version, transaction);
             },
             ConnectionMsg::VersionError { name, id } => {
                 // Step 2.1 If result is an error, see dispatch_error().
@@ -374,7 +368,7 @@ impl IDBFactory {
                     request.get_or_init_connection(cx, &global, name.clone(), version, false);
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
-                connection.dispatch_versionchange(old_version, Some(version), CanGc::from_cx(cx));
+                connection.dispatch_versionchange(cx, old_version, Some(version));
 
                 // Step 10.3: Wait for all of the events to be fired.
                 // Note: backend is at this step; sending a message to continue algo there.
@@ -406,7 +400,7 @@ impl IDBFactory {
                 };
 
                 // Step 10.4: fire a version change event named blocked at request with db’s version and version.
-                request.dispatch_blocked(old_version, Some(version), CanGc::from_cx(cx));
+                request.dispatch_blocked(cx, old_version, Some(version));
             },
             ConnectionMsg::TxnMaybeCommit { db_name, txn } => {
                 let factory = Trusted::new(self);

@@ -561,7 +561,11 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-synthetic-pointer-event>
-    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, event_type: Atom, can_gc: CanGc) {
+    pub(crate) fn fire_synthetic_pointer_event_not_trusted(
+        &self,
+        cx: &mut JSContext,
+        event_type: Atom,
+    ) {
         // Spec says the choice of which global to create the pointer event
         // on is not well-defined,
         // and refers to heycam/webidl#135
@@ -597,7 +601,7 @@ impl Node {
             false,                              // is_primary
             vec![],                             // coalesced_events
             vec![],                             // predicted_events
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 4. Set event's composed flag.
@@ -610,7 +614,7 @@ impl Node {
 
         pointer_event
             .upcast::<Event>()
-            .dispatch(self.upcast::<EventTarget>(), false, can_gc);
+            .dispatch(cx, self.upcast::<EventTarget>(), false);
     }
 
     pub(crate) fn parent_directionality(&self) -> String {

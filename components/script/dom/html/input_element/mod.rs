@@ -1837,10 +1837,7 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(
-                            atom!("click"),
-                            CanGc::from_cx(cx),
-                        );
+                        .fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
                 }
             },
             None => {
@@ -2327,9 +2324,9 @@ impl VirtualMethods for HTMLInputElement {
             let flags = reaction.flags;
             if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
                 self.owner_document().event_handler().fire_clipboard_event(
+                    cx,
                     None,
                     ClipboardEventType::Change,
-                    CanGc::from_cx(cx),
                 );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {

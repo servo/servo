@@ -458,10 +458,7 @@ impl ServiceWorkerGlobalScope {
                     );
                     _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No);
                     let in_realm_proof = (&mut realm).into();
-                    global.dispatch_activate(
-                        CanGc::from_cx(&mut realm),
-                        InRealm::Already(&in_realm_proof),
-                    );
+                    global.dispatch_activate(&mut realm, InRealm::Already(&in_realm_proof));
                 }
 
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -552,10 +549,10 @@ impl ServiceWorkerGlobalScope {
         ScriptEventLoopSender::ServiceWorker(self.own_sender.clone())
     }
 
-    fn dispatch_activate(&self, can_gc: CanGc, _realm: InRealm) {
-        let event = ExtendableEvent::new(self, atom!("activate"), false, false, can_gc);
+    fn dispatch_activate(&self, cx: &mut js::context::JSContext, _realm: InRealm) {
+        let event = ExtendableEvent::new(self, atom!("activate"), false, false, CanGc::from_cx(cx));
         let event = (*event).upcast::<Event>();
-        self.upcast::<EventTarget>().dispatch_event(event, can_gc);
+        self.upcast::<EventTarget>().dispatch_event(cx, event);
     }
 }
 

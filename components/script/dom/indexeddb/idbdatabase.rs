@@ -153,18 +153,18 @@ impl IDBDatabase {
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbdatabase-versionchange>
     pub fn dispatch_versionchange(
         &self,
+        cx: &mut JSContext,
         old_version: u64,
         new_version: Option<u64>,
-        can_gc: CanGc,
     ) {
         let global = self.global();
         let _ = IDBVersionChangeEvent::fire_version_change_event(
+            cx,
             &global,
             self.upcast(),
             Atom::from("versionchange"),
             old_version,
             new_version,
-            can_gc,
         );
     }
 }

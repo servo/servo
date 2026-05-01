@@ -831,9 +831,9 @@ impl VirtualMethods for HTMLTextAreaElement {
             let flags = reaction.flags;
             if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
                 self.owner_document().event_handler().fire_clipboard_event(
+                    cx,
                     None,
                     ClipboardEventType::Change,
-                    CanGc::from_cx(cx),
                 );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {

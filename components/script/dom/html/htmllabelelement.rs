@@ -82,7 +82,7 @@ impl Activatable for HTMLLabelElement {
         _target: &EventTarget,
     ) {
         if let Some(e) = self.GetControl() {
-            e.Click(CanGc::from_cx(cx));
+            e.Click(cx);
         }
     }
 }

@@ -442,7 +442,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-click>
-    fn Click(&self, can_gc: CanGc) {
+    fn Click(&self, cx: &mut JSContext) {
         let element = self.as_element();
         if element.disabled_state() {
             return;
@@ -453,7 +453,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(true);
 
         self.upcast::<Node>()
-            .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+            .fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
         element.set_click_in_progress(false);
     }
 

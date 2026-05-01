@@ -801,8 +801,8 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub(crate) fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) {
-        event.dispatch(self.upcast(), true, can_gc);
+    pub(crate) fn dispatch_event_with_target_override(&self, cx: &mut JSContext, event: &Event) {
+        event.dispatch(cx, self.upcast(), true);
     }
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
@@ -875,7 +875,7 @@ impl Window {
         //
         // Implemented by passing `false` into the method below
         // Step 2. If the result of checking if unloading is canceled for toUnload is not "continue", then return.
-        if !document.check_if_unloading_is_cancelled(false, CanGc::from_cx(cx)) {
+        if !document.check_if_unloading_is_cancelled(cx, false) {
             return;
         }
         // Step 3. Append the following session history traversal steps to traversable:

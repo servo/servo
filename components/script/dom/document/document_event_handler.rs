@@ -686,13 +686,11 @@ impl DocumentEventHandler {
             mouse_over_event
                 .to_pointer_hover_event("pointerover", CanGc::from_cx(cx))
                 .upcast::<Event>()
-                .dispatch(new_target.upcast(), false, CanGc::from_cx(cx));
+                .dispatch(cx, new_target.upcast(), false);
 
-            mouse_over_event.upcast::<Event>().dispatch(
-                new_target.upcast(),
-                false,
-                CanGc::from_cx(cx),
-            );
+            mouse_over_event
+                .upcast::<Event>()
+                .dispatch(cx, new_target.upcast(), false);
 
             let moving_from =
                 old_hover_target.map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
@@ -924,11 +922,9 @@ impl DocumentEventHandler {
                 self.mouse_buttons_down.set(mouse_buttons_down + 1);
 
                 // Step 7. Let result = dispatch event at target
-                let result = mouse_event.upcast::<Event>().dispatch(
-                    node.upcast(),
-                    false,
-                    CanGc::from_cx(cx),
-                );
+                let result = mouse_event
+                    .upcast::<Event>()
+                    .dispatch(cx, node.upcast(), false);
 
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
@@ -976,7 +972,7 @@ impl DocumentEventHandler {
                 // Step 7. dispatch event at target.
                 mouse_event
                     .upcast::<Event>()
-                    .dispatch(node.upcast(), false, CanGc::from_cx(cx));
+                    .dispatch(cx, node.upcast(), false);
 
                 // Click counts should still work for other buttons even though they
                 // do not trigger "click" and "dblclick" events, so we increment
@@ -1046,7 +1042,7 @@ impl DocumentEventHandler {
             click_count,
         )
         .upcast::<Event>()
-        .dispatch(element.upcast(), false, CanGc::from_cx(cx));
+        .dispatch(cx, element.upcast(), false);
         element.set_click_in_progress(false);
 
         // The firing of "dbclick" events is dependent on the platform, so we have
@@ -1069,7 +1065,7 @@ impl DocumentEventHandler {
                 2,
             )
             .upcast::<Event>()
-            .dispatch(element.upcast(), false, CanGc::from_cx(cx));
+            .dispatch(cx, element.upcast(), false);
         }
     }
 
@@ -1707,8 +1703,7 @@ impl DocumentEventHandler {
         }
 
         // Step 2 Fire a clipboard event
-        let clipboard_event =
-            self.fire_clipboard_event(element.clone(), clipboard_event_type, CanGc::from_cx(cx));
+        let clipboard_event = self.fire_clipboard_event(cx, element.clone(), clipboard_event_type);
 
         // Step 3 If a script doesn't call preventDefault()
         // the event will be handled inside target's VirtualMethods::handle_event
@@ -1741,7 +1736,7 @@ impl DocumentEventHandler {
                     }
 
                     // Step 4.2 Fire a clipboard event named clipboardchange
-                    self.fire_clipboard_event(element, ClipboardEventType::Change, CanGc::from_cx(cx));
+                    self.fire_clipboard_event(cx, element, ClipboardEventType::Change);
                 },
                 // Step 4.1 Return false.
                 // Note: This function deviates from the specification a bit by returning
@@ -1759,9 +1754,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
     pub(crate) fn fire_clipboard_event(
         &self,
+        cx: &mut JSContext,
         target: Option<DomRoot<Element>>,
         clipboard_event_type: ClipboardEventType,
-        can_gc: CanGc,
     ) -> DomRoot<ClipboardEvent> {
         let clipboard_event = ClipboardEvent::new(
             &self.window,
@@ -1770,7 +1765,7 @@ impl DocumentEventHandler {
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 1 Let clear_was_called be false
@@ -1831,7 +1826,7 @@ impl DocumentEventHandler {
         let clipboard_event_data = DataTransfer::new(
             &self.window,
             Rc::new(RefCell::new(Some(drag_data_store))),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 8
@@ -1845,7 +1840,7 @@ impl DocumentEventHandler {
         event.set_composed(true);
 
         // Step 11
-        event.dispatch(&target, false, can_gc);
+        event.dispatch(cx, &target, false);
 
         DomRoot::from(clipboard_event)
     }
@@ -1922,9 +1917,9 @@ impl DocumentEventHandler {
     /// > type is supported by the user agent.
     pub(crate) fn maybe_dispatch_simulated_click(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         event: &KeyboardEvent,
-        can_gc: CanGc,
     ) -> bool {
         if event.key() != Key::Named(NamedKey::Enter) && event.original_code() != Some(Code::Space)
         {
@@ -1942,7 +1937,7 @@ impl DocumentEventHandler {
             return false;
         }
 
-        node.fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+        node.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
         true
     }
 
@@ -1956,7 +1951,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        if self.maybe_dispatch_simulated_click(node, event, CanGc::from_cx(cx)) {
+        if self.maybe_dispatch_simulated_click(cx, node, event) {
             return;
         }
 

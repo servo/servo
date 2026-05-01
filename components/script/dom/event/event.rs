@@ -287,40 +287,35 @@ impl Event {
     /// <https://dom.spec.whatwg.org/#concept-event-dispatch>
     pub(crate) fn dispatch(
         &self,
+        cx: &mut JSContext,
         target: &EventTarget,
         legacy_target_override: bool,
-        can_gc: CanGc,
     ) -> bool {
-        self.dispatch_inner(target, legacy_target_override, None, can_gc)
+        self.dispatch_inner(cx, target, legacy_target_override, None)
     }
 
     pub(crate) fn dispatch_with_legacy_output_did_listeners_throw(
         &self,
+        cx: &mut JSContext,
         target: &EventTarget,
         legacy_target_override: bool,
         legacy_output_did_listeners_throw: &Cell<bool>,
-        can_gc: CanGc,
     ) -> bool {
         self.dispatch_inner(
+            cx,
             target,
             legacy_target_override,
             Some(legacy_output_did_listeners_throw),
-            can_gc,
         )
     }
 
-    #[expect(unsafe_code)]
     fn dispatch_inner(
         &self,
+        cx: &mut JSContext,
         target: &EventTarget,
         legacy_target_override: bool,
         legacy_output_did_listeners_throw: Option<&Cell<bool>>,
-        _can_gc: CanGc,
     ) -> bool {
-        // TODO https://github.com/servo/servo/issues/44499
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
         // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
         // > must perform the following activation notification steps before dispatching the event:
         // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
@@ -770,24 +765,35 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#firing-events>
-    pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> bool {
+    #[expect(unsafe_code)]
+    pub(crate) fn fire(&self, target: &EventTarget, _can_gc: CanGc) -> bool {
         self.set_trusted(true);
 
-        target.dispatch_event(self, can_gc)
+        // TODO https://github.com/servo/servo/issues/44499
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
+        target.dispatch_event(cx, self)
+    }
+
+    pub(crate) fn fire_with_cx(&self, cx: &mut JSContext, target: &EventTarget) -> bool {
+        self.set_trusted(true);
+
+        target.dispatch_event(cx, self)
     }
 
     pub(crate) fn fire_with_legacy_output_did_listeners_throw(
         &self,
+        cx: &mut JSContext,
         target: &EventTarget,
         legacy_output_did_listeners_throw: &Cell<bool>,
-        can_gc: CanGc,
     ) -> bool {
         self.set_trusted(true);
         self.dispatch_with_legacy_output_did_listeners_throw(
+            cx,
             target,
             false,
             legacy_output_did_listeners_throw,
-            can_gc,
         )
     }
 

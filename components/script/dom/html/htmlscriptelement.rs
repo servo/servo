@@ -1219,7 +1219,7 @@ impl HTMLScriptElement {
             EventCancelable::NotCancelable,
             CanGc::from_cx(cx),
         );
-        event.fire(self.upcast(), CanGc::from_cx(cx))
+        event.fire_with_cx(cx, self.upcast())
     }
 
     fn text(&self) -> DOMString {

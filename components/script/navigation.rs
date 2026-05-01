@@ -46,7 +46,6 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
-use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone)]
@@ -498,7 +497,7 @@ pub(crate) fn navigate(
 
     // Step 23.1. Let unloadPromptCanceled be the result of checking if unloading
     // is canceled for navigable's active document's inclusive descendant navigables.
-    let unload_prompt_canceled = doc.check_if_unloading_is_cancelled(false, CanGc::from_cx(cx));
+    let unload_prompt_canceled = doc.check_if_unloading_is_cancelled(cx, false);
     // Step 23.2. If unloadPromptCanceled is not "continue",
     // or navigable's ongoing navigation is no longer navigationId:
     //

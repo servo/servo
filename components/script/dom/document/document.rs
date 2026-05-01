@@ -917,7 +917,7 @@ impl Document {
                 );
                 let event = event.upcast::<Event>();
                 event.set_trusted(true);
-                window.dispatch_event_with_target_override(event, CanGc::from_cx(cx));
+                window.dispatch_event_with_target_override(cx, event);
             }))
     }
 
@@ -1993,8 +1993,8 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
     pub(crate) fn check_if_unloading_is_cancelled(
         &self,
+        cx: &mut js::context::JSContext,
         recursive_flag: bool,
-        can_gc: CanGc,
     ) -> bool {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
@@ -2005,14 +2005,13 @@ impl Document {
             atom!("beforeunload"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
-        self.window
-            .dispatch_event_with_target_override(event, can_gc);
+        self.window.dispatch_event_with_target_override(cx, event);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
@@ -2040,7 +2039,7 @@ impl Document {
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                can_unload = document.check_if_unloading_is_cancelled(true, can_gc);
+                can_unload = document.check_if_unloading_is_cancelled(cx, true);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2075,8 +2074,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            self.window
-                .dispatch_event_with_target_override(event, CanGc::from_cx(cx));
+            self.window.dispatch_event_with_target_override(cx, event);
             // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(cx, DocumentVisibilityState::Hidden);
         }
@@ -2092,8 +2090,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
-            self.window
-                .dispatch_event_with_target_override(&event, CanGc::from_cx(cx));
+            self.window.dispatch_event_with_target_override(cx, &event);
             self.fired_unload.set(true);
             // Step 9
             if has_listeners {
@@ -2232,7 +2229,7 @@ impl Document {
                 );
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
-                window.dispatch_event_with_target_override(&load_event, CanGc::from_cx(cx));
+                window.dispatch_event_with_target_override(cx, &load_event);
 
                 // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
                 // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID

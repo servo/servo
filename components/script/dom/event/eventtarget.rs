@@ -475,8 +475,8 @@ impl EventTarget {
             .map_or(EventListeners(vec![]), |listeners| listeners.clone())
     }
 
-    pub(crate) fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> bool {
-        event.dispatch(self, false, can_gc)
+    pub(crate) fn dispatch_event(&self, cx: &mut JSContext, event: &Event) -> bool {
+        event.dispatch(cx, self, false)
     }
 
     pub(crate) fn remove_all_listeners(&self) {
@@ -1108,12 +1108,12 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent>
-    fn DispatchEvent(&self, event: &Event, can_gc: CanGc) -> Fallible<bool> {
+    fn DispatchEvent(&self, cx: &mut JSContext, event: &Event) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(Error::InvalidState(None));
         }
         event.set_trusted(false);
-        Ok(self.dispatch_event(event, can_gc))
+        Ok(self.dispatch_event(cx, event))
     }
 }
 
