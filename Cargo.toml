@@ -109,7 +109,7 @@ image = { version = "0.25", default-features = false, features = ["avif", "rayon
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }
 inventory = { version = "0.3.24" }
-ipc-channel = "0.21"
+ipc-channel = "0.22"
 itertools = "0.14"
 js = { package = "mozjs", version = "=0.15.11", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
