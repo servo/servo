@@ -936,12 +936,7 @@ impl DocumentEventHandler {
                 // Step 9. If mbutton is the secondary mouse button, then
                 // Maybe show context menu with native, target.
                 if let MouseButton::Right = event.button {
-                    self.maybe_show_context_menu(
-                        node.upcast(),
-                        &hit_test_result,
-                        input_event,
-                        CanGc::from_cx(cx),
-                    );
+                    self.maybe_show_context_menu(cx, node.upcast(), &hit_test_result, input_event);
                 }
             },
             // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
@@ -1068,10 +1063,10 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/pointerevents4/#maybe-show-context-menu>
     fn maybe_show_context_menu(
         &self,
+        cx: &mut js::context::JSContext,
         target: &EventTarget,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) {
         // <https://w3c.github.io/pointerevents/#contextmenu>
         let menu_event = PointerEvent::new(
@@ -1105,12 +1100,14 @@ impl DocumentEventHandler {
             true,                     // is_primary
             vec![],                   // coalesced_events
             vec![],                   // predicted_events
-            can_gc,
+            CanGc::from_cx(cx),
         );
         menu_event.upcast::<Event>().set_composed(true);
 
         // Step 3. Let result = dispatch menuevent at target.
-        let result = menu_event.upcast::<Event>().fire(target, can_gc);
+        let result = menu_event
+            .upcast::<Event>()
+            .fire(target, CanGc::from_cx(cx));
 
         // Step 4. If result is true, then show the UA context menu
         if result {
