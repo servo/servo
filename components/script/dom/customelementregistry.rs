@@ -418,7 +418,10 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 2. If name is not a valid custom element name, then throw a "SyntaxError" DOMException.
         if !is_valid_custom_element_name(&name) {
-            return Err(Error::Syntax(None));
+            return Err(Error::Syntax(Some(format!(
+                "{} name is not a valid custom element name",
+                name
+            ))));
         }
 
         // Step 3. If this's custom element definition set contains an item with name name,
