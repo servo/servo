@@ -71,6 +71,7 @@ use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::interactive_element_command::InteractiveElementCommand;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::node::focus::FocusNavigationScopeOwner;
 use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
@@ -2096,7 +2097,7 @@ impl DocumentEventHandler {
             })
             .unwrap_or_else(|| {
                 if starting_point_is_navigable {
-                    SequentialFocusNavigationMechanism::Navigable
+                    SequentialFocusNavigationMechanism::FirstOrLast
                 } else {
                     SequentialFocusNavigationMechanism::Dom
                 }
@@ -2105,7 +2106,10 @@ impl DocumentEventHandler {
         // > 5. Let candidate be the result of running the sequential navigation search algorithm
         // > with starting point, direction, and selection mechanism.
         let candidate = SequentialFocusNavigationSearch::new(
-            self.window.as_rooted(),
+            starting_point
+                .as_ref()
+                .and_then(|node| node.containing_focus_navigation_scope_owner())
+                .unwrap_or_else(|| FocusNavigationScopeOwner::Document(self.window.Document())),
             direction,
             selection_mechanism,
             starting_point,
