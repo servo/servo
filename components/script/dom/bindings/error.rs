@@ -347,13 +347,8 @@ impl ErrorInfo {
 }
 
 /// Report a pending exception, thereby clearing it.
-pub(crate) fn report_pending_exception(cx: &mut js::context::JSContext) {
-    let realm = CurrentRealm::assert(cx);
-    let global = GlobalScope::from_current_realm(&realm);
-
-    let mut realm = enter_auto_realm(cx, &*global);
-    let cx = &mut realm.current_realm();
-
+pub(crate) fn report_pending_exception(cx: &mut CurrentRealm) {
+    let global = GlobalScope::from_current_realm(&cx);
     rooted!(&in(cx) let mut value = UndefinedValue());
     if let Some(error_info) =
         error_info_from_pending_exception(cx.into(), value.handle_mut(), CanGc::from_cx(cx))

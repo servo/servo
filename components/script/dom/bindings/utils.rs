@@ -195,7 +195,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         reflect_dom_object(obj, global, can_gc)
     }
 
-    fn report_pending_exception(cx: &mut js::context::JSContext) {
+    fn report_pending_exception(cx: &mut CurrentRealm) {
         report_pending_exception(cx)
     }
 }
