@@ -145,7 +145,7 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
         let name = to_snake_case(&name, false).expect("Must always succeed");
         // Step 3. Remove an attribute by name given name and the DOMStringMap's associated element.
         self.as_element()
-            .remove_attribute(&ns!(), &LocalName::from(name), CanGc::from_cx(cx));
+            .remove_attribute(cx, &ns!(), &LocalName::from(name));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem>

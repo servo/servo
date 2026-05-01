@@ -195,7 +195,7 @@ impl HTMLDialogElement {
         self.queue_dialog_toggle_event_task("open", "closed", source);
 
         // Step 5. Remove subject's open attribute.
-        subject.remove_attribute(&ns!(), &local_name!("open"), CanGc::from_cx(cx));
+        subject.remove_attribute(cx, &ns!(), &local_name!("open"));
         subject.set_open_state(false);
 
         // TODO: Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.

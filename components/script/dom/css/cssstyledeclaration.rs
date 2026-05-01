@@ -62,7 +62,7 @@ pub(crate) enum CSSStyleOwner {
 impl CSSStyleOwner {
     // Mutate the declaration block associated to this style owner, and
     // optionally indicate if it has changed (assumed to be true).
-    fn mutate_associated_block<F, R>(&self, f: F, can_gc: CanGc) -> R
+    fn mutate_associated_block<F, R>(&self, cx: &mut JSContext, f: F) -> R
     where
         F: FnOnce(&mut PropertyDeclarationBlock, &mut bool) -> R,
     {
@@ -110,7 +110,7 @@ impl CSSStyleOwner {
                         el.set_attribute(
                             &local_name!("style"),
                             AttrValue::Declaration(serialization, pdb),
-                            can_gc,
+                            CanGc::from_cx(cx),
                         );
                     }
                 } else {
@@ -358,66 +358,63 @@ impl CSSStyleDeclaration {
             },
         };
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
-        self.owner.mutate_associated_block(
-            |pdb, changed| {
-                // Step 3. If value is the empty string, invoke removeProperty()
-                // with property as argument and return.
-                if value.is_empty() {
-                    *changed = remove_property(pdb, &id);
+        self.owner.mutate_associated_block(cx, |pdb, changed| {
+            // Step 3. If value is the empty string, invoke removeProperty()
+            // with property as argument and return.
+            if value.is_empty() {
+                *changed = remove_property(pdb, &id);
+                return Ok(());
+            }
+
+            // Step 4. If priority is not the empty string and is not an ASCII case-insensitive
+            // match for the string "important", then return.
+            let importance = match &*priority.str() {
+                "" => Importance::Normal,
+                p if p.eq_ignore_ascii_case("important") => Importance::Important,
+                _ => {
+                    *changed = false;
                     return Ok(());
-                }
+                },
+            };
 
-                // Step 4. If priority is not the empty string and is not an ASCII case-insensitive
-                // match for the string "important", then return.
-                let importance = match &*priority.str() {
-                    "" => Importance::Normal,
-                    p if p.eq_ignore_ascii_case("important") => Importance::Important,
-                    _ => {
-                        *changed = false;
-                        return Ok(());
-                    },
-                };
+            // Step 5
+            let window = self.owner.window();
+            let quirks_mode = window.Document().quirks_mode();
+            let mut declarations = SourcePropertyDeclaration::default();
+            let result = parse_one_declaration_into(
+                &mut declarations,
+                id,
+                &value.str(),
+                Origin::Author,
+                &base_url,
+                Some(window.css_error_reporter()),
+                ParsingMode::DEFAULT,
+                quirks_mode,
+                CssRuleType::Style,
+            );
 
-                // Step 5
-                let window = self.owner.window();
-                let quirks_mode = window.Document().quirks_mode();
-                let mut declarations = SourcePropertyDeclaration::default();
-                let result = parse_one_declaration_into(
-                    &mut declarations,
-                    id,
-                    &value.str(),
-                    Origin::Author,
-                    &base_url,
-                    Some(window.css_error_reporter()),
-                    ParsingMode::DEFAULT,
-                    quirks_mode,
-                    CssRuleType::Style,
-                );
-
-                // Step 6
-                match result {
-                    Ok(()) => {},
-                    Err(_) => {
-                        *changed = false;
-                        return Ok(());
-                    },
-                }
-
-                let mut updates = Default::default();
-                *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
-
-                if !*changed {
+            // Step 6
+            match result {
+                Ok(()) => {},
+                Err(_) => {
+                    *changed = false;
                     return Ok(());
-                }
+                },
+            }
 
-                // Step 7
-                // Step 8
-                pdb.update(declarations.drain(), importance, &mut updates);
+            let mut updates = Default::default();
+            *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
 
-                Ok(())
-            },
-            CanGc::from_cx(cx),
-        )
+            if !*changed {
+                return Ok(());
+            }
+
+            // Step 7
+            // Step 8
+            pdb.update(declarations.drain(), importance, &mut updates);
+
+            Ok(())
+        })
     }
 }
 
@@ -533,13 +530,10 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         };
 
         let mut string = String::new();
-        self.owner.mutate_associated_block(
-            |pdb, changed| {
-                pdb.property_value_to_css(&id, &mut string).unwrap();
-                *changed = remove_property(pdb, &id);
-            },
-            CanGc::from_cx(cx),
-        );
+        self.owner.mutate_associated_block(cx, |pdb, changed| {
+            pdb.property_value_to_css(&id, &mut string).unwrap();
+            *changed = remove_property(pdb, &id);
+        });
 
         // Step 6
         Ok(DOMString::from(string))
@@ -601,19 +595,16 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         let quirks_mode = window.Document().quirks_mode();
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
-        self.owner.mutate_associated_block(
-            |pdb, _changed| {
-                // Step 3
-                *pdb = parse_style_attribute(
-                    &value.str(),
-                    &base_url,
-                    Some(window.css_error_reporter()),
-                    quirks_mode,
-                    CssRuleType::Style,
-                );
-            },
-            CanGc::from_cx(cx),
-        );
+        self.owner.mutate_associated_block(cx, |pdb, _changed| {
+            // Step 3
+            *pdb = parse_style_attribute(
+                &value.str(),
+                &base_url,
+                Some(window.css_error_reporter()),
+                quirks_mode,
+                CssRuleType::Style,
+            );
+        });
 
         Ok(())
     }

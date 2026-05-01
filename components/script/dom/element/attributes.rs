@@ -53,7 +53,7 @@ impl Element {
         if value {
             self.set_string_attribute(cx, local_name, DOMString::new());
         } else {
-            self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));
+            self.remove_attribute(cx, &ns!(), local_name);
         }
     }
 
@@ -144,7 +144,7 @@ impl Element {
                 self.set_string_attribute(cx, local_name, val);
             },
             None => {
-                self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));
+                self.remove_attribute(cx, &ns!(), local_name);
             },
         }
     }
@@ -236,7 +236,7 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn copy_all_attributes_to_other_element(
         &self,
-        cx: &mut JSContext,
+        _cx: &mut JSContext,
         target_element: &Element,
     ) {
         // Step 2.5. For each attribute of node’s attribute list:
@@ -251,7 +251,6 @@ impl Element {
                 attr.namespace().clone(),
                 attr.prefix().cloned(),
                 AttributeMutationReason::ByCloning,
-                CanGc::from_cx(cx),
             );
         }
     }

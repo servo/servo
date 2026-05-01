@@ -1555,14 +1555,14 @@ impl Document {
 
     pub(crate) fn set_body_attribute(
         &self,
+        cx: &mut js::context::JSContext,
         local_name: &LocalName,
         value: DOMString,
-        can_gc: CanGc,
     ) {
         if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
-            body.set_attribute(local_name, value, can_gc);
+            body.set_attribute(local_name, value, CanGc::from_cx(cx));
         }
     }
 
@@ -5698,8 +5698,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-bgcolor>
-    fn SetBgColor(&self, value: DOMString, can_gc: CanGc) {
-        self.set_body_attribute(&local_name!("bgcolor"), value, can_gc)
+    fn SetBgColor(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        self.set_body_attribute(cx, &local_name!("bgcolor"), value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
@@ -5708,8 +5708,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
-    fn SetFgColor(&self, value: DOMString, can_gc: CanGc) {
-        self.set_body_attribute(&local_name!("text"), value, can_gc)
+    fn SetFgColor(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        self.set_body_attribute(cx, &local_name!("text"), value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>

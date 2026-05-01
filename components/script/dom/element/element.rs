@@ -321,7 +321,7 @@ impl Element {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         namespace: Namespace,
         prefix: Option<Prefix>,
@@ -1885,7 +1885,6 @@ impl Element {
         namespace: Namespace,
         prefix: Option<Prefix>,
         reason: AttributeMutationReason,
-        can_gc: CanGc,
     ) {
         // TODO: https://github.com/servo/servo/issues/42812
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
@@ -1900,7 +1899,7 @@ impl Element {
             prefix,
             Some(self),
         );
-        self.push_attribute(&attr, reason, can_gc);
+        self.push_attribute(cx, &attr, reason);
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
@@ -1980,9 +1979,9 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-append>
     pub(crate) fn push_attribute(
         &self,
+        cx: &mut JSContext,
         attr: &Attr,
         reason: AttributeMutationReason,
-        can_gc: CanGc,
     ) {
         // Step 2. Set attribute’s element to element.
         //
@@ -1999,7 +1998,7 @@ impl Element {
         //
         // Put on a separate line to avoid double borrow
         let new_value = DOMString::from(&**attr.value());
-        self.handle_attribute_changes(attr, None, Some(new_value), reason, can_gc);
+        self.handle_attribute_changes(attr, None, Some(new_value), reason, CanGc::from_cx(cx));
     }
 
     /// This is the inner logic for:
@@ -2057,10 +2056,10 @@ impl Element {
 
     pub(crate) fn set_attribute_from_parser(
         &self,
+        _cx: &mut JSContext,
         qname: QualName,
         value: DOMString,
         prefix: Option<Prefix>,
-        can_gc: CanGc,
     ) {
         // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
         if self
@@ -2087,7 +2086,6 @@ impl Element {
             qname.ns,
             prefix,
             AttributeMutationReason::ByParser,
-            can_gc,
         );
     }
 
@@ -2112,7 +2110,7 @@ impl Element {
 
     pub(crate) fn set_attribute_with_namespace(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         value: AttrValue,
         name: LocalName,
@@ -2167,7 +2165,6 @@ impl Element {
                 namespace,
                 prefix,
                 AttributeMutationReason::Directly,
-                can_gc,
             );
         };
     }
@@ -2187,14 +2184,13 @@ impl Element {
 
     pub(crate) fn remove_attribute(
         &self,
+        cx: &mut JSContext,
         namespace: &Namespace,
         local_name: &LocalName,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(
-            |attr| attr.namespace() == namespace && attr.local_name() == local_name,
-            can_gc,
-        )
+        self.remove_first_matching_attribute(cx, |attr| {
+            attr.namespace() == namespace && attr.local_name() == local_name
+        })
     }
 
     pub(crate) fn remove_attribute_by_name(
@@ -2202,11 +2198,15 @@ impl Element {
         cx: &mut JSContext,
         name: &LocalName,
     ) -> Option<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|attr| attr.name() == name, CanGc::from_cx(cx))
+        self.remove_first_matching_attribute(cx, |attr| attr.name() == name)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-remove>
-    fn remove_first_matching_attribute<F>(&self, find: F, can_gc: CanGc) -> Option<DomRoot<Attr>>
+    fn remove_first_matching_attribute<F>(
+        &self,
+        cx: &mut JSContext,
+        find: F,
+    ) -> Option<DomRoot<Attr>>
     where
         F: Fn(&Attr) -> bool,
     {
@@ -2225,7 +2225,7 @@ impl Element {
                 Some(&attr.value()),
                 None,
                 AttributeMutationReason::Directly,
-                can_gc,
+                CanGc::from_cx(cx),
             );
 
             attr
@@ -2323,7 +2323,7 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-replace>
     fn set_attribute_node(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         attr: &Attr,
     ) -> Fallible<Option<DomRoot<Attr>>> {
         // Step 1. Let verifiedValue be the result of calling
@@ -2402,7 +2402,7 @@ impl Element {
             // Step 7. Otherwise, append attr to element.
             attr.set_owner(Some(self));
             attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
-            self.push_attribute(attr, AttributeMutationReason::Directly, CanGc::from_cx(cx));
+            self.push_attribute(cx, attr, AttributeMutationReason::Directly);
 
             None
         };
@@ -2575,7 +2575,7 @@ impl Element {
     pub(crate) fn parse_fragment(
         &self,
         markup: DOMString,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
@@ -2665,7 +2665,7 @@ impl Element {
         }))
     }
 
-    pub(crate) fn outer_html(&self, cx: &mut js::context::JSContext) -> Fallible<DOMString> {
+    pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<DOMString> {
         match self.GetOuterHTML(cx)? {
             TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
             TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
@@ -2858,7 +2858,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-toggleattribute>
     fn ToggleAttribute(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         name: DOMString,
         force: Option<bool>,
     ) -> Fallible<bool> {
@@ -2907,7 +2907,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
     fn SetAttribute(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         name: DOMString,
         value: TrustedTypeOrString,
     ) -> ErrorResult {
@@ -2954,7 +2954,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-setattributens>
     fn SetAttributeNS(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
         value: TrustedTypeOrString,
@@ -2987,25 +2987,21 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattributenode>
-    fn SetAttributeNode(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-    ) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetAttributeNode(&self, cx: &mut JSContext, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         self.set_attribute_node(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattributenodens>
     fn SetAttributeNodeNS(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         attr: &Attr,
     ) -> Fallible<Option<DomRoot<Attr>>> {
         self.set_attribute_node(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattribute>
-    fn RemoveAttribute(&self, cx: &mut js::context::JSContext, name: DOMString) {
+    fn RemoveAttribute(&self, cx: &mut JSContext, name: DOMString) {
         let name = self.parsed_name(name);
         self.remove_attribute_by_name(cx, &name);
     }
@@ -3013,22 +3009,18 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-removeattributens>
     fn RemoveAttributeNS(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) {
         let namespace = namespace_from_domstring(namespace);
         let local_name = LocalName::from(local_name);
-        self.remove_attribute(&namespace, &local_name, CanGc::from_cx(cx));
+        self.remove_attribute(cx, &namespace, &local_name);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattributenode>
-    fn RemoveAttributeNode(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-    ) -> Fallible<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|a| a == attr, CanGc::from_cx(cx))
+    fn RemoveAttributeNode(&self, cx: &mut JSContext, attr: &Attr) -> Fallible<DomRoot<Attr>> {
+        self.remove_first_matching_attribute(cx, |a| a == attr)
             .ok_or(Error::NotFound(None))
     }
 
@@ -3045,7 +3037,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagname>
     fn GetElementsByTagName(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         localname: DOMString,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
@@ -3055,7 +3047,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens>
     fn GetElementsByTagNameNS(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         maybe_ns: Option<DOMString>,
         localname: DOMString,
     ) -> DomRoot<HTMLCollection> {
@@ -3066,7 +3058,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname>
     fn GetElementsByClassName(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         classes: DOMString,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
@@ -3430,11 +3422,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
-    fn SetHTMLUnsafe(
-        &self,
-        cx: &mut js::context::JSContext,
-        html: TrustedHTMLOrString,
-    ) -> ErrorResult {
+    fn SetHTMLUnsafe(&self, cx: &mut JSContext, html: TrustedHTMLOrString) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
@@ -3457,7 +3445,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
-    fn GetHTML(&self, cx: &mut js::context::JSContext, options: &GetHTMLOptions) -> DOMString {
+    fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> DOMString {
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
@@ -3469,10 +3457,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetInnerHTML(&self, cx: &mut JSContext) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
@@ -3495,7 +3480,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
     fn SetInnerHTML(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         value: TrustedHTMLOrNullIsEmptyString,
     ) -> ErrorResult {
         // Step 1: Let compliantString be the result of invoking the
@@ -3539,10 +3524,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
+    fn GetOuterHTML(&self, cx: &mut JSContext) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // FIXME: This should use the fragment serialization algorithm, which takes
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
@@ -3558,7 +3540,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
     fn SetOuterHTML(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         value: TrustedHTMLOrNullIsEmptyString,
     ) -> ErrorResult {
         // Step 1: Let compliantString be the result of invoking the
@@ -3626,7 +3608,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
-    fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
+    fn Children(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::children(cx, &window, self.upcast())
     }
@@ -4303,12 +4285,7 @@ impl VirtualMethods for Element {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn attribute_mutated(
-        &self,
-        cx: &mut js::context::JSContext,
-        attr: &Attr,
-        mutation: AttributeMutation,
-    ) {
+    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
@@ -4585,7 +4562,7 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn post_connection_steps(&self, cx: &mut js::context::JSContext) {
+    fn post_connection_steps(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
             s.post_connection_steps(cx);
         }
@@ -5058,7 +5035,7 @@ pub(crate) fn set_cross_origin_attribute(
     match value {
         Some(val) => element.set_string_attribute(cx, &local_name!("crossorigin"), val),
         None => {
-            element.remove_attribute(&ns!(), &local_name!("crossorigin"), CanGc::from_cx(cx));
+            element.remove_attribute(cx, &ns!(), &local_name!("crossorigin"));
         },
     }
 }

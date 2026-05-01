@@ -105,7 +105,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
-            .remove_attribute(&ns, &LocalName::from(local_name), CanGc::from_cx(cx))
+            .remove_attribute(cx, &ns, &LocalName::from(local_name))
             .ok_or(Error::NotFound(None))
     }
 
