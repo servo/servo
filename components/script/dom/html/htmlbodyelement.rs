@@ -22,7 +22,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLBodyElement {
@@ -76,11 +75,8 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     fn SetBackground(&self, cx: &mut JSContext, input: DOMString) {
         let value =
             AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());
-        self.upcast::<Element>().set_attribute(
-            &local_name!("background"),
-            value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_attribute(cx, &local_name!("background"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers

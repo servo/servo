@@ -15,7 +15,6 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::{AttributeMutationReason, Element};
 use crate::dom::node::NodeTraits;
-use crate::script_runtime::CanGc;
 
 impl Element {
     pub(crate) fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
@@ -34,11 +33,7 @@ impl Element {
         local_name: &LocalName,
         value: DOMString,
     ) {
-        self.set_attribute(
-            local_name,
-            AttrValue::from_atomic(value.into()),
-            CanGc::from_cx(cx),
-        );
+        self.set_attribute(cx, local_name, AttrValue::from_atomic(value.into()));
     }
 
     pub(crate) fn set_bool_attribute(
@@ -74,11 +69,7 @@ impl Element {
         local_name: &LocalName,
         value: USVString,
     ) {
-        self.set_attribute(
-            local_name,
-            AttrValue::String(value.to_string()),
-            CanGc::from_cx(cx),
-        );
+        self.set_attribute(cx, local_name, AttrValue::String(value.to_string()));
     }
 
     pub(crate) fn get_trusted_type_url_attribute(
@@ -111,11 +102,7 @@ impl Element {
         local_name: &LocalName,
         value: DOMString,
     ) {
-        self.set_attribute(
-            local_name,
-            AttrValue::String(value.into()),
-            CanGc::from_cx(cx),
-        );
+        self.set_attribute(cx, local_name, AttrValue::String(value.into()));
     }
 
     /// Used for string attribute reflections where absence of the attribute returns `null`,
@@ -162,9 +149,9 @@ impl Element {
         value: DOMString,
     ) {
         self.set_attribute(
+            cx,
             local_name,
             AttrValue::from_serialized_tokenlist(value.into()),
-            CanGc::from_cx(cx),
         );
     }
 
@@ -174,19 +161,11 @@ impl Element {
         local_name: &LocalName,
         tokens: Vec<Atom>,
     ) {
-        self.set_attribute(
-            local_name,
-            AttrValue::from_atomic_tokens(tokens),
-            CanGc::from_cx(cx),
-        );
+        self.set_attribute(cx, local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
     pub(crate) fn set_int_attribute(&self, cx: &mut JSContext, local_name: &LocalName, value: i32) {
-        self.set_attribute(
-            local_name,
-            AttrValue::Int(value.to_string(), value),
-            CanGc::from_cx(cx),
-        );
+        self.set_attribute(cx, local_name, AttrValue::Int(value.to_string(), value));
     }
 
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
@@ -205,11 +184,7 @@ impl Element {
         local_name: &LocalName,
         value: u32,
     ) {
-        self.set_attribute(
-            local_name,
-            AttrValue::UInt(value.to_string(), value),
-            CanGc::from_cx(cx),
-        );
+        self.set_attribute(cx, local_name, AttrValue::UInt(value.to_string(), value));
     }
 
     /// Ensure that for styles, we clone the already-parsed property declaration block.
@@ -236,7 +211,7 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn copy_all_attributes_to_other_element(
         &self,
-        _cx: &mut JSContext,
+        cx: &mut JSContext,
         target_element: &Element,
     ) {
         // Step 2.5. For each attribute of node’s attribute list:
@@ -245,6 +220,7 @@ impl Element {
             let new_value = self.compute_attribute_value_with_style_fast_path(attr);
             // Step 2.5.2. Append copyAttribute to copy.
             target_element.push_new_attribute(
+                cx,
                 attr.local_name().clone(),
                 new_value,
                 attr.name().clone(),

@@ -1562,7 +1562,7 @@ impl Document {
         if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
-            body.set_attribute(local_name, value, CanGc::from_cx(cx));
+            body.set_attribute(cx, local_name, value);
         }
     }
 

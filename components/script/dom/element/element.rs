@@ -1875,10 +1875,10 @@ impl Element {
         }
     }
 
-    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn push_new_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: LocalName,
         value: AttrValue,
         name: LocalName,
@@ -1886,9 +1886,6 @@ impl Element {
         prefix: Option<Prefix>,
         reason: AttributeMutationReason,
     ) {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
         let attr = Attr::new(
             cx,
             &self.node.owner_doc(),
@@ -1903,19 +1900,14 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
-    #[expect(unsafe_code)]
     fn handle_attribute_changes(
         &self,
+        cx: &mut JSContext,
         attr: &Attr,
         old_value: Option<&AttrValue>,
         new_value: Option<DOMString>,
         reason: AttributeMutationReason,
-        _can_gc: CanGc,
     ) {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
         let old_value_string = old_value.map(|old_value| DOMString::from(&**old_value));
         // Step 1. Queue a mutation record of "attributes" for element with attribute’s local name,
         // attribute’s namespace, oldValue, « », « », null, and null.
@@ -1955,7 +1947,7 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-change>
-    pub(crate) fn change_attribute(&self, attr: &Attr, mut value: AttrValue, can_gc: CanGc) {
+    pub(crate) fn change_attribute(&self, cx: &mut JSContext, attr: &Attr, mut value: AttrValue) {
         // Step 1. Let oldValue be attribute’s value.
         //
         // Clone to avoid double borrow
@@ -1968,11 +1960,11 @@ impl Element {
         // Put on a separate line to avoid double borrow
         let new_value = DOMString::from(&**attr.value());
         self.handle_attribute_changes(
+            cx,
             attr,
             Some(old_value),
             Some(new_value),
             AttributeMutationReason::Directly,
-            can_gc,
         );
     }
 
@@ -1998,7 +1990,7 @@ impl Element {
         //
         // Put on a separate line to avoid double borrow
         let new_value = DOMString::from(&**attr.value());
-        self.handle_attribute_changes(attr, None, Some(new_value), reason, CanGc::from_cx(cx));
+        self.handle_attribute_changes(cx, attr, None, Some(new_value), reason);
     }
 
     /// This is the inner logic for:
@@ -2056,7 +2048,7 @@ impl Element {
 
     pub(crate) fn set_attribute_from_parser(
         &self,
-        _cx: &mut JSContext,
+        cx: &mut JSContext,
         qname: QualName,
         value: DOMString,
         prefix: Option<Prefix>,
@@ -2080,6 +2072,7 @@ impl Element {
         };
         let value = self.parse_attribute(&qname.ns, &qname.local, value);
         self.push_new_attribute(
+            cx,
             qname.local,
             value,
             name,
@@ -2089,7 +2082,7 @@ impl Element {
         );
     }
 
-    pub(crate) fn set_attribute(&self, name: &LocalName, value: AttrValue, can_gc: CanGc) {
+    pub(crate) fn set_attribute(&self, cx: &mut JSContext, name: &LocalName, value: AttrValue) {
         debug_assert_eq!(
             *name,
             name.to_ascii_lowercase(),
@@ -2098,13 +2091,13 @@ impl Element {
         debug_assert!(!name.contains(':'));
 
         self.set_first_matching_attribute(
+            cx,
             name.clone(),
             value,
             name.clone(),
             ns!(),
             None,
             |attr| attr.local_name() == name,
-            can_gc,
         );
     }
 
@@ -2118,13 +2111,13 @@ impl Element {
         prefix: Option<Prefix>,
     ) {
         self.set_first_matching_attribute(
+            cx,
             local_name.clone(),
             value,
             name,
             namespace.clone(),
             prefix,
             |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,
-            CanGc::from_cx(cx),
         );
     }
 
@@ -2132,13 +2125,13 @@ impl Element {
     #[allow(clippy::too_many_arguments)]
     fn set_first_matching_attribute<F>(
         &self,
+        cx: &mut JSContext,
         local_name: LocalName,
         value: AttrValue,
         name: LocalName,
         namespace: Namespace,
         prefix: Option<Prefix>,
         find: F,
-        can_gc: CanGc,
     ) where
         F: Fn(&Attr) -> bool,
     {
@@ -2152,13 +2145,14 @@ impl Element {
         if let Some(attr) = attr {
             // Step 3. Change attribute to value.
             self.will_mutate_attr(&attr);
-            self.change_attribute(&attr, value, can_gc);
+            self.change_attribute(cx, &attr, value);
         } else {
             // Step 2. If attribute is null, create an attribute whose namespace is namespace,
             // namespace prefix is prefix, local name is localName, value is value,
             // and node document is element’s node document,
             // then append this attribute to element, and then return.
             self.push_new_attribute(
+                cx,
                 local_name,
                 value,
                 name,
@@ -2221,11 +2215,11 @@ impl Element {
             attr.set_owner(None);
             // Step 4. Handle attribute changes for attribute with element, attribute’s value, and null.
             self.handle_attribute_changes(
+                cx,
                 &attr,
                 Some(&attr.value()),
                 None,
                 AttributeMutationReason::Directly,
-                CanGc::from_cx(cx),
             );
 
             attr
@@ -2390,11 +2384,11 @@ impl Element {
             old_attr.set_owner(None);
             // Step 6. Handle attribute changes for oldAttribute with element, oldAttribute’s value, and newAttribute’s value.
             self.handle_attribute_changes(
+                cx,
                 attr,
                 Some(&old_attr.value()),
                 Some(verified_value),
                 AttributeMutationReason::Directly,
-                CanGc::from_cx(cx),
             );
 
             Some(old_attr)
@@ -2879,13 +2873,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 // Step 4.1.
                 None | Some(true) => {
                     self.set_first_matching_attribute(
+                        cx,
                         name.clone(),
                         AttrValue::String(String::new()),
                         name.clone(),
                         ns!(),
                         None,
                         |attr| *attr.name() == name,
-                        CanGc::from_cx(cx),
                     );
                     Ok(true)
                 },
@@ -2940,13 +2934,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 6. Change attribute to verifiedValue.
         let value = self.parse_attribute(&ns!(), &name, value);
         self.set_first_matching_attribute(
+            cx,
             name.clone(),
             value,
             name.clone(),
             ns!(),
             None,
             |attr| *attr.name() == name,
-            CanGc::from_cx(cx),
         );
         Ok(())
     }

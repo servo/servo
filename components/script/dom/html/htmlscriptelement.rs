@@ -1337,11 +1337,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             value,
             &format!("HTMLScriptElement {}", local_name),
         )?;
-        element.set_attribute(
-            local_name,
-            AttrValue::String(value.str().to_owned()),
-            CanGc::from_cx(cx),
-        );
+        element.set_attribute(cx, local_name, AttrValue::String(value.str().to_owned()));
         Ok(())
     }
 

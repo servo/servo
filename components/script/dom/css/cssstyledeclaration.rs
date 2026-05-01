@@ -108,9 +108,9 @@ impl CSSStyleOwner {
                         let mut serialization = String::new();
                         pdb.read_with(&guard).to_css(&mut serialization).unwrap();
                         el.set_attribute(
+                            cx,
                             &local_name!("style"),
                             AttrValue::Declaration(serialization, pdb),
-                            CanGc::from_cx(cx),
                         );
                     }
                 } else {

@@ -18,7 +18,6 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLAudioElement {
@@ -79,20 +78,16 @@ impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
 
         // Step 3. Set an attribute value for audio using "preload" and "auto".
         audio.set_attribute(
+            cx,
             &local_name!("preload"),
             AttrValue::String("auto".to_owned()),
-            CanGc::from_cx(cx),
         );
 
         // Step 4. If src is given, then set an attribute value for audio using "src" and src. (This
         // will cause the user agent to invoke the object's resource selection algorithm before
         // returning).
         if let Some(s) = src {
-            audio.set_attribute(
-                &local_name!("src"),
-                AttrValue::String(s.into()),
-                CanGc::from_cx(cx),
-            );
+            audio.set_attribute(cx, &local_name!("src"), AttrValue::String(s.into()));
         }
 
         // Step 5. Return audio.

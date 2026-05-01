@@ -704,9 +704,9 @@ pub(crate) fn handle_modify_attribute(
         match modification.new_value {
             Some(string) => {
                 elem.set_attribute(
+                    cx,
                     &LocalName::from(modification.attribute_name),
                     AttrValue::String(string),
-                    CanGc::from_cx(cx),
                 );
             },
             None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),

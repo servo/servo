@@ -25,7 +25,6 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLFontElement {
@@ -109,7 +108,7 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-font-size>
     fn SetSize(&self, cx: &mut JSContext, value: DOMString) {
         let element = self.upcast::<Element>();
-        element.set_attribute(&local_name!("size"), parse_size(&value), CanGc::from_cx(cx));
+        element.set_attribute(cx, &local_name!("size"), parse_size(&value));
     }
 }
 

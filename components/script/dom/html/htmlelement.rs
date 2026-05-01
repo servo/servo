@@ -682,11 +682,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
             // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
             "true" | "false" | "plaintext-only" => {
-                self.element.set_attribute(
-                    attr_name,
-                    AttrValue::String(lower_value),
-                    CanGc::from_cx(cx),
-                );
+                self.element
+                    .set_attribute(cx, attr_name, AttrValue::String(lower_value));
             },
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
             _ => return Err(Error::Syntax(None)),

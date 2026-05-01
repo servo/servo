@@ -409,10 +409,9 @@ macro_rules! make_legacy_color_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use style::attr::AttrValue;
-            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -423,10 +422,9 @@ macro_rules! make_dimension_setter(
         fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -437,10 +435,9 @@ macro_rules! make_nonzero_dimension_setter(
         fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -479,7 +476,6 @@ macro_rules! make_dimension_uint_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
-            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
@@ -487,7 +483,7 @@ macro_rules! make_dimension_uint_setter(
                 value
             };
             let value = AttrValue::from_dimension(value.to_string());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
+            element.set_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:tt) => {
