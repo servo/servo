@@ -15,9 +15,9 @@ use deny_public_fields::DenyPublicFields;
 use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
 use js::jsval::JSVal;
+use js::rust::wrappers2::CompileFunction;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
@@ -133,10 +133,10 @@ enum InlineEventListener {
 /// raw source if necessary.
 /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
 fn get_compiled_handler(
+    cx: &mut JSContext,
     inline_listener: &RefCell<InlineEventListener>,
     owner: &EventTarget,
     ty: &Atom,
-    can_gc: CanGc,
 ) -> Option<CommonEventHandler> {
     let listener = mem::replace(
         &mut *inline_listener.borrow_mut(),
@@ -145,7 +145,7 @@ fn get_compiled_handler(
     let compiled = match listener {
         InlineEventListener::Null => None,
         InlineEventListener::Uncompiled(handler) => {
-            owner.get_compiled_event_handler(handler, ty, can_gc)
+            owner.get_compiled_event_handler(cx, handler, ty)
         },
         InlineEventListener::Compiled(handler) => Some(handler),
     };
@@ -164,13 +164,13 @@ enum EventListenerType {
 impl EventListenerType {
     fn get_compiled_listener(
         &self,
+        cx: &mut JSContext,
         owner: &EventTarget,
         ty: &Atom,
-        can_gc: CanGc,
     ) -> Option<CompiledEventListener> {
         match *self {
             EventListenerType::Inline(ref inline) => {
-                get_compiled_handler(inline, owner, ty, can_gc).map(CompiledEventListener::Handler)
+                get_compiled_handler(cx, inline, owner, ty).map(CompiledEventListener::Handler)
             },
             EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
@@ -351,11 +351,11 @@ impl EventListenerEntry {
     /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
     pub(crate) fn get_compiled_listener(
         &self,
+        cx: &mut JSContext,
         owner: &EventTarget,
         ty: &Atom,
-        can_gc: CanGc,
     ) -> Option<CompiledEventListener> {
-        self.listener.get_compiled_listener(owner, ty, can_gc)
+        self.listener.get_compiled_listener(cx, owner, ty)
     }
 }
 
@@ -395,7 +395,7 @@ impl EventListeners {
         for entry in &self.0 {
             if let EventListenerType::Inline(ref inline) = entry.borrow().listener {
                 // Step 1.1-1.8 and Step 2
-                return get_compiled_handler(inline, owner, ty, CanGc::from_cx(cx));
+                return get_compiled_handler(cx, inline, owner, ty);
             }
         }
 
@@ -632,14 +632,12 @@ impl EventTarget {
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     // step 3
-    // While the CanGc argument appears unused, it reflects the fact that the CompileFunction
-    // API call can trigger a GC operation.
     #[expect(unsafe_code)]
     fn get_compiled_event_handler(
         &self,
+        cx: &mut JSContext,
         handler: InternalRawUncompiledHandler,
         ty: &Atom,
-        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         // Step 3.1
         let element = self.downcast::<Element>();
@@ -689,12 +687,13 @@ impl EventTarget {
         let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
-        let cx = GlobalScope::get_cx();
         let url = cformat!("{}", handler.url);
-        let options = unsafe { CompileOptionsWrapper::new_raw(*cx, url, handler.line as u32) };
+        let options =
+            unsafe { CompileOptionsWrapper::new_raw(cx.raw_cx(), url, handler.line as u32) };
 
         // Step 3.9, subsection Scope steps 1-6
-        let scopechain = js::rust::EnvironmentChain::new(*cx, SupportUnscopables::Yes);
+        let scopechain =
+            js::rust::EnvironmentChain::new(unsafe { cx.raw_cx() }, SupportUnscopables::Yes);
 
         if let Some(element) = element {
             scopechain.append(document.reflector().get_jsobject().get());
@@ -704,9 +703,9 @@ impl EventTarget {
             scopechain.append(element.reflector().get_jsobject().get());
         }
 
-        rooted!(in(*cx) let mut handler = unsafe {
+        rooted!(&in(cx) let mut handler = unsafe {
             CompileFunction(
-                *cx,
+                cx,
                 scopechain.get(),
                 options.ptr,
                 name.as_ptr(),
@@ -718,7 +717,7 @@ impl EventTarget {
         if handler.get().is_null() {
             // Step 3.7
             let ar = enter_realm(self);
-            report_pending_exception(cx, InRealm::Entered(&ar), can_gc);
+            report_pending_exception(cx.into(), InRealm::Entered(&ar), CanGc::from_cx(cx));
             return None;
         }
 
@@ -732,15 +731,15 @@ impl EventTarget {
         // Step 1.14
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
-                OnErrorEventHandlerNonNull::new(cx, funobj)
+                OnErrorEventHandlerNonNull::new(cx.into(), funobj)
             }))
         } else if ty == &atom!("beforeunload") {
             Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
+                OnBeforeUnloadEventHandlerNonNull::new(cx.into(), funobj)
             }))
         } else {
             Some(CommonEventHandler::EventHandler(unsafe {
-                EventHandlerNonNull::new(cx, funobj)
+                EventHandlerNonNull::new(cx.into(), funobj)
             }))
         }
     }
