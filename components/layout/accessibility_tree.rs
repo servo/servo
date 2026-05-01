@@ -135,7 +135,7 @@ impl AccessibilityTree {
         if !NAME_FROM_CONTENTS_ROLES.contains(&node.accesskit_node.role()) {
             return None;
         }
-        let mut children = VecDeque::from(node.accesskit_node.children().to_vec());
+        let mut children = VecDeque::from_iter(node.accesskit_node.children().iter().copied());
         let mut text = String::new();
         while let Some(child_id) = children.pop_front() {
             let child = self.assert_node_by_id(child_id);
