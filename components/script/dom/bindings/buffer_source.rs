@@ -203,7 +203,7 @@ where
             BufferSource::ArrayBufferView(buffer) => unsafe {
                 let mut is_shared = false;
                 rooted!(in (*cx) let view_buffer =
-                         JS_GetArrayBufferViewBuffer(*cx, buffer.handle().into(), &mut is_shared));
+                         JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
 
                 RootedTraceableBox::new(HeapBufferSource::<ArrayBufferU8>::new(
                     BufferSource::ArrayBuffer(Heap::boxed(*view_buffer.handle())),
@@ -225,7 +225,7 @@ where
                     // assert buffer is an ArrayBuffer view
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
                     rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle().into(), &mut is_shared));
+                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
                     // This buffer is always created unshared
                     debug_assert!(!is_shared);
                     // Detach the ArrayBuffer
@@ -233,7 +233,7 @@ where
                 }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
-                DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle().into()))
+                DetachArrayBuffer(*cx, Handle::from_raw(buffer.handle()))
             },
         }
     }
@@ -255,7 +255,7 @@ where
                 unsafe {
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
                     rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle().into(), &mut is_shared));
+                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
                     debug_assert!(!is_shared);
                     IsDetachedArrayBufferObject(*view_buffer.handle())
                 }
@@ -274,7 +274,7 @@ where
                 unsafe {
                     assert!(JS_IsArrayBufferViewObject(*buffer.handle()));
                     rooted!(in (*cx) let view_buffer =
-                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle().into(), &mut is_shared));
+                            JS_GetArrayBufferViewBuffer(*cx, buffer.handle(), &mut is_shared));
                     debug_assert!(!is_shared);
                     GetArrayBufferByteLength(*view_buffer.handle())
                 }
@@ -356,7 +356,7 @@ where
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
                 rooted!(&in(cx) let view_buffer =
-                    unsafe { JS_GetArrayBufferViewBuffer(cx.raw_cx(), buffer.handle().into(), &mut is_shared) });
+                    unsafe { JS_GetArrayBufferViewBuffer(cx.raw_cx(), buffer.handle(), &mut is_shared) });
                 debug_assert!(!is_shared);
 
                 unsafe {
@@ -371,7 +371,7 @@ where
             BufferSource::ArrayBuffer(buffer) => unsafe {
                 ArrayBufferClone(
                     cx.raw_cx(),
-                    buffer.handle().into(),
+                    buffer.handle(),
                     byte_offset,
                     byte_length,
                 )
@@ -611,9 +611,9 @@ where
                     BufferSource::ArrayBufferView(from_heap) |
                     BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
                         *cx,
-                        heap.handle().into(),
+                        heap.handle(),
                         dest_start,
-                        from_heap.handle().into(),
+                        from_heap.handle(),
                         from_byte_offset,
                         bytes_to_copy,
                     ),
@@ -638,7 +638,7 @@ where
         let mut is_defined = false;
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
-                if !HasDefinedArrayBufferDetachKey(*cx, heap.handle().into(), &mut is_defined) {
+                if !HasDefinedArrayBufferDetachKey(*cx, heap.handle(), &mut is_defined) {
                     return false;
                 }
             },
@@ -665,7 +665,7 @@ where
         // Step 2 (Reordered)
         let buffer_data = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => unsafe {
-                StealArrayBufferContents(*cx, buffer.handle().into())
+                StealArrayBufferContents(*cx, buffer.handle())
             },
         };
 
@@ -777,7 +777,7 @@ pub(crate) fn create_buffer_source_with_constructor(
         BufferSource::ArrayBuffer(heap) => match constructor {
             Constructor::DataView => Ok(RootedTraceableBox::new(HeapBufferSource::new(
                 BufferSource::ArrayBufferView(Heap::boxed(unsafe {
-                    JS_NewDataView(cx.raw_cx(), heap.handle().into(), byte_offset, byte_length)
+                    JS_NewDataView(cx.raw_cx(), heap.handle(), byte_offset, byte_length)
                 })),
             ))),
             Constructor::Name(name_type) => construct_typed_array(
@@ -808,73 +808,73 @@ fn construct_typed_array(
                 match name_type {
                     Type::Int8 => JS_NewInt8ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint8 => JS_NewUint8ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint16 => JS_NewUint16ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Int16 => JS_NewInt16ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Int32 => JS_NewInt32ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint32 => JS_NewUint32ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float32 => JS_NewFloat32ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float64 => JS_NewFloat64ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint8Clamped => JS_NewUint8ClampedArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::BigInt64 => JS_NewBigInt64ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::BigUint64 => JS_NewBigUint64ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float16 => JS_NewFloat16ArrayWithBuffer(
                         cx.raw_cx(),
-                        heap.handle().into(),
+                        heap.handle(),
                         byte_offset,
                         byte_length,
                     ),

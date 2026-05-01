@@ -601,7 +601,7 @@ impl ReadableByteStreamController {
             // For each filledPullInto of filledPullIntos,
             for filled_pull_into in &*filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
-                self.commit_pull_into_descriptor(cx, &filled_pull_into)
+                self.commit_pull_into_descriptor(cx, filled_pull_into)
                     .expect("commit_pull_into_descriptor failed");
             }
         }
@@ -639,7 +639,7 @@ impl ReadableByteStreamController {
             for filled_pull_into in &*filled_pull_intos {
                 // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]]
                 // , filledPullInto).
-                self.commit_pull_into_descriptor(cx, &filled_pull_into)
+                self.commit_pull_into_descriptor(cx, filled_pull_into)
                     .expect("commit_pull_into_descriptor failed");
             }
 
@@ -694,7 +694,7 @@ impl ReadableByteStreamController {
         // For each filledPullInto of filledPullIntos,
         for filled_pull_into in &*filled_pull_intos {
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(controller.[[stream]], filledPullInto).
-            self.commit_pull_into_descriptor(cx, &filled_pull_into)
+            self.commit_pull_into_descriptor(cx, filled_pull_into)
                 .expect("commit_pull_into_descriptor failed");
         }
 
@@ -1102,7 +1102,7 @@ impl ReadableByteStreamController {
             // For each filledPullInto of filledPullIntos,
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
             for filled_pull_into in &*filled_pull_intos {
-                self.commit_pull_into_descriptor(cx, &filled_pull_into)
+                self.commit_pull_into_descriptor(cx, filled_pull_into)
                     .expect("commit_pull_into_descriptor failed");
             }
         } else {
@@ -1203,7 +1203,7 @@ impl ReadableByteStreamController {
         Ok(create_buffer_source_with_constructor(
             cx,
             &pull_into_descriptor.view_constructor,
-            &*buffer,
+            &buffer,
             pull_into_descriptor.byte_offset as usize,
             (bytes_filled / element_size) as usize,
         )
