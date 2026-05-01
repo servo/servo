@@ -292,11 +292,7 @@ impl HTMLDetailsElement {
         shadow_tree
             .implicit_summary
             .upcast::<Element>()
-            .set_string_attribute(
-                &local_name!("style"),
-                implicit_summary_style.into(),
-                CanGc::from_cx(cx),
-            );
+            .set_string_attribute(cx, &local_name!("style"), implicit_summary_style.into());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-the-given-element-if-needed>

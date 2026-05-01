@@ -321,10 +321,7 @@ impl ColorInputShadowTree {
     pub(crate) fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
         let value = input_element.Value();
         let style = format!("background-color: {value}");
-        self.color_value.set_string_attribute(
-            &local_name!("style"),
-            style.into(),
-            CanGc::from_cx(cx),
-        );
+        self.color_value
+            .set_string_attribute(cx, &local_name!("style"), style.into());
     }
 }

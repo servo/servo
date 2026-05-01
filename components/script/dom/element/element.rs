@@ -2425,7 +2425,7 @@ impl Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
-    pub(crate) fn update_nonce_post_connection(&self) {
+    pub(crate) fn update_nonce_post_connection(&self, cx: &mut JSContext) {
         // Whenever an element including HTMLOrSVGElement becomes browsing-context connected,
         // the user agent must execute the following steps on the element:
         if !self.upcast::<Node>().is_connected_with_browsing_context() {
@@ -2447,7 +2447,7 @@ impl Element {
         // Step 2.1: Let nonce be element's [[CryptographicNonce]].
         let nonce = self.nonce_value();
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
-        self.set_string_attribute(&local_name!("nonce"), "".into(), CanGc::deprecated_note());
+        self.set_string_attribute(cx, &local_name!("nonce"), "".into());
         // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
         self.update_nonce_internal_slot(nonce);
     }
@@ -4590,7 +4590,7 @@ impl VirtualMethods for Element {
             s.post_connection_steps(cx);
         }
 
-        self.update_nonce_post_connection();
+        self.update_nonce_post_connection(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes%3Aconcept-node-clone-ext>
@@ -5056,9 +5056,7 @@ pub(crate) fn set_cross_origin_attribute(
     value: Option<DOMString>,
 ) {
     match value {
-        Some(val) => {
-            element.set_string_attribute(&local_name!("crossorigin"), val, CanGc::from_cx(cx))
-        },
+        Some(val) => element.set_string_attribute(cx, &local_name!("crossorigin"), val),
         None => {
             element.remove_attribute(&ns!(), &local_name!("crossorigin"), CanGc::from_cx(cx));
         },

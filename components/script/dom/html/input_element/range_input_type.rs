@@ -9,7 +9,6 @@ use markup5ever::QualName;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use script_bindings::root::Dom;
-use script_bindings::script_runtime::CanGc;
 use style::selector_parser::PseudoElement;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -238,14 +237,14 @@ impl RangeInputShadowTree {
         };
 
         self.slider_thumb.set_string_attribute(
+            cx,
             &local_name!("style"),
             format!("inset-inline-start: {percent}% !important;").into(),
-            CanGc::from_cx(cx),
         );
         self.slider_fill.set_string_attribute(
+            cx,
             &local_name!("style"),
             format!("width: {percent}% !important;").into(),
-            CanGc::from_cx(cx),
         );
     }
 }

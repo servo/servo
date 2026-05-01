@@ -650,12 +650,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-translate>
     fn SetTranslate(&self, cx: &mut JSContext, yesno: bool) {
         self.as_element().set_string_attribute(
+            cx,
             &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
             },
-            CanGc::from_cx(cx),
         );
     }
 

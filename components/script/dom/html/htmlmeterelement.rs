@@ -158,11 +158,9 @@ impl HTMLMeterElement {
         let shadow_tree = self.shadow_tree(cx);
         let position = (value - min) / (max - min) * 100.0;
         let style = format!("width: {position}%");
-        shadow_tree.meter_value.set_string_attribute(
-            &local_name!("style"),
-            style.into(),
-            CanGc::from_cx(cx),
-        );
+        shadow_tree
+            .meter_value
+            .set_string_attribute(cx, &local_name!("style"), style.into());
     }
 }
 
@@ -189,11 +187,8 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
     fn SetValue(&self, cx: &mut js::context::JSContext, value: Finite<f64>) {
         let mut string_value = DOMString::from((*value).to_string());
         string_value.set_best_representation_of_the_floating_point_number();
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("value"),
-            string_value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("value"), string_value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-minimum>
@@ -210,11 +205,8 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
     fn SetMin(&self, cx: &mut js::context::JSContext, value: Finite<f64>) {
         let mut string_value = DOMString::from((*value).to_string());
         string_value.set_best_representation_of_the_floating_point_number();
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("min"),
-            string_value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("min"), string_value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-maximum>
@@ -232,11 +224,8 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
     fn SetMax(&self, cx: &mut js::context::JSContext, value: Finite<f64>) {
         let mut string_value = DOMString::from((*value).to_string());
         string_value.set_best_representation_of_the_floating_point_number();
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("max"),
-            string_value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("max"), string_value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-low>
@@ -258,11 +247,8 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
     fn SetLow(&self, cx: &mut js::context::JSContext, value: Finite<f64>) {
         let mut string_value = DOMString::from((*value).to_string());
         string_value.set_best_representation_of_the_floating_point_number();
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("low"),
-            string_value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("low"), string_value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-high>
@@ -288,11 +274,8 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
     fn SetHigh(&self, cx: &mut js::context::JSContext, value: Finite<f64>) {
         let mut string_value = DOMString::from((*value).to_string());
         string_value.set_best_representation_of_the_floating_point_number();
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("high"),
-            string_value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("high"), string_value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-optimum>
@@ -314,11 +297,8 @@ impl HTMLMeterElementMethods<crate::DomTypeHolder> for HTMLMeterElement {
     fn SetOptimum(&self, cx: &mut js::context::JSContext, value: Finite<f64>) {
         let mut string_value = DOMString::from((*value).to_string());
         string_value.set_best_representation_of_the_floating_point_number();
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("optimum"),
-            string_value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("optimum"), string_value);
     }
 }
 

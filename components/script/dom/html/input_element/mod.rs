@@ -1213,11 +1213,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 self.maybe_update_shared_selection();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
-                self.upcast::<Element>().set_string_attribute(
-                    &local_name!("value"),
-                    value,
-                    CanGc::from_cx(cx),
-                );
+                self.upcast::<Element>()
+                    .set_string_attribute(cx, &local_name!("value"), value);
             },
             ValueMode::Filename => {
                 if value.is_empty() {

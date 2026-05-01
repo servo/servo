@@ -28,7 +28,6 @@ use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 
 pub(crate) enum NodeOrString {
     String(String),
@@ -1239,9 +1238,9 @@ impl Node {
                 CommandName::FontName => {
                     let new_font_element = document.create_element(cx, "font");
                     new_font_element.set_string_attribute(
+                        cx,
                         &local_name!("face"),
                         new_value.clone(),
-                        CanGc::from_cx(cx),
                     );
                     new_parent = Some(new_font_element);
                 },

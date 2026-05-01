@@ -294,11 +294,7 @@ impl HTMLSelectElement {
             CustomElementCreationMode::Asynchronous,
             None,
         );
-        select_box.set_string_attribute(
-            &local_name!("style"),
-            SELECT_BOX_STYLE.into(),
-            CanGc::from_cx(cx),
-        );
+        select_box.set_string_attribute(cx, &local_name!("style"), SELECT_BOX_STYLE.into());
 
         let text_container = Element::create(
             cx,
@@ -309,11 +305,7 @@ impl HTMLSelectElement {
             CustomElementCreationMode::Asynchronous,
             None,
         );
-        text_container.set_string_attribute(
-            &local_name!("style"),
-            TEXT_CONTAINER_STYLE.into(),
-            CanGc::from_cx(cx),
-        );
+        text_container.set_string_attribute(cx, &local_name!("style"), TEXT_CONTAINER_STYLE.into());
         select_box
             .upcast::<Node>()
             .AppendChild(cx, text_container.upcast::<Node>())
@@ -338,9 +330,9 @@ impl HTMLSelectElement {
             None,
         );
         chevron_container.set_string_attribute(
+            cx,
             &local_name!("style"),
             CHEVRON_CONTAINER_STYLE.into(),
-            CanGc::from_cx(cx),
         );
         select_box
             .upcast::<Node>()

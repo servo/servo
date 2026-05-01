@@ -51,7 +51,7 @@ impl Element {
             return;
         }
         if value {
-            self.set_string_attribute(local_name, DOMString::new(), CanGc::from_cx(cx));
+            self.set_string_attribute(cx, local_name, DOMString::new());
         } else {
             self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));
         }
@@ -103,11 +103,15 @@ impl Element {
 
     pub(crate) fn set_string_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: &LocalName,
         value: DOMString,
-        can_gc: CanGc,
     ) {
-        self.set_attribute(local_name, AttrValue::String(value.into()), can_gc);
+        self.set_attribute(
+            local_name,
+            AttrValue::String(value.into()),
+            CanGc::from_cx(cx),
+        );
     }
 
     /// Used for string attribute reflections where absence of the attribute returns `null`,
@@ -133,7 +137,7 @@ impl Element {
     ) {
         match value {
             Some(val) => {
-                self.set_string_attribute(local_name, val, CanGc::from_cx(cx));
+                self.set_string_attribute(cx, local_name, val);
             },
             None => {
                 self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));

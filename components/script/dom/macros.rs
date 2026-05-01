@@ -272,12 +272,11 @@ macro_rules! make_enumerated_getter(
 );
 
 macro_rules! make_setter_inner(
-    ( $self:ident, $value:ident, $htmlname:tt, $can_gc:expr ) => (
+    ( $self:ident, $value:ident, $htmlname:tt, $cx:expr ) => (
         use $crate::dom::bindings::inheritance::Castable;
         use $crate::dom::element::Element;
-        use $crate::script_runtime::CanGc;
         let element = $self.upcast::<Element>();
-        element.set_string_attribute(&html5ever::local_name!($htmlname), $value, $can_gc)
+        element.set_string_attribute($cx, &html5ever::local_name!($htmlname), $value)
     );
 );
 
@@ -287,12 +286,12 @@ macro_rules! make_setter_inner(
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
-            make_setter_inner!(self, value, $htmlname, CanGc::from_cx(cx));
+            make_setter_inner!(self, value, $htmlname, cx);
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, $cx: &mut js::context::JSContext, value: DOMString) {
-            make_setter_inner!(self, value, $htmlname, CanGc::from_cx($cx));
+            make_setter_inner!(self, value, $htmlname, $cx);
         }
     );
 );

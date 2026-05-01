@@ -13,7 +13,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::Element;
 use crate::dom::node::NodeTraits;
 use crate::dom::urlhelper::UrlHelper;
-use crate::script_runtime::CanGc;
 
 pub(crate) trait HyperlinkElement {
     fn get_url(&self) -> &DomRefCell<Option<ServoUrl>>;
@@ -202,11 +201,8 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
     fn set_href(&self, cx: &mut JSContext, value: USVString) {
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("href"),
-            value.into(),
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(cx, &local_name!("href"), value.into());
 
         self.set_url();
     }
@@ -469,9 +465,9 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
     /// <https://html.spec.whatwg.org/multipage/#update-href>
     fn update_href(&self, cx: &mut JSContext, url: &ServoUrl) {
         self.upcast::<Element>().set_string_attribute(
+            cx,
             &local_name!("href"),
             DOMString::from(url.as_str()),
-            CanGc::from_cx(cx),
         );
     }
 
