@@ -2259,7 +2259,7 @@ impl ScriptThread {
                     .fire_clear_breakpoint(cx, spidermonkey_id, script_id, offset);
             },
             DevtoolScriptControlMsg::Interrupt => {
-                self.debugger_global.fire_interrupt(CanGc::from_cx(cx));
+                self.debugger_global.fire_interrupt(cx);
             },
             DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count, result_sender) => {
                 self.debugger_global.fire_list_frames(

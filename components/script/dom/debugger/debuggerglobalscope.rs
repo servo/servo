@@ -261,10 +261,13 @@ impl DebuggerGlobalScope {
         );
     }
 
-    pub(crate) fn fire_interrupt(&self, can_gc: CanGc) {
-        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(self.upcast(), can_gc));
+    pub(crate) fn fire_interrupt(&self, cx: &mut js::context::JSContext) {
+        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(
+            self.upcast(),
+            CanGc::from_cx(cx),
+        ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerInterruptEvent::new"
         );
     }
