@@ -55,6 +55,15 @@ impl RecordedStateOfNode {
             .into();
         Self { command, value }
     }
+
+    fn for_command_node_with_value(
+        cx: &mut JSContext,
+        command: CommandName,
+        document: &Document,
+    ) -> Self {
+        let value = command.current_value(cx, document).into();
+        Self { command, value }
+    }
 }
 
 impl Range {
@@ -120,7 +129,10 @@ impl Range {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#record-current-states-and-values>
-    pub(crate) fn record_current_states_and_values(&self) -> Vec<RecordedStateOfNode> {
+    pub(crate) fn record_current_states_and_values(
+        &self,
+        cx: &mut JSContext,
+    ) -> Vec<RecordedStateOfNode> {
         // Step 1. Let overrides be a list of (string, string or boolean) ordered pairs, initially empty.
         //
         // We return the vec in one go for the relevant values
@@ -132,6 +144,7 @@ impl Range {
             return vec![];
         };
         // Step 8. Return overrides.
+        let document = node.owner_doc();
         vec![
             // Step 4. Add ("createLink", node's effective command value for "createLink") to overrides.
             RecordedStateOfNode::for_command_node(CommandName::CreateLink, &node),
@@ -165,8 +178,13 @@ impl Range {
             ),
             // Step 6. For each command in the list "fontName", "foreColor", "hiliteColor", in order:
             // add (command, command's value) to overrides.
-            // TODO
-
+            RecordedStateOfNode::for_command_node_with_value(cx, CommandName::FontName, &document),
+            RecordedStateOfNode::for_command_node_with_value(cx, CommandName::ForeColor, &document),
+            RecordedStateOfNode::for_command_node_with_value(
+                cx,
+                CommandName::HiliteColor,
+                &document,
+            ),
             // Step 7. Add ("fontSize", node's effective command value for "fontSize") to overrides.
             RecordedStateOfNode::for_command_node(CommandName::FontSize, &node),
         ]

@@ -123,9 +123,8 @@ impl Document {
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontname" => CommandName::FontName,
             "fontsize" => CommandName::FontSize,
-            // https://w3c.github.io/editing/docs/execCommand/#the-hilitecolor-command
-            // > For historical reasons, backColor and hiliteColor behave identically.
-            "hilitecolor" => CommandName::BackColor,
+            "forecolor" => CommandName::ForeColor,
+            "hilitecolor" => CommandName::HiliteColor,
             "italic" => CommandName::Italic,
             "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,

@@ -4,6 +4,7 @@
 
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
+use style::attr::parse_legacy_color;
 use style::color::ColorFlags;
 use style::properties::PropertyDeclarationId;
 use style::properties::generated::{LonghandId, ShorthandId};
@@ -14,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use crate::dom::bindings::str::{DOMString, FromInputValueString};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::commands::backcolor::execute_backcolor_command;
@@ -25,6 +26,8 @@ use crate::dom::execcommand::commands::fontname::execute_fontname_command;
 use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
+use crate::dom::execcommand::commands::forecolor::execute_forecolor_command;
+use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
@@ -55,6 +58,7 @@ impl From<DefaultSingleLineContainerName> for DOMString {
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum CssPropertyName {
     BackgroundColor,
+    Color,
     FontFamily,
     FontSize,
     FontWeight,
@@ -85,6 +89,21 @@ impl CssPropertyName {
                         return Some(absolute_color.to_css_string().into());
                     }
                     background_color.to_css_string()
+                },
+                CssPropertyName::Color => {
+                    // Detached font elements (e.g. does created with `document.createElement`
+                    // and not yet present in DOM) dont have a computed style for `color`.
+                    // Since we create detached parent elements and compute "effective command
+                    // value" for these elements, we need to special case this. Otherwise, we
+                    // would add both a `color` attribute and `color` style declaration
+                    // to a parent font element.
+                    if let Some(ancestor_font) = element.downcast::<HTMLFontElement>() {
+                        let color = ancestor_font.Color();
+                        if !color.is_empty() {
+                            return Some(color);
+                        }
+                    }
+                    style.clone_color().to_css_string()
                 },
                 CssPropertyName::FontFamily => {
                     // Detached font elements (e.g. does created with `document.createElement`
@@ -158,6 +177,7 @@ impl CssPropertyName {
 
         let longhand_id = match self {
             CssPropertyName::BackgroundColor => LonghandId::BackgroundColor,
+            CssPropertyName::Color => LonghandId::Color,
             CssPropertyName::FontFamily => LonghandId::FontFamily,
             CssPropertyName::FontSize => LonghandId::FontSize,
             CssPropertyName::FontWeight => LonghandId::FontWeight,
@@ -183,6 +203,7 @@ impl CssPropertyName {
     fn property_name(&self) -> DOMString {
         match self {
             CssPropertyName::BackgroundColor => "background-color",
+            CssPropertyName::Color => "color",
             CssPropertyName::FontFamily => "font-family",
             CssPropertyName::FontSize => "font-size",
             CssPropertyName::FontWeight => "font-weight",
@@ -393,17 +414,21 @@ impl CommandName {
                                     ("400", "normal")
                             )
                     },
-                    CommandName::BackColor => {
+                    CommandName::BackColor | CommandName::ForeColor | CommandName::HiliteColor => {
                         // https://w3c.github.io/editing/docs/execCommand/#the-backcolor-command
+                        // https://w3c.github.io/editing/docs/execCommand/#the-forecolor-command
+                        // https://w3c.github.io/editing/docs/execCommand/#the-hilitecolor-command
                         // > Either both strings are valid CSS colors and have the same red, green, blue, and alpha components,
                         // > or neither string is a valid CSS color.
-                        let first_is_valid_color = first_str.str().is_valid_simple_color_string();
-                        let second_is_valid_color = second_str.str().is_valid_simple_color_string();
-
-                        if first_is_valid_color && second_is_valid_color {
-                            first_str == second_str
-                        } else {
-                            !first_is_valid_color && !second_is_valid_color
+                        match (
+                            parse_legacy_color(&first_str.str()),
+                            parse_legacy_color(&second_str.str()),
+                        ) {
+                            (Ok(first_legacy_color), Ok(second_legacy_color)) => {
+                                first_legacy_color == second_legacy_color
+                            },
+                            (Err(_), Err(_)) => true,
+                            _ => false,
                         }
                     },
                     // > or both are strings and they're equal and the command does not define any equivalent values,
@@ -444,6 +469,8 @@ impl CommandName {
             CommandName::Bold => CssPropertyName::FontWeight,
             CommandName::FontName => CssPropertyName::FontFamily,
             CommandName::FontSize => CssPropertyName::FontSize,
+            CommandName::ForeColor => CssPropertyName::Color,
+            CommandName::HiliteColor => CssPropertyName::BackgroundColor,
             CommandName::Italic => CssPropertyName::FontStyle,
             // > If a command does not have a relevant CSS property specified, it defaults to null.
             _ => return None,
@@ -504,6 +531,8 @@ impl CommandName {
             CommandName::Delete => execute_delete_command(cx, document, selection),
             CommandName::FontName => execute_fontname_command(cx, document, selection, value),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
+            CommandName::ForeColor => execute_forecolor_command(cx, document, selection, value),
+            CommandName::HiliteColor => execute_hilitecolor_command(cx, document, selection, value),
             CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),

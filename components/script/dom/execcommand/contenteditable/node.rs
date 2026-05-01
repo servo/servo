@@ -5,9 +5,11 @@
 use std::cmp::Ordering;
 use std::ops::Deref;
 
+use cssparser::color::OPAQUE;
 use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
+use style::attr::parse_legacy_color;
 use style::values::specified::box_::DisplayOutside;
 
 use crate::dom::abstractrange::bp_position;
@@ -21,6 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
+use crate::dom::execcommand::commands::forecolor::serialize_to_simple_color;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -1230,7 +1233,20 @@ impl Node {
                 // Step 10.5. If command is "foreColor", and new value is fully opaque with
                 // red, green, and blue components in the range 0 to 255:
                 CommandName::ForeColor => {
-                    // TODO
+                    if let Ok(legacy_color) = parse_legacy_color(&new_value.str()) {
+                        if legacy_color.alpha() == Some(OPAQUE) {
+                            // Step 10.5.1. Let new parent be the result of calling createElement("font") on the ownerDocument of node.
+                            let new_font_element = document.create_element(cx, "font");
+                            // Step 10.5.2. Set the color attribute of new parent to the result of applying the rules for
+                            // serializing simple color values to new value (interpreted as a simple color).
+                            new_font_element.set_string_attribute(
+                                cx,
+                                &local_name!("color"),
+                                serialize_to_simple_color(legacy_color),
+                            );
+                            new_parent = Some(new_font_element);
+                        }
+                    }
                 },
                 // Step 10.6. If command is "fontName",
                 // let new parent be the result of calling createElement("font") on the ownerDocument of node,

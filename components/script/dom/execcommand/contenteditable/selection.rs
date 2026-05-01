@@ -309,7 +309,7 @@ impl Selection {
         // This step does not exist in the spec
 
         // Step 19. Record current states and values, and let overrides be the result.
-        let overrides = active_range.record_current_states_and_values();
+        let overrides = active_range.record_current_states_and_values(cx);
 
         // Step 20.
         //

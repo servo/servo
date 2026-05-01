@@ -146,10 +146,13 @@ impl VirtualMethods for HTMLFontElement {
 
 impl LayoutDom<'_, HTMLFontElement> {
     pub(crate) fn get_color(self) -> Option<AbsoluteColor> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("color"))
-            .and_then(AttrValue::as_color)
-            .cloned()
+        let color = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"));
+        match color {
+            Some(AttrValue::Color(_, color)) => *color,
+            _ => None,
+        }
     }
 
     pub(crate) fn get_face(self) -> Option<Atom> {
