@@ -126,7 +126,7 @@ class PackageCommands(CommandBase):
             raise ValueError(f"Could not find end marker: {end_marker}")
 
         block = content[block_start:block_end]
-        updated_block, count = re.subn(r'version\s*=\s*"[^"]*"', f'version = "{new_version}"', block)
+        updated_block, count = re.subn(r'version\s*=\s*"[^"]*"', f'version = "={new_version}"', block)
         if count == 0:
             raise ValueError("No workspace-version dependency references found in Cargo.toml.")
         elif count == 1:
@@ -537,6 +537,10 @@ class PackageCommands(CommandBase):
         except (ValueError, RuntimeError) as error:
             print(f"Failed to update workspace version: `{error}`", file=sys.stderr)
             return 1
+
+        # Add a trailing newline to the file if it doesn't already have one.
+        if not workspace_toml_content.endswith("\n"):
+            workspace_toml_content += "\n"
 
         with open(workspace_toml_path, "w") as file:
             file.write(workspace_toml_content)
