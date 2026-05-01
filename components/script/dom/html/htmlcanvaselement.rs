@@ -143,24 +143,24 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub(crate) fn set_natural_width(&self, value: u32, can_gc: CanGc) {
+    pub(crate) fn set_natural_width(&self, cx: &mut js::context::JSContext, value: u32) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_WIDTH
         } else {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
+        element.set_uint_attribute(cx, &html5ever::local_name!("width"), value);
     }
 
-    pub(crate) fn set_natural_height(&self, value: u32, can_gc: CanGc) {
+    pub(crate) fn set_natural_height(&self, cx: &mut js::context::JSContext, value: u32) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_HEIGHT
         } else {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
+        element.set_uint_attribute(cx, &html5ever::local_name!("height"), value);
     }
 }
 
@@ -453,7 +453,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::from_cx(cx));
+        element.set_uint_attribute(cx, &html5ever::local_name!("width"), value);
         Ok(())
     }
 
@@ -475,7 +475,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::from_cx(cx));
+        element.set_uint_attribute(cx, &html5ever::local_name!("height"), value);
         Ok(())
     }
 

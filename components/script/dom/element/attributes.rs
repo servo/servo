@@ -70,11 +70,15 @@ impl Element {
 
     pub(crate) fn set_url_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: &LocalName,
         value: USVString,
-        can_gc: CanGc,
     ) {
-        self.set_attribute(local_name, AttrValue::String(value.to_string()), can_gc);
+        self.set_attribute(
+            local_name,
+            AttrValue::String(value.to_string()),
+            CanGc::from_cx(cx),
+        );
     }
 
     pub(crate) fn get_trusted_type_url_attribute(
@@ -162,11 +166,15 @@ impl Element {
 
     pub(crate) fn set_atomic_tokenlist_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: &LocalName,
         tokens: Vec<Atom>,
-        can_gc: CanGc,
     ) {
-        self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens), can_gc);
+        self.set_attribute(
+            local_name,
+            AttrValue::from_atomic_tokens(tokens),
+            CanGc::from_cx(cx),
+        );
     }
 
     pub(crate) fn set_int_attribute(&self, cx: &mut JSContext, local_name: &LocalName, value: i32) {
@@ -187,11 +195,16 @@ impl Element {
         }
     }
 
-    pub(crate) fn set_uint_attribute(&self, local_name: &LocalName, value: u32, can_gc: CanGc) {
+    pub(crate) fn set_uint_attribute(
+        &self,
+        cx: &mut JSContext,
+        local_name: &LocalName,
+        value: u32,
+    ) {
         self.set_attribute(
             local_name,
             AttrValue::UInt(value.to_string(), value),
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 

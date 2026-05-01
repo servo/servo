@@ -103,12 +103,11 @@ macro_rules! make_url_getter(
 );
 
 macro_rules! make_url_setter_inner(
-    ( $self:ident, $value:ident, $htmlname:tt, $can_gc:expr ) => (
+    ( $self:ident, $value:ident, $htmlname:tt, $cx:expr ) => (
         use $crate::dom::bindings::inheritance::Castable;
         use $crate::dom::element::Element;
-        use $crate::script_runtime::CanGc;
         let element = $self.upcast::<Element>();
-        element.set_url_attribute(&html5ever::local_name!($htmlname), $value, $can_gc)
+        element.set_url_attribute($cx, &html5ever::local_name!($htmlname), $value)
     );
 );
 
@@ -116,12 +115,12 @@ macro_rules! make_url_setter_inner(
 macro_rules! make_url_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, cx: &mut js::context::JSContext, value: USVString) {
-            make_url_setter_inner!(self, value, $htmlname, CanGc::from_cx(cx));
+            make_url_setter_inner!(self, value, $htmlname, cx);
         }
     );
     ( $cx:ident, $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, $cx: &mut js::context::JSContext, value: USVString) {
-            make_url_setter_inner!(self, value, $htmlname, CanGc::from_cx($cx));
+            make_url_setter_inner!(self, value, $htmlname, $cx);
         }
     );
 );
@@ -327,14 +326,13 @@ macro_rules! make_uint_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
-            use $crate::script_runtime::CanGc;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
+            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -349,7 +347,6 @@ macro_rules! make_clamped_uint_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
-            use $crate::script_runtime::CanGc;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
@@ -357,7 +354,7 @@ macro_rules! make_clamped_uint_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
+            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -369,7 +366,6 @@ macro_rules! make_limited_uint_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
-            use $crate::script_runtime::CanGc;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize(None));
             } else if value > UNSIGNED_LONG_MAX {
@@ -378,7 +374,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx));
+            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value);
             Ok(())
         }
     );
