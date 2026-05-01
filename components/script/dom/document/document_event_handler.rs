@@ -1197,6 +1197,7 @@ impl DocumentEventHandler {
 
             // Fire pointerenter hierarchically (from topmost ancestor to target)
             self.fire_pointer_event_for_touch(
+                cx,
                 &element,
                 &pointer_touch,
                 pointer_id,
@@ -1204,7 +1205,6 @@ impl DocumentEventHandler {
                 is_primary,
                 input_event,
                 &hit_test_result,
-                CanGc::from_cx(cx),
             );
         }
 
@@ -1245,6 +1245,7 @@ impl DocumentEventHandler {
 
             // Fire pointerleave hierarchically (from target to topmost ancestor)
             self.fire_pointer_event_for_touch(
+                cx,
                 &element,
                 &pointer_touch,
                 pointer_id,
@@ -1252,7 +1253,6 @@ impl DocumentEventHandler {
                 is_primary,
                 input_event,
                 &hit_test_result,
-                CanGc::from_cx(cx),
             );
         }
 
@@ -2287,6 +2287,7 @@ impl DocumentEventHandler {
     #[allow(clippy::too_many_arguments)]
     fn fire_pointer_event_for_touch(
         &self,
+        cx: &mut js::context::JSContext,
         target_element: &Element,
         touch: &Touch,
         pointer_id: i32,
@@ -2294,7 +2295,6 @@ impl DocumentEventHandler {
         is_primary: bool,
         input_event: &ConstellationInputEvent,
         hit_test_result: &HitTestResult,
-        can_gc: CanGc,
     ) {
         // Collect ancestors from target to root
         let mut targets: Vec<DomRoot<Node>> = vec![];
@@ -2318,11 +2318,11 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 false,
                 Some(hit_test_result.point_in_node),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             pointer_event
                 .upcast::<Event>()
-                .fire(target.upcast(), can_gc);
+                .fire(target.upcast(), CanGc::from_cx(cx));
         }
     }
 
