@@ -2262,13 +2262,8 @@ impl ScriptThread {
                 self.debugger_global.fire_interrupt(cx);
             },
             DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count, result_sender) => {
-                self.debugger_global.fire_list_frames(
-                    pipeline_id,
-                    start,
-                    count,
-                    result_sender,
-                    CanGc::from_cx(cx),
-                );
+                self.debugger_global
+                    .fire_list_frames(cx, pipeline_id, start, count, result_sender);
             },
             DevtoolScriptControlMsg::GetEnvironment(frame_actor_id, result_sender) => {
                 self.debugger_global
