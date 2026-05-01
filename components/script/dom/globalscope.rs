@@ -2742,7 +2742,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-an-exception>
-    pub(crate) fn report_an_exception(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
+    pub(crate) fn report_an_exception(&self, cx: &mut js::context::JSContext, error: HandleValue) {
         // Step 1. Let notHandled be true.
         //
         // Handled in `report_an_error`
@@ -2753,17 +2753,26 @@ impl GlobalScope {
         // Step 4. If script is a classic script and script's muted errors is true, then set errorInfo[error] to null,
         // errorInfo[message] to "Script error.", errorInfo[filename] to the empty string,
         // errorInfo[lineno] to 0, and errorInfo[colno] to 0.
-        let error_info = crate::dom::bindings::error::ErrorInfo::from_value(error, cx, can_gc);
+        let error_info = crate::dom::bindings::error::ErrorInfo::from_value(
+            error,
+            cx.into(),
+            CanGc::from_cx(cx),
+        );
         // Step 5. If omitError is true, then set errorInfo[error] to null.
         //
         // `omitError` defaults to `false`
 
         // Steps 6-7
-        self.report_an_error(error_info, error, can_gc);
+        self.report_an_error(cx, error_info, error);
     }
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
-    pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+    pub(crate) fn report_an_error(
+        &self,
+        cx: &mut js::context::JSContext,
+        error_info: ErrorInfo,
+        value: HandleValue,
+    ) {
         #[cfg(feature = "js_backtrace")]
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
@@ -2797,12 +2806,12 @@ impl GlobalScope {
             error_info.lineno,
             error_info.column,
             value,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let not_handled = event
             .upcast::<Event>()
-            .fire(self.upcast::<EventTarget>(), can_gc);
+            .fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
 
         // Step 6.3. Set global's in error reporting mode to false.
         self.in_error_reporting_mode.set(false);
@@ -2903,9 +2912,6 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let in_realm_proof = cx.into();
-        let in_realm = InRealm::Already(&in_realm_proof);
-
         run_a_script::<DomTypeHolder, _>(self, || {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
@@ -2925,7 +2931,7 @@ impl GlobalScope {
 
             let Some(script) = NonNull::new(*compiled_script) else {
                 debug!("error compiling Dom string");
-                report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+                report_pending_exception(cx);
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             };
 

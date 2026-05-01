@@ -1538,9 +1538,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
-        self.as_global_scope()
-            .report_an_exception(cx, error, can_gc);
+    fn ReportError(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+        self.as_global_scope().report_an_exception(cx, error);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator>

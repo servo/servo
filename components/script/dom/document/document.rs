@@ -3050,14 +3050,14 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
-    pub(crate) fn deliver_resize_loop_error_notification(&self, can_gc: CanGc) {
+    pub(crate) fn deliver_resize_loop_error_notification(&self, cx: &mut js::context::JSContext) {
         let error_info: ErrorInfo = crate::dom::bindings::error::ErrorInfo {
             message: "ResizeObserver loop completed with undelivered notifications.".to_string(),
             ..Default::default()
         };
         self.window
             .as_global_scope()
-            .report_an_error(error_info, HandleValue::null(), can_gc);
+            .report_an_error(cx, error_info, HandleValue::null());
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {

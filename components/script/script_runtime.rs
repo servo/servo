@@ -93,7 +93,7 @@ use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
@@ -1447,13 +1447,18 @@ unsafe extern "C" fn invoke_script_environment_preparer(
     global: HandleObject,
     closure: *mut ScriptEnvironmentPreparer_Closure,
 ) {
-    let cx = GlobalScope::get_cx();
     let global = unsafe { GlobalScope::from_object(global.get()) };
-    let ar = enter_realm(&*global);
+
+    // TODO: clean this up with proper cx: &mut js::context::JSContext
+    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+    let cx = &mut cx;
+
+    let mut realm = enter_auto_realm(cx, &*global);
+    let cx = &mut realm.current_realm();
 
     run_a_script::<DomTypeHolder, _>(&global, || {
-        if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
-            report_pending_exception(cx, InRealm::Entered(&ar), CanGc::deprecated_note());
+        if unsafe { !RunScriptEnvironmentPreparerClosure(cx.raw_cx(), closure) } {
+            report_pending_exception(cx);
         };
     });
 }

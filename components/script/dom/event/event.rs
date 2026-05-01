@@ -1396,11 +1396,11 @@ fn inner_invoke(
             event_target.remove_listener(&event.type_(), listener);
         }
 
-        let Some(compiled_listener) = listener.borrow().get_compiled_listener(
-            &event_target,
-            &event.type_(),
-            CanGc::from_cx(cx),
-        ) else {
+        let Some(compiled_listener) =
+            listener
+                .borrow()
+                .get_compiled_listener(cx, &event_target, &event.type_())
+        else {
             continue;
         };
 

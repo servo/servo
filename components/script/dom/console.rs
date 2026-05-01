@@ -34,8 +34,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::JSContext;
 
 /// The maximum object depth logged by console methods.
 const MAX_LOG_DEPTH: usize = 10;
@@ -230,12 +229,10 @@ fn console_argument_from_handle_value(
     match inner(cx, handle_value, seen) {
         Ok(arg) => arg,
         Err(()) => {
-            let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-            report_pending_exception(
-                cx,
-                InRealm::Already(&in_realm_proof),
-                CanGc::deprecated_note(),
-            );
+            #[allow(unsafe_code)]
+            let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+            let cx = &mut cx;
+            report_pending_exception(cx);
             DebuggerValue::StringValue("<error>".into())
         },
     }

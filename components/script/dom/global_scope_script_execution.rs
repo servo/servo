@@ -29,11 +29,10 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::{
     ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
 };
-use crate::script_runtime::CanGc;
 use crate::unminify::unminify_js;
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
@@ -209,10 +208,8 @@ impl GlobalScope {
                     },
                     // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
                     _ => {
-                        let in_realm_proof = cx.into();
-                        let in_realm = InRealm::Already(&in_realm_proof);
                         // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-                        report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+                        report_pending_exception(cx);
 
                         // Return evaluationStatus.
                         return Err(Error::JSFailed);
