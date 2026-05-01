@@ -22,6 +22,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::eventtarget::CONTENT_EVENT_HANDLER_NAMES;
 use crate::dom::types::Console;
 use crate::dom::window::Window;
 
@@ -570,6 +571,100 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         // Remove an attribute with attribute and this’s configuration.
         self.configuration.borrow_mut().remove_attribute(attribute)
     }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-setcomments>
+    fn SetComments(&self, allow: bool) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. If configuration["comments"] exists and configuration["comments"] equals allow,
+        // then return false;
+        if configuration
+            .comments
+            .is_some_and(|configuration_comments| configuration_comments == allow)
+        {
+            return false;
+        }
+
+        // Step 4. Set configuration["comments"] to allow.
+        configuration.comments = Some(allow);
+
+        // Step 5. Return true.
+        true
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-setdataattributes>
+    fn SetDataAttributes(&self, allow: bool) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. If configuration["attributes"] does not exist, then return false.
+        if configuration.attributes.is_none() {
+            return false;
+        }
+
+        // Step 4. If configuration["dataAttributes"] equals allow, then return false.
+        if configuration.dataAttributes == Some(allow) {
+            return false;
+        }
+
+        // Step 5. If allow is true:
+        if allow {
+            // Step 5.1. Remove any items attr from configuration["attributes"] where attr is a
+            // custom data attribute.
+            if let Some(configuration_attributes) = &mut configuration.attributes {
+                configuration_attributes.retain(|attribute| {
+                    !is_custom_data_attribute(
+                        &attribute.name().str(),
+                        attribute
+                            .namespace()
+                            .map(|namespace| namespace.str())
+                            .as_deref(),
+                    )
+                });
+            }
+
+            // Step 5.2. If configuration["elements"] exists:
+            if let Some(configuration_elements) = &mut configuration.elements {
+                // Step 5.2.1. For each element in configuration["elements"]:
+                for element in configuration_elements {
+                    // Step 5.2.1.1. If element["attributes"] exists:
+                    if let Some(element_attributes) = element.attributes_mut() {
+                        // Step 5.2.1.1.1. Remove any items attr from element["attributes"] where
+                        // attr is a custom data attribute.
+                        element_attributes.retain(|attribute| {
+                            !is_custom_data_attribute(
+                                &attribute.name().str(),
+                                attribute
+                                    .namespace()
+                                    .map(|namespace| namespace.str())
+                                    .as_deref(),
+                            )
+                        });
+                    }
+                }
+            }
+        }
+
+        // Step 6. Set configuration["dataAttributes"] to allow.
+        configuration.dataAttributes = Some(allow);
+
+        // Step 7. Return true.
+        true
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-removeunsafe>
+    fn RemoveUnsafe(&self) -> bool {
+        // Update this’s configuration with the result of calling remove unsafe on this’s
+        // configuration.
+        self.configuration.borrow_mut().remove_unsafe()
+    }
 }
 
 trait SanitizerConfigAlgorithm {
@@ -581,6 +676,9 @@ trait SanitizerConfigAlgorithm {
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-attribute>
     fn remove_attribute(&mut self, attribute: SanitizerAttribute) -> bool;
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe>
+    fn remove_unsafe(&mut self) -> bool;
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
     fn canonicalize(&mut self, allow_comments_pis_and_data_attributes: bool);
@@ -1069,6 +1167,51 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             // Step 4.6. Return true.
             true
         }
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe>
+    fn remove_unsafe(&mut self) -> bool {
+        // Step 1. Assert: The key set of built-in safe baseline configuration equals « [
+        // "removeElements", "removeAttributes" ] ».
+        let baseline = built_in_safe_baseline_configuration();
+        assert!(baseline.removeElements.is_some() && baseline.removeAttributes.is_some());
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(self.is_valid());
+
+        // Step 3. Let result be false.
+        let mut result = false;
+
+        // Step 4. For each element in built-in safe baseline configuration["removeElements"]:
+        for element in baseline.removeElements.unwrap_or_default() {
+            // Step 4.1. Call remove an element element from configuration.
+            // Step 4.2. If the call returned true, set result to true.
+            if self.remove_element(element) {
+                result = true;
+            }
+        }
+
+        // Step 5. For each attribute in built-in safe baseline configuration["removeAttributes"]:
+        for attribute in baseline.removeAttributes.unwrap_or_default() {
+            // Step 5.1. Call remove an attribute attribute from configuration.
+            // Step 5.2. If the call returned true, set result to true.
+            if self.remove_attribute(attribute) {
+                result = true;
+            }
+        }
+
+        // Step 6. For each attribute listed in event handler content attributes:
+        for attribute in CONTENT_EVENT_HANDLER_NAMES.iter() {
+            // Step 6.1. Call remove an attribute attribute from configuration.
+            // Step 6.2. If the call returned true, set result to true.
+            let attribute = SanitizerAttribute::String(DOMString::from(*attribute));
+            if self.remove_attribute(attribute) {
+                result = true;
+            }
+        }
+
+        // Step 7. Return result.
+        result
     }
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
@@ -2154,6 +2297,39 @@ fn built_in_safe_default_configuration() -> SanitizerConfig {
         removeAttributes: None,
         comments: Some(false),
         dataAttributes: Some(false),
+    }
+}
+
+/// <https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration>
+fn built_in_safe_baseline_configuration() -> SanitizerConfig {
+    const REMOVE_ELEMENTS: &[(&str, &Namespace)] = &[
+        ("embed", &ns!(html)),
+        ("frame", &ns!(html)),
+        ("iframe", &ns!(html)),
+        ("object", &ns!(html)),
+        ("script", &ns!(html)),
+        ("script", &ns!(svg)),
+        ("use", &ns!(svg)),
+    ];
+
+    let remove_elements = REMOVE_ELEMENTS
+        .iter()
+        .map(|&(name, namespace)| {
+            SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                name: name.into(),
+                namespace: Some(namespace.to_string().into()),
+            })
+        })
+        .collect();
+
+    SanitizerConfig {
+        elements: None,
+        removeElements: Some(remove_elements),
+        replaceWithChildrenElements: None,
+        attributes: None,
+        removeAttributes: Some(Vec::new()),
+        comments: None,
+        dataAttributes: None,
     }
 }
 

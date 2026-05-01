@@ -79,7 +79,7 @@ use crate::script_runtime::CanGc;
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// Generated from WebIDL definitions of EventHandler attributes on interfaces
 /// that inherit from Node.
-static CONTENT_EVENT_HANDLER_NAMES: LazyLock<FxHashSet<&str>> = LazyLock::new(|| {
+pub(crate) static CONTENT_EVENT_HANDLER_NAMES: LazyLock<FxHashSet<&str>> = LazyLock::new(|| {
     FxHashSet::from_iter(include!(concat!(
         env!("OUT_DIR"),
         "/ContentEventHandlerNames.rs"

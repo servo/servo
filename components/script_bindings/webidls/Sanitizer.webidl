@@ -25,11 +25,11 @@ interface Sanitizer {
   boolean replaceElementWithChildren(SanitizerElement element);
   boolean allowAttribute(SanitizerAttribute attribute);
   boolean removeAttribute(SanitizerAttribute attribute);
-  // boolean setComments(boolean allow);
-  // boolean setDataAttributes(boolean allow);
+  boolean setComments(boolean allow);
+  boolean setDataAttributes(boolean allow);
 
   // Remove markup that executes script.
-  // boolean removeUnsafe();
+  boolean removeUnsafe();
 };
 
 // https://wicg.github.io/sanitizer-api/#config
