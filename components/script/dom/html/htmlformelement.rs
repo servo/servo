@@ -440,11 +440,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-length>
-    #[expect(unsafe_code)]
-    fn Length(&self) -> u32 {
-        // TODO https://github.com/servo/servo/issues/43234
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        self.Elements(&mut cx).Length()
+    fn Length(&self, cx: &mut JSContext) -> u32 {
+        self.Elements(cx).Length()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-item>

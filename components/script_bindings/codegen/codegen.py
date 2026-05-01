@@ -6579,9 +6579,13 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 """)
 
         if self.descriptor.operations['IndexedGetter']:
+            if "Length" in self.descriptor.cxMethods:
+                length_call = "(*unwrapped_proxy).Length(cx)"
+            else:
+                length_call = "(*unwrapped_proxy).Length()"
             body += dedent(
                 """
-                for i in 0..(*unwrapped_proxy).Length() {
+                for i in 0..""" + length_call + """ {
                     rooted!(&in(cx) let mut rooted_jsid: jsid);
                     int_to_jsid(i as i32, rooted_jsid.handle_mut());
                     AppendToIdVector(props, rooted_jsid.handle());
@@ -6654,9 +6658,13 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 """)
 
         if self.descriptor.operations['IndexedGetter']:
+            if "Length" in self.descriptor.cxMethods:
+                length_call = "(*unwrapped_proxy).Length(cx)"
+            else:
+                length_call = "(*unwrapped_proxy).Length()"
             body += dedent(
                 """
-                for i in 0..(*unwrapped_proxy).Length() {
+                for i in 0..""" + length_call + """ {
                     rooted!(&in(cx) let mut rooted_jsid: jsid);
                     int_to_jsid(i as i32, rooted_jsid.handle_mut());
                     AppendToIdVector(props, rooted_jsid.handle());
