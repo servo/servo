@@ -485,7 +485,13 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 builtins_path = libclang_arch.joinpath("libclang_rt.builtins.a")
 
                 link_args.extend(
-                    ["-fsanitize=thread", "--rtlib=compiler-rt", "-shared-libsan", str(libtsan_so_path), str(builtins_path)]
+                    [
+                        "-fsanitize=thread",
+                        "--rtlib=compiler-rt",
+                        "-shared-libsan",
+                        str(libtsan_so_path),
+                        str(builtins_path),
+                    ]
                 )
                 san_compile_flags.append("-shared-libsan")
 
