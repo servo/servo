@@ -524,11 +524,11 @@ impl ServiceWorkerGlobalScope {
                     CanGc::from_cx(cx),
                 ) {
                     ExtendableMessageEvent::dispatch_jsval(
+                        cx,
                         target,
                         scope.upcast(),
                         message.handle(),
                         ports,
-                        CanGc::from_cx(cx),
                     );
                 } else {
                     ExtendableMessageEvent::dispatch_error(cx, target, scope.upcast());
