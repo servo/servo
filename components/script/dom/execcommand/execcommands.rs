@@ -128,6 +128,8 @@ impl Document {
             "italic" => CommandName::Italic,
             "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,
+            "subscript" => CommandName::Subscript,
+            "superscript" => CommandName::Superscript,
             "underline" => CommandName::Underline,
             _ => return None,
         })

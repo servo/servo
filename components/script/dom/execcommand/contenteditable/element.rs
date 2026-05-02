@@ -43,7 +43,16 @@ impl Element {
             },
             // Step 3. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {
-                // TODO
+                // Step 3.1. If element is a sup, return "superscript".
+                if matches!(*self.local_name(), local_name!("sup")) {
+                    return Some("superscript".into());
+                }
+                // Step 3.2. If element is a sub, return "subscript".
+                if matches!(*self.local_name(), local_name!("sub")) {
+                    return Some("subscript".into());
+                }
+                // Step 3.3. Return null.
+                return None;
             },
             CommandName::Strikethrough => {
                 // Step 4. If command is "strikethrough", and element has a style attribute set, and that attribute sets "text-decoration":

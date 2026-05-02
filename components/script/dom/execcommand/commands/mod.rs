@@ -13,4 +13,6 @@ pub(crate) mod hilitecolor;
 pub(crate) mod italic;
 pub(crate) mod strikethrough;
 pub(crate) mod stylewithcss;
+pub(crate) mod subscript;
+pub(crate) mod superscript;
 pub(crate) mod underline;

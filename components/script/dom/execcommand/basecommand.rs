@@ -31,6 +31,8 @@ use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
+use crate::dom::execcommand::commands::subscript::execute_subscript_command;
+use crate::dom::execcommand::commands::superscript::execute_superscript_command;
 use crate::dom::execcommand::commands::underline::execute_underline_command;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
@@ -297,6 +299,15 @@ impl CommandName {
                 return;
             }
             if let Some(effective_command_value) = node.effective_command_value(self) {
+                // https://w3c.github.io/editing/docs/execCommand/#the-subscript-command
+                // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
+                // > or if there is some formattable node effectively contained in
+                // > the active range with effective command value "mixed".
+                if matches!(self, CommandName::Subscript | CommandName::Superscript) &&
+                    effective_command_value == "mixed"
+                {
+                    at_least_two_different_effective_values = true;
+                }
                 if let Some(previous_effective_value) = &previous_effective_value {
                     if &effective_command_value != previous_effective_value {
                         at_least_two_different_effective_values = true;
@@ -536,6 +547,8 @@ impl CommandName {
             CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
+            CommandName::Subscript => execute_subscript_command(cx, document, selection),
+            CommandName::Superscript => execute_superscript_command(cx, document, selection),
             CommandName::Underline => execute_underline_command(cx, document, selection),
             _ => false,
         }

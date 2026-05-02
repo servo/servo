@@ -2094,12 +2094,14 @@ impl Node {
                     if !node.is_inline_node() {
                         break;
                     }
-                    // Step 5.2.1. If node is a sub, set affected by subscript to true.
-                    if *element.local_name() == local_name!("sub") {
-                        affected_by_subscript = true;
-                    } else if *element.local_name() == local_name!("sup") {
-                        // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
-                        affected_by_superscript = true;
+                    if let Some(element) = node.downcast::<Element>() {
+                        // Step 5.2.1. If node is a sub, set affected by subscript to true.
+                        if *element.local_name() == local_name!("sub") {
+                            affected_by_subscript = true;
+                        } else if *element.local_name() == local_name!("sup") {
+                            // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
+                            affected_by_superscript = true;
+                        }
                     }
                     // Step 5.2.3. Set node to its parent.
                     current_node = node.GetParentNode();
