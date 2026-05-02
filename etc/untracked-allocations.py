@@ -130,11 +130,11 @@ for line in lines:
         raise "Error: could not derive crate from path"
 
     # If the crate name we've determined is not interesting, skip this frame.
-    if any(map(lambda x: crate.startswith(x), skippable_crates)):
+    if any([crate.startswith(skippable) for skippable in skippable_crates]):
         continue
 
     # If the method for this frame is not interesting, skip this frame.
-    if any(map(lambda x: x in method, skippable_methods)):
+    if any([skippable in method for skippable in skippable_methods]):
         continue
 
     # The method looks like (<symbol_name>::<hash>), so strip the ()
@@ -159,7 +159,7 @@ if len(sys.argv) <= 2:
 
 # For a particular crate, print the N largest untracked allocations
 # attributed to a particular frame of their allocation backtrace.
-relevant = filter(lambda entry: entry["highlight"]["crate"].startswith(sys.argv[2]), entries)
+relevant = [entry for entry in entries if entry["highlight"]["crate"].startswith(sys.argv[2])]
 count = 0
 limit = int(sys.argv[3]) if len(sys.argv) > 3 else 10
 for entry in sorted(relevant, key=lambda x: x["size"], reverse=True):
