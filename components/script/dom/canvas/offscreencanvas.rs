@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use js::error::throw_type_error;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
@@ -43,7 +44,6 @@ use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingConte
 use crate::dom::promise::Promise;
 use crate::dom::types::{WebGLRenderingContext, Window};
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
@@ -517,9 +517,8 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         options: &ImageEncodeOptions,
     ) -> Rc<Promise> {
         // Step 5. Let result be a new promise object.
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let promise =
-            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::from_cx(cx));
+        let mut realm = CurrentRealm::assert(cx);
+        let promise = Promise::new_in_realm(&mut realm);
 
         // Step 1. If the value of this's [[Detached]] internal slot is true,
         // then return a promise rejected with an "InvalidStateError"
