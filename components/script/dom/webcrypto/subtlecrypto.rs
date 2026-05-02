@@ -228,7 +228,7 @@ impl SubtleCrypto {
         // NOTE: Serialize the JsonWebKey dictionary by stringifying it, in order to pass it to
         // other threads.
         let stringified_jwk = match jwk.stringify(cx) {
-            Ok(stringified_jwk) => stringified_jwk.to_string(),
+            Ok(stringified_jwk) => Zeroizing::new(stringified_jwk.to_string()),
             Err(error) => {
                 self.reject_promise_with_error(promise, error);
                 return;
@@ -4019,15 +4019,23 @@ impl Display for JwkStringField {
 
 trait JsonWebKeyExt {
     fn parse(cx: &mut js::context::JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
-    fn stringify(&self, cx: &mut js::context::JSContext) -> Result<DOMString, Error>;
+    fn stringify(&self, cx: &mut js::context::JSContext) -> Result<Zeroizing<DOMString>, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
     fn set_key_ops(&mut self, usages: Vec<KeyUsage>);
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]);
-    fn decode_optional_string_field(&self, field: JwkStringField)
-    -> Result<Option<Vec<u8>>, Error>;
-    fn decode_required_string_field(&self, field: JwkStringField) -> Result<Vec<u8>, Error>;
-    fn decode_primes_from_oth_field(&self, primes: &mut Vec<Vec<u8>>) -> Result<(), Error>;
+    fn decode_optional_string_field(
+        &self,
+        field: JwkStringField,
+    ) -> Result<Option<Zeroizing<Vec<u8>>>, Error>;
+    fn decode_required_string_field(
+        &self,
+        field: JwkStringField,
+    ) -> Result<Zeroizing<Vec<u8>>, Error>;
+    fn decode_primes_from_oth_field(
+        &self,
+        primes: &mut Vec<Zeroizing<Vec<u8>>>,
+    ) -> Result<(), Error>;
 }
 
 impl JsonWebKeyExt for JsonWebKey {
@@ -4078,10 +4086,10 @@ impl JsonWebKeyExt for JsonWebKey {
     /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
     /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
     /// bytes.
-    fn stringify(&self, cx: &mut js::context::JSContext) -> Result<DOMString, Error> {
+    fn stringify(&self, cx: &mut js::context::JSContext) -> Result<Zeroizing<DOMString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
         self.safe_to_jsval(cx.into(), data.handle_mut(), CanGc::from_cx(cx));
-        serialize_jsval_to_json_utf8(cx.into(), data.handle())
+        serialize_jsval_to_json_utf8(cx.into(), data.handle()).map(Zeroizing::new)
     }
 
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error> {
@@ -4165,7 +4173,7 @@ impl JsonWebKeyExt for JsonWebKey {
     fn decode_optional_string_field(
         &self,
         field: JwkStringField,
-    ) -> Result<Option<Vec<u8>>, Error> {
+    ) -> Result<Option<Zeroizing<Vec<u8>>>, Error> {
         let field_string = match field {
             JwkStringField::X => &self.x,
             JwkStringField::Y => &self.y,
@@ -4184,14 +4192,19 @@ impl JsonWebKeyExt for JsonWebKey {
 
         field_string
             .as_ref()
-            .map(|field_string| Base64UrlUnpadded::decode_vec(&field_string.str()))
+            .map(|field_string| {
+                Base64UrlUnpadded::decode_vec(&field_string.str()).map(Zeroizing::new)
+            })
             .transpose()
             .map_err(|_| Error::Data(Some(format!("Failed to decode {} field in jwk", field))))
     }
 
     // Decode a field from a base64url-encoded string to a byte sequence. If the field is not
     // present or it is not a valid base64url-encoded string, then throw a DataError.
-    fn decode_required_string_field(&self, field: JwkStringField) -> Result<Vec<u8>, Error> {
+    fn decode_required_string_field(
+        &self,
+        field: JwkStringField,
+    ) -> Result<Zeroizing<Vec<u8>>, Error> {
         self.decode_optional_string_field(field)?
             .ok_or(Error::Data(Some(format!(
                 "The {} field is not present in jwk",
@@ -4207,7 +4220,10 @@ impl JsonWebKeyExt for JsonWebKey {
     // present, then throw a DataError. For each entry in the "oth" array, if any of the "r", "d"
     // and "t" field is not present or it is not a valid base64url-encoded string, then throw a
     // DataError.
-    fn decode_primes_from_oth_field(&self, primes: &mut Vec<Vec<u8>>) -> Result<(), Error> {
+    fn decode_primes_from_oth_field(
+        &self,
+        primes: &mut Vec<Zeroizing<Vec<u8>>>,
+    ) -> Result<(), Error> {
         if self.oth.is_some() &&
             (self.p.is_none() ||
                 self.q.is_none() ||
@@ -4236,7 +4252,7 @@ impl JsonWebKeyExt for JsonWebKey {
                     "Fail to decode r field in one of the entry of oth field in jwk".to_string(),
                 ))
             })?;
-            primes.push(r);
+            primes.push(Zeroizing::new(r));
 
             let _d = Base64UrlUnpadded::decode_vec(
                 &rsa_other_prime_info

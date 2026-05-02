@@ -1112,11 +1112,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         },
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to "EC".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("EC")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("EC"));
 
             // Step 3.3.
             let named_curve =

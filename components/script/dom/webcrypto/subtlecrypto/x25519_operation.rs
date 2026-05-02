@@ -370,9 +370,9 @@ pub(crate) fn import_key(
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
                 let d = jwk.decode_required_string_field(JwkStringField::D)?;
                 let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                    x.try_into().map_err(|_| Error::Data(None))?;
+                    x.as_slice().try_into().map_err(|_| Error::Data(None))?;
                 let private_key_bytes: [u8; PRIVATE_KEY_LENGTH] =
-                    d.try_into().map_err(|_| Error::Data(None))?;
+                    d.as_slice().try_into().map_err(|_| Error::Data(None))?;
                 let public_key = PublicKey::from(public_key_bytes);
                 let private_key = StaticSecret::from(private_key_bytes);
                 if PublicKey::from(&private_key) != public_key {
@@ -395,7 +395,7 @@ pub(crate) fn import_key(
                 // described in Section 2 of [RFC8037], then throw a DataError.
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
                 let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                    x.try_into().map_err(|_| Error::Data(None))?;
+                    x.as_slice().try_into().map_err(|_| Error::Data(None))?;
                 let public_key = PublicKey::from(public_key_bytes);
 
                 // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519 public
@@ -549,13 +549,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to "OKP".
+            jwk.kty = Some(DOMString::from("OKP"));
+
             // Step 3.3. Set the crv attribute of jwk to "X25519".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("OKP")),
-                crv: Some(DOMString::from("X25519")),
-                ..Default::default()
-            };
+            jwk.crv = Some(DOMString::from("X25519"));
 
             // Step 3.4. Set the x attribute of jwk according to the definition in Section 2 of
             // [RFC8037].

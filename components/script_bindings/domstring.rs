@@ -24,6 +24,7 @@ use regex::Regex;
 use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
+use zeroize::Zeroize;
 
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::trace::RootedTraceableBox;
@@ -107,6 +108,12 @@ enum DOMStringType {
 impl Default for DOMStringType {
     fn default() -> Self {
         Self::Rust(Default::default())
+    }
+}
+
+impl Zeroize for DOMStringType {
+    fn zeroize(&mut self) {
+        self.ensure_rust_string().zeroize()
     }
 }
 
@@ -882,6 +889,12 @@ impl From<DOMString> for Vec<u8> {
 impl From<Cow<'_, str>> for DOMString {
     fn from(value: Cow<'_, str>) -> Self {
         DOMString(RefCell::new(DOMStringType::Rust(value.into_owned())))
+    }
+}
+
+impl Zeroize for DOMString {
+    fn zeroize(&mut self) {
+        self.0.borrow_mut().zeroize()
     }
 }
 

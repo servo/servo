@@ -9,6 +9,7 @@ use rand::TryRngCore;
 use rand::rngs::OsRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
 use script_bindings::domstring::DOMString;
+use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
@@ -195,12 +196,12 @@ pub(crate) fn import_key(
     let hash;
 
     // Step 4.
-    let data;
+    let data: Zeroizing<Vec<u8>>;
     match format {
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_secret => {
             // Step 4.1. Let data be keyData.
-            data = key_data.to_vec();
+            data = key_data.to_vec().into();
 
             // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
             hash = &normalized_algorithm.hash;
@@ -378,11 +379,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         },
         KeyFormat::Jwk => {
             // Step 4.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 4.2. Set the kty attribute of jwk to the string "oct".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("oct")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("oct"));
 
             // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded according
             // to Section 6.4 of JSON Web Algorithms [JWA].

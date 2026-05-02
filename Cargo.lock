@@ -8766,6 +8766,7 @@ dependencies = [
  "tendril",
  "tracing",
  "xml5ever",
+ "zeroize",
 ]
 
 [[package]]

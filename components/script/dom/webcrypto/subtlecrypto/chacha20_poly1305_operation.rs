@@ -5,6 +5,7 @@
 use chacha20poly1305::aead::{AeadMutInPlace, KeyInit, OsRng};
 use chacha20poly1305::{ChaCha20Poly1305, Key};
 use js::context::JSContext;
+use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
@@ -223,12 +224,12 @@ pub(crate) fn import_key(
     }
 
     // Step 3.
-    let data;
+    let data: Zeroizing<Vec<u8>>;
     match format {
         // If format is "raw-secret":
         KeyFormat::Raw_secret => {
             // Step 3.1. Let data be keyData.
-            data = key_data.to_vec();
+            data = key_data.to_vec().into();
 
             // Step 3.2. If the length in bits of data is not 256 then throw a DataError.
             if data.len() != 32 {
@@ -304,9 +305,10 @@ pub(crate) fn import_key(
     // Step 6. Let algorithm be a new KeyAlgorithm.
     // Step 7. Set the name attribute of algorithm to "ChaCha20-Poly1305".
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
-    let handle = Handle::ChaCha20Poly1305Key(Key::from_exact_iter(data).ok_or(Error::Data(
-        Some("ChaCha20-Poly1305 fails to create key from data".to_string()),
-    ))?);
+    let handle =
+        Handle::ChaCha20Poly1305Key(Key::from_exact_iter(data.to_vec()).ok_or(Error::Data(
+            Some("ChaCha20-Poly1305 fails to create key from data".to_string()),
+        ))?);
     let algorithm = SubtleKeyAlgorithm {
         name: CryptoAlgorithm::ChaCha20Poly1305,
     };
@@ -350,11 +352,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 2.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("oct")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("oct"));
 
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4

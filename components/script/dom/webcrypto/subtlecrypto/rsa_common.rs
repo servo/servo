@@ -827,11 +827,10 @@ pub(crate) fn export_key(
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to the string "RSA".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("RSA")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("RSA"));
 
             // Step 3.3. Let hash be the name attribute of the hash attribute of the [[algorithm]]
             // internal slot of key.
