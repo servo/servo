@@ -44,6 +44,7 @@ use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use strum::{EnumString, IntoStaticStr, VariantArray};
+use zeroize::Zeroizing;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -194,7 +195,7 @@ impl SubtleCrypto {
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
     /// promise with the result of creating an ArrayBuffer in realm, containing data. If it fails
     /// to create buffer source, reject promise with a JSFailedError.
-    fn resolve_promise_with_data(&self, promise: Rc<Promise>, data: Vec<u8>) {
+    fn resolve_promise_with_data(&self, promise: Rc<Promise>, data: Zeroizing<Vec<u8>>) {
         let trusted_promise = TrustedPromise::new(promise);
         self.global()
             .task_manager()
@@ -381,8 +382,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the encrypt() method.
         let data = match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => Zeroizing::new(view.to_vec()),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => Zeroizing::new(buffer.to_vec()),
         };
 
         // Step 5. Let realm be the relevant realm of this.
@@ -436,7 +437,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 13. Let result be the result of creating an ArrayBuffer in realm,
                 // containing ciphertext.
                 // Step 14. Resolve promise with result.
-                subtle.resolve_promise_with_data(promise, ciphertext);
+                subtle.resolve_promise_with_data(promise, ciphertext.into());
             }));
         promise
     }
@@ -511,7 +512,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // specified by normalizedAlgorithm using key and algorithm and with data as
                 // ciphertext.
                 let plaintext = match normalized_algorithm.decrypt(&key, &data) {
-                    Ok(plaintext) => plaintext,
+                    Ok(plaintext) => Zeroizing::new(plaintext),
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
@@ -609,7 +610,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 13. Let result be the result of creating an ArrayBuffer in realm,
                 // containing signature.
                 // Step 14. Resolve promise with result.
-                subtle.resolve_promise_with_data(promise, signature);
+                subtle.resolve_promise_with_data(promise, signature.into());
             }));
         promise
     }
@@ -769,7 +770,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 11. Let result be the result of creating an ArrayBuffer in realm,
                 // containing digest.
                 // Step 12. Resolve promise with result.
-                subtle.resolve_promise_with_data(promise, digest);
+                subtle.resolve_promise_with_data(promise, digest.into());
             }));
         promise
     }
@@ -977,7 +978,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 15. Let secret be the result of performing the derive bits operation
                 // specified by normalizedAlgorithm using key, algorithm and length.
                 let secret = match normalized_algorithm.derive_bits(&base_key, length) {
-                    Ok(secret) => secret,
+                    Ok(secret) => Zeroizing::new(secret),
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
@@ -1090,7 +1091,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 10. Let bits be the result of performing the derive bits operation
                 // specified by normalizedAlgorithm using baseKey, algorithm and length.
                 let bits = match normalized_algorithm.derive_bits(&base_key, length) {
-                    Ok(bits) => bits,
+                    Ok(bits) => Zeroizing::new(bits),
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
@@ -1158,7 +1159,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // exception when a JS error is thrown. When this happens, we report the
                         // error.
                         match jwk.stringify(cx) {
-                            Ok(stringified) => stringified.as_bytes().to_vec(),
+                            Ok(stringified) => Zeroizing::new(stringified.as_bytes().to_vec()),
                             Err(error) => {
                                 let promise = Promise::new_in_realm(cx);
                                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -1185,10 +1186,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     // Step 4.2. Let keyData be the result of getting a copy of the bytes held by
                     // the keyData parameter passed to the importKey() method.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
-                        view.to_vec()
+                        Zeroizing::new(view.to_vec())
                     },
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(buffer) => {
-                        buffer.to_vec()
+                        Zeroizing::new(buffer.to_vec())
                     },
                 }
             },
@@ -1467,7 +1468,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let bytes = match exported_key {
                     ExportedKey::Bytes(bytes) => bytes,
                     ExportedKey::Jwk(jwk) => match jwk.stringify(cx) {
-                        Ok(stringified_jwk) => stringified_jwk.as_bytes().to_vec(),
+                        Ok(stringified_jwk) => Zeroizing::new(stringified_jwk.as_bytes().to_vec()),
                         Err(error) => {
                             subtle.reject_promise_with_error(promise, error);
                             return;
@@ -1507,7 +1508,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 17. Let result be the result of creating an ArrayBuffer in realm,
                 // containing result.
                 // Step 18. Resolve promise with result.
-                subtle.resolve_promise_with_data(promise, result);
+                subtle.resolve_promise_with_data(promise, result.into());
             }));
         promise
     }
@@ -1634,7 +1635,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     },
                 };
                 let bytes = match bytes {
-                    Ok(bytes) => bytes,
+                    Ok(bytes) => Zeroizing::new(bytes),
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
@@ -2034,7 +2035,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let decapsulated_bits_result =
                     normalized_decapsulation_algorithm.decapsulate(&decapsulation_key, &ciphertext);
                 let decapsulated_bits = match decapsulated_bits_result {
-                    Ok(decapsulated_bits) => decapsulated_bits,
+                    Ok(decapsulated_bits) => Zeroizing::new(decapsulated_bits),
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
@@ -2157,7 +2158,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let decapsulated_bits_result =
                     normalized_decapsulation_algorithm.decapsulate(&decapsulation_key, &ciphertext);
                 let decapsulated_bits = match decapsulated_bits_result {
-                    Ok(decapsulated_bits) => decapsulated_bits,
+                    Ok(decapsulated_bits) => Zeroizing::new(decapsulated_bits),
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
@@ -3770,7 +3771,7 @@ impl SafeToJSValConvertible for SubtleEncapsulatedKey {
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits>
 struct SubtleEncapsulatedBits {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits-sharedKey>
-    shared_key: Option<Vec<u8>>,
+    shared_key: Option<Zeroizing<Vec<u8>>>,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits-ciphertext>
     ciphertext: Option<Vec<u8>>,
@@ -3919,8 +3920,18 @@ fn get_required_buffer_source(
 /// is exported in "raw", "spki" or "pkcs8" format. `Jwk` should be used when the key is exported
 /// in "jwk" format.
 enum ExportedKey {
-    Bytes(Vec<u8>),
+    Bytes(Zeroizing<Vec<u8>>),
     Jwk(Box<JsonWebKey>),
+}
+
+impl ExportedKey {
+    fn new_bytes(bytes: Vec<u8>) -> ExportedKey {
+        ExportedKey::Bytes(Zeroizing::new(bytes))
+    }
+
+    fn new_jwk(jwk: JsonWebKey) -> ExportedKey {
+        ExportedKey::Jwk(Box::new(jwk))
+    }
 }
 
 /// Union type of KeyAlgorithm and IDL dictionary types derived from it. Note that we actually use

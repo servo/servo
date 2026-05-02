@@ -508,7 +508,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_der().map_err(|_| Error::Operation(None))?)
+            ExportedKey::new_bytes(data.to_der().map_err(|_| Error::Operation(None))?)
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
@@ -544,7 +544,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_der().map_err(|_| Error::Operation(None))?)
+            ExportedKey::new_bytes(data.to_der().map_err(|_| Error::Operation(None))?)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -589,7 +589,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 3.8. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -607,7 +607,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let data = public_key.as_bytes();
 
             // Step 3.3. Let result be data.
-            ExportedKey::Bytes(data.to_vec())
+            ExportedKey::new_bytes(data.to_vec())
         },
         // Otherwise:
         _ => {

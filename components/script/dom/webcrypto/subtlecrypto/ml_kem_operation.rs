@@ -197,7 +197,7 @@ pub(crate) fn encapsulate(
     // Step 8. Set the ciphertext attribute of result to the result of creating an ArrayBuffer
     // containing ciphertext.
     let result = SubtleEncapsulatedBits {
-        shared_key: Some(shared_key),
+        shared_key: Some(shared_key.into()),
         ciphertext: Some(ciphertext),
     };
 
@@ -961,7 +961,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 2.4. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_der().map_err(|_| {
+            ExportedKey::new_bytes(data.to_der().map_err(|_| {
                 Error::Operation(Some(
                     "Failed to encode SubjectPublicKeyInfo in DER format".to_string(),
                 ))
@@ -1068,7 +1068,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 2.4. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(private_key_info.to_der().map_err(|_| {
+            ExportedKey::new_bytes(private_key_info.to_der().map_err(|_| {
                 Error::Operation(Some(
                     "Failed to encode PrivateKeyInfo in DER format".to_string(),
                 ))
@@ -1089,7 +1089,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let data = convert_handle_to_public_key(key.handle())?;
 
             // Step 2.3. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "raw-seed":
         KeyFormat::Raw_seed => {
@@ -1106,7 +1106,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let (data, _) = convert_handle_to_seed_and_public_key(key.handle())?;
 
             // Step 2.3. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -1166,7 +1166,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 2.9. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // Otherwise:
         _ => {

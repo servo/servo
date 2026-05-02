@@ -540,7 +540,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(
+            ExportedKey::new_bytes(
                 data.as_der()
                     .map_err(|_| {
                         Error::Operation(Some(
@@ -585,7 +585,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.as_ref().to_vec())
+            ExportedKey::new_bytes(data.as_ref().to_vec())
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -630,7 +630,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 3.9. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -645,7 +645,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.2. Let data be a byte sequence representing the Ed25519 public key
             // represented by the [[handle]] internal slot of key.
             // Step 3.3. Let result be data.
-            ExportedKey::Bytes(key_data.to_vec())
+            ExportedKey::new_bytes(key_data.to_vec())
         },
         // Otherwise:
         _ => {

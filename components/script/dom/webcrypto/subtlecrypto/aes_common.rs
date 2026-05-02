@@ -549,7 +549,7 @@ pub(crate) fn export_key(
             };
 
             // Step 2.2. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "raw-secret":
         KeyFormat::Raw_secret => {
@@ -567,7 +567,7 @@ pub(crate) fn export_key(
             };
 
             // Step 2.2. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -719,7 +719,7 @@ pub(crate) fn export_key(
             jwk.ext = Some(key.Extractable());
 
             // Step 2.7. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         _ => {
             // throw a NotSupportedError.

@@ -371,7 +371,7 @@ pub(crate) fn import_key(
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     match format {
         KeyFormat::Raw | KeyFormat::Raw_secret => match key.handle() {
-            Handle::Hmac(key_data) => Ok(ExportedKey::Bytes(key_data.as_slice().to_vec())),
+            Handle::Hmac(key_data) => Ok(ExportedKey::new_bytes(key_data.as_slice().to_vec())),
             _ => Err(Error::Operation(Some(
                 "The key handle is not representing an HMAC key".into(),
             ))),
@@ -434,7 +434,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 4.9. Let result be jwk.
-            Ok(ExportedKey::Jwk(Box::new(jwk)))
+            Ok(ExportedKey::new_jwk(jwk))
         },
         // Otherwise:
         _ => {

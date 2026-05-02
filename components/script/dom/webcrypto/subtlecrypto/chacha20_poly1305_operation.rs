@@ -345,7 +345,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let data = key_handle.to_vec();
 
             // Step 2.2 Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -372,7 +372,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 2.7. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // Otherwise:
         _ => {
