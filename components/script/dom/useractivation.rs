@@ -5,11 +5,10 @@
 use std::ops::Add;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActivationMethods;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
-
-use js::context::JSContext;
 
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
