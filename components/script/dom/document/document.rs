@@ -493,6 +493,9 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart>
     #[no_trace]
     redirect_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
+    #[no_trace]
+    redirect_end: Cell<Option<CrossProcessInstant>>,
     /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
@@ -3606,6 +3609,7 @@ impl Document {
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
             redirect_start: Cell::new(None),
+            redirect_end: Cell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
@@ -3868,6 +3872,14 @@ impl Document {
 
     pub(crate) fn set_redirect_start(&self, time: Option<CrossProcessInstant>) {
         self.redirect_start.set(time)
+    }
+
+    pub(crate) fn get_redirect_end(&self) -> Option<CrossProcessInstant> {
+        self.redirect_end.get()
+    }
+
+    pub(crate) fn set_redirect_end(&self, time: Option<CrossProcessInstant>) {
+        self.redirect_end.set(time)
     }
 
     pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
