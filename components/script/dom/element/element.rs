@@ -4576,7 +4576,6 @@ impl VirtualMethods for Element {
         }
 
         let doc = self.owner_document();
-
         let fullscreen = doc.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(CanGc::from_cx(cx));
