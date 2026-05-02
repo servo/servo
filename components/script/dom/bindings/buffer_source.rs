@@ -369,12 +369,7 @@ where
                 }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
-                ArrayBufferClone(
-                    cx.raw_cx(),
-                    buffer.handle(),
-                    byte_offset,
-                    byte_length,
-                )
+                ArrayBufferClone(cx.raw_cx(), buffer.handle(), byte_offset, byte_length)
             },
         };
 
