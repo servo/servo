@@ -29,7 +29,7 @@ use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanva
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
@@ -79,18 +79,18 @@ impl OffscreenCanvas {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u64,
         height: u64,
         placeholder: Option<WeakRef<HTMLCanvasElement>>,
-        can_gc: CanGc,
     ) -> DomRoot<OffscreenCanvas> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -368,12 +368,12 @@ impl Transferable for OffscreenCanvas {
         // dataHolder.[[PlaceholderCanvas]] (while maintaining the weak
         // reference semantics).
         Ok(OffscreenCanvas::new(
+            cx,
             owner,
             None,
             transferred.width,
             transferred.height,
             None,
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -390,15 +390,13 @@ impl Transferable for OffscreenCanvas {
 impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         width: u64,
         height: u64,
     ) -> Fallible<DomRoot<OffscreenCanvas>> {
-        Ok(OffscreenCanvas::new(
-            global, proto, width, height, None, can_gc,
-        ))
+        Ok(OffscreenCanvas::new(cx, global, proto, width, height, None))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext>

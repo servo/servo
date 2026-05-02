@@ -653,12 +653,12 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // Step 3.
         // Set the placeholder canvas element of offscreenCanvas to a weak reference to this canvas element.
         let offscreen_canvas = OffscreenCanvas::new(
+            cx,
             &self.global(),
             None,
             self.Width().into(),
             self.Height().into(),
             Some(WeakRef::new(self)),
-            CanGc::from_cx(cx),
         );
 
         // Step 4. Set this canvas element's context mode to placeholder.
