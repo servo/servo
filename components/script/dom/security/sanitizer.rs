@@ -115,7 +115,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut config = self.configuration.borrow_mut();
 
         // Step 2. Assert: config is valid.
-        assert!(config.is_valid());
+        debug_assert!(config.is_valid());
 
         match &mut config.elements {
             // Step 3. If config["elements"] exists:
@@ -199,7 +199,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut configuration = self.configuration.borrow_mut();
 
         // Step 2. Assert: configuration is valid.
-        assert!(configuration.is_valid());
+        debug_assert!(configuration.is_valid());
 
         // Step 3. Set element to the result of canonicalize a sanitizer element with attributes
         // with element.
@@ -423,7 +423,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut configuration = self.configuration.borrow_mut();
 
         // Step 2. Assert: configuration is valid.
-        assert!(configuration.is_valid());
+        debug_assert!(configuration.is_valid());
 
         // Step 3. Set element to the result of canonicalize a sanitizer element with element.
         let element = element.canonicalize();
@@ -989,7 +989,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-element>
     fn remove_element(&mut self, element: SanitizerElement) -> bool {
         // Step 1. Assert: configuration is valid.
-        assert!(self.is_valid());
+        debug_assert!(self.is_valid());
 
         // Step 2. Set element to the result of canonicalize a sanitizer element with element.
         let element = element.canonicalize();
