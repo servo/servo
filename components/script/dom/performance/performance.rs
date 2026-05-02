@@ -569,7 +569,10 @@ impl Performance {
 
                 // Step 3.2 Otherwise, let end time be mark.
                 // NOTE: I think the spec wants us to return the value.
-                Ok(self.time_origin + Duration::milliseconds(timestamp.round() as i64))
+                Ok(
+                    self.time_origin +
+                        Duration::microseconds(timestamp.mul_add(1000.0, 0.0) as i64),
+                )
             },
         }
     }
