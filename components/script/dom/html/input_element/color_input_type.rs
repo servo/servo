@@ -12,15 +12,14 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
-use selectors::context::QuirksMode;
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
-use style::parser::ParserContext;
 use style::selector_parser::PseudoElement;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::CssRuleType;
 use style::values::specified::Color;
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
+use crate::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document_embedder_controls::ControlElement;
@@ -269,15 +268,10 @@ fn parse_color_value(value: &str, url: Url) -> AbsoluteColor {
     // TODO: Use a dummy url here, like gecko
     // https://searchfox.org/firefox-main/rev/3eaf7e2acf8186eb7aa579561eaa1312cb89132b/servo/ports/geckolib/glue.rs#8931
     let urlextradata = url.into();
-    let context = ParserContext::new(
-        Origin::Author,
-        &urlextradata,
-        Some(CssRuleType::Style),
+    let context = parser_context_for_anonymous_content(
+        CssRuleType::Style,
         ParsingMode::DEFAULT,
-        QuirksMode::NoQuirks,
-        Default::default(),
-        None,
-        None,
+        &urlextradata,
     );
     let mut input = ParserInput::new(value);
     let mut input = Parser::new(&mut input);

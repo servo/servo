@@ -234,6 +234,7 @@ impl VirtualMethods for SVGSVGElement {
                     /* namespaces = */ Default::default(),
                     None,
                     None,
+                    /* attr_taint = */ Default::default(),
                 );
                 let val = LengthPercentage::parse_quirky(
                     &context,
