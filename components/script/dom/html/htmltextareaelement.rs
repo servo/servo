@@ -142,7 +142,7 @@ impl HTMLTextAreaElement {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -199,12 +199,7 @@ impl HTMLTextAreaElement {
         self.maybe_update_shared_selection();
     }
 
-    #[expect(unsafe_code)]
-    fn handle_text_content_changed(&self, _can_gc: CanGc) {
-        // TODO https://github.com/servo/servo/issues/43255
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn handle_text_content_changed(&self, cx: &mut JSContext) {
         self.validity_state(CanGc::from_cx(cx))
             .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
@@ -430,7 +425,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_dirty.get() {
-            self.reset(CanGc::from_cx(cx));
+            self.reset(cx);
         }
     }
 
@@ -456,7 +451,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         // "none".
         if old_api_value != self.Value() {
             self.textinput.borrow_mut().clear_selection_to_end();
-            self.handle_text_content_changed(CanGc::from_cx(cx));
+            self.handle_text_content_changed(cx);
         }
     }
 
@@ -579,18 +574,18 @@ impl HTMLTextAreaElement {
         self.textinput.borrow_mut().set_content(DOMString::from(""));
     }
 
-    pub(crate) fn reset(&self, can_gc: CanGc) {
+    pub(crate) fn reset(&self, cx: &mut JSContext) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         self.value_dirty.set(false);
         self.textinput.borrow_mut().set_content(self.DefaultValue());
-        self.handle_text_content_changed(can_gc);
+        self.handle_text_content_changed(cx);
     }
 
     fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
     }
 
-    fn handle_key_reaction(&self, action: KeyReaction, event: &Event, can_gc: CanGc) {
+    fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction, event: &Event) {
         match action {
             KeyReaction::TriggerDefaultAction => (),
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
@@ -603,7 +598,7 @@ impl HTMLTextAreaElement {
                     );
                 }
                 self.value_dirty.set(true);
-                self.handle_text_content_changed(can_gc);
+                self.handle_text_content_changed(cx);
                 event.mark_as_handled();
             },
             KeyReaction::RedrawSelection => {
@@ -622,7 +617,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn attribute_mutated(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
@@ -687,7 +682,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         AttributeMutation::Removed => placeholder.clear(),
                     }
                 }
-                self.handle_text_content_changed(CanGc::from_cx(cx));
+                self.handle_text_content_changed(cx);
             },
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
@@ -718,7 +713,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        self.handle_text_content_changed(CanGc::from_cx(cx));
+        self.handle_text_content_changed(cx);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -738,7 +733,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
     }
 
-    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
         let node = self.upcast::<Node>();
@@ -783,12 +778,12 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.children_changed(cx, mutation);
         }
         if !self.value_dirty.get() {
-            self.reset(CanGc::from_cx(cx));
+            self.reset(cx);
         }
     }
 
     // copied and modified from htmlinputelement.rs
-    fn handle_event(&self, cx: &mut js::context::JSContext, event: &Event) {
+    fn handle_event(&self, cx: &mut JSContext, event: &Event) {
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
             event.mark_as_handled();
@@ -797,7 +792,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyboard_event);
-                self.handle_key_reaction(action, event, CanGc::from_cx(cx));
+                self.handle_key_reaction(cx, action, event);
             }
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
@@ -809,14 +804,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .textinput
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
+                    self.handle_key_reaction(cx, action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(action, event, CanGc::from_cx(cx));
+                    self.handle_key_reaction(cx, action, event);
                     self.upcast::<Node>().dirty(NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();
@@ -846,7 +841,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
             if !flags.is_empty() {
                 event.mark_as_handled();
-                self.handle_text_content_changed(CanGc::from_cx(cx));
+                self.handle_text_content_changed(cx);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(event);
@@ -860,11 +855,11 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
     }
 
-    fn pop(&self) {
-        self.super_type().unwrap().pop();
+    fn pop(&self, cx: &mut JSContext) {
+        self.super_type().unwrap().pop(cx);
 
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
-        self.reset(CanGc::deprecated_note());
+        self.reset(cx);
     }
 }
 

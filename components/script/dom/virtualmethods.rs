@@ -193,9 +193,9 @@ pub(crate) trait VirtualMethods {
 
     /// Called on an element when it is popped off the stack of open elements
     /// of a parser.
-    fn pop(&self) {
+    fn pop(&self, cx: &mut js::context::JSContext) {
         if let Some(s) = self.super_type() {
-            s.pop();
+            s.pop(cx);
         }
     }
 }

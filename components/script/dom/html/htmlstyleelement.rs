@@ -338,8 +338,8 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn pop(&self) {
-        self.super_type().unwrap().pop();
+    fn pop(&self, cx: &mut js::context::JSContext) {
+        self.super_type().unwrap().pop(cx);
         self.in_stack_of_open_elements.set(false);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
