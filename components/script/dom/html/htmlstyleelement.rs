@@ -438,7 +438,7 @@ impl StylesheetOwner for HTMLStyleElement {
                 .is_some_and(|list| list.Contains("render".into()))
     }
 
-    fn referrer_policy(&self) -> ReferrerPolicy {
+    fn referrer_policy(&self, _cx: &mut js::context::JSContext) -> ReferrerPolicy {
         ReferrerPolicy::EmptyString
     }
 

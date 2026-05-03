@@ -7,6 +7,7 @@ use std::io::{Read, Seek, Write};
 use crossbeam_channel::Sender;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
+use js::context::JSContext;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
@@ -61,7 +62,7 @@ pub(crate) trait StylesheetOwner {
     fn potentially_render_blocking(&self) -> bool;
 
     /// Which referrer policy should loads triggered by this owner follow
-    fn referrer_policy(&self) -> ReferrerPolicy;
+    fn referrer_policy(&self, cx: &mut JSContext) -> ReferrerPolicy;
 
     /// Notes that a new load is pending to finish.
     fn increment_pending_loads_count(&self);
@@ -463,6 +464,7 @@ impl<'a> ElementStylesheetLoader<'a> {
 
 impl ElementStylesheetLoader<'_> {
     pub(crate) fn load_with_element(
+        cx: &mut JSContext,
         element: &HTMLElement,
         source: StylesheetContextSource,
         media: Arc<Locked<MediaList>>,
@@ -496,7 +498,7 @@ impl ElementStylesheetLoader<'_> {
             .upcast::<Element>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
-        let referrer_policy = owner.referrer_policy();
+        let referrer_policy = owner.referrer_policy(cx);
         owner.increment_pending_loads_count();
 
         // Final steps of https://html.spec.whatwg.org/multipage/#update-a-style-block
@@ -636,7 +638,11 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
 
         match self {
             ElementStylesheetLoader::Synchronous { element } => {
+                // TODO: https://github.com/servo/servo/issues/44685
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
                 Self::load_with_element(
+                    &mut cx,
                     element,
                     source,
                     media,
@@ -652,7 +658,11 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
             }) => {
                 let element = element.clone();
                 let task = task!(load_import_stylesheet_on_main_thread: move || {
+                    // TODO: https://github.com/servo/servo/issues/44685
+                    #[expect(unsafe_code)]
+                    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
                     Self::load_with_element(
+                        &mut cx,
                         &element.root(),
                         source,
                         media,

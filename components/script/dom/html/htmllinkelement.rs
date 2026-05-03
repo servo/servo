@@ -294,7 +294,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
                 // > When the external resource link is created on a link element that is already browsing-context connected.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url();
+                    self.handle_stylesheet_url(cx);
                 } else {
                     self.remove_stylesheet();
                 }
@@ -316,7 +316,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // > When the href attribute of the link element of an external resource link
                 // > that is already browsing-context connected is changed.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url();
+                    self.handle_stylesheet_url(cx);
                 }
 
                 if self.relations.get().contains(LinkRelations::ICON) {
@@ -357,7 +357,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // When the crossorigin attribute of the link element of an external resource link
                 // that is already browsing-context connected is set, changed, or removed.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url();
+                    self.handle_stylesheet_url(cx);
                 }
             },
             local_name!("as") => {
@@ -379,7 +379,7 @@ impl VirtualMethods for HTMLLinkElement {
                 //
                 // TODO: Match Content-Type metadata to check if it needs to be updated
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url();
+                    self.handle_stylesheet_url(cx);
                 }
 
                 // https://html.spec.whatwg.org/multipage/#link-type-preload
@@ -456,7 +456,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
                 // > When the external resource link's link element becomes browsing-context connected.
                 if relations.contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url();
+                    self.handle_stylesheet_url(cx);
                 }
 
                 if relations.contains(LinkRelations::ICON) {
@@ -662,7 +662,7 @@ impl HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
-    fn handle_stylesheet_url(&self) {
+    fn handle_stylesheet_url(&self, cx: &mut js::context::JSContext) {
         let document = self.owner_document();
         if document.browsing_context().is_none() {
             return;
@@ -721,6 +721,7 @@ impl HTMLLinkElement {
         self.pending_loads.set(0);
 
         ElementStylesheetLoader::load_with_element(
+            cx,
             self.upcast(),
             StylesheetContextSource::LinkElement,
             media,
@@ -1097,11 +1098,8 @@ impl StylesheetOwner for HTMLLinkElement {
                 .is_some_and(|list| list.Contains("render".into()))
     }
 
-    fn referrer_policy(&self) -> ReferrerPolicy {
-        #[expect(unsafe_code)]
-        // TODO: https://github.com/servo/servo/issues/44683
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        if self.RelList(&mut cx).Contains("noreferrer".into()) {
+    fn referrer_policy(&self, cx: &mut js::context::JSContext) -> ReferrerPolicy {
+        if self.RelList(cx).Contains("noreferrer".into()) {
             return ReferrerPolicy::NoReferrer;
         }
 
