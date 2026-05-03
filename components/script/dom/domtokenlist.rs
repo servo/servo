@@ -11,12 +11,11 @@ use stylo_atoms::Atom;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::NodeTraits;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DOMTokenList {
@@ -43,19 +42,19 @@ impl DOMTokenList {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         element: &Element,
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,
-        can_gc: CanGc,
     ) -> DomRoot<DOMTokenList> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DOMTokenList::new_inherited(
                 element,
                 local_name.clone(),
                 supported_tokens,
             )),
             &*element.owner_window(),
-            can_gc,
+            cx,
         )
     }
 

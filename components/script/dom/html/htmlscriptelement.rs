@@ -1374,10 +1374,10 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     fn Blocking(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
         self.blocking.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("blocking"),
                 Some(vec![Atom::from("render")]),
-                CanGc::from_cx(cx),
             )
         })
     }
