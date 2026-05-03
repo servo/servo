@@ -15,6 +15,7 @@ use style::values::specified::box_::DisplayOutside;
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::NodeTypeId;
@@ -1266,7 +1267,34 @@ impl Node {
 
         match command {
             // Step 11. If command is "createLink" or "unlink":
-            // TODO
+            CommandName::CreateLink | CommandName::Unlink => {
+                // Step 11.1. Let new parent be the result of calling createElement("a") on the ownerDocument of node.
+                let new_element = document.create_element(cx, "a");
+                // Step 11.2. Set the href attribute of new parent to new value.
+                new_element
+                    .downcast::<HTMLAnchorElement>()
+                    .expect("Must always create an anchor")
+                    .SetHref(cx, new_value.to_string().into());
+                // Step 11.3. Let ancestor be node's parent.
+                let mut ancestor = self.GetParentNode();
+                // Step 11.4. While ancestor is not null:
+                while let Some(current_ancestor) = ancestor {
+                    // Step 11.4.1. If ancestor is an a, set the tag name of ancestor to "span", and let ancestor be the result.
+                    let current_ancestor = if current_ancestor.is::<HTMLAnchorElement>() {
+                        DomRoot::upcast(
+                            current_ancestor
+                                .downcast::<Element>()
+                                .expect("Must always be an element")
+                                .set_the_tag_name(cx, "span"),
+                        )
+                    } else {
+                        current_ancestor
+                    };
+                    // Step 11.4.2. Set ancestor to its parent.
+                    ancestor = current_ancestor.GetParentNode();
+                }
+                new_parent = Some(new_element);
+            },
             // Step 12. If command is "fontSize"; and new value is one of
             // "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
             // and either the CSS styling flag is false, or new value is "xxx-large":

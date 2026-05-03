@@ -4,6 +4,7 @@
 
 pub(crate) mod backcolor;
 pub(crate) mod bold;
+pub(crate) mod createlink;
 pub(crate) mod defaultparagraphseparator;
 pub(crate) mod delete;
 pub(crate) mod fontname;
@@ -16,3 +17,4 @@ pub(crate) mod stylewithcss;
 pub(crate) mod subscript;
 pub(crate) mod superscript;
 pub(crate) mod underline;
+pub(crate) mod unlink;
