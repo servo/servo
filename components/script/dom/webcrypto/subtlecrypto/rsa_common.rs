@@ -778,7 +778,7 @@ pub(crate) fn export_key(
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_der().map_err(|_| {
+            ExportedKey::new_bytes(data.to_der().map_err(|_| {
                 Error::Operation(Some(
                     "Failed to convert SubjectPublicKeyInfo to DER-encodeing data".to_string(),
                 ))
@@ -822,16 +822,15 @@ pub(crate) fn export_key(
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_bytes().to_vec())
+            ExportedKey::new_bytes(data.to_bytes().to_vec())
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to the string "RSA".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("RSA")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("RSA"));
 
             // Step 3.3. Let hash be the name attribute of the hash attribute of the [[algorithm]]
             // internal slot of key.
@@ -1043,7 +1042,7 @@ pub(crate) fn export_key(
             jwk.ext = Some(key.Extractable());
 
             // Step 3.9. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // Otherwise
         _ => {

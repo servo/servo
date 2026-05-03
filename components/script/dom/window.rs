@@ -190,7 +190,7 @@ use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -801,8 +801,8 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub(crate) fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) {
-        event.dispatch(self.upcast(), true, can_gc);
+    pub(crate) fn dispatch_event_with_target_override(&self, cx: &mut JSContext, event: &Event) {
+        event.dispatch(cx, self.upcast(), true);
     }
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
@@ -875,7 +875,7 @@ impl Window {
         //
         // Implemented by passing `false` into the method below
         // Step 2. If the result of checking if unloading is canceled for toUnload is not "continue", then return.
-        if !document.check_if_unloading_is_cancelled(false, CanGc::from_cx(cx)) {
+        if !document.check_if_unloading_is_cancelled(cx, false) {
             return;
         }
         // Step 3. Append the following session history traversal steps to traversable:
@@ -3428,10 +3428,14 @@ impl Window {
 
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub(crate) fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
-        let _realm = enter_realm(self);
-
+    pub(crate) fn evaluate_media_queries_and_report_changes(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
         rooted_vec!(let mut mql_list);
+
         self.media_query_lists.for_each(|mql| {
             if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
@@ -3447,11 +3451,11 @@ impl Window {
                 false,
                 mql.Media(),
                 mql.Matches(),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             event
                 .upcast::<Event>()
-                .fire(mql.upcast::<EventTarget>(), can_gc);
+                .fire(mql.upcast::<EventTarget>(), CanGc::from_cx(cx));
         }
     }
 

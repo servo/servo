@@ -1238,15 +1238,15 @@ fn rendered_text_collection_steps(
                     surrounding_line_breaks = 1;
                     state.within_table_content = true;
                 },
-                Display::InlineFlex | Display::InlineGrid | Display::InlineBlock => {
-                    // InlineBlock's are a bit strange, in that they don't produce a Linebreak, yet
-                    // disable white space truncation before and after it, making it one of the few
-                    // cases where one can have multiple white space characters following one another.
-                    if state.did_truncate_trailing_white_space {
-                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
-                        state.did_truncate_trailing_white_space = false;
-                        state.may_start_with_whitespace = true;
-                    }
+                // InlineBlock's are a bit strange, in that they don't produce a Linebreak, yet
+                // disable white space truncation before and after it, making it one of the few
+                // cases where one can have multiple white space characters following one another.
+                Display::InlineFlex | Display::InlineGrid | Display::InlineBlock
+                    if state.did_truncate_trailing_white_space =>
+                {
+                    items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                    state.did_truncate_trailing_white_space = false;
+                    state.may_start_with_whitespace = true;
                 },
                 _ => {},
             }

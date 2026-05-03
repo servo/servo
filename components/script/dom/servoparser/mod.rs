@@ -1542,6 +1542,8 @@ impl FetchResponseListener for ParserContext {
 
         if status.is_ok() {
             parser.document.set_redirect_count(timing.redirect_count);
+            parser.document.set_redirect_start(timing.redirect_start);
+            parser.document.set_redirect_end(timing.redirect_end);
         }
 
         parser.last_chunk_received.set(true);
@@ -1869,16 +1871,21 @@ impl TreeSink for Sink {
             .expect("Appending failed");
     }
 
+    #[expect(unsafe_code)]
     fn add_attrs_if_missing(&self, target: &Dom<Node>, attrs: Vec<Attribute>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         let elem = target
             .downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
             elem.set_attribute_from_parser(
+                cx,
                 attr.name,
                 DOMString::from(String::from(attr.value)),
                 None,
-                CanGc::deprecated_note(),
             );
         }
     }
@@ -2044,7 +2051,7 @@ fn create_element_for_token(
 
     // Step 11. Append each attribute in the given token to element.
     for attr in attrs {
-        element.set_attribute_from_parser(attr.name, attr.value, None, CanGc::from_cx(cx));
+        element.set_attribute_from_parser(cx, attr.name, attr.value, None);
     }
 
     // Record if the tokenizer saw duplicate attributes on this element,

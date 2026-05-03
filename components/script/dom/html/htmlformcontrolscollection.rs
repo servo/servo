@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -10,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -19,7 +20,6 @@ use crate::dom::html::htmlformelement::HTMLFormElement;
 use crate::dom::node::Node;
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLFormControlsCollection {
@@ -42,15 +42,15 @@ impl HTMLFormControlsCollection {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         form: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLFormControlsCollection> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(HTMLFormControlsCollection::new_inherited(form, filter)),
             window,
-            can_gc,
+            cx,
         )
     }
 }
@@ -64,7 +64,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
-    fn NamedItem(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
+    fn NamedItem(&self, cx: &mut JSContext, name: DOMString) -> Option<RadioNodeListOrElement> {
         // Step 1
         if name.is_empty() {
             return None;
@@ -95,9 +95,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
                 // specifically HTMLFormElement::Elements(),
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(
-                        window, &self.form, &name, can_gc,
-                    ),
+                    RadioNodeList::new_controls_except_image_inputs(cx, window, &self.form, &name),
                 ))
             }
         // Step 3
@@ -107,8 +105,8 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
-    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
-        self.NamedItem(name, can_gc)
+    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<RadioNodeListOrElement> {
+        self.NamedItem(cx, name)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names>

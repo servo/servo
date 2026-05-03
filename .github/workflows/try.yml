@@ -7,9 +7,9 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: choice
-        options: ["release", "debug", "production"]
+        options: ["checked-release", "release", "debug", "production"]
       build-args:
         default: ""
         required: false

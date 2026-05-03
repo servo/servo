@@ -455,39 +455,45 @@ class OpenHarmonyTarget(CrossBuildTarget):
             env["RUSTFLAGS"] += " -Zexternal-clangrt"
             san_compile_flags.append("-fno-omit-frame-pointer")
 
-        # On OpenHarmony we add some additional flags when asan is enabled
-        if sanitizer.is_asan():
-            libasan_so_path = libclang_arch.joinpath("libclang_rt.asan.so")
-            libasan_preinit_path = libclang_arch.joinpath("libclang_rt.asan-preinit.a")
-            if not libasan_so_path.exists():
-                raise RuntimeError(f"Couldn't find ASAN runtime library at {libasan_so_path}")
-            link_args.extend(
-                [
-                    "-fsanitize=address",
-                    "--rtlib=compiler-rt",
-                    "-shared-libasan",
-                    str(libasan_so_path),
-                    "-Wl,--whole-archive",
-                    "-Wl," + str(libasan_preinit_path),
-                    "-Wl,--no-whole-archive",
-                ]
-            )
+            # On OpenHarmony we add some additional flags when asan is enabled
+            if sanitizer.is_asan():
+                libasan_so_path = libclang_arch.joinpath("libclang_rt.asan.so")
+                libasan_preinit_path = libclang_arch.joinpath("libclang_rt.asan-preinit.a")
+                if not libasan_so_path.exists():
+                    raise RuntimeError(f"Couldn't find ASAN runtime library at {libasan_so_path}")
+                link_args.extend(
+                    [
+                        "-fsanitize=address",
+                        "--rtlib=compiler-rt",
+                        "-shared-libasan",
+                        str(libasan_so_path),
+                        "-Wl,--whole-archive",
+                        "-Wl," + str(libasan_preinit_path),
+                        "-Wl,--no-whole-archive",
+                    ]
+                )
 
-            san_compile_flags.extend(["-fsanitize=address", "-shared-libasan", "-fsanitize-recover=address"])
+                san_compile_flags.extend(["-fsanitize=address", "-shared-libasan", "-fsanitize-recover=address"])
 
-            arch_asan_ignore_list = lib_clang_version_dir.joinpath("share", "asan_ignorelist.txt")
-            if arch_asan_ignore_list.exists():
-                san_compile_flags.append("-fsanitize-system-ignorelist=" + str(arch_asan_ignore_list))
-            else:
-                print(f"Warning: Couldn't find system ASAN ignorelist at `{arch_asan_ignore_list}`")
-        elif sanitizer.is_tsan():
-            libtsan_so_path = libclang_arch.joinpath("libclang_rt.tsan.so")
-            builtins_path = libclang_arch.joinpath("libclang_rt.builtins.a")
+                arch_asan_ignore_list = lib_clang_version_dir.joinpath("share", "asan_ignorelist.txt")
+                if arch_asan_ignore_list.exists():
+                    san_compile_flags.append("-fsanitize-system-ignorelist=" + str(arch_asan_ignore_list))
+                else:
+                    print(f"Warning: Couldn't find system ASAN ignorelist at `{arch_asan_ignore_list}`")
+            elif sanitizer.is_tsan():
+                libtsan_so_path = libclang_arch.joinpath("libclang_rt.tsan.so")
+                builtins_path = libclang_arch.joinpath("libclang_rt.builtins.a")
 
-            link_args.extend(
-                ["-fsanitize=thread", "--rtlib=compiler-rt", "-shared-libsan", str(libtsan_so_path), str(builtins_path)]
-            )
-            san_compile_flags.append("-shared-libsan")
+                link_args.extend(
+                    [
+                        "-fsanitize=thread",
+                        "--rtlib=compiler-rt",
+                        "-shared-libsan",
+                        str(libtsan_so_path),
+                        str(builtins_path),
+                    ]
+                )
+                san_compile_flags.append("-shared-libsan")
 
         link_args = [f"-Clink-arg={arg}" for arg in link_args]
         env["RUSTFLAGS"] += " " + " ".join(link_args)

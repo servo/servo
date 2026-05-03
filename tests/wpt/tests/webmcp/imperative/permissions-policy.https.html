@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Permission policy enforcement</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+
+  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+  const origin_c = host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN;
+
+  iframe.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = `tools ${origin_b}`;
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  const toolchange_promise = new Promise((resolve) => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: { name: 'iframe_tool', description: 'Origin B tool' },
+    options: { exposedTo: [host_info.HTTPS_ORIGIN] }
+  }, '*');
+  await toolchange_promise;
+
+  const navigate_promise = new Promise(resolve => iframe.onload = resolve);
+  iframe.src = origin_c + '/webmcp/imperative/resources/iframe-register-tool.html';
+  await navigate_promise;
+
+  const failure_promise = new Promise(resolve => {
+    window.addEventListener('message', e => {
+      if (e.data.startsWith('tool registration failed:')) {
+        resolve(e.data);
+      }
+    });
+  });
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: { name: 'iframe_tool', description: 'Origin C tool' }
+  }, '*');
+  const failure_msg = await failure_promise;
+
+  assert_true(failure_msg.includes('SecurityError'), `Expected SecurityError in navigated iframe, got: ${failure_msg}`);
+}, 'registerTool() throws in iframe, after navigation to an origin not covered by permissions policy');
+</script>
+</body>
+</html>

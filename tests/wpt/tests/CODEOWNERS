@@ -823,7 +823,6 @@ css/css-view-transitions/navigation/root-element-transition-no-opt-in-on-new.htm
 css/css-view-transitions/navigation/root-element-transition-opt-in-removed-on-new.html @web-platform-tests/interop
 css/css-view-transitions/navigation/root-element-transition-opt-in-removed-on-old.html @web-platform-tests/interop
 css/css-view-transitions/navigation/skip-outbound-vt-before-reveal.html @web-platform-tests/interop
-css/css-view-transitions/navigation/two-phase/instant-transition-finish-before-swap.https.html @web-platform-tests/interop
 css/css-view-transitions/navigation/with-types/at-rule-opt-in-auto-with-types-no-cascade.html @web-platform-tests/interop
 css/css-view-transitions/navigation/with-types/at-rule-opt-in-auto-with-types.html @web-platform-tests/interop
 css/css-view-transitions/navigation/with-types/at-rule-with-types-parsing.html @web-platform-tests/interop
@@ -1421,7 +1420,6 @@ scroll-animations/css/animation-range-normal-matches-cover.html @web-platform-te
 scroll-animations/css/animation-range-scroll-timeline.html @web-platform-tests/interop
 scroll-animations/css/animation-shorthand.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-computed.html @web-platform-tests/interop
-scroll-animations/css/animation-timeline-deferred.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-in-keyframe.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-multiple.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-none.html @web-platform-tests/interop
@@ -1472,7 +1470,6 @@ scroll-animations/css/view-timeline-lookup.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-name-computed.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-name-parsing.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-name-shadow.html @web-platform-tests/interop
-scroll-animations/css/view-timeline-pseudo-on-scroller.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-range-animation.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-shorthand.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-subject-in-shadow-root-with-timeline-scope.html @web-platform-tests/interop
@@ -1640,10 +1637,7 @@ webrtc-encoded-transform/script-transform-generateKeyFrame.https.html @web-platf
 webrtc-encoded-transform/script-transform-sendKeyFrameRequest.https.html @web-platform-tests/interop
 webrtc-encoded-transform/script-transform.https.html @web-platform-tests/interop
 webrtc-encoded-transform/script-write-twice-transform.https.html @web-platform-tests/interop
-webtransport/back-forward-cache-with-closed-webtransport-connection-ccns.https.tentative.window.js @web-platform-tests/interop
 webtransport/back-forward-cache-with-closed-webtransport-connection.https.window.js @web-platform-tests/interop
-webtransport/back-forward-cache-with-open-webtransport-connection-ccns.https.tentative.window.js @web-platform-tests/interop
-webtransport/back-forward-cache-with-open-webtransport-connection.https.window.js @web-platform-tests/interop
 webtransport/close.https.any.js @web-platform-tests/interop
 webtransport/connect.https.any.js @web-platform-tests/interop
 webtransport/constructor.https.sub.any.js @web-platform-tests/interop

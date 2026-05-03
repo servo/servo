@@ -10,8 +10,8 @@ use script_bindings::script_runtime::CanGc;
 use stylo_atoms::Atom;
 use time::OffsetDateTime;
 
-use crate::dom::attr::Attr;
 use crate::dom::element::AttributeMutation;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
@@ -345,7 +345,7 @@ pub(crate) trait SpecificInputType {
         &self,
         _cx: &mut JSContext,
         _input: &HTMLInputElement,
-        _attr: &Attr,
+        _attr: AttrRef<'_>,
         _mutation: AttributeMutation,
     ) {
     }

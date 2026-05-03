@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Tab/Shift+Tab exits focusgroup from tabindex=-1 element</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!-- Test 1: Tab exits with focusgroupstart present -->
+<button id="before1" tabindex=0>Before</button>
+<div focusgroup="toolbar nomemory">
+  <button id="a1" tabindex=0>A</button>
+  <div id="neg1" tabindex="-1">Negative</div>
+  <button id="b1" tabindex=0 focusgroupstart>B</button>
+</div>
+<button id="after1" tabindex=0>After</button>
+
+<script>
+  promise_test(async t => {
+    const neg = document.getElementById("neg1");
+    const after = document.getElementById("after1");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg1 is focused");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, after,
+      "Tab from tabindex=-1 should exit the focusgroup, not land on focusgroupstart entry");
+  }, "Tab from tabindex=-1 exits focusgroup when focusgroupstart is present");
+
+  promise_test(async t => {
+    const neg = document.getElementById("neg1");
+    const before = document.getElementById("before1");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg1 is focused");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, before,
+      "Shift+Tab from tabindex=-1 should exit the focusgroup backward");
+  }, "Shift+Tab from tabindex=-1 exits focusgroup when focusgroupstart is present");
+</script>
+
+<!-- Test 2: Tab exits without focusgroupstart -->
+<button id="before2" tabindex=0>Before</button>
+<div focusgroup="toolbar nomemory">
+  <button id="a2" tabindex=0>A</button>
+  <div id="neg2" tabindex="-1">Negative</div>
+  <button id="b2" tabindex=0>B</button>
+</div>
+<button id="after2" tabindex=0>After</button>
+
+<script>
+  promise_test(async t => {
+    const neg = document.getElementById("neg2");
+    const after = document.getElementById("after2");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg2 is focused");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, after,
+      "Tab from tabindex=-1 should exit the focusgroup (no focusgroupstart)");
+  }, "Tab from tabindex=-1 exits focusgroup without focusgroupstart");
+
+  promise_test(async t => {
+    const neg = document.getElementById("neg2");
+    const before = document.getElementById("before2");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg2 is focused");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, before,
+      "Shift+Tab from tabindex=-1 should exit the focusgroup backward (no focusgroupstart)");
+  }, "Shift+Tab from tabindex=-1 exits focusgroup without focusgroupstart");
+</script>
+
+<!-- Test 3: Nested focusgroup — Tab exits only inner -->
+<button id="before3" tabindex=0>Before</button>
+<div focusgroup="toolbar nomemory">
+  <button id="outer_a" tabindex=0>Outer A</button>
+  <div focusgroup="toolbar nomemory">
+    <button id="inner_a" tabindex=0>Inner A</button>
+    <div id="neg3" tabindex="-1">Negative</div>
+    <button id="inner_b" tabindex=0>Inner B</button>
+  </div>
+  <button id="outer_b" tabindex=0>Outer B</button>
+</div>
+<button id="after3" tabindex=0>After</button>
+
+<script>
+  promise_test(async t => {
+    const neg = document.getElementById("neg3");
+    const outer_b = document.getElementById("outer_b");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg3 is focused");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, outer_b,
+      "Tab from tabindex=-1 inside nested focusgroup should exit to outer focusgroup entry");
+  }, "Tab from tabindex=-1 exits only the inner nested focusgroup");
+</script>
+
+<!-- Test 5: Multi-segment — tabindex=-1 in first segment, Tab goes to next segment entry -->
+<div focusgroup="toolbar nomemory">
+  <button id="seg1_a" tabindex=0>Seg1 A</button>
+  <div id="neg5" tabindex="-1">Negative</div>
+  <button id="seg1_b" tabindex=0>Seg1 B</button>
+  <span focusgroup="none">
+    <button id="opted_out5" tabindex=0>Opted out</button>
+  </span>
+  <button id="seg2_a" tabindex=0>Seg2 A</button>
+  <button id="seg2_b" tabindex=0>Seg2 B</button>
+</div>
+
+<script>
+  promise_test(async t => {
+    const neg = document.getElementById("neg5");
+    const opted_out = document.getElementById("opted_out5");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg5 is focused");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, opted_out,
+      "Tab from tabindex=-1 in first segment should skip to opted-out element (segment barrier)");
+  }, "Tab from tabindex=-1 skips remaining segment items and enters opted-out barrier");
+
+  promise_test(async t => {
+    const opted_out = document.getElementById("opted_out5");
+    const seg2_a = document.getElementById("seg2_a");
+
+    await focusAndWait(opted_out);
+    assert_equals(document.activeElement, opted_out, "Precondition: opted_out5 is focused");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, seg2_a,
+      "Tab from opted-out element should reach second segment entry");
+  }, "Tab from opted-out barrier reaches second segment entry");
+</script>
+
+<!-- Test 6: Sibling focusgroups — tabindex=-1 exits to the next focusgroup -->
+<div focusgroup="toolbar nomemory">
+  <button id="fg6a_item" tabindex=0>FG A item</button>
+  <div id="neg6" tabindex="-1">Negative</div>
+</div>
+<div focusgroup="toolbar nomemory">
+  <button id="fg6b_item" tabindex=0>FG B item</button>
+</div>
+
+<script>
+  promise_test(async t => {
+    const neg = document.getElementById("neg6");
+    const fg6b_item = document.getElementById("fg6b_item");
+
+    await focusAndWait(neg);
+    assert_equals(document.activeElement, neg, "Precondition: neg6 is focused");
+
+    await sendTabForward();
+    assert_equals(document.activeElement, fg6b_item,
+      "Tab from tabindex=-1 should exit to next sibling focusgroup's entry");
+  }, "Tab from tabindex=-1 exits to sibling focusgroup");
+</script>

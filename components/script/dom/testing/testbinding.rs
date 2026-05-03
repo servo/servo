@@ -1086,11 +1086,10 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
         impl Callback for SimpleHandler {
             fn callback(&self, cx: &mut CurrentRealm, v: HandleValue) {
-                let can_gc = CanGc::from_cx(cx);
                 let global = GlobalScope::from_current_realm(cx);
                 let _ = self
                     .handler
-                    .Call_(&*global, v, ExceptionHandling::Report, can_gc);
+                    .Call_(cx, &*global, v, ExceptionHandling::Report);
             }
         }
     }

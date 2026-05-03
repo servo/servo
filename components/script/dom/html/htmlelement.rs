@@ -18,7 +18,6 @@ use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
     EventHandlerNonNull, OnErrorEventHandlerNonNull,
@@ -43,6 +42,7 @@ use crate::dom::document::focus::FocusableArea;
 use crate::dom::document_event_handler::character_to_code;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     is_element_affected_by_legacy_background_presentational_hint,
@@ -442,7 +442,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-click>
-    fn Click(&self, can_gc: CanGc) {
+    fn Click(&self, cx: &mut JSContext) {
         let element = self.as_element();
         if element.disabled_state() {
             return;
@@ -453,7 +453,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(true);
 
         self.upcast::<Node>()
-            .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+            .fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
         element.set_click_in_progress(false);
     }
 
@@ -650,12 +650,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-translate>
     fn SetTranslate(&self, cx: &mut JSContext, yesno: bool) {
         self.as_element().set_string_attribute(
+            cx,
             &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
             },
-            CanGc::from_cx(cx),
         );
     }
 
@@ -676,18 +676,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         match lower_value.as_ref() {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
             "inherit" => {
-                self.element
-                    .remove_attribute_by_name(attr_name, CanGc::from_cx(cx));
+                self.element.remove_attribute_by_name(cx, attr_name);
             },
             // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
             // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
             "true" | "false" | "plaintext-only" => {
-                self.element.set_attribute(
-                    attr_name,
-                    AttrValue::String(lower_value),
-                    CanGc::from_cx(cx),
-                );
+                self.element
+                    .set_attribute(cx, attr_name, AttrValue::String(lower_value));
             },
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
             _ => return Err(Error::Syntax(None)),
@@ -769,7 +765,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn SetAutofocus(&self, cx: &mut JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, CanGc::from_cx(cx));
+            .set_bool_attribute(cx, &local_name!("autofocus"), autofocus);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
@@ -780,7 +776,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(&local_name!("tabindex"), tab_index, CanGc::from_cx(cx));
+            .set_int_attribute(cx, &local_name!("tabindex"), tab_index);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-accesskey
@@ -1208,7 +1204,12 @@ impl VirtualMethods for HTMLElement {
         Some(self.as_element() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
@@ -1386,7 +1387,7 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         if is_element_affected_by_legacy_background_presentational_hint(
             self.element.namespace(),
             self.element.local_name(),

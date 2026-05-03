@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>SVG Filter: Remote Frame</title>
+<link rel="match" href="svg-filter-render-remote-frame-ref.tentative.sub.html">
+<svg width="0" height="0">
+    <filter id="svg-filter">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+    </filter>
+</svg>
+<style type="text/css">
+.svg-filter {
+    filter: url(#svg-filter);
+}
+</style>
+<script>
+    function waitForFinish() {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.documentElement.classList.remove('reftest-wait');
+            });
+        });
+    }
+</script>
+</head>
+<body onload="waitForFinish()">
+    <div>
+        SVG filter security test: this test passes if there is no filter effect on the cross-origin frame.
+    </div>
+    <br />
+    <div>
+        <iframe width="100px" height="100px" frameBorder="0" class="svg-filter" src="https://{{hosts[alt][]}}:{{ports[https][0]}}/svg/styling/support/svg-filter-render-iframe.html"></iframe>
+    </div>
+</body>
+</html>

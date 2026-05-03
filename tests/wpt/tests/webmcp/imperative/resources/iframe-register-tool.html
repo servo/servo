@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Iframe Tool Registration</title>
+<script src="/resources/testharness.js"></script>
+</head>
+<body>
+<script>
+  // Map from tool_name => `AbortController`, so that this iframe document can
+  // manage/unregister any tool that it registers.
+  const controllers = new Map();
+
+  window.onmessage = e => {
+    const action = typeof e.data === 'string' ? e.data : e.data.action;
+
+    if (action === 'register') {
+      try {
+        const controller = new AbortController();
+        const tool = e.data.tool;
+        tool.execute = async () => 'hello from iframe';
+
+        const givenOptions = e.data.options;
+        const options = { signal: controller.signal, ...givenOptions};
+
+        navigator.modelContext.registerTool(tool, options);
+        controllers.set(tool.name, controller);
+      } catch (e) {
+        parent.postMessage(`tool registration failed: ${e}`, '*');
+      }
+    } else if (action === 'unregister') {
+      try {
+        const name = e.data.name || 'default_iframe_tool';
+        const controller = controllers.get(name);
+        if (controller) {
+          controller.abort();
+          controllers.delete(name);
+        }
+      } catch (e) {
+        parent.postMessage(`tool unregistration failed: ${e}`, '*');
+      }
+    } else if (action === 'getTools') {
+      navigator.modelContext.getTools().then(tools => {
+        parent.postMessage({action: 'getToolsResponse', tools: tools}, '*');
+      }).catch(e => {
+        parent.postMessage(`getTools promise rejected: ${e}`, '*');
+      });
+    } else if (action === 'listenForToolchange') {
+      let timer_id;
+      const listener = () => {
+        clearTimeout(timer_id);
+        parent.postMessage({ action: 'toolchange_result', result: 'fired' }, '*');
+      };
+
+      navigator.modelContext.addEventListener('toolchange', listener, { once: true });
+      // Send ACK so the caller knows the listener is active.
+      parent.postMessage({ action: 'toolchange_listening_ack' }, '*');
+
+      timer_id = step_timeout(() => {
+        navigator.modelContext.removeEventListener('toolchange', listener);
+        parent.postMessage({ action: 'toolchange_result', result: 'timeout' }, '*');
+      }, 4000);
+    }
+  };
+</script>
+</body>
+</html>

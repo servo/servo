@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  font: 20px/1 Ahem;
+  white-space: pre;
+  background: green;
+  margin-bottom: 10px;
+}
+</style>
+<body>
+<!-- 40 + 20 + 40 = 100 -->
+<div class="target" style="width: 100px; font-size: 40px; letter-spacing: 20px;">A<span class="nospacing">A</span></div>
+<!-- 50 + 10 + 50 = 110 -->
+<div class="target" style="width: 110px; font-size: 50px; letter-spacing: 10px;">A<span class="nospacing">A</span></div>
+<!-- 40 * 3 + 20 = 140 -->
+<div class="target" style="width: 140px; font-size: 40px; word-spacing: 20px;">A A</div>
+<!-- 40 * 3 + 10 = 130 -->
+<div class="target" style="width: 130px; font-size: 40px; word-spacing: 10px;">A A</div>
+
+<div class="target" style="width: 100px; font-size: 40px; letter-spacing: 20px;">A<span class="nospacing">A</span></div>
+<div class="target" style="width: 110px; font-size: 50px; letter-spacing: 10px;">A<span class="nospacing">A</span></div>
+<div class="target" style="width: 140px; font-size: 40px; word-spacing: 20px;">A A</div>
+<div class="target" style="width: 130px; font-size: 40px; word-spacing: 10px;">A A</div>
+</body>

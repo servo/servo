@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Complex Origin-Based Exposure</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const origin_a = host_info.HTTPS_ORIGIN;
+  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+  const origin_c = host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN;
+
+  // Setup iframes with multiple origins: Parent=A, Child1=B, Child2=C.
+  const iframe_b = document.createElement('iframe');
+  iframe_b.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe_b.allow = 'tools *';
+
+  const iframe_c = document.createElement('iframe');
+  iframe_c.src = origin_c + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe_c.allow = 'tools *';
+
+  const load_promise_b = new Promise(resolve => iframe_b.onload = resolve);
+  const load_promise_c = new Promise(resolve => iframe_c.onload = resolve);
+
+  document.body.appendChild(iframe_b);
+  t.add_cleanup(() => iframe_b.remove());
+  document.body.appendChild(iframe_c);
+  t.add_cleanup(() => iframe_c.remove());
+
+  await Promise.all([load_promise_b, load_promise_c]);
+
+  // Meat of the test begins:
+
+  // Frame B exposes tool to Frame C only. Frame C should observe `toolchange` event.
+  iframe_c.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+
+  const toolchange_promise = waitForIframeMessage('toolchange_result');
+
+  iframe_b.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'tool_b_to_c',
+      description: 'Tool B exposed to C',
+      inputSchema: { type: 'object', properties: { query: { type: 'string' } } }
+    },
+    options: { exposedTo: [origin_c] }
+  }, '*');
+
+  const toolchange_result = await toolchange_promise;
+  assert_equals(toolchange_result.result, 'fired', 'Frame C received toolchange event');
+
+  // Parent does not see the tool.
+  let tools = await navigator.modelContext.getTools();
+  assert_array_equals(tools, [], "Parent sees no tools");
+
+  // Frame C should see the tool.
+  iframe_c.contentWindow.postMessage('getTools', '*');
+  let response = await waitForIframeMessage('getToolsResponse');
+  const [tool] = response.tools;
+  assert_true(toolsAreEqual(tool, {
+    name: 'tool_b_to_c',
+    description: 'Tool B exposed to C',
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+  }), 'Tool details should match');
+
+  // Now, we make B unregister the tool, and assert that:
+  //   1. `toolchange` fires in C.
+  //   3. Frame C can no longer see the tool in `getTools()`.
+  iframe_c.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+  const child_unreg_promise = waitForIframeMessage('toolchange_result');
+
+  //   2. `toolchange` does not fire in the parent frame.
+  let unreg_fired = false;
+  const unreg_listener = () => { unreg_fired = true; };
+  navigator.modelContext.addEventListener('toolchange', unreg_listener);
+  const parent_timeout_promise = new Promise(resolve => t.step_timeout(resolve, 4000));
+
+  iframe_b.contentWindow.postMessage({ action: 'unregister', name: 'tool_b_to_c' }, '*');
+  const [child_response] = await Promise.all([child_unreg_promise, parent_timeout_promise]);
+
+  navigator.modelContext.removeEventListener('toolchange', unreg_listener);
+  assert_false(unreg_fired, 'Parent should not receive toolchange event on unregistration');
+  assert_equals(child_response.result, 'fired', 'Frame C should receive toolchange event on unregistration');
+
+  iframe_c.contentWindow.postMessage('getTools', '*');
+  response = await waitForIframeMessage('getToolsResponse');
+  assert_array_equals(response.tools, [], "Frame C no longer sees B's tool");
+}, 'Multi-origin setup with mixed exposure lists');
+</script>
+</body>
+</html>

@@ -86,5 +86,27 @@
       { at: 0.5, expect: 'circle() circle()' },
       { at: 1, expect: 'circle() circle()' },
     ]);
+
+    // shape() function interpolation
+    test_interpolation({
+      property: 'border-shape',
+      from: 'shape(from 0% 0%, vline to 100%, hline to 100%, close)',
+      to: 'shape(from 0% 0%, vline to 80%, hline to 100%, close)',
+    }, [
+      { at: 0, expect: 'shape(from 0% 0%, vline to 100%, hline to 100%, close)' },
+      { at: 0.5, expect: 'shape(from 0% 0%, vline to 90%, hline to 100%, close)' },
+      { at: 1, expect: 'shape(from 0% 0%, vline to 80%, hline to 100%, close)' },
+    ]);
+
+    // shape() function interpolation with two shapes
+    test_interpolation({
+      property: 'border-shape',
+      from: 'shape(from 0% 0%, vline to 100%, hline to 100%, close) shape(from 0% 0%, vline to 100%, hline to 100%, close)',
+      to: 'shape(from 0% 0%, vline to 80%, hline to 100%, close) shape(from 0% 0%, vline to 60%, hline to 100%, close)',
+    }, [
+      { at: 0, expect: 'shape(from 0% 0%, vline to 100%, hline to 100%, close) shape(from 0% 0%, vline to 100%, hline to 100%, close)' },
+      { at: 0.5, expect: 'shape(from 0% 0%, vline to 90%, hline to 100%, close) shape(from 0% 0%, vline to 80%, hline to 100%, close)' },
+      { at: 1, expect: 'shape(from 0% 0%, vline to 80%, hline to 100%, close) shape(from 0% 0%, vline to 60%, hline to 100%, close)' },
+    ]);
   </script>
 </body>

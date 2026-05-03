@@ -38,7 +38,7 @@ promise_test(async (t) => {
   const usermedia = document.createElement('usermedia');
   document.body.appendChild(usermedia);
 
-  usermedia.setConstraints({video: false, audio: false});
+  usermedia.setConstraints({video: undefined, audio: undefined});
 
   let stream_event_fired = false;
   usermedia.onstream = () => {
@@ -57,15 +57,15 @@ promise_test(async (t) => {
   // Wait a bit to see if 'onstream' fires.
   await new Promise(resolve => t.step_timeout(resolve, 500));
 
-  assert_false(stream_event_fired, "onstream event should not fire when constraints are explicitly false");
-  assert_equals(usermedia.stream, null, "stream attribute should be null when constraints are explicitly false");
-}, "A usermedia element with both video and audio constraints set to false should not trigger a stream request on click");
+  assert_false(stream_event_fired, "onstream event should not fire when constraints are explicitly undefined");
+  assert_equals(usermedia.stream, null, "stream attribute should be null when constraints are explicitly undefined");
+}, "A usermedia element with both video and audio constraints set to undefined should not trigger a stream request on click");
 
 promise_test(async (t) => {
   const usermedia = document.createElement('usermedia');
   document.body.appendChild(usermedia);
 
-  usermedia.setConstraints({video: true});
+  usermedia.setConstraints({video: {}});
 
   const stream_promise = new Promise((resolve) => {
     usermedia.onstream = resolve;

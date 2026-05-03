@@ -261,21 +261,24 @@ impl DebuggerGlobalScope {
         );
     }
 
-    pub(crate) fn fire_interrupt(&self, can_gc: CanGc) {
-        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(self.upcast(), can_gc));
+    pub(crate) fn fire_interrupt(&self, cx: &mut js::context::JSContext) {
+        let event = DomRoot::upcast::<Event>(DebuggerInterruptEvent::new(
+            self.upcast(),
+            CanGc::from_cx(cx),
+        ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerInterruptEvent::new"
         );
     }
 
     pub(crate) fn fire_list_frames(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         start: u32,
         count: u32,
         result_sender: GenericSender<Vec<String>>,
-        can_gc: CanGc,
     ) {
         assert!(
             self.get_list_frame_result_sender
@@ -284,16 +287,16 @@ impl DebuggerGlobalScope {
         );
         let _realm = enter_realm(self);
         let pipeline_id =
-            crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, can_gc);
+            crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, CanGc::from_cx(cx));
         let event = DomRoot::upcast::<Event>(DebuggerFrameEvent::new(
             self.upcast(),
             &pipeline_id,
             start,
             count,
-            can_gc,
+            CanGc::from_cx(cx),
         ));
         assert!(
-            event.fire(self.upcast(), can_gc),
+            event.fire(self.upcast(), CanGc::from_cx(cx)),
             "Guaranteed by DebuggerFrameEvent::new"
         );
     }

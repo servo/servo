@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Scroll Snap: targeted element preferred over aligned snap areas on both axes</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+<body>
+  <iframe id="iframe" src="prefer-targeted-element-both-axes-iframe.html#target"
+          style="width: 400px; height: 400px;"></iframe>
+  <script>
+    // 3 snap targets in a 360x360 scroller (scroll-snap-type: both mandatory,
+    // scroll-snap-align: center, scrollbar-width: none). snap_x = left - 130,
+    // snap_y = top - 130.
+    //
+    //   #a:      left=330, top=210  snap=(200,  80)  -- X-aligned with target
+    //   #b:      left=210, top=330  snap=( 80, 200)  -- Y-aligned with target
+    //   #target: left=330, top=330  snap=(200, 200)  -- URL-targeted, last in DOM
+    //
+    // At scroll (200, 200), #a and #target are aligned on the X axis and #b and
+    // #target are aligned on the Y axis. #a and #b appear before #target in DOM
+    // order, so a browser that stops searching once it finds a valid (x, y) pair
+    // from the previously snapped targets would pick #a for X and #b for Y,
+    // never reaching #target. The test verifies correct behavior by moving #a
+    // slightly on X and #b slightly on Y, then asserting the scroller stays at
+    // #target's snap position (200, 200) rather than following #a or #b.
+
+    promise_test(async () => {
+      const iframe = document.getElementById("iframe");
+      await new Promise(resolve => {
+        iframe.addEventListener("load", resolve, { once: true });
+      });
+
+      await waitForCompositorCommit();
+
+      const doc = iframe.contentDocument;
+      const scroller = doc.getElementById("scroller");
+      const a = doc.getElementById("a");
+      const b = doc.getElementById("b");
+
+      // On chrome loading #target does not snap to the expected position.
+      if (scroller.scrollLeft != 200 || scroller.scrollTop != 200) {
+        scroller.scrollTo(200, 200);
+      }
+      // Verify the scroller snapped to #target's position (200, 200) on load
+      // due to the URL fragment.
+      assert_equals(scroller.scrollLeft, 200,
+        "scroller initially snapped to #target's X position via URL fragment");
+      assert_equals(scroller.scrollTop, 200,
+        "scroller initially snapped to #target's Y position via URL fragment");
+
+      // Move #a slightly on X (snap_x: 200 → 210) and #b slightly on Y
+      // (snap_y: 200 → 210), triggering a resnap. The scroller should stay at
+      // #target's position (200, 200), not follow #a to x=210 or #b to y=210.
+      a.style.left = "340px";
+      b.style.top = "340px";
+
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      assert_equals(scroller.scrollLeft, 200,
+        "scroller prefers #target over #a on X axis");
+      assert_equals(scroller.scrollTop, 200,
+        "scroller prefers #target over #b on Y axis");
+    }, "scroller selects targeted area among multiple aligned areas on both axes");
+  </script>
+</body>
+</html>

@@ -217,7 +217,7 @@ class MachCommands(CommandBase):
             # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
             # like Instruments.app.
             try:
-                import Cocoa  # pyrefly: ignore[import-error]
+                import Cocoa  # pyrefly: ignore[missing-import]
 
                 icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                 icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)

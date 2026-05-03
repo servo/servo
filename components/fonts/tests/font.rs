@@ -7,7 +7,6 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use app_units::Au;
-use euclid::num::Zero;
 use fonts::platform::font::PlatformFont;
 use fonts::{
     Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,

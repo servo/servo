@@ -11,7 +11,6 @@ use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -21,6 +20,7 @@ use crate::dom::css::cssstyledeclaration::{
 };
 use crate::dom::document::Document;
 use crate::dom::document::focus::FocusableArea;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
@@ -82,7 +82,7 @@ impl VirtualMethods for SVGElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()
@@ -140,7 +140,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
     fn SetAutofocus(&self, cx: &mut JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, CanGc::from_cx(cx));
+            .set_bool_attribute(cx, &local_name!("autofocus"), autofocus);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-focus>
@@ -199,6 +199,6 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     fn SetTabIndex(&self, cx: &mut JSContext, tab_index: i32) {
         self.element
-            .set_int_attribute(&local_name!("tabindex"), tab_index, CanGc::from_cx(cx));
+            .set_int_attribute(cx, &local_name!("tabindex"), tab_index);
     }
 }

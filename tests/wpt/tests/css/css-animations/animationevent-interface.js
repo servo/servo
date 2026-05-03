@@ -217,4 +217,14 @@
     assert_equals(event.animationName, "sample");
     assert_equals(event.elapsedTime, 0.5);
   }, "AnimationEventInit properties set value");
+
+  test(function() {
+    var target = document.getElementById('test');
+    target.style.animation = 'sample 1s';
+    var anim = target.getAnimations()[0];
+
+    var eventInit = {animation: anim};
+    var event = new AnimationEvent("test", eventInit);
+    assert_equals(event.animation, anim);
+  }, "AnimationEventInit animation property sets value");
 })();

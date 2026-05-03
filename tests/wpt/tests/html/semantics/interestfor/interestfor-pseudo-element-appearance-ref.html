@@ -1,65 +1,58 @@
 <!DOCTYPE html>
-<meta charset="utf-8" />
+<meta charset="utf-8">
 <link rel="author" href="mailto:masonf@chromium.org">
+<link rel="stylesheet" href="resources/interest-button-styles.css">
 
 <div class=example>
-  <button class=invoker><span class=before>::before</span><span>Button</span><span class=after>::after</span></button>
-  <button class=interesthint>::interest-hint</button>
+  <button class=invoker>
+    <span class=before>::before</span>
+    <span class=content>Button</span>
+    <span class=after>::after</span>
+    <span class=fake-interest-button>::interest-button</span>
+  </button>
 </div>
 <div class=example>
-  <a href=# class=invoker><span class=before>::before</span><span>Link</span><button class=interesthint>::interest-hint</button><span class=after>::after</span></a>
+  <a href=# class=invoker>
+    <span class=before>::before</span>
+    <span class=content>Link</span>
+    <span class=after>::after</span>
+    <span class=fake-interest-button>::interest-button</span>
+  </a>
 </div>
 <div class=example>
-  <img src="/images/blue.png" usemap="#map1" width=40 height=40>
-  <span class=before>::before</span><map id="map1"><area href="/" shape="default" class=invoker></map><button class=interesthint>::interest-hint</button><span class=after>::after</span>
+  <img src=/images/blue.png usemap=#map1 width=40 height=40>
+  <span class=before>::before</span>
+  <map id=map1><area href=/ shape=default class=invoker></map>
+  <span class=after>::after</span>
+  <span class=fake-interest-button>::interest-button</span>
 </div>
 
-<div id=target></div>
+<div class="example defaultcontent">
+  <button class=invoker>
+    <span>Button</span>
+    <span class=fake-interest-button>&#x24D8;</span>
+  </button>
+</div>
+<div class="example defaultcontent">
+  <a href="#" class=invoker><span>Link</span>
+    <span class=fake-interest-button>&#x24D8;</span>
+  </a>
+</div>
 
 <style>
-  .before {
-    content: "::before";
-    border: 1px solid green;
+  .example:not(.defaultcontent) span:not(.fake-interest-button) {
+    border: 1px solid lime;
   }
-  /* UA stylesheet for ::interest-hint: */
-  .interesthint {
-    user-select: none;
-    color: buttontext;
-    display: inline-block;
-    text-align: center;
-    cursor: default;
-    background-color: buttonface;
-    margin-inline-start: 0.5em;
-    padding-block: 1px;
-    padding-inline: 6px;
-    border-width: 1px;
-    border-radius: 5px;
-    border-style: outset;
-    border-color: buttonborder;
-  }
-  .after {
-    content: "::after";
-    border: 1px solid green;
-  }
-  /* Test convenience: */
   .example {
-    display:block;
     width: 400px;
     height: 50px;
-  }
-  .invoker>span {
-    border: 1px solid black;
-  }
-  .interesthint {
-    font-family: arial;
-    font-size: 13px;
   }
 </style>
 
 <script>
-  // Fix up parser moving out the button
-  const interestButton = document.querySelector('button.invoker');
-  const movedButton = document.querySelector('button.invoker + button.interesthint');
-  const afterSpan = interestButton.querySelector('.after');
-  interestButton.insertBefore(movedButton, afterSpan);
+  const stripWhitespace = node => [...node.childNodes].forEach(c =>
+    c.nodeType === 3 && !c.nodeValue.trim() ? c.remove() : stripWhitespace(c)
+  );
+  document.querySelectorAll('.example').forEach(stripWhitespace);
 </script>
+

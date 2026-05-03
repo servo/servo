@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      height: 170px;
+      border: 1px solid;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row;
+      height: 70px;
+      flex-shrink: 0;
+      gap: 4px;
+      align-items: start;
+    }
+
+    item {
+      display: block;
+      width: 56px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-content: start</p>
+  <div class="container">
+    <div class="row" style="justify-content: end;">
+      <item>3</item>
+      <item>1</item>
+    </div>
+    <div class="row" style="justify-content: end;">
+      <item>4</item>
+      <item>2</item>
+    </div>
+  </div>
+
+  <p>justify-content: center</p>
+  <div class="container">
+    <div class="row" style="justify-content: center;">
+      <item>3</item>
+      <item>1</item>
+    </div>
+    <div class="row" style="justify-content: center;">
+      <item>4</item>
+      <item>2</item>
+    </div>
+  </div>
+
+  <p>justify-content: end</p>
+  <div class="container">
+    <div class="row" style="justify-content: start;">
+      <item>3</item>
+      <item>1</item>
+    </div>
+    <div class="row" style="justify-content: start;">
+      <item>4</item>
+      <item>2</item>
+    </div>
+  </div>
+</body>
+</html>

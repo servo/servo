@@ -4,7 +4,7 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: string
       upload_library:
         required: false
@@ -25,10 +25,10 @@ on:
     inputs:
       profile:
         required: false
-        default: "release"
+        default: "checked-release"
         type: choice
         description: "Cargo build profile"
-        options: ["release", "debug", "production"]
+        options: ["checked-release", "release", "debug", "production"]
       bencher:
         required: false
         default: false

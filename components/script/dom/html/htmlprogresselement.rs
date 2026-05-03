@@ -9,7 +9,6 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::HTMLProgressElementMethods;
@@ -19,6 +18,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits};
@@ -113,11 +113,9 @@ impl HTMLProgressElement {
         let position = (*self.Value() / *self.Max()) * 100.0;
         let style = format!("width: {}%", position);
 
-        shadow_tree.progress_bar.set_string_attribute(
-            &local_name!("style"),
-            style.into(),
-            CanGc::from_cx(cx),
-        );
+        shadow_tree
+            .progress_bar
+            .set_string_attribute(cx, &local_name!("style"), style.into());
     }
 }
 
@@ -150,11 +148,8 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
         if *new_val >= 0.0 {
             let mut string_value = DOMString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
-            self.upcast::<Element>().set_string_attribute(
-                &local_name!("value"),
-                string_value,
-                CanGc::from_cx(cx),
-            );
+            self.upcast::<Element>()
+                .set_string_attribute(cx, &local_name!("value"), string_value);
         }
     }
 
@@ -180,11 +175,8 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
         if *new_val > 0.0 {
             let mut string_value = DOMString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
-            self.upcast::<Element>().set_string_attribute(
-                &local_name!("max"),
-                string_value,
-                CanGc::from_cx(cx),
-            );
+            self.upcast::<Element>()
+                .set_string_attribute(cx, &local_name!("max"), string_value);
         }
     }
 
@@ -218,7 +210,7 @@ impl VirtualMethods for HTMLProgressElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

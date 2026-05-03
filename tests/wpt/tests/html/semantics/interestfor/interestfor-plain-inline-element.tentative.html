@@ -17,6 +17,12 @@
       border: none;
       padding: 0;
     }
+    [interestfor] {
+      interest-delay: 0s;
+    }
+    [interestfor]::interest-button {
+      display: none;
+    }
   </style>
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-actions.js"></script>
@@ -24,7 +30,7 @@
   <script src="resources/invoker-utils.js"></script>
   <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
   <div id="container" style="font:20px/1 Ahem; width:100px; height:100px; color:green; background:red;">
-    <a id="anchor" href="#" interestfor="doohickey" style="interest-delay:0s;">x</a>xxxx
+    <a id="anchor" href="#" interestfor="doohickey">x</a>xxxx
   </div>
   <div popover="hint" id="doohickey">
     <div style="margin-left:-20px; width:100px; height:80px; background:green;"></div>

@@ -14,6 +14,9 @@
     width: 100px;
     height: 100px;
   }
+  #main {
+    timeline-scope: --timeline;
+  }
 </style>
 <main id=main></main>
 <script>
@@ -31,7 +34,7 @@
     }
     #element {
       width: 0px;
-      animation: expand 10s linear paused;
+      animation: expand;
       animation-timeline: --timeline;
     }
   </style>
@@ -42,49 +45,75 @@
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, basic);
-    await waitForNextFrame();
+    await runAndWaitForFrameUpdate(() => {
+      inflate(t, basic);
+    });
+    const animation = document.getAnimations()[0];
+    assert_true(animation.timeline instanceof ScrollTimeline,
+                'Timeline successfully set');
     assert_equals(getComputedStyle(element).width, '0px');
   }, 'Animation does not apply when the timeline is inactive because there is ' +
-     'not scroll range');
+     'no scroll range');
 </script>
 
 <template id=dynamically_change_range>
   <style>
+    #timeline {
+      scroll-timeline: --timeline;
+    }
     #contents {
       height: 200px;
     }
+    #contents.shrink {
+      height: 0px;
+    }
     #element {
       width: 0px;
-      animation: expand 10s linear paused;
+      animation: expand;
       animation-timeline: --timeline;
     }
   </style>
   <div id="container">
+    <div id=timeline class=scroller>
+      <div id="contents"></div>
+    </div>
     <div id=element></div>
   </div>
 </template>
 <script>
   promise_test(async (t) => {
-    inflate(t, dynamically_change_range);
-    await waitForNextFrame();
+    let scroller;
+    let initial_width;
+    await runAndWaitForFrameUpdate(() => {
+      inflate(t, dynamically_change_range);
+      scroller = document.querySelector('.scroller');
+      scroller.scrollTop = 0;
+      initial_width = getComputedStyle(element).width;
+    });
+    assert_equals(initial_width, '0px',
+                  'Animation not in effect until after next animation frame');
+    const animation = document.getAnimations()[0];
+    assert_true(animation.timeline instanceof ScrollTimeline,
+                'Timeline successfully set');
+    assert_equals(getComputedStyle(element).width, '100px',
+                  'Style after frame update');
 
-    let div = document.createElement('div');
-    div.setAttribute('class', 'scroller');
-    div.style.scrollTimeline = 'timeline';
-    div.innerHTML = '<div id=contents></div>';
-    try {
-      container.insertBefore(div, element);
+    let updated_width;
+    let updated_scroll_range;
+    await runAndWaitForFrameUpdate(() => {
+      // Style change after the first update-cycle for the frame.
+      // timeline time remains fixed until the next frame.
+      contents.classList.add('shrink');
+      updated_width = getComputedStyle(element).width;
+      udpated_scroll_range = scroller.scrollHeight - scroller.clientHeight;
+    });
+    assert_equals(updated_width, '100px',
+                  'Animation progress fixed until next animation frame');
+    assert_equals(udpated_scroll_range, 0,
+                  'Scroll range after content collapses');
+    // Timeline is once again inactive.
+    assert_equals(getComputedStyle(element).width, '0px',
+                  'Timeline time after frame update with zero scroll range');
 
-      // The source has no layout box at the time the scroll timeline is created.
-      assert_equals(getComputedStyle(element).width, '0px');
-      scroller.offsetTop; // Ensure a layout box for the scroller.
-      // Wait for an update to the timeline state:
-      await waitForNextFrame();
-      // The timeline should now be active, and the animation should apply:
-      assert_equals(getComputedStyle(element).width, '100px');
-    } finally {
-      div.remove();
-    }
-  }, 'Animation does not apply when timeline is initially inactive');
+  }, 'Animation does not apply when timeline becomes inactive');
 </script>

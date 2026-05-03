@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::typedarray::ArrayBufferViewU8;
@@ -33,7 +34,7 @@ pub(crate) struct ByteTeeReadRequestMicrotask {
 }
 
 impl ByteTeeReadRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn microtask_chunk_steps(&self, cx: &mut JSContext) {
         self.tee_read_request
             .chunk_steps(&self.chunk, cx)
             .expect("ByteTeeReadRequestMicrotask::microtask_chunk_steps failed");
@@ -115,11 +116,7 @@ impl ByteTeeReadRequest {
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A3>
     #[allow(clippy::borrowed_box)]
-    pub(crate) fn chunk_steps(
-        &self,
-        chunk: &Box<Heap<JSVal>>,
-        cx: &mut js::context::JSContext,
-    ) -> Fallible<()> {
+    pub(crate) fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, cx: &mut JSContext) -> Fallible<()> {
         // Set readAgainForBranch1 to false.
         self.read_again_for_branch_1.set(false);
 
@@ -131,7 +128,7 @@ impl ByteTeeReadRequest {
         let chunk2 = chunk;
 
         // Helper to surface clone failures exactly once
-        let handle_clone_error = |cx: &mut js::context::JSContext, error: Error| {
+        let handle_clone_error = |cx: &mut JSContext, error: Error| {
             rooted!(&in(cx) let mut error_value = UndefinedValue());
             error.to_jsval(
                 cx.into(),
@@ -173,7 +170,7 @@ impl ByteTeeReadRequest {
                 HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
                     RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
                 ));
-            let clone_result = chunk2_source.clone_as_uint8_array(cx.into());
+            let clone_result = chunk2_source.clone_as_uint8_array(cx);
 
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
@@ -189,7 +186,7 @@ impl ByteTeeReadRequest {
                 HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
                     RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
                 ));
-            match chunk2_source.clone_as_uint8_array(cx.into()) {
+            match chunk2_source.clone_as_uint8_array(cx) {
                 Ok(clone) => chunk2_view = Some(clone),
                 Err(error) => {
                     handle_clone_error(cx, error);
@@ -225,7 +222,7 @@ impl ByteTeeReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-steps%E2%91%A2>
-    pub(crate) fn close_steps(&self, cx: &mut js::context::JSContext) -> Fallible<()> {
+    pub(crate) fn close_steps(&self, cx: &mut JSContext) -> Fallible<()> {
         let branch_1_controller = self.branch_1.get_byte_controller();
         let branch_2_controller = self.branch_2.get_byte_controller();
 
@@ -270,7 +267,7 @@ impl ByteTeeReadRequest {
 
     pub(crate) fn pull_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
     ) {
         self.tee_underlying_source

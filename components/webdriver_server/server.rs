@@ -95,13 +95,13 @@ impl<T: WebDriverHandler<U>, U: WebDriverExtensionRoute> Dispatcher<T, U> {
                         Ok(WebDriverResponse::NewSession(ref new_session)) => {
                             self.session = Some(Session::new(new_session.session_id.clone()));
                         },
-                        Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(ref handles))) => {
-                            if handles.is_empty() {
-                                debug!("Last window was closed, deleting session");
-                                // The teardown_session implementation is responsible for actually
-                                // sending the DeleteSession message in this case
-                                self.teardown_session(SessionTeardownKind::NotDeleted);
-                            }
+                        Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(ref handles)))
+                            if handles.is_empty() =>
+                        {
+                            debug!("Last window was closed, deleting session");
+                            // The teardown_session implementation is responsible for actually
+                            // sending the DeleteSession message in this case
+                            self.teardown_session(SessionTeardownKind::NotDeleted);
                         },
                         Ok(WebDriverResponse::DeleteSession) => {
                             self.teardown_session(SessionTeardownKind::Deleted);

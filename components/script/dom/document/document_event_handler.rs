@@ -62,7 +62,9 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{
+    FocusableArea, SequentialFocusNavigationMechanism, SequentialFocusNavigationSearch,
+};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
@@ -175,9 +177,10 @@ pub(crate) struct DocumentEventHandler {
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
     last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
-    /// The number of currently down buttons, used to decide which kind
-    /// of pointer event to dispatch on MouseDown/MouseUp.
-    down_button_count: Cell<u32>,
+    /// The number of mouse buttons currently being pressed. This is used to ensure
+    /// that `pointerup` and `pointerdown` events are only sent when transitioning from
+    /// having no mouse buttons pressed to having any and vice-versa.
+    mouse_buttons_down: Cell<u32>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently clicked.
@@ -215,7 +218,7 @@ impl DocumentEventHandler {
             coalesced_wheel_event_ids: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
-            down_button_count: Cell::new(0),
+            mouse_buttons_down: Cell::new(0),
             current_hover_target: Default::default(),
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
@@ -616,7 +619,7 @@ impl DocumentEventHandler {
                 if !old_target_is_ancestor_of_new_target {
                     for element in old_target
                         .upcast::<Node>()
-                        .inclusive_ancestors(ShadowIncluding::No)
+                        .inclusive_ancestors(ShadowIncluding::Yes)
                         .filter_map(DomRoot::downcast::<Element>)
                     {
                         element.set_hover_state(false);
@@ -683,13 +686,11 @@ impl DocumentEventHandler {
             mouse_over_event
                 .to_pointer_hover_event("pointerover", CanGc::from_cx(cx))
                 .upcast::<Event>()
-                .dispatch(new_target.upcast(), false, CanGc::from_cx(cx));
+                .dispatch(cx, new_target.upcast(), false);
 
-            mouse_over_event.upcast::<Event>().dispatch(
-                new_target.upcast(),
-                false,
-                CanGc::from_cx(cx),
-            );
+            mouse_over_event
+                .upcast::<Event>()
+                .dispatch(cx, new_target.upcast(), false);
 
             let moving_from =
                 old_hover_target.map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
@@ -881,7 +882,7 @@ impl DocumentEventHandler {
                 .reset_click_count_if_necessary(event.button, hit_test_result.point_in_frame);
         }
 
-        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_button_event(
+        let mouse_event = MouseEvent::for_platform_button_event(
             cx,
             mouse_event_type,
             event,
@@ -890,7 +891,7 @@ impl DocumentEventHandler {
             &hit_test_result,
             input_event.active_keyboard_modifiers,
             self.click_counting_info.borrow().count + 1,
-        ));
+        );
 
         match event.action {
             MouseButtonAction::Down => {
@@ -898,26 +899,32 @@ impl DocumentEventHandler {
                     .set(Some(hit_test_result.point_in_frame));
 
                 // Step 6. Dispatch pointerdown event.
-                let down_button_count = self.down_button_count.get();
-
-                let event_type = if down_button_count == 0 {
-                    "pointerdown"
+                let mouse_buttons_down = self.mouse_buttons_down.get();
+                let pointer_event_name = if mouse_buttons_down == 0 {
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointerdown>
+                    // > The user agent MUST fire a pointer event named pointerdown when a pointer enters
+                    // > the active buttons state. For mouse, this is when the device transitions from no
+                    // > buttons depressed to at least one button depressed.
+                    "pointerdown".into()
                 } else {
-                    "pointermove"
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointermove>:
+                    // > The user agent MUST fire a pointer event named pointermove when a pointer
+                    // > changes any properties that don't fire pointerdown or pointerup events. This
+                    // > includes any changes to coordinates, pressure, tangential pressure, tilt, twist,
+                    // > contact geometry (width and height) or chorded buttons.
+                    "pointermove".into()
                 };
-                let pointer_event = dom_event
-                    .downcast::<MouseEvent>()
-                    .unwrap()
-                    .to_pointer_event(event_type.into(), CanGc::from_cx(cx));
-
-                pointer_event
+                mouse_event
+                    .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
                     .upcast::<Event>()
                     .fire(node.upcast(), CanGc::from_cx(cx));
 
-                self.down_button_count.set(down_button_count + 1);
+                self.mouse_buttons_down.set(mouse_buttons_down + 1);
 
                 // Step 7. Let result = dispatch event at target
-                let result = dom_event.dispatch(node.upcast(), false, CanGc::from_cx(cx));
+                let result = mouse_event
+                    .upcast::<Event>()
+                    .dispatch(cx, node.upcast(), false);
 
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
@@ -934,39 +941,38 @@ impl DocumentEventHandler {
                 // Step 9. If mbutton is the secondary mouse button, then
                 // Maybe show context menu with native, target.
                 if let MouseButton::Right = event.button {
-                    self.maybe_show_context_menu(
-                        node.upcast(),
-                        &hit_test_result,
-                        input_event,
-                        CanGc::from_cx(cx),
-                    );
+                    self.maybe_show_context_menu(cx, node.upcast(), &hit_test_result, input_event);
                 }
             },
             // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
             MouseButtonAction::Up => {
                 // Step 6. Dispatch pointerup event.
-                let down_button_count = self.down_button_count.get();
-
-                if down_button_count > 0 {
-                    self.down_button_count.set(down_button_count - 1);
-                }
-
-                let event_type = if down_button_count == 0 {
-                    "pointerup"
+                let mouse_buttons_down = self.mouse_buttons_down.get();
+                let pointer_event_name = if mouse_buttons_down == 1 {
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointerup>:
+                    // > The user agent MUST fire a pointer event named pointerup when a pointer leaves
+                    // > the active buttons state. For mouse, this is when the device transitions from at
+                    // > least one button depressed to no buttons depressed.
+                    "pointerup".into()
                 } else {
-                    "pointermove"
+                    // From <https://w3c.github.io/pointerevents/#dfn-pointermove>:
+                    // > The user agent MUST fire a pointer event named pointermove when a pointer
+                    // > changes any properties that don't fire pointerdown or pointerup events. This
+                    // > includes any changes to coordinates, pressure, tangential pressure, tilt, twist,
+                    // > contact geometry (width and height) or chorded buttons.
+                    "pointermove".into()
                 };
-                let pointer_event = dom_event
-                    .downcast::<MouseEvent>()
-                    .unwrap()
-                    .to_pointer_event(event_type.into(), CanGc::from_cx(cx));
-
-                pointer_event
+                mouse_event
+                    .to_pointer_event(pointer_event_name, CanGc::from_cx(cx))
                     .upcast::<Event>()
                     .fire(node.upcast(), CanGc::from_cx(cx));
+                self.mouse_buttons_down
+                    .set(mouse_buttons_down.saturating_sub(1));
 
                 // Step 7. dispatch event at target.
-                dom_event.dispatch(node.upcast(), false, CanGc::from_cx(cx));
+                mouse_event
+                    .upcast::<Event>()
+                    .dispatch(cx, node.upcast(), false);
 
                 // Click counts should still work for other buttons even though they
                 // do not trigger "click" and "dblclick" events, so we increment
@@ -1036,7 +1042,7 @@ impl DocumentEventHandler {
             click_count,
         )
         .upcast::<Event>()
-        .dispatch(element.upcast(), false, CanGc::from_cx(cx));
+        .dispatch(cx, element.upcast(), false);
         element.set_click_in_progress(false);
 
         // The firing of "dbclick" events is dependent on the platform, so we have
@@ -1059,17 +1065,17 @@ impl DocumentEventHandler {
                 2,
             )
             .upcast::<Event>()
-            .dispatch(element.upcast(), false, CanGc::from_cx(cx));
+            .dispatch(cx, element.upcast(), false);
         }
     }
 
     /// <https://www.w3.org/TR/pointerevents4/#maybe-show-context-menu>
     fn maybe_show_context_menu(
         &self,
+        cx: &mut js::context::JSContext,
         target: &EventTarget,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
-        can_gc: CanGc,
     ) {
         // <https://w3c.github.io/pointerevents/#contextmenu>
         let menu_event = PointerEvent::new(
@@ -1103,12 +1109,14 @@ impl DocumentEventHandler {
             true,                     // is_primary
             vec![],                   // coalesced_events
             vec![],                   // predicted_events
-            can_gc,
+            CanGc::from_cx(cx),
         );
         menu_event.upcast::<Event>().set_composed(true);
 
         // Step 3. Let result = dispatch menuevent at target.
-        let result = menu_event.upcast::<Event>().fire(target, can_gc);
+        let result = menu_event
+            .upcast::<Event>()
+            .fire(target, CanGc::from_cx(cx));
 
         // Step 4. If result is true, then show the UA context menu
         if result {
@@ -1198,6 +1206,7 @@ impl DocumentEventHandler {
 
             // Fire pointerenter hierarchically (from topmost ancestor to target)
             self.fire_pointer_event_for_touch(
+                cx,
                 &element,
                 &pointer_touch,
                 pointer_id,
@@ -1205,7 +1214,6 @@ impl DocumentEventHandler {
                 is_primary,
                 input_event,
                 &hit_test_result,
-                CanGc::from_cx(cx),
             );
         }
 
@@ -1246,6 +1254,7 @@ impl DocumentEventHandler {
 
             // Fire pointerleave hierarchically (from target to topmost ancestor)
             self.fire_pointer_event_for_touch(
+                cx,
                 &element,
                 &pointer_touch,
                 pointer_id,
@@ -1253,7 +1262,6 @@ impl DocumentEventHandler {
                 is_primary,
                 input_event,
                 &hit_test_result,
-                CanGc::from_cx(cx),
             );
         }
 
@@ -1695,8 +1703,7 @@ impl DocumentEventHandler {
         }
 
         // Step 2 Fire a clipboard event
-        let clipboard_event =
-            self.fire_clipboard_event(element.clone(), clipboard_event_type, CanGc::from_cx(cx));
+        let clipboard_event = self.fire_clipboard_event(cx, element.clone(), clipboard_event_type);
 
         // Step 3 If a script doesn't call preventDefault()
         // the event will be handled inside target's VirtualMethods::handle_event
@@ -1729,7 +1736,7 @@ impl DocumentEventHandler {
                     }
 
                     // Step 4.2 Fire a clipboard event named clipboardchange
-                    self.fire_clipboard_event(element, ClipboardEventType::Change, CanGc::from_cx(cx));
+                    self.fire_clipboard_event(cx, element, ClipboardEventType::Change);
                 },
                 // Step 4.1 Return false.
                 // Note: This function deviates from the specification a bit by returning
@@ -1747,9 +1754,9 @@ impl DocumentEventHandler {
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
     pub(crate) fn fire_clipboard_event(
         &self,
+        cx: &mut JSContext,
         target: Option<DomRoot<Element>>,
         clipboard_event_type: ClipboardEventType,
-        can_gc: CanGc,
     ) -> DomRoot<ClipboardEvent> {
         let clipboard_event = ClipboardEvent::new(
             &self.window,
@@ -1758,7 +1765,7 @@ impl DocumentEventHandler {
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 1 Let clear_was_called be false
@@ -1819,7 +1826,7 @@ impl DocumentEventHandler {
         let clipboard_event_data = DataTransfer::new(
             &self.window,
             Rc::new(RefCell::new(Some(drag_data_store))),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 8
@@ -1833,7 +1840,7 @@ impl DocumentEventHandler {
         event.set_composed(true);
 
         // Step 11
-        event.dispatch(&target, false, can_gc);
+        event.dispatch(cx, &target, false);
 
         DomRoot::from(clipboard_event)
     }
@@ -1910,9 +1917,9 @@ impl DocumentEventHandler {
     /// > type is supported by the user agent.
     pub(crate) fn maybe_dispatch_simulated_click(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         event: &KeyboardEvent,
-        can_gc: CanGc,
     ) -> bool {
         if event.key() != Key::Named(NamedKey::Enter) && event.original_code() != Some(Code::Space)
         {
@@ -1930,7 +1937,7 @@ impl DocumentEventHandler {
             return false;
         }
 
-        node.fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+        node.fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
         true
     }
 
@@ -1944,7 +1951,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        if self.maybe_dispatch_simulated_click(node, event, CanGc::from_cx(cx)) {
+        if self.maybe_dispatch_simulated_click(cx, node, event) {
             return;
         }
 
@@ -2053,7 +2060,6 @@ impl DocumentEventHandler {
         // > the user requested the previous control.
         //
         // Note: This is handled by the `direction` argument to this method.
-
         self.sequential_focus_navigation_loop(
             cx,
             starting_point,
@@ -2075,15 +2081,35 @@ impl DocumentEventHandler {
         // > starting point is in its Document's sequential focus navigation order.
         // > Otherwise, starting point is not in its Document's sequential focus navigation order;
         // > let selection mechanism be "DOM".
-        // TODO: Implement this.
+        let starting_point_is_navigable = starting_point
+            .as_ref()
+            .is_none_or(|starting_point| starting_point.is::<HTMLIFrameElement>());
+        let selection_mechanism = starting_point
+            .as_ref()
+            .and_then(|node| node.downcast::<Element>())
+            .filter(|element| element.is_sequentially_focusable())
+            .map(|element| {
+                SequentialFocusNavigationMechanism::Sequential(
+                    element.explicitly_set_tab_index().unwrap_or_default(),
+                )
+            })
+            .unwrap_or_else(|| {
+                if starting_point_is_navigable {
+                    SequentialFocusNavigationMechanism::Navigable
+                } else {
+                    SequentialFocusNavigationMechanism::Dom
+                }
+            });
 
         // > 5. Let candidate be the result of running the sequential navigation search algorithm
         // > with starting point, direction, and selection mechanism.
-        let candidate = starting_point
-            .map(|starting_point| {
-                self.find_element_for_tab_focus_following_element(direction, starting_point)
-            })
-            .unwrap_or_else(|| self.find_first_tab_focusable_element(direction));
+        let candidate = SequentialFocusNavigationSearch::new(
+            self.window.as_rooted(),
+            direction,
+            selection_mechanism,
+            starting_point,
+        )
+        .search();
 
         // > 6. If candidate is not null, then run the focusing steps for candidate and return.
         if let Some(candidate) = candidate {
@@ -2131,168 +2157,6 @@ impl DocumentEventHandler {
             .Document()
             .focus_handler()
             .sequentially_focus_parent_local_or_remote(cx, direction);
-    }
-
-    fn find_element_for_tab_focus_following_element(
-        &self,
-        direction: SequentialFocusDirection,
-        starting_point: DomRoot<Node>,
-    ) -> Option<DomRoot<Element>> {
-        let root_node = self.window.Document();
-        let focused_element_tab_index = starting_point
-            .downcast::<Element>()
-            .and_then(Element::explicitly_set_tab_index)
-            .unwrap_or_default();
-        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
-        let mut saw_focused_element = false;
-
-        for node in root_node
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-        {
-            if node == starting_point {
-                saw_focused_element = true;
-                continue;
-            }
-
-            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
-                continue;
-            };
-            if !candidate_element.is_sequentially_focusable() {
-                continue;
-            }
-
-            let candidate_element_tab_index = candidate_element
-                .explicitly_set_tab_index()
-                .unwrap_or_default();
-            let ordering =
-                compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
-            match direction {
-                SequentialFocusDirection::Forward => {
-                    // If moving forward the first element with equal tab index after the current
-                    // element is the winner.
-                    if saw_focused_element && ordering == Ordering::Equal {
-                        return Some(candidate_element);
-                    }
-                    // If the candidate element does not have a lesser tab index, then discard it.
-                    if ordering != Ordering::Less {
-                        continue;
-                    }
-                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
-                        // If this candidate has a tab index which is one greater than the current
-                        // tab index, then we know it is the winner, because we give precedence to
-                        // elements earlier in the DOM.
-                        if candidate_element_tab_index == focused_element_tab_index + 1 {
-                            return Some(candidate_element);
-                        }
-
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                        continue;
-                    };
-                    // If the candidate element has a lesser tab index than than the current winner,
-                    // then it becomes the winner.
-                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
-                        Ordering::Less
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index))
-                    }
-                },
-                SequentialFocusDirection::Backward => {
-                    // If moving backward the last element with an equal tab index that precedes
-                    // the focused element in the DOM is the winner.
-                    if !saw_focused_element && ordering == Ordering::Equal {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                        continue;
-                    }
-                    // If the candidate does not have a greater tab index, then discard it.
-                    if ordering != Ordering::Greater {
-                        continue;
-                    }
-                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                        continue;
-                    };
-                    // If the candidate element's tab index is not less than the current winner,
-                    // then it becomes the new winner. This means that when the tab indices are
-                    // equal, we give preference to the last one in DOM order.
-                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
-                        Ordering::Less
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index))
-                    }
-                },
-            }
-        }
-
-        Some(winning_node_and_tab_index?.0)
-    }
-
-    fn find_first_tab_focusable_element(
-        &self,
-        direction: SequentialFocusDirection,
-    ) -> Option<DomRoot<Element>> {
-        let root_node = self.window.Document();
-        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
-        for node in root_node
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-        {
-            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
-                continue;
-            };
-            if !candidate_element.is_sequentially_focusable() {
-                continue;
-            }
-
-            let candidate_element_tab_index = candidate_element
-                .explicitly_set_tab_index()
-                .unwrap_or_default();
-            match direction {
-                SequentialFocusDirection::Forward => {
-                    // We can immediately return the first time we find an element with the lowest
-                    // possible tab index (1). We are guaranteed not to find any lower tab index
-                    // and all other equal tab indices are later in the DOM.
-                    if candidate_element_tab_index == 1 {
-                        return Some(candidate_element);
-                    }
-
-                    // Only promote a candidate to the current winner if it has a lesser tab
-                    // index than the current winner or there is currently no winer.
-                    if winning_node_and_tab_index
-                        .as_ref()
-                        .is_none_or(|(_, winning_tab_index)| {
-                            compare_tab_indices(candidate_element_tab_index, *winning_tab_index) ==
-                                Ordering::Less
-                        })
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                    }
-                },
-                SequentialFocusDirection::Backward => {
-                    // Only promote a candidate to winner if it has tab index equal to or
-                    // greater than the winner's tab index. This gives precedence to elements
-                    // later in the DOM.
-                    if winning_node_and_tab_index
-                        .as_ref()
-                        .is_none_or(|(_, winning_tab_index)| {
-                            compare_tab_indices(candidate_element_tab_index, *winning_tab_index) !=
-                                Ordering::Less
-                        })
-                    {
-                        winning_node_and_tab_index =
-                            Some((candidate_element, candidate_element_tab_index));
-                    }
-                },
-            }
-        }
-
-        Some(winning_node_and_tab_index?.0)
     }
 
     pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
@@ -2431,6 +2295,7 @@ impl DocumentEventHandler {
     #[allow(clippy::too_many_arguments)]
     fn fire_pointer_event_for_touch(
         &self,
+        cx: &mut js::context::JSContext,
         target_element: &Element,
         touch: &Touch,
         pointer_id: i32,
@@ -2438,7 +2303,6 @@ impl DocumentEventHandler {
         is_primary: bool,
         input_event: &ConstellationInputEvent,
         hit_test_result: &HitTestResult,
-        can_gc: CanGc,
     ) {
         // Collect ancestors from target to root
         let mut targets: Vec<DomRoot<Node>> = vec![];
@@ -2462,11 +2326,11 @@ impl DocumentEventHandler {
                 input_event.active_keyboard_modifiers,
                 false,
                 Some(hit_test_result.point_in_node),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             pointer_event
                 .upcast::<Event>()
-                .fire(target.upcast(), can_gc);
+                .fire(target.upcast(), CanGc::from_cx(cx));
         }
     }
 

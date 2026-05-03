@@ -2,3 +2,4 @@
 
 - global_privacy_control: https://w3c.github.io/gpc/#automation
 - permissions: https://www.w3.org/TR/permissions/#automation-webdriver
+- webauthn: https://www.w3.org/TR/webauthn-3/#sctn-automation

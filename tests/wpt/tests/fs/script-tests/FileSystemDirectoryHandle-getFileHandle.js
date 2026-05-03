@@ -19,15 +19,10 @@ directory_test(async (t, dir) => {
   // test the ascii characters -- start after the non-character ASCII values, exclude DEL
   for (let i = 32; i < 127; i++) {
     // Path separators are disallowed
-    let disallow = false;
-    for (let j = 0; j < kPathSeparators.length; ++j) {
-      if (String.fromCharCode(i) == kPathSeparators[j]) {
-        disallow = true;
-      }
+    if (String.fromCharCode(i) == '/' || String.fromCharCode(i) == '\\') {
+      continue;
     }
-    if (!disallow) {
-      name += String.fromCharCode(i);
-    }
+    name += String.fromCharCode(i);
   }
   // Add in CR, LF, FF, Tab, Vertical Tab
   for (let i = 9; i < 14; i++) {
@@ -117,24 +112,21 @@ directory_test(async (t, dir) => {
   const file_name = 'file-name';
   await createEmptyFile(file_name, /*parent=*/ subdir);
 
-  for (let i = 0; i < kPathSeparators.length; ++i) {
-    const path_with_separator =
-        `${subdir_name}${kPathSeparators[i]}${file_name}`;
-    await promise_rejects_js(
-        t, TypeError, dir.getFileHandle(path_with_separator),
-        `getFileHandle() must reject names containing "${kPathSeparators[i]}"`);
-  }
+  const path_with_separator =
+      `${subdir_name}/${file_name}`;
+  await promise_rejects_js(
+      t, TypeError, dir.getFileHandle(path_with_separator),
+      `getFileHandle() must reject names containing "/"`);
+
 }, 'getFileHandle(create=false) with a path separator when the file exists.');
 
 directory_test(async (t, dir) => {
   const subdir_name = 'subdir-name';
   const subdir = await createDirectory(subdir_name, /*parent=*/ dir);
 
-  for (let i = 0; i < kPathSeparators.length; ++i) {
-    const path_with_separator = `${subdir_name}${kPathSeparators[i]}file_name`;
-    await promise_rejects_js(
-        t, TypeError, dir.getFileHandle(path_with_separator, {create: true}),
-        `getFileHandle(create=true) must reject names containing "${
-            kPathSeparators[i]}"`);
-  }
+  const path_with_separator = `${subdir_name}/file_name`;
+  await promise_rejects_js(
+      t, TypeError, dir.getFileHandle(path_with_separator, {create: true}),
+      `getFileHandle(create=true) must reject names containing "/"`);
+
 }, 'getFileHandle(create=true) with a path separator');

@@ -6,6 +6,7 @@ use aes::cipher::crypto_common::Key;
 use aes::{Aes128, Aes192, Aes256};
 use js::context::JSContext;
 use pkcs8::rand_core::{OsRng, RngCore};
+use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
@@ -213,7 +214,7 @@ pub(crate) fn import_key(
     }
 
     // Step 2.
-    let data;
+    let data: Zeroizing<Vec<u8>>;
     match format {
         // If format is "raw": (Only applied to AES-CTR, AES-CBC, AES-GCM, AES-KW)
         KeyFormat::Raw
@@ -226,7 +227,7 @@ pub(crate) fn import_key(
             ) =>
         {
             // Step 2.1. Let data be keyData.
-            data = key_data.to_vec();
+            data = key_data.to_vec().into();
 
             // Step 2.2. If the length in bits of data is not 128, 192 or 256 then throw a
             // DataError.
@@ -239,7 +240,7 @@ pub(crate) fn import_key(
         // If format is "raw-secret":
         KeyFormat::Raw_secret => {
             // Step 2.1. Let data be keyData.
-            data = key_data.to_vec();
+            data = key_data.to_vec().into();
 
             // Step 2.2. If the length in bits of data is not 128, 192 or 256 then throw a
             // DataError.
@@ -549,7 +550,7 @@ pub(crate) fn export_key(
             };
 
             // Step 2.2. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "raw-secret":
         KeyFormat::Raw_secret => {
@@ -567,16 +568,15 @@ pub(crate) fn export_key(
             };
 
             // Step 2.2. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 2.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("oct")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("oct"));
 
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4
@@ -719,7 +719,7 @@ pub(crate) fn export_key(
             jwk.ext = Some(key.Extractable());
 
             // Step 2.7. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         _ => {
             // throw a NotSupportedError.

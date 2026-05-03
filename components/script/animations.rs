@@ -475,7 +475,7 @@ impl Animations {
 
     /// An implementation of the final steps of
     /// <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn send_pending_events(&self, window: &Window, can_gc: CanGc) {
+    pub(crate) fn send_pending_events(&self, window: &Window, cx: &mut js::context::JSContext) {
         // > 4. Let events to dispatch be a copy of doc’s pending animation event queue.
         // > 5. Clear doc’s pending animation event queue.
         //
@@ -542,9 +542,9 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                TransitionEvent::new(&window, event_atom, &event_init, can_gc)
+                TransitionEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), can_gc);
+                    .fire(node.upcast(), CanGc::from_cx(cx));
             } else {
                 let event_init = AnimationEventInit {
                     parent,
@@ -552,9 +552,9 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                AnimationEvent::new(&window, event_atom, &event_init, can_gc)
+                AnimationEvent::new(&window, event_atom, &event_init, CanGc::from_cx(cx))
                     .upcast::<Event>()
-                    .fire(node.upcast(), can_gc);
+                    .fire(node.upcast(), CanGc::from_cx(cx));
             }
         }
 

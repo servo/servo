@@ -27,7 +27,6 @@ use stylo_atoms::Atom;
 use uuid::Uuid;
 
 use crate::document_loader::{LoadBlocker, LoadType};
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -45,6 +44,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
@@ -1219,7 +1219,7 @@ impl HTMLScriptElement {
             EventCancelable::NotCancelable,
             CanGc::from_cx(cx),
         );
-        event.fire(self.upcast(), CanGc::from_cx(cx))
+        event.fire_with_cx(cx, self.upcast())
     }
 
     fn text(&self) -> DOMString {
@@ -1240,7 +1240,7 @@ impl VirtualMethods for HTMLScriptElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()
@@ -1337,11 +1337,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             value,
             &format!("HTMLScriptElement {}", local_name),
         )?;
-        element.set_attribute(
-            local_name,
-            AttrValue::String(value.str().to_owned()),
-            CanGc::from_cx(cx),
-        );
+        element.set_attribute(cx, local_name, AttrValue::String(value.str().to_owned()));
         Ok(())
     }
 
@@ -1365,11 +1361,8 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
     fn SetAsync(&self, cx: &mut JSContext, value: bool) {
         self.non_blocking.set(false);
-        self.upcast::<Element>().set_bool_attribute(
-            &local_name!("async"),
-            value,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_bool_attribute(cx, &local_name!("async"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-defer

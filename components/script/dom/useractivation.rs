@@ -5,17 +5,17 @@
 use std::ops::Add;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActivationMethods;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::{
     Document, SameOriginDescendantNavigablesIterator, SameoriginAncestorNavigablesIterator,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-useractivation-interface>
 #[dom_struct]
@@ -30,8 +30,8 @@ impl UserActivation {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<UserActivation> {
-        reflect_dom_object(Box::new(UserActivation::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<UserActivation> {
+        reflect_dom_object_with_cx(Box::new(UserActivation::new_inherited()), global, cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#activation-notification>

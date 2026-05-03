@@ -8,7 +8,9 @@ promise_test(async t => {
   // Wait for after the load event because window.stop() hangs the test harness
   // if called before the load event.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+}, "Setup");
 
+promise_test(async t => {
   navigation.onnavigate = e => {
     e.intercept({ precommitHandler: async () => {} });
   };
@@ -20,7 +22,7 @@ promise_test(async t => {
     assert_equals(location.hash, "");
   });
 
-  let promises = navigation.navigate("#ShouldNotCommit");
+  let promises = navigation.navigate("?ShouldNotCommit");
   assert_equals(location.hash, "");
 
   window.stop();
@@ -28,6 +30,28 @@ promise_test(async t => {
 
   assert_equals(location.hash, "");
   assert_true(navigateerror_called);
-}, " precommitHandler with window.stop() before commit");
+}, " precommitHandler with window.stop() before navigation commit");
+
+promise_test(async t => {
+  navigation.onnavigate = e => {
+    e.intercept({ precommitHandler: async () => {} });
+  };
+
+  navigation.onnavigateerror = t.unreached_func("onnavigateerror must not fire");
+  let navigatesuccess_called = false;
+  navigation.onnavigatesuccess = t.step_func(() => {
+    navigatesuccess_called = true;
+    assert_equals(location.hash, "#ShouldCommit");
+  });
+
+  let promises = navigation.navigate("#ShouldCommit");
+  assert_equals(location.hash, "");
+
+  window.stop();
+  await assertBothFulfillEntryNotAvailable(t, promises);
+
+  assert_equals(location.hash, "#ShouldCommit");
+  assert_true(navigatesuccess_called);
+}, " precommitHandler with window.stop() before fragment navigation commit");
 </script>
 </body>

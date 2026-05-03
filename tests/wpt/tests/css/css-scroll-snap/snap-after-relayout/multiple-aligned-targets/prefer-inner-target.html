@@ -8,7 +8,6 @@
     <script src="/resources/testdriver.js"></script>
     <script src="/resources/testdriver-actions.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
-    <script src="resources/common.js" ></script>
   </head>
   <body>
     <style>
@@ -34,7 +33,6 @@
         position: absolute;
         width: 100px;
         height: 100px;
-        border: solid 1px black;
       }
       .top {
         top: 0px;
@@ -54,29 +52,29 @@
       .inner1 {
         height: 150px;
         width: 150px;
-        top: 150px;
-        left: 100px;
+        top: 0px;
+        left: 50px;
         background-color: blue;
       }
       .inner2 {
         height: 100px;
         width: 100px;
-        top: 150px;
-        left: 100px;
+        top: 0px;
+        left: 0px;
         background-color: pink;
       }
       .inner3 {
         height: 75px;
         width: 75px;
-        top: 150px;
-        left: 100px;
+        top: 0px;
+        left: 0px;
         background-color: green;
       }
       .inner4 {
         height: 50px;
         width: 50px;
-        top: 150px;
-        left: 100px;
+        top: 0px;
+        left: 0px;
         background-color: grey;
       }
       .outer {
@@ -91,11 +89,15 @@
       <div class="large-space"></div>
       <div class="top left target">Top Left</div>
       <div class="top right target">Top Right</div>
-      <div class="outer target" id="outer">Outer</div>
-      <div class="inner inner1 target" id="inner1">I1</div>
-      <div class="inner inner2 target" id="inner2">I2</div>
-      <div class="inner inner3 target" id="inner3">I3</div>
-      <div class="inner inner4 target" id="inner4">I4</div>
+      <div class="outer target" id="outer">Outer
+        <div class="inner inner1 target" id="inner1">I1
+          <div class="inner inner2 target" id="inner2">I2
+            <div class="inner inner3 target" id="inner3">I3
+              <div class="inner inner4 target" id="inner4">I4</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <script>
       window.onload = (async () => {
@@ -107,46 +109,61 @@
         const scroller = document.getElementById("scroller");
 
         promise_test(async (t) => {
+          t.add_cleanup(() => {
+            scroller.scrollTop = 0;
+          });
           await waitForCompositorCommit();
 
-          await runScrollSnapSelectionVerificationTest(t, scroller,
-            /*aligned_elements_x=*/[],
-            /*aligned_elements_y=*/[inner1, inner2, inner3, inner4,  outer],
-            /*axis=*/"y",
-            /*expected_target_x*/null,
-            /*expected_target_y*/inner4);
+          scroller.scrollTop = outer.offsetTop;
+          assert_equals(scroller.scrollTop, outer.offsetTop,
+            "scroll position should be at the snap target");
 
+          t.add_cleanup(() => {
+            // Reset inner4's style.
+            inner4.style.left = "";
+          });
           // Push inner4 outside the snapport. It should no longer be considered
           // the snap target; inner3 is next in line.
           inner4.style.left = "500px";
-          await runScrollSnapSelectionVerificationTest(t, scroller,
-            /*aligned_elements_x=*/[],
-            /*aligned_elements_y=*/[inner1, inner2, inner3, inner4,  outer],
-            /*axis=*/"y",
-            /*expected_target_x*/null,
-            /*expected_target_y*/inner3);
+          assert_equals(scroller.scrollTop, outer.offsetTop,
+            "scroll position should be at the snap target");
+          assert_equals(scroller.scrollLeft, 0,
+            "horizontal scroll position should remain unchanged");
 
-          // Reset inner4's style.
-          inner4.style.left = "100px";
+          t.add_cleanup(() => {
+            inner3.style.top = "";
+          });
+          // Move inner3 so that snap-after-relayout follows it.
+          inner3.style.top = "100px";
+          assert_equals(scroller.scrollTop, outer.offsetTop + 100,
+            "scroll position should follow inner3 snap target after relayout");
         }, "snap container selects innermost area as snap target");
 
         promise_test(async (t) => {
           t.add_cleanup(() => {
-            outer.style.top = "150px";
+            outer.style.top = "";
           });
           await waitForCompositorCommit();
 
-          // Move outer target below inner targets.
+          // Move outer target; all inner targets move with it, so every
+          // inner target's Y offset equals outer's.
           outer.style.top = "400px";
 
-          // Snap to now-below outer target.
+          // Scroll to the position where all snap targets are co-located;
+          // inner4 is selected as the snap target since it is the innermost.
           scroller.scrollTop = outer.offsetTop;
+          assert_equals(scroller.scrollTop, outer.offsetTop,
+            "scroll position should be at the snap target");
 
-          runLayoutSnapSeletionVerificationTest(t, scroller,
-            [inner1, inner2, inner3, inner4], outer, "y");
-        }, "snap container follows selected snap target after layout change " +
-           "(the pre-existing snap target should not be overriden because of " +
-           "the innermost area)");
+          t.add_cleanup(() => {
+            inner4.style.top = "";
+          });
+          // Move the innermost target so that snap-after-relayout follows it.
+          inner4.style.top = "100px";
+          assert_equals(scroller.scrollTop, outer.offsetTop + 100,
+            "scroll position should follow the innermost snap target after relayout");
+        }, "snap container follows the innermost snap target after layout change " +
+           "(not the co-located outer target)");
       });
     </script>
   </body>

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::trace::RootedTraceableBox;
@@ -70,7 +71,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond>
-    fn Respond(&self, cx: &mut js::context::JSContext, bytes_written: u64) -> Fallible<()> {
+    fn Respond(&self, cx: &mut JSContext, bytes_written: u64) -> Fallible<()> {
         // If this.[[controller]] is undefined, throw a TypeError exception.
         let controller = if let Some(controller) = self.controller.get() {
             controller
@@ -102,7 +103,7 @@ impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBY
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
     fn RespondWithNewView(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         view: CustomAutoRooterGuard<ArrayBufferView>,
     ) -> Fallible<()> {
         let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);

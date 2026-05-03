@@ -4,6 +4,8 @@
 
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
+use style::attr::parse_legacy_color;
+use style::color::ColorFlags;
 use style::properties::PropertyDeclarationId;
 use style::properties::generated::{LonghandId, ShorthandId};
 use style::values::specified::text::TextDecorationLine;
@@ -16,6 +18,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontEle
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::execcommand::commands::backcolor::execute_backcolor_command;
 use crate::dom::execcommand::commands::bold::execute_bold_command;
 use crate::dom::execcommand::commands::defaultparagraphseparator::execute_default_paragraph_separator_command;
 use crate::dom::execcommand::commands::delete::execute_delete_command;
@@ -23,9 +26,13 @@ use crate::dom::execcommand::commands::fontname::execute_fontname_command;
 use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
+use crate::dom::execcommand::commands::forecolor::execute_forecolor_command;
+use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
+use crate::dom::execcommand::commands::subscript::execute_subscript_command;
+use crate::dom::execcommand::commands::superscript::execute_superscript_command;
 use crate::dom::execcommand::commands::underline::execute_underline_command;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
@@ -51,9 +58,9 @@ impl From<DefaultSingleLineContainerName> for DOMString {
 
 /// <https://w3c.github.io/editing/docs/execCommand/#relevant-css-property>
 #[derive(Clone, Copy, Eq, PartialEq)]
-#[expect(unused)] // TODO(25005): implement all commands
 pub(crate) enum CssPropertyName {
     BackgroundColor,
+    Color,
     FontFamily,
     FontSize,
     FontWeight,
@@ -68,8 +75,53 @@ impl CssPropertyName {
 
         Some(
             match self {
-                CssPropertyName::BackgroundColor => style.clone_background_color().to_css_string(),
-                CssPropertyName::FontFamily => style.clone_font_family().to_css_string(),
+                CssPropertyName::BackgroundColor => {
+                    let background_color = style.clone_background_color();
+                    if let Some(absolute_color) = background_color.as_absolute() {
+                        // Used as an early-exit when figuring out on which element to resolve
+                        // the style in `effective_command_value`
+                        if absolute_color.is_transparent() {
+                            return None;
+                        }
+                        // Requires legacy SRGB syntax, which is what all tests expect.
+                        // E.g. it should use `rgba()` instead of `rgb()`, even if the alpha
+                        // is zero.
+                        let mut absolute_color = *absolute_color;
+                        absolute_color.flags.insert(ColorFlags::IS_LEGACY_SRGB);
+                        return Some(absolute_color.to_css_string().into());
+                    }
+                    background_color.to_css_string()
+                },
+                CssPropertyName::Color => {
+                    // Detached font elements (e.g. does created with `document.createElement`
+                    // and not yet present in DOM) dont have a computed style for `color`.
+                    // Since we create detached parent elements and compute "effective command
+                    // value" for these elements, we need to special case this. Otherwise, we
+                    // would add both a `color` attribute and `color` style declaration
+                    // to a parent font element.
+                    if let Some(ancestor_font) = element.downcast::<HTMLFontElement>() {
+                        let color = ancestor_font.Color();
+                        if !color.is_empty() {
+                            return Some(color);
+                        }
+                    }
+                    style.clone_color().to_css_string()
+                },
+                CssPropertyName::FontFamily => {
+                    // Detached font elements (e.g. does created with `document.createElement`
+                    // and not yet present in DOM) dont have a computed style for `fontFamily`.
+                    // Since we create detached parent elements and compute "effective command
+                    // value" for these elements, we need to special case this. Otherwise, we
+                    // would add both a `face` attribute and `font-family` style declaration
+                    // to a parent font element.
+                    if let Some(ancestor_font) = element.downcast::<HTMLFontElement>() {
+                        let face = ancestor_font.Face();
+                        if !face.is_empty() {
+                            return Some(face);
+                        }
+                    }
+                    style.clone_font_family().to_css_string()
+                },
                 CssPropertyName::FontSize => {
                     // Font size is special, in that it can't use the resolved styles to compute
                     // values. That's because it is influenced by other factors as well, and it
@@ -127,6 +179,7 @@ impl CssPropertyName {
 
         let longhand_id = match self {
             CssPropertyName::BackgroundColor => LonghandId::BackgroundColor,
+            CssPropertyName::Color => LonghandId::Color,
             CssPropertyName::FontFamily => LonghandId::FontFamily,
             CssPropertyName::FontSize => LonghandId::FontSize,
             CssPropertyName::FontWeight => LonghandId::FontWeight,
@@ -152,6 +205,7 @@ impl CssPropertyName {
     fn property_name(&self) -> DOMString {
         match self {
             CssPropertyName::BackgroundColor => "background-color",
+            CssPropertyName::Color => "color",
             CssPropertyName::FontFamily => "font-family",
             CssPropertyName::FontSize => "font-size",
             CssPropertyName::FontWeight => "font-weight",
@@ -225,8 +279,45 @@ pub(crate) enum CommandName {
 
 impl CommandName {
     /// <https://w3c.github.io/editing/docs/execCommand/#indeterminate>
-    pub(crate) fn is_indeterminate(&self) -> bool {
-        false
+    pub(crate) fn is_indeterminate(&self, cx: &mut JSContext, document: &Document) -> bool {
+        if !self.is_standard_inline_value_command() {
+            return false;
+        }
+        // https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command
+        // > it is indeterminate if among formattable nodes that are effectively contained in the active range,
+        // > there are two that have distinct effective command values.
+        let Some(selection) = document.GetSelection(cx) else {
+            return false;
+        };
+        let Some(active_range) = selection.active_range() else {
+            return false;
+        };
+        let mut at_least_two_different_effective_values = false;
+        let mut previous_effective_value: Option<DOMString> = None;
+        active_range.for_each_effectively_contained_child(|node| {
+            if at_least_two_different_effective_values || !node.is_formattable() {
+                return;
+            }
+            if let Some(effective_command_value) = node.effective_command_value(self) {
+                // https://w3c.github.io/editing/docs/execCommand/#the-subscript-command
+                // https://w3c.github.io/editing/docs/execCommand/#the-superscript-command
+                // > or if there is some formattable node effectively contained in
+                // > the active range with effective command value "mixed".
+                if matches!(self, CommandName::Subscript | CommandName::Superscript) &&
+                    effective_command_value == "mixed"
+                {
+                    at_least_two_different_effective_values = true;
+                }
+                if let Some(previous_effective_value) = &previous_effective_value {
+                    if &effective_command_value != previous_effective_value {
+                        at_least_two_different_effective_values = true;
+                    }
+                } else {
+                    previous_effective_value = Some(effective_command_value);
+                }
+            }
+        });
+        at_least_two_different_effective_values
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state>
@@ -290,6 +381,21 @@ impl CommandName {
                 document.default_single_line_container_name().into()
             },
             CommandName::FontSize => value_for_fontsize_command(cx, document)?,
+            _ if self.is_standard_inline_value_command() => {
+                // https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command
+                // > Its value is the effective command value of the first formattable node that
+                // > is effectively contained in the active range; or if there is no such node,
+                // > the effective command value of the active range's start node;
+                // > or if that is null, the empty string.
+                let selection = document.GetSelection(cx)?;
+                let active_range = selection.active_range()?;
+
+                active_range
+                    .first_formattable_contained_node()
+                    .unwrap_or_else(|| active_range.start_container())
+                    .effective_command_value(self)
+                    .unwrap_or_default()
+            },
             _ => return None,
         })
     }
@@ -318,6 +424,23 @@ impl CommandName {
                                     ("normal", "400") |
                                     ("400", "normal")
                             )
+                    },
+                    CommandName::BackColor | CommandName::ForeColor | CommandName::HiliteColor => {
+                        // https://w3c.github.io/editing/docs/execCommand/#the-backcolor-command
+                        // https://w3c.github.io/editing/docs/execCommand/#the-forecolor-command
+                        // https://w3c.github.io/editing/docs/execCommand/#the-hilitecolor-command
+                        // > Either both strings are valid CSS colors and have the same red, green, blue, and alpha components,
+                        // > or neither string is a valid CSS color.
+                        match (
+                            parse_legacy_color(&first_str.str()),
+                            parse_legacy_color(&second_str.str()),
+                        ) {
+                            (Ok(first_legacy_color), Ok(second_legacy_color)) => {
+                                first_legacy_color == second_legacy_color
+                            },
+                            (Err(_), Err(_)) => true,
+                            _ => false,
+                        }
                     },
                     // > or both are strings and they're equal and the command does not define any equivalent values,
                     _ => first_str == second_str,
@@ -353,9 +476,12 @@ impl CommandName {
         // > This is defined for certain inline formatting commands, and is used in algorithms specific to those commands.
         // > It is an implementation detail, and is not exposed to authors.
         Some(match self {
+            CommandName::BackColor => CssPropertyName::BackgroundColor,
             CommandName::Bold => CssPropertyName::FontWeight,
             CommandName::FontName => CssPropertyName::FontFamily,
             CommandName::FontSize => CssPropertyName::FontSize,
+            CommandName::ForeColor => CssPropertyName::Color,
+            CommandName::HiliteColor => CssPropertyName::BackgroundColor,
             CommandName::Italic => CssPropertyName::FontStyle,
             // > If a command does not have a relevant CSS property specified, it defaults to null.
             _ => return None,
@@ -365,6 +491,17 @@ impl CommandName {
     pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
         let property = self.relevant_css_property()?;
         property.resolved_value_for_node(element)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#standard-inline-value-command>
+    pub(crate) fn is_standard_inline_value_command(&self) -> bool {
+        matches!(
+            self,
+            CommandName::BackColor |
+                CommandName::FontName |
+                CommandName::ForeColor |
+                CommandName::HiliteColor
+        )
     }
 
     pub(crate) fn is_enabled_in_plaintext_only_state(&self) -> bool {
@@ -397,6 +534,7 @@ impl CommandName {
         value: DOMString,
     ) -> bool {
         match self {
+            CommandName::BackColor => execute_backcolor_command(cx, document, selection, value),
             CommandName::Bold => execute_bold_command(cx, document, selection),
             CommandName::DefaultParagraphSeparator => {
                 execute_default_paragraph_separator_command(document, value)
@@ -404,9 +542,13 @@ impl CommandName {
             CommandName::Delete => execute_delete_command(cx, document, selection),
             CommandName::FontName => execute_fontname_command(cx, document, selection, value),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
+            CommandName::ForeColor => execute_forecolor_command(cx, document, selection, value),
+            CommandName::HiliteColor => execute_hilitecolor_command(cx, document, selection, value),
             CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
+            CommandName::Subscript => execute_subscript_command(cx, document, selection),
+            CommandName::Superscript => execute_superscript_command(cx, document, selection),
             CommandName::Underline => execute_underline_command(cx, document, selection),
             _ => false,
         }

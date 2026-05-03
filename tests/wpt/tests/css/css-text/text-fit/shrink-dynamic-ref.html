@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 80px;
+  margin-bottom: 10px;
+  font: 20px/normal Ahem;
+  border: 1px solid blue;
+}
+
+.scale-c {
+  text-fit: shrink consistent;
+}
+.scale-pl {
+  text-fit: shrink per-line;
+}
+.scale-pla {
+  text-fit: shrink per-line-all;
+}
+</style>
+<body>
+<div class="target scale-c">ABCDEFGH
+ABCDEF</div>
+
+<div class="target scale-pl">ABCDEFGH
+ABCDEF</div>
+
+<div class="target scale-pla">ABCDEFGH
+ABCDEF</div>
+
+<script>
+document.fonts.ready.then(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</body>
+</html>

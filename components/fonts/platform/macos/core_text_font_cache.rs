@@ -81,7 +81,7 @@ impl CoreTextFontCache {
                 synthetic_bold,
             )?;
             let mut cache = cache.write();
-            let entry = cache.entry(font_identifier.clone()).or_default();
+            let entry = cache.entry(font_identifier).or_default();
 
             // It could be that between the time of the cache miss above and now, after the write lock
             // on the cache has been acquired, the cache was populated with the data that we need. Thus

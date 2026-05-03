@@ -1,3 +1,13 @@
+.menuitem {
+  /* <button> resets for <button class=menuitem> */
+  box-sizing: content-box;
+  font-size: unset;
+  font-family: unset;
+  text-align: unset;
+  background: unset;
+  border: 0;
+}
+
 .menubar > .menuitem {
   display: inline-flex;
 }
@@ -18,21 +28,22 @@
 }
 
 .menulist {
-  display: flex;
-  flex-direction: column;
-  position: absolute;
+  display: block;
+  position: fixed;
+  position-anchor: auto;
+  margin: 0;
+  inset: auto;
   width: max-content;
-  min-width: 150px;
+  max-block-size: stretch;
+  overflow: auto;
   color: CanvasText;
   background-color: Canvas;
   border: 1px solid currentColor;
-  /* TODO(domfarolino): Enable this. See the related documentation in the
-   * Chromium UA style sheet for this. */
-  /* border-radius: 0.25em; */
   padding: 0.25em;
+}
 
-  /* Unset native popover margin */
-  margin: 0;
+.menulist:not(:popover-open) {
+  display: none;
 }
 
 .menulist > hr {
@@ -44,14 +55,12 @@
 
 /* Menulists whose implicit anchor is a menuitem in a menubar. */
 .menulist-with-menubar-anchor {
-  position: absolute;
   /* Below and span-right, by default. */
   position-area: block-end span-inline-end;
 }
 
 /* Menulists whose implicit anchor is a menuitem in a menulist. */
 .menulist-with-menulist-anchor {
-  position: absolute;
   /* To the right, with its top aligned to the implicit anchor's top. */
   position-area: inline-end span-block-end;
 }
@@ -59,7 +68,9 @@
 .menubar, .menulist {
   .menuitem {
     align-items: center;
-    padding: 1em;
+    padding-inline: 0.5em;
+    padding-block: 0;
+    gap: 0.5em;
     min-inline-size: 24px;
     min-block-size: max(24px, 1lh);
   }

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Top-layer items skip role inference</title>
+<meta name="assert" content="A focusgroup item that is inside a top-layer subtree (e.g. a shown popover) is excluded from the ancestor focusgroup, so it does not receive the focusgroup's implied child role.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#top-layer-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div id=fg focusgroup="tablist">
+  <span tabindex=0 id=outsideItem>Outside</span>
+  <div id=pop popover>
+    <span tabindex=0 id=insideItem>Inside</span>
+  </div>
+</div>
+
+<script>
+async function getRole(idref) {
+  return await test_driver.get_computed_role(document.getElementById(idref));
+}
+
+promise_test(async t => {
+  // If role inference broke entirely, the popover assertion below would
+  // also pass trivially. Verify a normal focusgroup="tablist" child
+  // still infers the tab role first.
+  assert_equals(await getRole('outsideItem'), 'tab',
+    'item outside the popover infers tab role from ancestor focusgroup');
+}, 'Sibling outside the popover still infers the implied tab role');
+
+promise_test(async t => {
+  const pop = document.getElementById('pop');
+  assert_false(pop.matches(':popover-open'),
+    'precondition: popover starts closed');
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+  assert_true(pop.matches(':popover-open'));
+
+  const role = await getRole('insideItem');
+  assert_not_equals(role, 'tab',
+    'item inside top-layer popover must not inherit the tablist child role');
+}, 'Item inside a shown popover is excluded from ancestor focusgroup role inference');
+</script>

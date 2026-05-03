@@ -66,7 +66,7 @@ use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
 use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 pub(super) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
@@ -372,8 +372,8 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
-    fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(&[self.Language()], cx, retval, can_gc)
+    fn Languages(&self, cx: &mut js::context::JSContext, retval: MutableHandleValue) {
+        to_frozen_array(&[self.Language()], cx.into(), retval, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
@@ -623,9 +623,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useractivation>
-    fn UserActivation(&self, can_gc: CanGc) -> DomRoot<UserActivation> {
+    fn UserActivation(&self, cx: &mut js::context::JSContext) -> DomRoot<UserActivation> {
         self.user_activation
-            .or_init(|| UserActivation::new(&self.global(), can_gc))
+            .or_init(|| UserActivation::new(cx, &self.global()))
     }
 
     /// <https://w3c.github.io/screen-wake-lock/#dom-navigator-wakelock>

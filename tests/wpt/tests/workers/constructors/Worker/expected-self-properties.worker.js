@@ -1,6 +1,6 @@
 importScripts("/resources/testharness.js");
 
-var expected = ['XMLHttpRequest', 'WebSocket', 'EventSource', 'MessageChannel', 'Worker', 'SharedWorker'];
+var expected = ['XMLHttpRequest', 'WebSocket', 'EventSource', 'MessageChannel', 'Worker'];
 for (var i = 0; i < expected.length; ++i) {
   var property = expected[i];
   test(function() {

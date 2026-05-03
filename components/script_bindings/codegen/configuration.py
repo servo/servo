@@ -259,6 +259,7 @@ class Descriptor(DescriptorProvider):
             prefix = ""
 
         typeName = desc.get('nativeType', nativeTypeDefault)
+        assert isinstance(typeName, str)
 
         spiderMonkeyInterface = desc.get('spiderMonkeyInterface', False)
 
@@ -573,6 +574,7 @@ def getTypesFromDictionary(dictionary: IDLWrapperType | IDLDictionary) -> list[I
     types = []
     curDict = dictionary
     while curDict:
+        assert isinstance(curDict, IDLDictionary)
         types.extend([getUnwrappedType(m.type) for m in curDict.members])
         curDict = curDict.parent
     return types

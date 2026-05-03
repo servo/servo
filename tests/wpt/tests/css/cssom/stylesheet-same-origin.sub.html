@@ -8,6 +8,7 @@
     <script src="/resources/testharnessreport.js"></script>
 
     <link id="crossorigin" href="http://www1.{{host}}:{{ports[http][1]}}/css/cssom/stylesheet-same-origin.css" rel="stylesheet">
+    <link id="crossorigin-clone" href="http://www1.{{host}}:{{ports[http][1]}}/css/cssom/stylesheet-same-origin.css" rel="stylesheet">
     <link id="sameorigin" href="stylesheet-same-origin.css" rel="stylesheet">
     <link id="sameorigindata" href="data:text/css,.green-text{color:rgb(0, 255, 0)}" rel="stylesheet">
     <link id="redirect-sameorigin-to-crossorigin"
@@ -20,6 +21,7 @@
 
     <script>
         var crossorigin = document.getElementById("crossorigin").sheet;
+        var crossoriginClone = document.getElementById("crossorigin-clone").sheet;
         var redirectSameOriginToCrossOrigin = document.getElementById("redirect-sameorigin-to-crossorigin").sheet;
         var redirectCrossOriginToSameOrigin = document.getElementById("redirect-crossorigin-to-sameorigin").sheet;
         var loadError = document.getElementById("loaderror").sheet;
@@ -77,6 +79,11 @@
             doOriginCleanCheck(sameorigindata, "data:css");
         }, "Origin-clean check in data:css CSSOM Stylesheets");
 
+        test(function() {
+            doOriginDirtyCheck(crossoriginClone, "cross-origin clone");
+            crossoriginClone.media.appendMedium("screen");
+            doOriginDirtyCheck(crossoriginClone, "cross-origin clone after mutation");
+        }, "Origin-clean check in copied cross-origin CSSOM Stylesheets");
     </script>
 </head>
 <body>

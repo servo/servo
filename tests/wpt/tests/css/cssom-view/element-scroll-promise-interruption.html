@@ -60,7 +60,9 @@
       scroller.scrollTop = pos2;
 
       assert_equals(scroller.scrollTop, pos2, "Position before promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_true(result1.interrupted, "Interruption bit in promise");
+
       assert_equals(scroller.scrollTop, pos2, "Position after promise wait");
     }, `Element.${scroll_method} interrupted by a non-promise scroll`);
 
@@ -76,7 +78,8 @@
 
       assert_not_equals(scroller.scrollTop, pos1,
             "Position before promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_false(result1.interrupted, "Interruption bit in promise");
       assert_equals(scroller.scrollTop, pos1, "Position after promise wait");
     }, `Element.${scroll_method} uninterrupted by an unrelated non-promise scroll`);
   }
@@ -94,11 +97,13 @@
 
       assert_not_equals(scroller.scrollTop, pos1,
             "Position before first promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_true(result1.interrupted, "Interruption bit in first promise");
       assert_not_equals(scroller.scrollTop, pos1,
             "Position after first promise wait");
 
-      await promise2;
+      const result2 = await promise2;
+      assert_false(result2.interrupted, "Interruption bit in second promise");
       assert_equals(scroller.scrollTop, pos2,
             "Position after interrupting promise wait");
     }, `Element.scrollTo: interrupted by ${interrupt_behavior} scroll`);
@@ -115,11 +120,13 @@
 
       assert_not_equals(scroller.scrollTop, pos1,
             "Position before first promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_true(result1.interrupted, "Interruption bit in first promise");
       assert_not_equals(scroller.scrollTop, pos1,
             "Position after first promise wait");
 
-      await promise2;
+      const result2 = await promise2;
+      assert_false(result2.interrupted, "Interruption bit in second promise");
       assert_equals(scroller.scrollTop, pos2,
             "Position after interrupting promise wait");
     }, `Element.scrollBy: interrupted by ${interrupt_behavior} scroll`);
@@ -136,11 +143,13 @@
 
       assert_not_equals(scroller.scrollTop, pos1,
             "Position before first promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_true(result1.interrupted, "Interruption bit in first promise");
       assert_not_equals(scroller.scrollTop, pos1,
             "Position after first promise wait");
 
-      await promise2;
+      const result2 = await promise2;
+      assert_false(result2.interrupted, "Interruption bit in second promise");
       assert_equals(scroller.scrollTop, pos2,
             "Position after interrupting promise wait");
     }, `Element.scrollIntoView: interrupted by ${interrupt_behavior} scroll`);
@@ -153,11 +162,13 @@
     let promise1 = target_at_5000px.scrollIntoView({ behavior: "smooth" });
     let promise2 = innertarget_at_5000px.scrollIntoView({ behavior: "smooth" });
 
-    await promise1;
+    const result1 = await promise1;
+    assert_true(result1.interrupted, "Interruption bit in first promise");
     assert_not_equals(scroller.scrollTop, 5000,
           "Position after first promise wait");
 
-    await promise2;
+    const result2 = await promise2;
+    assert_false(result2.interrupted, "Interruption bit in second promise");
     assert_equals(scroller.scrollTop, 10000,
           "Position after interrupting promise wait");
     assert_equals(inner_scroller.scrollTop, 5000,
@@ -170,11 +181,13 @@
     let promise1 = innertarget_at_5000px.scrollIntoView({ behavior: "smooth" });
     let promise2 = target_at_5000px.scrollIntoView({ behavior: "smooth" });
 
-    await promise1;
+    const result1 = await promise1;
+    assert_true(result1.interrupted, "Interruption bit in first promise");
     assert_not_equals(scroller.scrollTop, 10000,
           "Position after first promise wait");
 
-    await promise2;
+    const result2 = await promise2;
+    assert_false(result2.interrupted, "Interruption bit in second promise");
     assert_equals(scroller.scrollTop, 5000,
           "Position after interrupting promise wait");
   }, `Element.scrollIntoView: interrupted by outer scroll`);

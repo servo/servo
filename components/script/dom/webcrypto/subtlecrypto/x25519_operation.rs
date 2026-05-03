@@ -370,9 +370,9 @@ pub(crate) fn import_key(
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
                 let d = jwk.decode_required_string_field(JwkStringField::D)?;
                 let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                    x.try_into().map_err(|_| Error::Data(None))?;
+                    x.as_slice().try_into().map_err(|_| Error::Data(None))?;
                 let private_key_bytes: [u8; PRIVATE_KEY_LENGTH] =
-                    d.try_into().map_err(|_| Error::Data(None))?;
+                    d.as_slice().try_into().map_err(|_| Error::Data(None))?;
                 let public_key = PublicKey::from(public_key_bytes);
                 let private_key = StaticSecret::from(private_key_bytes);
                 if PublicKey::from(&private_key) != public_key {
@@ -395,7 +395,7 @@ pub(crate) fn import_key(
                 // described in Section 2 of [RFC8037], then throw a DataError.
                 let x = jwk.decode_required_string_field(JwkStringField::X)?;
                 let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] =
-                    x.try_into().map_err(|_| Error::Data(None))?;
+                    x.as_slice().try_into().map_err(|_| Error::Data(None))?;
                 let public_key = PublicKey::from(public_key_bytes);
 
                 // Step 2.9.1. Let key be a new CryptoKey object that represents the X25519 public
@@ -508,7 +508,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_der().map_err(|_| Error::Operation(None))?)
+            ExportedKey::new_bytes(data.to_der().map_err(|_| Error::Operation(None))?)
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
@@ -544,18 +544,18 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_der().map_err(|_| Error::Operation(None))?)
+            ExportedKey::new_bytes(data.to_der().map_err(|_| Error::Operation(None))?)
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to "OKP".
+            jwk.kty = Some(DOMString::from("OKP"));
+
             // Step 3.3. Set the crv attribute of jwk to "X25519".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("OKP")),
-                crv: Some(DOMString::from("X25519")),
-                ..Default::default()
-            };
+            jwk.crv = Some(DOMString::from("X25519"));
 
             // Step 3.4. Set the x attribute of jwk according to the definition in Section 2 of
             // [RFC8037].
@@ -589,7 +589,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 3.8. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -607,7 +607,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let data = public_key.as_bytes();
 
             // Step 3.3. Let result be data.
-            ExportedKey::Bytes(data.to_vec())
+            ExportedKey::new_bytes(data.to_vec())
         },
         // Otherwise:
         _ => {

@@ -79,12 +79,12 @@ promise_test(async test => {
     const uuid_token = token();
     // serve-js-then-text.py gives us JS the first time
     const result_js = await import(`./serve-js-then-text.py?key=${uuid_token}`);
-    assert_equals(result_js.default, "hello");
+    assert_equals(result_js.default, "world");
 
     // If this were to do another fetch, the import would fail because
     // serve-js-then-text.py would give us text this time. But, the module map
     // entry for this specifier/module type pair already exists, so we
     // successfully reuse the entry instead of fetching again.
     const result_js_2 = await import(`./serve-js-then-text.py?key=${uuid_token}`);
-    assert_equals(result_js_2.default, "hello");
+    assert_equals(result_js_2.default, "world");
 }, "If an import previously succeeded for a given specifier with no type attribute, future uses of the same values should yield the same result");

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS Easing: linear() duplicate points crash</title>
+<link rel="help" href="https://crbug.com/493534964">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    background: red;
+    animation: anim 1s both;
+  }
+  @keyframes anim {
+    0% { clip-path: inset(0%); }
+    50% { clip-path: inset(10%); animation-timing-function: linear(0 0%, 1 100%, 0 100%); }
+    50% { clip-path: inset(20%); }
+    100% { clip-path: inset(30%); }
+  }
+</style>
+<div></div>
+<script>
+  document.querySelector('div').getAnimations()[0].ready.then(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</html>

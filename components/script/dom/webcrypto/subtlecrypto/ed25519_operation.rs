@@ -154,7 +154,7 @@ pub(crate) fn generate_key(
             .filter(|&usage| *usage == KeyUsage::Sign)
             .cloned()
             .collect(),
-        Handle::Ed25519PrivateKey(seed),
+        Handle::Ed25519PrivateKey(seed.into()),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -287,7 +287,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519PrivateKey(curve_private_key),
+                Handle::Ed25519PrivateKey(curve_private_key.into()),
             )
         },
         // If format is "jwk":
@@ -407,7 +407,7 @@ pub(crate) fn import_key(
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
-                    Handle::Ed25519PublicKey(x),
+                    Handle::Ed25519PublicKey(x.to_vec()),
                 )
             }
 
@@ -540,7 +540,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(
+            ExportedKey::new_bytes(
                 data.as_der()
                     .map_err(|_| {
                         Error::Operation(Some(
@@ -585,20 +585,21 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 })?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.as_ref().to_vec())
+            ExportedKey::new_bytes(data.as_ref().to_vec())
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to "OKP".
+            jwk.kty = Some(DOMString::from("OKP"));
+
             // Step 3.3. Set the alg attribute of jwk to "Ed25519".
+            jwk.alg = Some(DOMString::from("Ed25519"));
+
             // Step 3.4. Set the crv attribute of jwk to "Ed25519".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("OKP")),
-                alg: Some(DOMString::from("Ed25519")),
-                crv: Some(DOMString::from("Ed25519")),
-                ..Default::default()
-            };
+            jwk.crv = Some(DOMString::from("Ed25519"));
 
             // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of [RFC8037].
             // Step 3.6.
@@ -630,7 +631,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 3.9. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -645,7 +646,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.2. Let data be a byte sequence representing the Ed25519 public key
             // represented by the [[handle]] internal slot of key.
             // Step 3.3. Let result be data.
-            ExportedKey::Bytes(key_data.to_vec())
+            ExportedKey::new_bytes(key_data.to_vec())
         },
         // Otherwise:
         _ => {

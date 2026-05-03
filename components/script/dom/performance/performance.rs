@@ -260,8 +260,8 @@ impl Performance {
                 self.global()
                     .task_manager()
                     .performance_timeline_task_source()
-                    .queue(task!(notify_performance_observers: move || {
-                        owner.root().notify_observers();
+                    .queue(task!(notify_performance_observers: move |cx| {
+                        owner.root().notify_observers(cx);
                     }));
             }
         }
@@ -345,8 +345,8 @@ impl Performance {
         self.global()
             .task_manager()
             .performance_timeline_task_source()
-            .queue(task!(notify_performance_observers: move || {
-                owner.root().notify_observers();
+            .queue(task!(notify_performance_observers: move |cx| {
+                owner.root().notify_observers(cx);
             }));
 
         Some(entry_last_index)
@@ -356,7 +356,7 @@ impl Performance {
     ///
     /// Algorithm spec (step 7):
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
-    pub(crate) fn notify_observers(&self) {
+    fn notify_observers(&self, cx: &mut JSContext) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);
 
@@ -374,7 +374,7 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify(CanGc::deprecated_note());
+            o.notify(cx);
         }
     }
 
@@ -503,6 +503,8 @@ impl Performance {
             "domComplete" => document.get_dom_complete(),
             "loadEventStart" => document.get_load_event_start(),
             "loadEventEnd" => document.get_load_event_end(),
+            "redirectStart" => document.get_redirect_start(),
+            "redirectEnd" => document.get_redirect_end(),
             other => {
                 if cfg!(debug_assertions) {
                     unreachable!("{other:?} is not the name of a timestamp");
@@ -542,7 +544,9 @@ impl Performance {
                         "domContentLoadedEventEnd" |
                         "domComplete" |
                         "loadEventStart" |
-                        "loadEventEnd"
+                        "loadEventEnd" |
+                        "redirectStart" |
+                        "redirectEnd"
                 ) {
                     self.convert_a_name_to_a_timestamp(&name.str())
                 }
@@ -567,7 +571,10 @@ impl Performance {
 
                 // Step 3.2 Otherwise, let end time be mark.
                 // NOTE: I think the spec wants us to return the value.
-                Ok(self.time_origin + Duration::milliseconds(timestamp.round() as i64))
+                Ok(
+                    self.time_origin +
+                        Duration::microseconds(timestamp.mul_add(1000.0, 0.0) as i64),
+                )
             },
         }
     }

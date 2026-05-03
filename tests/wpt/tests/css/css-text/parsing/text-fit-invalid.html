@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Parsing text-fit with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<div id="target" style="font-size:20px; line-height:1;"></div>
+<script>
+test_invalid_value('text-fit', 'larger');
+test_invalid_value('text-fit', 'smaller');
+
+test_invalid_value('text-fit', 'stretch per-line');
+test_invalid_value('text-fit', 'grow 150% consistent');
+test_invalid_value('text-fit', 'consistent 100%');
+test_invalid_value('text-fit', 'grow consistent 1.0');
+</script>
+</body>

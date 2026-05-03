@@ -465,7 +465,7 @@ impl TreeWalker {
                 // Step 5.
                 self.active.set(true);
                 // Step 6.
-                let result = callback.AcceptNode_(self, node, Rethrow, CanGc::from_cx(cx));
+                let result = callback.AcceptNode_(cx, self, node, Rethrow);
                 // Step 7.
                 self.active.set(false);
                 // Step 8.

@@ -5,10 +5,10 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use js::context::JSContext;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
@@ -38,7 +38,7 @@ impl ScriptMutationObservers {
     }
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
-    pub(crate) fn notify_mutation_observers(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn notify_mutation_observers(&self, cx: &mut JSContext) {
         // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
         self.mutation_observer_microtask_queued.set(false);
 
@@ -70,13 +70,9 @@ impl ScriptMutationObservers {
             // Step 6.4 If records is not empty, then invoke mo’s callback with « records,
             // mo » and "report", and with callback this value mo.
             if !queue.is_empty() {
-                let _ = mo.callback().Call_(
-                    &**mo,
-                    queue,
-                    mo,
-                    ExceptionHandling::Report,
-                    CanGc::from_cx(cx),
-                );
+                let _ = mo
+                    .callback()
+                    .Call_(cx, &**mo, queue, mo, ExceptionHandling::Report);
             }
         }
 

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Shadow DOM: :hover pseudo-class should be removed from all ancestors when cursor moves away</title>
+<link rel="author" href="mailto:martin@abandonedwig.info">
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+<link rel="help" href="https://github.com/servo/servo/issues/43863">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+    #host {
+        width: 100px;
+        height: 100px;
+        background: green;
+    }
+
+    #host:hover {
+        background:red;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="host">
+    <template shadowrootmode="open">
+        <div style="width: 100px; height: 100px"></div>
+    </template>
+</div>
+
+<script>
+    window.onload = async () => {
+        let rectangle = host.getBoundingClientRect();
+        await new test_driver.Actions()
+          .pointerMove(rectangle.left + 5, rectangle.top + 5)
+              .send();
+        await new test_driver.Actions()
+          .pointerMove(rectangle.right + 100, rectangle.bottom + 100)
+              .send();
+        takeScreenshot();
+    }
+</script>
+</html>

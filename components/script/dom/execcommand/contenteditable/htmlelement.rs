@@ -133,22 +133,22 @@ impl HTMLElement {
         // Otherwise, when you call `innerHTML`, it would generate a `style=""`, which is
         // not what the tests expect. They expect the whole attribute to be removed.
         if element.has_empty_style_attribute() {
-            element.remove_attribute_by_name(&local_name!("style"), CanGc::from_cx(cx));
+            element.remove_attribute_by_name(cx, &local_name!("style"));
         }
         // Step 8. If element is a font element:
         if self.is::<HTMLFontElement>() {
             match command {
                 // Step 8.1. If command is "foreColor", unset element's color attribute, if set.
                 CommandName::ForeColor => {
-                    element.remove_attribute_by_name(&local_name!("color"), CanGc::from_cx(cx));
+                    element.remove_attribute_by_name(cx, &local_name!("color"));
                 },
                 // Step 8.2. If command is "fontName", unset element's face attribute, if set.
                 CommandName::FontName => {
-                    element.remove_attribute_by_name(&local_name!("face"), CanGc::from_cx(cx));
+                    element.remove_attribute_by_name(cx, &local_name!("face"));
                 },
                 // Step 8.3. If command is "fontSize", unset element's size attribute, if set.
                 CommandName::FontSize => {
-                    element.remove_attribute_by_name(&local_name!("size"), CanGc::from_cx(cx));
+                    element.remove_attribute_by_name(cx, &local_name!("size"));
                 },
                 _ => {},
             }
@@ -158,7 +158,7 @@ impl HTMLElement {
         if self.is::<HTMLAnchorElement>() &&
             matches!(command, CommandName::CreateLink | CommandName::Unlink)
         {
-            element.remove_attribute_by_name(&local_name!("href"), CanGc::from_cx(cx));
+            element.remove_attribute_by_name(cx, &local_name!("href"));
         }
         // Step 10. If element's specified command value for command is null,
         // return the empty list.

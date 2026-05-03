@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -87,12 +88,12 @@ impl IDBVersionChangeEvent {
 
     /// <https://w3c.github.io/IndexedDB/#fire-a-version-change-event>
     pub(crate) fn fire_version_change_event(
+        cx: &mut JSContext,
         global: &GlobalScope,
         target: &EventTarget,
         event_type: Atom,
         old_version: u64,
         new_version: Option<u64>,
-        can_gc: CanGc,
     ) -> bool {
         // Step 1: Let event be the result of creating an event using IDBVersionChangeEvent.
         // Step 2: Set event’s type attribute to e.
@@ -106,7 +107,7 @@ impl IDBVersionChangeEvent {
             EventCancelable::NotCancelable,
             old_version,
             new_version,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 6: Let legacyOutputDidListenersThrowFlag be false.
@@ -115,9 +116,9 @@ impl IDBVersionChangeEvent {
         let _ = event
             .upcast::<Event>()
             .fire_with_legacy_output_did_listeners_throw(
+                cx,
                 target,
                 &legacy_output_did_listeners_throw,
-                can_gc,
             );
         // Step 8: Return legacyOutputDidListenersThrowFlag.
         legacy_output_did_listeners_throw.get()

@@ -50,7 +50,6 @@ use webrender_api::{
 };
 
 use crate::document_loader::{LoadBlocker, LoadType};
-use crate::dom::attr::Attr;
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::cell::DomRefCell;
@@ -77,6 +76,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
     AttributeMutation, AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
@@ -381,22 +381,29 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 current_frame.width = frame.get_width();
                 current_frame.height = frame.get_height();
 
-                let image_data = if frame.is_gl_texture() && self.glplayer_id.is_some() {
-                    let texture_target = if frame.is_external_oes() {
-                        ImageBufferKind::TextureExternal
-                    } else {
-                        ImageBufferKind::Texture2D
-                    };
+                // FIXME: This code is duplicated below this branch
+                let image_data = self
+                    .glplayer_id
+                    .filter(|_| frame.is_gl_texture())
+                    .map(|glplayer_id| {
+                        let texture_target = if frame.is_external_oes() {
+                            ImageBufferKind::TextureExternal
+                        } else {
+                            ImageBufferKind::Texture2D
+                        };
 
-                    SerializableImageData::External(ExternalImageData {
-                        id: ExternalImageId(self.glplayer_id.unwrap()),
-                        channel_index: 0,
-                        image_type: ExternalImageType::TextureHandle(texture_target),
-                        normalized_uvs: false,
+                        SerializableImageData::External(ExternalImageData {
+                            id: ExternalImageId(glplayer_id),
+                            channel_index: 0,
+                            image_type: ExternalImageType::TextureHandle(texture_target),
+                            normalized_uvs: false,
+                        })
                     })
-                } else {
-                    SerializableImageData::Raw(GenericSharedMemory::from_bytes(&frame.get_data()))
-                };
+                    .unwrap_or_else(|| {
+                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
+                            &frame.get_data(),
+                        ))
+                    });
 
                 self.current_frame_holder
                     .get_or_insert_with(|| FrameHolder::new(frame.clone()))
@@ -421,22 +428,28 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     height: frame.get_height(),
                 });
 
-                let image_data = if frame.is_gl_texture() && self.glplayer_id.is_some() {
-                    let texture_target = if frame.is_external_oes() {
-                        ImageBufferKind::TextureExternal
-                    } else {
-                        ImageBufferKind::Texture2D
-                    };
+                let image_data = self
+                    .glplayer_id
+                    .filter(|_| frame.is_gl_texture())
+                    .map(|glplayer_id| {
+                        let texture_target = if frame.is_external_oes() {
+                            ImageBufferKind::TextureExternal
+                        } else {
+                            ImageBufferKind::Texture2D
+                        };
 
-                    SerializableImageData::External(ExternalImageData {
-                        id: ExternalImageId(self.glplayer_id.unwrap()),
-                        channel_index: 0,
-                        image_type: ExternalImageType::TextureHandle(texture_target),
-                        normalized_uvs: false,
+                        SerializableImageData::External(ExternalImageData {
+                            id: ExternalImageId(glplayer_id),
+                            channel_index: 0,
+                            image_type: ExternalImageType::TextureHandle(texture_target),
+                            normalized_uvs: false,
+                        })
                     })
-                } else {
-                    SerializableImageData::Raw(GenericSharedMemory::from_bytes(&frame.get_data()))
-                };
+                    .unwrap_or_else(|| {
+                        SerializableImageData::Raw(GenericSharedMemory::from_bytes(
+                            &frame.get_data(),
+                        ))
+                    });
 
                 self.current_frame_holder = Some(FrameHolder::new(frame));
 
@@ -928,6 +941,10 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ready-states>
+    #[expect(
+        clippy::collapsible_match,
+        reason = "This way follows the spec more closely"
+    )]
     fn change_ready_state(&self, ready_state: ReadyState) {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
@@ -3375,7 +3392,7 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

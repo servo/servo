@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="shrink-consistent-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 80px;
+  margin-bottom: 10px;
+  font: 20px/normal Ahem;
+}
+
+.scale {
+  text-fit: shrink consistent;
+  border: 1px solid green;
+}
+</style>
+<body>
+<div class="target scale">ABCDEFGH
+ABCD</div>
+
+</body>

@@ -148,4 +148,41 @@ promise_test(async t => {
   pc1.close();
   await mutePromise;
 }, 'pc.close() on one side causes mute events on the other');
+
+promise_test(async t => {
+  const pc1 = createPeerConnectionWithCleanup(t);
+  const pc1Sender = pc1.addTrack(...await createTrackAndStreamWithCleanup(t));
+  const localTransceiver = findTransceiverForSender(pc1, pc1Sender);
+  const pc2 = createPeerConnectionWithCleanup(t);
+  exchangeIceCandidates(pc1, pc2);
+
+  let pc2Track;
+  let pc2Transceiver;
+  let unmutePromise;
+  pc2.ontrack = t.step_func(e => {
+    pc2Track = e.track;
+    pc2Transceiver = pc2.getTransceivers()[0];
+    const watcher = new EventWatcher(t, e.track, ['unmute'], () => waitForTimeout(t));
+    unmutePromise = watcher.wait_for('unmute');
+  });
+  await exchangeOfferAnswer(pc1, pc2);
+  await unmutePromise;
+
+  // Stop the transceiver on the receiving side. Per spec the receiver track
+  // must end when a transceiver is stopped.
+  pc2Transceiver.stop();
+  await new Promise(r => { pc2Track.onended = r; });
+
+  // A 'mute' event must not fire on an already-ended track when the remote
+  // side renegotiates away from sending.
+  pc2Track.onmute = t.step_func(() => {
+    assert_unreached('mute event must not fire on an ended track');
+  });
+
+  localTransceiver.direction = 'recvonly';
+  await exchangeOfferAnswer(pc1, pc2);
+
+  assert_equals(pc2Track.readyState, 'ended',
+    'receiver track remains ended after renegotiation');
+}, 'No mute event fires on a stopped transceiver\'s track when remote renegotiates to recvonly');
 </script>

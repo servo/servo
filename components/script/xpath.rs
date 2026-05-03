@@ -14,7 +14,6 @@ use script_bindings::callback::ExceptionHandling;
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use script_bindings::root::Dom;
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use style::Atom;
 use style::dom::OpaqueNode;
@@ -27,6 +26,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::element::attributes::storage::AttributeStorage;
 use crate::dom::node::{Node, NodeTraits, PrecedingNodeIterator, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
@@ -210,7 +210,7 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
 
     fn attributes(&self) -> impl Iterator<Item = Self::Attribute> {
         struct AttributeIterator<'a> {
-            attributes: Ref<'a, [Dom<Attr>]>,
+            attributes: &'a AttributeStorage,
             position: usize,
         }
 
@@ -218,19 +218,21 @@ impl xpath::Element for XPathWrapper<DomRoot<Element>> {
             type Item = XPathWrapper<DomRoot<Attr>>;
 
             fn next(&mut self) -> Option<Self::Item> {
-                let attribute = self.attributes.get(self.position)?;
+                let entries = self.attributes.borrow();
+                let entry = entries.get(self.position)?;
                 self.position += 1;
-                Some(attribute.as_rooted().into())
+                Some(DomRoot::from_ref(entry.as_attr().unwrap()).into())
             }
 
             fn size_hint(&self) -> (usize, Option<usize>) {
-                let exact_length = self.attributes.len() - self.position;
+                let exact_length = self.attributes.borrow().len() - self.position;
                 (exact_length, Some(exact_length))
             }
         }
 
+        // XPath needs full DOM attribute nodes.
         AttributeIterator {
-            attributes: self.0.attrs(),
+            attributes: self.0.dom_attrs(),
             position: 0,
         }
     }
@@ -273,13 +275,13 @@ impl xpath::Attribute for XPathWrapper<DomRoot<Attr>> {
 }
 
 impl xpath::NamespaceResolver for XPathWrapper<Rc<XPathNSResolver>> {
+    #[expect(unsafe_code)]
     fn resolve_namespace_prefix(&self, prefix: &str) -> Option<String> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         self.0
-            .LookupNamespaceURI__(
-                Some(DOMString::from(prefix)),
-                ExceptionHandling::Report,
-                CanGc::deprecated_note(),
-            )
+            .LookupNamespaceURI__(cx, Some(DOMString::from(prefix)), ExceptionHandling::Report)
             .ok()
             .flatten()
             .map(String::from)

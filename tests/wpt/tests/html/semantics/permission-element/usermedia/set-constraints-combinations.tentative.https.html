@@ -73,7 +73,14 @@
           usermedia.onstream = resolve;
         });
 
-        usermedia.setConstraints({ video: video, audio: audio });
+        const constraints = {};
+        if (video !== undefined) {
+          constraints.video = video ? {} : undefined;
+        }
+        if (audio !== undefined) {
+          constraints.audio = audio ? {} : undefined;
+        }
+        usermedia.setConstraints(constraints);
 
         // should_trigger is true if the element has at least one permission descriptor.
         const should_trigger = (type !== null) || (video === true) || (audio === true);

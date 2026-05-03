@@ -128,7 +128,7 @@ pub(crate) fn import_key(
             extractable,
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
             usages,
-            Handle::HkdfSecret(key_data.to_vec()),
+            Handle::HkdfSecret(key_data.to_vec().into()),
         );
 
         // Step 2.8. Return key.

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/507078575">
+<link rel=match href="customizable-select-listbox-appearance-grid-ref.html">
+
+<select size=4>
+  <option selected>one</option>
+  <option>two</option>
+  <option>three</option>
+  <option>four</option>
+</select>
+
+<style>
+select {
+  appearance: base-select;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+</style>

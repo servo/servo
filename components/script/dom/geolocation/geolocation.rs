@@ -5,6 +5,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::gc::HandleValue;
 use js::jsapi::IsCallable;
 use rustc_hash::FxHashSet;
@@ -75,11 +76,11 @@ impl Geolocation {
     /// <https://www.w3.org/TR/geolocation/#dfn-request-a-position>
     fn request_position(
         &self,
+        cx: &mut JSContext,
         _success_callback: Rc<PositionCallback<DomTypeHolder>>,
         error_callback: Option<Rc<PositionErrorCallback<DomTypeHolder>>>,
         _options: &PositionOptions,
         watch_id: Option<u32>,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // Step 1. Let watchIDs be geolocation's [[watchIDs]].
         // Step 2. Let document be the geolocation's relevant global object's associated Document.
@@ -92,16 +93,12 @@ impl Geolocation {
             }
             // Step 3.2. Call back with error passing errorCallback and PERMISSION_DENIED.
             if let Some(error_callback) = error_callback {
-                error_callback.Call_(
-                    self,
-                    &GeolocationPositionError::permission_denied(
-                        &self.global(),
-                        DOMString::from("User denied Geolocation".to_string()),
-                        can_gc,
-                    ),
-                    ExceptionHandling::Report,
-                    can_gc,
-                )?;
+                let position_error = GeolocationPositionError::permission_denied(
+                    &self.global(),
+                    DOMString::from("User denied Geolocation".to_string()),
+                    CanGc::from_cx(cx),
+                );
+                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
             // Step 3.3 Terminate this algorithm.
             return Ok(());
@@ -114,16 +111,12 @@ impl Geolocation {
             }
             // Step 4.2. Call back with error passing errorCallback and PERMISSION_DENIED.
             if let Some(error_callback) = error_callback {
-                error_callback.Call_(
-                    self,
-                    &GeolocationPositionError::permission_denied(
-                        &self.global(),
-                        DOMString::from("Insecure context for Geolocation".to_string()),
-                        can_gc,
-                    ),
-                    ExceptionHandling::Report,
-                    can_gc,
-                )?;
+                let position_error = GeolocationPositionError::permission_denied(
+                    &self.global(),
+                    DOMString::from("Insecure context for Geolocation".to_string()),
+                    CanGc::from_cx(cx),
+                );
+                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
             // Step 4.3 Terminate this algorithm.
             return Ok(());
@@ -139,59 +132,49 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
     /// <https://www.w3.org/TR/geolocation/#dom-geolocation-getcurrentposition>
     fn GetCurrentPosition(
         &self,
-        context: SafeJSContext,
+        cx: &mut JSContext,
         success_callback: Rc<PositionCallback<DomTypeHolder>>,
         error_callback: HandleValue,
         options: &PositionOptions,
-        can_gc: CanGc,
     ) -> Fallible<()> {
-        let error_callback = cast_error_callback(context, error_callback)?;
+        let error_callback = cast_error_callback(cx.into(), error_callback)?;
         // Step 1. If this's relevant global object's associated Document is not fully active:
         if !self.global().as_window().Document().is_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
             if let Some(error_callback) = error_callback {
-                error_callback.Call_(
-                    self,
-                    &GeolocationPositionError::position_unavailable(
-                        &self.global(),
-                        DOMString::from("Document is not fully active".to_string()),
-                        can_gc,
-                    ),
-                    ExceptionHandling::Report,
-                    can_gc,
-                )?;
+                let position_error = GeolocationPositionError::position_unavailable(
+                    &self.global(),
+                    DOMString::from("Document is not fully active".to_string()),
+                    CanGc::from_cx(cx),
+                );
+                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
             // Step 1.2 Terminate this algorithm.
             return Ok(());
         }
         // Step 2. Request a position passing this, successCallback, errorCallback, and options.
-        self.request_position(success_callback, error_callback, options, None, can_gc)
+        self.request_position(cx, success_callback, error_callback, options, None)
     }
 
     /// <https://www.w3.org/TR/geolocation/#watchposition-method>
     fn WatchPosition(
         &self,
-        context: SafeJSContext,
+        cx: &mut JSContext,
         success_callback: Rc<PositionCallback<DomTypeHolder>>,
         error_callback: HandleValue,
         options: &PositionOptions,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
-        let error_callback = cast_error_callback(context, error_callback)?;
+        let error_callback = cast_error_callback(cx.into(), error_callback)?;
         // Step 1. If this's relevant global object's associated Document is not fully active:
         if !self.global().as_window().Document().is_active() {
             // Step 1.1 Call back with error errorCallback and POSITION_UNAVAILABLE.
             if let Some(error_callback) = error_callback {
-                error_callback.Call_(
-                    self,
-                    &GeolocationPositionError::position_unavailable(
-                        &self.global(),
-                        DOMString::from("Document is not fully active".to_string()),
-                        can_gc,
-                    ),
-                    ExceptionHandling::Report,
-                    can_gc,
-                )?;
+                let position_error = GeolocationPositionError::position_unavailable(
+                    &self.global(),
+                    DOMString::from("Document is not fully active".to_string()),
+                    CanGc::from_cx(cx),
+                );
+                error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report)?;
             }
             // Step 1.2 Return 0.
             return Ok(0);
@@ -203,11 +186,11 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
         self.watch_ids.borrow_mut().insert(watch_id);
         // Step 4. Request a position passing this, successCallback, errorCallback, options, and watchId.
         self.request_position(
+            cx,
             success_callback,
             error_callback,
             options,
             Some(watch_id),
-            can_gc,
         )?;
         // Step 5. Return watchId.
         Ok(watch_id as i32)

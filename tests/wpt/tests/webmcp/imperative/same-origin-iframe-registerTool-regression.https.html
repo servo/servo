@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>same-origin registerTool() regression test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  await load_promise;
+
+  const iframe_navigator = iframe.contentWindow.navigator;
+
+  // Should not throw!
+  iframe_navigator.modelContext.registerTool({
+    name: 'connected_tool',
+    description: 'Tool registered in connected frame',
+    execute: async () => 'hello'
+  });
+}, 'registerTool() does not throw in connected same-origin iframe navigated away of about:blank');
+</script>
+</body>
+</html>

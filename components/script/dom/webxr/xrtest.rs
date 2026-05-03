@@ -9,6 +9,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsval::JSVal;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use servo_base::generic_channel::GenericSender;
@@ -176,15 +177,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
+    fn SimulateUserActivation(&self, cx: &mut JSContext, f: Rc<Function>) {
         let _guard = ScriptThread::user_interacting_guard();
-        rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-        let _ = f.Call__(
-            vec![],
-            value.handle_mut(),
-            ExceptionHandling::Rethrow,
-            can_gc,
-        );
+        rooted!(&in(cx) let mut value: JSVal);
+        let _ = f.Call__(cx, vec![], value.handle_mut(), ExceptionHandling::Rethrow);
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>

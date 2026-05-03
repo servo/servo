@@ -36,11 +36,13 @@
 
       assert_not_equals(window.scrollY, pos1,
             "Position before first promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_true(result1.interrupted, "Interruption bit in first promise");
       assert_not_equals(window.scrollY, pos1,
             "Position after first promise wait");
 
-      await promise2;
+      const result2 = await promise2;
+      assert_false(result2.interrupted, "Interruption bit in second promise");
       assert_equals(window.scrollY, pos2,
             "Position after interrupting promise wait");
     }, `Window.scrollTo: interruption by ${interrupt_behavior} scroll call`);
@@ -57,11 +59,13 @@
 
       assert_not_equals(window.scrollY, pos1,
             "Position before first promise wait");
-      await promise1;
+      const result1 = await promise1;
+      assert_true(result1.interrupted, "Interruption bit in first promise");
       assert_not_equals(window.scrollY, pos1,
             "Position after first promise wait");
 
-      await promise2;
+      const result2 = await promise2;
+      assert_false(result2.interrupted, "Interruption bit in second promise");
       assert_equals(window.scrollY, pos2,
             "Position after interrupting promise wait");
     }, `Window.scrollBy: interruption by ${interrupt_behavior} scroll call`);

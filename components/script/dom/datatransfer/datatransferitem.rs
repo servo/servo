@@ -6,6 +6,7 @@ use std::cell::{Cell, Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -13,13 +14,12 @@ use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DataTransferItem {
@@ -51,15 +51,15 @@ impl DataTransferItem {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         data_store: Rc<RefCell<Option<DragDataStore>>>,
         id: u16,
-        can_gc: CanGc,
     ) -> DomRoot<DataTransferItem> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(DataTransferItem::new_inherited(data_store, id)),
             global,
-            can_gc,
+            cx,
         )
     }
 
@@ -126,14 +126,14 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                     let maybe_index = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id);
                     if let Some(index) = maybe_index {
                         let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
-                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report, CanGc::from_cx(cx));
+                        let _ = callback.Call__(cx, DOMString::from(string), ExceptionHandling::Report);
                     }
                 }));
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile>
-    fn GetAsFile(&self, can_gc: CanGc) -> Option<DomRoot<File>> {
+    fn GetAsFile(&self, cx: &mut JSContext) -> Option<DomRoot<File>> {
         // Step 1 If the DataTransferItem object is not in the read/write mode or the read-only mode, then return null.
         if !self.can_read() {
             return None;
@@ -143,6 +143,6 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         // Step 3 Return a new File object representing the actual data
         // of the item represented by the DataTransferItem object.
         self.item_kind()
-            .and_then(|item| item.as_file(&self.global(), can_gc))
+            .and_then(|item| item.as_file(cx, &self.global()))
     }
 }

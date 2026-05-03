@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>getTools() in detached frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await load_promise;
+
+  const iDOMException = iframe.contentWindow.DOMException;
+  const iframe_modelContext = iframe.contentWindow.navigator.modelContext;
+  iframe.remove();
+
+  await promise_rejects_dom(t, 'InvalidStateError', iDOMException, iframe_modelContext.getTools());
+}, 'getTools() throws `InvalidStateError` in detached frame');
+</script>
+</body>
+</html>

@@ -177,7 +177,7 @@ pub(crate) fn import_key(
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
-        Handle::Argon2Password(key_data.to_vec()),
+        Handle::Argon2Password(key_data.to_vec().into()),
     );
 
     // Step 10. Return key.

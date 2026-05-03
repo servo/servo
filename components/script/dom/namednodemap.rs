@@ -39,15 +39,17 @@ impl NamedNodeMap {
 impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-length>
     fn Length(&self) -> u32 {
-        self.owner.attrs().len() as u32
+        self.owner.attrs().borrow().len() as u32
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-item>
     fn Item(&self, index: u32) -> Option<DomRoot<Attr>> {
-        self.owner
-            .attrs()
-            .get(index as usize)
-            .map(|js| DomRoot::from_ref(&**js))
+        let index: usize = index as _;
+        if self.owner.attrs().borrow().len() < index {
+            None
+        } else {
+            Some(self.owner.attrs().ensure_dom(index, &self.owner))
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem>
@@ -92,7 +94,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     ) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
-            .remove_attribute_by_name(&name, CanGc::from_cx(cx))
+            .remove_attribute_by_name(cx, &name)
             .ok_or(Error::NotFound(None))
     }
 
@@ -105,7 +107,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
-            .remove_attribute(&ns, &LocalName::from(local_name), CanGc::from_cx(cx))
+            .remove_attribute(cx, &ns, &LocalName::from(local_name))
             .ok_or(Error::NotFound(None))
     }
 
@@ -123,7 +125,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         let mut names = vec![];
         let html_element_in_html_document = self.owner.html_element_in_html_document();
-        for attr in self.owner.attrs().iter() {
+        for attr in self.owner.attrs().borrow().iter() {
             let s = &**attr.name();
             if html_element_in_html_document && !s.bytes().all(|b| b.to_ascii_lowercase() == b) {
                 continue;

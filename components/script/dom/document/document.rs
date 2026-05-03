@@ -28,6 +28,7 @@ use encoding_rs::{Encoding, UTF_8};
 use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
     PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
@@ -134,6 +135,7 @@ use crate::dom::documentorshadowroot::{
 use crate::dom::documenttimeline::DocumentTimeline;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domimplementation::DOMImplementation;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -196,7 +198,6 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -490,6 +491,12 @@ pub(crate) struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
     /// Number of redirects for the document load
     redirect_count: Cell<u16>,
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectstart>
+    #[no_trace]
+    redirect_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-redirectend>
+    #[no_trace]
+    redirect_end: Cell<Option<CrossProcessInstant>>,
     /// Number of outstanding requests to prevent JS or layout from running.
     script_and_layout_blockers: Cell<u32>,
     /// List of tasks to execute as soon as last script/layout blocker is removed.
@@ -914,7 +921,7 @@ impl Document {
                 );
                 let event = event.upcast::<Event>();
                 event.set_trusted(true);
-                window.dispatch_event_with_target_override(event, CanGc::from_cx(cx));
+                window.dispatch_event_with_target_override(cx, event);
             }))
     }
 
@@ -1555,14 +1562,14 @@ impl Document {
 
     pub(crate) fn set_body_attribute(
         &self,
+        cx: &mut js::context::JSContext,
         local_name: &LocalName,
         value: DOMString,
-        can_gc: CanGc,
     ) {
         if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
-            body.set_attribute(local_name, value, can_gc);
+            body.set_attribute(cx, local_name, value);
         }
     }
 
@@ -1687,9 +1694,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
-        let _realm = enter_realm(self);
-
+    pub(crate) fn run_the_animation_frame_callbacks(&self, cx: &mut CurrentRealm) {
         self.running_animation_callbacks.set(true);
         let timing = self.global().performance().Now();
 
@@ -1697,7 +1702,7 @@ impl Document {
         for _ in 0..num_callbacks {
             let (_, maybe_callback) = self.animation_frame_list.borrow_mut().pop_front().unwrap();
             if let Some(callback) = maybe_callback {
-                callback.call(self, *timing, can_gc);
+                callback.call(cx, self, *timing);
             }
         }
         self.running_animation_callbacks.set(false);
@@ -1992,8 +1997,8 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
     pub(crate) fn check_if_unloading_is_cancelled(
         &self,
+        cx: &mut js::context::JSContext,
         recursive_flag: bool,
-        can_gc: CanGc,
     ) -> bool {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
@@ -2004,14 +2009,13 @@ impl Document {
             atom!("beforeunload"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
-        self.window
-            .dispatch_event_with_target_override(event, can_gc);
+        self.window.dispatch_event_with_target_override(cx, event);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
@@ -2039,7 +2043,7 @@ impl Document {
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                can_unload = document.check_if_unloading_is_cancelled(true, can_gc);
+                can_unload = document.check_if_unloading_is_cancelled(cx, true);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2074,8 +2078,7 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            self.window
-                .dispatch_event_with_target_override(event, CanGc::from_cx(cx));
+            self.window.dispatch_event_with_target_override(cx, event);
             // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(cx, DocumentVisibilityState::Hidden);
         }
@@ -2091,8 +2094,7 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
-            self.window
-                .dispatch_event_with_target_override(&event, CanGc::from_cx(cx));
+            self.window.dispatch_event_with_target_override(cx, &event);
             self.fired_unload.set(true);
             // Step 9
             if has_listeners {
@@ -2231,7 +2233,7 @@ impl Document {
                 );
                 load_event.set_trusted(true);
                 debug!("About to dispatch load for {:?}", document.url());
-                window.dispatch_event_with_target_override(&load_event, CanGc::from_cx(cx));
+                window.dispatch_event_with_target_override(cx, &load_event);
 
                 // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
                 // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID
@@ -3024,7 +3026,7 @@ impl Document {
     #[expect(clippy::redundant_iter_cloned)]
     pub(crate) fn broadcast_active_resize_observations(
         &self,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> ResizeObservationDepth {
         let mut shallowest = ResizeObservationDepth::max();
         // Breaking potential re-borrow cycle on `resize_observers`:
@@ -3038,7 +3040,7 @@ impl Document {
             .map(|obs| DomRoot::from_ref(&*obs))
             .collect();
         for observer in iterator {
-            observer.broadcast_active_resize_observations(&mut shallowest, can_gc);
+            observer.broadcast_active_resize_observations(cx, &mut shallowest);
         }
         shallowest
     }
@@ -3135,21 +3137,21 @@ impl Document {
     /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     pub(crate) fn update_intersection_observer_steps(
         &self,
+        cx: &mut js::context::JSContext,
         time: CrossProcessInstant,
-        can_gc: CanGc,
     ) {
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {
-            self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
+            self.update_single_intersection_observer_steps(cx, intersection_observer, time);
         }
     }
 
     /// Step 2.1-2.2 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     fn update_single_intersection_observer_steps(
         &self,
+        cx: &mut js::context::JSContext,
         intersection_observer: &IntersectionObserver,
         time: CrossProcessInstant,
-        can_gc: CanGc,
     ) {
         // Step 1
         // > Let rootBounds be observer’s root intersection rectangle.
@@ -3158,16 +3160,11 @@ impl Document {
         // Step 2
         // > For each target in observer’s internal [[ObservationTargets]] slot,
         // > processed in the same order that observe() was called on each target:
-        intersection_observer.update_intersection_observations_steps(
-            self,
-            time,
-            root_bounds,
-            can_gc,
-        );
+        intersection_observer.update_intersection_observations_steps(cx, self, time, root_bounds);
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
-    pub(crate) fn notify_intersection_observers(&self, can_gc: CanGc) {
+    pub(crate) fn notify_intersection_observers(&self, cx: &mut js::context::JSContext) {
         // Step 1
         // > Set document’s IntersectionObserverTaskQueued flag to false.
         self.intersection_observer_task_queued.set(false);
@@ -3182,7 +3179,7 @@ impl Document {
         // > For each IntersectionObserver object observer in notify list, run these steps:
         for intersection_observer in notify_list.iter() {
             // Step 3.1-3.5
-            intersection_observer.invoke_callback_if_necessary(can_gc);
+            intersection_observer.invoke_callback_if_necessary(cx);
         }
     }
 
@@ -3206,7 +3203,7 @@ impl Document {
             .task_manager()
             .intersection_observer_task_source()
             .queue(task!(notify_intersection_observers: move |cx| {
-                document.root().notify_intersection_observers(CanGc::from_cx(cx));
+                document.root().notify_intersection_observers(cx);
             }));
     }
 
@@ -3607,6 +3604,8 @@ impl Document {
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             redirect_count: Cell::new(0),
+            redirect_start: Cell::new(None),
+            redirect_end: Cell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),
             delayed_tasks: Default::default(),
@@ -3863,6 +3862,22 @@ impl Document {
         self.redirect_count.set(count)
     }
 
+    pub(crate) fn get_redirect_start(&self) -> Option<CrossProcessInstant> {
+        self.redirect_start.get()
+    }
+
+    pub(crate) fn set_redirect_start(&self, time: Option<CrossProcessInstant>) {
+        self.redirect_start.set(time)
+    }
+
+    pub(crate) fn get_redirect_end(&self) -> Option<CrossProcessInstant> {
+        self.redirect_end.get()
+    }
+
+    pub(crate) fn set_redirect_end(&self, time: Option<CrossProcessInstant>) {
+        self.redirect_end.set(time)
+    }
+
     pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
         if name.is_empty() {
             return 0;
@@ -4016,7 +4031,7 @@ impl Document {
         })
     }
 
-    pub(crate) fn element_attr_will_change(&self, el: &Element, attr: &Attr) {
+    pub(crate) fn element_attr_will_change(&self, el: &Element, attr: AttrRef<'_>) {
         // FIXME(emilio): Kind of a shame we have to duplicate this.
         //
         // I'm getting rid of the whole hashtable soon anyway, since all it does
@@ -4055,6 +4070,7 @@ impl Document {
         if snapshot.attrs.is_none() {
             let attrs = el
                 .attrs()
+                .borrow()
                 .iter()
                 .map(|attr| (attr.identifier().clone(), attr.value().clone()))
                 .collect();
@@ -4347,7 +4363,7 @@ impl Document {
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn update_animations_and_send_events(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn update_animations_and_send_events(&self, cx: &mut CurrentRealm) {
         // Only update the time if it isn't being managed by a test.
         if !self.layout_animations_test_enabled {
             self.timeline.update(self.window());
@@ -4368,9 +4384,7 @@ impl Document {
         self.window().perform_a_microtask_checkpoint(cx);
 
         // Steps 4 through 7 occur inside `send_pending_events().`
-        let _realm = enter_realm(self);
-        self.animations()
-            .send_pending_events(self.window(), CanGc::from_cx(cx));
+        self.animations().send_pending_events(self.window(), cx);
     }
 
     pub(crate) fn image_animation_manager(&self) -> Ref<'_, ImageAnimationManager> {
@@ -5702,8 +5716,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-bgcolor>
-    fn SetBgColor(&self, value: DOMString, can_gc: CanGc) {
-        self.set_body_attribute(&local_name!("bgcolor"), value, can_gc)
+    fn SetBgColor(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        self.set_body_attribute(cx, &local_name!("bgcolor"), value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
@@ -5712,8 +5726,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
-    fn SetFgColor(&self, value: DOMString, can_gc: CanGc) {
-        self.set_body_attribute(&local_name!("text"), value, can_gc)
+    fn SetFgColor(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        self.set_body_attribute(cx, &local_name!("text"), value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
@@ -6151,8 +6165,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
-    fn QueryCommandIndeterm(&self, command_id: DOMString) -> bool {
-        self.is_command_indeterminate(command_id)
+    fn QueryCommandIndeterm(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
+        self.is_command_indeterminate(cx, command_id)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
@@ -6339,7 +6353,7 @@ pub(crate) enum AnimationFrameCallback {
 }
 
 impl AnimationFrameCallback {
-    fn call(&self, document: &Document, now: f64, can_gc: CanGc) {
+    fn call(&self, cx: &mut js::context::JSContext, document: &Document, now: f64) {
         match *self {
             AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
                 let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
@@ -6349,7 +6363,7 @@ impl AnimationFrameCallback {
             AnimationFrameCallback::FrameRequestCallback { ref callback } => {
                 // TODO(jdm): The spec says that any exceptions should be suppressed:
                 // https://github.com/servo/servo/issues/6928
-                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report, can_gc);
+                let _ = callback.Call__(cx, Finite::wrap(now), ExceptionHandling::Report);
             },
         }
     }

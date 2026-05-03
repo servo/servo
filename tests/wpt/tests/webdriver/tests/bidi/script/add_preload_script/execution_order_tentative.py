@@ -71,7 +71,6 @@ async def test_preload_script_properties_available_immediately(
     try:
         if access_type == "data_url":
             # ensure the inline script was executed
-            # currently this times out in Chrome when create_type is "popup"
             await wait_for_future_safe(on_loaded)
 
         if access_type == "current_context_with_url" or access_type == "current_context_without_url" or access_type == "current_context_with_non_blank_url":

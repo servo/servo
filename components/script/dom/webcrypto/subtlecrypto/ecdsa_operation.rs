@@ -1032,7 +1032,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.to_vec())
+            ExportedKey::new_bytes(data.to_vec())
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
@@ -1093,16 +1093,15 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             .map_err(|_| Error::Operation(None))?;
 
             // Step 3.3. Let result be the result of DER-encoding data.
-            ExportedKey::Bytes(data.as_bytes().to_vec())
+            ExportedKey::new_bytes(data.as_bytes().to_vec())
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to "EC".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("EC")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("EC"));
 
             // Step 3.3.
             let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
@@ -1212,7 +1211,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 3.4. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -1254,7 +1253,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // Otherwise:
         _ => {

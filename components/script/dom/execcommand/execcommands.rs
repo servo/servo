@@ -117,14 +117,19 @@ impl Document {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
         Some(match &*command_id.str().to_lowercase() {
+            "backcolor" => CommandName::BackColor,
             "bold" => CommandName::Bold,
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
             "fontname" => CommandName::FontName,
             "fontsize" => CommandName::FontSize,
+            "forecolor" => CommandName::ForeColor,
+            "hilitecolor" => CommandName::HiliteColor,
             "italic" => CommandName::Italic,
             "strikethrough" => CommandName::Strikethrough,
             "stylewithcss" => CommandName::StyleWithCss,
+            "subscript" => CommandName::Subscript,
+            "superscript" => CommandName::Superscript,
             "underline" => CommandName::Underline,
             _ => return None,
         })
@@ -133,7 +138,7 @@ impl Document {
 
 pub(crate) trait DocumentExecCommandSupport {
     fn is_command_supported(&self, command_id: DOMString) -> bool;
-    fn is_command_indeterminate(&self, command_id: DOMString) -> bool;
+    fn is_command_indeterminate(&self, cx: &mut JSContext, command_id: DOMString) -> bool;
     fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool;
     fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString;
     fn check_support_and_enabled(
@@ -156,11 +161,11 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
-    fn is_command_indeterminate(&self, command_id: DOMString) -> bool {
+    fn is_command_indeterminate(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
         // Step 1. If command is not supported or has no indeterminacy, return false.
         // Step 2. Return true if command is indeterminate, otherwise false.
         self.command_if_command_is_supported(&command_id)
-            .is_some_and(|command| command.is_indeterminate())
+            .is_some_and(|command| command.is_indeterminate(cx, self))
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>

@@ -41,7 +41,7 @@ use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_runtime::IntroductionType;
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
@@ -825,13 +825,7 @@ impl JsTimerTask {
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
                 rooted!(&in(cx) let mut value: JSVal);
-                let _ = function.Call_(
-                    this,
-                    arguments,
-                    value.handle_mut(),
-                    Report,
-                    CanGc::from_cx(cx),
-                );
+                let _ = function.Call_(cx, this, arguments, value.handle_mut(), Report);
             },
         };
 

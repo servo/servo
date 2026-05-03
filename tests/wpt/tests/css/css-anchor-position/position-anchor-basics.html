@@ -11,6 +11,7 @@
 
 <div id="container">
   <div id="target"></div>
+  <div id="popover" popover></div>
 </div>
 
 <script>
@@ -33,6 +34,15 @@ test_computed_value('position-anchor', '--foo');
 // Initial: none
 // Inherited: no
 assert_not_inherited('position-anchor', 'none', '--foo');
+
+// Previous resolution added `position-anchor: auto` to popovers in
+// the UA stylesheet, but that is no longer required. See:
+// https://github.com/w3c/csswg-drafts/issues/13067#issuecomment-3525018605
+// https://github.com/w3c/csswg-drafts/issues/13067#issuecomment-4239954367
+test(() => {
+  popover.style['position-anchor'] = 'initial';
+  assert_equals(getComputedStyle(popover)['position-anchor'], 'normal');
+}, 'Property position-anchor has initial value normal in popovers');
 
 // Animation type: discrete
 test_no_interpolation({

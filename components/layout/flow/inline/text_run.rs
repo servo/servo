@@ -15,6 +15,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::text::is_bidi_control;
 use style::Zero;
+use style::computed_values::font_kerning::T as FontKerning;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
@@ -67,6 +68,8 @@ pub(crate) struct FontAndScriptInfo {
     pub word_spacing: Option<Au>,
     /// The [`TextRendering`] value from the original style.
     pub text_rendering: TextRendering,
+    /// The value of the `font-kerning` property from the original style.
+    pub kerning: FontKerning,
 }
 
 impl FontAndScriptInfo {
@@ -82,6 +85,7 @@ impl FontAndScriptInfo {
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
+            kerning: FontKerning::Auto,
         }
     }
 }
@@ -106,6 +110,12 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
         }
+
+        // We currently always leave kerning enabled for "font-kerning: auto".
+        if info.kerning == FontKerning::None {
+            flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG);
+        }
+
         Self {
             letter_spacing,
             word_spacing: info.word_spacing,
@@ -450,6 +460,7 @@ impl TextRun {
         let font_style = parent_style.clone_font();
         let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
         let font_size = font_style.font_size.computed_size().into();
+        let kerning = font_style.font_kerning;
         let font_group = layout_context.font_context.font_group(font_style);
         let inherited_text_style = parent_style.get_inherited_text();
         let word_spacing = Some(inherited_text_style.word_spacing.to_used_value(font_size));
@@ -534,6 +545,7 @@ impl TextRun {
                 word_spacing,
                 letter_spacing,
                 text_rendering,
+                kerning,
             };
 
             finish_current_segment(&mut current, &mut results);

@@ -5,9 +5,11 @@
 use std::cmp::Ordering;
 use std::ops::Deref;
 
+use cssparser::color::OPAQUE;
 use html5ever::local_name;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
+use style::attr::parse_legacy_color;
 use style::values::specified::box_::DisplayOutside;
 
 use crate::dom::abstractrange::bp_position;
@@ -21,6 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
+use crate::dom::execcommand::commands::forecolor::serialize_to_simple_color;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -28,7 +31,6 @@ use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::text::Text;
-use crate::script_runtime::CanGc;
 
 pub(crate) enum NodeOrString {
     String(String),
@@ -433,7 +435,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
         };
         // Step 7.2. If original parent has an id attribute, unset it.
         if let Some(element) = original_parent.downcast::<Element>() {
-            element.remove_attribute_by_name(&local_name!("id"), CanGc::from_cx(cx));
+            element.remove_attribute_by_name(cx, &local_name!("id"));
         }
         // Step 7.3. Insert cloned parent into the parent of original parent immediately before original parent.
         if parent_of_original_parent
@@ -1218,8 +1220,10 @@ impl Node {
                 },
                 // Step 10.3. If command is "strikethrough" and new value is "line-through",
                 // let new parent be the result of calling createElement("s") on the ownerDocument of node.
+                //
+                // Despite what the spec says, all browsers generate a strike element instead
                 CommandName::Strikethrough => {
-                    new_parent = Some(document.create_element(cx, "s"));
+                    new_parent = Some(document.create_element(cx, "strike"));
                 },
                 // Step 10.4. If command is "underline" and new value is "underline",
                 // let new parent be the result of calling createElement("u") on the ownerDocument of node.
@@ -1229,7 +1233,20 @@ impl Node {
                 // Step 10.5. If command is "foreColor", and new value is fully opaque with
                 // red, green, and blue components in the range 0 to 255:
                 CommandName::ForeColor => {
-                    // TODO
+                    if let Ok(legacy_color) = parse_legacy_color(&new_value.str()) {
+                        if legacy_color.alpha() == Some(OPAQUE) {
+                            // Step 10.5.1. Let new parent be the result of calling createElement("font") on the ownerDocument of node.
+                            let new_font_element = document.create_element(cx, "font");
+                            // Step 10.5.2. Set the color attribute of new parent to the result of applying the rules for
+                            // serializing simple color values to new value (interpreted as a simple color).
+                            new_font_element.set_string_attribute(
+                                cx,
+                                &local_name!("color"),
+                                serialize_to_simple_color(legacy_color),
+                            );
+                            new_parent = Some(new_font_element);
+                        }
+                    }
                 },
                 // Step 10.6. If command is "fontName",
                 // let new parent be the result of calling createElement("font") on the ownerDocument of node,
@@ -1237,9 +1254,9 @@ impl Node {
                 CommandName::FontName => {
                     let new_font_element = document.create_element(cx, "font");
                     new_font_element.set_string_attribute(
+                        cx,
                         &local_name!("face"),
                         new_value.clone(),
-                        CanGc::from_cx(cx),
                     );
                     new_parent = Some(new_font_element);
                 },
@@ -1255,28 +1272,22 @@ impl Node {
             // and either the CSS styling flag is false, or new value is "xxx-large":
             // let new parent be the result of calling createElement("font") on the ownerDocument of node,
             // then set the size attribute of new parent to the number from the following table based on new value:
-            CommandName::FontSize => {
-                if !css_styling_flag || new_value == "xxx-large" {
-                    let size = match &*new_value.str() {
-                        "x-small" => 1,
-                        "small" => 2,
-                        "medium" => 3,
-                        "large" => 4,
-                        "x-large" => 5,
-                        "xx-large" => 6,
-                        "xxx-large" => 7,
-                        _ => 0,
-                    };
+            CommandName::FontSize if !css_styling_flag || new_value == "xxx-large" => {
+                let size = match &*new_value.str() {
+                    "x-small" => 1,
+                    "small" => 2,
+                    "medium" => 3,
+                    "large" => 4,
+                    "x-large" => 5,
+                    "xx-large" => 6,
+                    "xxx-large" => 7,
+                    _ => 0,
+                };
 
-                    if size > 0 {
-                        let new_font_element = document.create_element(cx, "font");
-                        new_font_element.set_int_attribute(
-                            &local_name!("size"),
-                            size,
-                            CanGc::from_cx(cx),
-                        );
-                        new_parent = Some(new_font_element);
-                    }
+                if size > 0 {
+                    let new_font_element = document.create_element(cx, "font");
+                    new_font_element.set_int_attribute(cx, &local_name!("size"), size);
+                    new_parent = Some(new_font_element);
                 }
             },
             CommandName::Subscript | CommandName::Superscript => {
@@ -1321,6 +1332,7 @@ impl Node {
                 css_property.set_for_element(cx, new_parent_html_element, new_value.clone());
             }
         }
+        #[expect(clippy::collapsible_match, reason = "That would be unreadable.")]
         match command {
             // Step 18. If command is "strikethrough", and new value is "line-through",
             // and the effective command value of "strikethrough" for new parent is not "line-through",
@@ -2058,10 +2070,17 @@ impl Node {
             CommandName::BackColor | CommandName::HiliteColor => {
                 // Step 4.1. While the resolved value of "background-color" on node is any fully transparent value,
                 // and node's parent is an Element, set node to its parent.
-                // TODO
-                // Step 4.2. Return the resolved value of "background-color" for node.
-                // TODO
-                None
+                let mut current_element = Some(DomRoot::from_ref(element));
+                while let Some(element) = current_element {
+                    if let Some(background_color) =
+                        CssPropertyName::BackgroundColor.resolved_value_for_node(&element)
+                    {
+                        // Step 4.2. Return the resolved value of "background-color" for node.
+                        return Some(background_color);
+                    }
+                    current_element = element.upcast::<Node>().GetParentElement();
+                }
+                Some("rgba(0, 0, 0, 0)".into())
             },
             // Step 5. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {
@@ -2075,12 +2094,14 @@ impl Node {
                     if !node.is_inline_node() {
                         break;
                     }
-                    // Step 5.2.1. If node is a sub, set affected by subscript to true.
-                    if *element.local_name() == local_name!("sub") {
-                        affected_by_subscript = true;
-                    } else if *element.local_name() == local_name!("sup") {
-                        // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
-                        affected_by_superscript = true;
+                    if let Some(element) = node.downcast::<Element>() {
+                        // Step 5.2.1. If node is a sub, set affected by subscript to true.
+                        if *element.local_name() == local_name!("sub") {
+                            affected_by_subscript = true;
+                        } else if *element.local_name() == local_name!("sup") {
+                            // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
+                            affected_by_superscript = true;
+                        }
                     }
                     // Step 5.2.3. Set node to its parent.
                     current_node = node.GetParentNode();

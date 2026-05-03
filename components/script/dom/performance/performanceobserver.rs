@@ -81,20 +81,20 @@ impl PerformanceObserver {
 
     /// Trigger performance observer callback with the list of performance entries
     /// buffered since the last callback call.
-    pub(crate) fn notify(&self, can_gc: CanGc) {
+    pub(crate) fn notify(&self, cx: &mut js::context::JSContext) {
         if self.entries.borrow().is_empty() {
             return;
         }
         let entry_list = PerformanceEntryList::new(self.entries.borrow_mut().drain(..).collect());
         let observer_entry_list =
-            PerformanceObserverEntryList::new(&self.global(), entry_list, can_gc);
+            PerformanceObserverEntryList::new(&self.global(), entry_list, CanGc::from_cx(cx));
         // using self both as thisArg and as the second formal argument
         let _ = self.callback.Call_(
+            cx,
             self,
             &observer_entry_list,
             self,
             ExceptionHandling::Report,
-            can_gc,
         );
     }
 

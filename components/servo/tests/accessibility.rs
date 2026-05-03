@@ -258,6 +258,78 @@ fn test_accessibility_basic_mapping() {
     );
 }
 
+#[test]
+fn test_accessibility_basic_name_from_contents() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        builder.preferences(preferences)
+    });
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html><h1>Servo</h1>").unwrap())
+        .build();
+
+    webview.set_accessibility_active(true);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let tree = build_tree(updates);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let first_child = root
+        .children()
+        .next()
+        .expect("Root web area should have at least one child.");
+    assert_eq!(first_child.role(), Role::Heading);
+    assert_eq!(first_child.label(), Some("Servo".to_owned()));
+}
+
+#[test]
+fn test_accessibility_name_from_contents_subtree() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        builder.preferences(preferences)
+    });
+    let url = "data:text/html,<!DOCTYPE html>\
+               <h1>Servo aims to empower <code>developers</code> with a <em>lightweight</em>, \
+               <strong>high-performance</strong> alternative for <span>embedding \
+               <span>web technologies</span> in <span>applications</span></span>.</h1>";
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(url).unwrap())
+        .build();
+
+    webview.set_accessibility_active(true);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let tree = build_tree(updates);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = root
+        .children()
+        .next()
+        .expect("Root web area should have at least one child.");
+    assert_eq!(heading.role(), Role::Heading);
+    let heading_children: Vec<accesskit_consumer::Node> = heading.children().collect();
+    assert_eq!(heading_children.len(), 9);
+    assert_eq!(
+        heading.label(),
+        Some(
+            "Servo aims to empower developers with a lightweight, high-performance alternative for \
+             embedding web technologies in applications."
+                .to_owned()
+        ),
+        "Heading label should be composed of the text contents of all of its descendant text nodes"
+    );
+}
+
 fn wait_for_min_updates(
     servo_test: &ServoTest,
     delegate: Rc<WebViewDelegateImpl>,

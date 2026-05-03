@@ -349,34 +349,44 @@ where
     /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
     pub(crate) fn clone_array_buffer(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         byte_offset: usize,
         byte_length: usize,
     ) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
         let result = match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
                 let mut is_shared = false;
-                rooted!(in(*cx) let view_buffer =
-                    unsafe { JS_GetArrayBufferViewBuffer(*cx, buffer.handle().into(), &mut is_shared) });
+                rooted!(&in(cx) let view_buffer =
+                    unsafe { JS_GetArrayBufferViewBuffer(cx.raw_cx(), buffer.handle().into(), &mut is_shared) });
                 debug_assert!(!is_shared);
 
                 unsafe {
-                    ArrayBufferClone(*cx, view_buffer.handle().into(), byte_offset, byte_length)
+                    ArrayBufferClone(
+                        cx.raw_cx(),
+                        view_buffer.handle().into(),
+                        byte_offset,
+                        byte_length,
+                    )
                 }
             },
             BufferSource::ArrayBuffer(buffer) => unsafe {
-                ArrayBufferClone(*cx, buffer.handle().into(), byte_offset, byte_length)
+                ArrayBufferClone(
+                    cx.raw_cx(),
+                    buffer.handle().into(),
+                    byte_offset,
+                    byte_length,
+                )
             },
         };
 
         if result.is_null() {
             // Normalize SpiderMonkey failure: consume pending exception and
             // map it to a DOM Error.
-            rooted!(in(*cx) let mut _ex = UndefinedValue());
+            rooted!(&in(cx) let mut _ex = UndefinedValue());
             unsafe {
                 // If SpiderMonkey set an exception, clear it so callers see a clean cx.
-                if JS_GetPendingException(*cx, _ex.handle_mut().into()) {
-                    JS_ClearPendingException(*cx);
+                if JS_GetPendingException(cx.raw_cx(), _ex.handle_mut().into()) {
+                    JS_ClearPendingException(cx.raw_cx());
                 }
             }
 
@@ -391,7 +401,7 @@ where
     #[expect(unsafe_code)]
     pub(crate) fn clone_as_uint8_array(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) => {
@@ -400,7 +410,7 @@ where
                 assert!(unsafe { JS_IsArrayBufferViewObject(*buffer.handle()) });
 
                 // Assert: ! IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is false.
-                assert!(!self.is_detached_buffer(cx));
+                assert!(!self.is_detached_buffer(cx.into()));
 
                 // Let buffer be ? CloneArrayBuffer(O.[[ViewedArrayBuffer]],
                 // O.[[ByteOffset]], O.[[ByteLength]], %ArrayBuffer%).
@@ -756,7 +766,7 @@ pub(crate) enum Constructor {
 }
 
 pub(crate) fn create_buffer_source_with_constructor(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     constructor: &Constructor,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
@@ -766,7 +776,7 @@ pub(crate) fn create_buffer_source_with_constructor(
         BufferSource::ArrayBuffer(heap) => match constructor {
             Constructor::DataView => Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
                 RootedTraceableBox::from_box(Heap::boxed(unsafe {
-                    JS_NewDataView(*cx, heap.handle().into(), byte_offset, byte_length)
+                    JS_NewDataView(cx.raw_cx(), heap.handle().into(), byte_offset, byte_length)
                 })),
             ))),
             Constructor::Name(name_type) => construct_typed_array(
@@ -785,7 +795,7 @@ pub(crate) fn create_buffer_source_with_constructor(
 
 /// Helper function to construct different TypedArray views
 fn construct_typed_array(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     name_type: &Type,
     buffer_source: &HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
@@ -796,73 +806,73 @@ fn construct_typed_array(
             let array_view = unsafe {
                 match name_type {
                     Type::Int8 => JS_NewInt8ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint8 => JS_NewUint8ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint16 => JS_NewUint16ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Int16 => JS_NewInt16ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Int32 => JS_NewInt32ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint32 => JS_NewUint32ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float32 => JS_NewFloat32ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float64 => JS_NewFloat64ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Uint8Clamped => JS_NewUint8ClampedArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::BigInt64 => JS_NewBigInt64ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::BigUint64 => JS_NewBigUint64ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
                     ),
                     Type::Float16 => JS_NewFloat16ArrayWithBuffer(
-                        *cx,
+                        cx.raw_cx(),
                         heap.handle().into(),
                         byte_offset,
                         byte_length,
@@ -884,15 +894,18 @@ fn construct_typed_array(
 }
 
 pub(crate) fn create_array_buffer_with_size(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     size: usize,
 ) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
-    let result = unsafe { NewArrayBuffer(*cx, size) };
+    let result = unsafe { NewArrayBuffer(cx.raw_cx(), size) };
     if result.is_null() {
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+        rooted!(&in(cx) let mut rval = UndefinedValue());
         unsafe {
-            assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
-            JS_ClearPendingException(*cx)
+            assert!(JS_GetPendingException(
+                cx.raw_cx(),
+                rval.handle_mut().into()
+            ));
+            JS_ClearPendingException(cx.raw_cx())
         };
 
         Err(Error::Type(c"can't create array buffer".to_owned()))

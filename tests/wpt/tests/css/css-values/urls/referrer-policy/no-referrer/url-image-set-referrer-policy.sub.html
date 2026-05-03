@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Request URL Modifiers: referrer-policy(no-referrer) in image-set()</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-referrer-policy-modifier">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="URL modifiers should apply to url() values inside image-set().">
+<style>
+.test {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  background-image: image-set(url("{{location[server]}}/css/css-values/urls/support/image-referrer-policy.py?expected_referrer=none" referrer-policy(no-referrer)) 1x);
+  background-size: 100px 100px;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="test"></div>

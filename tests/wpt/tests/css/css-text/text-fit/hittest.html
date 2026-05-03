@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<style>
+#target {
+  font: 20px/200% Ahem;
+  width: 160px;
+  text-fit: grow consistent;
+  white-space: pre;
+}
+</style>
+
+<div id="target">123
+4567</div>
+
+<script>
+promise_test(async () => {
+  const target = document.querySelector('#target');
+  const W = 40;
+  const H = 80;
+  await new test_driver.Actions()
+      .pointerMove(W * 2.1, H * 1.4, target)
+      .pointerDown()
+      .pointerMove(W * 3.9, H * 1.6, target)
+      .pointerUp()
+      .send();
+  assert_equals(getSelection().toString(), "67");
+}, 'Text selection by a pointer device should work correctly');
+</script>

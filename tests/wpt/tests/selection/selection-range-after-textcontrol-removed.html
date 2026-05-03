@@ -33,6 +33,7 @@ addEventListener("load", () => {
     document.body.appendChild(textControl);
     textControl.select();
     getSelection().removeAllRanges();
+    textControl.blur();
     textControl.remove();
     assert_equals(getSelection().rangeCount, 0);
   }, "Removing the text control should not add selection range");
@@ -45,6 +46,7 @@ addEventListener("load", () => {
     document.body.appendChild(wrapper);
     textControl.select();
     getSelection().removeAllRanges();
+    textControl.blur();
     wrapper.remove();
     assert_equals(getSelection().rangeCount, 0);
   }, "Removing the text control parent should not add selection range");

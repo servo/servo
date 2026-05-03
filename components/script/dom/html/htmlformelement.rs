@@ -27,7 +27,6 @@ use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
 use crate::body::Extractable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -56,6 +55,7 @@ use crate::dom::blob::Blob;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, AttributeMutationReason, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -372,7 +372,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-elements>
-    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLFormControlsCollection> {
+    fn Elements(&self, cx: &mut JSContext) -> DomRoot<HTMLFormControlsCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ElementsFilter {
             form: DomRoot<HTMLFormElement>,
@@ -435,35 +435,35 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 form: DomRoot::from_ref(self),
             });
             let window = self.owner_window();
-            HTMLFormControlsCollection::new(&window, self, filter, can_gc)
+            HTMLFormControlsCollection::new(cx, &window, self, filter)
         }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-length>
-    fn Length(&self) -> u32 {
-        self.Elements(CanGc::deprecated_note()).Length()
+    fn Length(&self, cx: &mut JSContext) -> u32 {
+        self.Elements(cx).Length()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-item>
-    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<Element>> {
-        let elements = self.Elements(can_gc);
+    fn IndexedGetter(&self, cx: &mut JSContext, index: u32) -> Option<DomRoot<Element>> {
+        let elements = self.Elements(cx);
         elements.IndexedGetter(index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property>
-    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<RadioNodeListOrElement> {
         let window = self.owner_window();
 
         let name = Atom::from(name);
 
         // Step 1
         let mut candidates =
-            RadioNodeList::new_controls_except_image_inputs(&window, self, &name, can_gc);
+            RadioNodeList::new_controls_except_image_inputs(cx, &window, self, &name);
         let mut candidates_length = candidates.Length();
 
         // Step 2
         if candidates_length == 0 {
-            candidates = RadioNodeList::new_images(&window, self, &name, can_gc);
+            candidates = RadioNodeList::new_images(cx, &window, self, &name);
             candidates_length = candidates.Length();
         }
 
@@ -505,15 +505,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
     fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(
-            &local_name!("rel"),
-            rel,
-            CanGc::from_cx(cx),
-        );
+        self.upcast::<Element>()
+            .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rellist>
-    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -523,7 +520,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         })
     }
@@ -1473,7 +1470,7 @@ impl Element {
 
     #[expect(unsafe_code)]
     pub(crate) fn reset(&self, _can_gc: CanGc) {
-        // TODO https://github.com/servo/servo/issues/43235
+        // TODO https://github.com/servo/servo/issues/44652
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
@@ -1929,7 +1926,7 @@ impl VirtualMethods for HTMLFormElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

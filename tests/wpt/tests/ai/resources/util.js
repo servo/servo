@@ -22,13 +22,13 @@ const kImageOptions = {
 
 const kValidAudioKeywords =
     ['audio', 'speech', 'sentence', 'single', 'segment'];
-const kValidCanvasImageKeywords = ['image', 'black', 'square', 'blank'];
+const kValidCanvasImageKeywords = ['image', 'red', 'green', 'blue', 'yellow', 'grid', 'color'];
 const kValidImageKeywords =
     ['image', 'computer', 'keyboard', 'desk', 'PC', 'monitor', 'screen'];
 const kValidSVGImageKeywords =
-    ['image', 'color', 'red', 'green', 'blue', 'black'];
+    ['image', 'red', 'green', 'blue', 'black'];
 const kValidVideoKeywords = [
-  'image', 'color', 'bip', 'black', 'white', 'yellow', 'green', 'blue', 'red',
+  'image', 'bip', 'black', 'white', 'yellow', 'green', 'blue', 'red',
   'video', 'screen'
 ];
 
@@ -343,4 +343,64 @@ function messageWithContent(prompt, type, value) {
     role: 'user',
     content: [{type: 'text', value: prompt}, {type: type, value: value}]
   }];
+}
+
+function createColorGridCanvas(width, height, isOffscreen = false) {
+  const canvas = isOffscreen
+    ? new OffscreenCanvas(width, height)
+    : document.createElement('canvas');
+
+  if (!isOffscreen) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  const context = canvas.getContext('2d');
+  const w2 = width / 2;
+  const h2 = height / 2;
+
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, w2, h2);
+
+  context.fillStyle = 'green';
+  context.fillRect(w2, 0, w2, h2);
+
+  context.fillStyle = 'blue';
+  context.fillRect(0, h2, w2, h2);
+
+  context.fillStyle = 'yellow';
+  context.fillRect(w2, h2, w2, h2);
+
+  return canvas;
+}
+
+const kValidResponseSchema = {
+  type: 'object',
+  required: ['Rating'],
+  additionalProperties: false,
+  properties: {
+    Rating: {
+      type: 'number',
+      minimum: 0,
+      maximum: 5,
+    },
+  },
+};
+
+function testResponseJsonSchema(response, t) {
+  let jsonResponse;
+  try {
+    jsonResponse = JSON.parse(response);
+  } catch (e) {
+    assert_unreached(
+        `Response is not valid JSON: "${response}". Error: ${e.message}`);
+    return;
+  }
+  assert_equals(typeof jsonResponse, 'object', 'Response should be an object');
+  assert_own_property(
+      jsonResponse, 'Rating', 'JSON response should have a "Rating" property.');
+  assert_equals(
+      typeof jsonResponse.Rating, 'number', 'Rating should be a number');
+  assert_greater_than_equal(jsonResponse.Rating, 0, 'Rating should be >= 0');
+  assert_less_than_equal(jsonResponse.Rating, 5, 'Rating should be <= 5');
 }

@@ -81,6 +81,19 @@ const iterableFactories = [
     return iterable;
   }],
 
+  ['a sync iterable with a function iterator', () => {
+    const chunks = ['a', 'b'];
+    function functionIterator() {}
+    functionIterator.next = () => ({
+      done: chunks.length === 0,
+      value: chunks.shift()
+    });
+    const iterable = {
+      [Symbol.iterator]: () => functionIterator
+    };
+    return iterable;
+  }],
+
   ['an async iterable', () => {
     const chunks = ['a', 'b'];
     const asyncIterator = {
@@ -93,6 +106,19 @@ const iterableFactories = [
     };
     const asyncIterable = {
       [Symbol.asyncIterator]: () => asyncIterator
+    };
+    return asyncIterable;
+  }],
+
+  ['an async iterable with a function iterator', () => {
+    const chunks = ['a', 'b'];
+    function functionAsyncIterator() {}
+    functionAsyncIterator.next = () => Promise.resolve({
+      done: chunks.length === 0,
+      value: chunks.shift()
+    });
+    const asyncIterable = {
+      [Symbol.asyncIterator]: () => functionAsyncIterator
     };
     return asyncIterable;
   }],

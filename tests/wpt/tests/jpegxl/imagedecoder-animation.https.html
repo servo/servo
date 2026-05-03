@@ -1,35 +1,70 @@
 <!DOCTYPE html>
-<title>JPEG XL: animation basics via ImageDecoder</title>
+<title>JPEG XL: animation via ImageDecoder</title>
 <link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
-<meta name="assert" content="ImageDecoder reports animation track and decodes multiple frames.">
+<meta name="assert" content="ImageDecoder reports animation track, decodes multiple frames, and reflects repetition count.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/helpers.js"></script>
 <script>
 
-promise_test(async () => {
+async function test_animated_jxl(filename, { repetitionCount, frameCount, cycleDurationUs }) {
   assert_implements('ImageDecoder' in self, 'ImageDecoder should exist');
   const supported = await ImageDecoder.isTypeSupported('image/jxl');
   assert_true(supported, 'image/jxl should be supported');
 
-  const response = await fetch('resources/conformance_animation_spline.jxl');
+  const response = await fetch(filename);
   const decoder = new ImageDecoder({data: response.body, type: 'image/jxl'});
   await decoder.tracks.ready;
 
   const track = decoder.tracks.selectedTrack;
   assert_true(track.animated, 'track must be animated');
 
+  if (repetitionCount !== undefined) {
+    assert_equals(track.repetitionCount, repetitionCount,
+      'repetitionCount must match');
+  }
+
   await decoder.completed;
 
-  assert_greater_than(track.frameCount, 1, 'must expose multiple frames');
+  const frame_count = track.frameCount;
+  assert_equals(frame_count, frameCount,
+    `must have exactly ${frameCount} frames`);
 
-  const f0 = await decoder.decode({frameIndex: 0});
-  const f1 = await decoder.decode({frameIndex: 1});
-  assert_less_than(f0.image.timestamp, f1.image.timestamp,
-      'timestamps should increase');
-  f0.image.close();
-  f1.image.close();
+  let cycle_duration_us = 0;
+  let prev_timestamp = null;
+  for (let i = 0; i < frame_count; i++) {
+    const result = await decoder.decode({frameIndex: i});
+    cycle_duration_us += result.image.duration;
+    if (prev_timestamp !== null) {
+      assert_less_than(prev_timestamp, result.image.timestamp,
+        'timestamps should increase');
+    }
+    prev_timestamp = result.image.timestamp;
+    result.image.close();
+  }
   decoder.close();
+
+  assert_equals(cycle_duration_us, cycleDurationUs, 'cycle duration must match');
+}
+
+promise_test(async () => {
+  await test_animated_jxl('resources/conformance_animation_spline.jxl',
+    { repetitionCount: Infinity, frameCount: 60, cycleDurationUs: 1200000 });
 }, 'Animated JPEG XL reports multiple frames and decodes frame sequence.');
+
+promise_test(async t => {
+  await test_animated_jxl('resources/animation-1loop.jxl',
+    { repetitionCount: 0, frameCount: 4, cycleDurationUs: 2000000 });
+}, 'Animated JXL with repetition count 0 plays exactly once.');
+
+promise_test(async t => {
+  await test_animated_jxl('resources/animation-2loops.jxl',
+    { repetitionCount: 1, frameCount: 4, cycleDurationUs: 2000000 });
+}, 'Animated JXL with repetition count 1 plays exactly twice.');
+
+promise_test(async t => {
+  await test_animated_jxl('resources/animation-infiniteloop.jxl',
+    { repetitionCount: Infinity, frameCount: 4, cycleDurationUs: 2000000 });
+}, 'Animated JXL with infinite repetition count repeats indefinitely.');
 
 </script>

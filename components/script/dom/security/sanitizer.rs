@@ -22,6 +22,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::eventtarget::CONTENT_EVENT_HANDLER_NAMES;
 use crate::dom::types::Console;
 use crate::dom::window::Window;
 
@@ -114,7 +115,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut config = self.configuration.borrow_mut();
 
         // Step 2. Assert: config is valid.
-        assert!(config.is_valid());
+        debug_assert!(config.is_valid());
 
         match &mut config.elements {
             // Step 3. If config["elements"] exists:
@@ -198,7 +199,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut configuration = self.configuration.borrow_mut();
 
         // Step 2. Assert: configuration is valid.
-        assert!(configuration.is_valid());
+        debug_assert!(configuration.is_valid());
 
         // Step 3. Set element to the result of canonicalize a sanitizer element with attributes
         // with element.
@@ -422,7 +423,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         let mut configuration = self.configuration.borrow_mut();
 
         // Step 2. Assert: configuration is valid.
-        assert!(configuration.is_valid());
+        debug_assert!(configuration.is_valid());
 
         // Step 3. Set element to the result of canonicalize a sanitizer element with element.
         let element = element.canonicalize();
@@ -467,6 +468,203 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
         // Step 9. Return true.
         true
     }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-allowattribute>
+    fn AllowAttribute(&self, attribute: SanitizerAttribute) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. Set attribute to the result of canonicalize a sanitizer attribute with attribute.
+        let attribute = attribute.canonicalize();
+
+        // Step 4. If configuration["attributes"] exists:
+        if configuration.attributes.is_some() {
+            // Step 4.1. Comment: If we have a global allow-list, we need to add attribute.
+
+            // Step 4.2. If configuration["dataAttributes"] is true and attribute is a custom data
+            // attribute, then return false.
+            if configuration.dataAttributes == Some(true) &&
+                is_custom_data_attribute(
+                    &attribute.name().str(),
+                    attribute
+                        .namespace()
+                        .map(|namespace| namespace.str())
+                        .as_deref(),
+                )
+            {
+                return false;
+            }
+
+            // Step 4.3. If configuration["attributes"] contains attribute return false.
+            if configuration
+                .attributes
+                .as_ref()
+                .is_some_and(|configuration_attributes| {
+                    configuration_attributes.contains(&attribute)
+                })
+            {
+                return false;
+            }
+
+            // Step 4.4. Comment: Fix-up per-element allow and remove lists.
+
+            // Step 4.5. If configuration["elements"] exists:
+            if let Some(configuration_elements) = &mut configuration.elements {
+                // Step 4.5.1. For each element in configuration["elements"]:
+                for element in configuration_elements.iter_mut() {
+                    // Step 4.5.1.1. If element["attributes"] with default « » contains attribute:
+                    // Step 4.5.1.1.1. Remove attribute from element["attributes"].
+                    if let Some(element_attributes) = element.attributes_mut() {
+                        element_attributes
+                            .retain(|element_attribute| *element_attribute != attribute);
+                    }
+
+                    // Step 4.5.1.2. Assert: element["removeAttributes"] with default « » does not
+                    // contain attribute.
+                    debug_assert!(!element.remove_attributes().is_some_and(
+                        |element_remove_attributes| element_remove_attributes.contains(&attribute)
+                    ));
+                }
+            }
+
+            // Step 4.6. Append attribute to configuration["attributes"]
+            if let Some(configuration_attributes) = &mut configuration.attributes {
+                configuration_attributes.push(attribute);
+            } else {
+                configuration.attributes = Some(vec![attribute]);
+            }
+
+            // Step 4.7. Return true.
+            true
+        }
+        // Step 5. Otherwise:
+        else {
+            // Step 5.1. Comment: If we have a global remove-list, we need to remove attribute.
+
+            // Step 5.2. If configuration["removeAttributes"] does not contain attribute:
+            if !configuration.removeAttributes.as_ref().is_some_and(
+                |configuration_remove_attributes| {
+                    configuration_remove_attributes.contains(&attribute)
+                },
+            ) {
+                // Step 5.2.1. Return false.
+                return false;
+            }
+
+            // Step 5.3. Remove attribute from configuration["removeAttributes"].
+            if let Some(configuration_remove_attributes) = &mut configuration.removeAttributes {
+                configuration_remove_attributes.retain(|configuration_remove_attribute| {
+                    *configuration_remove_attribute != attribute
+                });
+            }
+
+            // Step 5.4. Return true.
+            true
+        }
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-removeattribute>
+    fn RemoveAttribute(&self, attribute: SanitizerAttribute) -> bool {
+        // Remove an attribute with attribute and this’s configuration.
+        self.configuration.borrow_mut().remove_attribute(attribute)
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-setcomments>
+    fn SetComments(&self, allow: bool) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. If configuration["comments"] exists and configuration["comments"] equals allow,
+        // then return false;
+        if configuration
+            .comments
+            .is_some_and(|configuration_comments| configuration_comments == allow)
+        {
+            return false;
+        }
+
+        // Step 4. Set configuration["comments"] to allow.
+        configuration.comments = Some(allow);
+
+        // Step 5. Return true.
+        true
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-setdataattributes>
+    fn SetDataAttributes(&self, allow: bool) -> bool {
+        // Step 1. Let configuration be this’s configuration.
+        let mut configuration = self.configuration.borrow_mut();
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(configuration.is_valid());
+
+        // Step 3. If configuration["attributes"] does not exist, then return false.
+        if configuration.attributes.is_none() {
+            return false;
+        }
+
+        // Step 4. If configuration["dataAttributes"] equals allow, then return false.
+        if configuration.dataAttributes == Some(allow) {
+            return false;
+        }
+
+        // Step 5. If allow is true:
+        if allow {
+            // Step 5.1. Remove any items attr from configuration["attributes"] where attr is a
+            // custom data attribute.
+            if let Some(configuration_attributes) = &mut configuration.attributes {
+                configuration_attributes.retain(|attribute| {
+                    !is_custom_data_attribute(
+                        &attribute.name().str(),
+                        attribute
+                            .namespace()
+                            .map(|namespace| namespace.str())
+                            .as_deref(),
+                    )
+                });
+            }
+
+            // Step 5.2. If configuration["elements"] exists:
+            if let Some(configuration_elements) = &mut configuration.elements {
+                // Step 5.2.1. For each element in configuration["elements"]:
+                for element in configuration_elements {
+                    // Step 5.2.1.1. If element["attributes"] exists:
+                    if let Some(element_attributes) = element.attributes_mut() {
+                        // Step 5.2.1.1.1. Remove any items attr from element["attributes"] where
+                        // attr is a custom data attribute.
+                        element_attributes.retain(|attribute| {
+                            !is_custom_data_attribute(
+                                &attribute.name().str(),
+                                attribute
+                                    .namespace()
+                                    .map(|namespace| namespace.str())
+                                    .as_deref(),
+                            )
+                        });
+                    }
+                }
+            }
+        }
+
+        // Step 6. Set configuration["dataAttributes"] to allow.
+        configuration.dataAttributes = Some(allow);
+
+        // Step 7. Return true.
+        true
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-removeunsafe>
+    fn RemoveUnsafe(&self) -> bool {
+        // Update this’s configuration with the result of calling remove unsafe on this’s
+        // configuration.
+        self.configuration.borrow_mut().remove_unsafe()
+    }
 }
 
 trait SanitizerConfigAlgorithm {
@@ -475,6 +673,12 @@ trait SanitizerConfigAlgorithm {
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-element>
     fn remove_element(&mut self, element: SanitizerElement) -> bool;
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-attribute>
+    fn remove_attribute(&mut self, attribute: SanitizerAttribute) -> bool;
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe>
+    fn remove_unsafe(&mut self) -> bool;
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
     fn canonicalize(&mut self, allow_comments_pis_and_data_attributes: bool);
@@ -785,7 +989,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-element>
     fn remove_element(&mut self, element: SanitizerElement) -> bool {
         // Step 1. Assert: configuration is valid.
-        assert!(self.is_valid());
+        debug_assert!(self.is_valid());
 
         // Step 2. Set element to the result of canonicalize a sanitizer element with element.
         let element = element.canonicalize();
@@ -846,6 +1050,168 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
             // Step 5.4. Return true.
             true
         }
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizer-remove-an-attribute>
+    fn remove_attribute(&mut self, attribute: SanitizerAttribute) -> bool {
+        // Step 1. Assert: configuration is valid.
+        debug_assert!(self.is_valid());
+
+        // Step 2. Set attribute to the result of canonicalize a sanitizer attribute with attribute.
+        let attribute = attribute.canonicalize();
+
+        // Step 3. If configuration["attributes"] exists:
+        if self.attributes.is_some() {
+            // Step 3.1. Comment: If we have a global allow-list, we need to remove attribute.
+
+            // Step 3.2. Set modified to the result of remove attribute from
+            // configuration["attributes"].
+            let mut modified = self
+                .attributes
+                .as_mut()
+                .is_some_and(|configuration_attributes| {
+                    configuration_attributes.remove_item(&attribute)
+                });
+
+            // Step 3.3. Comment: Fix-up per-element allow and remove lists.
+
+            // Step 3.4. If configuration["elements"] exists:
+            if let Some(configuration_elements) = &mut self.elements {
+                // Step 3.4.1. For each element of configuration["elements"]:
+                for element in configuration_elements {
+                    // Step 3.4.1.1. If element["attributes"] with default « » contains attribute:
+                    if element
+                        .attributes()
+                        .unwrap_or_default()
+                        .contains(&attribute)
+                    {
+                        // Step 3.4.1.1.1. Set modified to true.
+                        modified = true;
+
+                        // Step 3.4.1.1.2. Remove attribute from element["attributes"].
+                        if let Some(element_attributes) = element.attributes_mut() {
+                            element_attributes
+                                .retain(|element_attribute| *element_attribute != attribute);
+                        }
+                    }
+
+                    // Step 3.4.1.2. If element["removeAttributes"] with default « » contains
+                    // attribute:
+                    if element
+                        .remove_attributes()
+                        .unwrap_or_default()
+                        .contains(&attribute)
+                    {
+                        // Step 3.4.1.2.1. Assert: modified is true.
+                        assert!(modified);
+
+                        // Step 3.4.1.2.2. Remove attribute from element["removeAttributes"].
+                        if let Some(element_remove_attributes) = element.remove_attributes_mut() {
+                            element_remove_attributes.retain(|element_remove_attribute| {
+                                *element_remove_attribute != attribute
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Step 3.5. Return modified.
+            modified
+        }
+        // Step 4. Otherwise:
+        else {
+            // Step 4.1. Comment: If we have a global remove-list, we need to add attribute.
+
+            // Step 4.2. If configuration["removeAttributes"] contains attribute return false.
+            if self
+                .removeAttributes
+                .as_ref()
+                .is_some_and(|configuration_remove_attributes| {
+                    configuration_remove_attributes.contains(&attribute)
+                })
+            {
+                return false;
+            }
+
+            // Step 4.3. Comment: Fix-up per-element allow and remove lists.
+
+            // Step 4.4. If configuration["elements"] exists:
+            if let Some(configuration_elements) = &mut self.elements {
+                // Step 4.4.1. For each element in configuration["elements"]:
+                for element in configuration_elements {
+                    // Step 4.4.1.1. If element["attributes"] with default « » contains attribute:
+                    // Step 4.4.1.1.1. Remove attribute from element["attributes"].
+                    if let Some(element_attributes) = element.attributes_mut() {
+                        element_attributes
+                            .retain(|element_attribute| *element_attribute != attribute);
+                    }
+
+                    // Step 4.4.1.2. If element["removeAttributes"] with default « » contains
+                    // attribute:
+                    // Step 4.4.1.2.1. Remove attribute from element["removeAttributes"].
+                    if let Some(element_remove_attributes) = element.remove_attributes_mut() {
+                        element_remove_attributes.retain(|element_remove_attribute| {
+                            *element_remove_attribute != attribute
+                        });
+                    }
+                }
+            }
+
+            // Step 4.5. Append attribute to configuration["removeAttributes"]
+            if let Some(configuration_remove_attributes) = &mut self.removeAttributes {
+                configuration_remove_attributes.push(attribute);
+            } else {
+                self.removeAttributes = Some(vec![attribute]);
+            }
+
+            // Step 4.6. Return true.
+            true
+        }
+    }
+
+    /// <https://wicg.github.io/sanitizer-api/#sanitizerconfig-remove-unsafe>
+    fn remove_unsafe(&mut self) -> bool {
+        // Step 1. Assert: The key set of built-in safe baseline configuration equals « [
+        // "removeElements", "removeAttributes" ] ».
+        let baseline = built_in_safe_baseline_configuration();
+        assert!(baseline.removeElements.is_some() && baseline.removeAttributes.is_some());
+
+        // Step 2. Assert: configuration is valid.
+        debug_assert!(self.is_valid());
+
+        // Step 3. Let result be false.
+        let mut result = false;
+
+        // Step 4. For each element in built-in safe baseline configuration["removeElements"]:
+        for element in baseline.removeElements.unwrap_or_default() {
+            // Step 4.1. Call remove an element element from configuration.
+            // Step 4.2. If the call returned true, set result to true.
+            if self.remove_element(element) {
+                result = true;
+            }
+        }
+
+        // Step 5. For each attribute in built-in safe baseline configuration["removeAttributes"]:
+        for attribute in baseline.removeAttributes.unwrap_or_default() {
+            // Step 5.1. Call remove an attribute attribute from configuration.
+            // Step 5.2. If the call returned true, set result to true.
+            if self.remove_attribute(attribute) {
+                result = true;
+            }
+        }
+
+        // Step 6. For each attribute listed in event handler content attributes:
+        for attribute in CONTENT_EVENT_HANDLER_NAMES.iter() {
+            // Step 6.1. Call remove an attribute attribute from configuration.
+            // Step 6.2. If the call returned true, set result to true.
+            let attribute = SanitizerAttribute::String(DOMString::from(*attribute));
+            if self.remove_attribute(attribute) {
+                result = true;
+            }
+        }
+
+        // Step 7. Return result.
+        result
     }
 
     /// <https://wicg.github.io/sanitizer-api/#sanitizer-canonicalize-the-configuration>
@@ -1931,6 +2297,39 @@ fn built_in_safe_default_configuration() -> SanitizerConfig {
         removeAttributes: None,
         comments: Some(false),
         dataAttributes: Some(false),
+    }
+}
+
+/// <https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration>
+fn built_in_safe_baseline_configuration() -> SanitizerConfig {
+    const REMOVE_ELEMENTS: &[(&str, &Namespace)] = &[
+        ("embed", &ns!(html)),
+        ("frame", &ns!(html)),
+        ("iframe", &ns!(html)),
+        ("object", &ns!(html)),
+        ("script", &ns!(html)),
+        ("script", &ns!(svg)),
+        ("use", &ns!(svg)),
+    ];
+
+    let remove_elements = REMOVE_ELEMENTS
+        .iter()
+        .map(|&(name, namespace)| {
+            SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
+                name: name.into(),
+                namespace: Some(namespace.to_string().into()),
+            })
+        })
+        .collect();
+
+    SanitizerConfig {
+        elements: None,
+        removeElements: Some(remove_elements),
+        replaceWithChildrenElements: None,
+        attributes: None,
+        removeAttributes: Some(Vec::new()),
+        comments: None,
+        dataAttributes: None,
     }
 }
 

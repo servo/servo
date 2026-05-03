@@ -26,7 +26,7 @@ from enum import Enum
 from glob import glob
 from os import path
 from subprocess import CompletedProcess
-from typing import Any, Optional, Union, LiteralString, cast, List
+from typing import Any, Optional, Union, cast, List
 from collections.abc import Generator, Callable
 
 import toml
@@ -53,15 +53,19 @@ class BuildType:
     kind: Kind
     profile: str
 
+    @staticmethod
     def dev() -> BuildType:
         return BuildType(BuildType.Kind.DEV, "debug")
 
+    @staticmethod
     def release() -> BuildType:
         return BuildType(BuildType.Kind.RELEASE, "release")
 
+    @staticmethod
     def prod() -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, "production")
 
+    @staticmethod
     def custom(profile: str) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
@@ -88,6 +92,7 @@ class BuildType:
     def as_cargo_arg(self) -> List[str]:
         return ["--profile", self.profile]
 
+    @staticmethod
     def from_string(profile: str) -> BuildType:
         if profile == "dev":
             return BuildType.dev()
@@ -812,14 +817,14 @@ class CommandBase(object):
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
-    def android_adb_path(self, env: dict[str, Any]) -> LiteralString:
+    def android_adb_path(self, env: dict[str, Any]) -> str:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "platform-tools", "adb")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "adb"
 
-    def android_emulator_path(self, env: dict[str, Any]) -> LiteralString:
+    def android_emulator_path(self, env: dict[str, Any]) -> str:
         if "ANDROID_SDK_ROOT" in env:
             sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "emulator", "emulator")
             if path.exists(sdk_adb):

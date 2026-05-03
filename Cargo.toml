@@ -10,7 +10,7 @@ default-members = ["ports/servoshell"]
 exclude = [".cargo", "support/crown"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["The Servo Project Developers"]
 repository = "https://github.com/servo/servo"
 # A generic description for packages that don't have a meaningful description yet.
@@ -109,13 +109,13 @@ image = { version = "0.25", default-features = false, features = ["avif", "rayon
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }
 inventory = { version = "0.3.24" }
-ipc-channel = "0.21"
+ipc-channel = "0.22"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.11", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.13", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 libc = "0.2"
-lru = "0.17"
+lru = "0.18"
 log = "0.4.29"
 mach2 = "0.6"
 malloc_size_of_derive = "0.1"
@@ -166,12 +166,12 @@ rustls-platform-verifier = "0.7.0"
 sea-query = { version = "=1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "=0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
+selectors = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo_arc = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -180,12 +180,12 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "fee56b9ed5c6ccc62296186e9c5f1311ea62fbfe" }
+stylo = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "40aa59d7f3b2bce517c480c95a80d639843e1449" }
 surfman = { version = "0.12.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -229,6 +229,7 @@ wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xml5ever = "0.39"
 yuv = { version = "0.8.14", features = ["rayon"] }
+zeroize = "1.8"
 
 ############################################################################################
 ## Workspace-local dependencies
@@ -237,72 +238,72 @@ yuv = { version = "0.8.14", features = ["rayon"] }
 # be listed here, between the `Begin` and `End` comments, so that we can easily find and
 # update the version requirements when bumping the workspace version.
 # Begin workspace-version dependencies - Don't change this comment, we grep for it in scripts!
-deny_public_fields = { package = "servo-deny-public-fields", version = "0.1.0", path = "components/deny_public_fields" }
-devtools = { package = "servo-devtools", version = "0.1.0", path = "components/devtools" }
-devtools_traits = { package = "servo-devtools-traits", version = "0.1.0", path = "components/shared/devtools" }
-dom_struct = { package = "servo-dom-struct", version = "0.1.0", path = "components/dom_struct" }
-embedder_traits = { package = "servo-embedder-traits", version = "0.1.0", path = "components/shared/embedder" }
-fonts = { package = "servo-fonts", version = "0.1.0", path = "components/fonts" }
-fonts_traits = { package = "servo-fonts-traits", version = "0.1.0", path = "components/shared/fonts" }
-hyper_serde = { package = "servo-hyper-serde", version = "0.1.0", path = "components/hyper_serde" }
-jstraceable_derive = { package = "servo-jstraceable-derive", version = "0.1.0", path = "components/jstraceable_derive" }
-layout = { package = "servo-layout", version = "0.1.0", path = "components/layout" }
-layout_api = { package = "servo-layout-api", version = "0.1.0", path = "components/shared/layout" }
-malloc_size_of = { package = "servo-malloc-size-of", version = "0.1.0", path = "components/malloc_size_of" }
-media = { package = "servo-media-thread", version = "0.1.0", path = "components/media/media-thread" }
-metrics = { package = "servo-metrics", version = "0.1.0", path = "components/metrics" }
-net = { package = "servo-net", version = "0.1.0", path = "components/net" }
-net_traits = { package = "servo-net-traits", version = "0.1.0", path = "components/shared/net" }
-paint = { package = "servo-paint", version = "0.1.0", path = "components/paint" }
-paint_api = { package = "servo-paint-api", version = "0.1.0", path = "components/shared/paint" }
-pixels = { package = "servo-pixels", version = "0.1.0", path = "components/pixels" }
-profile = { package = "servo-profile", version = "0.1.0", path = "components/profile" }
-profile_traits = { package = "servo-profile-traits", version = "0.1.0", path = "components/shared/profile" }
-script = { package = "servo-script", version = "0.1.0", path = "components/script" }
-script_bindings = { package = "servo-script-bindings", version = "0.1.0", path = "components/script_bindings" }
-script_traits = { package = "servo-script-traits", version = "0.1.0", path = "components/shared/script" }
-servo = { version = "0.1.0", path = "components/servo", default-features = false }
-servo-allocator = { version = "0.1.0", path = "components/allocator" }
-servo-background-hang-monitor = { version = "0.1.0", path = "components/background_hang_monitor" }
-servo-background-hang-monitor-api = { version = "0.1.0", path = "components/shared/background_hang_monitor" }
-servo-base = { version = "0.1.0", path = "components/shared/base" }
-servo-bluetooth = { version = "0.1.0", path = "components/bluetooth" }
-servo-bluetooth-traits = { version = "0.1.0", path = "components/shared/bluetooth" }
-servo-canvas = { version = "0.1.0", path = "components/canvas" }
-servo-canvas-traits = { version = "0.1.0", path = "components/shared/canvas" }
-servo-config = { version = "0.1.0", path = "components/config" }
-servo-config-macro = { version = "0.1.0", path = "components/config/macro" }
-servo-constellation = { version = "0.1.0", path = "components/constellation" }
-servo-constellation-traits = { version = "0.1.0", path = "components/shared/constellation" }
-servo-default-resources = { version = "0.1.0", path = "components/default-resources" }
-servo-geometry = { version = "0.1.0", path = "components/geometry" }
-servo-media = { version = "0.1.0", path = "components/media/servo-media" }
-servo-media-audio = { version = "0.1.0", path = "components/media/audio" }
-servo-media-auto = { version = "0.1.0", path = "components/media/backends/auto" }
-servo-media-derive = { version = "0.1.0", path = "components/media/servo-media-derive" }
-servo-media-dummy = { version = "0.1.0", path = "components/media/backends/dummy" }
-servo-media-gstreamer = { version = "0.1.0", path = "components/media/backends/gstreamer" }
-servo-media-gstreamer-render = { version = "0.1.0", path = "components/media/backends/gstreamer/render" }
-servo-media-gstreamer-render-android = { version = "0.1.0", path = "components/media/backends/gstreamer/render-android" }
-servo-media-gstreamer-render-unix = { version = "0.1.0", path = "components/media/backends/gstreamer/render-unix" }
-servo-media-ohos = { version = "0.1.0", path = "components/media/backends/ohos" }
-servo-media-player = { version = "0.1.0", path = "components/media/player" }
-servo-media-streams = { version = "0.1.0", path = "components/media/streams" }
-servo-media-traits = { version = "0.1.0", path = "components/media/traits" }
-servo-media-webrtc = { version = "0.1.0", path = "components/media/webrtc" }
-servo-tracing = { version = "0.1.0", path = "components/servo_tracing" }
-servo-url = { version = "0.1.0", path = "components/url" }
-servo-wakelock = { version = "0.1.0", path = "components/wakelock" }
-storage = { package = "servo-storage", version = "0.1.0", path = "components/storage" }
-storage_traits = { package = "servo-storage-traits", version = "0.1.0", path = "components/shared/storage" }
-timers = { package = "servo-timers", version = "0.1.0", path = "components/timers" }
-webdriver_server = { package = "servo-webdriver-server", version = "0.1.0", path = "components/webdriver_server" }
-webgl = { package = "servo-webgl", version = "0.1.0", path = "components/webgl", default-features = false }
-webgpu = { package = "servo-webgpu", version = "0.1.0", path = "components/webgpu" }
-webgpu_traits = { package = "servo-webgpu-traits", version = "0.1.0", path = "components/shared/webgpu" }
-webxr = { package = "servo-webxr", version = "0.1.0", path = "components/webxr" }
-webxr-api = { package = "servo-webxr-api", version = "0.1.0", path = "components/shared/webxr" }
-xpath = { package = "servo-xpath", version = "0.1.0", path = "components/xpath" }
+deny_public_fields = { package = "servo-deny-public-fields", version = "=0.2.0", path = "components/deny_public_fields" }
+devtools = { package = "servo-devtools", version = "=0.2.0", path = "components/devtools" }
+devtools_traits = { package = "servo-devtools-traits", version = "=0.2.0", path = "components/shared/devtools" }
+dom_struct = { package = "servo-dom-struct", version = "=0.2.0", path = "components/dom_struct" }
+embedder_traits = { package = "servo-embedder-traits", version = "=0.2.0", path = "components/shared/embedder" }
+fonts = { package = "servo-fonts", version = "=0.2.0", path = "components/fonts" }
+fonts_traits = { package = "servo-fonts-traits", version = "=0.2.0", path = "components/shared/fonts" }
+hyper_serde = { package = "servo-hyper-serde", version = "=0.2.0", path = "components/hyper_serde" }
+jstraceable_derive = { package = "servo-jstraceable-derive", version = "=0.2.0", path = "components/jstraceable_derive" }
+layout = { package = "servo-layout", version = "=0.2.0", path = "components/layout" }
+layout_api = { package = "servo-layout-api", version = "=0.2.0", path = "components/shared/layout" }
+malloc_size_of = { package = "servo-malloc-size-of", version = "=0.2.0", path = "components/malloc_size_of" }
+media = { package = "servo-media-thread", version = "=0.2.0", path = "components/media/media-thread" }
+metrics = { package = "servo-metrics", version = "=0.2.0", path = "components/metrics" }
+net = { package = "servo-net", version = "=0.2.0", path = "components/net" }
+net_traits = { package = "servo-net-traits", version = "=0.2.0", path = "components/shared/net" }
+paint = { package = "servo-paint", version = "=0.2.0", path = "components/paint" }
+paint_api = { package = "servo-paint-api", version = "=0.2.0", path = "components/shared/paint" }
+pixels = { package = "servo-pixels", version = "=0.2.0", path = "components/pixels" }
+profile = { package = "servo-profile", version = "=0.2.0", path = "components/profile" }
+profile_traits = { package = "servo-profile-traits", version = "=0.2.0", path = "components/shared/profile" }
+script = { package = "servo-script", version = "=0.2.0", path = "components/script" }
+script_bindings = { package = "servo-script-bindings", version = "=0.2.0", path = "components/script_bindings" }
+script_traits = { package = "servo-script-traits", version = "=0.2.0", path = "components/shared/script" }
+servo = { version = "=0.2.0", path = "components/servo", default-features = false }
+servo-allocator = { version = "=0.2.0", path = "components/allocator" }
+servo-background-hang-monitor = { version = "=0.2.0", path = "components/background_hang_monitor" }
+servo-background-hang-monitor-api = { version = "=0.2.0", path = "components/shared/background_hang_monitor" }
+servo-base = { version = "=0.2.0", path = "components/shared/base" }
+servo-bluetooth = { version = "=0.2.0", path = "components/bluetooth" }
+servo-bluetooth-traits = { version = "=0.2.0", path = "components/shared/bluetooth" }
+servo-canvas = { version = "=0.2.0", path = "components/canvas" }
+servo-canvas-traits = { version = "=0.2.0", path = "components/shared/canvas" }
+servo-config = { version = "=0.2.0", path = "components/config" }
+servo-config-macro = { version = "=0.2.0", path = "components/config/macro" }
+servo-constellation = { version = "=0.2.0", path = "components/constellation" }
+servo-constellation-traits = { version = "=0.2.0", path = "components/shared/constellation" }
+servo-default-resources = { version = "=0.2.0", path = "components/default-resources" }
+servo-geometry = { version = "=0.2.0", path = "components/geometry" }
+servo-media = { version = "=0.2.0", path = "components/media/servo-media" }
+servo-media-audio = { version = "=0.2.0", path = "components/media/audio" }
+servo-media-auto = { version = "=0.2.0", path = "components/media/backends/auto" }
+servo-media-derive = { version = "=0.2.0", path = "components/media/servo-media-derive" }
+servo-media-dummy = { version = "=0.2.0", path = "components/media/backends/dummy" }
+servo-media-gstreamer = { version = "=0.2.0", path = "components/media/backends/gstreamer" }
+servo-media-gstreamer-render = { version = "=0.2.0", path = "components/media/backends/gstreamer/render" }
+servo-media-gstreamer-render-android = { version = "=0.2.0", path = "components/media/backends/gstreamer/render-android" }
+servo-media-gstreamer-render-unix = { version = "=0.2.0", path = "components/media/backends/gstreamer/render-unix" }
+servo-media-ohos = { version = "=0.2.0", path = "components/media/backends/ohos" }
+servo-media-player = { version = "=0.2.0", path = "components/media/player" }
+servo-media-streams = { version = "=0.2.0", path = "components/media/streams" }
+servo-media-traits = { version = "=0.2.0", path = "components/media/traits" }
+servo-media-webrtc = { version = "=0.2.0", path = "components/media/webrtc" }
+servo-tracing = { version = "=0.2.0", path = "components/servo_tracing" }
+servo-url = { version = "=0.2.0", path = "components/url" }
+servo-wakelock = { version = "=0.2.0", path = "components/wakelock" }
+storage = { package = "servo-storage", version = "=0.2.0", path = "components/storage" }
+storage_traits = { package = "servo-storage-traits", version = "=0.2.0", path = "components/shared/storage" }
+timers = { package = "servo-timers", version = "=0.2.0", path = "components/timers" }
+webdriver_server = { package = "servo-webdriver-server", version = "=0.2.0", path = "components/webdriver_server" }
+webgl = { package = "servo-webgl", version = "=0.2.0", path = "components/webgl", default-features = false }
+webgpu = { package = "servo-webgpu", version = "=0.2.0", path = "components/webgpu" }
+webgpu_traits = { package = "servo-webgpu-traits", version = "=0.2.0", path = "components/shared/webgpu" }
+webxr = { package = "servo-webxr", version = "=0.2.0", path = "components/webxr" }
+webxr-api = { package = "servo-webxr-api", version = "=0.2.0", path = "components/shared/webxr" }
+xpath = { package = "servo-xpath", version = "=0.2.0", path = "components/xpath" }
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
 # RSA key generation could be very slow without compilation
@@ -320,9 +321,11 @@ opt-level = 3
 [profile.dev.package.tikv-jemalloc-sys]
 opt-level = 1
 
-[profile.release]
-opt-level = 3
+# An optimized build for CI, to improve test runtime, but with debug assertions turned on.
+[profile.checked-release]
+inherits = "release"
 debug-assertions = true
+overflow-checks = true
 
 # Disk-space is limited in CI, so we disabled features that are not needed for code coverage.
 # Locally using the default `dev` profile is perfectly fine.
@@ -334,7 +337,7 @@ debug = false
 # A profile between `dev` and `release` which aims to offer a compromise between
 # fast incremental rebuilds and runtime speed.
 [profile.medium]
-inherits = "release"
+inherits = "dev"
 opt-level = 2
 incremental = true
 debug = "line-tables-only"

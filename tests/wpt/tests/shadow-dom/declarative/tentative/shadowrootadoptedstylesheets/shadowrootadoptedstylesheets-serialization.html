@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets serialization round-trip via getHTML()</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11687">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,span {color:blue}",
+    "bar": "data:text/css,span {color:red}"
+  }
+}
+</script>
+
+<div id="host_basic">
+  <template shadowrootmode="open"
+            shadowrootserializable
+            shadowrootadoptedstylesheets="foo">
+    <span>basic</span>
+  </template>
+</div>
+
+<div id="host_whitespace">
+  <template shadowrootmode="open"
+            shadowrootserializable
+            shadowrootadoptedstylesheets="  foo   bar  ">
+    <span>whitespace</span>
+  </template>
+</div>
+
+<div id="host_empty">
+  <template shadowrootmode="open"
+            shadowrootserializable
+            shadowrootadoptedstylesheets="">
+    <span>empty</span>
+  </template>
+</div>
+
+<div id="host_absent">
+  <template shadowrootmode="open" shadowrootserializable>
+    <span>absent</span>
+  </template>
+</div>
+
+<script>
+const opts = { serializableShadowRoots: true };
+
+test(() => {
+  // Non-empty value round-trips verbatim.
+  let host = document.getElementById("host_basic");
+  let html = host.getHTML(opts);
+  assert_true(
+    html.includes("shadowrootadoptedstylesheets=\"foo\""),
+    `Serialized markup must contain shadowrootadoptedstylesheets="foo". Got: ${html}`
+  );
+
+  // Whitespace is preserved verbatim.
+  host = document.getElementById("host_whitespace");
+  html = host.getHTML(opts);
+  assert_true(
+    html.includes("shadowrootadoptedstylesheets=\"  foo   bar  \""),
+    `Serialized markup must preserve verbatim whitespace. Got: ${html}`
+  );
+
+  // Authored empty value round-trips as present-and-empty.
+  host = document.getElementById("host_empty");
+  html = host.getHTML(opts);
+  assert_true(
+    html.includes("shadowrootadoptedstylesheets=\"\""),
+    `Serialized markup must contain shadowrootadoptedstylesheets="" (present, empty). Got: ${html}`
+  );
+
+  // Absent attribute is omitted from serialized markup.
+  host = document.getElementById("host_absent");
+  html = host.getHTML(opts);
+  assert_false(
+    html.includes("shadowrootadoptedstylesheets"),
+    `Serialized markup must omit shadowrootadoptedstylesheets when not authored. Got: ${html}`
+  );
+}, "Element.getHTML() round-trips shadowrootadoptedstylesheets across absent, empty, basic, and whitespace values.");
+
+test(() => {
+  // Direct ShadowRoot.getHTML() returns children-only markup; the wrapping
+  // <template> (which is what would carry the shadowroot* attributes) is not
+  // emitted, so the attribute must NOT appear in the result.
+  const host = document.getElementById("host_basic");
+  const html = host.shadowRoot.getHTML();
+  assert_false(
+    html.includes("shadowrootadoptedstylesheets"),
+    `ShadowRoot.getHTML() returns children-only markup; must not include the wrapping template attribute. Got: ${html}`
+  );
+}, "ShadowRoot.getHTML() returns children-only markup (no wrapping template).");
+</script>

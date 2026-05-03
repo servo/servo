@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="grow-consistent-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  white-space: pre;
+  width: 120px;
+  margin-bottom: 10px;
+  font: 10px/normal Ahem;
+}
+
+.scale {
+  text-fit: grow consistent;
+  border: 2px solid blue;
+}
+</style>
+<body>
+<div class="target scale">ABCDEF
+GHI</div>
+
+</body>

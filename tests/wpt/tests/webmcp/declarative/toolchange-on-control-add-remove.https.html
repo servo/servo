@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolchange event on control add/remove</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<form id="f1" toolname="my_tool" tooldescription="desc">
+  <input id="input1" type="text" name="input_name">
+</form>
+
+<script>
+  function waitForToolChange() {
+    return new Promise(resolve => {
+      navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+    });
+  }
+
+  promise_test(async t => {
+    const form = document.getElementById('f1');
+
+    // Test adding an input
+    const addPromise = waitForToolChange();
+    const i = document.createElement('input');
+    i.type = 'text';
+    i.name = 'new_input';
+    i.id = 'new_input';
+    form.appendChild(i);
+    await addPromise;
+
+    // Test removing an input
+    const removePromise = waitForToolChange();
+    const newInput = document.getElementById('new_input');
+    form.removeChild(newInput);
+    await removePromise;
+  }, "Test that toolchange event fires when controls are added or removed");
+</script>
+</body>

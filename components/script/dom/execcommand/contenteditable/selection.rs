@@ -309,7 +309,7 @@ impl Selection {
         // This step does not exist in the spec
 
         // Step 19. Record current states and values, and let overrides be the result.
-        let overrides = active_range.record_current_states_and_values();
+        let overrides = active_range.record_current_states_and_values(cx);
 
         // Step 20.
         //
@@ -597,10 +597,7 @@ impl Selection {
             // Step 32.8. While children's last member is not a br,
             // and children's last member's nextSibling is an inline node,
             // append children's last member's nextSibling to children.
-            loop {
-                let Some(last) = children.last() else {
-                    break;
-                };
+            while let Some(last) = children.last() {
                 if last.is::<HTMLBRElement>() {
                     break;
                 }

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<title>Flex container baseline with overflow:hidden should be clamped to border edge</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#flex-baselines">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+.container {
+  font: 10px/1 Ahem;
+}
+</style>
+
+<!-- Test: inline-flex with overflow:hidden and a tall centered child -->
+<div class="container" id="test-hidden">
+  <div style="display: inline-flex; overflow: hidden; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+</div>
+
+<!-- Reference: inline-block with overflow:hidden (baseline = bottom margin edge per CSS2) -->
+<div class="container" id="ref-hidden">
+  <div style="display: inline-block; overflow: hidden; height: 40px;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+</div>
+
+<!-- Test: overflow:scroll should also synthesize baseline -->
+<div class="container" id="test-scroll">
+  <div style="display: inline-flex; overflow: scroll; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+</div>
+
+<!-- Test: overflow:auto should also synthesize baseline -->
+<div class="container" id="test-auto">
+  <div style="display: inline-flex; overflow: auto; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+</div>
+
+<!-- Test: block-level flex with overflow:hidden as a baseline-aligned flex item -->
+<div style="display: flex; align-items: baseline; font: 10px/1 Ahem;" id="test-flex-block">
+  <div style="display: flex; overflow: hidden; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+  <div>x</div>
+</div>
+
+<!-- Test: block-level flex with overflow:scroll -->
+<div style="display: flex; align-items: baseline; font: 10px/1 Ahem;" id="test-flex-block-scroll">
+  <div style="display: flex; overflow: scroll; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+  <div>x</div>
+</div>
+
+<!-- Test: block-level flex with overflow:auto -->
+<div style="display: flex; align-items: baseline; font: 10px/1 Ahem;" id="test-flex-block-auto">
+  <div style="display: flex; overflow: auto; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 100px;"></div>
+  </div>
+  <div>x</div>
+</div>
+
+<!-- Reference: same layout but without the overflowing child -->
+<div style="display: flex; align-items: baseline; font: 10px/1 Ahem;" id="ref-flex-block">
+  <div style="display: flex; overflow: hidden; height: 40px; align-items: center;">
+    <div style="width: 10px; height: 40px;"></div>
+  </div>
+  <div>x</div>
+</div>
+
+<script>
+test(function() {
+  assert_equals(
+    document.getElementById('test-hidden').offsetHeight,
+    document.getElementById('ref-hidden').offsetHeight,
+    "should match inline-block with overflow:hidden"
+  );
+}, "inline-flex with overflow:hidden produces same line box height as inline-block");
+
+test(function() {
+  assert_equals(
+    document.getElementById('test-hidden').offsetHeight,
+    42,
+    "container height should be inline-flex height plus strut descent"
+  );
+}, "inline-flex with overflow:hidden does not inflate line box from overflowing content");
+
+test(function() {
+  assert_equals(
+    document.getElementById('test-scroll').offsetHeight,
+    document.getElementById('ref-hidden').offsetHeight,
+    "should match inline-block with overflow:hidden"
+  );
+}, "inline-flex with overflow:scroll synthesizes baseline from container edges");
+
+test(function() {
+  assert_equals(
+    document.getElementById('test-auto').offsetHeight,
+    document.getElementById('ref-hidden').offsetHeight,
+    "should match inline-block with overflow:hidden"
+  );
+}, "inline-flex with overflow:auto synthesizes baseline from container edges");
+
+test(function() {
+  assert_equals(
+    document.getElementById('test-flex-block').offsetHeight,
+    document.getElementById('ref-flex-block').offsetHeight,
+    "overflowing content should not affect baseline alignment"
+  );
+}, "block-level flex with overflow:hidden clamps baseline for baseline alignment");
+
+test(function() {
+  assert_equals(
+    document.getElementById('test-flex-block-scroll').offsetHeight,
+    document.getElementById('ref-flex-block').offsetHeight,
+    "overflowing content should not affect baseline alignment"
+  );
+}, "block-level flex with overflow:scroll clamps baseline for baseline alignment");
+
+test(function() {
+  assert_equals(
+    document.getElementById('test-flex-block-auto').offsetHeight,
+    document.getElementById('ref-flex-block').offsetHeight,
+    "overflowing content should not affect baseline alignment"
+  );
+}, "block-level flex with overflow:auto clamps baseline for baseline alignment");
+</script>

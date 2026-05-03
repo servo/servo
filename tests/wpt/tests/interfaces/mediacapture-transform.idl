@@ -12,6 +12,8 @@ interface MediaStreamTrackHandle {
 interface MediaStreamTrackProcessor {
     constructor(MediaStreamTrackProcessorInit init);
     readonly attribute ReadableStream readable;
+    readonly attribute unsigned long long discardedFrames;
+    readonly attribute unsigned long long totalFrames;
 };
 
 typedef (MediaStreamTrack or MediaStreamTrackHandle) MediaStreamTrackOrHandle;

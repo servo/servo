@@ -126,7 +126,7 @@ class PackageCommands(CommandBase):
             raise ValueError(f"Could not find end marker: {end_marker}")
 
         block = content[block_start:block_end]
-        updated_block, count = re.subn(r'version\s*=\s*"[^"]*"', f'version = "{new_version}"', block)
+        updated_block, count = re.subn(r'version\s*=\s*"[^"]*"', f'version = "={new_version}"', block)
         if count == 0:
             raise ValueError("No workspace-version dependency references found in Cargo.toml.")
         elif count == 1:
@@ -169,7 +169,7 @@ class PackageCommands(CommandBase):
 
             if build_type.is_dev():
                 build_type_string = "Debug"
-            elif build_type.is_release() or build_type.is_prod():
+            elif build_type.is_release() or build_type.is_prod() or build_type.profile == "checked-release":
                 build_type_string = "Release"
             else:
                 print(f"Servo was built with custom cargo profile `{build_type.profile}`.")
@@ -485,6 +485,9 @@ class PackageCommands(CommandBase):
         elif is_windows():
             pkg_path = path.join(path.dirname(binary_path), "msi", "Servo.msi")
             exec_command = ["msiexec", "/i", pkg_path]
+        else:
+            print("install command not supported for the current target")
+            return 1
 
         if not path.exists(pkg_path):
             print("Servo package not found. Packaging servo...")
@@ -534,6 +537,10 @@ class PackageCommands(CommandBase):
         except (ValueError, RuntimeError) as error:
             print(f"Failed to update workspace version: `{error}`", file=sys.stderr)
             return 1
+
+        # Add a trailing newline to the file if it doesn't already have one.
+        if not workspace_toml_content.endswith("\n"):
+            workspace_toml_content += "\n"
 
         with open(workspace_toml_path, "w") as file:
             file.write(workspace_toml_content)

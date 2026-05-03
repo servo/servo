@@ -8,7 +8,7 @@
 
   promise_test(async t => {
     const key = "text-destination" + token();
-    await import("/fetch/metadata/resources/record-header.py?file=" + key);
+    await import("/fetch/metadata/resources/record-header.py?file=" + key, { with: { type: "text" } });
     const expected = {"site": "same-origin", "user": "", "mode": "cors", "dest": "text"};
     await validate_expectations(key, expected);
   }, "The fetch metadata for text module");

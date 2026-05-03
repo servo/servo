@@ -1048,7 +1048,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
             .map_err(|_| create_public_key_export_error())?;
 
-            ExportedKey::Bytes(data.to_vec())
+            ExportedKey::new_bytes(data.to_vec())
         },
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
@@ -1108,15 +1108,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
             .map_err(|_| create_private_key_export_error())?;
 
-            ExportedKey::Bytes(data.as_bytes().to_vec())
+            ExportedKey::new_bytes(data.as_bytes().to_vec())
         },
         KeyFormat::Jwk => {
             // Step 3.1. Let jwk be a new JsonWebKey dictionary.
+            let mut jwk = JsonWebKey::default();
+
             // Step 3.2. Set the kty attribute of jwk to "EC".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("EC")),
-                ..Default::default()
-            };
+            jwk.kty = Some(DOMString::from("EC"));
 
             // Step 3.3.
             let named_curve =
@@ -1274,7 +1273,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.ext = Some(key.Extractable());
 
             // Step 3.4. Let result be jwk.
-            ExportedKey::Jwk(Box::new(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
@@ -1325,7 +1324,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Let result be data.
-            ExportedKey::Bytes(data)
+            ExportedKey::new_bytes(data)
         },
         // Otherwise:
         _ => {

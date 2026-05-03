@@ -53,6 +53,19 @@
         elem.style.setProperty(property, null);
     }
 
+    function test_attr_shorthand(shorthand, longhand, attrString, attrValue, expectedValue) {
+        var elem = document.getElementById("attr");
+        elem.setAttribute("data-foo", attrValue);
+        elem.style.setProperty(shorthand, attrString);
+
+        test(() => {
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(longhand),
+                          expectedValue);
+        }, `'${shorthand}: ${attrString}' with data-foo="${attrValue}"`);
+
+        elem.style.setProperty(shorthand, null);
+    }
+
     function test_registered_custom_property(customPropertyName, customPropertySyntax, customPropertyInitialValue,
                                              attrValue, expectedValue) {
       window.CSS.registerProperty({
@@ -84,6 +97,11 @@
               `image-set(attr(data-foo))`,
               url,
               'none');
+    test_attr_shorthand('background',
+                        'background-image',
+                        `image-set(attr(data-foo))`,
+                        url,
+                        'none');
     test_attr('background-image',
               `image-set("${url}")`,
               url,

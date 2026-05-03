@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+<html class="test-wait">
+
+<title>Crash when animating transform-related properties from none to none</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+
+<style>
+  @keyframes anim {
+    from {
+      rotate: none;
+      scale: none;
+      translate: none;
+    }
+
+    to {
+      rotate: none;
+      scale: none;
+      translate: none;
+    }
+  }
+
+  #element {
+    animation: 1s anim running;
+  }
+</style>
+
+<div id="element"></div>
+
+<script>
+  // Let the animation play out for at least one frame.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove("test-wait");
+    });
+  });
+</script>
+
+</html>

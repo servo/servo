@@ -548,10 +548,10 @@ impl Tokenizer {
                     .expect("tried to set attrs on non-Element in HTML parsing");
                 for attr in attrs {
                     elem.set_attribute_from_parser(
+                        cx,
                         attr.name,
                         DOMString::from(attr.value),
                         None,
-                        CanGc::from_cx(cx),
                     );
                 }
             },

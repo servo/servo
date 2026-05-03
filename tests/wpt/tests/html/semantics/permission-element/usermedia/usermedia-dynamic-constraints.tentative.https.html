@@ -12,10 +12,10 @@ promise_test(async (t) => {
   document.body.appendChild(usermedia);
 
   // Set initial constraints (video only)
-  usermedia.setConstraints({video: true, audio: false});
+  usermedia.setConstraints({video: {}, audio: undefined});
 
   // Dynamically update constraints to audio only
-  usermedia.setConstraints({video: false, audio: true});
+  usermedia.setConstraints({video: undefined, audio: {}});
 
   const stream_promise = new Promise((resolve) => {
     usermedia.onstream = resolve;

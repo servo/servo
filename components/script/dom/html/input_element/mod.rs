@@ -35,7 +35,6 @@ use webdriver::error::ErrorStatus;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -52,6 +51,7 @@ use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
@@ -1213,11 +1213,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 self.maybe_update_shared_selection();
             },
             ValueMode::Default | ValueMode::DefaultOn => {
-                self.upcast::<Element>().set_string_attribute(
-                    &local_name!("value"),
-                    value,
-                    CanGc::from_cx(cx),
-                );
+                self.upcast::<Element>()
+                    .set_string_attribute(cx, &local_name!("value"), value);
             },
             ValueMode::Filename => {
                 if value.is_empty() {
@@ -1840,10 +1837,7 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(
-                            atom!("click"),
-                            CanGc::from_cx(cx),
-                        );
+                        .fire_synthetic_pointer_event_not_trusted(cx, atom!("click"));
                 }
             },
             None => {
@@ -2007,7 +2001,12 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut JSContext,
+        attr: AttrRef<'_>,
+        mutation: AttributeMutation,
+    ) {
         let could_have_had_embedder_control = self.may_have_embedder_control();
 
         self.super_type()
@@ -2330,9 +2329,9 @@ impl VirtualMethods for HTMLInputElement {
             let flags = reaction.flags;
             if flags.contains(ClipboardEventFlags::FireClipboardChangedEvent) {
                 self.owner_document().event_handler().fire_clipboard_event(
+                    cx,
                     None,
                     ClipboardEventType::Change,
-                    CanGc::from_cx(cx),
                 );
             }
             if flags.contains(ClipboardEventFlags::QueueInputEvent) {

@@ -15,17 +15,16 @@ use style::values::computed::font::{
 };
 use stylo_atoms::Atom;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLFontElement {
@@ -109,7 +108,7 @@ impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-font-size>
     fn SetSize(&self, cx: &mut JSContext, value: DOMString) {
         let element = self.upcast::<Element>();
-        element.set_attribute(&local_name!("size"), parse_size(&value), CanGc::from_cx(cx));
+        element.set_attribute(cx, &local_name!("size"), parse_size(&value));
     }
 }
 
@@ -118,7 +117,7 @@ impl VirtualMethods for HTMLFontElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         if attr.local_name() == &local_name!("color") ||
             attr.local_name() == &local_name!("size") ||
             attr.local_name() == &local_name!("face")
@@ -146,10 +145,13 @@ impl VirtualMethods for HTMLFontElement {
 
 impl LayoutDom<'_, HTMLFontElement> {
     pub(crate) fn get_color(self) -> Option<AbsoluteColor> {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("color"))
-            .and_then(AttrValue::as_color)
-            .cloned()
+        let color = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("color"));
+        match color {
+            Some(AttrValue::Color(_, color)) => *color,
+            _ => None,
+        }
     }
 
     pub(crate) fn get_face(self) -> Option<Atom> {

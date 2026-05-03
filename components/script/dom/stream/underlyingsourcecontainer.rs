@@ -6,6 +6,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
@@ -24,13 +25,52 @@ use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::transformstream::TransformStream;
 use crate::script_runtime::CanGc;
 
+/// A variation of [UnderlyingSourceType] used for storing state within UnderlyingContainer.
+/// All variants have identical meanings to [UnderlyingSourceType].
+#[derive(JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+enum UnderlyingSource {
+    Memory(usize),
+    Blob(usize),
+    FetchResponse,
+    Js(JsUnderlyingSource, Heap<*mut JSObject>),
+    Tee(Dom<DefaultTeeUnderlyingSource>),
+    Transfer(Dom<MessagePort>),
+    Transform(Dom<TransformStream>, Rc<Promise>),
+    TeeByte(Dom<ByteTeeUnderlyingSource>),
+}
+
+impl UnderlyingSource {
+    /// Does the source have all data in memory?
+    fn in_memory(&self) -> bool {
+        matches!(self, UnderlyingSource::Memory(_))
+    }
+}
+
+impl From<UnderlyingSourceType<'_>> for UnderlyingSource {
+    fn from(underlying_source_type: UnderlyingSourceType<'_>) -> Self {
+        match underlying_source_type {
+            UnderlyingSourceType::Memory(size) => UnderlyingSource::Memory(size),
+            UnderlyingSourceType::Blob(size) => UnderlyingSource::Blob(size),
+            UnderlyingSourceType::FetchResponse => UnderlyingSource::FetchResponse,
+            UnderlyingSourceType::Js(source) => UnderlyingSource::Js(source, Heap::default()),
+            UnderlyingSourceType::Tee(source) => UnderlyingSource::Tee(Dom::from_ref(source)),
+            UnderlyingSourceType::Transfer(port) => UnderlyingSource::Transfer(Dom::from_ref(port)),
+            UnderlyingSourceType::Transform(stream, promise) => {
+                UnderlyingSource::Transform(Dom::from_ref(stream), promise)
+            },
+            UnderlyingSourceType::TeeByte(source) => {
+                UnderlyingSource::TeeByte(Dom::from_ref(source))
+            },
+        }
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
 /// The `Js` variant corresponds to
 /// the JavaScript object representing the underlying source.
 /// The other variants are native sources in Rust.
-#[derive(JSTraceable)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) enum UnderlyingSourceType {
+pub(crate) enum UnderlyingSourceType<'a> {
     /// Facilitate partial integration with sources
     /// that are currently read into memory.
     Memory(usize),
@@ -40,20 +80,20 @@ pub(crate) enum UnderlyingSourceType {
     FetchResponse,
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
-    Js(JsUnderlyingSource, Heap<*mut JSObject>),
+    Js(JsUnderlyingSource),
     /// Tee
-    Tee(Dom<DefaultTeeUnderlyingSource>),
+    Tee(&'a DefaultTeeUnderlyingSource),
     /// Transfer, with the port used in some of the algorithms.
-    Transfer(Dom<MessagePort>),
+    Transfer(&'a MessagePort),
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
     /// This is used for the `TransformStream` API.
-    Transform(Dom<TransformStream>, Rc<Promise>),
-    // Tee Byte
-    TeeByte(Dom<ByteTeeUnderlyingSource>),
+    Transform(&'a TransformStream, Rc<Promise>),
+    /// Tee Byte
+    TeeByte(&'a ByteTeeUnderlyingSource),
 }
 
-impl UnderlyingSourceType {
+impl UnderlyingSourceType<'_> {
     /// Is the source backed by a Rust native source?
     pub(crate) fn is_native(&self) -> bool {
         matches!(
@@ -64,11 +104,6 @@ impl UnderlyingSourceType {
                 UnderlyingSourceType::Transfer(_)
         )
     }
-
-    /// Does the source have all data in memory?
-    pub(crate) fn in_memory(&self) -> bool {
-        matches!(self, UnderlyingSourceType::Memory(_))
-    }
 }
 
 /// Wrapper around the underlying source.
@@ -76,19 +111,17 @@ impl UnderlyingSourceType {
 pub(crate) struct UnderlyingSourceContainer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "JsUnderlyingSource implemented in SM."]
-    underlying_source_type: UnderlyingSourceType,
+    underlying_source_type: UnderlyingSource,
 }
 
 impl UnderlyingSourceContainer {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(underlying_source_type: UnderlyingSourceType) -> UnderlyingSourceContainer {
         UnderlyingSourceContainer {
             reflector_: Reflector::new(),
-            underlying_source_type,
+            underlying_source_type: underlying_source_type.into(),
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -109,7 +142,7 @@ impl UnderlyingSourceContainer {
 
     /// Setting the JS object after the heap has settled down.
     pub(crate) fn set_underlying_source_this_object(&self, object: HandleObject) {
-        if let UnderlyingSourceType::Js(_source, this_obj) = &self.underlying_source_type {
+        if let UnderlyingSource::Js(_source, this_obj) = &self.underlying_source_type {
             this_obj.set(*object);
         }
     }
@@ -118,39 +151,34 @@ impl UnderlyingSourceContainer {
     #[expect(unsafe_code)]
     pub(crate) fn call_cancel_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
-            UnderlyingSourceType::Js(source, this_obj) => {
+            UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.cancel {
                     let result = unsafe {
                         algo.Call_(
+                            cx,
                             &SafeHandle::from_raw(this_obj.handle()),
                             Some(reason),
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         )
                     };
                     return Some(result);
                 }
                 None
             },
-            UnderlyingSourceType::Tee(tee_underlying_source) => {
+            UnderlyingSource::Tee(tee_underlying_source) => {
                 // Call the cancel algorithm for the appropriate branch.
                 tee_underlying_source.cancel_algorithm(cx, global, reason)
             },
-            UnderlyingSourceType::Transform(stream, _) => {
+            UnderlyingSource::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourceCancelAlgorithm(stream, reason).
-                Some(stream.transform_stream_default_source_cancel(
-                    cx.into(),
-                    global,
-                    reason,
-                    CanGc::from_cx(cx),
-                ))
+                Some(stream.transform_stream_default_source_cancel(cx, global, reason))
             },
-            UnderlyingSourceType::Transfer(port) => {
+            UnderlyingSource::Transfer(port) => {
                 // Let cancelAlgorithm be the following steps, taking a reason argument:
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
@@ -173,7 +201,7 @@ impl UnderlyingSourceContainer {
                 }
                 Some(Ok(promise))
             },
-            UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
+            UnderlyingSource::TeeByte(tee_underlyin_source) => {
                 // Call the cancel algorithm for the appropriate branch.
                 tee_underlyin_source.cancel_algorithm(cx, reason)
             },
@@ -185,29 +213,29 @@ impl UnderlyingSourceContainer {
     #[expect(unsafe_code)]
     pub(crate) fn call_pull_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         controller: Controller,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
-            UnderlyingSourceType::Js(source, this_obj) => {
+            UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.pull {
                     let result = unsafe {
                         algo.Call_(
+                            cx,
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         )
                     };
                     return Some(result);
                 }
                 None
             },
-            UnderlyingSourceType::Tee(tee_underlying_source) => {
+            UnderlyingSource::Tee(tee_underlying_source) => {
                 // Call the pull algorithm for the appropriate branch.
                 Some(Ok(tee_underlying_source.pull_algorithm(cx)))
             },
-            UnderlyingSourceType::Transfer(port) => {
+            UnderlyingSource::Transfer(port) => {
                 // Let pullAlgorithm be the following steps:
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
@@ -217,16 +245,16 @@ impl UnderlyingSourceContainer {
                     .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.
-                let promise = Promise::new2(cx, &self.global());
-                promise.resolve_native(&(), CanGc::from_cx(cx));
+                let promise =
+                    Promise::new_resolved(&self.global(), cx.into(), (), CanGc::from_cx(cx));
                 Some(Ok(promise))
             },
-            UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
+            UnderlyingSource::TeeByte(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
                 Some(Ok(tee_underlyin_source.pull_algorithm(cx, None)))
             },
             // Note: other source type have no pull steps for now.
-            UnderlyingSourceType::Transform(stream, _) => {
+            UnderlyingSource::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourcePullAlgorithm(stream).
                 Some(
                     stream.transform_stream_default_source_pull(&self.global(), CanGc::from_cx(cx)),
@@ -246,21 +274,21 @@ impl UnderlyingSourceContainer {
     #[expect(unsafe_code)]
     pub(crate) fn call_start_algorithm(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         controller: Controller,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
-            UnderlyingSourceType::Js(source, this_obj) => {
+            UnderlyingSource::Js(source, this_obj) => {
                 if let Some(start) = &source.start {
                     rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
                     rooted!(&in(cx) let mut result: JSVal);
                     unsafe {
                         if let Err(error) = start.Call_(
+                            cx,
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             result.handle_mut(),
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         ) {
                             return Some(Err(error));
                         }
@@ -287,16 +315,16 @@ impl UnderlyingSourceContainer {
                 }
                 None
             },
-            UnderlyingSourceType::Tee(_) => {
+            UnderlyingSource::Tee(_) => {
                 // Let startAlgorithm be an algorithm that returns undefined.
                 None
             },
-            UnderlyingSourceType::Transfer(_) => {
+            UnderlyingSource::Transfer(_) => {
                 // Let startAlgorithm be an algorithm that returns undefined.
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
                 None
             },
-            UnderlyingSourceType::Transform(_, start_promise) => {
+            UnderlyingSource::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
                 Some(Ok(start_promise.clone()))
             },
@@ -307,7 +335,7 @@ impl UnderlyingSourceContainer {
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-autoallocatechunksize>
     pub(crate) fn auto_allocate_chunk_size(&self) -> Option<u64> {
         match &self.underlying_source_type {
-            UnderlyingSourceType::Js(source, _) => source.autoAllocateChunkSize,
+            UnderlyingSource::Js(source, _) => source.autoAllocateChunkSize,
             _ => None,
         }
     }

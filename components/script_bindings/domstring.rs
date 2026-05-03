@@ -24,6 +24,7 @@ use regex::Regex;
 use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
+use zeroize::Zeroize;
 
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::trace::RootedTraceableBox;
@@ -107,6 +108,12 @@ enum DOMStringType {
 impl Default for DOMStringType {
     fn default() -> Self {
         Self::Rust(Default::default())
+    }
+}
+
+impl Zeroize for DOMStringType {
+    fn zeroize(&mut self) {
+        self.ensure_rust_string().zeroize()
     }
 }
 
@@ -885,6 +892,12 @@ impl From<Cow<'_, str>> for DOMString {
     }
 }
 
+impl Zeroize for DOMString {
+    fn zeroize(&mut self) {
+        self.0.borrow_mut().zeroize()
+    }
+}
+
 #[macro_export]
 macro_rules! match_domstring_ascii_inner {
     ($variant: expr, $input: expr, $ascii_literal: literal => $then: expr, $($rest:tt)*) => {
@@ -918,6 +931,9 @@ macro_rules! match_domstring_ascii_inner {
 /// );
 /// assert_eq!(value, 3);
 /// ```
+///
+/// The `RefCell` inside `DOMString` is borrowed for the duration of the `match`,
+/// so the string cannot be accessed again inside a `match` arm.
 #[macro_export]
 macro_rules! match_domstring_ascii {
     ($input:expr, $($tail:tt)*) => {

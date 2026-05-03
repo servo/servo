@@ -14,6 +14,9 @@ interface ModelContext {
 
 dictionary ModelContextTool {
   required DOMString name;
+  // Because `title` is for display in possibly native UIs, this must be a `USVString`.
+  // See https://w3ctag.github.io/design-principles/#idl-string-types.
+  USVString title;
   required DOMString description;
   object inputSchema;
   required ToolExecuteCallback execute;
@@ -22,6 +25,7 @@ dictionary ModelContextTool {
 
 dictionary ToolAnnotations {
   boolean readOnlyHint = false;
+  boolean untrustedContentHint = false;
 };
 
 callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient client);

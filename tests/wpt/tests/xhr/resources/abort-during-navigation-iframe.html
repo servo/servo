@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script>
+var xhr = new XMLHttpRequest();
+xhr.onerror = function() {
+  parent.postMessage({type: "xhr-event", event: "error"}, "*");
+};
+xhr.onabort = function() {
+  parent.postMessage({type: "xhr-event", event: "abort"}, "*");
+};
+xhr.onload = function() {
+  parent.postMessage({type: "xhr-event", event: "load"}, "*");
+};
+xhr.onloadend = function() {
+  parent.postMessage({type: "xhr-event", event: "loadend"}, "*");
+};
+xhr.onreadystatechange = function() {
+  parent.postMessage({type: "xhr-event", event: "readystatechange:" + xhr.readyState}, "*");
+};
+xhr.upload.onerror = function() {
+  parent.postMessage({type: "xhr-event", event: "upload.error"}, "*");
+};
+xhr.upload.onabort = function() {
+  parent.postMessage({type: "xhr-event", event: "upload.abort"}, "*");
+};
+xhr.open("GET", "delay.py?ms=10000", true);
+xhr.send();
+parent.postMessage({type: "ready"}, "*");
+</script>

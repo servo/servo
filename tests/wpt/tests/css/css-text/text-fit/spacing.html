@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<link rel="match" href="spacing-ref.html">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  font: 20px/1 Ahem;
+  white-space: pre;
+  background: green;
+  margin-bottom: 10px;
+}
+.scale {
+  text-fit: grow;
+}
+.scale-line {
+  text-fit: grow per-line-all;
+}
+.nospacing {
+  letter-spacing: 0;
+}
+</style>
+<body style="">
+<!-- Specify letter-spacing:0 to the last letter to ensure it has no spacing. -->
+<div class="target scale" style="width: 100px; letter-spacing: 50%;">A<span class="nospacing">A</span></div>
+<div class="target scale" style="width: 110px; letter-spacing: 10px;">A<span class="nospacing">A</span></div>
+<div class="target scale" style="width: 140px; word-spacing: 50%;">A A</div>
+<div class="target scale" style="width: 130px; word-spacing: 10px;">A A</div>
+
+<div class="target scale-line" style="width: 100px; letter-spacing: 50%;">A<span class="nospacing">A</span></div>
+<div class="target scale-line" style="width: 110px; letter-spacing: 10px;">A<span class="nospacing">A</span></div>
+<div class="target scale-line" style="width: 140px; word-spacing: 50%;">A A</div>
+<div class="target scale-line" style="width: 130px; word-spacing: 10px;">A A</div>
+</body>

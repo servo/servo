@@ -1,0 +1,8 @@
+features:
+- name: input-file-multiple
+  files:
+  - filelist_multiple_selected_files-manual.html
+- name: file
+  files:
+  - "*"
+  - "!filelist_multiple_selected_files-manual.html"

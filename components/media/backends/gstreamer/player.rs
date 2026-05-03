@@ -10,7 +10,11 @@ use std::sync::{Arc, Mutex, Once};
 use std::time;
 
 use byte_slice_cast::AsSliceOf;
+use glib;
 use glib::prelude::*;
+use gstreamer;
+use gstreamer_app;
+use gstreamer_play;
 use gstreamer_play::prelude::*;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
 use servo_media::MediaInstanceError;
@@ -23,7 +27,6 @@ use servo_media_player::{
 };
 use servo_media_streams::registry::{MediaStreamId, get_stream};
 use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance};
-use {glib, gstreamer, gstreamer_app, gstreamer_play};
 
 use super::BACKEND_BASE_TIME;
 use crate::media_stream::GStreamerMediaStream;

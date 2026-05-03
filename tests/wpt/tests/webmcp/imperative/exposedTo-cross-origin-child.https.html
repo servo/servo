@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Simple Cross-Origin Exposure to Child</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+async function setupIframe(t) {
+  const iframe = document.createElement('iframe');
+  iframe.src = host_info.HTTPS_REMOTE_ORIGIN + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+  return iframe;
+}
+
+promise_test(async t => {
+  const controller = new AbortController();
+  navigator.modelContext.registerTool({
+    name: 'parent_tool_exposed',
+    description: 'Parent tool exposed to child',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    execute: async () => 'hello'
+  }, { exposedTo: [host_info.HTTPS_REMOTE_ORIGIN], signal: controller.signal });
+
+  const iframe = await setupIframe(t);
+
+  // Ask iframe what it sees.
+  iframe.contentWindow.postMessage('getTools', '*');
+  let response = await waitForIframeMessage('getToolsResponse');
+  const [tool] = response.tools;
+  assert_true(toolsAreEqual(tool, {
+    name: 'parent_tool_exposed',
+    description: 'Parent tool exposed to child',
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+  }), 'Tool details should match');
+
+  // Unregister and verify `toolchange` is fired in iframe.
+  iframe.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+
+  const child_unreg_promise = waitForIframeMessage('toolchange_result');
+  const parent_unreg_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  controller.abort();
+
+  const [child_response] = await Promise.all([child_unreg_promise, parent_unreg_promise]);
+  assert_equals(child_response.result, 'fired', 'Cross-origin iframe should receive toolchange event on unregistration');
+
+  iframe.contentWindow.postMessage('getTools', '*');
+  response = await waitForIframeMessage('getToolsResponse');
+  assert_array_equals(response.tools, [], 'Cross-origin iframe should no longer see any tools after unregistration');
+}, 'Parent exposes tool to cross-origin child');
+
+promise_test(async t => {
+  const iframe = await setupIframe(t);
+
+  // Tell iframe to register tool exposed to parent (HTTPS_ORIGIN)
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool_exposed',
+      description: 'Iframe tool exposed to parent',
+      inputSchema: { type: 'object', properties: { query: { type: 'string' } } }
+    },
+    options: { exposedTo: [host_info.HTTPS_ORIGIN] }
+  }, '*');
+
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  let tools = await navigator.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'iframe_tool_exposed');
+  assert_true(toolsAreEqual(tool, {
+    name: 'iframe_tool_exposed',
+    description: 'Iframe tool exposed to parent',
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+  }), 'Tool details should match');
+
+  // Tell the iframe to unregister its tool, and confirm that `toolchange` fires here.
+  const toolchange_promise  = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+  iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_exposed' }, '*');
+  await toolchange_promise;
+
+  tools = await navigator.modelContext.getTools();
+  assert_array_equals(tools, [], 'Parent should no longer see cross-origin iframe tool after unregistration');
+}, 'Cross-origin child exposes tool to parent');
+
+promise_test(async t => {
+  // Parent exposes tool to an origin that is neither its own, nor its cross-origin iframe's.
+  const controller = new AbortController();
+  navigator.modelContext.registerTool({
+    name: 'parent_tool',
+    description: 'Parent tool exposed',
+    execute: async () => 'hello'
+  }, { exposedTo: [host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN], signal: controller.signal });
+
+  const iframe = await setupIframe(t);
+
+  // Iframe does not see tool.
+  iframe.contentWindow.postMessage('getTools', '*');
+  const response = await waitForIframeMessage('getToolsResponse');
+  assert_array_equals(response.tools, [], 'iframe should see no tools');
+
+  // Unregister tool and verify that the iframe does not get `toolchange` fired.
+  iframe.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+
+  const child_unreg_promise = waitForIframeMessage('toolchange_result');
+  const parent_unreg_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  controller.abort();
+
+  const [child_response] = await Promise.all([child_unreg_promise, parent_unreg_promise]);
+  assert_equals(child_response.result, 'timeout', 'iframe should not receive toolchange event');
+}, "Parent exposes tool to origin that is neither its own nor its iframe's");
+
+promise_test(async t => {
+  const iframe = await setupIframe(t);
+
+  // No `toolchange` events should be fired in the parent during this test.
+  const toolchange_promise = new Promise((resolve, reject) => {
+    const listener = () => reject('Parent should not receive toolchange event');
+    navigator.modelContext.addEventListener('toolchange', listener);
+    t.add_cleanup(() => navigator.modelContext.removeEventListener('toolchange', listener));
+  });
+  const timeout_promise = () => new Promise(resolve => t.step_timeout(resolve, 4000));
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool',
+      description: 'Iframe tool'
+    },
+    options: { exposedTo: [host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN] }
+  }, '*');
+
+  await Promise.race([toolchange_promise, timeout_promise()]);
+
+  let tools = await navigator.modelContext.getTools();
+  assert_array_equals(tools, [], 'Parent should not see iframe tool');
+
+  iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_to_c' }, '*');
+
+  await Promise.race([toolchange_promise, timeout_promise()]);
+
+  tools = await navigator.modelContext.getTools();
+  assert_array_equals(tools, [], 'Parent should not see iframe tool after unregistration');
+}, "Iframe exposes tool to origin that is neither its own nor its parent's");
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = host_info.HTTPS_REMOTE_ORIGIN + '/webmcp/imperative/resources/iframe-register-tool.html';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+
+  iframe.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+
+  const toolchange_promise = waitForIframeMessage('toolchange_result');
+  const timeout_promise = () => new Promise(resolve => t.step_timeout(() => resolve({ result: 'timeout' }), 4000));
+
+  const controller = new AbortController();
+  navigator.modelContext.registerTool({
+    name: 'parent_tool_no_policy',
+    description: 'Parent tool',
+    execute: async () => 'hello'
+  }, { exposedTo: [host_info.HTTPS_REMOTE_ORIGIN], signal: controller.signal });
+
+  const response = await Promise.race([toolchange_promise, timeout_promise()]);
+  assert_equals(response.result, 'timeout', 'Cross-origin iframe without permissions policy should not receive toolchange event');
+
+  controller.abort();
+}, 'Cross-origin iframe without permissions policy does not receive toolchange event even if exposed to it');
+</script>
+</body>
+</html>

@@ -13,7 +13,6 @@ use js::rust::HandleObject;
 use script_bindings::domstring::DOMString;
 use style::selector_parser::PseudoElement;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
@@ -25,6 +24,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -292,11 +292,7 @@ impl HTMLDetailsElement {
         shadow_tree
             .implicit_summary
             .upcast::<Element>()
-            .set_string_attribute(
-                &local_name!("style"),
-                implicit_summary_style.into(),
-                CanGc::from_cx(cx),
-            );
+            .set_string_attribute(cx, &local_name!("style"), implicit_summary_style.into());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-the-given-element-if-needed>
@@ -403,7 +399,7 @@ impl VirtualMethods for HTMLDetailsElement {
     fn attribute_mutated(
         &self,
         cx: &mut js::context::JSContext,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
         self.super_type()

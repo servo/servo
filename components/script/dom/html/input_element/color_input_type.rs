@@ -20,11 +20,11 @@ use style::values::specified::Color;
 use style_traits::{ParsingMode, ToCss};
 use url::Url;
 
-use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document_embedder_controls::ControlElement;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -234,7 +234,7 @@ impl SpecificInputType for ColorInputType {
         &self,
         _cx: &mut JSContext,
         input: &HTMLInputElement,
-        attr: &Attr,
+        attr: AttrRef<'_>,
         _mutation: AttributeMutation,
     ) {
         match *attr.local_name() {
@@ -321,10 +321,7 @@ impl ColorInputShadowTree {
     pub(crate) fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
         let value = input_element.Value();
         let style = format!("background-color: {value}");
-        self.color_value.set_string_attribute(
-            &local_name!("style"),
-            style.into(),
-            CanGc::from_cx(cx),
-        );
+        self.color_value
+            .set_string_attribute(cx, &local_name!("style"), style.into());
     }
 }
