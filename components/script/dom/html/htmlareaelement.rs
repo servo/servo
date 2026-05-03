@@ -34,7 +34,6 @@ use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkEle
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{LinkRelations, follow_hyperlink};
-use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]
 pub enum Area {
@@ -387,6 +386,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     fn RelList(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("rel"),
                 Some(vec![
@@ -394,7 +394,6 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                CanGc::from_cx(cx),
             )
         })
     }

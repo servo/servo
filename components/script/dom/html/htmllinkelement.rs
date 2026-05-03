@@ -1098,10 +1098,10 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
-        if self
-            .RelList(CanGc::deprecated_note())
-            .Contains("noreferrer".into())
-        {
+        #[expect(unsafe_code)]
+        // TODO: https://github.com/servo/servo/issues/44683
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        if self.RelList(&mut cx).Contains("noreferrer".into()) {
             return ReferrerPolicy::NoReferrer;
         }
 
@@ -1177,9 +1177,10 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-rellist>
-    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("rel"),
                 Some(vec![
@@ -1199,7 +1200,6 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
                     Atom::from("prerender"),
                     Atom::from("stylesheet"),
                 ]),
-                can_gc,
             )
         })
     }
@@ -1223,13 +1223,13 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_setter!(SetTarget, "target");
 
     /// <https://html.spec.whatwg.org/multipage/#attr-link-blocking>
-    fn Blocking(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn Blocking(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
         self.blocking.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("blocking"),
                 Some(vec![Atom::from("render")]),
-                can_gc,
             )
         })
     }

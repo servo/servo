@@ -53,7 +53,6 @@ use crate::navigation::{
     determine_creation_sandboxing_flags, determine_iframe_element_referrer_policy,
 };
 use crate::network_listener::ResourceTimingListener;
-use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
 
@@ -980,6 +979,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     fn Sandbox(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
         self.sandbox.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast::<Element>(),
                 &local_name!("sandbox"),
                 Some(vec![
@@ -997,7 +997,6 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
                     Atom::from("allow-top-navigation-by-user-activation"),
                     Atom::from("allow-top-navigation-to-custom-protocols"),
                 ]),
-                CanGc::from_cx(cx),
             )
         })
     }

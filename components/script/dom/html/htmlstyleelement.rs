@@ -481,13 +481,13 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     make_setter!(SetMedia, "media");
 
     /// <https://html.spec.whatwg.org/multipage/#attr-style-blocking>
-    fn Blocking(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn Blocking(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
         self.blocking.or_init(|| {
             DOMTokenList::new(
+                cx,
                 self.upcast(),
                 &local_name!("blocking"),
                 Some(vec![Atom::from("render")]),
-                can_gc,
             )
         })
     }
