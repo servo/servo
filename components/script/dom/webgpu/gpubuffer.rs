@@ -48,7 +48,10 @@ pub(crate) struct ActiveBufferMapping {
 
 impl ActiveBufferMapping {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-initialize-an-active-buffer-mapping>
-    pub(crate) fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Fallible<Self> {
+    pub(crate) fn new(
+        mode: GPUMapModeFlags,
+        range: Range<u64>,
+    ) -> Fallible<RootedTraceableBox<Self>> {
         // Step 1
         let size = range.end - range.start;
         // Step 2
@@ -58,11 +61,11 @@ impl ActiveBufferMapping {
         let size: usize = size
             .try_into()
             .map_err(|_| Error::Range(c"Over usize".to_owned()))?;
-        Ok(Self {
+        Ok(RootedTraceableBox::new(Self {
             data: DataBlock::new_zeroed(size),
             mode,
             range,
-        })
+        }))
     }
 }
 
@@ -83,7 +86,7 @@ pub(crate) struct GPUBuffer {
     #[conditional_malloc_size_of]
     pending_map: DomRefCell<Option<Rc<Promise>>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
-    mapping: DomRefCell<Option<RootedTraceableBox<ActiveBufferMapping>>>,
+    mapping: DomRefCell<Option<ActiveBufferMapping>>,
 }
 
 impl GPUBuffer {
@@ -93,7 +96,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
-        mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
+        mapping: Option<ActiveBufferMapping>,
         label: USVString,
     ) -> Self {
         Self {
@@ -117,7 +120,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
-        mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
+        mapping: Option<ActiveBufferMapping>,
         label: USVString,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -137,7 +140,6 @@ impl GPUBuffer {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBufferDescriptor,
@@ -162,11 +164,9 @@ impl GPUBuffer {
             .expect("Failed to create WebGPU buffer");
 
         let buffer = WebGPUBuffer(id);
-        let mapping: Option<RootedTraceableBox<ActiveBufferMapping>> = if descriptor
-            .mappedAtCreation
-        {
-            let temp = ActiveBufferMapping::new(GPUMapModeConstants::WRITE, 0..descriptor.size)?;
-            Some(RootedTraceableBox::new(temp))
+        let mapping = if descriptor.mappedAtCreation {
+            ActiveBufferMapping::new(GPUMapModeConstants::WRITE, 0..descriptor.size)?
+                .map(|m| *m.into_box())
         } else {
             None
         };
@@ -403,7 +403,6 @@ impl GPUBuffer {
         }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
         // Step 1
         if self.pending_map.borrow().as_ref() != Some(p) {
@@ -422,7 +421,7 @@ impl GPUBuffer {
             },
             wgpu_mapping.range,
         )
-        .map(RootedTraceableBox::new);
+        .map(|m| *m.into_box())?;
 
         match mapping {
             Err(error) => {
