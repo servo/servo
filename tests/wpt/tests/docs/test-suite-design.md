@@ -32,12 +32,9 @@ For example, tests in HTML for ["The History
 interface"](https://html.spec.whatwg.org/multipage/history.html#the-history-interface)
 are located in `html/browsers/history/the-history-interface/`.
 
-Many directories also include a file named `META.yml`. This file may define any
-of the following properties:
-
-- `spec` - a link to the specification covered by the tests in the directory
-- `suggested_reviewers` - a list of GitHub account username belonging to
-  people who are notified when pull requests modify files in the directory
+Many directories also include files named `META.yml` and/or `WEB_FEATURES.yml`.
+These files contain test metadata; please refer to [Out-of-band
+Metadata][metadata] for more information about their purpose and format.
 
 Various resources that tests depend on are in `common`, `images`, `fonts`,
 `media`, and `resources`.
@@ -75,5 +72,6 @@ expectations:
 [testharness.js]: writing-tests/testharness
 [visual]: writing-tests/visual
 [manual]: writing-tests/manual
+[metadata]: writing-tests/out-of-band-metadata
 [running-from-local-system]: running-tests/from-local-system
 [wdspec]: writing-tests/wdspec

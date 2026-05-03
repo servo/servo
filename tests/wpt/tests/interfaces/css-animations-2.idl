@@ -4,6 +4,15 @@
 // Source: CSS Animations Module Level 2 (https://drafts.csswg.org/css-animations-2/)
 
 [Exposed=Window]
+partial interface AnimationEvent {
+  readonly attribute CSSAnimation? animation;
+};
+
+partial dictionary AnimationEventInit {
+  CSSAnimation? animation = null;
+};
+
+[Exposed=Window]
 interface CSSAnimation : Animation {
   readonly attribute CSSOMString animationName;
 };

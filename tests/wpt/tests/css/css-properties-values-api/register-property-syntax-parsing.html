@@ -99,6 +99,7 @@ assert_valid("<color>", "rgb(12, 34, 56)");
 assert_valid("<color>", "lightgoldenrodyellow");
 assert_valid("<image>", "url(a)");
 assert_valid("<image>", "linear-gradient(yellow, blue)");
+assert_valid("<image>", "light-dark(none, none)");
 assert_valid("<url>", "url(a)");
 
 assert_valid("<color>+", "yellow blue");
@@ -273,6 +274,7 @@ assert_invalid("<transform-list>", "scale()");
 assert_invalid("<transform-list>+", "translateX(2px) rotate(20deg)");
 assert_invalid("<color>", "fancy-looking");
 assert_invalid("<image>", "banana.png");
+assert_invalid("<image>", "none");
 assert_invalid("<url>", "banana.png");
 
 assert_invalid("<string>", "foo bar'");

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebShare Test: Share with a file URL and a base tag</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      // Dynamically add a <base> tag after scripts have loaded.
+      const base = document.createElement('base');
+      base.href = 'file:///';
+      document.head.appendChild(base);
+
+      test(() => {
+        assert_false(
+          navigator.canShare({ url: "file:///etc/passwd" }),
+          "file URL should not be allowed even with a file: base URL"
+        );
+      }, "canShare() rejects file:// URLs even with a file: base URL");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        const promise = navigator.share({ url: "file:///etc/passwd" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects file:// URLs even with a file: base URL");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        // A relative URL "passwd" resolved against "file:///" becomes "file:///passwd".
+        // This should also be rejected.
+        const promise = navigator.share({ url: "passwd" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects relative URLs that resolve to file:// scheme");
+    </script>
+  </body>
+</html>

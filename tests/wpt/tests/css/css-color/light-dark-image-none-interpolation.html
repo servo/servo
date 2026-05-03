@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>light-dark() with none rendered as transparent image during interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#light-dark">
+<link rel="match" href="light-dark-image-none-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<ul>
+  <li id="item">This item should not have a visible marker</li>
+</ul>
+<script>
+  const animation = item.animate([
+    { listStyleImage: "none" },
+    { listStyleImage: "light-dark(none, none)" }
+  ], {
+    duration: 1000,
+    fill: 'forwards',
+    easing: 'linear(0 0% 40%, 1 40% 100%)'
+  });
+
+  animation.pause();
+  animation.currentTime = 0;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    animation.currentTime = 500;
+    takeScreenshot();
+  }));
+</script>

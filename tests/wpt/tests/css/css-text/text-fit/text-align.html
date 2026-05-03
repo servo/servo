@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="match" href="text-align-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.target {
+  width: 120px;
+  border: 2px solid blue;
+  margin-bottom: 10px;
+  font: 20px/normal Ahem;
+  text-align: right;
+}
+</style>
+<body>
+
+<div class="target" style="text-fit: grow consistent">
+ABCDE FGHI
+</div>
+
+<div class="target" style="text-fit: shrink consistent">
+ABCDE FGHIJKLM
+</div>
+

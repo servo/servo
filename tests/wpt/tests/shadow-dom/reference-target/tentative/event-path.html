@@ -399,6 +399,131 @@ test((t) => {
 }, "Event propagates to source tree when source is given in synthetic event, even without reference target");
 </script>
 
+<x-component id="outerG">
+<template shadowRootMode="open">
+    <button id="button" popovertarget="middleG">Toggle</button>
+    <x-component id="middleG">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerG">
+        <x-component id="innerG">
+        <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+            <div id="targetDiv" popover></div>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+test((t) => {
+    const outerG = document.getElementById("outerG");
+    const button = outerG.shadowRoot.getElementById("button");
+    const middleG = outerG.shadowRoot.getElementById("middleG");
+    const innerG = middleG.shadowRoot.getElementById("innerG");
+    const targetDiv = innerG.shadowRoot.getElementById("targetDiv");
+    let targetDivToggleEventCount = 0;
+    let middleGToggleEventCount = 0;
+
+    outerG.addEventListener("beforetoggle", (e) => {
+        assert_unreached("beforetoggle event should not fire on outer component.");
+    }, {once: true});
+
+    innerG.addEventListener("beforetoggle", (e) => {
+        assert_unreached("beforetoggle event should not fire on inner component.");
+    }, {once: true});
+
+    targetDiv.addEventListener("beforetoggle", (e) => {
+        targetDivToggleEventCount++;
+        assert_true(e instanceof ToggleEvent);
+        assert_equals(e.target, targetDiv,
+                "target for event listener on targetDiv is targetDiv");
+        assert_equals(e.source, button,
+                "source for event listener on targetDiv is button");
+    }, {once: true});
+
+    middleG.addEventListener("beforetoggle", (e) => {
+        middleGToggleEventCount++;
+        assert_true(e instanceof ToggleEvent);
+        assert_equals(e.target, middleG,
+                "target for event listener on middleG is middleG");
+        assert_equals(e.source, button,
+                "source for event listener on middleG is button");
+    }, {once: true});
+
+    button.click();
+    assert_equals(targetDivToggleEventCount, 1, "beforetoggle handler on targetDiv should have been called");
+    assert_equals(middleGToggleEventCount, 1, "beforetoggle handler on middleG should have been called");
+    t.add_cleanup(() => {
+        if (targetDiv.matches(':popover-open')) targetDiv.hidePopover();
+    });
+}, "beforetoggle event propagates to source's shadow tree only; target in deeper shadow root");
+</script>
+
+<x-component id="outerH">
+<template shadowRootMode="open">
+    <button id="button" popovertarget="middleH">Toggle</button>
+    <x-component id="middleH">
+    <template shadowRootMode="open" shadowRootReferenceTarget="innerH">
+        <x-component id="innerH">
+        <template shadowRootMode="open" shadowRootReferenceTarget="targetDiv">
+            <div id="targetDiv" popover></div>
+        </template>
+        </x-component>
+    </template>
+    </x-component>
+</template>
+</x-component>
+
+<script>
+promise_test(async (t) => {
+    const outerH = document.getElementById("outerH");
+    const button = outerH.shadowRoot.getElementById("button");
+    const middleH = outerH.shadowRoot.getElementById("middleH");
+    const innerH = middleH.shadowRoot.getElementById("innerH");
+    const targetDiv = innerH.shadowRoot.getElementById("targetDiv");
+    let targetDivToggleEventCount = 0;
+    let middleHToggleEventCount = 0;
+
+    const targetDivToggleFired = new Promise((resolve) => {
+        targetDiv.addEventListener("toggle", (e) => {
+            targetDivToggleEventCount++;
+            assert_true(e instanceof ToggleEvent);
+            assert_equals(e.target, targetDiv,
+                    "target for event listener on targetDiv is targetDiv");
+            assert_equals(e.source, button,
+                    "source for event listener on targetDiv is button");
+            resolve();
+        }, {once: true});
+    });
+
+    const middleHToggleFired = new Promise((resolve) => {
+        middleH.addEventListener("toggle", (e) => {
+            middleHToggleEventCount++;
+            assert_true(e instanceof ToggleEvent);
+            assert_equals(e.target, middleH,
+                    "target for event listener on middleH is middleH");
+            assert_equals(e.source, button,
+                    "source for event listener on middleH is button");
+            resolve();
+        }, {once: true});
+    });
+
+    outerH.addEventListener("toggle", (e) => {
+        assert_unreached("toggle event should not fire on outer component.");
+    }, {once: true});
+
+    innerH.addEventListener("toggle", (e) => {
+        assert_unreached("toggle event should not fire on inner component.");
+    }, {once: true});
+
+    button.click();
+    await Promise.all([targetDivToggleFired, middleHToggleFired]);
+    t.add_cleanup(() => {
+        if (targetDiv.matches(':popover-open')) targetDiv.hidePopover();
+    });
+}, "toggle event propagates to source's shadow tree only; target in deeper shadow root");
+</script>
+
 </body>
 
 </html>

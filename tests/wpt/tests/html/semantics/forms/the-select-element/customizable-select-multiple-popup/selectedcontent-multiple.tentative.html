@@ -60,7 +60,7 @@ function click(element) {
     .send();
 }
 
-test(() => {
+promise_test(async () => {
   const select = document.getElementById('s1');
   const optionOne = select.querySelector('option.one');
   const optionTwo = select.querySelector('option.two');
@@ -86,6 +86,7 @@ test(() => {
     'The selectedcontent should update after appending a selected option.');
 
   optionOne.remove();
+  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, expectedHtml([optionThree, optionFour]),
     'The selectedcontent should update after removing a selected option.');
 }, '<selectedcontent> should support <select multiple>.');

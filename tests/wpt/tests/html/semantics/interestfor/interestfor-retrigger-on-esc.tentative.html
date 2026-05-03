@@ -12,7 +12,7 @@
 
 <button id=invoker interestfor=hovercard>User</button>
 <div id=hovercard popover=hint>
-  <a id=link href="">Link</a>
+  <a id=link href="" tabindex="0">Link</a>
 </div>
 
 <style>
@@ -28,6 +28,7 @@ promise_test(async function (t) {
   const link = document.getElementById('link');
 
   await focusOn(invoker);
+  assert_equals(document.activeElement, invoker, 'Focus should start on the invoker');
   assert_true(hovercard.matches(':popover-open'), 'Hovercard should be open after focusing invoker');
 
   await sendTab();

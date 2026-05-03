@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<title>shadowRootAdoptedStyleSheets IDL reflects the shadowrootadoptedstylesheets content attribute</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11687">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  // Setting the IDL attribute updates the content attribute and is reflected
+  // back by the getter.
+  let template = document.createElement("template");
+  template.shadowRootAdoptedStyleSheets = "foo bar";
+  assert_equals(
+    template.getAttribute("shadowrootadoptedstylesheets"),
+    "foo bar",
+    "Setting the IDL attribute must set the content attribute."
+  );
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "foo bar",
+    "Getter must read back the value just set."
+  );
+
+  // setAttribute() with the canonical lowercase name is reflected by the
+  // IDL getter.
+  template = document.createElement("template");
+  template.setAttribute("shadowrootadoptedstylesheets", "alpha beta");
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "alpha beta",
+    "IDL getter must reflect a value set via setAttribute()."
+  );
+
+  // HTML attribute names are case-insensitive.
+  template = document.createElement("template");
+  template.setAttribute("ShadowRootAdoptedStyleSheets", "case-test");
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "case-test",
+    "Mixed-case setAttribute must still be reflected by the IDL getter."
+  );
+  assert_equals(
+    template.getAttribute("shadowrootadoptedstylesheets"),
+    "case-test",
+    "getAttribute() with the lowercase name must return the value."
+  );
+
+  // [Reflect] for DOMString does not normalize whitespace.
+  template = document.createElement("template");
+  const raw = "  foo   bar  ";
+  template.shadowRootAdoptedStyleSheets = raw;
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    raw,
+    "Reflection must preserve whitespace verbatim."
+  );
+  assert_equals(
+    template.getAttribute("shadowrootadoptedstylesheets"),
+    raw,
+    "Whitespace must be preserved verbatim in the content attribute."
+  );
+}, "shadowRootAdoptedStyleSheets reflects the shadowrootadoptedstylesheets content attribute.");
+
+test(() => {
+  // After removeAttribute(), the IDL getter returns the empty string.
+  let template = document.createElement("template");
+  template.shadowRootAdoptedStyleSheets = "remove-me";
+  template.removeAttribute("shadowrootadoptedstylesheets");
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "",
+    "After removeAttribute(), the IDL getter must return the empty string."
+  );
+  assert_equals(
+    template.getAttribute("shadowrootadoptedstylesheets"),
+    null,
+    "After removeAttribute(), getAttribute() must return null."
+  );
+
+  // Setting the IDL attribute to the empty string adds the content attribute
+  // as present-and-empty (distinct from absent, which removeAttribute() above
+  // produced).
+  template = document.createElement("template");
+  template.shadowRootAdoptedStyleSheets = "";
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "",
+    "Setting the IDL attribute to the empty string must yield an empty getter result."
+  );
+  assert_equals(
+    template.getAttribute("shadowrootadoptedstylesheets"),
+    "",
+    "Setting the IDL attribute to the empty string must make the content attribute present (as empty)."
+  );
+}, "Empty-string assignment and removeAttribute() are distinguishable on shadowRootAdoptedStyleSheets.");
+</script>

@@ -87,9 +87,11 @@ promise_test(async () => {
     'Re-inserting the <selectedcontent> should make it update its contents.');
 
   optionTwo.remove();
+  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
     'The innerHTML of <selectedcontent> should be updated in response to selected <option> removal.');
   optionOne.remove();
+  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, '',
     'The content of <selectedcontent> should be cleared if there is no selected <option>.');
 }, 'The <selectedcontent> element should reflect the HTML contents of the selected <option>.');

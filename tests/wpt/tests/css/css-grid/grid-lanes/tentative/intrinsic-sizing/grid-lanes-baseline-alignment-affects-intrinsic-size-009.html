@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: evaluate how baseline alignment with multi-span items affects intrinsic track sizes</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#track-sizing-performance">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/check-layout-th.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      width: 300px;
+      align-items: baseline;
+      background: lightgray;
+      font-family: Ahem;
+      line-height: 1;
+      flow-tolerance: 0;
+    }
+</style>
+<body onload="checkLayout('.grid-lanes')">
+<!--
+  Test: auto-placed span-1 and span-2 items, with fixed middle track.
+  Auto-placed items contribute to all intrinsic tracks (rows 1 and 3).
+  Container: auto 30px auto rows.
+  Ahem 20px: baseline=16. Ahem 30px: baseline=24. Ahem 40px: baseline=32.
+
+  Items:
+    coral(20px), plum(20px), mistyrose(30px) — auto-placed, span-1
+    gold(40px, pad-top:25) — auto-placed, span-2
+    lightcyan(20px, pad-bottom:5) — explicit row 3, span-1
+
+  Row 1 shared baseline = max(24, 25+32, 16) = 57.
+    span-1: shim = 57-24 = 33, contribution = 30+33 = 63
+    gold (span-2): shim = 0, contribution = 65
+
+  Row 3 shared baseline = max(24, 16) = 24.
+    span-1: shim = 0, contribution = 30
+    lightcyan: shim = 24-16 = 8, contribution = 25+8 = 33
+    gold (span-2 at rows 2-3): shim = 0, contribution to row 3 = 65-30 = 35
+
+  Row 1 = 63, Row 2 = 30 (fixed), Row 3 = 35
+  Container height = 63 + 30 + 35 = 128
+-->
+<div class="grid-lanes" style="grid-template-rows: minmax(0px, auto) 30px minmax(0px, auto);" data-expected-height="128">
+  <div style="font-size: 20px; width: 60px; background: coral;">É</div>
+  <div style="font-size: 20px; width: 60px; background: plum;">É</div>
+  <div style="font-size: 30px; width: 60px; background: mistyrose;">É</div>
+  <div style="font-size: 40px; padding-top: 25px; width: 60px; background: gold; grid-row: span 2;">É</div>
+  <div style="font-size: 20px; padding-bottom: 5px; width: 60px; background: lightcyan; grid-row: 3;">É</div>
+  <div style="font-size: 20px; width: 60px; height: 100%; background: lightsalmon; grid-row: 1; align-self: normal" data-expected-height="63"></div>
+  <div style="font-size: 20px; width: 60px; height: 100%; background: lightyellow; grid-row: 3; align-self: normal" data-expected-height="35"></div>
+</div>
+</body>
+</html>

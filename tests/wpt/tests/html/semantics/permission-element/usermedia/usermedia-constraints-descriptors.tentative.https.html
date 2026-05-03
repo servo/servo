@@ -16,7 +16,14 @@ function run_test(video, audio, expected_video, expected_audio, description) {
       usermedia.onstream = resolve;
     });
 
-    usermedia.setConstraints({video: video, audio: audio});
+    const constraints = {};
+    if (video !== undefined) {
+      constraints.video = video ? {} : undefined;
+    }
+    if (audio !== undefined) {
+      constraints.audio = audio ? {} : undefined;
+    }
+    usermedia.setConstraints(constraints);
 
     const permissions = [];
     if (video) {

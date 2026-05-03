@@ -214,4 +214,22 @@ decode_png_ref_if_exists \
   "$SCRIPT_DIR/smallest_valid.jxl" \
   "$SCRIPT_DIR/smallest_valid.png"
 
+# --- Part 4: Animated JXL loop count test fixtures ---
+# 4 solid-color 8x8 frames (red/lime/blue/yellow) at 200ms each.
+# Uses a small C program because the tooling does not currently support
+# creating animated jxl files with finite loop count. cjxl only supports
+# infinite loops, and image magick and ffmpeg also do not support it as of the
+# time of writing.
+# Requires: cc, libjxl headers and library.
+cc -o "$SCRIPT_DIR/_make_anim_jxl" "$SCRIPT_DIR/make_animation_loop_jxl.c" \
+  -I/usr/local/include -L/usr/local/lib -ljxl -ljxl_threads \
+  -Wl,-rpath,/usr/local/lib
+for num_loops_and_name in "0 animation-infiniteloop.jxl" "1 animation-1loop.jxl" "2 animation-2loops.jxl"; do
+  num_loops="${num_loops_and_name%% *}"
+  outname="${num_loops_and_name#* }"
+  "$SCRIPT_DIR/_make_anim_jxl" "$num_loops" "$SCRIPT_DIR/$outname"
+  echo "generated: $SCRIPT_DIR/$outname"
+done
+rm -f "$SCRIPT_DIR/_make_anim_jxl"
+
 echo "Done: $SCRIPT_DIR"

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>shadowRootAdoptedStyleSheets IDL feature detection on HTMLTemplateElement</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11687">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  assert_true(
+    "shadowRootAdoptedStyleSheets" in HTMLTemplateElement.prototype,
+    "HTMLTemplateElement.prototype must expose shadowRootAdoptedStyleSheets."
+  );
+
+  const desc = Object.getOwnPropertyDescriptor(
+    HTMLTemplateElement.prototype,
+    "shadowRootAdoptedStyleSheets"
+  );
+  assert_not_equals(desc, undefined, "Property descriptor must exist.");
+  assert_equals(typeof desc.get, "function", "Must have a getter.");
+  assert_equals(typeof desc.set, "function", "Must have a setter.");
+  assert_true(desc.enumerable, "Must be enumerable (DOM IDL convention).");
+  assert_true(desc.configurable, "Must be configurable (DOM IDL convention).");
+
+  const template = document.createElement("template");
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "",
+    "Reflected DOMString must return the empty string when the content attribute is absent."
+  );
+}, "shadowRootAdoptedStyleSheets is exposed as a configurable, enumerable accessor on HTMLTemplateElement.prototype.");
+</script>

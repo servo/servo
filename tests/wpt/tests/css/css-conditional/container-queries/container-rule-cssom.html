@@ -58,6 +58,14 @@
   }, ".conditions without name");
 
   test(() => {
+    const rule = insertRule("@container Name {}");
+    assert_true(!!rule, "Rule successfully parsed");
+    assert_equals(rule.conditions.length, 1);
+    assert_equals(rule.conditions[0].name, "Name");
+    assert_equals(rule.conditions[0].query, "");
+  }, ".conditions without query");
+
+  test(() => {
     const rule = insertRule("@container (width > 300px), Name (width < 1000px) {}");
     assert_true(!!rule, "Rule successfully parsed");
     assert_equals(rule.conditions.length, 2);

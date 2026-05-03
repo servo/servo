@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: filter region with background-clip padding-box</title>
+<link rel="help" href="https://drafts.csswg.org/filter-effects-2/#backdrop-filter-operation">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-clip">
+<link rel="match" href="backdrop-filter-with-background-clip-padding-box-ref.html">
+
+<p>Expected: A box with a dashed black border (cyan in gaps) and a green
+interior.</p>
+<div class="backdrop">
+  <div class="filterbox"></div>
+</div>
+
+<style>
+.backdrop {
+    background: red;
+    width: 100px;
+    height: 100px;
+}
+/* backdrop-filter clips to border box per spec, so the invert effect
+   should cover the full 100x100 area including the border region.
+   The dashed border gaps reveal the inverted backdrop (red -> cyan),
+   while background-clip: padding-box keeps green inside. */
+.filterbox {
+    padding: 10px;
+    width: 60px;
+    height: 60px;
+    border: 10px dashed;
+    background: lime;
+    background-clip: padding-box;
+    backdrop-filter: invert(1);
+}
+</style>

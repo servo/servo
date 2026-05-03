@@ -1,0 +1,69 @@
+<title>CSS Flexbox: percentage height and relative position in column flex items in quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+</style>
+
+<!-- 1. Column flex (100px), flex:1 item, child height: 100% -->
+<div style="display: flex; flex-direction: column; height: 100px;">
+    <div style="height: 50px;"></div>
+    <div id="t1-item" style="flex: 1;">
+        <div id="t1" style="height: 100%; background: green;"></div>
+    </div>
+</div>
+
+<!-- 2. Column flex (auto height), flex:1 item, child height: 100% -->
+<div style="display: flex; flex-direction: column;">
+    <div style="height: 50px;"></div>
+    <div id="t2-item" style="flex: 1;">
+        <div id="t2" style="height: 100%; background: green;"></div>
+    </div>
+</div>
+
+<!-- 3. Column flex (100px), wrapper div, deep height: 100% -->
+<div style="display: flex; flex-direction: column; height: 100px;">
+    <div style="height: 50px;"></div>
+    <div id="t3-item" style="flex: 1;">
+        <div>
+            <div id="t3" style="height: 100%; background: green;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Percentage height against auto parent resolves in quirks mode, top: 50% -->
+<div>
+    <div id="t4-cb" style="height: 50%;">
+        <div id="t4" style="width: 20px; height: 20px; background: green; position: relative; top: 50%;"></div>
+    </div>
+</div>
+
+<script>
+test(function() {
+    var item = document.getElementById('t1-item');
+    var child = document.getElementById('t1');
+    assert_equals(child.offsetHeight, item.offsetHeight);
+}, 'Quirks: column flex with definite height, height: 100% in flex item');
+
+test(function() {
+    var child = document.getElementById('t2');
+    assert_equals(child.offsetHeight, 0);
+}, 'Quirks: column flex with auto height, height: 100% in flex item');
+
+test(function() {
+    var item = document.getElementById('t3-item');
+    var child = document.getElementById('t3');
+    assert_equals(child.offsetHeight, item.offsetHeight);
+}, 'Quirks: column flex with definite height, deep height: 100% in flex item');
+
+test(function() {
+    var cb = document.getElementById('t4-cb');
+    var child = document.getElementById('t4');
+    var offset = child.getBoundingClientRect().top - cb.getBoundingClientRect().top;
+    assert_not_equals(offset, 0);
+}, 'Quirks: percentage height against auto parent resolves for top: 50%');
+</script>

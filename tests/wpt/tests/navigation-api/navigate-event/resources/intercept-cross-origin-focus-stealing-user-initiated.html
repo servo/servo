@@ -1,0 +1,46 @@
+<!doctype html>
+<script>
+  navigation.onnavigate = (e) => {
+    if (new URL(e.destination.url).hash !== "#nav") {
+      return;
+    }
+    // Delay the intercept handler by 5.5 seconds to allow the transient user activation
+    // (which lasts 5 seconds) to expire. This ensures that the focus reset relies on
+    // the navigation's user_initiated_ state rather than an active transient user activation.
+    e.intercept({
+      async handler() {
+        while (navigator.userActivation.isActive) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
+      },
+    });
+  };
+
+  navigation.addEventListener("navigatesuccess", () => {
+    parent.postMessage(
+      document.activeElement.id === "autofocus-input"
+        ? "focused"
+        : "not_focused",
+      "*",
+    );
+  });
+
+  onload = () => {
+    parent.postMessage("ready", "*");
+  };
+</script>
+<style>
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+  }
+  a {
+    display: block;
+    inset: 0;
+    position: absolute;
+  }
+</style>
+<a href="#nav">Click me</a>
+<input id="autofocus-input" autofocus />

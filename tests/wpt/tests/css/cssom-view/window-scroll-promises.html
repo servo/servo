@@ -34,7 +34,9 @@
         assert_true(result instanceof Promise);
         const result_value = await result;
         assert_equals(typeof result_value, "object");
+        assert_equals(typeof result_value.interrupted, "boolean");
       }, `${test_label}: return type`);
+
       promise_test(async () => {
         reset();
         const offset = 5000;
@@ -51,6 +53,7 @@
         const result_value = await promise;
         assert_equals(window.scrollY, offset, "Position after await");
         assert_equals(typeof result_value, "object");
+        assert_equals(typeof result_value.interrupted, "boolean");
       }, `${test_label}: promise behavior`);
     }
   }

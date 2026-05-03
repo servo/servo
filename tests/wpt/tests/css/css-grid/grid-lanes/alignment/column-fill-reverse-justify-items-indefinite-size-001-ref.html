@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row;
+      gap: 4px;
+      width: min-content;
+      border: 1px solid blue;
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column-reverse;
+      width: 80px;
+      flex-shrink: 0;
+      gap: 4px;
+    }
+
+    item {
+      display: block;
+      width: min-content;
+      height: 28px;
+      color: white;
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <p>justify-items: start</p>
+  <div class="container">
+    <div class="col" style="align-items: start;">
+      <item>item 1</item>
+      <item>item 3</item>
+      <item>item 5</item>
+    </div>
+    <div class="col" style="align-items: start;">
+      <item>item 2</item>
+      <item>item 4</item>
+      <item>item 6</item>
+    </div>
+  </div>
+
+  <p>justify-items: center</p>
+  <div class="container">
+    <div class="col" style="align-items: center;">
+      <item>item 1</item>
+      <item>item 3</item>
+      <item>item 5</item>
+    </div>
+    <div class="col" style="align-items: center;">
+      <item>item 2</item>
+      <item>item 4</item>
+      <item>item 6</item>
+    </div>
+  </div>
+
+  <p>justify-items: end</p>
+  <div class="container">
+    <div class="col" style="align-items: end;">
+      <item>item 1</item>
+      <item>item 3</item>
+      <item>item 5</item>
+    </div>
+    <div class="col" style="align-items: end;">
+      <item>item 2</item>
+      <item>item 4</item>
+      <item>item 6</item>
+    </div>
+  </div>
+
+</body>
+</html>

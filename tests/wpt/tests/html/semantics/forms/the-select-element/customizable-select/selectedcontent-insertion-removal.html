@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/12096">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select id=select1>
+  <button>
+    <selectedcontent class=sc1></selectedcontent>
+    <selectedcontent class=sc2></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('select1');
+  const sc1 = select.querySelector('.sc1');
+  const sc2 = select.querySelector('.sc2');
+  const sc1before = sc1.innerHTML;
+  const sc2before = sc2.innerHTML;
+  sc1.remove();
+  assert_equals(sc1before, sc1.innerHTML,
+    'The selectedcontent element should not be updated when it is removed.');
+  assert_equals(sc2before, sc2.innerHTML,
+    'The selectedcontent element should not be updated when another selectedcontent is removed.');
+}, 'Selectedcontent element removal steps.');
+</script>
+
+<select id=select2>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('select2');
+  const button = document.createElement('button');
+  window.scinsertion = {};
+
+  const scriptbefore = document.createElement('script');
+  scriptbefore.textContent =
+  `window.scinsertion.selectedcontentbefore
+    = document.getElementById('select2').querySelector('selectedcontent').innerHTML;`;
+  button.appendChild(scriptbefore);
+
+  button.appendChild(document.createElement('selectedcontent'));
+
+  const scriptafter = document.createElement('script');
+  scriptafter.textContent =
+  `window.scinsertion.selectedcontentafter
+    = document.getElementById('select2').querySelector('selectedcontent').innerHTML;`;
+  button.appendChild(scriptafter);
+
+  // We should be able to detect whether the selectedcontent element is updated
+  // in the insertion steps vs the post-connection steps by using the
+  // post-connection steps of script which should be run before and after the
+  // post-connection steps of the selectedcontent element.
+  select.insertBefore(button, select.querySelector('option'));
+  assert_equals(window.scinsertion.selectedcontentbefore, '',
+    'The selectedcontent should be empty before post-connection steps.');
+  assert_equals(window.scinsertion.selectedcontentafter, 'one',
+    'The selectedcontent should be updated after post-connection steps.');
+}, 'Selectedcontent element insertion steps.');
+</script>
+
+<select id=select3>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('select3');
+  const container = document.createElement('div');
+  window.optioninsertion = {};
+
+  const scriptbefore = document.createElement('script');
+  scriptbefore.textContent =
+    `window.optioninsertion.selectedcontentbefore =
+      document.getElementById('select3').querySelector('selectedcontent').innerHTML`;
+  container.appendChild(scriptbefore);
+
+  const newOption = document.createElement('option');
+  newOption.selected = true;
+  newOption.textContent = 'two';
+  container.appendChild(newOption);
+
+  const scriptafter = document.createElement('script');
+  scriptafter.textContent =
+    `window.optioninsertion.selectedcontentafter =
+      document.getElementById('select3').querySelector('selectedcontent').innerHTML`;
+  container.appendChild(scriptafter);
+
+  // See comment in "Selectedcontent element insertion steps" test.
+  select.appendChild(container);
+  assert_equals(window.optioninsertion.selectedcontentbefore, 'one',
+    'The selectedcontent should not be updated yet before option post-connection steps.');
+  assert_equals(window.optioninsertion.selectedcontentafter, 'two',
+    'The selectedcontent should be updated after option post-connection steps.');
+}, 'Option element insertion steps.');
+</script>
+
+<select id=select4>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option class=one>one</option>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('select4');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  select.querySelector('.one').remove();
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'The selectedcontent element should not be updated synchronously after removal of the selected option.');
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, 'two',
+    'The selectedcontent element should be updated after a microtask.');
+}, 'Option element removal steps.');
+</script>

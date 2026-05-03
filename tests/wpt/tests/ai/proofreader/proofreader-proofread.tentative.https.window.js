@@ -37,16 +37,17 @@ promise_test(async (t) => {
   assert_greater_than(result.corrections.length, 0);
 }, 'Proofreader.proofread() returns a list of corrections');
 
-promise_test(async (t) => {
-  const input = "can you profread fir me";
-  const proofreader = await createProofreader({includeCorrectionTypes: true});
-  const result = await proofreader.proofread(input);
-  assert_equals(typeof result, 'object');
-  assert_not_equals(result.correctedInput, input);
-  assert_greater_than(result.corrections.length, 0);
-  assert_not_equals(result.corrections[0].types, undefined);
-  assert_greater_than(result.corrections[0].types.length, 0);
-}, 'Proofreader.proofread() returns correction types when requested');
+// TODO(crbug.com/507887898): Re-enable this test after small model migration.
+// promise_test(async (t) => {
+//   const input = "can you profread fir me";
+//   const proofreader = await createProofreader({includeCorrectionTypes: true});
+//   const result = await proofreader.proofread(input);
+//   assert_equals(typeof result, 'object');
+//   assert_not_equals(result.correctedInput, input);
+//   assert_greater_than(result.corrections.length, 0);
+//   assert_not_equals(result.corrections[0].types, undefined);
+//   assert_greater_than(result.corrections[0].types.length, 0);
+// }, 'Proofreader.proofread() returns correction types when requested');
 
 promise_test(async (t) => {
   await testDestroy(t, createProofreader, {}, [

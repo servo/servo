@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Popups from sandbox without allow-scripts should inherit script blocking</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#sandboxing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+    const iframe = document.createElement('iframe');
+    iframe.sandbox = 'allow-same-origin allow-popups';
+    iframe.srcdoc = '<p>sandboxed frame</p>';
+    iframe.onload = t.step_func(() => {
+        iframe.contentWindow.scriptDidRun = false;
+
+        const popupURL = new URL('resources/set-opener-flag-and-postmessage.html',
+            document.baseURI).href;
+        const popup = iframe.contentWindow.open(popupURL);
+
+        t.step_timeout(() => {
+            assert_false(iframe.contentWindow.scriptDidRun,
+                'Script in popup should be blocked by inherited sandbox');
+            if (popup)
+                popup.close();
+            t.done();
+        }, 500);
+    });
+    document.body.appendChild(iframe);
+}, 'Popup opened from sandbox without allow-scripts cannot execute script');
+</script>
+</body>

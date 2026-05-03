@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Top-layer element with own focusgroup</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#top-layer-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div focusgroup="toolbar inline">
+  <button id=outer_a>A</button>
+  <div id=popover_fg popover focusgroup="toolbar inline">
+    <button id=inner_x>X</button>
+    <button id=inner_y>Y</button>
+  </div>
+  <button id=outer_b>B</button>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("popover_fg");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  await focusAndSendDirectionalInput(outer_a, kRight);
+  assert_equals(document.activeElement, outer_b,
+    "Outer focusgroup arrow should skip popover with own focusgroup");
+}, "Popover with own focusgroup is excluded from ancestor arrow navigation");
+
+promise_test(async t => {
+  const pop = document.getElementById("popover_fg");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // Inner focusgroup should navigate independently in both directions.
+  await assert_directional_navigation_bidirectional([inner_x, inner_y]);
+}, "Inner focusgroup on a shown popover operates independently");
+
+</script>
+
+<!--
+  A focusable top-layer element with its own focusgroup must not be treated
+  as an entry element for the ancestor focusgroup. Without exclusion the
+  outer arrow nav could land on the popover container itself.
+-->
+<div focusgroup="toolbar inline">
+  <button id=focusable_outer_a>A</button>
+  <div id=focusable_pop tabindex="0" popover focusgroup="toolbar inline">
+    <button id=focusable_inner_x>X</button>
+  </div>
+  <button id=focusable_outer_b>B</button>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("focusable_pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // The focusable top-layer container must not be visited as an outer
+  // focusgroup item, so arrow navigation behaves as if the outer focusgroup
+  // contained only [A, B].
+  await assert_directional_navigation_bidirectional(
+    [focusable_outer_a, focusable_outer_b]);
+}, "Focusable top-layer element with own focusgroup is not an outer entry");
+
+</script>

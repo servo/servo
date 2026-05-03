@@ -10,6 +10,13 @@
  * @returns {string}
  */
 function make_absolute_url(options) {
+    function get(obj, name, default_val) {
+        if (obj.hasOwnProperty(name)) {
+            return obj[name];
+        }
+        return default_val;
+    }
+
     var loc = window.location;
     var protocol = get(options, "protocol", loc.protocol);
     if (protocol[protocol.length - 1] != ":") {
@@ -52,47 +59,37 @@ function make_absolute_url(options) {
     return url;
 }
 
-/** @private */
-function get(obj, name, default_val) {
-    if (obj.hasOwnProperty(name)) {
-        return obj[name];
-    }
-    return default_val;
-}
-
 /**
  * Generate a new UUID.
  * @returns {string}
  */
 function token() {
+    function rand_int(bits) {
+        if (bits < 1 || bits > 53) {
+            throw new TypeError();
+        } else {
+            if (bits >= 1 && bits <= 30) {
+                return 0 | ((1 << bits) * Math.random());
+            } else {
+                var high = (0 | ((1 << (bits - 30)) * Math.random())) * (1 << 30);
+                var low = 0 | ((1 << 30) * Math.random());
+                return  high + low;
+            }
+        }
+    }
+
+    function to_hex(x, length) {
+        var rv = x.toString(16);
+        while (rv.length < length) {
+            rv = "0" + rv;
+        }
+        return rv;
+    }
+
     var uuid = [to_hex(rand_int(32), 8),
                 to_hex(rand_int(16), 4),
                 to_hex(0x4000 | rand_int(12), 4),
                 to_hex(0x8000 | rand_int(14), 4),
                 to_hex(rand_int(48), 12)].join("-")
     return uuid;
-}
-
-/** @private */
-function rand_int(bits) {
-    if (bits < 1 || bits > 53) {
-        throw new TypeError();
-    } else {
-        if (bits >= 1 && bits <= 30) {
-            return 0 | ((1 << bits) * Math.random());
-        } else {
-            var high = (0 | ((1 << (bits - 30)) * Math.random())) * (1 << 30);
-            var low = 0 | ((1 << 30) * Math.random());
-            return  high + low;
-        }
-    }
-}
-
-/** @private */
-function to_hex(x, length) {
-    var rv = x.toString(16);
-    while (rv.length < length) {
-        rv = "0" + rv;
-    }
-    return rv;
 }

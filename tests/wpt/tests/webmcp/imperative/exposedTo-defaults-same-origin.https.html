@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Same-origin tool exposure</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+async function setupIframe(t) {
+  const iframe = document.createElement('iframe');
+  iframe.src = 'resources/iframe-register-tool.html';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await load_promise;
+  return iframe;
+}
+
+promise_test(async t => {
+  const controller = new AbortController();
+  navigator.modelContext.registerTool({
+    name: 'parent_tool_default',
+    description: 'Parent tool with default exposure',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    execute: async () => 'hello'
+  }, { signal: controller.signal });
+
+  // Wait for `toolchange` event, so that the tool is definitely registered.
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  const iframe = await setupIframe(t);
+
+  // Ask iframe what it sees.
+  iframe.contentWindow.postMessage('getTools', '*');
+  let response = await waitForIframeMessage('getToolsResponse');
+
+  const [tool] = response.tools;
+  assert_true(toolsAreEqual(tool, {
+    name: 'parent_tool_default',
+    description: 'Parent tool with default exposure',
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+  }), 'Tool details should match');
+
+  // Unregister and verify child gets event.
+  iframe.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+
+  const child_unreg_promise = waitForIframeMessage('toolchange_result');
+  const parent_unreg_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  controller.abort();
+
+  const [child_response] = await Promise.all([child_unreg_promise, parent_unreg_promise]);
+  assert_equals(child_response.result, 'fired', 'Same-origin iframe should receive toolchange event on unregistration');
+
+  iframe.contentWindow.postMessage('getTools', '*');
+  response = await waitForIframeMessage('getToolsResponse');
+  assert_array_equals(response.tools, [], 'Same-origin iframe should no longer see any tools after unregistration');
+}, 'Parent tool with missing `exposedTo` array is visible to same-origin iframe');
+
+promise_test(async t => {
+  const controller = new AbortController();
+  navigator.modelContext.registerTool({
+    name: 'parent_tool_empty',
+    description: 'Parent tool with empty exposedTo',
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
+    execute: async () => 'hello'
+  }, { exposedTo: [], signal: controller.signal });
+
+  const iframe = await setupIframe(t);
+
+  iframe.contentWindow.postMessage('getTools', '*');
+  let response = await waitForIframeMessage('getToolsResponse');
+
+  const [tool2] = response.tools;
+  assert_true(toolsAreEqual(tool2, {
+    name: 'parent_tool_empty',
+    description: 'Parent tool with empty exposedTo',
+    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } })
+  }), 'Tool details should match');
+
+  // Unregister and verify child gets event.
+  iframe.contentWindow.postMessage('listenForToolchange', '*');
+  await waitForIframeMessage('toolchange_listening_ack');
+
+  const child_unreg_promise = waitForIframeMessage('toolchange_result');
+  const parent_unreg_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+
+  controller.abort();
+
+  const [child_response] = await Promise.all([child_unreg_promise, parent_unreg_promise]);
+  assert_equals(child_response.result, 'fired', 'Same-origin iframe should receive toolchange event on unregistration');
+
+  iframe.contentWindow.postMessage('getTools', '*');
+  response = await waitForIframeMessage('getToolsResponse');
+  assert_array_equals(response.tools, [], 'Same-origin iframe should no longer see any tools after unregistration');
+}, 'Parent tool with empty `exposedTo` array is visible to same-origin iframe');
+
+promise_test(async t => {
+  const iframe = await setupIframe(t);
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool_default',
+      description: 'Iframe tool with default exposure'
+    }
+  }, '*');
+
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  let tools = await navigator.modelContext.getTools();
+  assert_true(tools.some(t => t.name === 'iframe_tool_default'), 'Same-origin parent should see iframe tool with default exposure');
+
+  // Unregister tool.
+  const unregister_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+  iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_default' }, '*');
+  await unregister_promise;
+
+  tools = await navigator.modelContext.getTools();
+  assert_false(tools.some(t => t.name === 'iframe_tool_default'), 'Same-origin parent should no longer see iframe tool after unregistration');
+}, 'Same-origin iframe tool with default exposure is visible to parent');
+
+promise_test(async t => {
+  const iframe = await setupIframe(t);
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'iframe_tool_empty',
+      description: 'Iframe tool with empty exposedTo'
+    },
+    options: { exposedTo: [] }
+  }, '*');
+
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  let tools = await navigator.modelContext.getTools();
+  assert_true(tools.some(t => t.name === 'iframe_tool_empty'), 'Same-origin parent should see iframe tool with empty exposedTo');
+
+  // Unregister tool.
+  const unregister_promise = new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+  iframe.contentWindow.postMessage({ action: 'unregister', name: 'iframe_tool_empty' }, '*');
+  await unregister_promise;
+
+  tools = await navigator.modelContext.getTools();
+  assert_false(tools.some(t => t.name === 'iframe_tool_empty'), 'Same-origin parent should no longer see iframe tool after unregistration');
+}, 'Same-origin iframe tool with empty exposedTo array is visible to parent');
+</script>
+</body>
+</html>

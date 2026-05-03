@@ -350,15 +350,22 @@ const sliceTests = [
       'operators': [{
         'name': 'slice',
         'arguments': [
-          {'input': 'sliceInput'}, {'starts': [1, 1, 1, 1]},
-          {'sizes': [1, 1, 1, 1]}, {'options': {'strides': [2, 2, 2, 2]}}
+          {'input': 'sliceInput'}, {'starts': [0, 0, 0, 0]},
+          {'sizes': [2, 2, 3, 2]}, {'options': {'strides': [1, 1, 2, 1]}}
         ],
         'outputs': 'sliceOutput'
       }],
       'expectedOutputs': {
         'sliceOutput': {
-          'data': [79.80570983886719],
-          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
+          'data': [
+            28.846250534057617,  97.95414733886719,  90.23090362548828,
+            76.59095764160156,   -24.556316375732422, 79.58749389648438,
+            74.41775512695312,   -4.513182163238525,  0.5424534678459167,
+            80.44634246826172,   -74.54559326171875, -27.306041717529297,
+            -70.42774200439453,  59.82632064819336,  -9.857853889465332,
+            42.665199279785156
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -634,15 +641,20 @@ const sliceTests = [
       'operators': [{
         'name': 'slice',
         'arguments': [
-          {'input': 'sliceInput'}, {'starts': [1, 1, 1, 1]},
-          {'sizes': [1, 1, 1, 1]}, {'options': {'strides': [2, 2, 2, 2]}}
+          {'input': 'sliceInput'}, {'starts': [0, 0, 0, 0]},
+          {'sizes': [2, 2, 3, 2]}, {'options': {'strides': [1, 1, 2, 1]}}
         ],
         'outputs': 'sliceOutput'
       }],
       'expectedOutputs': {
         'sliceOutput': {
-          'data': [79.8125],
-          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float16'}
+          'data': [
+            28.84375,      97.9375,   90.25,      76.5625,
+            -24.5625,      79.5625,   74.4375,    -4.51171875,
+            0.54248046875, 80.4375,   -74.5625,   -27.3125,
+            -70.4375,      59.8125,   -9.859375,  42.65625
+          ],
+          'descriptor': {shape: [2, 2, 2, 2], dataType: 'float16'}
         }
       }
     }

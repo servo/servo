@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>Custom Elements: namespace prefix is set after construction per spec</title>
+<link rel="help" content="https://dom.spec.whatwg.org/#concept-create-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Step 5.1.3.9 of https://dom.spec.whatwg.org/#concept-create-element sets
+// the namespace prefix AFTER the constructor returns. These tests verify that
+// the prefix is not observable during construction but is correct afterwards.
+
+test(() => {
+  let prefixDuringConstructor;
+  let tagNameDuringConstructor;
+
+  class PrefixEl extends HTMLElement {
+    constructor() {
+      super();
+      prefixDuringConstructor = this.prefix;
+      tagNameDuringConstructor = this.tagName;
+    }
+  }
+  customElements.define('prefix-timing-el', PrefixEl);
+
+  const el = document.createElementNS('http://www.w3.org/1999/xhtml', 'p:prefix-timing-el');
+
+  assert_equals(prefixDuringConstructor, null,
+    'prefix should be null during constructor (set after construction per step 5.1.3.9)');
+  assert_equals(tagNameDuringConstructor, 'PREFIX-TIMING-EL',
+    'tagName during constructor should not include prefix');
+
+  assert_equals(el.prefix, 'p',
+    'prefix should be set after construction');
+  assert_equals(el.tagName, 'P:PREFIX-TIMING-EL',
+    'tagName after construction should include prefix');
+}, 'Autonomous custom element prefix is set after constructor returns');
+
+test(() => {
+  let innerPrefix;
+  let outerPrefixDuringConstructor;
+
+  class ReentrantEl extends HTMLElement {
+    static callCount = 0;
+    constructor() {
+      super();
+      if (ReentrantEl.callCount++ === 0) {
+        // Create another instance via direct construction re-entrantly
+        // during outer (createElementNS-initiated) construction.
+        const inner = new ReentrantEl();
+        innerPrefix = inner.prefix;
+      }
+      outerPrefixDuringConstructor = this.prefix;
+    }
+  }
+  customElements.define('reentrant-prefix-el', ReentrantEl);
+
+  const el = document.createElementNS('http://www.w3.org/1999/xhtml', 'r:reentrant-prefix-el');
+
+  assert_equals(outerPrefixDuringConstructor, null,
+    'outer prefix should be null during constructor');
+  assert_equals(innerPrefix, null,
+    'directly-constructed inner element should not inherit outer prefix');
+  assert_equals(el.prefix, 'r',
+    'outer element prefix should be set after construction');
+}, 'Reentrant construction does not leak prefix between instances');
+
+test(() => {
+  let prefixDuringConstructor;
+  let outerElement;
+
+  class ReentrantNSEl extends HTMLElement {
+    static callCount = 0;
+    constructor() {
+      super();
+      if (ReentrantNSEl.callCount++ === 0) {
+        outerElement = this;
+        // Create another instance via createElementNS re-entrantly.
+        const inner = document.createElementNS('http://www.w3.org/1999/xhtml', 'q:reentrant-ns-el');
+        assert_equals(inner.prefix, 'q', 'inner element created during outer constructor should have its own prefix');
+      }
+      prefixDuringConstructor = this.prefix;
+    }
+  }
+  customElements.define('reentrant-ns-el', ReentrantNSEl);
+
+  const el = document.createElementNS('http://www.w3.org/1999/xhtml', 'p:reentrant-ns-el');
+
+  assert_equals(el.prefix, 'p',
+    'outer element should have its own prefix');
+  assert_equals(outerElement, el,
+    'outerElement reference should match returned element');
+}, 'Nested createElementNS calls do not corrupt prefix state');
+</script>
+</body>

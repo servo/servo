@@ -136,9 +136,7 @@ test
 #config
 { "elements": ["p"], "replaceWithChildrenElements": ["div"] }
 #document
-| "test"
-| "p"
-| "tt"
+| "testptt"
 | <p>
 |   "div"
 
@@ -436,9 +434,7 @@ TypeError
 <p>comment<!-- hello -->in<!-- </p> -->text</p>
 #document
 | <p>
-|   "comment"
-|   "in"
-|   "text"
+|   "commentintext"
 
 #data
 <p>comment<!-- hello -->in<!-- </p> -->text</p>
@@ -458,9 +454,7 @@ TypeError
 { "comments": false }
 #document
 | <p>
-|   "comment"
-|   "in"
-|   "text"
+|   "commentintext"
 
 #data
 <svg></svg>
@@ -542,19 +536,15 @@ TypeError
   "elements": ["div"]}
 #document
 | <div>
-|   "balabala"
-|   "test"
-| "t"
-| "custom-element"
+|   "balabalatest"
+| "tcustom-element"
 
 #data
 <div>test<div>p</div>tt<p>div</p></div><test>test</test>
 #config
 { "elements": ["p", "test"], "replaceWithChildrenElements": ["div"] }
 #document
-| "test"
-| "p"
-| "tt"
+| "testptt"
 | <p>
 |   "div"
 | <test>
@@ -565,9 +555,7 @@ test<div>p</div>tt<p>div</p><test>test</test>
 #config
 { "elements": ["p", "test"], "replaceWithChildrenElements": ["div"] }
 #document
-| "test"
-| "p"
-| "tt"
+| "testptt"
 | <p>
 |   "div"
 | <test>

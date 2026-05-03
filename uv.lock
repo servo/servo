@@ -1190,11 +1190,11 @@ wheels = [
 
 [[package]]
 name = "packaging"
-version = "26.1"
+version = "26.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/df/de/0d2b39fb4af88a0258f3bac87dfcbb48e73fbdea4a2ed0e2213f9a4c2f9a/packaging-26.1.tar.gz", hash = "sha256:f042152b681c4bfac5cae2742a55e103d27ab2ec0f3d88037136b6bfe7c9c5de", size = 215519, upload-time = "2026-04-14T21:12:49.362Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/f1/e7a6dd94a8d4a5626c03e4e99c87f241ba9e350cd9e6d75123f992427270/packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661", size = 228134, upload-time = "2026-04-24T20:15:23.917Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/c2/920ef838e2f0028c8262f16101ec09ebd5969864e5a64c4c05fad0617c56/packaging-26.1-py3-none-any.whl", hash = "sha256:5d9c0669c6285e491e0ced2eee587eaf67b670d94a19e94e3984a481aba6802f", size = 95831, upload-time = "2026-04-14T21:12:47.56Z" },
+    { url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e", size = 100195, upload-time = "2026-04-24T20:15:22.081Z" },
 ]
 
 [[package]]
@@ -1809,7 +1809,7 @@ requires-dist = [
     { name = "mozshellutil", specifier = "==1.0.0" },
     { name = "mozterm", specifier = "==1.0.0" },
     { name = "mozversion", specifier = "==2.4.0" },
-    { name = "packaging", specifier = "==26.1" },
+    { name = "packaging", specifier = "==26.2" },
     { name = "pep8-naming", specifier = "==0.13.3" },
     { name = "pillow", marker = "python_full_version == '3.9.*'", specifier = "==11.3.0" },
     { name = "pillow", marker = "python_full_version >= '3.10'", specifier = "==12.1.1" },
@@ -1824,7 +1824,7 @@ requires-dist = [
     { name = "ruff", specifier = "==0.11.10" },
     { name = "setuptools", specifier = "==78.1.1" },
     { name = "six", specifier = "==1.16" },
-    { name = "taskcluster", specifier = "==99.1.0" },
+    { name = "taskcluster", specifier = "==99.2.1" },
     { name = "toml", specifier = "==0.9.2" },
     { name = "types-pyyaml", specifier = "==6.0.12.20241230" },
     { name = "types-requests" },
@@ -1870,7 +1870,7 @@ wheels = [
 
 [[package]]
 name = "taskcluster"
-version = "99.1.0"
+version = "99.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1881,9 +1881,9 @@ dependencies = [
     { name = "slugid" },
     { name = "taskcluster-urls" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/9f/cfdfaafb230723e1e17a27780403997e5117cfae1e685323850eb7369e15/taskcluster-99.1.0.tar.gz", hash = "sha256:e6e6ec2545d9e5a58e634d5a3c19a0efebe2057d2bad70fd494c7627a5395fa7", size = 254586, upload-time = "2026-04-16T15:34:24.168Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/93/a9/c641eeeae107301742ca2b04b279329c6d5b367da73aad17a5f8eaa1377d/taskcluster-99.2.1.tar.gz", hash = "sha256:5d1cda6142470e98ff3587e3762cf19dbcbad716c5455f9f9738825b07d42104", size = 254591, upload-time = "2026-04-29T14:11:01.885Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f9/6f/351aa40d933bf480692bbf8e70330f75fea9290720341801d755e5b18215/taskcluster-99.1.0-py3-none-any.whl", hash = "sha256:d74c0308df13928691acb85e2b62b4e213dd1acd7e7cc03b33277a2ff124fdbc", size = 150881, upload-time = "2026-04-16T15:34:22.482Z" },
+    { url = "https://files.pythonhosted.org/packages/32/db/6d96a0e36b2ea83747a08d5d2dab55a5691bfdfa8c4cb36eb439a5677257/taskcluster-99.2.1-py3-none-any.whl", hash = "sha256:31fe0db2d5f5e5144719885632965ed04c1321cc42b42c8e6ea72bafadcba2dd", size = 150880, upload-time = "2026-04-29T14:10:59.975Z" },
 ]
 
 [[package]]

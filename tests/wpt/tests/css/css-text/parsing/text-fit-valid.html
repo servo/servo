@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Parsing text-fit with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_valid_value('text-fit', 'none');
+test_valid_value('text-fit', 'grow');
+test_valid_value('text-fit', 'shrink');
+
+test_valid_value('text-fit', 'grow consistent', 'grow consistent');
+test_valid_value('text-fit', 'grow per-line');
+test_valid_value('text-fit', 'grow per-line-all');
+
+test_valid_value('text-fit', 'grow per-line 132%');
+test_valid_value('text-fit', 'grow consistent 300%');
+
+test_valid_value('text-fit', 'shrink per-line 4%');
+test_valid_value('text-fit', 'shrink consistent 50%');
+</script>
+</body>

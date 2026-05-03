@@ -64,6 +64,8 @@ function reset() {
   customSubmit.removeAttribute('disabled');
   customSubmit.removeAttribute('form');
   customSubmit.removeAttribute('id');
+  customSubmit.removeAttribute('name');
+  customSubmit.removeAttribute('value');
   defaultInput.value = 'value';
   defaultInput.required = false;
   customSubmit.submitBehavior.disabled = false;
@@ -405,6 +407,56 @@ promise_test(async t => {
     'Button name and value should be submitted');
 }, 'name and value on HTMLSubmitButtonBehavior are submitted with form');
 
+promise_test(async t => {
+  t.add_cleanup(reset);
+  // Element's name/value attributes should not produce form data entries.
+  // Only behavior.name and behavior.value are used as the submitter entry.
+  customSubmit.setAttribute('name', 'attr-name');
+  customSubmit.setAttribute('value', 'attr-value');
+  customSubmit.submitBehavior.name = 'btn';
+  customSubmit.submitBehavior.value = 'clicked';
+
+  form.setAttribute('action', '/common/blank.html');
+  const win = await submitIntoIframe(customSubmit);
+  const search = win.location.search;
+  assert_true(search.includes('btn=clicked'),
+    'behavior.name and behavior.value should be submitted');
+  assert_false(search.includes('attr-name'),
+    'Element name attribute should not be used as a form data key');
+  assert_false(search.includes('attr-value'),
+    'Element value attribute should not be used as a form data value');
+}, 'Element name/value attributes are ignored; only behavior.name/value are submitted');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  // When setFormValue() has been called and the element has a submit behavior,
+  // only the behavior's name/value pair should appear. The setFormValue() data
+  // must not produce an additional entry.
+  customSubmit.setAttribute('name', 'element-name');
+  customSubmit.internals_.setFormValue('form-value-data');
+  customSubmit.submitBehavior.name = 'action';
+  customSubmit.submitBehavior.value = 'save';
+
+  form.setAttribute('action', '/common/blank.html');
+  const win = await submitIntoIframe(customSubmit);
+  const search = win.location.search;
+  const allParams = new URLSearchParams(win.location.search);
+  const entries = [...allParams.entries()];
+
+  assert_true(search.includes('action=save'),
+    'Behavior name/value should be submitted');
+  assert_false(search.includes('element-name'),
+    'Element name attribute should not produce a form data entry');
+  assert_false(search.includes('form-value-data'),
+    'setFormValue() data should not appear when element has submit behavior');
+  // Count entries excluding the input field to ensure only one submitter entry.
+  const nonInputEntries = entries.filter(([k]) => k !== 'field');
+  assert_equals(nonInputEntries.length, 1,
+    'Only one submitter name/value pair should be in form data');
+  assert_array_equals(nonInputEntries[0], ['action', 'save'],
+    'The single submitter entry should be from the behavior');
+}, 'setFormValue() does not produce duplicate entry for elements with submit behavior');
+
 test(t => {
   t.add_cleanup(reset);
   outside.appendChild(customSubmit);
@@ -435,6 +487,42 @@ promise_test(async t => {
   assert_false(win.location.search.includes('btn=second'),
     'Only the clicked button\'s name/value should be submitted');
 }, 'Only the clicked custom submit button\'s name/value is included in form data');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  // A non-clicked submit button that has setFormValue() data should not
+  // contribute that data to the form submission. This mirrors native
+  // <button type=submit> and <input type=submit>, which contribute nothing
+  // to form data when they are not the activated submitter.
+  const secondSubmit = document.createElement('custom-submit');
+  form.appendChild(secondSubmit);
+
+  secondSubmit.setAttribute('name', 'other-btn');
+  secondSubmit.internals_.setFormValue('stale-data');
+  secondSubmit.submitBehavior.name = 'other';
+  secondSubmit.submitBehavior.value = 'not-clicked';
+
+  customSubmit.submitBehavior.name = 'btn';
+  customSubmit.submitBehavior.value = 'clicked';
+
+  form.setAttribute('action', '/common/blank.html');
+  const win = await submitIntoIframe(customSubmit);
+  const search = win.location.search;
+  const allParams = new URLSearchParams(search);
+  const entries = [...allParams.entries()];
+
+  assert_true(search.includes('btn=clicked'),
+    'Clicked button behavior name/value should be submitted');
+  assert_false(search.includes('stale-data'),
+    'Non-clicked button setFormValue() data should not appear in form data');
+  assert_false(search.includes('other-btn'),
+    'Non-clicked button element name should not appear in form data');
+  assert_false(search.includes('other=not-clicked'),
+    'Non-clicked button behavior name/value should not appear in form data');
+  const nonInputEntries = entries.filter(([k]) => k !== 'field');
+  assert_equals(nonInputEntries.length, 1,
+    'Only one submitter entry should be in form data');
+}, 'Non-clicked submit button with setFormValue() does not contribute to form data');
 
 test(t => {
   t.add_cleanup(reset);
@@ -538,5 +626,36 @@ promise_test(async t => {
   assert_true(win.location.href.includes('/common/blank.html'),
     'Form should be submitted into the frame specified by behavior formTarget');
 }, 'formTarget on HTMLSubmitButtonBehavior overrides form target');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  customSubmit.focus();
+  await test_driver.send_keys(customSubmit, '\uE007');
+  assert_true(submitted,
+    'User pressing Enter on custom submit button should submit form');
+}, 'User-initiated Enter key submits form via HTMLSubmitButtonBehavior');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  customSubmit.focus();
+  await test_driver.send_keys(customSubmit, ' ');
+  assert_true(submitted,
+    'User pressing Space on custom submit button should submit form');
+}, 'User-initiated Space key submits form via HTMLSubmitButtonBehavior');
+
+promise_test(async t => {
+  t.add_cleanup(reset);
+  customSubmit.submitBehavior.disabled = true;
+  let submitted = false;
+  form.onsubmit = (e) => { e.preventDefault(); submitted = true; };
+  defaultInput.focus();
+  await test_driver.send_keys(defaultInput, '\uE007');
+  assert_false(submitted,
+    'Implicit submission should not occur when default submit button behavior is disabled');
+}, 'Disabled behavior prevents implicit submission via Enter in input field');
 
 </script>

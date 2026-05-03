@@ -27,7 +27,6 @@ const content_types = [
   "text/json/json",
 
   // Control Characters and Whitespace - Invalid Type
-  "applic\x00ation/vnd.api+json",     // NULL in type
   "applic\x09ation/vnd.api+json",     // TAB in type
   "applic\x0Aation/vnd.api+json",     // Line Feed in type
   "applic\x0Dation/vnd.api+json",     // Carriage Return in type
@@ -37,7 +36,6 @@ const content_types = [
   "application\x1F/vnd.api+json",     // Unit Separator at end of type
 
   // Control Characters and Whitespace - Invalid Subtype
-  "application/vnd\x00.api+json",     // NULL in subtype
   "application/vnd\x09.api+json",     // TAB in subtype
   "application/vnd\x0A.api+json",     // Line Feed in subtype
   "application/vnd\x0D.api+json",     // Carriage Return in subtype
@@ -106,7 +104,6 @@ const content_types = [
   "applic=ation/vnd=api+json",        // Equals in both
   "申请/中文.api+json",                 // Chinese in both
   "app™/vnd€.api+json",               // Unicode symbols in both
-  "applic\x00ation/vnd\x00api+json",  // NULL in both
   "applic;ation/vnd;api+json",        // Semicolons in both
   "applic{ation/vnd{api+json",        // Left curly brace in both
   "applic}ation/vnd}api+json",        // Right curly brace in both
@@ -120,7 +117,6 @@ const content_types = [
   "application\"/vnd.api+json",       // Quote at end of type
   "application /vnd.api+json",        // Trailing space in type
   "/vnd.api+json",                    // Empty type
-  "app\x00lication/vnd.api+json",     // NULL in middle of type
 
   // Edge Cases - Subtype
   "application/\"vnd.api+json",       // Quote at start of subtype
@@ -132,11 +128,11 @@ const content_types = [
   // Edge Cases - Multiple Invalid Positions
   "\"application\"/\"vnd.api\"+json", // Quotes in multiple positions
   "app(lic)ation/vnd(api)+json",      // Parentheses in multiple positions
-  "application\x00/\x00vnd.api+json",  // NULL in both parts
 ];
 
 for (const content_type of content_types) {
   promise_test(async test => {
-    await import(`./file.txt?pipe=header(Content-Type,${encodeURIComponent(content_type)})`, { with: { type: "text" } });
+    const enc_content_type = encodeURIComponent(content_type.replaceAll(',', '\\,').replaceAll(')', '\\)'));
+    await import(`./file.txt?pipe=header(Content-Type,${enc_content_type})`, { with: { type: "text" } });
   }, `Import of a text module with MIME type ${content_type} should succeed`);
 }

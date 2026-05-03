@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>getComputedStyle().textFit</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<body>
+<div id="target" style="font-size:20px; line-height:1;"></div>
+<script>
+test_computed_value('text-fit', 'none');
+test_computed_value('text-fit', 'grow');
+test_computed_value('text-fit', 'shrink');
+
+test_computed_value('text-fit', 'grow consistent', 'grow');
+test_computed_value('text-fit', 'grow per-line');
+test_computed_value('text-fit', 'grow per-line-all');
+
+test_computed_value('text-fit', 'grow per-line 200%');
+test_computed_value('text-fit', 'grow consistent 300%', 'grow 300%');
+
+test_computed_value('text-fit', 'shrink per-line 40%', 'shrink per-line 40%');
+test_computed_value('text-fit', 'shrink consistent 20%', 'shrink 20%');
+</script>
+</body>

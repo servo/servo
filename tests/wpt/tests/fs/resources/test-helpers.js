@@ -28,11 +28,6 @@ function wfsModesAreContentious(mode1, mode2) {
   return primitiveModesAreContentious('exclusive', mode1, mode2);
 }
 
-// Array of separators used to separate components in hierarchical paths.
-// Consider both '/' and '\' as path separators to ensure file names are
-// platform-agnostic.
-let kPathSeparators = ['/', '\\'];
-
 async function getFileSize(handle) {
   const file = await handle.getFile();
   return file.size;

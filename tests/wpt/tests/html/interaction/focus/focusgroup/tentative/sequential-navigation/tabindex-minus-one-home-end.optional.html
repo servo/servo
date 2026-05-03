@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- This test is optional because the HTML spec does not require that specific
+  behaviors are mapped to specific keyboard buttons. -->
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Home/End from tabindex=-1 element</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div focusgroup="toolbar nomemory">
+  <button id="first" tabindex=0>First</button>
+  <div id="neg" tabindex="-1">Negative</div>
+  <button id="last" tabindex=0>Last</button>
+</div>
+
+<script>
+  promise_test(async t => {
+    const neg = document.getElementById("neg");
+    const first = document.getElementById("first");
+
+    await focusAndSendHomeInput(neg);
+    assert_equals(document.activeElement, first,
+      "Home from tabindex=-1 should move to first keyboard-focusable item");
+  }, "Home from tabindex=-1 navigates to first item in focusgroup");
+
+  promise_test(async t => {
+    const neg = document.getElementById("neg");
+    const last = document.getElementById("last");
+
+    await focusAndSendEndInput(neg);
+    assert_equals(document.activeElement, last,
+      "End from tabindex=-1 should move to last keyboard-focusable item");
+  }, "End from tabindex=-1 navigates to last item in focusgroup");
+</script>

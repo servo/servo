@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Linked Parameters Module Level 1: parsing link-parameters with valid values</title>
+<link rel="author" title="Tyler Thrailkill" href="mailto:tyler@programming.dev">
+<link rel="help" href="https://drafts.csswg.org/css-link-params-1/#link-param-prop">
+<meta name="assert" content="link-parameters supports the full grammar 'none | <param()>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+    test_valid_value("link-parameters", "none", "none");
+
+    test_valid_value("link-parameters", "param(--a, orange)", 'param(--a, orange)');
+    test_valid_value("link-parameters", "param(--a, orange), param(--b, blue)", "param(--a, orange), param(--b, blue)");
+
+    test_valid_value("link-parameters", "param(--a, )", "param(--a, )");
+    test_valid_value("link-parameters", "param(--a, ), param(--b, )", "param(--a, ), param(--b, )");
+
+    test_valid_value("link-parameters", "param(--a)", "param(--a)");
+    test_valid_value("link-parameters", "param(--a), param(--b)", "param(--a), param(--b)");
+
+    test_valid_value("link-parameters", "param(--a", "param(--a)");
+    test_valid_value("link-parameters", "param(--)");
+    test_valid_value("link-parameters", "param(--, --)");
+</script>
+</body>
+</html>

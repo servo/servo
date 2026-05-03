@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<style>
+  [interestfor]::before { content: 'BEFORE'; border: 1px solid lime; }
+  [interestfor]::after { content: 'AFTER'; border: 1px solid lime; }
+  [interestfor]::interest-button { content: 'INTEREST'; }
+</style>
+
+<div id="examples">
+  <a href="#" interestfor="target"><span>Link</span></a>
+  <div id="target"></div>
+</div>

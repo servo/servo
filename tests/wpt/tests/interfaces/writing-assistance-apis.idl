@@ -21,6 +21,7 @@ interface Summarizer {
   readonly attribute SummarizerType type;
   readonly attribute SummarizerFormat format;
   readonly attribute SummarizerLength length;
+  // **EXPERIMENTAL**: Only available in extension and experimental contexts.
   readonly attribute PerformancePreference preference;
 
   readonly attribute FrozenArray<DOMString>? expectedInputLanguages;
@@ -39,6 +40,7 @@ dictionary SummarizerCreateCoreOptions {
   SummarizerType type = "key-points";
   SummarizerFormat format = "markdown";
   SummarizerLength length = "short";
+  // **EXPERIMENTAL**: Only available in extension and experimental contexts.
   PerformancePreference preference = "auto";
 
   sequence<DOMString> expectedInputLanguages;

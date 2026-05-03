@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Top-layer popover excluded from ancestor navigation</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/#top-layer-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div focusgroup="toolbar inline">
+  <button id=before_pop>Before</button>
+  <div id=popover_simple popover>
+    <button id=pop_item>Inside popover</button>
+  </div>
+  <button id=after_pop>After</button>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("popover_simple");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  await assert_directional_navigation_bidirectional([before_pop, after_pop]);
+}, "Arrow navigation skips a shown popover in ancestor focusgroup");
+
+promise_test(async t => {
+  const pop = document.getElementById("popover_simple");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // The popover content is excluded from the ancestor focusgroup. Arrow
+  // keys should not navigate from an element inside the popover.
+  pop_item.focus();
+  assert_equals(document.activeElement, pop_item);
+
+  await assert_directional_input_does_not_move_focus(pop_item);
+}, "Arrow keys do not navigate from inside a top-layer popover without own focusgroup");
+
+</script>
+
+<!--
+  Edge case: the popover is the focusgroup's first child, so excluding it
+  must still leave the remaining items reachable via Home and arrow nav.
+-->
+<div focusgroup="toolbar inline">
+  <div id=first_pop popover>
+    <button id=first_pop_inner>Inside popover</button>
+  </div>
+  <button id=first_a>A</button>
+  <button id=first_b>B</button>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("first_pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // The popover precedes the buttons in DOM order but is excluded, so the
+  // focusgroup behaves as if its items are [A, B] in both directions.
+  await assert_directional_navigation_bidirectional([first_a, first_b]);
+
+  await focusAndSendHomeInput(first_b);
+  assert_equals(document.activeElement, first_a,
+    "Home should land on the first non-excluded item, not on the popover");
+}, "Popover as the first focusgroup child does not break Home/arrow navigation");
+
+</script>
+
+<!--
+  An open popover with focusable content sits between [A, B] and [C, D]
+  in DOM order. The popover is excluded from the ancestor focusgroup, so
+  the two halves form separate segments, each contributing one guaranteed
+  tab stop. The popover content remains a normal (sequential) tab stop in
+  the top layer.
+-->
+<div focusgroup="toolbar inline">
+  <button id=seg_a>A</button>
+  <button id=seg_b>B</button>
+  <div id=seg_pop popover>
+    <button id=seg_x>X</button>
+  </div>
+  <button id=seg_c>C</button>
+  <button id=seg_d>D</button>
+</div>
+<button id=seg_after>After</button>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("seg_pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // The popover splits the focusgroup into two segments, so Tab visits
+  // entry of segment 1 (A), the popover content (X, top-layer tab stop),
+  // and the entry of segment 2 (C) before leaving the focusgroup.
+  await assert_focusgroup_tab_navigation([seg_a, seg_x, seg_c, seg_after]);
+}, "Open popover splits an ancestor focusgroup into two segments");
+
+</script>
+
+<!--
+  When the popover is a sibling of the focusgroup (not a descendant), it
+  must not affect arrow navigation inside the focusgroup at all.
+-->
+<button id=sib_before>before</button>
+<div focusgroup="tablist nomemory">
+  <button id=sib_info>info</button>
+  <button id=sib_toggle commandfor=sib_pop command=toggle-popover>toggle</button>
+  <button id=sib_copy>copy</button>
+</div>
+<button id=sib_after>after</button>
+<div id=sib_pop popover focusgroup="none">
+  <button id=sib_share>share</button>
+</div>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("sib_pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // tablist wraps by default per the focusgroup explainer.
+  await assert_directional_navigation_bidirectional(
+    [sib_info, sib_toggle, sib_copy], /*shouldWrap=*/true);
+}, "Popover sibling of focusgroup does not interfere with arrow navigation");
+
+</script>
+
+<!--
+  A focusgroup="none" popover inside a focusgroup splits its parent into
+  two segments ([info, toggle] and [copy]). The popover content (share) is
+  excluded from focusgroup navigation entirely: arrow keys skip it from
+  the parent and don't move focus from inside it, but Tab still reaches it
+  as a normal sequential tab stop.
+-->
+<button id=none_before>before</button>
+<div focusgroup="tablist nomemory">
+  <button id=none_info>info</button>
+  <button id=none_toggle commandfor=none_pop command=toggle-popover>toggle</button>
+  <div id=none_pop popover focusgroup="none">
+    <button id=none_share>share</button>
+  </div>
+  <button id=none_copy>copy</button>
+</div>
+<button id=none_after>after</button>
+
+<script>
+
+promise_test(async t => {
+  const pop = document.getElementById("none_pop");
+  pop.showPopover();
+  t.add_cleanup(() => pop.hidePopover());
+
+  // Arrow keys in the parent focusgroup skip the focusgroup="none" subtree.
+  await focusAndSendDirectionalInput(none_info, kRight);
+  assert_equals(document.activeElement, none_toggle,
+    "Arrow right from info should advance to toggle");
+  await focusAndSendDirectionalInput(none_toggle, kRight);
+  assert_equals(document.activeElement, none_copy,
+    "Arrow right from toggle should skip the popover and land on copy");
+
+  // share is not a focusgroup item, so arrow keys do not move focus from it.
+  await assert_directional_input_does_not_move_focus(none_share);
+
+  // Tab still reaches share as a normal sequential tab stop. The two
+  // segments contribute one guaranteed tab stop each (info and copy), and
+  // share sits between them in document order.
+  await assert_focusgroup_tab_navigation(
+    [none_before, none_info, none_share, none_copy, none_after]);
+}, "focusgroup=none popover inside focusgroup: arrows skip, Tab reaches");
+
+</script>
+

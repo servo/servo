@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=match href="long-menulist-appearance-ref.html">
+
+<menubar>
+  <menuitem commandfor=menulist command=show-menu>show-menu</menuitem>
+</menubar>
+<menulist id=menulist></menulist>
+
+<script>
+const invoker = document.querySelector('menuitem');
+const menulist = document.getElementById('menulist');
+for (let i = 0; i < 200; i++) {
+  const menuitem = document.createElement('menuitem');
+  menuitem.textContent = `menuitem ${i}`;
+  menulist.appendChild(menuitem);
+}
+menulist.showPopover({source: invoker});
+</script>

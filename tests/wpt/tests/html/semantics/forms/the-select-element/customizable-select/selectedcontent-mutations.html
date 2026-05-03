@@ -459,10 +459,10 @@ const testIdToExpectations = {
       "Type: childList | Target: select | Added: [div] | After: #text: \"\"",
       "Type: childList | Target: select | Added: [#text: \"\"] | After: div",
       "Type: childList | Target: div#test7 | Added: [#text: \"\"] | After: select",
-      "Type: childList | Target: selectedcontent | Added: [#text: \"two\"] | Removed: [#text: \"one\"]",
       "Type: childList | Target: select | Added: [option] | After: #text: \"\"",
-      "Type: childList | Target: selectedcontent | Added: [#text: \"three\"] | Removed: [#text: \"two\"]",
+      "Type: childList | Target: selectedcontent | Added: [#text: \"two\"] | Removed: [#text: \"one\"]",
       "Type: childList | Target: select | Added: [option] | After: option",
+      "Type: childList | Target: selectedcontent | Added: [#text: \"three\"] | Removed: [#text: \"two\"]",
       "Type: childList | Target: selectedcontent | Added: [#text: \"one\"] | Removed: [#text: \"three\"]"
     ]
   },
@@ -496,6 +496,7 @@ const testIdToExpectations = {
       "Type: childList | Target: div#test8 | Added: [#text: \"\"] | After: select",
       "Type: childList | Target: div#test8 | Removed: [select] | After: #text: \"\" | Before: #text: \"\"",
       "Type: childList | Target: div.container | Added: [select]",
+      "Type: childList | Target: selectedcontent | Added: [#text: \"one\"] | Removed: [#text: \"one\"]",
       "Type: childList | Target: selectedcontent | Added: [#text: \"one\"] | Removed: [#text: \"one\"]"
     ]
   }

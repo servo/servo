@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-fit and text-spacing-trim interaction</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-fit-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@font-face {
+  font-family: 'TestFont';
+  /* Use a reliable subset font from WPT resources */
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-chws.otf');
+}
+.test-container {
+  width: 200px;
+  font: 20px/1 'TestFont';
+  border: 1px solid blue;
+  margin-bottom: 20px;
+}
+.consistent-trim {
+  text-fit: grow consistent;
+  text-spacing-trim: trim-start;
+}
+.consistent-notrim {
+  text-fit: grow consistent;
+  text-spacing-trim: none;
+}
+.perline-trim {
+  text-fit: grow per-line-all;
+  text-spacing-trim: trim-start;
+}
+.perline-notrim {
+  text-fit: grow per-line-all;
+  text-spacing-trim: none;
+}
+</style>
+<body>
+
+<!-- Use full-width open bracket which should be trimmed by trim-start -->
+<div class="test-container consistent-trim">（テスト</div>
+<div class="test-container consistent-notrim">（テスト</div>
+<div class="test-container perline-trim">（テスト</div>
+<div class="test-container perline-notrim">（テスト</div>
+
+<script>
+promise_test(async () => {
+  await document.fonts.ready;
+  const trimLineHeight = document.querySelector(".consistent-trim").offsetHeight;
+  const noneLineHeight = document.querySelector(".consistent-notrim").offsetHeight;
+  assert_true(trimLineHeight > noneLineHeight,
+    `trimLineHeight (${trimLineHeight}px) should be greater than` +
+    ` noneLineHeight (${noneLineHeight}px)`);
+}, "[consistent] Check that text-spacing-trim: trim-start scales larger than"+
+   " none because of trimmed start margin");
+
+promise_test(async () => {
+  await document.fonts.ready;
+  const trimLineHeight = document.querySelector(".perline-trim").offsetHeight;
+  const noneLineHeight = document.querySelector(".perline-notrim").offsetHeight;
+  assert_true(trimLineHeight > noneLineHeight,
+    `trimLineHeight (${trimLineHeight}px) should be greater than` +
+    ` noneLineHeight (${noneLineHeight}px)`);
+}, "[per-line-all] Check that text-spacing-trim: trim-start scales larger than"+
+   " none because of trimmed start margin");
+</script>
+</body>

@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>Test: subgrid auto track sizing</title>
+  <link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="match" href="../../../../subgrid/auto-track-sizing-002-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
+}
+
+.grid-lanes {
+  display: inline-grid-lanes;
+  max-width: 260px;
+  padding: 1px 5px;
+  border: 1px solid;
+  width: 100px;
+  grid-lanes-direction: row;
+  grid-auto-flow: column;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-template-columns: 100%;
+  margin: 0px 5px 0px 10px;
+}
+
+.inner {
+  margin: 0px 5px 0px 0px;
+  background: grey;
+}
+  </style>
+</head>
+<article class="grid-lanes">
+  <div class="subgrid" style="margin: 0px 10px 0px 10px; background: grey">
+    The cat can not be separated from milk
+  </div>
+</article>
+
+<article class="grid-lanes">
+  <div class="subgrid">
+    <div class="subgrid inner">
+      The cat can not be separated from milk
+    </div>
+  </div>
+</article>
+
+<article class="grid-lanes" style="grid-lanes-direction: column; grid-auto-flow: row;">
+  <div class="subgrid" style="grid-template-columns: subgrid">
+    <div class="subgrid inner">
+      The cat can not be separated from milk
+    </div>
+  </div>
+</article>
+
+<article class="grid-lanes">
+  <div class="subgrid">
+    <div class="subgrid inner" style="grid-template-columns: subgrid">
+      The cat can not be separated from milk
+    </div>
+  </div>
+</article>
+
+<article class="grid-lanes" style="grid-lanes-direction: column; grid-auto-flow: row;">
+  <div class="subgrid" style="grid-template-columns: subgrid">
+    <div class="subgrid inner" style="grid-template-columns: subgrid">
+      The cat can not be separated from milk
+    </div>
+  </div>
+</article>
+</html>

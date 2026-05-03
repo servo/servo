@@ -447,6 +447,7 @@ interface HTMLImageElement : HTMLElement {
   [CEReactions] attribute DOMString? crossOrigin;
   [CEReactions, Reflect] attribute DOMString useMap;
   [CEReactions, Reflect] attribute boolean isMap;
+  [CEReactions, Reflect] attribute boolean controls;
   [CEReactions, ReflectSetter] attribute unsigned long width;
   [CEReactions, ReflectSetter] attribute unsigned long height;
   readonly attribute unsigned long naturalWidth;
@@ -1275,6 +1276,7 @@ interface HTMLTemplateElement : HTMLElement {
   readonly attribute DocumentFragment content;
   [CEReactions] attribute DOMString shadowRootMode;
   [CEReactions, Reflect] attribute boolean shadowRootDelegatesFocus;
+  [CEReactions] attribute DOMString shadowRootSlotAssignment;
   [CEReactions, Reflect] attribute boolean shadowRootClonable;
   [CEReactions, Reflect] attribute boolean shadowRootSerializable;
   [CEReactions, Reflect] attribute DOMString shadowRootCustomElementRegistry;

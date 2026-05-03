@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>shadowrootadoptedstylesheets behavior with absent and empty values</title>
+<meta name="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com" />
+<link rel="help" href="https://github.com/whatwg/html/pull/11687">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "foo": "data:text/css,span {color:blue}"
+  }
+}
+</script>
+
+<!-- Host whose declarative <template> omits shadowrootadoptedstylesheets entirely. -->
+<div id="host_absent">
+  <template shadowrootmode="open">
+    <span>absent</span>
+  </template>
+</div>
+
+<!-- Host whose declarative <template> sets shadowrootadoptedstylesheets="". -->
+<div id="host_empty">
+  <template shadowrootmode="open" shadowrootadoptedstylesheets="">
+    <span>empty</span>
+  </template>
+</div>
+
+<script>
+test(() => {
+  // Both an absent attribute and an authored empty attribute must produce an
+  // empty adoptedStyleSheets array on the resulting shadow root.
+  const hostAbsent = document.getElementById("host_absent");
+  assert_equals(
+    hostAbsent.shadowRoot.adoptedStyleSheets.length,
+    0,
+    "Omitting shadowrootadoptedstylesheets must result in an empty adoptedStyleSheets array."
+  );
+
+  const hostEmpty = document.getElementById("host_empty");
+  assert_equals(
+    hostEmpty.shadowRoot.adoptedStyleSheets.length,
+    0,
+    "shadowrootadoptedstylesheets=\"\" must result in an empty adoptedStyleSheets array."
+  );
+}, "Declarative shadow roots with absent or empty shadowrootadoptedstylesheets adopt no stylesheets.");
+
+test(() => {
+  // The IDL attribute is on the <template> element. After successful
+  // declarative shadow root attachment the original <template> is removed from
+  // the tree, so we test reflection on a fresh, programmatically-created
+  // template.
+  let template = document.createElement("template");
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "",
+    "Reflected DOMString must return the empty string when the content attribute is absent."
+  );
+  assert_false(
+    template.hasAttribute("shadowrootadoptedstylesheets"),
+    "Getter must not lazily create the content attribute."
+  );
+
+  template = document.createElement("template");
+  template.setAttribute("shadowrootadoptedstylesheets", "");
+  assert_equals(
+    template.shadowRootAdoptedStyleSheets,
+    "",
+    "Empty content attribute reflects to the empty string."
+  );
+  assert_true(
+    template.hasAttribute("shadowrootadoptedstylesheets"),
+    "Authored empty content attribute remains present."
+  );
+}, "shadowRootAdoptedStyleSheets reflects absent and authored-empty content attributes correctly.");
+</script>

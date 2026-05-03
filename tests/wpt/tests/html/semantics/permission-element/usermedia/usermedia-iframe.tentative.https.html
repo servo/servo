@@ -15,7 +15,7 @@ promise_test(async (t) => {
     <usermedia id="um"></usermedia>
     <script>
       const um = document.getElementById('um');
-      um.setConstraints({video: true, audio: true});
+      um.setConstraints({video: {}, audio: {}});
       let onstream_fired = false;
       um.onstream = () => { onstream_fired = true; };
       window.addEventListener('message', async (e) => {

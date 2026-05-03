@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP Exposure Across window.open()</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+
+promise_test(async t => {
+  const origin_a = host_info.HTTPS_ORIGIN;
+  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+
+  // Frame B exposes to A. Parent A can view, but opened window cannot.
+  const iframe_b = document.createElement('iframe');
+  iframe_b.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe_b.allow = 'tools *';
+
+  const load_promise = new Promise(resolve => iframe_b.onload = resolve);
+  document.body.appendChild(iframe_b);
+  t.add_cleanup(() => iframe_b.remove());
+  await load_promise;
+
+  iframe_b.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'tool_b_to_a',
+      description: 'Tool B exposed to A',
+    },
+    options: { exposedTo: [origin_a] }
+  }, '*');
+
+  await new Promise(resolve => {
+    navigator.modelContext.addEventListener('toolchange', resolve, { once: true });
+  });
+
+  // Parent A can view it.
+  const tools = await navigator.modelContext.getTools();
+  assert_true(tools.some(t => t.name === 'tool_b_to_a'), 'Parent A should see tool_b_to_a');
+
+  // Open new window.
+  const opened_window = window.open('about:blank');
+  t.add_cleanup(() => opened_window.close());
+
+  // Newly opened window does not see the tool.
+  const opened_tools = await opened_window.navigator.modelContext.getTools();
+  assert_array_equals(opened_tools, [], "window.open()'d sees no tools");
+}, 'Tools are scoped to a frame tree, and are not exposed across opener boundaries.');
+</script>
+</body>
+</html>

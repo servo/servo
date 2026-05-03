@@ -15,13 +15,16 @@ partial interface RTCRtpReceiver {
     attribute RTCRtpReceiverTransform? transform;
 };
 
-// List of supported cipher suites, as defined in [[RFC9605]] section 4.5.
+// List of supported cipher suites, as defined in [[RFC9605]] section 4.5 and in https://datatracker.ietf.org/doc/draft-barnes-sframe-iana-256/.
 enum SFrameCipherSuite {
      "AES_128_CTR_HMAC_SHA256_80",
      "AES_128_CTR_HMAC_SHA256_64",
      "AES_128_CTR_HMAC_SHA256_32",
      "AES_128_GCM_SHA256_128",
-     "AES_256_GCM_SHA512_128"
+     "AES_256_GCM_SHA512_128",
+     "AES_256_CTR_HMAC_SHA512_80",
+     "AES_256_CTR_HMAC_SHA512_64",
+     "AES_256_CTR_HMAC_SHA512_32"
 };
 
 dictionary SFrameTransformOptions {
@@ -52,26 +55,26 @@ interface mixin SFrameDecrypterManager {
 
 [Exposed=Window]
 interface RTCSFrameSenderTransform {
-    constructor(optional RTCSFrameSenderTransformOptions options = {});
+    constructor(RTCSFrameSenderTransformOptions options);
 };
 RTCSFrameSenderTransform includes SFrameEncrypterManager;
 
 [Exposed=Window]
 interface RTCSFrameReceiverTransform : EventTarget {
-    constructor(optional SFrameTransformOptions options = {});
+    constructor(SFrameTransformOptions options);
 };
 RTCSFrameReceiverTransform includes SFrameDecrypterManager;
 
 [Exposed=(Window,DedicatedWorker)]
 interface SFrameEncrypterStream : EventTarget {
-    constructor(optional SFrameTransformOptions options = {});
+    constructor(SFrameTransformOptions options);
 };
 SFrameEncrypterStream includes GenericTransformStream;
 SFrameEncrypterStream includes SFrameEncrypterManager;
 
 [Exposed=(Window,DedicatedWorker)]
 interface SFrameDecrypterStream : EventTarget {
-    constructor(optional SFrameTransformOptions options = {});
+    constructor(SFrameTransformOptions options);
 };
 SFrameDecrypterStream includes GenericTransformStream;
 SFrameDecrypterStream includes SFrameDecrypterManager;
