@@ -13,7 +13,7 @@ use profile_traits::time::{
 };
 use script_traits::ProgressiveWebMetricType;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_config::opts;
+use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_url::ServoUrl;
 
 /// TODO make this configurable
@@ -52,7 +52,10 @@ fn set_metric(
         metric_time,
     );
 
-    if opts::get().debug.progressive_web_metrics {
+    if opts::get()
+        .debug
+        .is_enabled(DiagnosticsLoggingOption::ProgressiveWebMetrics)
+    {
         let navigation_start = pwm
             .navigation_start()
             .unwrap_or_else(CrossProcessInstant::epoch);

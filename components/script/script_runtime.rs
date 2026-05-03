@@ -62,7 +62,8 @@ use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use script_bindings::settings_stack::run_a_script;
-use servo_config::{opts, pref};
+use servo_config::opts::{self, DiagnosticsLoggingOption};
+use servo_config::pref;
 use style::thread_state::{self, ThreadState};
 
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
@@ -789,7 +790,10 @@ impl Runtime {
                 JS_SetGCCallback(cx, Some(debug_gc_callback), ptr::null_mut());
             }
 
-            if opts::get().debug.gc_profile {
+            if opts::get()
+                .debug
+                .is_enabled(DiagnosticsLoggingOption::GcProfile)
+            {
                 SetGCSliceCallback(cx, Some(gc_slice_callback));
             }
         }

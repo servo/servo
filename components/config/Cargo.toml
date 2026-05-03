@@ -17,4 +17,5 @@ path = "lib.rs"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 servo-config-macro = { workspace = true }
+strum = { workspace = true }
 stylo_static_prefs = { workspace = true }

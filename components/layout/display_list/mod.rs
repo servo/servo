@@ -15,7 +15,7 @@ use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
-use servo_config::opts::DiagnosticsLogging;
+use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
 use style::Zero;
@@ -191,7 +191,7 @@ impl DisplayListBuilder<'_> {
         // the display list for printing the serialized version when `finalize()` is called.
         // We need to call this before adding any display items so that they are printed
         // during `finalize()`.
-        if debug.display_list {
+        if debug.is_enabled(DiagnosticsLoggingOption::DisplayList) {
             webrender_display_list_builder.dump_serialized_display_list();
         }
 

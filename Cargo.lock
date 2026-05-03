@@ -7663,6 +7663,7 @@ dependencies = [
  "serde",
  "serde_json",
  "servo-config-macro",
+ "strum",
  "stylo_static_prefs",
 ]
 

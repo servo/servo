@@ -19,7 +19,8 @@ use log::warn;
 use serde_json::Value;
 use servo::user_contents::UserStyleSheet;
 use servo::{
-    DeviceIndependentPixel, DiagnosticsLogging, Opts, OutputOptions, PrefValue, Preferences,
+    DeviceIndependentPixel, DiagnosticsLogging, DiagnosticsLoggingOption, Opts, OutputOptions,
+    PrefValue, Preferences,
 };
 use url::Url;
 
@@ -708,15 +709,9 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         ..Default::default()
     };
 
-    let mut debug_options = DiagnosticsLogging::new();
-
-    // Parse -Z command-line flags.
-    for debug_string in cmd_args.debug {
-        if let Err(error) = debug_options.extend_from_string(&debug_string) {
-            eprintln!("Could not parse debug logging option: {error}");
-            return ArgumentParsingResult::ErrorParsing;
-        }
-    }
+    let Ok(debug_options) = parse_diagnostics_logging(cmd_args.debug) else {
+        return ArgumentParsingResult::ErrorParsing;
+    };
 
     let opts = Opts {
         debug: debug_options,
@@ -746,6 +741,34 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
     };
 
     ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences)
+}
+
+/// Parse the '-Z' command-line flags.
+fn parse_diagnostics_logging(cli_options: Vec<String>) -> Result<DiagnosticsLogging, ()> {
+    fn print_option(name: &str, description: &str) {
+        println!("\t{:<35} {}", name, description);
+    }
+
+    if cli_options.contains(&"help".into()) {
+        // TODO: Remove hardcoded binary name by perhaps receiving this as an argument.
+        println!("Usage: servoshell -Z option,[option,...]\n\twhere options include:");
+        print_option("help", "Show this help message");
+        for option in DiagnosticsLoggingOption::iter() {
+            print_option(option.help_option(), option.help_message())
+        }
+
+        std::process::exit(0);
+    }
+
+    let mut diagnostics_logging = DiagnosticsLogging::new();
+    for cli_option in cli_options.iter() {
+        if let Err(error) = diagnostics_logging.extend_from_string(cli_option) {
+            eprintln!("Could not parse debug logging option: {error}");
+            return Err(());
+        }
+    }
+
+    Ok(diagnostics_logging)
 }
 
 #[cfg(test)]
