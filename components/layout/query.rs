@@ -553,7 +553,7 @@ fn shorthand_to_css_string(
                 longhand,
                 Some(&mut Context {
                     style,
-                    for_property: longhand.into(),
+                    for_property: PropertyId::NonCustom(longhand.into()),
                     current_longhand: None,
                 }),
             ),
