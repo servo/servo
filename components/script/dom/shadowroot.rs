@@ -542,7 +542,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
-    event_handler!(onslotchange, GetOnslotchange, SetOnslotchange);
+    event_handler!(slotchange, GetOnslotchange, SetOnslotchange);
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     fn AdoptedStyleSheets(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
