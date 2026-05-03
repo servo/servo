@@ -2082,7 +2082,7 @@ fn create_element_for_token(
     // checkedness based on the element's attributes.)
     if let Some(html_element) = element.downcast::<HTMLElement>() {
         if element.is_resettable() && !html_element.is_form_associated_custom_element() {
-            element.reset(CanGc::from_cx(cx));
+            element.reset(cx);
         }
     }
 

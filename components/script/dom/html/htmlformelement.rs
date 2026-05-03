@@ -145,7 +145,7 @@ impl HTMLFormElement {
     }
 
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -293,7 +293,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit>
-    fn Submit(&self, cx: &mut js::context::JSContext) {
+    fn Submit(&self, cx: &mut JSContext) {
         self.submit(
             cx,
             SubmittedFrom::FromForm,
@@ -302,11 +302,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-requestsubmit>
-    fn RequestSubmit(
-        &self,
-        cx: &mut js::context::JSContext,
-        submitter: Option<&HTMLElement>,
-    ) -> Fallible<()> {
+    fn RequestSubmit(&self, cx: &mut JSContext, submitter: Option<&HTMLElement>) -> Fallible<()> {
         let submitter: FormSubmitterElement = match submitter {
             Some(submitter_element) => {
                 // Step 1.1
@@ -367,7 +363,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reset>
-    fn Reset(&self, cx: &mut js::context::JSContext) {
+    fn Reset(&self, cx: &mut JSContext) {
         self.reset(cx, ResetFrom::FromForm);
     }
 
@@ -739,7 +735,7 @@ impl HTMLFormElement {
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub(crate) fn submit(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         submit_method_flag: SubmittedFrom,
         submitter: FormSubmitterElement,
     ) {
@@ -990,7 +986,7 @@ impl HTMLFormElement {
     #[allow(clippy::too_many_arguments)]
     fn submit_entity_body(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         form_data: &mut [FormDatum],
         mut load_data: LoadData,
         enctype: FormEncType,
@@ -1157,7 +1153,7 @@ impl HTMLFormElement {
 
     /// Interactively validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
-    fn interactive_validation(&self, cx: &mut js::context::JSContext) -> Result<(), ()> {
+    fn interactive_validation(&self, cx: &mut JSContext) -> Result<(), ()> {
         // Step 1 - 2: Statically validate the constraints of form,
         // and let `unhandled invalid controls` be the list of elements
         // returned if the result was negative.
@@ -1197,10 +1193,7 @@ impl HTMLFormElement {
 
     /// Statitically validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
-    fn static_validation(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> Result<(), Vec<DomRoot<Element>>> {
+    fn static_validation(&self, cx: &mut JSContext) -> Result<(), Vec<DomRoot<Element>>> {
         // Step 1-3
         let invalid_controls = self
             .controls
@@ -1379,7 +1372,7 @@ impl HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reset>
-    pub(crate) fn reset(&self, cx: &mut js::context::JSContext, _reset_method_flag: ResetFrom) {
+    pub(crate) fn reset(&self, cx: &mut JSContext, _reset_method_flag: ResetFrom) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
@@ -1405,7 +1398,7 @@ impl HTMLFormElement {
             .collect();
 
         for child in controls {
-            child.reset(CanGc::from_cx(cx));
+            child.reset(cx);
         }
         self.marked_for_reset.set(false);
     }
@@ -1468,12 +1461,7 @@ impl Element {
         )
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn reset(&self, _can_gc: CanGc) {
-        // TODO https://github.com/servo/servo/issues/44652
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    pub(crate) fn reset(&self, cx: &mut JSContext) {
         if !self.is_resettable() {
             return;
         }
@@ -1891,7 +1879,7 @@ impl VirtualMethods for HTMLFormElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
+    fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
         // Collect the controls to reset because reset_form_owner
@@ -1925,7 +1913,7 @@ impl VirtualMethods for HTMLFormElement {
 
     fn attribute_mutated(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         attr: AttrRef<'_>,
         mutation: AttributeMutation,
     ) {
