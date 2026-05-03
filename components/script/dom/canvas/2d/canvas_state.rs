@@ -2608,33 +2608,30 @@ pub(super) fn parse_color(
     let url = Url::parse("about:blank").unwrap().into();
     let context =
         parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
-    match Color::parse_and_compute(&context, &mut parser, None) {
-        Some(color) => {
-            // TODO: https://github.com/whatwg/html/issues/1099
-            // Reconsider how to calculate currentColor in a display:none canvas
+    Color::parse_and_compute(&context, &mut parser, None).map(|color| {
+        // TODO: https://github.com/whatwg/html/issues/1099
+        // Reconsider how to calculate currentColor in a display:none canvas
 
-            // TODO: will need to check that the context bitmap mode is fixed
-            // once we implement CanvasProxy
-            let current_color = match canvas {
-                // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
-                // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
-                // it is treated as opaque black.
-                None => AbsoluteColor::BLACK,
-                Some(canvas) => {
-                    let canvas_element = canvas.upcast::<Element>();
-                    match canvas_element.style() {
-                        Some(ref s) if canvas_element.has_css_layout_box() => {
-                            s.get_inherited_text().color
-                        },
-                        _ => AbsoluteColor::BLACK,
-                    }
-                },
-            };
+        // TODO: will need to check that the context bitmap mode is fixed
+        // once we implement CanvasProxy
+        let current_color = match canvas {
+            // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
+            // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
+            // it is treated as opaque black.
+            None => AbsoluteColor::BLACK,
+            Some(canvas) => {
+                let canvas_element = canvas.upcast::<Element>();
+                match canvas_element.style() {
+                    Some(ref s) if canvas_element.has_css_layout_box() => {
+                        s.get_inherited_text().color
+                    },
+                    _ => AbsoluteColor::BLACK,
+                }
+            },
+        };
 
-            Ok(color.resolve_to_absolute(&current_color))
-        },
-        None => Err(()),
-    }
+        color.resolve_to_absolute(&current_color)
+    })
 }
 
 // Used by drawImage to determine if a source or destination rectangle is valid
