@@ -914,6 +914,7 @@ pub(crate) fn create_array_buffer_with_size(
 
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DataBlock {
     #[conditional_malloc_size_of]
     data: Arc<Box<[u8]>>,
@@ -1005,7 +1006,7 @@ impl DataBlock {
 
 #[cfg(feature = "webgpu")]
 #[derive(JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DataView {
     #[no_trace]
     range: Range<usize>,
