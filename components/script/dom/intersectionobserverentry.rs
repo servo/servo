@@ -5,6 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use super::bindings::codegen::Bindings::IntersectionObserverEntryBinding::{
@@ -12,13 +13,11 @@ use super::bindings::codegen::Bindings::IntersectionObserverEntryBinding::{
 };
 use super::bindings::num::Finite;
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
-
 /// An individual IntersectionObserver entry.
 ///
 /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-entry>
@@ -70,6 +69,7 @@ impl IntersectionObserverEntry {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         time: Finite<f64>,
@@ -80,7 +80,6 @@ impl IntersectionObserverEntry {
         is_visible: bool,
         intersection_ratio: Finite<f64>,
         target: &Element,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let observer = Box::new(Self::new_inherited(
             time,
@@ -92,22 +91,17 @@ impl IntersectionObserverEntry {
             intersection_ratio,
             target,
         ));
-        reflect_dom_object_with_proto(observer, window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(observer, window, proto, cx)
     }
 
     fn new_from_dictionary(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         init: &IntersectionObserverEntryInit,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let domrectreadonly_from_dictionary = |dictionary: &DOMRectInit| {
-            DOMRectReadOnly::new_from_dictionary(
-                window.as_global_scope(),
-                proto,
-                dictionary,
-                can_gc,
-            )
+        let mut domrectreadonly_from_dictionary = |dictionary: &DOMRectInit| {
+            DOMRectReadOnly::new_from_dictionary(cx, window.as_global_scope(), proto, dictionary)
         };
         let observer = Box::new(Self::new_inherited(
             init.time,
@@ -119,7 +113,7 @@ impl IntersectionObserverEntry {
             init.intersectionRatio,
             &init.target,
         ));
-        reflect_dom_object_with_proto(observer, window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(observer, window, proto, cx)
     }
 }
 
@@ -197,11 +191,11 @@ impl IntersectionObserverEntryMethods<crate::DomTypeHolder> for IntersectionObse
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverentry-intersectionobserverentry>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         init: &IntersectionObserverEntryInit,
     ) -> DomRoot<IntersectionObserverEntry> {
-        Self::new_from_dictionary(window, proto, init, can_gc)
+        Self::new_from_dictionary(cx, window, proto, init)
     }
 }

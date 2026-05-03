@@ -1264,8 +1264,7 @@ impl ScriptThread {
             // > passing in the relative high resolution time given now and
             // > doc's relevant global object as the timestamp. [INTERSECTIONOBSERVER]
             // TODO(stevennovaryo): The time attribute should be relative to the time origin of the global object
-            document
-                .update_intersection_observer_steps(CrossProcessInstant::now(), CanGc::from_cx(cx));
+            document.update_intersection_observer_steps(cx, CrossProcessInstant::now());
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 

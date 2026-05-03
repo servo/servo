@@ -3137,21 +3137,21 @@ impl Document {
     /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     pub(crate) fn update_intersection_observer_steps(
         &self,
+        cx: &mut js::context::JSContext,
         time: CrossProcessInstant,
-        can_gc: CanGc,
     ) {
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {
-            self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
+            self.update_single_intersection_observer_steps(cx, intersection_observer, time);
         }
     }
 
     /// Step 2.1-2.2 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     fn update_single_intersection_observer_steps(
         &self,
+        cx: &mut js::context::JSContext,
         intersection_observer: &IntersectionObserver,
         time: CrossProcessInstant,
-        can_gc: CanGc,
     ) {
         // Step 1
         // > Let rootBounds be observer’s root intersection rectangle.
@@ -3160,12 +3160,7 @@ impl Document {
         // Step 2
         // > For each target in observer’s internal [[ObservationTargets]] slot,
         // > processed in the same order that observe() was called on each target:
-        intersection_observer.update_intersection_observations_steps(
-            self,
-            time,
-            root_bounds,
-            can_gc,
-        );
+        intersection_observer.update_intersection_observations_steps(cx, self, time, root_bounds);
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>

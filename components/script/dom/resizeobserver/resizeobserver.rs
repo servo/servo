@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::RenderingUpdateReason;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
@@ -71,13 +71,13 @@ impl ResizeObserver {
     }
 
     fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         callback: Rc<ResizeObserverCallback>,
-        can_gc: CanGc,
     ) -> DomRoot<ResizeObserver> {
         let observer = Box::new(ResizeObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(observer, window, proto, can_gc)
+        reflect_dom_object_with_proto_and_cx(observer, window, proto, cx)
     }
 
     /// Step 2 of <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
@@ -136,12 +136,7 @@ impl ResizeObserver {
             has_active_observation_targets = true;
 
             let window = target.owner_window();
-            let entry = create_and_populate_a_resizeobserverentry(
-                &window,
-                target,
-                observation,
-                CanGc::from_cx(cx),
-            );
+            let entry = create_and_populate_a_resizeobserverentry(cx, &window, target, observation);
             entries.push(entry);
             observation.state = ObservationState::Done;
 
@@ -175,10 +170,10 @@ impl ResizeObserver {
 
 /// <https://drafts.csswg.org/resize-observer/#create-and-populate-a-resizeobserverentry>
 fn create_and_populate_a_resizeobserverentry(
+    cx: &mut JSContext,
     window: &Window,
     target: &Element,
     observation: &mut ResizeObservation,
-    can_gc: CanGc,
 ) -> DomRoot<ResizeObserverEntry> {
     // Step 3. Set this.borderBoxSize slot to result of calculating box size given target and observedBox of "border-box".
     let border_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Border_box);
@@ -220,24 +215,24 @@ fn create_and_populate_a_resizeobserverentry(
 
     // Step 6. Set this.contentRect to logical this.contentBoxSize given target and observedBox of "content-box".
     let content_rect = DOMRectReadOnly::new(
+        cx,
         window.upcast(),
         None,
         padding_left.to_f64_px(),
         padding_top.to_f64_px(),
         content_box_size.width(),
         content_box_size.height(),
-        can_gc,
     );
 
     let border_box_size = ResizeObserverSize::new(
         window,
         ResizeObserverSizeImpl::new(border_box_size.width(), border_box_size.height()),
-        can_gc,
+        CanGc::from_cx(cx),
     );
     let content_box_size = ResizeObserverSize::new(
         window,
         ResizeObserverSizeImpl::new(content_box_size.width(), content_box_size.height()),
-        can_gc,
+        CanGc::from_cx(cx),
     );
     let device_pixel_content_box = ResizeObserverSize::new(
         window,
@@ -245,7 +240,7 @@ fn create_and_populate_a_resizeobserverentry(
             device_pixel_content_box.width(),
             device_pixel_content_box.height(),
         ),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 1. Let this be a new ResizeObserverEntry.
@@ -257,19 +252,19 @@ fn create_and_populate_a_resizeobserverentry(
         &[&*border_box_size],
         &[&*content_box_size],
         &[&*device_pixel_content_box],
-        can_gc,
+        CanGc::from_cx(cx),
     )
 }
 
 impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         callback: Rc<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
-        let rooted_observer = ResizeObserver::new(window, proto, callback, can_gc);
+        let rooted_observer = ResizeObserver::new(cx, window, proto, callback);
         let document = window.Document();
         document.add_resize_observer(&rooted_observer);
         rooted_observer

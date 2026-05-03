@@ -10,6 +10,7 @@ use app_units::Au;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
+use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_geometry::f32_rect_to_au_rect;
@@ -31,7 +32,7 @@ use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementO
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -41,7 +42,7 @@ use crate::dom::element::Element;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
 /// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
@@ -130,11 +131,11 @@ impl IntersectionObserver {
 
     /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
     fn new(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3.
         // > Attempt to parse a margin from options.rootMargin. If a list is returned,
@@ -159,7 +160,7 @@ impl IntersectionObserver {
         // > 2. Set this’s internal [[callback]] slot to callback.
         // > 3. ... set this’s internal [[rootMargin]] slot to that.
         // > 4. ... set this’s internal [[scrollMargin]] slot to that.
-        let observer = reflect_dom_object_with_proto(
+        let observer = reflect_dom_object_with_proto_and_cx(
             Box::new(Self::new_inherited(
                 window,
                 callback,
@@ -169,7 +170,7 @@ impl IntersectionObserver {
             )),
             window,
             proto,
-            can_gc,
+            cx,
         );
 
         // Step 5-13
@@ -309,6 +310,7 @@ impl IntersectionObserver {
     #[allow(clippy::too_many_arguments)]
     fn queue_an_intersectionobserverentry(
         &self,
+        cx: &mut JSContext,
         document: &Document,
         time: CrossProcessInstant,
         root_bounds: Rect<Au, CSSPixel>,
@@ -318,17 +320,16 @@ impl IntersectionObserver {
         is_visible: bool,
         intersection_ratio: f64,
         target: &Element,
-        can_gc: CanGc,
     ) {
-        let rect_to_domrectreadonly = |rect: Rect<Au, CSSPixel>| {
+        let mut rect_to_domrectreadonly = |rect: Rect<Au, CSSPixel>| {
             DOMRectReadOnly::new(
+                cx,
                 self.owner_doc.window().as_global_scope(),
                 None,
                 rect.origin.x.to_f64_px(),
                 rect.origin.y.to_f64_px(),
                 rect.size.width.to_f64_px(),
                 rect.size.height.to_f64_px(),
-                can_gc,
             )
         };
 
@@ -342,6 +343,7 @@ impl IntersectionObserver {
         // > 2. Append it to observer’s internal [[QueuedEntries]] slot.
         self.queued_entries.borrow_mut().push(
             IntersectionObserverEntry::new(
+                cx,
                 self.owner_doc.window(),
                 None,
                 document
@@ -355,7 +357,6 @@ impl IntersectionObserver {
                 is_visible,
                 Finite::wrap(intersection_ratio),
                 target,
-                can_gc,
             )
             .as_traced(),
         );
@@ -597,10 +598,10 @@ impl IntersectionObserver {
     /// Step 2.2.1-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
     pub(crate) fn update_intersection_observations_steps(
         &self,
+        cx: &mut JSContext,
         document: &Document,
         time: CrossProcessInstant,
         root_bounds: Option<Rect<Au, CSSPixel>>,
-        can_gc: CanGc,
     ) {
         for target in &*self.observation_targets.borrow() {
             // Step 1
@@ -644,6 +645,7 @@ impl IntersectionObserver {
                 // TODO(stevennovaryo): Per IntersectionObserverEntry interface, the rootBounds
                 //                      should be null for cross-origin-domain target.
                 self.queue_an_intersectionobserverentry(
+                    cx,
                     document,
                     time,
                     intersection_output.root_bounds,
@@ -653,7 +655,6 @@ impl IntersectionObserver {
                     intersection_output.is_visible,
                     intersection_output.intersection_ratio,
                     target,
-                    can_gc,
                 );
             }
 
@@ -720,8 +721,13 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > constructor, or the sequence is empty, the value of this attribute will be `[0]`.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
-    fn Thresholds(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(&self.thresholds.borrow(), context, retval, can_gc);
+    fn Thresholds(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        to_frozen_array(
+            &self.thresholds.borrow(),
+            cx.into(),
+            retval,
+            CanGc::from_cx(cx),
+        );
     }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from
@@ -780,13 +786,13 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-intersectionobserver>
     fn Constructor(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         callback: Rc<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<IntersectionObserver>> {
-        Self::new(window, proto, callback, init, can_gc)
+        Self::new(cx, window, proto, callback, init)
     }
 }
 

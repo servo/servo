@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
+    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto_and_cx,
 };
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
@@ -45,33 +45,33 @@ impl DOMRectReadOnly {
     }
 
     pub(crate) fn new(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
     pub(crate) fn new_from_dictionary(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         dictionary: &DOMRectInit,
-        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(create_a_domrectreadonly_from_the_dictionary(dictionary)),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 
@@ -95,17 +95,15 @@ impl DOMRectReadOnly {
 impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     /// <https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrectreadonly>
     fn Constructor(
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRectReadOnly>> {
-        Ok(DOMRectReadOnly::new(
-            global, proto, x, y, width, height, can_gc,
-        ))
+        Ok(DOMRectReadOnly::new(cx, global, proto, x, y, width, height))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
@@ -218,22 +216,25 @@ impl Serializable for DOMRectReadOnly {
         Ok((DomRectId::new(), serialized))
     }
 
+    #[expect(unsafe_code)]
     fn deserialize(
         owner: &GlobalScope,
         serialized: Self::Data,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Result<DomRoot<Self>, ()>
     where
         Self: Sized,
     {
+        // TODO: https://github.com/servo/servo/issues/44588
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         Ok(Self::new(
+            &mut cx,
             owner,
             None,
             serialized.x,
             serialized.y,
             serialized.width,
             serialized.height,
-            can_gc,
         ))
     }
 
