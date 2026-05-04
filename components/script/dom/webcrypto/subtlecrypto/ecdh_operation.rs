@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use elliptic_curve::SecretKey;
+use elliptic_curve::generic_array::typenum::Unsigned;
 use elliptic_curve::rand_core::OsRng;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
+use elliptic_curve::{Curve, SecretKey};
 use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
@@ -1349,4 +1350,32 @@ pub(crate) fn get_public_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     ec_common::get_public_key(cx, global, key, algorithm, usages)
+}
+
+/// Given a normalizedAlgorithm (an EcdhKeyDeriveParams dictionary), return the length of the secret
+/// derived by the named curve specified by the `named_curve` member of the `[[algorithm]]` slot of
+/// the `public` member of normalizedAlgorithm.
+pub(crate) fn secret_length(
+    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+) -> Result<u32, Error> {
+    let public_key = normalized_algorithm.public.root();
+    let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = public_key.algorithm() else {
+        return Err(Error::Operation(Some(
+            "The key is not an elliptic curve algorithm key".to_string(),
+        )));
+    };
+
+    let secret_length_in_bits = match algorithm.named_curve.as_str() {
+        NAMED_CURVE_P256 => <NistP256 as Curve>::FieldBytesSize::to_u32(),
+        NAMED_CURVE_P384 => <NistP384 as Curve>::FieldBytesSize::to_u32(),
+        NAMED_CURVE_P521 => <NistP521 as Curve>::FieldBytesSize::to_u32(),
+        named_curve => {
+            return Err(Error::NotSupported(Some(format!(
+                "Unsupported namedCurve: {}",
+                named_curve
+            ))));
+        },
+    };
+
+    Ok(secret_length_in_bits)
 }
